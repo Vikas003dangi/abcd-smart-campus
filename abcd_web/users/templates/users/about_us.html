@@ -1,0 +1,338 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}About Us - ABCD Coaching & Library{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  /* -------- ABOUT PAGE LAYOUT -------- */
+  .about-wrapper {
+    max-width: 1150px;
+    margin: 20px auto 60px;
+    padding: 0 20px;
+  }
+
+  .hero-card {
+    background: linear-gradient(135deg, #6f7eed, #8b4bb2);
+    border-radius: 18px;
+    padding: 22px 26px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    color: #fff;
+  }
+
+  body.dark-theme .hero-card {
+    background: linear-gradient(135deg, #071656 0%, #32085c 40%, #140347 100%);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, .6);
+  }
+
+  .hero-title {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+  }
+
+  .hero-sub {
+    font-size: .9rem;
+    opacity: 0.94;
+    max-width: 760px;
+  }
+
+  .hero-tags {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: .75rem;
+  }
+
+  .hero-tag {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .about-layout {
+    display: grid;
+    grid-template-columns: 2fr 1.5fr;
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  /* cards in light theme: lighter, with subtle border */
+  .card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 18px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    font-size: .88rem;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    color: #222;
+  }
+
+  .card h3 {
+    margin-bottom: 10px;
+    font-size: 1.05rem;
+    color: #4a2f86;
+  }
+
+  .card p {
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .story-list {
+    margin-top: 6px;
+  }
+
+  .story-list li {
+    margin-left: 18px;
+    margin-bottom: 4px;
+  }
+
+  .split-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .mini-card {
+    background: #f6f2ff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-size: .8rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .mini-card h4 {
+    margin-bottom: 6px;
+    font-size: .85rem;
+    color: #4a2f86;
+  }
+
+  .badge-row {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: .72rem;
+  }
+
+  .badge {
+    border-radius: 999px;
+    padding: 4px 9px;
+    background: #f6f2ff;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    color: #333;
+  }
+
+  .contact-list p {
+    margin-bottom: 6px;
+  }
+
+  .contact-list a {
+    color: #0b63ce;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .contact-list a:hover {
+    text-decoration: underline;
+    color: #063a7a;
+  }
+
+  /* dark-theme overrides for cards */
+  body.dark-theme .card {
+    background: linear-gradient(135deg, rgba(30, 24, 76, 0.95) 0%, rgba(48, 35, 105, 0.92) 50%, rgba(26, 20, 64, 0.95) 100%);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #f7f3ff;
+  }
+
+  body.dark-theme .card h3 {
+    color: #ffe7ff;
+  }
+
+  body.dark-theme .mini-card {
+    background: linear-gradient(135deg, rgba(68, 46, 112, 0.75) 0%, rgba(92, 58, 148, 0.75) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  body.dark-theme .badge {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: #fff;
+  }
+
+  body.dark-theme .contact-list a {
+    color: #ffdd88;
+  }
+
+  body.dark-theme .contact-list a:hover {
+    color: #ffffff;
+  }
+
+  body.dark-theme .mini-card h4 {
+    color: #e0b3ff;
+  }
+
+  .founder-photo-wrapper {
+    width: 130px;
+    height: 130px;
+    margin: 15px auto;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #8b4bb2;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+  }
+
+  .founder-photo-wrapper:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.25);
+  }
+
+  body.dark-theme .founder-photo-wrapper {
+    border-color: #ffe7ff;
+  }
+
+  /* RESPONSIVE */
+  @media(max-width:1000px) {
+    .about-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="about-wrapper">
+  <section class="hero-card">
+    <h2 class="hero-title">About ABCD Coaching & Library</h2>
+    <p class="hero-sub">
+      ABCD Coaching & Library is a focused learning space where English grammar coaching and
+      serious self-study come together. Since 2013, we’ve helped students build strong English,
+      confidence and exam discipline – and since 2017 we’ve provided a peaceful, full-day library
+      from <strong>8:00 AM to 8:30 PM</strong>.
+    </p>
+    <div class="hero-tags">
+      <span class="hero-tag">Founder &amp; Head Faculty: <strong>Sandeep Raghuwanshi</strong></span>
+      <span class="hero-tag">Basoda, Madhya Pradesh</span>
+      <span class="hero-tag">Coaching · Library · Guidance</span>
+      <span class="hero-tag">Established 2013 · Library since 2017</span>
+    </div>
+  </section>
+
+  <section class="about-layout">
+    <!-- LEFT COLUMN -->
+    <div>
+      <div class="card">
+        <h3>Our Story</h3>
+        <p>
+          ABCD Coaching & Library began with a simple belief:
+          <em>"Any Body Can Do"</em> when they get clear teaching and a calm place to study.
+        </p>
+        <p>
+          Under the guidance of <strong>Mr. Sandeep Raghuwanshi</strong>, we have helped
+          students improve their English, build confidence and prepare for competitive and
+          school exams with proper study discipline.
+        </p>
+
+        <div class="split-columns story-list">
+          <div class="mini-card">
+            <h4>🎓 Coaching</h4>
+            <ul>
+              <li>Strong foundation in English grammar</li>
+              <li>Concept-based teaching – not just cramming</li>
+              <li>Regular practice, testing and feedback</li>
+              <li>Small batches for personal attention</li>
+            </ul>
+          </div>
+          <div class="mini-card">
+            <h4>📚 Library</h4>
+            <ul>
+              <li>Peaceful, dedicated reading hall</li>
+              <li>Neat, clean and well-ventilated environment</li>
+              <li>Filtered water &amp; basic facilities</li>
+              <li>Flexible study hours (8:00 AM – 8:30 PM)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Our Values</h3>
+        <div class="split-columns">
+          <div class="mini-card">
+            <h4>Concept First</h4>
+            <p>We focus on understanding, not memorising rules.</p>
+          </div>
+          <div class="mini-card">
+            <h4>Discipline &amp; Consistency</h4>
+            <p>Fixed timing, proper rules and a serious study culture.</p>
+          </div>
+          <div class="mini-card">
+            <h4>Honest Guidance</h4>
+            <p>Clear feedback about your level, progress and next steps.</p>
+          </div>
+          <div class="mini-card">
+            <h4>Safe Environment</h4>
+            <p>Respectful, supportive and comfortable space for all students.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div>
+      <div class="card" style="text-align: center;">
+        <h3>Meet the Founder</h3>
+        <div class="founder-photo-wrapper">
+          <img src="{% static 'data/sandeep sir photo.jpeg' %}" alt="Sandeep Raghuwanshi" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        <p><strong>Sandeep Raghuwanshi</strong></p>
+        <p style="font-size:.82rem;opacity:.95;">
+          English Grammar and Spoken Teacher &amp; Library Owner
+        </p>
+        <p style="margin-top:12px; text-align: left; line-height: 1.6;">
+          Sandeep Sir is known for his clear explanations, disciplined teaching style and
+          friendly nature. Since 2013, hundreds of students from Basoda and nearby areas have
+          improved their grammar, written English and confidence with his guidance.
+        </p>
+
+        <div class="badge-row" style="justify-content: center; margin-top: 15px;">
+          <span class="badge">10+ years of teaching experience*</span>
+          <span class="badge">Special focus on Grammar &amp; Spoken English</span>
+          <span class="badge">Reliable institute for serious learners</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Contact &amp; Location</h3>
+        <div class="contact-list">
+          <p><strong>Institute:</strong> ABCD Coaching &amp; Library, Basoda, Madhya Pradesh</p>
+          <p>
+            <strong>Phone:</strong>
+            <a href="tel:+919827662450">+91 98276 62450</a>
+          </p>
+          <p>
+            <strong>WhatsApp:</strong>
+            <a href="https://wa.me/919827662450" target="_blank">Chat on WhatsApp</a>
+          </p>
+          <p>
+            <strong>Email (Primary):</strong>
+            <a href="mailto:abcd2013baq@gmail.com">abcd2013baq@gmail.com</a>
+          </p>
+          <p>
+            <strong>Email (Support):</strong>
+            <a href="mailto:support@abcd2013.online">support@abcd2013.online</a>
+          </p>
+          <p><strong>Timings:</strong> Every day, 8:00 AM – 8:30 PM</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

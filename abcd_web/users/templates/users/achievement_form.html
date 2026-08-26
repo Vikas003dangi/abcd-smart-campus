@@ -1,0 +1,1161 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Achievement Form - ABCD{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* --- SHARED STYLES FROM ADMISSION FORM --- */
+    .form-container {
+        max-width: 850px;
+        margin: 40px auto;
+        background: #fff7eb;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* --- MATCH ADMISSION FORM: HIDE DASHBOARD NAVBAR --- */
+    .top-nav-menu, 
+    .nav-sidebar, 
+    .sidebar-overlay, 
+    .hamburger-icon,
+    .sidebar-wrapper,
+    .bottom-nav-menu {
+        display: none !important;
+    }
+
+    /* --- BACK BUTTON STYLE --- */
+    .back-btn {
+        display: inline-block;
+        background-color: #d2d2d2;
+        border: 1px solid #667eea;
+        border-radius: 5px;
+        padding: 5px 15px;
+        margin-bottom: 25px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+        background-color: #667eea;
+        color: #fff;
+    }
+
+    .form-header {
+        background: linear-gradient(135deg, #556dd6 0%, #61358d 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .form-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+
+    .form-body {
+        padding: 40px;
+    }
+
+    .form-section-title {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin: 40px 0 25px;
+        color: #61358d;
+        font-weight: 800;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+    
+    .form-section-title::after {
+        content: "";
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(to right, #eee, transparent);
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #333;
+        font-size: 1rem;
+    }
+
+    .required {
+        color: #e74c3c;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #e1e8ed;
+        border-radius: 12px;
+        font-size: 1rem;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+        color: #333;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+    }
+
+    /* --- WHEEL PICKER STYLES --- */
+    .wheel-picker-container {
+        display: flex;
+        height: 200px;
+        background: #f8f9fa;
+        border: 2px solid #e1e8ed;
+        border-radius: 16px;
+        position: relative;
+        overflow: hidden;
+        mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+    }
+
+    .wheel-col {
+        flex: 1;
+        height: 100%;
+        overflow-y: scroll;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        text-align: center;
+        scroll-snap-type: y mandatory;
+        padding: 80px 0;
+    }
+
+    .wheel-col::-webkit-scrollbar { display: none; }
+
+    .wheel-item {
+        height: 40px;
+        line-height: 40px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #999;
+        scroll-snap-align: center;
+        transition: 0.2s;
+    }
+
+    .wheel-item.selected {
+        color: #61358d;
+        transform: scale(1.15);
+    }
+
+    .wheel-highlight {
+        position: absolute;
+        top: 50%;
+        left: 10px;
+        right: 10px;
+        height: 42px;
+        transform: translateY(-50%);
+        background: rgba(97, 53, 141, 0.08);
+        border-top: 1px solid #e1e8ed;
+        border-bottom: 1px solid #e1e8ed;
+    }
+
+    /* Custom Premium Select Dropdowns */
+    .abcd-select-wrapper {
+        position: relative;
+        width: 100%;
+        user-select: none;
+    }
+
+    .abcd-select-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 12px 18px;
+        border: 2px solid #e1e8ed;
+        border-radius: 12px;
+        background: #f8f9fa;
+        color: #333;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .abcd-select-trigger:hover {
+        border-color: #667eea;
+        background: #fff;
+    }
+
+    .abcd-select-wrapper.open .abcd-select-trigger {
+        border-color: #667eea;
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .abcd-select-trigger i {
+        font-size: 1.2rem;
+        color: #667eea;
+        transition: transform 0.3s;
+    }
+
+    .abcd-select-wrapper.open .abcd-select-trigger i {
+        transform: rotate(180deg);
+    }
+
+    .abcd-select-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        width: 100%;
+        background: #fff;
+        border: 1px solid #e1e8ed;
+        border-radius: 16px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        max-height: 250px;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
+    .abcd-select-wrapper.open .abcd-select-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .abcd-select-option {
+        padding: 12px 15px;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        color: #555;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .abcd-select-option:hover {
+        background: rgba(102, 126, 234, 0.08);
+        color: #667eea;
+        padding-left: 20px;
+    }
+
+    .abcd-select-option.selected {
+        background: #667eea;
+        color: #fff;
+    }
+
+    /* --- MODAL STYLES --- */
+    .abcd-modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(2px);
+        z-index: 100000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .abcd-modal-overlay.active { display: flex; }
+
+    .abcd-modal-container {
+        background: white;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 400px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        animation: popIn 0.25s ease;
+    }
+
+    /* --- PHOTO PREVIEW --- */
+    .photo-preview-box {
+        margin-top: 15px;
+        width: 140px;
+        height: 170px;
+        border-radius: 12px;
+        border: 2.5px solid #667eea;
+        background: #f1f5f9;
+        display: none;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        position: relative;
+    }
+    
+    .photo-preview-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .required {
+        color: #e53e3e;
+        margin-left: 2px;
+        font-weight: bold;
+    }
+
+    /* --- STAR RATING --- */
+    .star-rating {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin: 20px 0;
+    }
+    
+    .star-rating i {
+        font-size: 2.5rem;
+        color: #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .star-rating i.active {
+        color: #fbbf24;
+        transform: scale(1.2);
+        filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.3));
+    }
+
+    /* --- DYNAMIC ROWS --- */
+    .dynamic-row {
+        background: #f1f5f9;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 15px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .remove-btn {
+        background: #fee2e2;
+        color: #ef4444;
+        border: none;
+        width: 35px;
+        height: 35px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+    }
+    
+    .remove-btn:hover { background: #ef4444; color: white; }
+
+    .add-btn {
+        background: transparent;
+        color: #667eea;
+        border: 2px dashed #667eea;
+        padding: 12px;
+        border-radius: 12px;
+        width: 100%;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .add-btn:hover { background: rgba(102, 126, 234, 0.05); }
+
+    .submit-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 18px 40px;
+        border-radius: 50px;
+        font-size: 1.25rem;
+        font-weight: 800;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 40px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        letter-spacing: 0.5px;
+    }
+    /* Animated shimmer sweep */
+    .submit-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+        animation: submit-shimmer 3s ease-in-out infinite;
+    }
+    @keyframes submit-shimmer {
+        0%   { left: -100%; }
+        50%  { left: 100%; }
+        100% { left: 100%; }
+    }
+    /* Subtle breathing glow */
+    @keyframes submit-glow {
+        0%, 100% { box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3), 0 0 0 0 rgba(118, 75, 162, 0); }
+        50%      { box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45), 0 0 20px 2px rgba(118, 75, 162, 0.15); }
+    }
+    .submit-btn {
+        animation: submit-glow 2.5s ease-in-out infinite;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.45), 0 0 25px 4px rgba(118, 75, 162, 0.2);
+        animation: none;
+    }
+    .submit-btn:active {
+        transform: translateY(0) scale(0.97);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        transition: all 0.1s ease;
+    }
+
+    /* --- Flying Toast Notification --- */
+    @keyframes toast-fly-up {
+        0%   { bottom: -80px; opacity: 0; transform: translateX(-50%) scale(0.7); }
+        20%  { bottom: 45vh;  opacity: 1; transform: translateX(-50%) scale(1.05); }
+        25%  { bottom: 45vh;  opacity: 1; transform: translateX(-50%) scale(1); }
+        75%  { bottom: 45vh;  opacity: 1; transform: translateX(-50%) scale(1); }
+        100% { bottom: 110vh; opacity: 0; transform: translateX(-50%) scale(0.8); }
+    }
+    .flying-toast {
+        position: fixed;
+        left: 50%;
+        bottom: -80px;
+        transform: translateX(-50%);
+        z-index: 99999;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        padding: 16px 36px;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5), 0 0 30px rgba(118, 75, 162, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+        animation: toast-fly-up 2.8s cubic-bezier(0.22, 0.68, 0.36, 1) forwards;
+        pointer-events: none;
+    }
+    .flying-toast .toast-check {
+        width: 26px;
+        height: 26px;
+        background: rgba(255,255,255,0.25);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    /* --- Responsive submit button sizing --- */
+    @media (max-width: 600px) {
+        .submit-btn {
+            padding: 14px 20px;
+            font-size: 1.05rem;
+        }
+    }
+
+    /* Dark Theme Support */
+    body.dark-theme .form-container { background: #1e1e2d; border-color: rgba(255,255,255,0.1); }
+    body.dark-theme .form-group label { color: #fff; }
+    body.dark-theme .form-control { background: rgba(255,255,255,0.05); border-color: #333; color: #fff; }
+    body.dark-theme .abcd-modal-container { background: #1e1e2d; color: #fff; }
+    body.dark-theme .wheel-picker-container { background: #111; border-color: #333; }
+    body.dark-theme .dynamic-row { background: rgba(255,255,255,0.03); }
+    body.dark-theme .abcd-select-trigger { background: rgba(255,255,255,0.05); color: #fff; border-color: #333; }
+    body.dark-theme .abcd-select-dropdown { background: #1e1e2d; border-color: #333; }
+    body.dark-theme .abcd-select-option { color: #ccc; }
+    .form-group small { color: #666; }
+    body.dark-theme .form-group small { color: wheat !important; }
+
+    /* Modal Header styling for light/dark theme compatibility */
+    .abcd-modal-header {
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        position: relative;
+        background: #f8f9fa;
+    }
+    .abcd-modal-header h3 {
+        font-weight: 800;
+        color: #333;
+        margin: 0;
+    }
+    body.dark-theme .abcd-modal-header {
+        background: #111;
+        border-bottom-color: #333;
+    }
+    body.dark-theme .abcd-modal-header h3 {
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1>Alumni Success</h1>
+        <p>Share your achievements and inspire the current students at ABCD</p>
+    </div>
+
+    <div class="form-body">
+        <a href="{% url 'users:student_dashboard' %}" class="back-btn">← Back</a>
+        <form method="post" enctype="multipart/form-data" id="achievementForm" autocomplete="off">
+            {% csrf_token %}
+
+            <div class="form-section-title">Personal Details</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>First Name <span class="required">*</span></label>
+                    {{ form.first_name }}
+                </div>
+                <div class="form-group">
+                    <label>Last Name <span class="required">*</span></label>
+                    {{ form.last_name }}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Gender <span class="required">*</span></label>
+                    {{ form.gender }}
+                </div>
+                <div class="form-group">
+                    <label>Date of Birth <span class="required">*</span></label>
+                    <div style="position: relative;">
+                        {{ form.dob }}
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-group">
+                <label>Tell us something positive about yourself <span class="required">*</span></label>
+                {{ form.about_yourself }}
+            </div>
+
+            <div class="form-section-title">Professional Milestone</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Your Current Post/Designation <span class="required">*</span></label>
+                    {{ form.current_post }}
+                </div>
+                <div class="form-group">
+                    <label>Brief Achievement Title <span class="required">*</span></label>
+                    {{ form.short_achievement }}
+                    <small>e.g. Selected in SSC CGL 2023</small>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Selection Year <span class="required">*</span></label>
+                    <input type="text" name="selection_year" id="id_selection_year" class="form-control" 
+                           value="{{ form.selection_year.value|default:'' }}" readonly onclick="openYearPicker(this)">
+                </div>
+                <div class="form-group">
+                    <label>Working City <span class="required">*</span></label>
+                    {{ form.working_city }}
+                </div>
+            </div>
+
+
+            <div class="form-section-title">Your Journey with ABCD</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Services Used <span class="required">*</span></label>
+                    {{ form.services_used }}
+                </div>
+                <div class="form-group">
+                    <label>Time Spent at ABCD <span class="required">*</span></label>
+                    <input type="text" id="duration_display" class="form-control" readonly placeholder="Select duration..." 
+                           style="cursor: pointer;">
+                    <input type="hidden" name="duration_years" id="id_duration_years" value="{{ form.duration_years.value|default:'0' }}">
+                    <input type="hidden" name="duration_days" id="id_duration_days" value="{{ form.duration_days.value|default:'0' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>How ABCD helped you? <span class="required">*</span></label>
+                {{ form.experience_feedback }}
+            </div>
+
+            <div class="form-section-title">Other Achievements (Optional)</div>
+            <div id="otherAchievementsList">
+                {% if other_achievements_data %}
+                    {% for item in other_achievements_data %}
+                    <div class="dynamic-row">
+                        <div style="flex:3;"><input type="text" name="other_achievement_title[]" class="form-control" value="{{ item.title }}"></div>
+                        <div style="flex:1;"><input type="text" name="other_achievement_year[]" class="form-control" value="{{ item.year }}" readonly onclick="openYearPicker(this)"></div>
+                        <button type="button" class="remove-btn" onclick="this.parentElement.remove()">&times;</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="dynamic-row">
+                        <div style="flex:3;"><input type="text" name="other_achievement_title[]" class="form-control" placeholder="e.g. Gold Medalist in University"></div>
+                        <div style="flex:1;"><input type="text" name="other_achievement_year[]" class="form-control" placeholder="Year" readonly onclick="openYearPicker(this)"></div>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="add-btn" onclick="addAchievementRow()" style="margin-bottom: 40px;">
+                <i class='bx bx-plus-circle'></i> Add Another Achievement
+            </button>
+
+            <div style="text-align: center; margin: 40px 0;">
+                <hr style="border: 0; border-top: 2px solid #eee; margin-bottom: 15px;">
+                <span style="background: #fff7eb; padding: 0 15px; color: #64748b; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; position: relative; top: -25px;">
+                    <i class='bx bxs-lock-alt'></i> For Teacher Use Only
+                </span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Mobile Number <span class="required">*</span></label>
+                    {{ form.mobile_number }}
+                    <small>For administrative contact</small>
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp Number <span class="required">*</span></label>
+                    {{ form.whatsapp_number }}
+                    <small>For achievement group</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Email Address <span class="required">*</span></label>
+                {{ form.email }}
+            </div>
+
+            <div class="form-section-title">Final Step: Photo & Feedback</div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px;">
+                <!-- Hide the actual Django file input widget -->
+                <div style="display: none;">
+                    {{ form.photo }}
+                </div>
+                
+                <!-- Premium Profile Photo Upload Wrapper -->
+                <div style="position: relative; width: 120px; height: 120px;">
+                    <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                        <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                        <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1;"></i>
+                    </div>
+                    <label for="id_photo" style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
+                        <i class='bx bxs-camera'></i>
+                    </label>
+                </div>
+                <p style="font-size: 0.8rem; color: #64748b; margin-top: 10px; font-weight: 600;">Upload Your Professional Photo <span class="required" style="color: red;">*</span></p>
+                <small style="color: #94a3b8; font-size: 0.75rem; margin-top: 2px; text-align: center;">JPG / PNG only · Max 2MB. This will be featured on our achievement wall!</small>
+            </div>
+
+            <div class="form-group" style="text-align: center; margin-top: 30px;">
+                <label style="font-size: 1.1rem; font-weight: 800;">How would you rate your experience with ABCD? <span class="required">*</span></label>
+                <div class="star-rating" id="starRating">
+                    <i class='bx bxs-star' data-value="1"></i>
+                    <i class='bx bxs-star' data-value="2"></i>
+                    <i class='bx bxs-star' data-value="3"></i>
+                    <i class='bx bxs-star' data-value="4"></i>
+                    <i class='bx bxs-star' data-value="5"></i>
+                </div>
+                <input type="hidden" name="rating" id="id_rating" value="{{ form.rating.value|default:'0' }}">
+            </div>
+
+            <div class="form-group">
+                <label>Your Feedback/Review for ABCD <span class="required">*</span></label>
+                {{ form.abcd_feedback }}
+                <small>Tell us what you liked or how we can improve.</small>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">Submit Your Story 🚀</button>
+        </form>
+    </div>
+</div>
+
+<!-- Birthday Selection Modal (Exact Parity with Admission Form) -->
+<div id="birthdayModal" class="abcd-modal-overlay">
+    <div class="abcd-modal-container">
+        <div class="abcd-modal-header">
+            <h3>SET BIRTHDAY</h3>
+            <button type="button" onclick="closeBirthdayModal()"
+                style="position: absolute; right: 20px; top: 20px; background: none; border: none; font-size: 1.5rem; color: #999; cursor: pointer;">&times;</button>
+        </div>
+        <div style="padding: 30px;">
+            <div class="wheel-picker-container">
+                <div class="wheel-col" id="wheel-birth-year"></div>
+                <div class="wheel-col" id="wheel-birth-month"></div>
+                <div class="wheel-col" id="wheel-birth-day"></div>
+                <div class="wheel-highlight"></div>
+            </div>
+            <button type="button" onclick="submitBirthday()" class="submit-btn"
+                style="margin-top: 25px; padding: 15px;">SUBMIT</button>
+        </div>
+    </div>
+</div>
+
+<div id="selectionYearModal" class="abcd-modal-overlay">
+    <div class="abcd-modal-container">
+        <div class="abcd-modal-header">
+            <h3>SELECT YEAR</h3>
+        </div>
+        <div style="padding: 30px;">
+            <div class="wheel-picker-container">
+                <div class="wheel-col" id="wheel-select-year"></div>
+                <div class="wheel-highlight"></div>
+            </div>
+            <button type="button" onclick="confirmSelectionYear()" class="submit-btn" style="margin-top: 25px; padding: 15px;">SET YEAR</button>
+        </div>
+    </div>
+</div>
+
+<div id="durationModal" class="abcd-modal-overlay">
+    <div class="abcd-modal-container">
+        <div class="abcd-modal-header">
+            <h3>TIME AT ABCD</h3>
+        </div>
+        <div style="padding: 30px;">
+            <div style="display:flex; justify-content: space-around; margin-bottom:10px; font-weight:800; color:#667eea; font-size:0.8rem;">
+                <span>YEARS</span>
+                <span>DAYS</span>
+            </div>
+            <div class="wheel-picker-container">
+                <div class="wheel-col" id="wheel-dur-years"></div>
+                <div class="wheel-col" id="wheel-dur-days"></div>
+                <div class="wheel-highlight"></div>
+            </div>
+            <button type="button" onclick="confirmDuration()" class="submit-btn" style="margin-top: 25px; padding: 15px;">SET DURATION</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // --- GLOBAL POPUP ---
+    window.showStyledPopup = function({ title = 'Notice', message = '', type = 'info', onOk = null, okText = 'OK' } = {}) {
+        const colors = {
+            warning: { border: '#ffc107', icon: '⚠️', titleColor: '#856404' },
+            error: { border: '#dc3545', icon: '❌', titleColor: '#721c24' },
+            info: { border: '#17a2b8', icon: 'ℹ️', titleColor: '#0c5460' },
+            success: { border: '#28a745', icon: '✅', titleColor: '#155724' }
+        };
+        const c = colors[type] || colors.info;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+        const box = document.createElement('div');
+        box.style.cssText = 'background:#fff;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
+        box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:10px">${c.icon}</div>
+                         <h3 style="color:${c.titleColor};margin-bottom:12px;font-size:1.2rem">${title}</h3>
+                         <p style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:22px">${message}</p>
+                         <button id="styledPopupOkBtn" style="background:${c.border};color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity 0.2s">${okText}</button>`;
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        document.getElementById('styledPopupOkBtn').onclick = () => { overlay.remove(); if(onOk) onOk(); };
+    };
+    function showStyledPopup(options) {
+        return window.showStyledPopup(options);
+    }
+
+    // --- CUSTOM SELECTS ---
+    function initCustomSelects() {
+        document.querySelectorAll('select.form-control').forEach(select => {
+            if (select.dataset.customized) return;
+            select.dataset.customized = "true";
+            select.style.display = 'none';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'abcd-select-wrapper';
+
+            const trigger = document.createElement('div');
+            trigger.className = 'abcd-select-trigger';
+            trigger.innerHTML = `<span>${select.options[select.selectedIndex]?.text || 'Select...'}</span><i class='bx bx-chevron-down'></i>`;
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'abcd-select-dropdown';
+
+            Array.from(select.options).forEach(option => {
+                const optDiv = document.createElement('div');
+                optDiv.className = 'abcd-select-option';
+                if (option.selected) optDiv.classList.add('selected');
+                optDiv.textContent = option.text;
+                optDiv.dataset.value = option.value;
+
+                optDiv.addEventListener('click', () => {
+                    select.value = option.value;
+                    trigger.querySelector('span').textContent = option.text;
+                    dropdown.querySelectorAll('.abcd-select-option').forEach(o => o.classList.remove('selected'));
+                    optDiv.classList.add('selected');
+                    wrapper.classList.remove('open');
+                    select.dispatchEvent(new Event('change'));
+                });
+                dropdown.appendChild(optDiv);
+            });
+
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = wrapper.classList.contains('open');
+                document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
+                if (!isOpen) wrapper.classList.add('open');
+            });
+
+            wrapper.appendChild(trigger);
+            wrapper.appendChild(dropdown);
+            select.parentNode.insertBefore(wrapper, select.nextSibling);
+        });
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
+        });
+    }
+
+    // --- WHEEL PICKER CORE (Exact Admission Form Parity) ---
+    function initWheel(containerId, items, defaultValue, onScrollChange) {
+        const col = document.getElementById(containerId);
+        if (!col) return;
+        col.innerHTML = '';
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'wheel-item';
+            div.textContent = item;
+            col.appendChild(div);
+        });
+        let scrollTimeout;
+        col.addEventListener('scroll', () => {
+            const index = Math.round(col.scrollTop / 40);
+            const children = col.children;
+            for (let i = 0; i < children.length; i++) {
+                children[i].classList.toggle('selected', i === index);
+            }
+            if (onScrollChange) {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(onScrollChange, 80);
+            }
+        });
+        const defaultIndex = items.indexOf(defaultValue.toString());
+        if (defaultIndex !== -1) {
+            setTimeout(() => { col.scrollTop = defaultIndex * 40; }, 50);
+        }
+    }
+
+    function getWheelValue(containerId) {
+        const col = document.getElementById(containerId);
+        if (!col) return '';
+        const index = Math.round(col.scrollTop / 40);
+        return col.children[index]?.textContent || '';
+    }
+
+    function syncBirthdayDays() {
+        const yearStr = getWheelValue('wheel-birth-year');
+        const monthStr = getWheelValue('wheel-birth-month');
+        if (!yearStr || !monthStr) return;
+
+        const year = parseInt(yearStr, 10);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthIndex = months.indexOf(monthStr);
+        if (monthIndex === -1) return;
+
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        const daysCol = document.getElementById('wheel-birth-day');
+        if (!daysCol) return;
+
+        const currentCount = daysCol.children.length;
+        if (currentCount === daysInMonth) return;
+
+        const currentDayVal = getWheelValue('wheel-birth-day');
+        let dayToSelect = parseInt(currentDayVal, 10);
+        if (isNaN(dayToSelect)) dayToSelect = 15;
+        if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
+
+        const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+        initWheel('wheel-birth-day', days, dayToSelect.toString().padStart(2, '0'));
+    }
+
+    // --- DOB Logic (Exact Admission Form Parity) ---
+    function openBirthdayModal() {
+        const modal = document.getElementById('birthdayModal');
+        if (modal) modal.classList.add('active');
+        
+        const years = [];
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear - 8; y >= currentYear - 100; y--) {
+            years.push(y.toString());
+        }
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        const currentVal = document.getElementById('id_dob').value || '1998-06-15';
+        const [y, m, d] = currentVal.split('-');
+        
+        const yearVal = parseInt(y || '1998', 10);
+        const monthIndex = parseInt(m || '6') - 1;
+        const daysInMonth = new Date(yearVal, monthIndex + 1, 0).getDate();
+        const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+        initWheel('wheel-birth-year', years, y || '1998', syncBirthdayDays);
+        initWheel('wheel-birth-month', months, months[monthIndex] || 'Jun', syncBirthdayDays);
+        initWheel('wheel-birth-day', days, d || '15');
+    }
+
+    function closeBirthdayModal() {
+        const modal = document.getElementById('birthdayModal');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function submitBirthday() {
+        const y = getWheelValue('wheel-birth-year');
+        const moStr = getWheelValue('wheel-birth-month');
+        const d = getWheelValue('wheel-birth-day');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const m = (months.indexOf(moStr) + 1).toString().padStart(2, '0');
+        
+        const dobInput = document.getElementById('id_dob');
+        if (dobInput) {
+            dobInput.value = `${y}-${m}-${d}`;
+        }
+        closeBirthdayModal();
+    }
+
+    // --- Selection Year Logic ---
+    let activeYearInput = null;
+    function openYearPicker(input) {
+        activeYearInput = input;
+        document.getElementById('selectionYearModal').classList.add('active');
+        const years = [];
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear; y >= currentYear - 30; y--) years.push(y.toString());
+        initWheel('wheel-select-year', years, activeYearInput.value || currentYear.toString());
+    }
+
+    function confirmSelectionYear() {
+        if (activeYearInput) activeYearInput.value = getWheelValue('wheel-select-year');
+        document.getElementById('selectionYearModal').classList.remove('active');
+    }
+
+    // --- Duration Logic ---
+    function openDuration() {
+        document.getElementById('durationModal').classList.add('active');
+        const years = Array.from({length:11}, (_,i) => i.toString());
+        const days = Array.from({length:366}, (_,i) => i.toString());
+        initWheel('wheel-dur-years', years, document.getElementById('id_duration_years').value || '0');
+        initWheel('wheel-dur-days', days, document.getElementById('id_duration_days').value || '0');
+    }
+
+    function confirmDuration() {
+        const y = getWheelValue('wheel-dur-years');
+        const d = getWheelValue('wheel-dur-days');
+        document.getElementById('id_duration_years').value = y;
+        document.getElementById('id_duration_days').value = d;
+        document.getElementById('duration_display').value = `${y} Years, ${d} Days`;
+        document.getElementById('durationModal').classList.remove('active');
+    }
+
+    // --- Photo Preview & Validation ---
+    const photoIn = document.getElementById('id_photo');
+    if (photoIn) {
+        photoIn.addEventListener('change', function() {
+            const file = this.files[0];
+            const previewImgCustom = document.getElementById('photoPreviewCustom');
+            const placeholderCustom = document.getElementById('photoPlaceholderCustom');
+            
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                    showStyledPopup({title: 'File too large', message: 'Please upload a photo smaller than 2MB.', type: 'warning'});
+                    this.value = '';
+                    if (previewImgCustom) {
+                        previewImgCustom.src = '';
+                        previewImgCustom.style.display = 'none';
+                    }
+                    if (placeholderCustom) placeholderCustom.style.display = 'flex';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (previewImgCustom) {
+                        previewImgCustom.src = e.target.result;
+                        previewImgCustom.style.display = 'block';
+                    }
+                    if (placeholderCustom) placeholderCustom.style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // --- Star Rating ---
+    const stars = document.querySelectorAll('#starRating i');
+    const ratingIn = document.getElementById('id_rating');
+    function setStars(val) {
+        val = parseInt(val) || 0;
+        stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.value) <= val));
+        if (ratingIn) ratingIn.value = val;
+    }
+    stars.forEach(s => {
+        s.onclick = () => setStars(s.dataset.value);
+        s.onmouseover = () => {
+            const v = s.dataset.value;
+            stars.forEach(st => st.classList.toggle('active', st.dataset.value <= v));
+        };
+    });
+    const starContainer = document.getElementById('starRating');
+    if (starContainer) {
+        starContainer.onmouseleave = () => {
+            if (ratingIn) setStars(ratingIn.value);
+        };
+    }
+
+    // --- Achievement Rows ---
+    function addAchievementRow() {
+        const list = document.getElementById('otherAchievementsList');
+        const div = document.createElement('div');
+        div.className = 'dynamic-row';
+        div.innerHTML = `
+            <div style="flex:3;"><input type="text" name="other_achievement_title[]" class="form-control" placeholder="Achievement Name"></div>
+            <div style="flex:1;"><input type="text" name="other_achievement_year[]" class="form-control" placeholder="Year" readonly onclick="openYearPicker(this)"></div>
+            <button type="button" class="remove-btn" onclick="this.parentElement.remove()">&times;</button>
+        `;
+        list.appendChild(div);
+    }
+
+    // --- Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initCustomSelects();
+        
+        const dob = document.getElementById('id_dob');
+        if (dob) {
+            dob.readOnly = true;
+            dob.onclick = openBirthdayModal;
+            dob.style.cursor = 'pointer';
+        }
+        
+        const durDisp = document.getElementById('duration_display');
+        if (durDisp) {
+            durDisp.onclick = openDuration;
+            const y = document.getElementById('id_duration_years').value || 0;
+            const d = document.getElementById('id_duration_days').value || 0;
+            durDisp.value = `${y} Years, ${d} Days`;
+        }
+        
+        setStars(ratingIn.value);
+    });
+</script>
+<script>
+// --- Flying Toast on Successful Form Submission ---
+(function() {
+    const form = document.getElementById('achievementForm');
+    if (!form) return;
+    const submitBtn = document.getElementById('submitBtn');
+    let isAjaxSubmitting = false;
+    let isNativeSubmitting = false;
+
+    form.addEventListener('submit', async function(e) {
+        if (isNativeSubmitting) return; // Allow native form submit to proceed cleanly
+        if (isAjaxSubmitting) { e.preventDefault(); return; }
+
+        // Wait for other sync validation handlers to run.
+        if (e.defaultPrevented) return;
+
+        // Prevent default HTML form post
+        e.preventDefault();
+
+        isAjaxSubmitting = true;
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+            submitBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin' style="vertical-align:middle;margin-right:6px;"></i>Submitting...`;
+        }
+
+        const fallbackNativeSubmit = () => {
+            isNativeSubmitting = true;
+            isAjaxSubmitting = false;
+            if (submitBtn && submitBtn.dataset.originalHtml) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+            }
+            form.submit();
+        };
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action || window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (response.ok && response.redirected) {
+                // Success! Display the beautiful flying toast.
+                const toast = document.createElement('div');
+                toast.className = 'flying-toast';
+                toast.innerHTML = '<span class="toast-check">✓</span> Story Submitted';
+                document.body.appendChild(toast);
+                
+                // Wait for the animation to play out (2.8s), then navigate
+                setTimeout(() => {
+                    window.location.replace(response.url);
+                }, 2800);
+            } else if (response.ok) {
+                if (response.url && response.url !== window.location.href) {
+                    const toast = document.createElement('div');
+                    toast.className = 'flying-toast';
+                    toast.innerHTML = '<span class="toast-check">✓</span> Story Submitted';
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        window.location.replace(response.url);
+                    }, 2800);
+                } else {
+                    fallbackNativeSubmit();
+                }
+            } else {
+                fallbackNativeSubmit();
+            }
+        } catch (err) {
+            fallbackNativeSubmit();
+        }
+    });
+})();
+</script>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

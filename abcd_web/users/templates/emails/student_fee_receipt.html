@@ -1,0 +1,32 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<h2 style="margin-bottom: 10px;">Fee Payment Receipt</h2>
+
+<p>
+  Dear <strong>{{ student_name }}</strong>,
+</p>
+
+<p>
+  Your fees have been submitted successfully for:
+  <strong>{{ service_details }}</strong>
+  at ABCD Coaching & Library.
+</p>
+
+<p>
+  Please download the attached receipt for full details.
+</p>
+
+{% url 'users:student_dashboard' as student_dash_path %}
+<div style="text-align: center; margin: 24px 0;">
+  <a href="{% if site_url %}{{ site_url }}{% endif %}{{ student_dash_path }}"
+     class="btn"
+     style="display:inline-block; padding:13px 28px; background-color:#4f46e5; color:#ffffff; text-decoration:none; border-radius:10px; font-size:14px; font-weight:600;">
+    Open Student Dashboard
+  </a>
+</div>
+
+<p style="font-size: 13px; color: #6b7280;">
+  Thank you for your timely payment. — Team ABCD
+</p>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<table width="100%" cellpadding="0" cellspacing="0" style="padding: 10px 0;">
+  {% if banner_image_url %}
+  <tr>
+    <td style="padding-bottom: 16px;">
+      <img src="{{ banner_image_url }}" alt="Banner Image" style="max-width: 100%; height: auto; border-radius: 8px; display: block; border: 0;">
+    </td>
+  </tr>
+  {% endif %}
+
+  <tr>
+    <td style="font-size:18px; font-weight:600; color:#1f2937;">
+      📢 {{ subject }}
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding-top:12px; font-size:15px; line-height:1.6; color:#374151;">
+      {{ message|linebreaksbr }}
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding-top:20px;">
+      <a href="{% if dashboard_url %}{{ dashboard_url }}{% elif site_url %}{{ site_url }}{% url 'users:student_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}"
+         style="
+           display:inline-block;
+           background:#2563eb;
+           color:#ffffff;
+           text-decoration:none;
+           padding:12px 22px;
+           border-radius:6px;
+           font-weight:600;
+           margin-right: 8px;
+           margin-bottom: 8px;
+         ">
+        Open Dashboard
+      </a>
+      {% if buttons %}
+        {% for btn in buttons %}
+          {% if btn.url and btn.label %}
+          <a href="{{ btn.url }}"
+             style="
+               display:inline-block;
+               background:#4f46e5;
+               color:#ffffff;
+               text-decoration:none;
+               padding:12px 22px;
+               border-radius:6px;
+               font-weight:600;
+               margin-right: 8px;
+               margin-bottom: 8px;
+             ">
+            {{ btn.label }}
+          </a>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    </td>
+  </tr>
+
+  {% if attachment_links %}
+  <tr>
+    <td style="padding-top:16px;">
+      <div style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+          <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b; font-weight: 600;">📎 ATTACHMENTS ({{ attachment_links|length }})</p>
+          {% for att in attachment_links %}
+            <div style="margin-bottom: 6px;">
+                <a href="{% if att.url|slice:':4' == 'http' %}{{ att.url }}{% elif site_url %}{{ site_url }}{{ att.url }}{% else %}{{ att.url }}{% endif %}" style="font-size: 14px; color: #2563eb; text-decoration: underline; font-weight: 500;">
+                    Download {{ att.name }}
+                </a>
+            </div>
+          {% endfor %}
+      </div>
+    </td>
+  </tr>
+  {% endif %}
+
+  <tr>
+    <td style="padding-top:20px; font-size:13px; color:#6b7280;">
+      This message was sent by {{ teacher_name }} via ABCD Broadcast System.
+    </td>
+  </tr>
+</table>
+{% endblock %}

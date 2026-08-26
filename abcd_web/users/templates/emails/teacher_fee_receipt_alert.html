@@ -1,0 +1,28 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<h2 style="margin-bottom: 10px;">Fee Payment Received</h2>
+
+<p>
+  Sir Ji (Maarsahab),
+</p>
+
+<p>
+  Fee for student <strong>{{ student_name }}</strong>
+  has been submitted successfully for:
+  <strong>{{ service_details }}</strong>
+</p>
+
+<p>
+  Please check the attached receipt for details.
+</p>
+
+{% url 'users:teacher_dashboard' as teacher_dash_path %}
+<div style="text-align: center; margin: 24px 0;">
+  <a href="{% if site_url %}{{ site_url }}{% endif %}{{ teacher_dash_path }}"
+     class="btn"
+     style="display:inline-block; padding:13px 28px; background-color:#4f46e5; color:#ffffff; text-decoration:none; border-radius:10px; font-size:14px; font-weight:600;">
+    Open Teacher Dashboard
+  </a>
+</div>
+{% endblock %}

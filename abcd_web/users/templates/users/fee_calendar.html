@@ -1,0 +1,2553 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
+    <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'data/favicon/apple-touch-icon.png' %}" />
+    <meta name="apple-mobile-web-app-title" content="ABCD (coaching & library)" />
+    <link rel="manifest" href="{% static 'data/favicon/site.webmanifest' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap" rel="stylesheet">
+    <title>Fee Calendar - {{ student.full_name }}</title>
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        body { min-height:100vh; background:linear-gradient(to top,#112a3b,#5683a1a6,#fff2de); padding:20px; color:#333; }
+        body.dark-theme { background:linear-gradient(to top,#140570,#300448da,#17022c); color:#e0d3b8; }
+
+        .container { max-width:1200px; margin:0 auto; background:rgba(255,255,255,0.92); backdrop-filter:blur(12px); border-radius:20px; padding:35px; box-shadow:0 20px 60px rgba(0,0,0,0.12); }
+        body.dark-theme .container { background:rgba(30,30,48,0.92); box-shadow:0 20px 60px rgba(0,0,0,0.4); }
+
+        .header { text-align:center; margin-bottom:30px; }
+        .header h1 { font-size:2.2rem; margin-bottom:6px; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-weight:800; }
+        .header h3 { color:#555; margin-bottom:18px; font-weight:500; font-size:1rem; }
+        body.dark-theme .header h3 { color:#bbb; }
+
+        .back-btn { display:inline-flex; align-items:center; gap:8px; padding:10px 22px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; text-decoration:none; font-weight:700; border-radius:12px; font-size:0.95rem; transition:all 0.3s; box-shadow:0 4px 15px rgba(102,126,234,0.3); }
+        .back-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(102,126,234,0.45); }
+        .back-btn i { font-size:1.3rem; }
+
+        /* Year Selector */
+        .year-selector-form { text-align:center; }
+        .year-picker-trigger { display:inline-flex; align-items:center; gap:10px; padding:12px 28px; font-size:1.15rem; font-weight:700; border-radius:14px; border:2px solid rgba(102,126,234,0.3); background:rgba(102,126,234,0.08); color:#333; cursor:pointer; transition:all 0.3s; }
+        .year-picker-trigger:hover { border-color:#667eea; background:rgba(102,126,234,0.15); }
+        .year-picker-trigger i { font-size:1.3rem; color:#667eea; }
+        body.dark-theme .year-picker-trigger { background:rgba(162,155,254,0.12); border-color:rgba(162,155,254,0.3); color:#e0d3b8; }
+        body.dark-theme .year-picker-trigger i { color:#a29bfe; }
+
+        /* Calendar Grid */
+        .calendar-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:22px; }
+
+        /* Month Cards */
+        .month-card { background:rgba(248,249,250,0.9); border:2px solid #e1e8ed; border-radius:16px; padding:22px; cursor:pointer; transition:all 0.4s cubic-bezier(0.25,0.8,0.25,1); overflow:hidden; position:relative; }
+        .month-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(90deg,#667eea,#764ba2); opacity:0; transition:opacity 0.3s; }
+        .month-card:hover { transform:translateY(-3px); box-shadow:0 8px 25px rgba(0,0,0,0.08); }
+        .month-card:hover::before { opacity:1; }
+        .month-card.expanded { background:#fff; border-color:#667eea; box-shadow:0 12px 35px rgba(102,126,234,0.2); transform:scale(1.02); cursor:default; }
+        .month-card.expanded::before { opacity:1; }
+        body.dark-theme .month-card { background:rgba(40,40,60,0.8); border-color:#3a3a55; }
+        body.dark-theme .month-card.expanded { background:rgba(45,45,68,0.95); border-color:#667eea; }
+        .month-card.is-touched { border-left:5px solid #2ecc71; }
+
+        .month-header { display:flex; justify-content:space-between; align-items:center; }
+        .month-name { font-size:1.35rem; font-weight:700; color:#333; }
+        body.dark-theme .month-name { color:#e0d3b8; }
+
+        .status { padding:5px 14px; border-radius:20px; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+        .status.paid { background:linear-gradient(135deg,#d4edda,#c3e6cb); color:#155724; }
+        .status.unpaid { background:linear-gradient(135deg,#f8d7da,#f5c6cb); color:#721c24; }
+        body.dark-theme .status.paid { background:rgba(46,204,113,0.2); color:#2ecc71; }
+        body.dark-theme .status.unpaid { background:rgba(231,76,60,0.2); color:#e74c3c; }
+
+        .payment-details { font-size:0.9rem; color:#777; margin-top:12px; display:flex; align-items:center; gap:10px; }
+        body.dark-theme .payment-details { color:#999; }
+        .payment-details .amount { font-size:1.5rem; font-weight:800; background:linear-gradient(135deg,#2ecc71,#27ae60); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+        .date-badge { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border-radius:50%; width:30px; height:30px; display:inline-flex; justify-content:center; align-items:center; font-size:0.85rem; font-weight:700; }
+
+        /* Expand Form */
+        .add-fee-form { max-height:0; opacity:0; visibility:hidden; transition:all 0.4s ease; }
+        .month-card.expanded .add-fee-form { max-height:500px; opacity:1; visibility:visible; margin-top:18px; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; }
+        body.dark-theme .month-card.expanded .add-fee-form { border-top-color:rgba(255,255,255,0.08); }
+
+        .form-group { margin-bottom:14px; }
+        .form-group label { display:block; font-weight:600; margin-bottom:6px; font-size:0.9rem; color:#555; }
+        body.dark-theme .form-group label { color:#e0d3b8; }
+        .form-group input { width:100%; padding:11px 14px; border-radius:10px; border:2px solid #e1e8ed; font-size:1rem; transition:border-color 0.3s; background:#fff; color:#333; }
+        .form-group input:focus { outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,0.15); }
+        body.dark-theme .form-group input { background:#2a2a40; border-color:#444; color:#e0d3b8; }
+        body.dark-theme .form-group input:focus { border-color:#a29bfe; box-shadow:0 0 0 3px rgba(162,155,254,0.15); }
+
+        .mark-as-paid-group { display:flex; align-items:center; gap:10px; margin-top:14px; padding:12px; background:rgba(102,126,234,0.06); border-radius:10px; border:1px solid rgba(102,126,234,0.1); }
+        body.dark-theme .mark-as-paid-group { background:rgba(162,155,254,0.08); border-color:rgba(162,155,254,0.15); }
+        .mark-as-paid-group input[type=checkbox] { width:18px; height:18px; accent-color:#667eea; }
+
+        .paid-action-buttons { display:flex; gap:10px; margin-top:16px; padding-top:16px; border-top:1px dashed rgba(0,0,0,0.1); flex-wrap:wrap; }
+        body.dark-theme .paid-action-buttons { border-top-color:rgba(255,255,255,0.1); }
+        .action-btn { flex:1; padding:10px; font-weight:600; font-size:0.9rem; border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:0.2s; color:#fff; }
+        .action-btn:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+        .action-btn.edit-btn { background:linear-gradient(135deg,#f39c12,#f1c40f); }
+        .action-btn.add-btn { background:linear-gradient(135deg,#667eea,#764ba2); }
+        .action-btn.clean-month-btn { background:linear-gradient(135deg,#e74c3c,#c0392b); }
+
+        /* Messages */
+        .messages { list-style:none; padding:0; margin-bottom:20px; }
+        .messages li { padding:14px; border-radius:10px; margin-bottom:10px; text-align:center; font-weight:600; }
+        .messages .success { background:rgba(46,204,113,0.15); color:#27ae60; border:1px solid rgba(46,204,113,0.2); }
+        .messages .error { background:rgba(231,76,60,0.15); color:#e74c3c; border:1px solid rgba(231,76,60,0.2); }
+
+        /* Submit Button */
+        .sms-submit-container { text-align:center; margin-top:35px; padding-top:25px; border-top:2px solid rgba(0,0,0,0.05); }
+        body.dark-theme .sms-submit-container { border-top-color:rgba(255,255,255,0.05); }
+        .sms-btn { background:linear-gradient(135deg,#2ecc71,#27ae60); color:#fff; border:none; padding:16px 42px; font-size:1.1rem; font-weight:700; border-radius:14px; cursor:pointer; transition:all 0.3s; box-shadow:0 5px 20px rgba(46,204,113,0.3); }
+        .sms-btn:hover { transform:translateY(-3px); box-shadow:0 8px 30px rgba(46,204,113,0.4); }
+
+        /* Theme Toggle */
+        .theme-toggle-fixed { position:fixed; bottom:25px; right:25px; width:50px; height:50px; border-radius:50%; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.5rem; cursor:pointer; z-index:1000; box-shadow:0 5px 20px rgba(0,0,0,0.3); border:none; transition:all 0.3s; }
+        .theme-toggle-fixed:hover { transform:scale(1.1); }
+
+        /* Wheel Picker Modal */
+        .abcd-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:100000; display:none; align-items:center; justify-content:center; }
+        .abcd-modal-overlay.active { display:flex; }
+        .abcd-modal-container { background:#fff; border-radius:24px; width:95%; max-width:350px; box-shadow:0 25px 70px rgba(0,0,0,0.4); overflow:hidden; animation:modalIn 0.3s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes modalIn { from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1} }
+        body.dark-theme .abcd-modal-container { background:#1e1e2d; color:#fff; }
+        .wp-header { padding:20px 25px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+        body.dark-theme .wp-header { border-bottom-color:#333; }
+        .wp-header h3 { margin:0; font-size:1.2rem; font-weight:800; color:#333; text-transform:uppercase; }
+        body.dark-theme .wp-header h3 { color:#fff; }
+        .wp-close { background:none; border:none; font-size:2rem; color:#999; cursor:pointer; line-height:1; }
+        .wp-body { padding:30px; }
+        .wheel-picker-container { display:flex; height:220px; background:#f8f9fa; border:2px solid #e1e8ed; border-radius:20px; position:relative; overflow:hidden; mask-image:linear-gradient(to bottom,transparent,black 30%,black 70%,transparent); -webkit-mask-image:linear-gradient(to bottom,transparent,black 30%,black 70%,transparent); user-select:none; }
+        body.dark-theme .wheel-picker-container { background:#111; border-color:#333; }
+        .wheel-picker-container::before,.wheel-picker-container::after { content:''; position:absolute; left:0; right:0; height:80px; z-index:10; pointer-events:none; }
+        .wheel-picker-container::before { top:0; background:linear-gradient(to bottom,#f8f9fa,transparent); }
+        .wheel-picker-container::after { bottom:0; background:linear-gradient(to top,#f8f9fa,transparent); }
+        body.dark-theme .wheel-picker-container::before { background:linear-gradient(to bottom,#111,transparent); }
+        body.dark-theme .wheel-picker-container::after { background:linear-gradient(to top,#111,transparent); }
+        .wheel-col { flex:1; height:100%; overflow-y:scroll; scrollbar-width:none; text-align:center; scroll-snap-type:y mandatory; padding:85px 0; position:relative; z-index:5; scroll-behavior:smooth; }
+        .wheel-col::-webkit-scrollbar { display:none; }
+        .wheel-item { height:50px; line-height:50px; font-size:1.4rem; font-weight:700; color:#aaa; scroll-snap-align:center; scroll-snap-stop:always; transition:0.2s; }
+        .wheel-item.selected { color:#667eea; transform:scale(1.2); }
+        body.dark-theme .wheel-item.selected { color:#a29bfe; }
+        .wheel-highlight { position:absolute; top:50%; left:10px; right:10px; height:54px; transform:translateY(-50%); background:rgba(102,126,234,0.1); border-top:1px solid #667eea; border-bottom:1px solid #667eea; border-radius:14px; pointer-events:none; z-index:2; }
+        .btn-submit-modal { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; padding:16px; border-radius:15px; font-size:1.05rem; font-weight:800; cursor:pointer; width:100%; margin-top:22px; text-transform:uppercase; box-shadow:0 5px 15px rgba(102,126,234,0.3); }
+
+        /* Popup Modal */
+        .popup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); display:none; z-index:9998; }
+        .popup-overlay.active { display:block; }
+        .popup-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:16px; box-shadow:0 12px 45px rgba(0,0,0,0.35); width:min(440px,92vw); display:none; z-index:9999; animation:slideIn 0.3s ease; overflow:hidden; }
+        .popup-modal.active { display:block; }
+        @keyframes slideIn { from{opacity:0;transform:translate(-50%,-48%)} to{opacity:1;transform:translate(-50%,-50%)} }
+        body.dark-theme .popup-modal { background:#2d2d3a; }
+        .popup-hdr { display:flex; justify-content:space-between; align-items:center; padding:18px 20px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
+        .popup-hdr h3 { margin:0; font-size:1.15rem; font-weight:700; display:flex; align-items:center; gap:8px; }
+        .popup-x { background:none; border:none; color:#fff; font-size:1.8rem; cursor:pointer; opacity:0.85; line-height:1; }
+        .popup-x:hover { opacity:1; }
+        .popup-body { padding:22px 20px; color:#333; font-size:0.98rem; line-height:1.55; }
+        body.dark-theme .popup-body { color:#e0d3b8; }
+        .popup-ftr { padding:15px 20px; border-top:1px solid #e0e0e0; display:flex; gap:12px; justify-content:flex-end; background:#f9f9f9; }
+        body.dark-theme .popup-ftr { background:#23233a; border-color:#444; }
+        .popup-btn { padding:11px 22px; font-weight:700; border:none; border-radius:10px; cursor:pointer; font-size:0.95rem; min-width:95px; transition:all 0.2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+        .popup-btn:hover { transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,0,0,0.15); }
+        .popup-cancel { background:#e0e0e0; color:#333; }
+        body.dark-theme .popup-cancel { background:#3a3a50; color:#ddd; }
+        .popup-ok { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; box-shadow:0 4px 12px rgba(102,126,234,0.3); }
+        .popup-del { background:linear-gradient(135deg,#e74c3c,#c0392b); color:#fff; box-shadow:0 4px 12px rgba(231,76,60,0.3); }
+        .popup-pink-red { background:linear-gradient(135deg,#ff5e7e,#e63946); color:#fff; box-shadow:0 4px 14px rgba(230,57,70,0.35); }
+        .popup-pink-red:hover { background:linear-gradient(135deg,#ff4769,#d62839); box-shadow:0 6px 18px rgba(230,57,70,0.5); }
+        
+        /* Modals & Checkboxes Labels */
+        .modal-label { color: #333; }
+        body.dark-theme .modal-label { color: #e0d3b8; }
+        .mark-as-paid-group label { color: #555; }
+        body.dark-theme .mark-as-paid-group label { color: #e0d3b8; }
+
+        /* ── Mini Calendar ── */
+        .mini-cal { width:100%; user-select:none; font-size:0.82rem; }
+        .mini-cal-header { display:flex; align-items:center; justify-content:center; margin-bottom:6px; }
+        .mini-cal-header span { font-weight:700; font-size:0.88rem; color:#333; }
+        body.dark-theme .mini-cal-header span { color:#e0d3b8; }
+        .mini-cal-nav { background:none; border:none; cursor:pointer; color:#667eea; font-size:1.1rem; padding:2px 6px; border-radius:6px; transition:background 0.2s; line-height:1; }
+        .mini-cal-nav:hover { background:rgba(102,126,234,0.15); }
+        body.dark-theme .mini-cal-nav { color:#a29bfe; }
+        .mini-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+        .mini-cal-dow { text-align:center; font-weight:700; font-size:0.72rem; color:#888; padding:3px 0; }
+        body.dark-theme .mini-cal-dow { color:#aaa; }
+        .mini-cal-day { position:relative; text-align:center; padding:4px 0; border-radius:6px; cursor:pointer; font-weight:500; color:#333; transition:background 0.15s, color 0.15s; z-index:1; }
+        body.dark-theme .mini-cal-day { color:#ddd; }
+        .mini-cal-day:hover:not(.empty):not(.selected-day) { background:rgba(102,126,234,0.18); }
+        .mini-cal-day.empty { cursor:default; }
+
+        /* Range bar: dates inside the subscription range */
+        .mini-cal-day.in-range { background:rgba(100,160,255,0.22); border-radius:0; }
+        body.dark-theme .mini-cal-day.in-range { background:rgba(100,160,255,0.28); }
+        /* First day of range on that row */
+        .mini-cal-day.range-start { border-radius:50% 0 0 50%; background:rgba(100,160,255,0.22); }
+        body.dark-theme .mini-cal-day.range-start { background:rgba(100,160,255,0.28); }
+        /* Last day of range on that row */
+        .mini-cal-day.range-end { border-radius:0 50% 50% 0; background:rgba(100,160,255,0.22); }
+        body.dark-theme .mini-cal-day.range-end { background:rgba(100,160,255,0.28); }
+        /* Single-day range (start & end same cell) */
+        .mini-cal-day.range-both { border-radius:50%; }
+
+        /* Hold period: orange highlight */
+        .mini-cal-day.hold-day { background:rgba(255,165,0,0.25); border-radius:0; color:#b86e00; }
+        body.dark-theme .mini-cal-day.hold-day { background:rgba(255,165,0,0.32); color:#ffb347; }
+        .mini-cal-day.hold-start { border-radius:50% 0 0 50%; background:rgba(255,165,0,0.25); }
+        body.dark-theme .mini-cal-day.hold-start { background:rgba(255,165,0,0.32); }
+        .mini-cal-day.hold-end { border-radius:0 50% 50% 0; background:rgba(255,165,0,0.25); }
+        body.dark-theme .mini-cal-day.hold-end { background:rgba(255,165,0,0.32); }
+        .mini-cal-day.hold-both { border-radius:50%; }
+
+        /* Selected (payment) day */
+        .mini-cal-day.selected-day { background:#4a8eff !important; color:#fff !important; border-radius:50% !important; font-weight:800; box-shadow:0 2px 8px rgba(74,142,255,0.5); z-index:2; }
+        /* Expiry day */
+        .mini-cal-day.expiry-day { border:2px solid #ff6b6b; color:#ff6b6b; font-weight:800; border-radius:50%; z-index:2; }
+        .mini-cal-day.expiry-day:not(.hold-day) { background:rgba(255,107,107,0.1); }
+        .mini-cal-day.hold-day.expiry-day { background:rgba(255,165,0,0.4); border-color:#ff6b6b; color:#b86e00; }
+        /* Today indicator */
+        .mini-cal-day.today-marker:not(.selected-day):not(.expiry-day) { outline:2px solid #667eea; outline-offset:-2px; border-radius:50%; }
+
+        .mini-cal-selected-display { text-align:center; font-size:0.8rem; color:#667eea; font-weight:700; margin-top:5px; min-height:16px; }
+        body.dark-theme .mini-cal-selected-display { color:#a29bfe; }
+
+        /* Paid action buttons in-card hidden since bubble takes over */
+        .paid-action-buttons { display: none !important; }
+
+        /* Floating Bottom Action Bubble */
+        .floating-bubble {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.2);
+            border-radius: 20px;
+            padding: 12px 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            z-index: 99999;
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        body.dark-theme .floating-bubble {
+            background: rgba(30, 30, 48, 0.95);
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 45px rgba(0,0,0,0.4);
+        }
+        .floating-bubble.active {
+            bottom: 30px;
+        }
+        .bubble-btn {
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bubble-btn.save-btn {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.2);
+        }
+        .bubble-btn.save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(46, 204, 113, 0.3);
+        }
+        .bubble-btn.clear-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+        }
+        .bubble-btn.clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(231, 76, 60, 0.3);
+        }
+        .expiry-info-container {
+            background: rgba(255, 107, 107, 0.1);
+            border: 2px dashed #ff6b6b;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin: 30px auto 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+        .expiry-text {
+            margin: 0;
+            font-weight: 600;
+            color: #d63031;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            flex-wrap: wrap;
+        }
+        .expiry-icon {
+            font-size: 1.4rem;
+        }
+        .expiry-val {
+            font-weight: 800;
+            font-size: 1.15rem;
+            margin-left: 5px;
+            color: #d63031;
+        }
+        .expiry-action-btn {
+            padding: 6px 14px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .expiry-edit-btn {
+            margin-left: 15px;
+            background: linear-gradient(135deg, #ff7675, #d63031);
+            box-shadow: 0 4px 10px rgba(255,118,117,0.3);
+        }
+        .expiry-clear-btn {
+            margin-left: 5px;
+            background: linear-gradient(135deg, #a4b0be, #747d8c);
+            box-shadow: 0 4px 10px rgba(164,176,190,0.3);
+        }
+
+        /* Mobile styling down to 280px */
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            .calendar-grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 15px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            .expiry-info-container {
+                padding: 10px 12px;
+                margin: 20px auto 15px;
+            }
+            .expiry-text {
+                font-size: 0.9rem;
+                gap: 6px;
+            }
+            .expiry-val {
+                font-size: 0.95rem;
+            }
+            .expiry-action-btn {
+                padding: 4px 10px;
+                font-size: 0.8rem;
+            }
+            .expiry-edit-btn {
+                margin-left: 5px;
+            }
+            .sms-btn {
+                padding: 12px 28px;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media screen and (max-width: 400px) {
+            .calendar-grid {
+                grid-template-columns: 1fr;
+            }
+            .month-card {
+                padding: 14px;
+            }
+            .month-name {
+                font-size: 1.15rem;
+            }
+            .payment-details .amount {
+                font-size: 1.25rem;
+            }
+            .date-badge {
+                width: 26px;
+                height: 26px;
+                font-size: 0.75rem;
+            }
+            .floating-bubble {
+                padding: 8px 16px;
+                gap: 10px;
+                border-radius: 15px;
+            }
+            .bubble-btn {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media screen and (max-width: 320px) {
+            .expiry-text {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+            .expiry-edit-btn, .expiry-clear-btn {
+                margin-left: 0;
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media screen and (max-width: 450px) {
+            body {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+            .container {
+                border-radius: 12px;
+                padding: 20px 10px;
+            }
+        }
+
+        @media screen and (max-width: 360px) {
+            body {
+                padding: 0 !important;
+            }
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+                min-height: 100vh !important;
+                border-radius: 0 !important;
+                padding: 20px 10px !important;
+            }
+        }
+
+        /* ── Floating Search Wrapper (matching teacher dashboard pattern) ── */
+        .calendar-search-wrapper {
+            position: fixed;
+            bottom: 25px;
+            left: 25px;
+            z-index: 9999;
+            background: rgba(102, 126, 234, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(102, 126, 234, 0.35);
+            border-radius: 50px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            width: 50px;
+            height: 50px;
+            overflow: hidden;
+            transition: width 0.6s cubic-bezier(0.25, 0.1, 0.25, 1), border-color 0.4s, background 0.4s, box-shadow 0.4s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+        }
+        body.dark-theme .calendar-search-wrapper {
+            background: rgba(162, 155, 254, 0.15);
+            border-color: rgba(162, 155, 254, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar-search-wrapper.expanded {
+            width: min(calc(100vw - 110px), 320px);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-color: rgba(99, 102, 241, 0.35);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            animation: search-glow-idle 3s ease-in-out infinite;
+        }
+        body.dark-theme .calendar-search-wrapper.expanded {
+            background: rgba(30, 30, 48, 0.95);
+            border-color: rgba(162, 155, 254, 0.35);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            animation: search-glow-idle-dark 3s ease-in-out infinite;
+        }
+        .calendar-search-wrapper:focus-within {
+            border-color: #667eea;
+        }
+        body.dark-theme .calendar-search-wrapper:focus-within {
+            border-color: #a29bfe;
+        }
+
+        /* Input inside wrapper — hidden when collapsed */
+        .calendar-search-wrapper input {
+            border: none;
+            outline: none;
+            width: 100%;
+            height: 100%;
+            padding-left: 15px;
+            padding-right: 50px;
+            font-size: 0.95rem;
+            background: transparent;
+            color: #1e293b;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .calendar-search-wrapper.expanded input {
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.5s 0.15s;
+        }
+        body.dark-theme .calendar-search-wrapper input {
+            color: #fff;
+        }
+
+        /* Toggle button — absolute right, always visible */
+        .calendar-search-wrapper .search-action-btn {
+            background: transparent;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1.5rem;
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            right: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+            transition: color 0.2s;
+            z-index: 2;
+        }
+        body.dark-theme .calendar-search-wrapper .search-action-btn {
+            color: #a29bfe;
+        }
+        .calendar-search-wrapper.expanded .search-action-btn {
+            color: #64748b;
+            font-size: 1.3rem;
+        }
+        .calendar-search-wrapper.expanded .search-action-btn:hover {
+            color: #ef4444;
+        }
+
+        /* Inline elements visible only when expanded */
+        .calendar-search-wrapper .search-inline-extras {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+            position: absolute;
+            right: 50px;
+            top: 0;
+            height: 100%;
+        }
+        .calendar-search-wrapper.expanded .search-inline-extras {
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.5s 0.2s;
+        }
+        /* Fading Top Center Red Alert Toast */
+        .search-alert-toast {
+            position: fixed;
+            top: 25px;
+            left: 50%;
+            transform: translate(-50%, -20px);
+            z-index: 100000;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 16px;
+            font-weight: 700;
+            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .search-alert-toast.active {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        /* Highlight-on-Match Visual Glow */
+        .month-card.search-highlight {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.35), 0 12px 35px rgba(102, 126, 234, 0.25) !important;
+            animation: search-focus-glow 2s infinite ease-in-out !important;
+        }
+        body.dark-theme .month-card.search-highlight {
+            border-color: #a29bfe !important;
+            box-shadow: 0 0 0 4px rgba(162, 155, 254, 0.35), 0 12px 35px rgba(162, 155, 254, 0.2) !important;
+            animation: search-focus-glow-dark 2s infinite ease-in-out !important;
+        }
+
+        /* Input inside search bar */
+        .search-bar-expanded input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 0.95rem;
+            color: #1e293b;
+            padding: 0 8px;
+            min-width: 50px;
+        }
+        body.dark-theme .search-bar-expanded input {
+            color: #fff;
+        }
+
+        .search-icon-left {
+            color: #6366f1;
+            font-size: 1.3rem;
+        }
+        body.dark-theme .search-icon-left {
+            color: #a29bfe;
+        }
+
+        /* Hide inside search controls */
+        .calendar-search-wrapper .search-inline-extras {
+            display: none !important;
+        }
+
+        /* Premium External Search Navigation Panel */
+        .calendar-search-nav-panel {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1.5px solid rgba(99, 102, 241, 0.25);
+            border-radius: 50px;
+            padding: 6px 14px;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.15);
+            z-index: 10000;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: panelFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes panelFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        body.dark-theme .calendar-search-nav-panel {
+            background: rgba(30, 30, 48, 0.95);
+            border-color: rgba(162, 155, 254, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .calendar-search-nav-panel .nav-count {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #475569;
+            user-select: none;
+            min-width: 55px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        body.dark-theme .calendar-search-nav-panel .nav-count {
+            color: #cbd5e1;
+        }
+
+        .calendar-search-nav-panel .nav-btns {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .calendar-search-nav-panel .nav-btn {
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 3px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        body.dark-theme .calendar-search-nav-panel .nav-btn {
+            background: #a29bfe;
+            color: #17022c;
+            box-shadow: 0 3px 8px rgba(162, 155, 254, 0.3);
+        }
+
+        .calendar-search-nav-panel .nav-btn:hover {
+            transform: scale(1.1) translateY(-1px);
+            background: #4f46e5;
+        }
+
+        body.dark-theme .calendar-search-nav-panel .nav-btn:hover {
+            background: #8076fc;
+        }
+
+        .calendar-search-nav-panel .nav-btn:active {
+            transform: scale(0.95);
+        }
+
+        .calendar-search-nav-panel .nav-btn i {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .search-close-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+        }
+        .search-close-btn:hover {
+            color: #ef4444;
+        }
+
+        /* CSS Keyframe Animations */
+        @keyframes search-focus-glow {
+            0%, 100% {
+                border-color: #6366f1;
+                box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.25), 0 4px 16px rgba(99, 102, 241, 0.2);
+            }
+            50% {
+                border-color: #a855f7;
+                box-shadow: 0 0 0 5px rgba(168, 85, 247, 0.3), 0 8px 24px rgba(168, 85, 247, 0.35);
+            }
+        }
+        @keyframes search-focus-glow-dark {
+            0%, 100% {
+                border-color: #c084fc;
+                box-shadow: 0 0 0 2.5px rgba(192, 132, 252, 0.25), 0 4px 16px rgba(192, 132, 252, 0.25);
+            }
+            50% {
+                border-color: #e9d5ff;
+                box-shadow: 0 0 0 5px rgba(233, 213, 255, 0.35), 0 8px 24px rgba(233, 213, 255, 0.4);
+            }
+        }
+        @keyframes search-glow-idle {
+            0%, 100% {
+                border-color: rgba(99, 102, 241, 0.3);
+                box-shadow: 0 3px 10px rgba(99, 102, 241, 0.12), 0 0 0 1px rgba(99, 102, 241, 0.08);
+            }
+            50% {
+                border-color: rgba(168, 85, 247, 0.55);
+                box-shadow: 0 5px 18px rgba(168, 85, 247, 0.28), 0 0 10px rgba(168, 85, 247, 0.18);
+            }
+        }
+        @keyframes search-glow-idle-dark {
+            0%, 100% {
+                border-color: rgba(192, 132, 252, 0.2);
+                box-shadow: 0 4px 12px rgba(192, 132, 252, 0.1), 0 0 0 1px rgba(192, 132, 252, 0.05);
+            }
+            50% {
+                border-color: rgba(233, 213, 255, 0.45);
+                box-shadow: 0 6px 20px rgba(233, 213, 255, 0.25), 0 0 12px rgba(233, 213, 255, 0.15);
+            }
+        }
+
+        /* Header Controls Layout Wrapper */
+        .header-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            position: relative;
+        }
+
+        /* Hide desktop-search-container below 1000px so it doesn't occupy flex space */
+        .desktop-search-container {
+            display: none;
+        }
+
+        @media screen and (min-width: 565px) {
+            .header-controls {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                gap: 20px;
+            }
+        }
+
+        @media screen and (min-width: 600px) {
+            .calendar-search-wrapper.expanded {
+                width: 280px;
+            }
+        }
+
+        @media screen and (min-width: 1000px) {
+            .desktop-search-container {
+                display: block;
+            }
+            .header-controls {
+                display: grid;
+                grid-template-columns: 1fr auto 1fr;
+                align-items: center;
+                width: 100%;
+                gap: 0;
+            }
+            .back-btn {
+                justify-self: start;
+            }
+            .year-selector-form {
+                grid-column: 2;
+                justify-self: center;
+            }
+            .desktop-search-container {
+                grid-column: 3;
+                justify-self: end;
+                position: relative;
+                width: 50px;
+                height: 50px;
+            }
+            .calendar-search-wrapper {
+                position: absolute !important;
+                right: 0;
+                top: 0;
+                bottom: auto !important;
+                left: auto !important;
+                z-index: 9999;
+                width: 50px;
+                height: 50px;
+            }
+            .calendar-search-wrapper.expanded {
+                width: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'partials/_master_loader.html' %}
+<div class="container">
+        <div class="header">
+            <h1>Fee Calendar</h1>
+            <h3>for {{ student.full_name }}</h3>
+            
+            <div class="header-controls">
+                <a href="{% url 'users:teacher_dashboard' %}" class="back-btn">
+                    <i class='bx bx-left-arrow-alt'></i> Back to Dashboard
+                </a>
+                
+                <div class="year-selector-form">
+                    <form method="GET" action="" id="yearForm">
+                        <input type="hidden" name="year" id="hiddenYearInput" value="{{ selected_year }}">
+                        <button type="button" class="year-picker-trigger" onclick="openYearPicker()">
+                            <i class='bx bx-calendar'></i>
+                            <span id="yearDisplayText">{{ selected_year }}</span>
+                            <i class='bx bx-chevron-down'></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Search bar container (desktop placeholder) -->
+                <div class="desktop-search-container">
+                    <div class="calendar-search-wrapper" id="calendarSearchWrapper">
+                        <input type="text" id="calendarSearchInput" placeholder="Search amount..." />
+                        <div class="search-inline-extras">
+                            <span id="searchResultCount"></span>
+                            <div class="search-nav-arrows" id="searchNavArrows" style="display: none;">
+                                <button type="button" onclick="navigateSearch(-1)" title="Previous result"><i class='bx bx-chevron-up'></i></button>
+                                <button type="button" onclick="navigateSearch(1)" title="Next result"><i class='bx bx-chevron-down'></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="search-action-btn" id="searchActionBtn"><i class='bx bx-search'></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        
+        {% csrf_token %} <div class="calendar-grid">
+            {% for item in calendar_data %}
+            <div class="month-card" onclick="expandCard(this)" data-month="{{ item.month_name }}" data-year="{{ selected_year }}" data-originally-paid="{% if item.payment %}true{% else %}false{% endif %}">
+                <div class="month-header">
+                    <span class="month-name">{{ item.month_name }}</span>
+                    {% if item.payment %}<span class="status paid">Paid</span>{% else %}<span class="status unpaid">Unpaid</span>{% endif %}
+                </div>
+                <div class="payment-details">
+                    {% if item.payment %}
+                        <span class="amount">₹{{ item.payment.amount }}</span>
+                        <span class="date-badge">{{ item.payment.date_paid|date:"d" }}</span>
+                    {% else %}
+                        <span style="opacity:0.6;font-style:italic;">No payment recorded yet.</span>
+                    {% endif %}
+                </div>
+
+                <div class="add-fee-form">
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label><i class='bx bx-calendar-event' style="vertical-align:middle;margin-right:4px;"></i> Payment Date</label>
+                        <!-- Hidden field that stores the chosen YYYY-MM-DD for JS to read -->
+                        <input type="hidden" class="payment-date-input" value="">
+                        <!-- Mini inline calendar -->
+                        <div class="mini-cal"
+                             data-month="{{ item.month_num }}"
+                             data-year="{{ selected_year }}"
+                             data-paid-date="{% if item.payment and item.payment.date_paid %}{{ item.payment.date_paid|date:'Y-m-d' }}{% endif %}">
+                        </div>
+                        <div class="mini-cal-selected-display"></div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class='bx bx-rupee' style="vertical-align:middle;margin-right:4px;"></i> Amount (₹)</label>
+                        <input type="number" name="amount" class="form-control amount-input" placeholder="e.g., 500">
+                    </div>
+                    {% if not item.payment %}
+                    <div class="mark-as-paid-group">
+                        <input type="checkbox" class="mark-as-paid-checkbox" id="mark-paid-{{ item.month_name }}">
+                        <label for="mark-paid-{{ item.month_name }}" style="cursor:pointer;font-weight:600;margin:0;">Or just Mark as Paid</label>
+                    </div>
+                    {% endif %}
+
+                    {% if item.payment %}
+                    <div class="paid-action-buttons">
+                        <button type="button" class="action-btn edit-btn" title="Edit/Replace amount"><i class='bx bx-edit-alt'></i> Edit</button>
+                        <button type="button" class="action-btn add-btn" title="Add to existing amount"><i class='bx bx-plus-circle'></i> Add</button>
+                        <button type="button" class="action-btn clean-month-btn" title="Clear this month"><i class='bx bx-eraser'></i> Clear</button>
+                    </div>
+                    {% endif %}
+                    </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="expiry-info-container">
+            <p class="expiry-text">
+                <i class='bx bx-calendar-exclamation expiry-icon'></i>
+                Current Expiry Date: <span class="expiry-val">{% if student.fee_expiry_date %}{{ student.fee_expiry_date|date:'d b Y' }}{% else %}Not Set{% endif %}</span>
+                <button type="button" onclick="openExpiryModal(true)" class="expiry-action-btn expiry-edit-btn">
+                    <i class='bx bx-edit-alt'></i> Edit
+                </button>
+                <button type="button" onclick="clearExpiryDate()" class="expiry-action-btn expiry-clear-btn">
+                    <i class='bx bx-eraser'></i> Clear
+                </button>
+            </p>
+        </div>
+
+        <div class="sms-submit-container">
+            <button class="sms-btn" id="submit-all-fees-btn"><i class='bx bx-send' style="vertical-align:middle;margin-right:6px;"></i>Submit and Send SMS</button>
+        </div>
+    </div>
+
+    <!-- Floating Bottom Action Bubble -->
+    <div id="floating-action-bubble" class="floating-bubble">
+        <button type="button" class="bubble-btn save-btn" id="bubble-save-btn">
+            <i class='bx bx-save'></i> Save
+        </button>
+        <button type="button" class="bubble-btn clear-btn" id="bubble-clear-btn">
+            <i class='bx bx-trash'></i> Clear
+        </button>
+    </div>
+
+    <!-- Theme Toggle FAB -->
+    <button class="theme-toggle-fixed" onclick="toggleTheme()" id="themeBtn">
+        <i class='bx bx-moon' id="themeIcon"></i>
+    </button>
+
+    <!-- Year Picker Modal -->
+    <div id="yearPickerModal" class="abcd-modal-overlay">
+        <div class="abcd-modal-container">
+            <div class="wp-header">
+                <h3>Select Year</h3>
+                <button type="button" class="wp-close" onclick="closeYearPicker()">&times;</button>
+            </div>
+            <div class="wp-body">
+                <div class="wheel-picker-container">
+                    <div class="wheel-highlight"></div>
+                    <div class="wheel-col" id="wheel-year"></div>
+                </div>
+                <button type="button" class="btn-submit-modal" onclick="confirmYear()">SET YEAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expiry Date Selection Modal -->
+    <div id="expiryDateModal" class="abcd-modal-overlay">
+        <div class="abcd-modal-container" style="max-width: 400px;">
+            <div class="wp-header">
+                <h3>Set Expiry Date</h3>
+                <button type="button" class="wp-close" onclick="closeExpiryModal()">&times;</button>
+            </div>
+            <div class="wp-body">
+                <div style="margin-bottom: 20px; display:flex; align-items:center; gap: 10px; background: rgba(102,126,234,0.1); padding: 12px; border-radius: 10px; border: 1px solid rgba(102,126,234,0.2);">
+                    <input type="checkbox" id="defaultExpiryCheckbox" checked style="width: 20px; height: 20px; accent-color: #667eea; cursor: pointer;">
+                    <label for="defaultExpiryCheckbox" class="modal-label" style="font-weight: 700; cursor: pointer; margin: 0;">Set by default (Next unpaid month)</label>
+                </div>
+                
+                <div id="expiryWheelContainer" style="opacity: 0.5; pointer-events: none; transition: 0.3s;">
+                    <label class="modal-label" style="display:block; font-weight:600; margin-bottom:8px; text-align:left;">Manual Expiry Date</label>
+                    <div class="wheel-picker-container" style="height: 180px;">
+                        <div class="wheel-highlight"></div>
+                        <div class="wheel-col" id="wheel-expiry-year"></div>
+                        <div class="wheel-col" id="wheel-expiry-month"></div>
+                        <div class="wheel-col" id="wheel-expiry-day"></div>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn-submit-modal" onclick="confirmExpiryAndSubmit()">Confirm & Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup Alert/Confirm Modal -->
+    <div id="statusModalOverlay" class="popup-overlay"></div>
+    <div id="statusModal" class="popup-modal">
+        <div class="popup-hdr">
+            <h3 id="statusModalTitle">Alert</h3>
+            <button type="button" class="popup-x" id="statusModalCloseBtn">&times;</button>
+        </div>
+        <div class="popup-body" id="statusModalContent"></div>
+        <div class="popup-ftr">
+            <button type="button" class="popup-btn popup-cancel" id="statusModalCancelBtn">Cancel</button>
+            <button type="button" class="popup-btn popup-ok" id="statusModalConfirmBtn">OK</button>
+        </div>
+    </div>
+
+<script>
+    async function showAlert(title, message) {
+        if (typeof window.showStyledAlert === 'function') {
+            await window.showStyledAlert(title, message);
+        } else if (typeof window.showStyledPopup === 'function') {
+            window.showStyledPopup({ title: title, message: message, type: 'info' });
+        } else {
+            alert(`${title}: ${message}`);
+        }
+    }
+    if (typeof window.showStyledAlert !== 'function') {
+        window.showStyledAlert = showAlert;
+    }
+
+    // ── Global Data from Django ──────────────────────────────────────────────
+    const monthMap = {
+        "January": "01", "February": "02", "March": "03", "April": "04",
+        "May": "05", "June": "06", "July": "07", "August": "08",
+        "September": "09", "October": "10", "November": "11", "December": "12"
+    };
+    const SELECTED_YEAR = parseInt("{{ selected_year|default:'0' }}", 10);
+    const YEAR_ITEMS = "{% for y in year_range %}{{ y }},{% endfor %}".split(',').filter(Boolean).map(y => parseInt(y, 10));
+    // All paid entries across all years for range highlight
+    const ALL_PAYMENTS = JSON.parse('{{ all_payments_json|escapejs }}');
+    const EXPIRY_DATE_STR = JSON.parse('{{ expiry_date_json|escapejs }}');
+    const HOLD_PERIODS = JSON.parse('{{ hold_periods_json|escapejs }}');
+
+    // ── Theme ────────────────────────────────────────────────────────────────
+    function toggleTheme() {
+        document.body.classList.toggle('dark-theme');
+        const isDark = document.body.classList.contains('dark-theme');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        document.getElementById('themeIcon').className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+        // Re-render all cals for correct dark style (no special work needed, CSS handles it)
+    }
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || savedTheme === 'dark-theme') {
+        document.body.classList.add('dark-theme');
+        document.getElementById('themeIcon').className = 'bx bx-sun';
+    }
+
+    // ── Year Wheel Picker ────────────────────────────────────────────────────
+    function initYearWheel() {
+        const col = document.getElementById('wheel-year');
+        if(!col) return;
+        col.innerHTML = '';
+        YEAR_ITEMS.forEach(y => {
+            const div = document.createElement('div');
+            div.className = 'wheel-item';
+            div.textContent = y;
+            col.appendChild(div);
+        });
+        col.addEventListener('scroll', () => {
+            const index = Math.round(col.scrollTop / 50);
+            for(let i=0;i<col.children.length;i++) col.children[i].classList.toggle('selected', i===index);
+        });
+        setTimeout(() => { col.scrollTop = YEAR_ITEMS.indexOf(SELECTED_YEAR) * 50; }, 50);
+    }
+    initYearWheel();
+
+    function initWheelPicker(containerId, items, defaultValue, onScrollChange) {
+        const col = document.getElementById(containerId);
+        if (!col) return;
+        col.innerHTML = '';
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'wheel-item';
+            div.textContent = item;
+            col.appendChild(div);
+        });
+        let scrollTimeout;
+        col.addEventListener('scroll', () => {
+            const index = Math.round(col.scrollTop / 50);
+            for(let i=0;i<col.children.length;i++) col.children[i].classList.toggle('selected', i===index);
+            if (onScrollChange) {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(onScrollChange, 80);
+            }
+        });
+        const defaultIndex = items.indexOf(defaultValue.toString());
+        if (defaultIndex !== -1) setTimeout(() => { col.scrollTop = defaultIndex * 50; }, 50);
+    }
+
+    function getWheelValue(containerId) {
+        const col = document.getElementById(containerId);
+        if (!col) return '';
+        const index = Math.round(col.scrollTop / 50);
+        return col.children[index]?.textContent || '';
+    }
+
+    function syncExpiryDays() {
+        const yearStr = getWheelValue('wheel-expiry-year');
+        const monthStr = getWheelValue('wheel-expiry-month');
+        if (!yearStr || !monthStr) return;
+
+        const year = parseInt(yearStr, 10);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const monthIndex = months.indexOf(monthStr);
+        if (monthIndex === -1) return;
+
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        const daysCol = document.getElementById('wheel-expiry-day');
+        if (!daysCol) return;
+
+        const currentCount = daysCol.children.length;
+        if (currentCount === daysInMonth) return;
+
+        const currentDayVal = getWheelValue('wheel-expiry-day');
+        let dayToSelect = parseInt(currentDayVal, 10);
+        if (isNaN(dayToSelect)) dayToSelect = new Date().getDate();
+        if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
+
+        const days = Array.from({length:daysInMonth},(_,i)=>(i+1).toString().padStart(2,'0'));
+        initWheelPicker('wheel-expiry-day', days, dayToSelect.toString().padStart(2,'0'));
+    }
+
+    function openYearPicker() { document.getElementById('yearPickerModal').classList.add('active'); initYearWheel(); }
+    function closeYearPicker() { document.getElementById('yearPickerModal').classList.remove('active'); }
+    async function confirmYear() {
+        const val = getWheelValue('wheel-year');
+        if (val) {
+            if (typeof sessionSavedActions !== 'undefined' && sessionSavedActions.length > 0 && typeof window.customBackConfirm === 'function') {
+                const ok = await window.customBackConfirm();
+                if (!ok) return;
+            }
+            window.allowPageUnload = true;
+            document.getElementById('hiddenYearInput').value = val;
+            document.getElementById('yearForm').submit();
+        }
+        closeYearPicker();
+    }
+
+    // ── Popup System ─────────────────────────────────────────────────────────
+    const statusModalOverlay = document.getElementById('statusModalOverlay');
+    const statusModal = document.getElementById('statusModal');
+    const statusModalTitle = document.getElementById('statusModalTitle');
+    const statusModalContent = document.getElementById('statusModalContent');
+    const statusModalCloseBtn = document.getElementById('statusModalCloseBtn');
+    const statusModalCancelBtn = document.getElementById('statusModalCancelBtn');
+    const statusModalConfirmBtn = document.getElementById('statusModalConfirmBtn');
+
+    window.showStyledAlert = function (title, message) {
+        return new Promise((resolve) => {
+            const titleStr = String(title || 'Alert');
+            const isErrorOrWarning = titleStr.toLowerCase().includes('error') || 
+                                     titleStr.toLowerCase().includes('fail') || 
+                                     titleStr.toLowerCase().includes('warning') || 
+                                     titleStr.toLowerCase().includes('limit') ||
+                                     titleStr.toLowerCase().includes('denied') ||
+                                     titleStr.toLowerCase().includes('invalid') ||
+                                     titleStr.toLowerCase().includes('unsaved');
+            const isSuccess = titleStr.toLowerCase().includes('success') || 
+                              titleStr.toLowerCase().includes('ok') || 
+                              titleStr.toLowerCase().includes('done');
+
+            const modalHeader = statusModal.querySelector('.popup-hdr');
+            let iconHtml = '';
+            if (isSuccess) {
+                iconHtml = `<i class='bx bx-check-circle' style="font-size:1.35rem;color:#fff;"></i>`;
+            } else if (isErrorOrWarning) {
+                iconHtml = `<i class='bx bx-error-circle' style="font-size:1.35rem;color:#fff;"></i>`;
+            } else {
+                iconHtml = `<i class='bx bx-info-circle' style="font-size:1.35rem;color:#fff;"></i>`;
+            }
+
+            statusModalTitle.innerHTML = `${iconHtml}<span>${titleStr}</span>`;
+            statusModalContent.innerHTML = `<div style="padding:4px;line-height:1.55;">${message}</div>`;
+            statusModalCancelBtn.style.display = 'none';
+            statusModalConfirmBtn.textContent = 'OK';
+
+            if (isSuccess) {
+                statusModalConfirmBtn.className = 'popup-btn popup-ok';
+                statusModalConfirmBtn.style.background = '#27ae60';
+                statusModalConfirmBtn.style.borderColor = '#27ae60';
+                statusModalConfirmBtn.style.color = '#ffffff';
+                statusModalTitle.style.color = '#ffffff';
+                if (modalHeader) {
+                    modalHeader.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+                }
+            } else if (isErrorOrWarning) {
+                statusModalConfirmBtn.className = 'popup-btn popup-pink-red';
+                statusModalConfirmBtn.style.background = '';
+                statusModalConfirmBtn.style.borderColor = '';
+                statusModalConfirmBtn.style.color = '#ffffff';
+                statusModalTitle.style.color = '#ffffff';
+                if (modalHeader) {
+                    modalHeader.style.background = 'linear-gradient(135deg, #e63946 0%, #ff5e7e 100%)';
+                }
+            } else {
+                statusModalConfirmBtn.className = 'popup-btn popup-ok';
+                statusModalConfirmBtn.style.background = '';
+                statusModalConfirmBtn.style.borderColor = '';
+                statusModalConfirmBtn.style.color = '';
+                statusModalTitle.style.color = '';
+                if (modalHeader) {
+                    modalHeader.style.background = '';
+                }
+            }
+
+            const close = () => {
+                statusModalOverlay.classList.remove('active');
+                statusModal.classList.remove('active');
+                statusModalTitle.style.color = '';
+                if (modalHeader) {
+                    modalHeader.style.background = '';
+                }
+                resolve();
+            };
+            statusModalConfirmBtn.onclick = close;
+            statusModalCloseBtn.onclick = close;
+            statusModalOverlay.onclick = close;
+            statusModalOverlay.classList.add('active');
+            statusModal.classList.add('active');
+        });
+    };
+
+    window.showStyledConfirm = function (title, message, isDelete = false, confirmText = null, cancelText = null, popupType = null) {
+        return new Promise((resolve) => {
+            const titleStr = String(title || 'Confirm');
+            const isWarning = popupType === 'warning' || 
+                              titleStr.toLowerCase().includes('warning') || 
+                              titleStr.toLowerCase().includes('caution');
+            
+            const isDeleteAction = isDelete || 
+                                   popupType === 'delete' ||
+                                   titleStr.toLowerCase().includes('delete') || 
+                                   titleStr.toLowerCase().includes('reject') || 
+                                   titleStr.toLowerCase().includes('remove') ||
+                                   titleStr.toLowerCase().includes('clear');
+
+            const modalHeader = statusModal.querySelector('.popup-hdr');
+            
+            let iconHtml = '';
+            if (isWarning) {
+                iconHtml = `<i class='bx bx-error-circle' style="font-size:1.35rem;color:#fff;"></i>`;
+            } else if (isDeleteAction) {
+                iconHtml = `<i class='bx bx-trash' style="font-size:1.35rem;color:#fff;"></i>`;
+            } else {
+                iconHtml = `<i class='bx bx-help-circle' style="font-size:1.35rem;color:#fff;"></i>`;
+            }
+
+            statusModalTitle.innerHTML = `${iconHtml}<span>${titleStr}</span>`;
+            statusModalContent.innerHTML = `<div style="padding:4px;line-height:1.55;">${message}</div>`;
+            
+            statusModalCancelBtn.style.display = 'inline-block';
+            statusModalCancelBtn.textContent = cancelText || 'Cancel';
+            statusModalCancelBtn.className = 'popup-btn popup-cancel';
+
+            if (confirmText) {
+                statusModalConfirmBtn.textContent = confirmText;
+            } else {
+                statusModalConfirmBtn.textContent = isDeleteAction ? 'Confirm' : 'Yes';
+            }
+
+            if (isWarning) {
+                statusModalConfirmBtn.className = 'popup-btn popup-pink-red';
+                statusModalConfirmBtn.style.background = '';
+                statusModalConfirmBtn.style.borderColor = '';
+                statusModalConfirmBtn.style.color = '#ffffff';
+                statusModalTitle.style.color = '#ffffff';
+                if (modalHeader) {
+                    modalHeader.style.background = 'linear-gradient(135deg, #e63946 0%, #ff5e7e 100%)';
+                }
+            } else if (isDeleteAction) {
+                statusModalConfirmBtn.className = 'popup-btn popup-del';
+                statusModalConfirmBtn.style.background = '';
+                statusModalConfirmBtn.style.borderColor = '';
+                statusModalConfirmBtn.style.color = '#ffffff';
+                statusModalTitle.style.color = '#ffffff';
+                if (modalHeader) {
+                    modalHeader.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                }
+            } else {
+                statusModalConfirmBtn.className = 'popup-btn popup-ok';
+                statusModalConfirmBtn.style.background = '';
+                statusModalConfirmBtn.style.borderColor = '';
+                statusModalConfirmBtn.style.color = '';
+                statusModalTitle.style.color = '';
+                if (modalHeader) {
+                    modalHeader.style.background = '';
+                }
+            }
+
+            const cleanup = () => {
+                statusModalOverlay.classList.remove('active');
+                statusModal.classList.remove('active');
+                statusModalTitle.style.color = '';
+                if (modalHeader) {
+                    modalHeader.style.background = '';
+                }
+            };
+
+            const onConfirm = () => {
+                cleanup();
+                resolve(true);
+            };
+            const onCancel  = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            statusModalConfirmBtn.onclick = onConfirm;
+            statusModalCancelBtn.onclick = onCancel;
+            statusModalCloseBtn.onclick = onCancel;
+            statusModalOverlay.onclick = onCancel;
+
+            statusModalOverlay.classList.add('active');
+            statusModal.classList.add('active');
+        });
+    };
+
+    // ── Mini Calendar Engine ─────────────────────────────────────────────────
+    // Build a set of {year-month-day} strings that fall within subscription ranges
+    // A range is: from payment date of each paid month → expiry date
+    // But only for *contiguous* paid chains (gaps = no highlight in gap)
+
+    function parseDate(str) { // "YYYY-MM-DD"
+        if (!str) return null;
+        const [y,m,d] = str.split('-').map(Number);
+        return new Date(y, m-1, d);
+    }
+    function toKey(d) { // Date → "YYYY-M-D"
+        return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    }
+
+    // Build range sets from ALL_PAYMENTS + EXPIRY_DATE_STR
+    // Logic: sort payments by date. Find contiguous segments where
+    // each successive payment's date continues from the same settlement day.
+    // For each such segment: start = first payment date, end = expiry date of that segment.
+    // A segment ends when there's a gap month (unpaid month between two paid months).
+    function buildRangeSet() {
+        const rangeSet = new Set();
+        const startSet = new Set();
+        const endSet   = new Set();
+
+        if (!ALL_PAYMENTS || ALL_PAYMENTS.length === 0) return { rangeSet, startSet, endSet };
+
+        const sorted = [...ALL_PAYMENTS].sort((a,b)=>{
+            if(a.year !== b.year) return a.year - b.year;
+            return a.month_num - b.month_num;
+        });
+
+        // 1. Fill all covered days based on individual payment dates
+        for(let i=0; i<sorted.length; i++){
+            const item = sorted[i];
+            const startDate = parseDate(item.date);
+            if(!startDate) continue;
+
+            let endDate;
+            // Only the very last payment in the sequence can be extended by a hold
+            if (i === sorted.length - 1 && EXPIRY_DATE_STR) {
+                endDate = parseDate(EXPIRY_DATE_STR);
+            } else {
+                // Standard coverage is 1 month from payment date
+                endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate());
+            }
+
+            let d = new Date(startDate);
+            while(d <= endDate) {
+                rangeSet.add(toKey(d));
+                d.setDate(d.getDate() + 1);
+            }
+        }
+
+        // 2. Identify visual boundaries (starts and ends) for the range bars
+        rangeSet.forEach(key => {
+            const [y, m, d] = key.split('-').map(Number);
+            const prev = new Date(y, m-1, d - 1);
+            if (!rangeSet.has(toKey(prev))) startSet.add(key);
+            const next = new Date(y, m-1, d + 1);
+            if (!rangeSet.has(toKey(next))) endSet.add(key);
+        });
+
+        return { rangeSet, startSet, endSet };
+    }
+
+    const { rangeSet, startSet, endSet } = buildRangeSet();
+
+    // Build hold date set for orange highlighting
+    const holdSet = new Set();
+    const holdStartSet = new Set();
+    const holdEndSet = new Set();
+    if (HOLD_PERIODS && HOLD_PERIODS.length > 0) {
+        HOLD_PERIODS.forEach(period => {
+            const s = parseDate(period.start);
+            const e = parseDate(period.end);
+            if (!s || !e) return;
+            holdStartSet.add(toKey(s));
+            holdEndSet.add(toKey(e));
+            const d = new Date(s);
+            while (d <= e) {
+                holdSet.add(toKey(d));
+                d.setDate(d.getDate() + 1);
+            }
+        });
+    }
+
+    function daysInMonth(year, month) { // month 1-12
+        return new Date(year, month, 0).getDate();
+    }
+    function firstDayOfWeek(year, month) { // 0=Sun
+        return new Date(year, month-1, 1).getDay();
+    }
+
+    // Render one mini-calendar into a .mini-cal element
+    function renderMiniCal(calEl, calYear, calMonth, selectedDateStr) {
+        // calMonth: 1-12
+        calEl.innerHTML = '';
+        calEl._calYear = calYear;
+        calEl._calMonth = calMonth;
+
+        const DAYS_LABEL = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+        const MONTH_NAMES = ['January','February','March','April','May','June',
+                             'July','August','September','October','November','December'];
+        const today = new Date();
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'mini-cal-header';
+        const label = document.createElement('span');
+        label.textContent = `${MONTH_NAMES[calMonth-1]} ${calYear}`;
+        header.appendChild(label);
+        calEl.appendChild(header);
+
+        // Grid
+        const grid = document.createElement('div');
+        grid.className = 'mini-cal-grid';
+
+        DAYS_LABEL.forEach(d => {
+            const cell = document.createElement('div');
+            cell.className = 'mini-cal-dow';
+            cell.textContent = d;
+            grid.appendChild(cell);
+        });
+
+        const firstDow = firstDayOfWeek(calYear, calMonth); // 0=Sun
+        const totalDays = daysInMonth(calYear, calMonth);
+
+        // Empty cells before first day
+        for(let i=0; i<firstDow; i++){
+            const empty = document.createElement('div');
+            empty.className = 'mini-cal-day empty';
+            grid.appendChild(empty);
+        }
+
+        // Day cells
+        for(let day=1; day<=totalDays; day++){
+            const cell = document.createElement('div');
+            cell.className = 'mini-cal-day';
+            cell.textContent = day;
+
+            const dateKey = `${calYear}-${calMonth}-${day}`;
+            const isToday = (calYear===today.getFullYear() && calMonth===(today.getMonth()+1) && day===today.getDate());
+            const isSelected = calEl._selectedDate && calEl._selectedDate === `${calYear}-${String(calMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const isExpiry = EXPIRY_DATE_STR && (() => {
+                const ed = parseDate(EXPIRY_DATE_STR);
+                return ed && ed.getFullYear()===calYear && (ed.getMonth()+1)===calMonth && ed.getDate()===day;
+            })();
+            const inRange = rangeSet.has(dateKey);
+            const isStart = startSet.has(dateKey);
+            const isEnd   = endSet.has(dateKey);
+            const inHold  = holdSet.has(dateKey);
+            const isHoldStart = holdStartSet.has(dateKey);
+            const isHoldEnd   = holdEndSet.has(dateKey);
+
+            // Hold days get orange; paid-range gets blue; hold takes visual priority
+            if(inHold && !isSelected) {
+                if(isHoldStart && isHoldEnd) cell.classList.add('hold-day','hold-both');
+                else if(isHoldStart)         cell.classList.add('hold-day','hold-start');
+                else if(isHoldEnd)           cell.classList.add('hold-day','hold-end');
+                else                         cell.classList.add('hold-day');
+            } else if(inRange && !isSelected && !isExpiry) {
+                if(isStart && isEnd) cell.classList.add('in-range','range-both');
+                else if(isStart)    cell.classList.add('in-range','range-start');
+                else if(isEnd)      cell.classList.add('in-range','range-end');
+                else                cell.classList.add('in-range');
+            }
+            if(isSelected) cell.classList.add('selected-day');
+            if(isExpiry && !isSelected)   cell.classList.add('expiry-day');
+            if(isToday)   cell.classList.add('today-marker');
+
+            cell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const dateStr = `${calYear}-${String(calMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                calEl._selectedDate = dateStr;
+                // Update hidden input in the parent card
+                const card = calEl.closest('.month-card');
+                if(card){
+                    card.querySelector('.payment-date-input').value = dateStr;
+                    const disp = card.querySelector('.mini-cal-selected-display');
+                    if(disp) disp.textContent = `Selected: ${day} ${MONTH_NAMES[calMonth-1]} ${calYear}`;
+                    card.classList.add('is-touched');
+                }
+                renderMiniCal(calEl, calYear, calMonth, dateStr);
+                if (window.onCardInputChange) {
+                    window.onCardInputChange();
+                }
+            });
+            grid.appendChild(cell);
+        }
+
+        calEl.appendChild(grid);
+        calEl._selectedDate = selectedDateStr || calEl._selectedDate || null;
+    }
+
+    // Initialize all mini-cals on page load
+    function initAllMiniCals() {
+        document.querySelectorAll('.mini-cal').forEach(calEl => {
+            const m = parseInt(calEl.dataset.month, 10);
+            const y = parseInt(calEl.dataset.year, 10);
+            const paidDate = calEl.dataset.paidDate || '';
+            calEl._selectedDate = paidDate || null;
+            renderMiniCal(calEl, y, m, calEl._selectedDate);
+            // Show selected display if already paid
+            if(paidDate){
+                const card = calEl.closest('.month-card');
+                if(card){
+                    const disp = card.querySelector('.mini-cal-selected-display');
+                    const dt = parseDate(paidDate);
+                    const MN = ['January','February','March','April','May','June',
+                                'July','August','September','October','November','December'];
+                    if(disp && dt) disp.textContent = `Paid: ${dt.getDate()} ${MN[dt.getMonth()]} ${dt.getFullYear()}`;
+                }
+            }
+        });
+    }
+
+    let activeCard = null;
+    let initialState = null;
+
+    // Session-local action accumulator (cleared on each page load)
+    const studentId = "{{ student.id }}";
+    const localStorageKey = `abcd_saved_actions_${studentId}`;
+    // Always start fresh – individual saves already write to the DB,
+    // so stale localStorage entries from a previous visit are meaningless.
+    localStorage.removeItem(localStorageKey);
+    let sessionSavedActions = [];
+
+    function updateSubmitButtonText() {
+        const submitBtn = document.getElementById('submit-all-fees-btn');
+        if (submitBtn) {
+            if (sessionSavedActions.length > 0) {
+                submitBtn.innerHTML = `<i class='bx bx-send' style='vertical-align:middle;margin-right:6px;'></i>Submit and Send SMS (${sessionSavedActions.length} saved)`;
+            } else {
+                submitBtn.innerHTML = `<i class='bx bx-send' style='vertical-align:middle;margin-right:6px;'></i>Submit and Send SMS`;
+            }
+        }
+    }
+
+    function captureInitialState(card) {
+        activeCard = card;
+        const originallyPaid = card.dataset.originallyPaid === 'true';
+        const dateVal = card.querySelector('.payment-date-input').value || '';
+        const amtInput = card.querySelector('.amount-input');
+        
+        let amtVal = '';
+        const isPaid = card.querySelector('.status.paid') !== null;
+        if (isPaid) {
+            const amtEl = card.querySelector('.amount');
+            if (amtEl) {
+                amtVal = amtEl.textContent.replace('₹', '').trim();
+            }
+        }
+        
+        if (isPaid && amtInput && amtInput.value === '') {
+            amtInput.value = amtVal;
+        }
+
+        const chk = card.querySelector('.mark-as-paid-checkbox');
+        const chkVal = chk ? chk.checked : false;
+
+        initialState = {
+            originallyPaid: originallyPaid,
+            paid: isPaid,
+            amount: amtVal,
+            date: dateVal,
+            checkbox: chkVal
+        };
+
+        card._isMarkedCleared = false;
+        
+        updateBubbleVisibility();
+    }
+
+    function updateBubbleVisibility() {
+        if (!activeCard) {
+            hideBubble();
+            return;
+        }
+
+        const isPaid = initialState.paid;
+        const dateInput = activeCard.querySelector('.payment-date-input');
+        const amtInput = activeCard.querySelector('.amount-input');
+        const chk = activeCard.querySelector('.mark-as-paid-checkbox');
+
+        const currentAmt = amtInput ? amtInput.value.trim() : '';
+        const currentDate = dateInput ? dateInput.value : '';
+        const currentChk = chk ? chk.checked : false;
+
+        const bubble = document.getElementById('floating-action-bubble');
+        const saveBtn = document.getElementById('bubble-save-btn');
+        const clearBtn = document.getElementById('bubble-clear-btn');
+
+        if (isPaid) {
+            if (activeCard._isMarkedCleared) {
+                bubble.classList.add('active');
+                saveBtn.style.display = 'inline-flex';
+                clearBtn.style.display = 'inline-flex';
+            } else {
+                const hasChanged = (currentAmt !== initialState.amount || currentDate !== initialState.date);
+                if (hasChanged) {
+                    bubble.classList.add('active');
+                    saveBtn.style.display = 'inline-flex';
+                    clearBtn.style.display = 'inline-flex';
+                } else {
+                    bubble.classList.add('active');
+                    saveBtn.style.display = 'none';
+                    clearBtn.style.display = 'inline-flex';
+                }
+            }
+        } else {
+            const hasData = (currentAmt !== '' || currentDate !== '' || currentChk);
+            if (hasData) {
+                bubble.classList.add('active');
+                saveBtn.style.display = 'inline-flex';
+                clearBtn.style.display = 'inline-flex';
+            } else {
+                hideBubble();
+            }
+        }
+    }
+
+    function hideBubble() {
+        const bubble = document.getElementById('floating-action-bubble');
+        if (bubble) bubble.classList.remove('active');
+    }
+
+    function clearMiniCalSelection(card) {
+        const calEl = card.querySelector('.mini-cal');
+        if (calEl) {
+            calEl._selectedDate = null;
+            const m = parseInt(calEl.dataset.month, 10);
+            const y = parseInt(calEl.dataset.year, 10);
+            renderMiniCal(calEl, y, m, null);
+        }
+        const disp = card.querySelector('.mini-cal-selected-display');
+        if (disp) disp.textContent = '';
+        const dateInput = card.querySelector('.payment-date-input');
+        if (dateInput) dateInput.value = '';
+    }
+
+    function updateCardVisualState(card, actionType, amount, paymentDate) {
+        const statusBadge = card.querySelector('.status');
+        const detailsEl = card.querySelector('.payment-details');
+
+        if (actionType === 'delete_fee') {
+            if (statusBadge) {
+                statusBadge.className = 'status unpaid';
+                statusBadge.textContent = 'Unpaid';
+            }
+            if (detailsEl) {
+                detailsEl.innerHTML = `<span style="opacity:0.6;font-style:italic;">No payment recorded yet.</span>`;
+            }
+            const amtInput = card.querySelector('.amount-input');
+            if (amtInput) {
+                amtInput.value = '';
+                amtInput.disabled = false;
+            }
+            const chk = card.querySelector('.mark-as-paid-checkbox');
+            if (chk) chk.checked = false;
+            
+            let markPaidGroup = card.querySelector('.mark-as-paid-group');
+            if (!markPaidGroup) {
+                const formEl = card.querySelector('.add-fee-form');
+                if (formEl) {
+                    const newGroup = document.createElement('div');
+                    newGroup.className = 'mark-as-paid-group';
+                    const monthName = card.dataset.month;
+                    newGroup.innerHTML = `
+                        <input type="checkbox" class="mark-as-paid-checkbox" id="mark-paid-${monthName}">
+                        <label for="mark-paid-${monthName}" style="cursor:pointer;font-weight:600;margin:0;">Or just Mark as Paid</label>
+                    `;
+                    formEl.appendChild(newGroup);
+                    
+                    const newCheckbox = newGroup.querySelector('.mark-as-paid-checkbox');
+                    newCheckbox.addEventListener('change', () => {
+                        if(newCheckbox.checked) {
+                            card.classList.add('is-touched');
+                            if(dateInput) dateInput.value = '';
+                            if(amtInput) amtInput.disabled = true;
+                        } else {
+                            card.classList.remove('is-touched');
+                            if(amtInput) amtInput.disabled = false;
+                        }
+                        updateBubbleVisibility();
+                    });
+                }
+            }
+            clearMiniCalSelection(card);
+        } else {
+            if (statusBadge) {
+                statusBadge.className = 'status paid';
+                statusBadge.textContent = 'Paid';
+            }
+            
+            if (actionType === 'mark_as_paid') {
+                if (detailsEl) {
+                    detailsEl.innerHTML = `<span style="opacity:0.6;font-style:italic;">No payment recorded yet.</span>`;
+                }
+            } else {
+                const dateObj = parseDate(paymentDate);
+                const dayText = dateObj ? dateObj.getDate() : '';
+                if (detailsEl) {
+                    detailsEl.innerHTML = `
+                        <span class="amount">₹${amount}</span>
+                        <span class="date-badge">${dayText}</span>
+                    `;
+                }
+            }
+
+            const amtInput = card.querySelector('.amount-input');
+            if (amtInput) {
+                amtInput.value = (actionType === 'mark_as_paid' ? '' : amount);
+                amtInput.disabled = (actionType === 'mark_as_paid');
+            }
+            const dateInput = card.querySelector('.payment-date-input');
+            if (dateInput) {
+                dateInput.value = paymentDate;
+                const calEl = card.querySelector('.mini-cal');
+                if (calEl) {
+                    calEl._selectedDate = paymentDate;
+                    renderMiniCal(calEl, parseInt(calEl.dataset.year, 10), parseInt(calEl.dataset.month, 10), paymentDate);
+                }
+            }
+            const chk = card.querySelector('.mark-as-paid-checkbox');
+            if (chk) {
+                chk.checked = (actionType === 'mark_as_paid');
+            }
+
+            const markPaidGroup = card.querySelector('.mark-as-paid-group');
+            if (markPaidGroup) {
+                markPaidGroup.remove();
+            }
+        }
+    }
+
+    function updateCardTouchedState(card) {
+        const originallyPaid = card.dataset.originallyPaid === 'true';
+        const isPaidNow = card.querySelector('.status.paid') !== null;
+        
+        if (originallyPaid) {
+            if (!isPaidNow) {
+                card.classList.add('is-touched');
+            } else {
+                const amtInput = card.querySelector('.amount-input');
+                const dateInput = card.querySelector('.payment-date-input');
+                const amt = amtInput ? amtInput.value.trim() : '';
+                const date = dateInput ? dateInput.value : '';
+                const origAmt = card.dataset.originalAmount || '';
+                const origDate = card.dataset.originalDate || '';
+                const hasChanged = (amt !== origAmt || date !== origDate);
+                if (hasChanged) {
+                    card.classList.add('is-touched');
+                } else {
+                    card.classList.remove('is-touched');
+                }
+            }
+        } else {
+            if (isPaidNow) {
+                card.classList.add('is-touched');
+            } else {
+                card.classList.remove('is-touched');
+            }
+        }
+    }
+
+    function expandCard(cardElement) {
+        if (event.target.closest('.add-fee-form')) return;
+        const isAlreadyExpanded = cardElement.classList.contains('expanded');
+        
+        hideBubble();
+
+        document.querySelectorAll('.month-card.expanded').forEach(card => card.classList.remove('expanded'));
+        if (!isAlreadyExpanded) {
+            cardElement.classList.add('expanded');
+            captureInitialState(cardElement);
+        } else {
+            activeCard = null;
+            initialState = null;
+        }
+    }
+
+    window.onCardInputChange = function() {
+        updateBubbleVisibility();
+    };
+
+    function showSubmissionSuccessModal(studentName) {
+        return new Promise((resolve) => {
+            const overlay = document.getElementById('statusModalOverlay');
+            const modal = document.getElementById('statusModal');
+            const title = document.getElementById('statusModalTitle');
+            const content = document.getElementById('statusModalContent');
+            const cancelBtn = document.getElementById('statusModalCancelBtn');
+            const confirmBtn = document.getElementById('statusModalConfirmBtn');
+            const closeBtn = document.getElementById('statusModalCloseBtn');
+
+            title.textContent = 'Submission Success';
+            content.innerHTML = `
+                <div style="padding:15px; line-height:1.6; text-align:center;">
+                    <i class='bx bx-check-circle' style="font-size: 3.5rem; color: #2ecc71; margin-bottom: 12px; display:block;"></i>
+                    <p style="font-size: 1.05rem; font-weight: 600; color: #27ae60; margin-bottom: 8px;">Fees Saved Successfully!</p>
+                    <p style="font-size: 0.95rem; margin-bottom: 5px;">Fees Receipt has been sent to <b>${studentName}</b> on WhatsApp and Email, and a copy to you.</p>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">The fees record is saved in Fees Record Page.</p>
+                </div>
+            `;
+
+            cancelBtn.style.display = 'inline-block';
+            cancelBtn.textContent = 'Continue';
+            cancelBtn.className = 'popup-btn popup-cancel';
+            cancelBtn.style.background = '#e0e0e0';
+            cancelBtn.style.color = '#333';
+
+            confirmBtn.style.display = 'inline-block';
+            confirmBtn.textContent = 'Go to Dashboard';
+            confirmBtn.className = 'popup-btn popup-ok';
+            confirmBtn.style.background = 'linear-gradient(135deg,#667eea,#764ba2)';
+            confirmBtn.style.borderColor = 'transparent';
+            confirmBtn.style.color = '#fff';
+
+            const modalHeader = modal.querySelector('.popup-hdr');
+            if (modalHeader) {
+                modalHeader.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+            }
+
+            const cleanup = () => {
+                overlay.classList.remove('active');
+                modal.classList.remove('active');
+                if (modalHeader) modalHeader.style.background = '';
+                confirmBtn.style.background = '';
+                confirmBtn.style.borderColor = '';
+                confirmBtn.style.color = '';
+            };
+
+            cancelBtn.onclick = () => {
+                cleanup();
+                resolve('continue');
+            };
+
+            confirmBtn.onclick = () => {
+                cleanup();
+                resolve('dashboard');
+            };
+
+            closeBtn.onclick = () => {
+                cleanup();
+                resolve('continue');
+            };
+
+            overlay.classList.add('active');
+            modal.classList.add('active');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Instant input restriction and warning toast for search box
+        const searchInput = document.getElementById('calendarSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const val = this.value;
+                const cleanVal = val.replace(/[^\d.]/g, '');
+                if (val !== cleanVal) {
+                    this.value = cleanVal;
+                    if (typeof showSearchToast === 'function') {
+                        showSearchToast("Please enter amount in numbers only");
+                    }
+                }
+                if (typeof debouncedSearch === 'function') {
+                    debouncedSearch(this.value);
+                }
+            });
+        }
+
+        initAllMiniCals();
+
+        // Setup original values on load
+        document.querySelectorAll('.month-card').forEach(card => {
+            const originallyPaid = card.dataset.originallyPaid === 'true';
+            let amtVal = '';
+            if (originallyPaid) {
+                const amtEl = card.querySelector('.amount');
+                if (amtEl) {
+                    amtVal = amtEl.textContent.replace('₹', '').trim();
+                }
+            }
+            const dateInput = card.querySelector('.payment-date-input');
+            const dateVal = dateInput ? dateInput.value : '';
+
+            card.dataset.originalAmount = amtVal;
+            card.dataset.originalDate = dateVal;
+        });
+
+        // No need to restore visuals – sessionSavedActions is always
+        // empty on load and the server-rendered page is the DB truth.
+
+        updateSubmitButtonText();
+
+        const alerts = document.querySelectorAll('.messages li');
+        alerts.forEach(function(alert) {
+            setTimeout(function() {
+                alert.style.transition = 'opacity 0.5s ease';
+                alert.style.opacity = '0';
+                setTimeout(function() { alert.remove(); }, 500);
+            }, 5000);
+        });
+
+        const submitBtn = document.getElementById('submit-all-fees-btn');
+        const processUrl = `{% url 'users:process_fees' student.id %}`;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // Card input listeners
+        document.querySelectorAll('.month-card').forEach(card => {
+            const dateInput = card.querySelector('.payment-date-input');
+            const amountInput = card.querySelector('.amount-input');
+            const checkbox = card.querySelector('.mark-as-paid-checkbox');
+
+            if (amountInput) {
+                amountInput.addEventListener('input', () => {
+                    updateBubbleVisibility();
+                });
+            }
+
+            if (checkbox) {
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        card.classList.add('is-touched');
+                        if (dateInput) dateInput.value = '';
+                        if (amountInput) amountInput.disabled = true;
+                    } else {
+                        card.classList.remove('is-touched');
+                        if (amountInput) amountInput.disabled = false;
+                    }
+                    updateBubbleVisibility();
+                });
+            }
+        });
+
+        // Bubble Clear action
+        document.getElementById('bubble-clear-btn').addEventListener('click', function() {
+            if (!activeCard) return;
+            
+            const isPaidNow = activeCard.querySelector('.status.paid') !== null;
+            if (isPaidNow) {
+                // Card is currently paid (either from DB or saved this session)
+                activeCard._isMarkedCleared = true;
+                const amtInput = activeCard.querySelector('.amount-input');
+                if (amtInput) amtInput.value = '';
+                clearMiniCalSelection(activeCard);
+                updateBubbleVisibility();
+            } else {
+                // Card is unpaid – just reset inputs
+                const amtInput = activeCard.querySelector('.amount-input');
+                if (amtInput) {
+                    amtInput.value = '';
+                    amtInput.disabled = false;
+                }
+                const chk = activeCard.querySelector('.mark-as-paid-checkbox');
+                if (chk) chk.checked = false;
+                clearMiniCalSelection(activeCard);
+                activeCard.classList.remove('is-touched');
+                updateBubbleVisibility();
+            }
+        });
+
+        // Bubble Save action
+        document.getElementById('bubble-save-btn').addEventListener('click', async function() {
+            if (!activeCard) return;
+
+            const monthName = activeCard.dataset.month;
+            const year = activeCard.dataset.year;
+            const dateInput = activeCard.querySelector('.payment-date-input');
+            const amountInput = activeCard.querySelector('.amount-input');
+            const checkbox = activeCard.querySelector('.mark-as-paid-checkbox');
+
+            let actionType = '';
+            let amount = '0';
+            let paymentDate = '';
+
+            const originallyPaid = activeCard.dataset.originallyPaid === 'true';
+
+            // Check _isMarkedCleared first – covers both "originally paid" and
+            // "saved this session but now user wants to undo"
+            if (activeCard._isMarkedCleared) {
+                actionType = 'delete_fee';
+            } else if (originallyPaid) {
+                actionType = 'edit_fee';
+                amount = amountInput ? (amountInput.value || '0') : '0';
+                paymentDate = dateInput ? dateInput.value : '';
+            } else {
+                if (checkbox && checkbox.checked) {
+                    actionType = 'mark_as_paid';
+                } else {
+                    actionType = 'add_fee';
+                    amount = amountInput ? (amountInput.value || '0') : '0';
+                    paymentDate = dateInput ? dateInput.value : '';
+                }
+            }
+
+            if (actionType !== 'delete_fee' && actionType !== 'mark_as_paid') {
+                if (!paymentDate) {
+                    await window.showStyledAlert('Missing Date', 'Please select a payment date on the calendar.');
+                    return;
+                }
+                if (!amount || parseInt(amount, 10) <= 0) {
+                    await window.showStyledAlert('Invalid Amount', 'Please enter a valid amount greater than 0.');
+                    return;
+                }
+            }
+
+            const payloadAction = {
+                month: monthName,
+                year: year,
+                action: actionType,
+                amount: amount,
+                payment_date: paymentDate
+            };
+
+            try {
+                const response = await fetch(processUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        actions: [payloadAction],
+                        save_only: true
+                    })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateCardVisualState(activeCard, actionType, amount, paymentDate);
+                    
+                    if (data.fee_expiry_date) {
+                        const expiryEl = document.querySelector('.expiry-val');
+                        if (expiryEl) {
+                            expiryEl.textContent = data.fee_expiry_date;
+                        }
+                    }
+
+                    // Clean existing actions for this month and year
+                    sessionSavedActions = sessionSavedActions.filter(a => !(a.month === monthName && a.year === year));
+
+                    // Rule for sessionSavedActions:
+                    if (originallyPaid) {
+                        if (actionType === 'delete_fee') {
+                            sessionSavedActions.push(payloadAction);
+                        } else if (actionType === 'edit_fee') {
+                            const hasChanged = (amount !== activeCard.dataset.originalAmount || paymentDate !== activeCard.dataset.originalDate);
+                            if (hasChanged) {
+                                sessionSavedActions.push(payloadAction);
+                            }
+                        }
+                    } else {
+                        if (actionType !== 'delete_fee') {
+                            sessionSavedActions.push(payloadAction);
+                        }
+                    }
+
+                    localStorage.setItem(localStorageKey, JSON.stringify(sessionSavedActions));
+                    updateSubmitButtonText();
+
+                    updateCardTouchedState(activeCard);
+
+                    activeCard.classList.remove('expanded');
+                    activeCard = null;
+                    initialState = null;
+                    hideBubble();
+                } else {
+                    await window.showStyledAlert('Error', 'Failed to save changes: ' + data.message);
+                }
+            } catch (error) {
+                await window.showStyledAlert('Error', 'A network error occurred. Please try again.');
+            }
+        });
+
+        window.customBackConfirm = async function() {
+            if (sessionSavedActions.length > 0) {
+                const msg = "Are you sure to go back, the details will be saved but if you visit again and without changing them submit and send fee receipt then it will only send the receipt of payment what will be added at that time not previous any changes..";
+                const confirmed = await window.showStyledConfirm("Warning", msg, false, "Save & Edit", "Cancel", "warning");
+                if (confirmed) {
+                    window.allowPageUnload = true;
+                }
+                return confirmed;
+            }
+            return true;
+        };
+
+        const backBtn = document.querySelector('.back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const ok = await window.customBackConfirm();
+                if (ok) {
+                    window.allowPageUnload = true;
+                    window.location.href = this.href;
+                }
+            });
+        }
+
+        window.addEventListener('beforeunload', function (e) {
+            if (window.allowPageUnload) return;
+            if (sessionSavedActions.length > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // Submit and Send SMS Action
+        submitBtn.addEventListener('click', async function() {
+            if (sessionSavedActions.length === 0) {
+                await window.showStyledAlert('Denied', 'To submit and send receipt, you have to add fee or mark as paid to any month(s)');
+                return;
+            }
+
+            if (activeCard && document.getElementById('floating-action-bubble').classList.contains('active')) {
+                const saveBtn = document.getElementById('bubble-save-btn');
+                if (saveBtn && saveBtn.style.display !== 'none') {
+                    await window.showStyledAlert('Unsaved Changes', 'Please save or clear the changes in the open month card before submitting.');
+                    return;
+                }
+            }
+
+            openExpiryModal();
+        });
+
+        window.openExpiryModal = function(isDirectEdit = false) {
+            window._isDirectEditExpiry = isDirectEdit;
+            document.getElementById('expiryDateModal').classList.add('active');
+            const chk = document.getElementById('defaultExpiryCheckbox');
+            const container = document.getElementById('expiryWheelContainer');
+            const chkContainer = chk.parentElement;
+
+            if (isDirectEdit) { chkContainer.style.display = 'none'; chk.checked = false; }
+            else { chkContainer.style.display = 'flex'; chk.checked = true; }
+
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const years = [];
+            for(let y=SELECTED_YEAR; y<=SELECTED_YEAR+5; y++) years.push(y.toString());
+            const today = new Date();
+            const daysInMonth = new Date(SELECTED_YEAR, today.getMonth() + 1, 0).getDate();
+            const days = Array.from({length:daysInMonth},(_,i)=>(i+1).toString().padStart(2,'0'));
+
+            initWheelPicker('wheel-expiry-year', years, SELECTED_YEAR.toString(), syncExpiryDays);
+            initWheelPicker('wheel-expiry-month', months, months[today.getMonth()], syncExpiryDays);
+            initWheelPicker('wheel-expiry-day', days, today.getDate().toString().padStart(2,'0'));
+
+            chk.addEventListener('change', function() {
+                container.style.opacity = this.checked ? '0.5' : '1';
+                container.style.pointerEvents = this.checked ? 'none' : 'auto';
+            });
+            if(isDirectEdit) { container.style.opacity='1'; container.style.pointerEvents='auto'; }
+            else { container.style.opacity='0.5'; container.style.pointerEvents='none'; }
+        };
+
+        window.closeExpiryModal = function() {
+            document.getElementById('expiryDateModal').classList.remove('active');
+        };
+
+        window.clearExpiryDate = async function() {
+            if (!await window.showStyledConfirm('Clear Expiry Date', 'Are you sure you want to <b>clear</b> the current expiry date? It will be re-calculated automatically if you add/edit any payments in the future.', true)) return;
+            window.allowPageUnload = true;
+            submitSingleAction([{ action: 'clear_expiry' }]);
+        };
+
+        window.confirmExpiryAndSubmit = async function() {
+            const chk = document.getElementById('defaultExpiryCheckbox');
+            let manualExpiryDate = null;
+            if (!chk.checked) {
+                const y = getWheelValue('wheel-expiry-year');
+                const moStr = getWheelValue('wheel-expiry-month');
+                const d = getWheelValue('wheel-expiry-day');
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const mo = (months.indexOf(moStr)+1).toString().padStart(2,'0');
+                manualExpiryDate = `${y}-${mo}-${d}`;
+            }
+            window.closeExpiryModal();
+            
+            let payload;
+            if (window._isDirectEditExpiry) {
+                if (!manualExpiryDate) return;
+                payload = { actions: [], expiry_date: manualExpiryDate, use_default_expiry: false };
+            } else {
+                payload = { actions: sessionSavedActions, expiry_date: manualExpiryDate, use_default_expiry: chk.checked, final_dispatch: true };
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin' style="vertical-align:middle;margin-right:6px;"></i>Sending Notifications...`;
+
+            try {
+                const response = await fetch(processUrl, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken}, body:JSON.stringify(payload) });
+                const data = await response.json();
+                if (data.status === 'success') { 
+                    localStorage.removeItem(localStorageKey);
+                    sessionSavedActions = [];
+                    updateSubmitButtonText();
+                    window.allowPageUnload = true;
+                    
+                    const choice = await showSubmissionSuccessModal("{{ student.full_name|escapejs }}");
+                    window.allowPageUnload = true;
+                    if (choice === 'dashboard') {
+                        window.location.href = "{% url 'users:teacher_dashboard' %}";
+                    } else {
+                        window.location.reload();
+                    }
+                }
+                else { 
+                    await window.showStyledAlert('Error', 'An error occurred: ' + data.message); 
+                    submitBtn.disabled = false;
+                    updateSubmitButtonText();
+                }
+            } catch (error) { 
+                await window.showStyledAlert('Error', 'A network error occurred. Please try again.'); 
+                submitBtn.disabled = false;
+                updateSubmitButtonText();
+            }
+        };
+
+        async function submitSingleAction(actions) {
+            try {
+                const response = await fetch(processUrl, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken}, body:JSON.stringify({actions}) });
+                const data = await response.json();
+                if (data.status === 'success') { 
+                    window.allowPageUnload = true;
+                    await window.showStyledAlert('Success', data.message); 
+                    window.location.reload(); 
+                }
+                else { await window.showStyledAlert('Error', 'An error occurred: ' + data.message); }
+            } catch (error) { await window.showStyledAlert('Error', 'A network error occurred. Please try again.'); }
+        }
+
+        // ── Search Amount Functionality ──────────────────────────────────────────
+        let activeMatches = [];
+        let activeMatchIndex = -1;
+
+        window.showSearchToast = function(message) {
+            let toast = document.getElementById('searchAlertToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'searchAlertToast';
+                toast.className = 'search-alert-toast';
+                document.body.appendChild(toast);
+            }
+            toast.innerHTML = `<i class='bx bx-error-circle' style="font-size:1.2rem;"></i> <span>${message}</span>`;
+            toast.getBoundingClientRect();
+            toast.classList.add('active');
+            
+            clearTimeout(window.searchToastTimeout);
+            window.searchToastTimeout = setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2500);
+        };
+
+        window.positionSearchNavPanel = function() {
+            const panel = document.getElementById('calendarSearchNavPanel');
+            const wrapper = document.getElementById('calendarSearchWrapper');
+            if (!panel || !wrapper) return;
+
+            if (!wrapper.classList.contains('expanded') || activeMatches.length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            const rect = wrapper.getBoundingClientRect();
+            
+            if (window.innerWidth >= 1000) {
+                // Desktop: position relative to search container (left of it)
+                panel.style.position = 'fixed';
+                panel.style.bottom = 'auto';
+                panel.style.display = 'flex';
+                
+                const panelWidth = panel.offsetWidth || 130;
+                panel.style.left = (rect.left - panelWidth - 12) + 'px';
+                panel.style.top = (rect.top + (rect.height - panel.offsetHeight) / 2) + 'px';
+            } else {
+                // Mobile: position above the floating search wrapper
+                panel.style.position = 'fixed';
+                panel.style.display = 'flex';
+                
+                panel.style.left = rect.left + 'px';
+                panel.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
+                panel.style.top = 'auto';
+            }
+        };
+
+        window.toggleSearch = function(show) {
+            const wrapper = document.getElementById('calendarSearchWrapper');
+            const input = document.getElementById('calendarSearchInput');
+            const actionBtn = document.getElementById('searchActionBtn');
+            const panel = document.getElementById('calendarSearchNavPanel');
+            
+            if (show) {
+                wrapper.classList.add('expanded');
+                actionBtn.innerHTML = "<i class='bx bx-x'></i>";
+                setTimeout(() => {
+                    input.focus();
+                    positionSearchNavPanel();
+                }, 150);
+                const query = input.value.trim();
+                if (query) {
+                    handleSearchInput(query);
+                }
+            } else {
+                wrapper.classList.remove('expanded');
+                actionBtn.innerHTML = "<i class='bx bx-search'></i>";
+                input.value = '';
+                if (panel) panel.style.display = 'none';
+                activeMatches = [];
+                activeMatchIndex = -1;
+                sessionStorage.removeItem('calendarSearchQuery');
+                sessionStorage.removeItem('calendarSearchTargetYear');
+                sessionStorage.removeItem('calendarSearchTargetMonth');
+                sessionStorage.removeItem('calendarSearchIndex');
+                
+                document.querySelectorAll('.month-card.search-highlight').forEach(c => {
+                    c.classList.remove('search-highlight');
+                });
+            }
+        };
+
+        // Search action button click — toggle open/close
+        document.getElementById('searchActionBtn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            const wrapper = document.getElementById('calendarSearchWrapper');
+            if (wrapper.classList.contains('expanded')) {
+                toggleSearch(false);
+            } else {
+                toggleSearch(true);
+            }
+        });
+
+        window.handleSearchInput = function(val) {
+            const query = val.trim();
+            const panel = document.getElementById('calendarSearchNavPanel');
+            
+            document.querySelectorAll('.month-card.search-highlight').forEach(c => {
+                c.classList.remove('search-highlight');
+            });
+
+            if (!query) {
+                if (panel) panel.style.display = 'none';
+                activeMatches = [];
+                activeMatchIndex = -1;
+                sessionStorage.removeItem('calendarSearchQuery');
+                return;
+            }
+
+            // Check if it contains any non-numeric characters (excluding digits and dot)
+            if (/[^\d.]/.test(query)) {
+                if (panel) panel.style.display = 'none';
+                activeMatches = [];
+                activeMatchIndex = -1;
+                showSearchToast("Please enter amount in numbers only");
+                return;
+            }
+
+            const queryNum = parseFloat(query);
+            if (isNaN(queryNum)) {
+                if (panel) panel.style.display = 'none';
+                activeMatches = [];
+                activeMatchIndex = -1;
+                return;
+            }
+
+            activeMatches = ALL_PAYMENTS.filter(p => parseFloat(p.amount) === queryNum);
+            
+            activeMatches.sort((a, b) => {
+                if (a.year !== b.year) return a.year - b.year;
+                return a.month_num - b.month_num;
+            });
+
+            if (activeMatches.length === 0) {
+                if (panel) panel.style.display = 'none';
+                activeMatchIndex = -1;
+                showSearchToast("No results found");
+                return;
+            }
+
+            if (panel) {
+                panel.style.display = 'flex';
+                // Disable navigation buttons if there is only 1 result
+                const prevBtn = panel.querySelector('.nav-btn:first-of-type');
+                const nextBtn = panel.querySelector('.nav-btn:last-of-type');
+                if (activeMatches.length <= 1) {
+                    if (prevBtn) { prevBtn.disabled = true; prevBtn.style.opacity = '0.4'; prevBtn.style.pointerEvents = 'none'; }
+                    if (nextBtn) { nextBtn.disabled = true; nextBtn.style.opacity = '0.4'; nextBtn.style.pointerEvents = 'none'; }
+                } else {
+                    if (prevBtn) { prevBtn.disabled = false; prevBtn.style.opacity = '1'; prevBtn.style.pointerEvents = 'auto'; }
+                    if (nextBtn) { nextBtn.disabled = false; nextBtn.style.opacity = '1'; nextBtn.style.pointerEvents = 'auto'; }
+                }
+                positionSearchNavPanel();
+            }
+            
+            const savedIndex = sessionStorage.getItem('calendarSearchIndex');
+            if (savedIndex !== null && parseInt(savedIndex) < activeMatches.length) {
+                activeMatchIndex = parseInt(savedIndex);
+                sessionStorage.removeItem('calendarSearchIndex');
+            } else {
+                const curYearIdx = activeMatches.findIndex(m => m.year === SELECTED_YEAR);
+                activeMatchIndex = curYearIdx !== -1 ? curYearIdx : 0;
+            }
+
+            navigateToMatch(activeMatchIndex);
+        };
+
+        window.navigateSearch = function(dir) {
+            if (activeMatches.length <= 1) return;
+            activeMatchIndex = (activeMatchIndex + dir + activeMatches.length) % activeMatches.length;
+            navigateToMatch(activeMatchIndex);
+        };
+
+        function navigateToMatch(index) {
+            if (index < 0 || index >= activeMatches.length) return;
+            const match = activeMatches[index];
+            const countEl = document.getElementById('externalSearchCount');
+            if (countEl) countEl.innerText = `${index + 1} / ${activeMatches.length}`;
+
+            sessionStorage.setItem('calendarSearchQuery', document.getElementById('calendarSearchInput').value.trim());
+            sessionStorage.setItem('calendarSearchIndex', index);
+
+            if (match.year === SELECTED_YEAR) {
+                document.querySelectorAll('.month-card.expanded').forEach(c => {
+                    if (c.dataset.month !== match.month_name) {
+                        c.classList.remove('expanded');
+                    }
+                });
+
+                const card = document.querySelector(`.month-card[data-month="${match.month_name}"]`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    if (!card.classList.contains('expanded')) {
+                        card.click();
+                    }
+
+                    card.classList.add('search-highlight');
+                    setTimeout(() => {
+                        card.classList.remove('search-highlight');
+                    }, 2500);
+                }
+            } else {
+                sessionStorage.setItem('calendarSearchTargetYear', match.year);
+                sessionStorage.setItem('calendarSearchTargetMonth', match.month_name);
+                
+                document.getElementById('hiddenYearInput').value = match.year;
+                document.getElementById('yearForm').submit();
+            }
+        }
+
+        // Debounce helper to optimize live-search typing
+        // Debounce helper to optimize live-search typing
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+        window.debouncedSearch = debounce(window.handleSearchInput, 300);
+
+        // Dynamic search bar placement for responsive containing blocks
+        function adjustSearchPlacement() {
+            const wrapper = document.getElementById('calendarSearchWrapper');
+            const headerControls = document.querySelector('.header-controls');
+            const desktopSearchContainer = document.querySelector('.desktop-search-container');
+            const body = document.body;
+            
+            if (wrapper && headerControls) {
+                if (window.innerWidth >= 1000) {
+                    if (desktopSearchContainer && wrapper.parentNode !== desktopSearchContainer) {
+                        desktopSearchContainer.appendChild(wrapper);
+                    }
+                } else {
+                    if (wrapper.parentNode !== body) {
+                        body.appendChild(wrapper);
+                    }
+                }
+            }
+            positionSearchNavPanel();
+        }
+        window.addEventListener('resize', adjustSearchPlacement, { passive: true });
+        window.addEventListener('scroll', positionSearchNavPanel, { passive: true });
+        adjustSearchPlacement();
+
+        // Restore search state if page switched years or reloaded
+        const savedQuery = sessionStorage.getItem('calendarSearchQuery');
+        if (savedQuery) {
+            const input = document.getElementById('calendarSearchInput');
+            input.value = savedQuery;
+            toggleSearch(true);
+        }
+    });
+
+    if (window.history && window.history.replaceState) {
+        history.replaceState(null, document.title, window.location.href);
+    }
+</script>
+    <!-- External Search Navigation Panel -->
+    <div class="calendar-search-nav-panel" id="calendarSearchNavPanel">
+        <span class="nav-count" id="externalSearchCount">0 / 0</span>
+        <div class="nav-btns">
+            <button type="button" class="nav-btn" onclick="navigateSearch(-1)" title="Previous match">
+                <i class='bx bx-chevron-up'></i>
+            </button>
+            <button type="button" class="nav-btn" onclick="navigateSearch(1)" title="Next match">
+                <i class='bx bx-chevron-down'></i>
+            </button>
+        </div>
+    </div>
+
+{% if user.is_authenticated %}
+<script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
+<script src="{% static 'js/push-permission.js' %}"></script>
+{% endif %}
+{% include 'partials/_smart_back_redirect.html' %}
+</body>
+</html>

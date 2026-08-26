@@ -1,0 +1,2352 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<!-- Fixed Template Syntax Finally -->
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
+    <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'data/favicon/apple-touch-icon.png' %}" />
+    <meta name="apple-mobile-web-app-title" content="ABCD (coaching & library)" />
+    <link rel="manifest" href="{% static 'data/favicon/site.webmanifest' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap"
+        rel="stylesheet">
+    <title>Admission Form - ABCD</title>
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='https://cdn.boxicons.com/fonts/brands/boxicons-brands.min.css' rel='stylesheet'>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <link rel="stylesheet" href="{% static 'css/seat-layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/seat-patterns-enhanced.css' %}">
+    <link rel="stylesheet" href="{% static 'css/site-tour.css' %}">
+    <style>
+        /* Hide lamp icon - bxs-lamp does not exist in Boxicons */
+        .lamp-icon {
+            display: none !important;
+        }
+
+        /* --- THEME LOCK: Library Layout must ALWAYS look like Light Theme --- */
+        #seatModalBody, 
+        .floor-content,
+        .ground-floor-wrapper,
+        .first-floor-wrapper {
+            background-color: #ffffff !important;
+            color: #333 !important;
+        }
+
+        /* Force icons visibility */
+        #seatModalBody .seat-icon-group i {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+
+        /* Ensure shift half background fills stay within rounded seat borders */
+        #seatModalBody .seat-half.seat-morning {
+            border-top-left-radius: 6px !important;
+            border-top-right-radius: 6px !important;
+        }
+        #seatModalBody .seat-half.seat-evening {
+            border-bottom-left-radius: 6px !important;
+            border-bottom-right-radius: 6px !important;
+        }
+
+        /* --- SEAT STATUS OVERRIDES (Available is Green, Occupied is Violet) --- */
+        /* Available Seats -> Green */
+        #seatModalBody .seat.available:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) {
+            border: 1px solid rgba(46, 204, 113, 0.3) !important;
+            background-color: transparent !important;
+        }
+        #seatModalBody .seat.available:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-icon-group {
+            color: #2ecc71 !important;
+        }
+        #seatModalBody .seat.available:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .lamp-icon {
+            color: #2ecc71 !important;
+        }
+        #seatModalBody .seat.available:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-number {
+            background: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            color: white !important;
+        }
+        #seatModalBody .seat.available:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-label {
+            background: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            color: white !important;
+        }
+
+        /* Occupied Seats -> Distinct Violet (#7c3aed) */
+        #seatModalBody .seat.occupied:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) {
+            border-color: #7c3aed !important;
+            background-color: #ede9fe !important;
+        }
+        #seatModalBody .seat.occupied:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full):not(.on_hold):not(.hold-full) .seat-icon-group {
+            color: #7c3aed !important;
+        }
+        #seatModalBody .seat.occupied:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full):not(.on_hold):not(.hold-full) .lamp-icon {
+            color: #7c3aed !important;
+        }
+        #seatModalBody .seat.occupied:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-number {
+            background: #7c3aed !important;
+            border: 2px solid #6d28d9 !important;
+            color: white !important;
+        }
+        #seatModalBody .seat.occupied:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-label {
+            background: #7c3aed !important;
+            color: white !important;
+            border-color: #6d28d9 !important;
+        }
+
+        /* Shift-half background colors based on status (applied only on partially occupied/held/temporary seats) */
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-morning.shift-available,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-morning.shift-available {
+            background-color: #d1fae5 !important; /* Soft light green */
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-evening.shift-available,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-evening.shift-available {
+            background-color: #a7f3d0 !important; /* Soft slightly darker green */
+        }
+        
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-morning.shift-occupied,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-morning.shift-occupied {
+            background-color: #c4b5fd !important; /* Light purple */
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-evening.shift-occupied,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-evening.shift-occupied {
+            background-color: #8b5cf6 !important; /* Darker purple */
+        }
+        
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-morning.shift-hold,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-morning.shift-hold {
+            background-color: #fcd34d !important; /* Light orange */
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-evening.shift-hold,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-evening.shift-hold {
+            background-color: #f6ad55 !important; /* Darker orange */
+        }
+        
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-morning.shift-temporary,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-morning.shift-temporary {
+            background-color: #fce7f3 !important; /* Light pink */
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).occupied:not(.occupied-full) .seat-half.seat-evening.shift-temporary,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full).on_hold:not(.hold-full) .seat-half.seat-evening.shift-temporary {
+            background-color: #fbcfe8 !important; /* Darker pink */
+        }
+
+        /* Shift label text & border colors based on status */
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-morning-label.status-available,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-evening-label.status-available {
+            color: #27ae60 !important;
+            border-color: #2ecc71 !important;
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-morning-label.status-occupied,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-evening-label.status-occupied {
+            color: #7c3aed !important;
+            border-color: #7c3aed !important;
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-morning-label.status-hold,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-evening-label.status-hold {
+            color: #d97706 !important;
+            border-color: #f59e0b !important;
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-morning-label.status-temporary,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-evening-label.status-temporary {
+            color: #db2777 !important;
+            border-color: #ec4899 !important;
+        }
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-morning-label.status-locked,
+        #seatModalBody .seat:not(.selected):not(.selected-temp):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full) .seat-evening-label.status-locked {
+            color: #334155 !important;
+            border-color: #475569 !important;
+            background: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        /* --- ACTIVE SELECTION OVERRIDES (Blue for Normal, Pink/Magenta for Temp) --- */
+        /* Normal Selected (Vibrant Indigo/Blue) */
+        #seatModalBody .seat.selected {
+            border: 2px solid #2563eb !important;
+            background: #f0f5ff !important;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.25) !important;
+        }
+        #seatModalBody .seat.selected .seat-icon-group {
+            color: #2563eb !important;
+        }
+        #seatModalBody .seat.selected .lamp-icon {
+            color: #2563eb !important;
+        }
+        #seatModalBody .seat.selected .seat-number {
+            background: #2563eb !important;
+            border-color: #1d4ed8 !important;
+            color: white !important;
+        }
+        #seatModalBody .seat.selected .seat-label {
+            background: #2563eb !important;
+            color: white !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        /* Temporary Selected (Hot Pink / Magenta / Pinkish Blue) */
+        #seatModalBody .seat.selected-temp {
+            border: 2px solid #e84393 !important;
+            background: #fff0f5 !important;
+            box-shadow: 0 0 12px rgba(232, 67, 147, 0.25) !important;
+        }
+        #seatModalBody .seat.selected-temp .seat-icon-group {
+            color: #e84393 !important;
+        }
+        #seatModalBody .seat.selected-temp .lamp-icon {
+            color: #e84393 !important;
+        }
+        #seatModalBody .seat.selected-temp .seat-number {
+            background: #e84393 !important;
+            border-color: #c13175 !important;
+            color: white !important;
+        }
+        #seatModalBody .seat.selected-temp .seat-label {
+            background: #e84393 !important;
+            color: white !important;
+            border-color: #c13175 !important;
+        }
+
+        /* Shift selected states (Normal Blue) */
+        #seatModalBody .shift-seat.selected-morning {
+            border: 2px solid #2563eb !important;
+        }
+        #seatModalBody .shift-seat.selected-morning .seat-morning {
+            background-color: #93c5fd !important;
+        }
+        #seatModalBody .shift-seat.selected-evening {
+            border: 2px solid #2563eb !important;
+        }
+        #seatModalBody .shift-seat.selected-evening .seat-evening {
+            background-color: #2563eb !important;
+        }
+        #seatModalBody .shift-seat.selected-full {
+            border: 2px solid #2563eb !important;
+            background: #f0f5ff !important;
+            background-color: #f0f5ff !important;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.25) !important;
+        }
+        #seatModalBody .shift-seat.selected-full .seat-morning,
+        #seatModalBody .shift-seat.selected-full .seat-evening {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        #seatModalBody .shift-seat.selected-full .seat-icon-group,
+        #seatModalBody .shift-seat.selected-full .lamp-icon {
+            color: #2563eb !important;
+        }
+
+        /* Shift selected-temp states (Pinkish) */
+        #seatModalBody .shift-seat.selected-temp-morning {
+            border: 2px solid #e84393 !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-morning .seat-morning {
+            background-color: #f9a8d4 !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-evening {
+            border: 2px solid #e84393 !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-evening .seat-evening {
+            background-color: #ff9abe !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-full {
+            border: 2px solid #e84393 !important;
+            background: #fff0f5 !important;
+            background-color: #fff0f5 !important;
+            box-shadow: 0 0 12px rgba(232, 67, 147, 0.25) !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-full .seat-morning,
+        #seatModalBody .shift-seat.selected-temp-full .seat-evening {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-full .seat-icon-group,
+        #seatModalBody .shift-seat.selected-temp-full .lamp-icon {
+            color: #e84393 !important;
+        }
+
+        /* Force divider for split selected states */
+        #seatModalBody .shift-seat.selected-morning::after,
+        #seatModalBody .shift-seat.selected-evening::after,
+        #seatModalBody .shift-seat.selected-temp-morning::after,
+        #seatModalBody .shift-seat.selected-temp-evening::after {
+            display: block !important;
+        }
+
+        /* Badge/Label overrides for active selections to guarantee correct colors */
+        #seatModalBody .shift-seat.selected-morning .seat-number,
+        #seatModalBody .shift-seat.selected-evening .seat-number,
+        #seatModalBody .shift-seat.selected-full .seat-number {
+            background: #2563eb !important;
+            border-color: #1d4ed8 !important;
+            color: #fff !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-morning .seat-number,
+        #seatModalBody .shift-seat.selected-temp-evening .seat-number,
+        #seatModalBody .shift-seat.selected-temp-full .seat-number {
+            background: #e84393 !important;
+            border-color: #c13175 !important;
+            color: #fff !important;
+        }
+
+        #seatModalBody .shift-seat.selected-morning .seat-label,
+        #seatModalBody .shift-seat.selected-evening .seat-label {
+            background: #ffffff !important;
+            color: #2563eb !important;
+            border: 1px solid #2563eb !important;
+        }
+        #seatModalBody .shift-seat.selected-full .seat-label {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border: 1px solid #1d4ed8 !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-morning .seat-label,
+        #seatModalBody .shift-seat.selected-temp-evening .seat-label {
+            background: #ffffff !important;
+            color: #e84393 !important;
+            border: 1px solid #e84393 !important;
+        }
+        #seatModalBody .shift-seat.selected-temp-full .seat-label {
+            background: #e84393 !important;
+            color: #ffffff !important;
+            border: 1px solid #c13175 !important;
+        }
+
+        /* Selected State overrides to look good on white */
+        .seat.selected .seat-label {
+            color: #ffffff !important;
+        }
+        
+        /* Ensure layout structure doesn't break in dark mode */
+        body.dark-theme #seatModalContainer {
+            background: #ffffff !important;
+            color: #333 !important;
+        }
+        body.dark-theme .seat-modal-header {
+            border-bottom-color: #eee !important;
+            background: #ffffff !important;
+        }
+        body.dark-theme .seat-modal-header h3 {
+            color: #333 !important;
+        }
+        body.dark-theme #seatModalCloseBtn {
+            color: #999 !important;
+        }
+
+        /* Styled Popup Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.85);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* All your existing <style> content remains here */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(to top, #112a3b, #5683a1a6, #fff2de);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        body.dark-theme {
+            background: linear-gradient(to top, #3a0466, #300448da, #000000);
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff7eb;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .form-header {
+            background: linear-gradient(135deg, #556dd6 0%, #61358d 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .form-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .form-body {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: #f8f9fa;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .radio-group,
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .conditional-field {
+            display: none;
+        }
+
+        .conditional-field.show {
+            display: block;
+        }
+
+        /* Custom Premium Select Dropdowns */
+        .abcd-select-wrapper {
+            position: relative;
+            width: 100%;
+            user-select: none;
+        }
+
+        .abcd-select-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 12px 18px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            background: #f8f9fa;
+            color: #333;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .abcd-select-trigger:hover {
+            border-color: #667eea;
+            background: #fff;
+        }
+
+        .abcd-select-wrapper.open .abcd-select-trigger {
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .abcd-select-trigger i {
+            font-size: 1.2rem;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .abcd-select-wrapper.open .abcd-select-trigger i {
+            transform: rotate(180deg);
+        }
+
+        .abcd-select-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #e1e8ed;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .abcd-select-wrapper.open .abcd-select-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .abcd-select-option {
+            padding: 12px 15px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            color: #555;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .abcd-select-option:hover {
+            background: rgba(102, 126, 234, 0.08);
+            color: #667eea;
+            padding-left: 20px;
+        }
+
+        .abcd-select-option.selected {
+            background: #667eea;
+            color: #fff;
+        }
+
+        /* Custom Scrollbar for dropdowns */
+        .abcd-select-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .abcd-select-dropdown::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .abcd-select-dropdown::-webkit-scrollbar-thumb {
+            background: #e1e8ed;
+            border-radius: 10px;
+        }
+
+        .abcd-select-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e0;
+        }
+
+        .radio-button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        #library-floor-label {
+            text-align: center;
+        }
+
+        .radio-button-group input[type="radio"] {
+            display: none;
+        }
+
+        .radio-button-group label {
+            display: inline-block;
+            padding: 12px 25px;
+            border: 2px solid #ddd;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .radio-button-group input[type="radio"]:checked+label {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .radio-button-group label:hover {
+            border-color: #764ba2;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            letter-spacing: 0.5px;
+        }
+        /* Animated shimmer sweep across the button */
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            animation: submit-shimmer 3s ease-in-out infinite;
+        }
+        @keyframes submit-shimmer {
+            0%   { left: -100%; }
+            50%  { left: 100%; }
+            100% { left: 100%; }
+        }
+        /* Subtle breathing glow */
+        @keyframes submit-glow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3), 0 0 0 0 rgba(118, 75, 162, 0); }
+            50%      { box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45), 0 0 20px 2px rgba(118, 75, 162, 0.15); }
+        }
+        .submit-btn {
+            animation: submit-glow 2.5s ease-in-out infinite;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.45), 0 0 25px 4px rgba(118, 75, 162, 0.2);
+            animation: none;
+        }
+        .submit-btn:active {
+            transform: translateY(0) scale(0.97);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            transition: all 0.1s ease;
+        }
+
+        /* --- Flying Toast Notification --- */
+        @keyframes toast-fly-up {
+            0%   { bottom: -80px; opacity: 0; transform: translateX(-50%) scale(0.7); }
+            20%  { bottom: 45vh;  opacity: 1; transform: translateX(-50%) scale(1.05); }
+            25%  { bottom: 45vh;  opacity: 1; transform: translateX(-50%) scale(1); }
+            75%  { bottom: 45vh;  opacity: 1; transform: translateX(-50%) scale(1); }
+            100% { bottom: 110vh; opacity: 0; transform: translateX(-50%) scale(0.8); }
+        }
+        .flying-toast {
+            position: fixed;
+            left: 50%;
+            bottom: -80px;
+            transform: translateX(-50%);
+            z-index: 99999;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            padding: 16px 36px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5), 0 0 30px rgba(118, 75, 162, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            animation: toast-fly-up 2.8s cubic-bezier(0.22, 0.68, 0.36, 1) forwards;
+            pointer-events: none;
+        }
+        .flying-toast .toast-check {
+            width: 26px;
+            height: 26px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        /* --- Responsive seat button sizing --- */
+        @media (max-width: 600px) {
+            .btn.btn-primary {
+                padding: 10px 18px;
+                font-size: 0.92rem;
+            }
+            .submit-btn {
+                padding: 13px 20px;
+                font-size: 1.05rem;
+            }
+        }
+        @media (max-width: 400px) {
+            .btn.btn-primary {
+                padding: 9px 14px;
+                font-size: 0.85rem;
+            }
+            .submit-btn {
+                padding: 12px 16px;
+                font-size: 0.95rem;
+            }
+            .radio-button-group {
+                gap: 10px;
+                flex-wrap: nowrap;
+            }
+            .radio-button-group label {
+                padding: 9px 16px;
+                font-size: 0.82rem;
+            }
+        }
+        @media (max-width: 340px) {
+            .radio-button-group label {
+                padding: 8px 12px;
+                font-size: 0.76rem;
+            }
+        }
+
+        .back-btn {
+            display: inline-block;
+            background-color: #d2d2d2;
+            border: 1px solid #667eea;
+            border-radius: 5px;
+            padding: 5px;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            border: 1px solid #667eea;
+            background-color: #667eea;
+            color: #fff;
+            border-radius: 5px;
+            transition: 0.1s ease-in-out;
+        }
+
+        /* This is a good place to add a simple style for the new button */
+        .btn {
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+            border: 2px solid #667eea;
+        }
+
+        .btn-primary:hover {
+            background-color: #5a6cd8;
+            border-color: #5a6cd8;
+        }
+
+        /* ============================= */
+        /* SHIFT SELECTION MODAL (CLEAN) */
+        /* Matches UI from images 1.0 - 1.6 */
+        /* ============================= */
+        /* Common overlay styles */
+        .seat-interest-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .seat-interest-overlay.hidden {
+            display: none;
+        }
+
+        .seat-interest-box {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 28px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+            text-align: center;
+        }
+
+        /* Title */
+        #shiftSelectOverlay h3,
+        #shiftSelectTitle {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #111;
+        }
+
+        /* Subtitle/Message */
+        #shiftSelectText {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 22px;
+            line-height: 1.5;
+        }
+
+        /* Buttons layout */
+        #shiftSelectButtons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Shift buttons - primary style */
+        #shiftSelectButtons .btn,
+        #shiftSelectButtons .shift-btn,
+        #shiftSelectButtons .shift-btn-temp {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        /* Primary button (available shift) - solid blue */
+        #shiftSelectButtons .shift-btn {
+            background-color: #667eea;
+            color: white;
+        }
+
+        #shiftSelectButtons .shift-btn:hover {
+            background-color: #5a6cd8;
+        }
+
+        /* Temporary request button - lighter blue */
+        #shiftSelectButtons .shift-btn-temp {
+            background-color: #8b9cf5;
+            color: white;
+        }
+
+        #shiftSelectButtons .shift-btn-temp:hover {
+            background-color: #7a8be8;
+        }
+
+        /* OR Separator (Case 4) */
+        .shift-popup-separator {
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        .shift-popup-separator .separator-line {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .shift-popup-separator .separator-warning {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            padding: 12px;
+            background: #fff8e6;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        /* Warning text (Case 5) */
+        .shift-popup-warning {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            padding: 12px;
+            background: #fff8e6;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        /* Cancel button */
+        #shiftSelectCancel {
+            margin-top: 18px;
+            padding: 10px 28px;
+            border-radius: 10px;
+            background-color: #e8e8e8;
+            color: #333;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #shiftSelectCancel:hover {
+            background-color: #d8d8d8;
+        }
+
+        /* ============================= */
+        /* CONFIRMATION ALERT MODAL      */
+        /* Matches UI from images 1.x.1  */
+        /* ============================= */
+        #partialRequestOverlay .alert-box {
+            max-width: 380px;
+        }
+
+        /* Alert title with warning icon */
+        .alert-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #dc3545;
+            margin-bottom: 16px;
+        }
+
+        /* Alert message text */
+        #partialRequestText {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Alert buttons container */
+        .alert-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        /* Cancel button in alert */
+        .btn-cancel {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 10px;
+            background-color: #e8e8e8;
+            color: #333;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover {
+            background-color: #d8d8d8;
+        }
+
+        /* Yes/Confirm button in alert */
+        .btn-confirm {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 10px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-confirm:hover {
+            background-color: #5a6cd8;
+        }
+
+        /* Wheel Picker Styling */
+        .wheel-picker-container {
+            display: flex;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+        }
+
+        .wheel-col {
+            flex: 1;
+            height: 100%;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            text-align: center;
+            scroll-snap-type: y mandatory;
+            padding: 80px 0;
+        }
+
+        .wheel-col::-webkit-scrollbar {
+            display: none;
+        }
+
+        .wheel-item {
+            height: 40px;
+            line-height: 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #999;
+            scroll-snap-align: center;
+            transition: 0.2s;
+        }
+
+        .wheel-item.selected {
+            color: #61358d;
+            transform: scale(1.15);
+        }
+
+        .wheel-highlight {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            right: 10px;
+            height: 42px;
+            transform: translateY(-50%);
+            background: rgba(97, 53, 141, 0.08);
+            border-top: 1px solid #e1e8ed;
+            border-bottom: 1px solid #e1e8ed;
+            pointer-events: none;
+            border-radius: 8px;
+        }
+
+        /* Modal Overlay for Birthday */
+        .abcd-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .abcd-modal-overlay.active {
+            display: flex;
+        }
+
+        .abcd-modal-container {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-body {
+                padding: 20px;
+            }
+        }
+
+        /* ============================= */
+        /* Dark Theme Support            */
+        /* ============================= */
+        body.dark-theme .form-container {
+            background: #1e1e2d;
+            border-color: rgba(255,255,255,0.1);
+        }
+        body.dark-theme label,
+        body.dark-theme .form-group label,
+        body.dark-theme .checkbox-group label {
+            color: #fff;
+        }
+        body.dark-theme .form-control {
+            background: rgba(255,255,255,0.05);
+            border-color: #333;
+            color: #fff;
+        }
+        body.dark-theme .abcd-modal-container {
+            background: #1e1e2d;
+            color: #fff;
+        }
+        body.dark-theme .wheel-picker-container {
+            background: #111;
+            border-color: #333;
+        }
+        body.dark-theme .abcd-select-trigger {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            border-color: #333;
+        }
+        body.dark-theme .abcd-select-dropdown {
+            background: #1e1e2d;
+            border-color: #333;
+        }
+        body.dark-theme .abcd-select-option {
+            color: #ccc;
+        }
+        body.dark-theme .radio-button-group label {
+            border-color: #444;
+            color: #ccc;
+        }
+        body.dark-theme .radio-button-group input[type="radio"]:checked+label {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .form-group small {
+            color: #777;
+            display: block;
+            margin-top: 5px;
+        }
+        body.dark-theme .form-group small {
+            color: wheat !important;
+        }
+
+        /* Modal Header styling for light/dark theme compatibility */
+        .abcd-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+            position: relative;
+            background: #f8f9fa;
+        }
+        .abcd-modal-header h3 {
+            font-weight: 800;
+            color: #333;
+            margin: 0;
+        }
+        body.dark-theme .abcd-modal-header {
+            background: #111;
+            border-bottom-color: #333;
+        }
+        body.dark-theme .abcd-modal-header h3 {
+            color: #fff;
+        }
+
+        /* Seat selection modal alerts and overlays */
+        body.dark-theme .seat-interest-box {
+            background: #1e1e2d;
+            color: #fff;
+        }
+        body.dark-theme #shiftSelectOverlay h3,
+        body.dark-theme #shiftSelectTitle {
+            color: #fff;
+        }
+        body.dark-theme #shiftSelectText,
+        body.dark-theme #partialRequestText,
+        body.dark-theme #alreadyAdmittedText {
+            color: #ccc;
+        }
+        body.dark-theme .shift-popup-separator .separator-line {
+            color: #bbb;
+        }
+        body.dark-theme .shift-popup-separator .separator-warning,
+        body.dark-theme .shift-popup-warning {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+        }
+        body.dark-theme #shiftSelectCancel,
+        body.dark-theme .btn-cancel {
+            background-color: #333;
+            color: #ccc;
+        }
+        body.dark-theme #shiftSelectCancel:hover,
+        body.dark-theme .btn-cancel:hover {
+            background-color: #444;
+            color: #fff;
+        }
+        body.dark-theme #alreadyAdmittedTitle {
+            color: #e67e22 !important;
+        }
+
+        /* Library Notice Box */
+        .library-notice-box {
+            background: #f3f0ff;
+            border-left: 5px solid #7c3aed;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #333;
+        }
+        body.dark-theme .library-notice-box {
+            background: rgba(124, 58, 237, 0.1);
+            color: #ddd;
+        }
+
+        /* Selected Seat Preview styles */
+        #selectedSeatPreview {
+            font-weight: 600;
+            margin-top: 8px;
+            transition: color 0.2s ease;
+        }
+        .seat-selected-none {
+            color: #64748b;
+        }
+        body.dark-theme .seat-selected-none {
+            color: #94a3b8;
+        }
+        .seat-selected-success {
+            color: #2563eb;
+        }
+        body.dark-theme .seat-selected-success {
+            color: #60a5fa !important;
+        }
+        .seat-selected-error {
+            color: #dc3545;
+        }
+        body.dark-theme .seat-selected-error {
+            color: #f87171 !important;
+        }
+
+        /* ================================================== */
+        /* SEAT SELECTION MODAL RESPONSIVE STYLES */
+        /* ================================================== */
+
+        /* --- SEAT BORDER BOX OPTIMIZATION --- */
+        #seatModalBody .seat {
+            min-width: 92px !important;
+            min-height: 104px !important;
+            height: 104px !important;
+            padding: 8px 4px 4px !important;
+            box-sizing: border-box !important;
+        }
+        #seatModalBody .seat:has(.vertical) {
+            min-width: 52px !important;
+            min-height: 110px !important;
+            height: 110px !important;
+            padding: 14px 4px 4px !important;
+        }
+
+        /* Align Column 2 and Column 3 closer on First Floor Layout inside the modal (All screen sizes) */
+        #first-floor-layout .seat:nth-child(4n+2) {
+            position: relative;
+            left: clamp(10px, 1.5vw, 25px) !important;
+        }
+        #first-floor-layout .seat:nth-child(4n+3) {
+            position: relative;
+            left: clamp(-25px, -1.5vw, -10px) !important;
+        }
+
+        @media (max-width: 1000px) {
+            #seatModalBody .seat-icon-group {
+                font-size: 2.2rem !important;
+            }
+            #seatModalBody .seat-icon-group.vertical {
+                font-size: 2.2rem !important;
+            }
+            #seatModalBody .seat-icon-group.vertical .desk-lamp-wrapper {
+                font-size: 2.2rem !important;
+            }
+            #seatModalBody .seat-icon-group.vertical.chair-above .bxs-chair,
+            #seatModalBody .seat-icon-group.vertical.chair-below .bxs-chair {
+                font-size: 2.5rem !important;
+            }
+            #seatModalBody .seat-icon-group .lamp-icon,
+            #seatModalBody .seat-icon-group.vertical .lamp-icon {
+                font-size: 0.95rem !important;
+            }
+            #seatModalBody .seat {
+                min-width: 68px !important;
+                min-height: 88px !important;
+                height: 88px !important;
+                padding: 6px 3px 3px !important;
+            }
+            #seatModalBody .seat:has(.vertical) {
+                min-width: 44px !important;
+                min-height: 88px !important;
+                height: 88px !important;
+            }
+
+            #seatModalBody .seat .seat-label,
+            #seatModalBody .seat .seat-morning-label,
+            #seatModalBody .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.75rem !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .seat-modal-container {
+                max-width: 100% !important;
+                width: calc(100% - 24px) !important;
+                margin: 12px auto !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .seat-modal-container {
+                width: calc(100% - 16px) !important;
+                margin: 8px auto !important;
+                border-radius: 16px 16px 0 0 !important;
+            }
+            .seat-modal-body {
+                padding: 12px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 12px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -12px !important;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(65px, 1fr)) !important;
+                gap: 10px !important;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(75px, 1fr)) !important;
+                gap: 12px !important;
+            }
+            #seatModalBody .seat-icon-group {
+                font-size: 1.7rem !important;
+            }
+            #seatModalBody .seat-icon-group .lamp-icon {
+                font-size: 0.9rem !important;
+                top: -8px !important;
+            }
+            #seatModalBody .seat {
+                min-width: 54px !important;
+                min-height: 85px !important;
+                height: 85px !important;
+                padding: 5px 2px 2px !important;
+            }
+            #seatModalBody .seat:has(.vertical) {
+                min-width: 36px !important;
+                min-height: 70px !important;
+                height: 70px !important;
+            }
+            /* DO NOT HIDE SEAT LABELS: Override display:none !important from base system */
+            #seatModalBody .seat .seat-label,
+            #seatModalBody .seat .seat-morning-label,
+            #seatModalBody .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.7rem !important;
+                padding: 1px 4px !important;
+                max-width: 90% !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            #seatModalBody .seat-number {
+                width: 18px !important;
+                height: 18px !important;
+                font-size: 0.65rem !important;
+                top: -8px !important;
+            }
+            #seatModalBody .seat-morning-label, 
+            #seatModalBody .seat-evening-label {
+                font-size: 0.35rem !important;
+            }
+            .seat-modal-footer .legend {
+                gap: 10px !important;
+                padding: 8px !important;
+            }
+            .seat-modal-footer .legend-item {
+                font-size: 0.75rem !important;
+            }
+        }
+
+        @media (max-width: 500px) {
+            #seatModalBody .seat-icon-group {
+                font-size: 1.5rem !important;
+            }
+            #seatModalBody .seat-icon-group.vertical {
+                font-size: 1.5rem !important;
+            }
+            #seatModalBody .seat-icon-group.vertical .desk-lamp-wrapper {
+                font-size: 1.5rem !important;
+            }
+        }
+
+        @media (max-width: 450px) {
+            /* Keep column 2/3 inward offsets shifted slightly at narrow widths to match layout */
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 8px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -8px !important;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(46px, 1fr)) !important;
+                gap: 8px !important;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(56px, 1fr)) !important;
+                gap: 10px !important;
+            }
+            #seatModalBody .seat-icon-group {
+                font-size: 1.25rem !important;
+            }
+            #seatModalBody .seat-icon-group .lamp-icon,
+            #seatModalBody .seat-icon-group.vertical .lamp-icon {
+                font-size: 0.6rem !important;
+                top: -6px !important;
+            }
+            #seatModalBody .seat {
+                min-width: 42px !important;
+                min-height: 75px !important;
+                padding: 4px 1px 1px !important;
+                box-sizing: border-box !important;
+            }
+            #seatModalBody .seat:has(.vertical) {
+                min-width: 30px !important;
+                min-height: 75px !important;
+            }
+            #seatModalBody .seat .seat-label,
+            #seatModalBody .seat .seat-morning-label,
+            #seatModalBody .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.6rem !important;
+                padding: 1px 2px !important;
+            }
+            #seatModalBody .seat-number {
+                width: 15px !important;
+                height: 15px !important;
+                font-size: 0.55rem !important;
+                top: -6px !important;
+            }
+            #seatModalBody .seat-morning-label, 
+            #seatModalBody .seat-evening-label {
+                font-size: 0.28rem !important;
+            }
+            .abcd-modal-container {
+                max-width: 92% !important;
+                border-radius: 16px !important;
+            }
+            .abcd-modal-header {
+                padding: 12px 16px !important;
+            }
+            .abcd-modal-container .modal-body {
+                padding: 16px !important;
+            }
+            .abcd-modal-container .btn-submit-modal {
+                padding: 12px !important;
+                font-size: 0.95rem !important;
+                margin-top: 15px !important;
+                border-radius: 10px !important;
+            }
+        }
+
+        @media (max-width: 350px) {
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 5px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -5px !important;
+            }
+            .seat-modal-container {
+                width: calc(100% - 10px) !important;
+                margin: 5px auto !important;
+            }
+            .seat-modal-body {
+                padding: 8px !important;
+            }
+            #seatModalBody .seat-icon-group {
+                font-size: 1.1rem !important;
+            }
+            #seatModalBody .seat {
+                min-width: 38px !important;
+                min-height: 60px !important;
+            }
+            #seatModalBody .seat:has(.vertical) {
+                min-width: 26px !important;
+                min-height: 50px !important;
+            }
+            #seatModalBody .seat .seat-label,
+            #seatModalBody .seat .seat-morning-label,
+            #seatModalBody .seat .seat-evening-label {
+                font-size: 0.46rem !important;
+                padding: 1px 1px !important;
+                display: inline-block !important;
+            }
+            #seatModalBody .seat-number {
+                width: 13px !important;
+                height: 13px !important;
+                font-size: 0.45rem !important;
+                top: -6px !important;
+            }
+            #seatModalBody .seat-morning-label, 
+            #seatModalBody .seat-evening-label {
+                font-size: 0.22rem !important;
+            }
+        }
+
+        @media (max-width: 340px) {
+            #first-floor-layout {
+                gap: 8px !important;
+            }
+            #ground-floor-layout {
+                gap: 10px !important;
+            }
+            #seatModalBody .seat .seat-label,
+            #seatModalBody .seat .seat-morning-label,
+            #seatModalBody .seat .seat-evening-label {
+                font-size: 0.44rem !important;
+                padding: 1px 2px !important;
+            }
+            #seatModalBody .seat-morning-label, 
+            #seatModalBody .seat-evening-label {
+                font-size: 0.2rem !important;
+            }
+        }
+
+        @media (max-width: 330px) {
+            #first-floor-layout {
+                gap: 8px !important;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .seat-modal-body {
+                padding: 6px 2px !important;
+            }
+        }
+
+        /* Prevent duplicate label displaying on shift-seats in split shift states inside the modal */
+        #seatModalBody .seat.occupied-morning .seat-label,
+        #seatModalBody .seat.occupied-evening .seat-label,
+        #seatModalBody .seat.hold-morning .seat-label,
+        #seatModalBody .seat.hold-evening .seat-label,
+        #seatModalBody .seat.hold-morning-temp-morning .seat-label,
+        #seatModalBody .seat.hold-evening-temp-evening .seat-label {
+            display: none !important;
+        }
+
+        /* Allow Ground Floor seats 47 and 20 labels to write complete text without truncation inside the modal */
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-label,
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-morning-label,
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-evening-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-morning-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-evening-label {
+            max-width: none !important;
+            width: auto !important;
+            white-space: nowrap !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'partials/_master_loader.html' %}
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || savedTheme === 'dark-theme') {
+            document.body.classList.add('dark-theme');
+        }
+    </script>
+    <div class="form-container">
+        <div class="form-header">
+            <h1>Admission Form</h1>
+            <p>Complete your registration for ABCD Coaching & Library</p>
+        </div>
+        <div class="form-body">
+            {% if request.user.is_staff or request.user.is_superuser %}
+                <a href="{% url 'users:teacher_dashboard' %}" class="back-btn">← Back</a>
+            {% elif request.user.is_authenticated %}
+                {% if request.session.active_dashboard == 'alumni' or request.user.achievements.first %}
+                    <a href="{% url 'users:alumni_dashboard' %}" class="back-btn">← Back</a>
+                {% else %}
+                    <a href="{% url 'users:student_dashboard' %}" class="back-btn">← Back</a>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'users:guest_page' %}" class="back-btn">← Back</a>
+            {% endif %}
+            {% if form.errors %}
+            <div class="alert alert-danger"
+                style="background-color: #f8d7da; color: #721c24; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+                <strong>Please correct the errors below:</strong>
+                <ul style="margin: 10px 0 0 20px; padding: 0;">
+                    {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            <form method="post" id="admissionForm" action="{% url 'users:admission_form' %}" enctype="multipart/form-data" autocomplete="off">
+                {% csrf_token %}
+                <input type="hidden" id="id_selected_seat" name="selected_seat"
+                    value="{{ form.selected_seat.value|default:'' }}">
+                <input type="hidden" id="id_floor_hidden" name="floor" value="{{ form.floor.value|default:'' }}">
+                <input type="hidden" id="id_shift_preference" name="shift_preference"
+                    value="{{ form.shift_preference.value|default:'full' }}">
+                <input type="hidden" id="id_is_temporary_request" name="is_temporary_request"
+                    value="{{ form.is_temporary_request.value|default:'false' }}">
+                <input type="hidden" id="id_temp_hold_days" name="temp_hold_days"
+                    value="{{ form.temp_hold_days.value|default:'' }}">
+                <!-- {{ form.selected_seat }}
+                {{ form.floor }}
+                 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_first_name">First Name <span class="required">*</span></label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_last_name">Last Name <span class="required">*</span></label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="id_sex">Gender <span class="required">*</span></label>
+                    {{ form.sex }}
+                </div>
+                <div class="form-group conditional-field" id="other-gender">
+                    <label for="id_sex_other">Please Specify <span class="required">*</span></label>
+                    {{ form.sex_other }}
+                </div>
+                <div class="form-group">
+                    <label>Date of Birth</label>
+                    {{ form.dob }}
+                    <small>Select your birth date</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_service_type">Service <span class="required">*</span></label>
+                    {{ form.service_type }}
+                </div>
+                <div class="form-group">
+                    <label for="id_is_new_registration">Registration Type <span class="required">*</span></label>
+                    {{ form.is_new_registration }}
+                </div>
+                <div class="form-group conditional-field" id="coaching-options">
+                    <label for="id_batch">Select Coaching Batch <span class="required">*</span></label>
+                    {{ form.batch }}
+                </div>
+                <div class="conditional-field" id="library-options">
+                    <div class="library-notice-box">
+                        <strong>Important:</strong><br>
+                        Seats <b>40 to 53</b> on <b>Ground Floor</b> are Only <b>SHIFT BASED</b> seats.<br>
+                        Morning: 8 AM – 2 PM<br>
+                        Evening: 2 PM – 8 PM<br>
+                        Full day is allowed only if both shifts are free for these Seats.
+                    </div>
+                    <div class="form-group">
+                        <label id="library-floor-label">Select Library Floor <span class="required">*</span></label>
+                        <div class="radio-button-group">
+                            {% with floor_val=form.floor.value|default:'' %}
+
+                            {% if floor_val == 'Ground Floor' %}
+                            <input type="radio" id="ground_floor" name="floor_radio" value="Ground Floor" checked>
+                            {% else %}
+                            <input type="radio" id="ground_floor" name="floor_radio" value="Ground Floor">
+                            {% endif %}
+                            <label for="ground_floor">Ground Floor</label>
+
+                            {% if floor_val == '1st Floor' %}
+                            <input type="radio" id="first_floor" name="floor_radio" value="1st Floor" checked>
+                            {% else %}
+                            <input type="radio" id="first_floor" name="floor_radio" value="1st Floor">
+                            {% endif %}
+                            <label for="first_floor">1st Floor</label>
+
+                            {% endwith %}
+                        </div>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <div id="selectedSeatPreview" class="seat-selected-none">
+                            No seat selected
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_mobile_number">Mobile Number <span class="required">*</span></label>
+                        {{ form.mobile_number }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_whatsapp_number">WhatsApp Number <span class="required">*</span></label>
+                        {{ form.whatsapp_number }}
+                        <div class="checkbox-group">
+                            {{ form.same_as_mobile }}
+                            <label for="id_same_as_mobile">Same as mobile number</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px;">
+                    <!-- Hide the actual Django file input widget -->
+                    <div style="display: none;">
+                        {{ form.photo }}
+                    </div>
+                    
+                    <!-- Premium Profile Photo Upload Wrapper -->
+                    <div style="position: relative; width: 120px; height: 120px;">
+                        <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                            <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                            <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1;"></i>
+                        </div>
+                        <label for="id_photo" style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
+                            <i class='bx bxs-camera'></i>
+                        </label>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 10px; font-weight: 600;">Passport size photo (Optional)</p>
+                    <small style="color: #94a3b8; font-size: 0.75rem; margin-top: 2px;">JPG / PNG only · Max 2MB</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_email">Email Address (Optional)</label>
+                    {{ form.email }}
+                </div>
+                <div class="checkbox-group">
+                    {{ form.confirmation }}
+                    <label for="id_confirmation">
+                        I confirm that all the information provided is correct and I agree to the terms and conditions.
+                    </label>
+                </div>
+                <button type="submit" class="submit-btn" id="submitBtn">Submit Application</button>
+            </form>
+        </div>
+    </div>
+    {% include 'users/_seat_layout_modal.html' %}
+    <!-- ========================================================= -->
+    <!-- Shift Selection Popup (Admission Form | Shift Seats 40–53) -->
+    <!-- Matches: image 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6               -->
+    <!-- ========================================================= -->
+    <div id="shiftSelectOverlay" class="seat-interest-overlay hidden">
+        <div class="seat-interest-box">
+            <h3 id="shiftSelectTitle">Select Shift</h3>
+            <p id="shiftSelectText">
+                Choose available shift
+            </p>
+            <div id="shiftSelectButtons">
+                <!-- Buttons injected by JS based on case -->
+            </div>
+            <button id="shiftSelectCancel" class="btn btn-secondary">
+                Cancel
+            </button>
+        </div>
+    </div>
+    <!-- ========================================================= -->
+    <!-- Confirmation Alert Popup (Before sending temp request)     -->
+    <!-- Matches: image 1.1.1, 1.2.1, 1.3.1-3, 1.4.1, 1.5.1, 1.6.1 -->
+    <!-- ========================================================= -->
+    <div id="partialRequestOverlay" class="seat-interest-overlay hidden">
+        <div class="seat-interest-box alert-box">
+            <h3 id="partialRequestTitle" class="alert-title">
+                <span style="color: #dc3545;">&#9888;</span> Alert
+            </h3>
+            <p id="partialRequestText"></p>
+            <div class="alert-buttons">
+                <button type="button" id="cancelPartialRequestBtn" class="btn btn-cancel">
+                    Cancel
+                </button>
+                <button type="button" id="confirmPartialRequestBtn" class="btn btn-confirm">
+                    Yes
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ========================================================= -->
+    <!-- Already Admitted Warning Popup                            -->
+    <!-- Shown when an existing student tries a temporary seat     -->
+    <!-- ========================================================= -->
+    <div id="alreadyAdmittedOverlay" class="seat-interest-overlay hidden">
+        <div class="seat-interest-box alert-box" style="max-width: 420px; text-align: center;">
+            <h3 id="alreadyAdmittedTitle" style="color: #e67e22; margin-bottom: 10px;">
+                You're Already Admitted!
+            </h3>
+            <p id="alreadyAdmittedText" style="font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;">
+                This seat is currently <strong>on hold</strong> by another student.<br><br>
+                Since you are already admitted as a Library student, you <strong>cannot request a temporary
+                    allotment</strong> on someone else's seat.<br><br>
+                Please select <strong>your own seat or shift</strong> instead.
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button type="button" id="alreadyAdmittedBack" class="btn btn-secondary"
+                    style="min-width: 130px; padding: 10px 18px; border-radius: 8px; font-weight: 600;">
+                    ← Go Back
+                </button>
+                <button type="button" id="alreadyAdmittedOk" class="btn btn-confirm"
+                    style="min-width: 130px; padding: 10px 18px; border-radius: 8px; font-weight: 600; background: #e67e22; border-color: #d35400;">
+                    I Understand
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Birthday Selection Modal -->
+    <div id="birthdayModal" class="abcd-modal-overlay">
+        <div class="abcd-modal-container">
+            <div class="abcd-modal-header">
+                <h3>SET BIRTHDAY</h3>
+                <button type="button" onclick="closeBirthdayModal()"
+                    style="position: absolute; right: 20px; top: 20px; background: none; border: none; font-size: 1.5rem; color: #999; cursor: pointer;">&times;</button>
+            </div>
+            <div style="padding: 30px;">
+                <div class="wheel-picker-container">
+                    <div class="wheel-col" id="wheel-birth-year"></div>
+                    <div class="wheel-col" id="wheel-birth-month"></div>
+                    <div class="wheel-col" id="wheel-birth-day"></div>
+                    <div class="wheel-highlight"></div>
+                </div>
+                <button type="button" onclick="submitBirthday()" class="submit-btn"
+                    style="margin-top: 25px; padding: 15px;">SUBMIT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- WHEEL PICKER CORE ---
+        function initWheel(containerId, items, defaultValue, onScrollChange) {
+            const col = document.getElementById(containerId);
+            if (!col) return;
+            col.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'wheel-item';
+                div.textContent = item;
+                col.appendChild(div);
+            });
+            let scrollTimeout;
+            col.addEventListener('scroll', () => {
+                const index = Math.round(col.scrollTop / 40);
+                const children = col.children;
+                for (let i = 0; i < children.length; i++) {
+                    children[i].classList.toggle('selected', i === index);
+                }
+                if (onScrollChange) {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(onScrollChange, 80);
+                }
+            });
+            const defaultIndex = items.indexOf(defaultValue.toString());
+            if (defaultIndex !== -1) {
+                setTimeout(() => { col.scrollTop = defaultIndex * 40; }, 50);
+            }
+        }
+
+        function getWheelValue(containerId) {
+            const col = document.getElementById(containerId);
+            if (!col) return '';
+            const index = Math.round(col.scrollTop / 40);
+            return col.children[index]?.textContent || '';
+        }
+
+        function syncBirthdayDays() {
+            const yearStr = getWheelValue('wheel-birth-year');
+            const monthStr = getWheelValue('wheel-birth-month');
+            if (!yearStr || !monthStr) return;
+
+            const year = parseInt(yearStr, 10);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = months.indexOf(monthStr);
+            if (monthIndex === -1) return;
+
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+            const daysCol = document.getElementById('wheel-birth-day');
+            if (!daysCol) return;
+
+            const currentCount = daysCol.children.length;
+            if (currentCount === daysInMonth) return;
+
+            const currentDayVal = getWheelValue('wheel-birth-day');
+            let dayToSelect = parseInt(currentDayVal, 10);
+            if (isNaN(dayToSelect)) dayToSelect = 15;
+            if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
+
+            const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+            initWheel('wheel-birth-day', days, dayToSelect.toString().padStart(2, '0'));
+        }
+
+        function openBirthdayModal() {
+            document.getElementById('birthdayModal').classList.add('active');
+
+            const years = [];
+            const currentYear = new Date().getFullYear();
+            for (let y = currentYear - 8; y >= currentYear - 100; y--) {
+                years.push(y.toString());
+            }
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+            const dobInput = document.getElementById('id_dob');
+            let defaultYear = '1998';
+            let defaultMonth = 'Jun';
+            let defaultDay = '15';
+
+            if (dobInput && dobInput.value && dobInput.value.split('-').length === 3) {
+                const parts = dobInput.value.split('-');
+                defaultYear = parts[0];
+                const monthIdx = parseInt(parts[1], 10) - 1;
+                if (monthIdx >= 0 && monthIdx < 12) {
+                    defaultMonth = months[monthIdx];
+                }
+                defaultDay = parts[2];
+            }
+
+            const yearVal = parseInt(defaultYear, 10);
+            const monthIndex = months.indexOf(defaultMonth);
+            const daysInMonth = new Date(yearVal, monthIndex + 1, 0).getDate();
+            const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+            initWheel('wheel-birth-year', years, defaultYear, syncBirthdayDays);
+            initWheel('wheel-birth-month', months, defaultMonth, syncBirthdayDays);
+            initWheel('wheel-birth-day', days, defaultDay);
+        }
+
+        function closeBirthdayModal() {
+            document.getElementById('birthdayModal').classList.remove('active');
+        }
+
+        function submitBirthday() {
+            const y = getWheelValue('wheel-birth-year');
+            const moStr = getWheelValue('wheel-birth-month');
+            const d = getWheelValue('wheel-birth-day');
+
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const mo = (months.indexOf(moStr) + 1).toString().padStart(2, '0');
+
+            const dobInput = document.getElementById('id_dob');
+            if (dobInput) {
+                dobInput.value = `${y}-${mo}-${d}`;
+            }
+            closeBirthdayModal();
+        }
+
+        // Apply Click Logic to DOB Field
+        document.addEventListener('DOMContentLoaded', () => {
+            const dobInput = document.getElementById('id_dob');
+            if (dobInput) {
+                dobInput.readOnly = true;
+                dobInput.style.cursor = 'pointer';
+                // background handled by CSS theme rules
+
+                // Open modal on click of input or parent group
+                dobInput.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openBirthdayModal();
+                });
+                dobInput.parentElement.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'SMALL') openBirthdayModal();
+                });
+            }
+        });
+    </script>
+    <!-- ========================================================= -->
+    <!-- Global Styled Popup Function — available to ALL scripts    -->
+    <!-- ========================================================= -->
+    <script>
+        window.showStyledPopup = function({ title = 'Notice', message = '', type = 'info', onOk = null, okText = 'OK' } = {}) {
+            const existing = document.getElementById('styledPopupOverlay');
+            if (existing) existing.remove();
+            
+            const isDark = document.body.classList.contains('dark-theme');
+            
+            const colors = {
+                warning: { border: '#ffc107', icon: '⚠️', titleColor: isDark ? '#fbbf24' : '#856404' },
+                error: { border: '#dc3545', icon: '❌', titleColor: isDark ? '#f87171' : '#721c24' },
+                info: { border: '#17a2b8', icon: 'ℹ️', titleColor: isDark ? '#38bdf8' : '#0c5460' },
+                success: { border: '#28a745', icon: '✅', titleColor: isDark ? '#34d399' : '#155724' }
+            };
+            const c = colors[type] || colors.info;
+            const overlay = document.createElement('div');
+            overlay.id = 'styledPopupOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+            const box = document.createElement('div');
+            box.style.cssText = 'background:' + (isDark ? '#1e1e2d' : '#fff') + ';border:' + (isDark ? '1px solid rgba(255,255,255,0.1)' : 'none') + ';border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.35);text-align:center;animation:popIn 0.25s ease';
+            box.innerHTML = '<div style="font-size:2.5rem;margin-bottom:10px">' + c.icon + '</div>'
+                + '<h3 style="color:' + c.titleColor + ';margin-bottom:12px;font-size:1.2rem">' + title + '</h3>'
+                + '<p style="color:' + (isDark ? '#ccc' : '#555') + ';font-size:0.95rem;line-height:1.6;margin-bottom:22px">' + message + '</p>'
+                + '<button id="styledPopupOkBtn" style="background:' + c.border + ';color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity 0.2s">' + okText + '</button>';
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            const okBtn = document.getElementById('styledPopupOkBtn');
+            const closePopup = function () { overlay.remove(); if (onOk) onOk(); };
+            okBtn.addEventListener('click', closePopup);
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) closePopup(); });
+        };
+        // Backwards compatibility alias
+        function showStyledPopup(options) {
+            return window.showStyledPopup(options);
+        }
+    </script>
+    <script>
+        // --- CUSTOM SELECT TRANSFORMATION ---
+        function initCustomSelects() {
+            document.querySelectorAll('select.form-control').forEach(select => {
+                if (select.dataset.customized) return;
+                select.dataset.customized = "true";
+                select.style.display = 'none';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'abcd-select-wrapper';
+
+                const trigger = document.createElement('div');
+                trigger.className = 'abcd-select-trigger';
+                trigger.innerHTML = `<span>${select.options[select.selectedIndex]?.text || 'Select...'}</span><i class='bx bx-chevron-down'></i>`;
+
+                const dropdown = document.createElement('div');
+                dropdown.className = 'abcd-select-dropdown';
+
+                Array.from(select.options).forEach(option => {
+                    const optDiv = document.createElement('div');
+                    optDiv.className = 'abcd-select-option';
+                    if (option.selected) optDiv.classList.add('selected');
+                    optDiv.textContent = option.text;
+                    optDiv.dataset.value = option.value;
+
+                    optDiv.addEventListener('click', () => {
+                        select.value = option.value;
+                        trigger.querySelector('span').textContent = option.text;
+                        dropdown.querySelectorAll('.abcd-select-option').forEach(o => o.classList.remove('selected'));
+                        optDiv.classList.add('selected');
+                        wrapper.classList.remove('open');
+
+                        // Trigger native change event
+                        select.dispatchEvent(new Event('change'));
+                    });
+                    dropdown.appendChild(optDiv);
+                });
+
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = wrapper.classList.contains('open');
+                    document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
+                    if (!isOpen) wrapper.classList.add('open');
+                });
+
+                wrapper.appendChild(trigger);
+                wrapper.appendChild(dropdown);
+                select.parentNode.insertBefore(wrapper, select.nextSibling);
+            });
+
+            // Close all dropdowns when clicking outside
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
+            });
+        }
+
+        // --- THIS SCRIPT BLOCK IS NOW FIXED AND SAFE ---
+        document.addEventListener('DOMContentLoaded', function () {
+            initCustomSelects();
+
+            const admissionForm = document.getElementById('admissionForm');
+            if (admissionForm) {
+                // Force reset to server-provided values (prevents browser from caching previous typing after a refresh)
+                admissionForm.reset();
+            }
+            // Get all elements safely
+            const genderSelect = document.getElementById('id_sex');
+            const otherGenderField = document.getElementById('other-gender');
+            const otherGenderInput = document.getElementById('id_sex_other');
+            const serviceSelect = document.getElementById('id_service_type');
+            const coachingOptions = document.getElementById('coaching-options');
+            const batchSelect = document.getElementById('id_batch');
+            const libraryOptions = document.getElementById('library-options');
+            const libraryFloorRadios = document.querySelectorAll('input[name="floor_radio"]'); // Use the radio button name
+            const libraryLabelEl = document.getElementById('library-floor-label'); // Use the new ID
+            const registrationTypeSelect = document.getElementById('id_is_new_registration');
+            const mobileField = document.getElementById('id_mobile_number');
+            const whatsappField = document.getElementById('id_whatsapp_number');
+            const sameAsMobileCheckbox = document.getElementById('id_same_as_mobile');
+            const photoInput = document.querySelector('.photo-input');
+            const previewImg = document.getElementById('photoPreview');
+            const previewBox = document.getElementById('photoPreviewContainer');
+            // This is the hidden field from forms.py
+            const hiddenFloorInput = document.querySelector('input[name="floor"][type="hidden"]');
+            const selectedSeatHidden = document.getElementById('id_selected_seat');
+            function handleFormLogic() {
+                // Gender
+                if (genderSelect && otherGenderField && otherGenderInput) {
+                    const isOther = genderSelect.value === 'Other';
+                    otherGenderField.style.display = isOther ? 'block' : 'none';
+                    otherGenderInput.required = isOther;
+                }
+                // Service
+                if (serviceSelect && coachingOptions && libraryOptions && batchSelect && libraryFloorRadios) {
+                    const selectedService = serviceSelect.value;
+                    const isCoaching = selectedService === 'Coaching';
+                    coachingOptions.style.display = isCoaching ? 'block' : 'none';
+                    if (batchSelect) batchSelect.required = isCoaching;
+                    const isLibrary = selectedService === 'Library';
+                    libraryOptions.style.display = isLibrary ? 'block' : 'none';
+                }
+                // Reg Type Label Change
+                if (registrationTypeSelect && libraryLabelEl) {
+                    const isNewStudent = registrationTypeSelect.value === 'True';
+                    libraryLabelEl.textContent = isNewStudent ? 'Select your preference in library *' : 'Select Library Floor *';
+                }
+            }
+            // "Same as mobile" logic
+            if (sameAsMobileCheckbox && whatsappField && mobileField) {
+                sameAsMobileCheckbox.addEventListener('change', function () {
+                    if (this.checked) {
+                        whatsappField.value = mobileField.value;
+                    } else {
+                        whatsappField.readOnly = false;
+                    }
+                });
+                mobileField.addEventListener('input', function () {
+                    if (sameAsMobileCheckbox.checked) {
+                        whatsappField.value = this.value;
+                    }
+                });
+            }
+
+            // Add listeners safely
+            if (genderSelect) genderSelect.addEventListener('change', handleFormLogic);
+            if (serviceSelect) serviceSelect.addEventListener('change', handleFormLogic);
+            if (registrationTypeSelect) registrationTypeSelect.addEventListener('change', handleFormLogic);
+            // Run on page load
+            handleFormLogic();
+
+            // --- Restore preview if seat data already present (e.g., after validation errors) ---
+            if (selectedSeatHidden && selectedSeatHidden.value) {
+                const floorLabel = hiddenFloorInput && hiddenFloorInput.value ? hiddenFloorInput.value : 'Selected floor';
+                const shiftInput = document.getElementById('id_shift_preference');
+                const shiftValue = shiftInput ? shiftInput.value : 'full';
+                let previewText = `Seat ${selectedSeatHidden.value} (${floorLabel}) selected`;
+                if (shiftValue && shiftValue !== 'full') {
+                    const shiftCap = shiftValue.charAt(0).toUpperCase() + shiftValue.slice(1);
+                    previewText += ` - ${shiftCap}`;
+                }
+                const preview = document.getElementById('selectedSeatPreview');
+                if (preview) {
+                    preview.textContent = previewText;
+                    preview.className = 'seat-selected-success';
+                }
+            } else {
+                const preview = document.getElementById('selectedSeatPreview');
+                if (preview) {
+                    preview.textContent = 'No seat selected';
+                    preview.className = 'seat-selected-none';
+                }
+            }
+            // --- FINAL SAFETY: before submitting, ensure floor + seat set when required ---
+            // ═══════════════════════════════════════════════════════════════════
+            // INTELLIGENT FORM VALIDATION — catches all edge cases before submit
+            // ═══════════════════════════════════════════════════════════════════
+            if (admissionForm && serviceSelect && registrationTypeSelect) {
+                admissionForm.addEventListener('submit', function (e) {
+                    const serviceValue = serviceSelect.value;
+                    const isLibrary = serviceValue === 'Library' || serviceValue === 'Both';
+                    if (!isLibrary) return; // Coaching only doesn't need seat validation
+
+                    // Dynamically re-query elements to ensure fresh references
+                    const currentSeatHidden = document.getElementById('id_selected_seat');
+                    const currentFloorInput = document.querySelector('input[name="floor"][type="hidden"]');
+                    const checkedFloor = document.querySelector('input[name="floor_radio"]:checked');
+
+                    if (checkedFloor && currentFloorInput) {
+                        currentFloorInput.value = checkedFloor.value;
+                    }
+
+                    // CHECK 1: Floor must be selected
+                    const floorVal = currentFloorInput ? currentFloorInput.value.trim() : (checkedFloor ? checkedFloor.value.trim() : '');
+                    if (!floorVal) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.showStyledPopup({
+                            title: 'Floor Not Selected',
+                            message: 'Please select a library floor before submitting your application.',
+                            type: 'warning'
+                        });
+                        return false;
+                    }
+
+                    // CHECK 2: Seat must be selected
+                    const seatVal = currentSeatHidden ? currentSeatHidden.value.trim() : '';
+                    if (!seatVal) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.showStyledPopup({
+                            title: 'No Seat Selected',
+                            message: 'Please choose a seat from the seat layout before submitting your application.<br><br>Click the <strong>"Choose Your Occupied Seat"</strong> or <strong>"Select Seat Preference"</strong> button to open the seat selector.',
+                            type: 'error'
+                        });
+                        return false;
+                    }
+
+                    // CHECK 3: INTELLIGENT — Already Admitted + Temporary Allotment = INVALID
+                    const isNewStudent = registrationTypeSelect.value === 'True';
+                    const tempInput = document.getElementById('id_is_temporary_request');
+                    const isTemp = tempInput && tempInput.value === 'true';
+
+                    if (!isNewStudent && isTemp) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Auto-clear the invalid state
+                        if (tempInput) tempInput.value = 'false';
+                        if (currentSeatHidden) currentSeatHidden.value = '';
+                        const shiftInput = document.getElementById('id_shift_preference');
+                        if (shiftInput) shiftInput.value = 'full';
+                        const daysInput = document.getElementById('id_temp_hold_days');
+                        if (daysInput) daysInput.value = '0';
+
+                        // Reset preview
+                        const preview = document.getElementById('selectedSeatPreview');
+                        if (preview) {
+                            preview.textContent = 'No seat selected';
+                            preview.className = 'seat-selected-error';
+                        }
+
+                        window.showStyledPopup({
+                            title: 'Invalid Seat Selection',
+                            message: 'You selected <strong>Already Admitted Student</strong> as your registration type, but your seat choice is a <strong>temporary allotment</strong>.<br><br>Temporary allotments are only available for <strong>new students</strong>.<br><br>Your seat selection has been cleared. Please choose your own occupied seat and submit again.',
+                            type: 'error'
+                        });
+                        return false;
+                    }
+                });
+            }
+            if (!photoInput) return;
+            photoInput.addEventListener('change', function () {
+                const file = this.files[0];
+                const previewImgCustom = document.getElementById('photoPreviewCustom');
+                const placeholderCustom = document.getElementById('photoPlaceholderCustom');
+                
+                if (!file) return;
+                if (file.size > 2 * 1024 * 1024) {
+                    window.showStyledPopup({
+                        title: 'Photo Too Large',
+                        message: 'Your photo must be less than <strong>2MB</strong> in size. Please choose a smaller file.',
+                        type: 'warning'
+                    });
+                    this.value = "";
+                    if (previewImgCustom) {
+                        previewImgCustom.src = "";
+                        previewImgCustom.style.display = "none";
+                    }
+                    if (placeholderCustom) placeholderCustom.style.display = "flex";
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (previewImgCustom) {
+                        previewImgCustom.src = e.target.result;
+                        previewImgCustom.style.display = "block";
+                    }
+                    if (placeholderCustom) placeholderCustom.style.display = "none";
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+        if (window.history && window.history.replaceState) {
+            history.replaceState(null, document.title, window.location.href);
+        }
+    </script>
+    <script src="{% static 'js/admission-seat-selector.js' %}"></script>
+
+{% include 'partials/_smart_back_redirect.html' %}
+    <script>
+    // --- Flying Toast on Successful Form Submission ---
+    (function() {
+        const form = document.getElementById('admissionForm');
+        if (!form) return;
+        const submitBtn = document.getElementById('submitBtn');
+        let isAjaxSubmitting = false;
+        let isNativeSubmitting = false;
+
+        form.addEventListener('submit', async function(e) {
+            if (isNativeSubmitting) return; // Allow native form submit to proceed cleanly
+            if (isAjaxSubmitting) { e.preventDefault(); return; }
+
+            // Wait for other sync validation handlers to run.
+            if (e.defaultPrevented) return;
+
+            // Prevent default HTML form post
+            e.preventDefault();
+
+            isAjaxSubmitting = true;
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+                submitBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin' style="vertical-align:middle;margin-right:6px;"></i>Submitting...`;
+            }
+
+            const fallbackNativeSubmit = () => {
+                isNativeSubmitting = true;
+                isAjaxSubmitting = false;
+                if (submitBtn && submitBtn.dataset.originalHtml) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+                }
+                form.submit();
+            };
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(form.action || window.location.href, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok && response.redirected) {
+                    // Success! Display the beautiful flying toast.
+                    const toast = document.createElement('div');
+                    toast.className = 'flying-toast';
+                    toast.innerHTML = '<span class="toast-check">✓</span> Application Submitted';
+                    document.body.appendChild(toast);
+                    
+                    // Wait for the animation to play out (2.8s), then navigate
+                    setTimeout(() => {
+                        window.location.replace(response.url);
+                    }, 2800);
+                } else if (response.ok) {
+                    if (response.url && response.url !== window.location.href) {
+                        const toast = document.createElement('div');
+                        toast.className = 'flying-toast';
+                        toast.innerHTML = '<span class="toast-check">✓</span> Application Submitted';
+                        document.body.appendChild(toast);
+                        setTimeout(() => {
+                            window.location.replace(response.url);
+                        }, 2800);
+                    } else {
+                        // Returned page with validation errors: submit natively to display errors safely
+                        fallbackNativeSubmit();
+                    }
+                } else {
+                    fallbackNativeSubmit();
+                }
+            } catch (err) {
+                fallbackNativeSubmit();
+            }
+        });
+    })();
+    </script>
+    {% if user.is_authenticated %}
+    <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
+    <script src="{% static 'js/push-permission.js' %}"></script>
+    {% endif %}
+    <script src="{% static 'js/site-tour.js' %}"></script>
+</body>
+</html>

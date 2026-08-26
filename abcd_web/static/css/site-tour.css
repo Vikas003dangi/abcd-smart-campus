@@ -1,0 +1,300 @@
+/* ==========================================================================
+   ABCD Interactive Site Tour System Styles
+   ========================================================================== */
+
+:root {
+  --tour-primary: #0284c7;
+  --tour-primary-hover: #0369a1;
+  --tour-accent: #f59e0b;
+  --tour-bg: #ffffff;
+  --tour-text: #0f172a;
+  --tour-text-muted: #64748b;
+  --tour-border: #e2e8f0;
+  --tour-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --tour-radius: 14px;
+}
+
+/* Dark theme overrides */
+body.dark-theme {
+  --tour-bg: #1e293b;
+  --tour-text: #f8fafc;
+  --tour-text-muted: #94a3b8;
+  --tour-border: #334155;
+}
+
+/* --- Backdrop Dark Overlay (Disabled to prevent double-darkening target elements) --- */
+.abcd-tour-overlay {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* --- Highlight Spotlight Box --- */
+.abcd-tour-spotlight {
+  position: fixed;
+  z-index: 90000;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.72),
+              0 0 22px 6px rgba(2, 132, 199, 0.75),
+              inset 0 0 12px rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: 2.5px solid var(--tour-primary);
+  backdrop-filter: brightness(1.28) contrast(1.08);
+  -webkit-backdrop-filter: brightness(1.28) contrast(1.08);
+}
+
+/* --- Highlighted Active Target Element Z-Index & Brightness Fix --- */
+.abcd-tour-target-active {
+  z-index: 90002 !important;
+  pointer-events: auto !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+/* --- Popover Card --- */
+.abcd-tour-popover {
+  position: fixed;
+  z-index: 90005;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  background: var(--tour-bg);
+  color: var(--tour-text);
+  border-radius: var(--tour-radius);
+  border: 1px solid var(--tour-border);
+  box-shadow: var(--tour-shadow);
+  padding: 20px;
+  font-family: inherit;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: auto;
+}
+
+.abcd-tour-popover.abcd-tour-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* --- Directional Arrow Pointer --- */
+.abcd-tour-arrow {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--tour-bg);
+  border: 1px solid var(--tour-border);
+  transform: rotate(45deg);
+  z-index: -1;
+}
+
+.abcd-tour-popover[data-position="top"] .abcd-tour-arrow {
+  bottom: -8px;
+  left: calc(50% - 7px);
+  border-top: none;
+  border-left: none;
+}
+
+.abcd-tour-popover[data-position="bottom"] .abcd-tour-arrow {
+  top: -8px;
+  left: calc(50% - 7px);
+  border-bottom: none;
+  border-right: none;
+}
+
+.abcd-tour-popover[data-position="left"] .abcd-tour-arrow {
+  right: -8px;
+  top: calc(50% - 7px);
+  border-bottom: none;
+  border-left: none;
+}
+
+.abcd-tour-popover[data-position="right"] .abcd-tour-arrow {
+  left: -8px;
+  top: calc(50% - 7px);
+  border-top: none;
+  border-right: none;
+}
+
+/* --- Header Section --- */
+.abcd-tour-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.abcd-tour-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(2, 132, 199, 0.12);
+  color: var(--tour-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.abcd-tour-badge i {
+  font-size: 0.9rem;
+}
+
+.abcd-tour-close-icon {
+  background: transparent;
+  border: none;
+  color: var(--tour-text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.abcd-tour-close-icon:hover {
+  background: var(--tour-border);
+  color: var(--tour-text);
+}
+
+/* --- Content Body --- */
+.abcd-tour-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 4px 0 6px 0;
+  color: var(--tour-text);
+  line-height: 1.35;
+}
+
+.abcd-tour-description {
+  font-size: 0.88rem;
+  color: var(--tour-text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+/* --- Footer & Navigation Buttons --- */
+.abcd-tour-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--tour-border);
+}
+
+.abcd-tour-steps-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tour-text-muted);
+}
+
+.abcd-tour-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.abcd-tour-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.abcd-tour-btn-skip {
+  background: transparent;
+  color: var(--tour-text-muted);
+}
+
+.abcd-tour-btn-skip:hover {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--tour-text);
+}
+
+.abcd-tour-btn-prev {
+  background: transparent;
+  border-color: var(--tour-border);
+  color: var(--tour-text);
+}
+
+.abcd-tour-btn-prev:hover:not(:disabled) {
+  background: var(--tour-border);
+}
+
+.abcd-tour-btn-prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.abcd-tour-btn-next {
+  background: var(--tour-primary);
+  color: #ffffff;
+  border-color: var(--tour-primary);
+}
+
+.abcd-tour-btn-next:hover {
+  background: var(--tour-primary-hover);
+  border-color: var(--tour-primary-hover);
+}
+
+.abcd-tour-btn-finish {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.abcd-tour-btn-finish:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+/* --- Sidebar Tour Launcher Item Styling --- */
+.sidebar-tour-item {
+  width: 100%;
+  list-style: none;
+}
+
+.sidebar-tour-btn {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.sidebar-tour-btn i {
+  color: var(--tour-primary, #0284c7) !important;
+  font-size: 1.25rem;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-tour-btn:hover i {
+  transform: rotate(45deg);
+}
+
+/* Hide floating launcher as Take Tour is now integrated into sidebar */
+.abcd-tour-launcher {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .abcd-tour-popover {
+    width: 290px;
+    padding: 16px;
+  }
+}

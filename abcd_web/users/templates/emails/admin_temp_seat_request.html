@@ -1,0 +1,88 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Temporary Seat Request Submitted{% endblock %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 300;">
+        🪑 Temporary Seat Request
+    </h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">
+        A student has requested temporary allotment for a held seat
+    </p>
+</div>
+
+<div style="padding: 40px 30px;">
+    <div style="background: #f8f9ff; border-radius: 12px; padding: 30px; margin-bottom: 30px;">
+        <h2 style="color: #4f46e5; margin: 0 0 20px 0; font-size: 22px; display: flex; align-items: center;">
+            👤 Student Details
+        </h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div>
+                <strong style="color: #374151;">Name:</strong><br>
+                <span style="color: #6b7280;">{{ student.full_name }}</span>
+            </div>
+            <div>
+                <strong style="color: #374151;">Mobile:</strong><br>
+                <span style="color: #6b7280;">{{ student.mobile_number }}</span>
+            </div>
+            <div>
+                <strong style="color: #374151;">Service:</strong><br>
+                <span style="color: #6b7280;">{{ student.service_type }}</span>
+            </div>
+            <div>
+                <strong style="color: #374151;">Email:</strong><br>
+                <span style="color: #6b7280;">{{ student.user.email }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div style="background: #fff7ed; border-radius: 12px; padding: 30px; margin-bottom: 30px; border-left: 4px solid #f59e0b;">
+        <h2 style="color: #f59e0b; margin: 0 0 20px 0; font-size: 22px; display: flex; align-items: center;">
+            🪑 Seat Request Details
+        </h2>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+            <div style="text-align: center; background: white; padding: 15px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{ seat_number }}</div>
+                <div style="color: #6b7280; font-size: 14px;">Seat Number</div>
+            </div>
+            <div style="text-align: center; background: white; padding: 15px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{ floor }}</div>
+                <div style="color: #6b7280; font-size: 14px;">Floor</div>
+            </div>
+            <div style="text-align: center; background: white; padding: 15px; border-radius: 8px;">
+                <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{ shift|capfirst }}</div>
+                <div style="color: #6b7280; font-size: 14px;">Requested Shift</div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 3px solid #f59e0b;">
+            <p style="margin: 0; color: #92400e;">
+                <strong>⚠️ Note:</strong> This seat is currently on hold. The student is requesting temporary allotment during the hold period.
+            </p>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin: 40px 0;">
+        <a href="{% if dashboard_url %}{{ dashboard_url }}{% elif site_url %}{{ site_url }}{% url 'users:teacher_dashboard' %}{% else %}{% url 'users:teacher_dashboard' %}{% endif %}" 
+           style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                  color: white; 
+                  padding: 15px 30px; 
+                  text-decoration: none; 
+                  border-radius: 8px; 
+                  font-weight: 600; 
+                  display: inline-block; 
+                  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+            📋 Review in Teacher Dashboard
+        </a>
+    </div>
+
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin-top: 30px; text-align: center;">
+        <p style="margin: 0; color: #6b7280; font-size: 14px;">
+            🔔 You can approve or reject this temporary seat request from your teacher dashboard.
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1017 @@
+/**
+ * Custom Popup Styles
+ * Styled popups to replace browser alert/confirm dialogs
+ */
+
+/* ================================================== */
+/* POPUP OVERLAY */
+/* ================================================== */
+
+.custom-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 100000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.custom-popup-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ================================================== */
+/* POPUP CONTAINER */
+/* ================================================== */
+
+.custom-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 90%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    z-index: 100001;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.custom-popup.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* ================================================== */
+/* POPUP HEADER */
+/* ================================================== */
+
+.custom-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px;
+    border-bottom: 1px solid #eee;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px 16px 0 0;
+}
+
+.custom-popup-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.custom-popup-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    font-size: 1.5rem;
+    color: #fff;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.custom-popup-close:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* Type-specific header colors */
+.custom-popup.custom-popup-warning .custom-popup-header {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.custom-popup.custom-popup-error .custom-popup-header {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.custom-popup.custom-popup-success .custom-popup-header {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+}
+
+.custom-popup.custom-popup-confirm .custom-popup-header {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+/* ================================================== */
+/* POPUP BODY */
+/* ================================================== */
+
+.custom-popup-body {
+    padding: 24px 20px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #1e293b;
+}
+
+.custom-popup-body p,
+.custom-popup-body div {
+    color: #1e293b;
+    margin: 0 0 12px;
+}
+
+/* ================================================== */
+/* DARK THEME SUPPORT */
+/* ================================================== */
+
+body.dark-theme .custom-popup {
+    background: #1f1b2e !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+body.dark-theme .custom-popup-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .custom-popup-body {
+    color: #f1f5f9 !important;
+}
+
+body.dark-theme .custom-popup-body p,
+body.dark-theme .custom-popup-body div,
+body.dark-theme .custom-popup-body span {
+    color: #f1f5f9 !important;
+}
+
+body.dark-theme .custom-popup-actions {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .custom-popup-btn.btn-secondary {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #cbd5e1 !important;
+}
+
+body.dark-theme .custom-popup-btn.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.22) !important;
+}
+
+body.dark-theme .popup-conflict-message .popup-options {
+    background: rgba(245, 158, 11, 0.15);
+    border-left: 4px solid #fbbf24;
+}
+
+body.dark-theme .custom-popup-title {
+    color: #ffffff !important;
+}
+
+.custom-popup-body p:last-child {
+    margin-bottom: 0;
+}
+
+.popup-conflict-message .popup-options {
+    margin-top: 16px;
+    padding: 14px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #f39c12;
+}
+
+.popup-conflict-message .popup-options p {
+    margin: 6px 0;
+    font-size: 0.9rem;
+}
+
+/* ================================================== */
+/* POPUP ACTIONS (BUTTONS) */
+/* ================================================== */
+
+.custom-popup-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid #eee;
+    background: #f9f9f9;
+    border-radius: 0 0 16px 16px;
+}
+
+.custom-popup-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+}
+
+.custom-popup-btn.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+}
+
+.custom-popup-btn.btn-primary:hover {
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    transform: translateY(-1px);
+}
+
+.custom-popup-btn.btn-secondary {
+    background: #e5e5e5;
+    color: #333;
+}
+
+.custom-popup-btn.btn-secondary:hover {
+    background: #d5d5d5;
+}
+
+.custom-popup-btn.btn-success {
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: #fff;
+}
+
+.custom-popup-btn.btn-success:hover {
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    transform: translateY(-1px);
+}
+
+.custom-popup-btn.btn-danger {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: #fff;
+}
+
+.custom-popup-btn.btn-danger:hover {
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+    transform: translateY(-1px);
+}
+
+.custom-popup-btn.btn-warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: #fff;
+}
+
+.custom-popup-btn.btn-warning:hover {
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+    transform: translateY(-1px);
+}
+
+/* ================================================== */
+/* RESPONSIVE */
+/* ================================================== */
+
+@media (max-width: 480px) {
+    .custom-popup {
+        width: 95%;
+        max-width: none;
+    }
+
+    .custom-popup-actions {
+        flex-direction: column-reverse;
+    }
+
+    .custom-popup-btn {
+        width: 100%;
+    }
+
+    .custom-popup-title {
+        font-size: 1.05rem;
+    }
+
+    .custom-popup-body {
+        padding: 20px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+/* ================================================== */
+/* DARK THEME SUPPORT */
+/* ================================================== */
+
+body.dark-theme .custom-popup {
+    background: #1f1f2e;
+}
+
+body.dark-theme .custom-popup-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .custom-popup-body {
+    color: #e0e0e0;
+}
+
+body.dark-theme .custom-popup-actions {
+    background: #15151f;
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .custom-popup-btn.btn-secondary {
+    background: #3a3a4e;
+    color: #e0e0e0;
+}
+
+body.dark-theme .custom-popup-btn.btn-secondary:hover {
+    background: #4a4a5e;
+}
+
+body.dark-theme .popup-conflict-message .popup-options {
+    background: rgba(245, 158, 11, 0.15);
+    border-left: 4px solid #fbbf24;
+}
+
+body.dark-theme .custom-popup-title {
+    color: #ffffff !important;
+}
+
+body.dark-theme .custom-popup-body {
+    color: #e0e0e0 !important;
+}
+
+body.dark-theme .custom-popup-body strong {
+    color: #ffffff !important;
+}
+
+body.dark-theme .popup-conflict-message .popup-options p,
+body.dark-theme .popup-conflict-message .popup-options li,
+body.dark-theme .popup-conflict-message .popup-options span {
+    color: #fef08a !important;
+}
+
+body.dark-theme .custom-popup-close {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+body.dark-theme .custom-popup-close:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.45);
+}
+
+/* ================================================== */
+/* INPUT FIELD FOR PROMPT MODAL */
+/* ================================================== */
+
+.custom-popup-input {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #1e293b;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.custom-popup-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+body.dark-theme .custom-popup-input {
+    background: #151522;
+    border-color: #3a3a4e;
+    color: #f8fafc;
+}
+
+body.dark-theme .custom-popup-input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25);
+}
+
+/* ==========================================================================
+   GLOBAL CUSTOM SCROLLBAR DESIGN (Modern, Sleek, Theme-Aware)
+   ========================================================================== */
+
+/* Firefox Standard Rules */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+body.dark-theme *, html.dark-theme * {
+    scrollbar-color: rgba(168, 85, 247, 0.4) transparent;
+}
+
+/* Webkit (Chrome, Edge, Safari, Opera) Custom Scrollbar Rules */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.4);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.25s ease, transform 0.25s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(79, 70, 229, 0.75);
+    box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
+}
+
+::-webkit-scrollbar-thumb:active {
+    background: rgba(67, 56, 202, 0.95);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Dark Theme Webkit Custom Scrollbars */
+body.dark-theme ::-webkit-scrollbar-thumb,
+html.dark-theme ::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.45);
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb:hover,
+html.dark-theme ::-webkit-scrollbar-thumb:hover {
+    background: rgba(192, 132, 252, 0.85);
+    box-shadow: 0 0 12px rgba(192, 132, 252, 0.5);
+}
+
+body.dark-theme ::-webkit-scrollbar-thumb:active,
+html.dark-theme ::-webkit-scrollbar-thumb:active {
+    background: rgba(216, 180, 254, 0.95);
+}
+
+/* All Modals, Popups, Tables, Form Containers, and Sub-divs */
+.fees-modal-content::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar,
+.custom-modal-content::-webkit-scrollbar,
+.teacher-modal-body::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+div[class*="modal"]::-webkit-scrollbar,
+div[class*="popup"]::-webkit-scrollbar,
+div[class*="card"]::-webkit-scrollbar,
+div[class*="container"]::-webkit-scrollbar,
+div[class*="wrapper"]::-webkit-scrollbar,
+section::-webkit-scrollbar,
+form::-webkit-scrollbar,
+textarea::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.fees-modal-content::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb,
+.custom-modal-content::-webkit-scrollbar-thumb,
+.teacher-modal-body::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+div[class*="modal"]::-webkit-scrollbar-thumb,
+div[class*="popup"]::-webkit-scrollbar-thumb,
+div[class*="card"]::-webkit-scrollbar-thumb,
+div[class*="container"]::-webkit-scrollbar-thumb,
+div[class*="wrapper"]::-webkit-scrollbar-thumb,
+section::-webkit-scrollbar-thumb,
+form::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb {
+    border-radius: 8px;
+}
+
+/* ==========================================================================
+   DROPDOWN & SELECT MENU STYLING (High Contrast, Premium Light & Dark Themes)
+   ========================================================================== */
+
+/* Native Select Inputs */
+select[data-enhanced="true"] {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+}
+
+select:not([data-enhanced="true"]), select.form-select:not([data-enhanced="true"]), select.custom-select:not([data-enhanced="true"]), .form-control select:not([data-enhanced="true"]) {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 14px center !important;
+    background-size: 16px !important;
+    padding-right: 40px !important;
+    cursor: pointer;
+    border-radius: 12px;
+}
+
+/* Native Option Elements - Light Theme */
+option {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    padding: 12px 16px !important;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+option:hover, option:focus, option:active, option:checked {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+
+/* Dark Theme Native Select & Options */
+body.dark-theme select,
+body.dark-theme select.form-select,
+body.dark-theme select.custom-select,
+html.dark-theme select {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23c084fc' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+}
+
+body.dark-theme option,
+html.dark-theme option {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    padding: 12px 16px !important;
+}
+
+body.dark-theme option:hover,
+body.dark-theme option:focus,
+body.dark-theme option:active,
+body.dark-theme option:checked,
+html.dark-theme option:checked {
+    background-color: #6366f1 !important;
+    color: #ffffff !important;
+}
+
+/* Custom Dropdown (.abcd-select-dropdown) - Global Alignment with Admission Form */
+.abcd-select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.abcd-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 18px;
+    border: 2px solid #e1e8ed;
+    border-radius: 12px;
+    background: #f8f9fa;
+    color: #333;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.abcd-select-trigger:hover {
+    border-color: #667eea;
+    background: #fff;
+}
+
+.abcd-select-wrapper.open .abcd-select-trigger {
+    border-color: #667eea;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.abcd-select-trigger i {
+    font-size: 1.2rem;
+    color: #667eea;
+    transition: transform 0.3s;
+}
+
+.abcd-select-wrapper.open .abcd-select-trigger i {
+    transform: rotate(180deg);
+}
+
+.abcd-select-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #e1e8ed;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    z-index: 999999 !important;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.abcd-select-wrapper.open .abcd-select-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.abcd-select-option {
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: #334155;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.abcd-select-option:hover {
+    background: rgba(102, 126, 234, 0.08);
+    color: #667eea;
+    padding-left: 20px;
+}
+
+.abcd-select-option.selected {
+    background: #667eea;
+    color: #fff;
+}
+
+/* Dark Theme Custom Select Dropdown */
+body.dark-theme .abcd-select-trigger {
+    background: #1e293b;
+    border-color: #334155;
+    color: #f8fafc;
+}
+
+body.dark-theme .abcd-select-trigger:hover,
+body.dark-theme .abcd-select-wrapper.open .abcd-select-trigger {
+    background: #0f172a;
+    border-color: #c084fc;
+    box-shadow: 0 0 0 4px rgba(192, 132, 252, 0.15);
+}
+
+body.dark-theme .abcd-select-dropdown {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-theme .abcd-select-option {
+    color: #cbd5e1;
+}
+
+body.dark-theme .abcd-select-option:hover {
+    background: rgba(192, 132, 252, 0.15);
+    color: #f8fafc;
+    padding-left: 20px;
+}
+
+body.dark-theme .abcd-select-option.selected {
+    background: #8b5cf6;
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   FILE UPLOAD ZONE OVERLAY FIX FOR MODALS & CARDS
+   ========================================================================== */
+
+.tc-upload-zone, .upload-zone, .file-upload-zone {
+    position: relative !important;
+}
+
+.tc-upload-zone input[type="file"],
+.upload-zone input[type="file"],
+.file-upload-zone input[type="file"] {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+}
+
+.tc-upload-preview, .upload-preview {
+    position: relative !important;
+    z-index: 20 !important;
+}
+
+/* ==========================================================================
+   CROPPER SELECTION BOX & BRIGHTNESS - SCOPED TO #cropModal ONLY
+   (Prevents leaking z-index/display overrides to other pages)
+   ========================================================================== */
+
+#cropModal .cropper-container {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+#cropModal .cropper-bg {
+    background-image: none !important;
+    background-color: #0f172a !important;
+}
+
+/* Unselected outer vignette - Keep strictly below crop box */
+#cropModal .cropper-modal {
+    background-color: rgba(15, 23, 42, 0.45) !important;
+    opacity: 1 !important;
+    z-index: 1 !important;
+}
+
+/* Force Crop Box to sit WAY ABOVE the dark vignette */
+#cropModal .cropper-crop-box {
+    z-index: 100 !important;
+}
+
+/* Remove any overlay mask inside the selected area */
+#cropModal .cropper-face {
+    background-color: transparent !important;
+    opacity: 0 !important;
+    display: none !important;
+}
+
+/* Selected crop box frame - Vibrant Electric Blue Outline */
+#cropModal .cropper-view-box {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 0 !important;
+    border: none !important;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5) !important;
+    background-color: transparent !important;
+    z-index: 101 !important;
+    opacity: 1 !important;
+}
+
+/* Cloned image inside view-box MUST remain in 100% PURE ORIGINAL NATURAL FULL BRIGHTNESS */
+#cropModal .cropper-view-box img {
+    filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    mix-blend-mode: normal !important;
+}
+
+/* Electric Blue Rule of Thirds Grid Lines */
+#cropModal .cropper-dashed {
+    border: 0 solid rgba(59, 130, 246, 0.5) !important;
+}
+#cropModal .cropper-dashed.dashed-h {
+    border-top-width: 1px !important;
+    border-bottom-width: 1px !important;
+}
+#cropModal .cropper-dashed.dashed-v {
+    border-left-width: 1px !important;
+    border-right-width: 1px !important;
+}
+
+/* Electric Blue Corner Brackets (L-shaped) */
+#cropModal .cropper-point.point-nw {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-top: 4px solid #3b82f6 !important;
+    border-left: 4px solid #3b82f6 !important;
+    top: -4px !important;
+    left: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+#cropModal .cropper-point.point-ne {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-top: 4px solid #3b82f6 !important;
+    border-right: 4px solid #3b82f6 !important;
+    top: -4px !important;
+    right: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+#cropModal .cropper-point.point-sw {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-bottom: 4px solid #3b82f6 !important;
+    border-left: 4px solid #3b82f6 !important;
+    bottom: -4px !important;
+    left: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+#cropModal .cropper-point.point-se {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-bottom: 4px solid #3b82f6 !important;
+    border-right: 4px solid #3b82f6 !important;
+    bottom: -4px !important;
+    right: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+
+/* Electric Blue Mid-side Handles */
+#cropModal .cropper-point.point-n {
+    width: 30px !important;
+    height: 6px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    top: -4px !important;
+    margin-left: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+#cropModal .cropper-point.point-s {
+    width: 30px !important;
+    height: 6px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    bottom: -4px !important;
+    margin-left: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+#cropModal .cropper-point.point-e {
+    width: 6px !important;
+    height: 30px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    right: -4px !important;
+    margin-top: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+#cropModal .cropper-point.point-w {
+    width: 6px !important;
+    height: 30px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    left: -4px !important;
+    margin-top: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+}
+
+/* Edge lines */
+#cropModal .cropper-line {
+    background-color: #3b82f6 !important;
+    opacity: 0.8 !important;
+}
+
+
+/* ==========================================================================
+   GLOBAL TC-MODAL-BOX & LIGHT/DARK THEME POLISH
+   ========================================================================== */
+
+.tc-modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.tc-modal-box {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-radius: 24px !important;
+    padding: 32px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+}
+
+body.dark-theme .tc-modal-box {
+    background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%) !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(139, 92, 246, 0.3) !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(139, 92, 246, 0.15) !important;
+}
+
+.tc-modal-box h2, .tc-modal-box h3 {
+    font-family: 'Inter', 'Outfit', sans-serif !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+body.dark-theme .tc-modal-box h2, body.dark-theme .tc-modal-box h3 {
+    color: #ffffff !important;
+}
+
+.tc-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 22px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    font-size: 1.3rem !important;
+    cursor: pointer;
+    color: #64748b !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease !important;
+}
+
+.tc-modal-close:hover {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: rotate(90deg) !important;
+}
+
+body.dark-theme .tc-modal-close {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #94a3b8 !important;
+}
+
+body.dark-theme .tc-modal-close:hover {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+}
+
+.tc-modal-cancel-btn {
+    padding: 12px 24px !important;
+    border-radius: 14px !important;
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    cursor: pointer;
+    transition: all 0.2s ease !important;
+}
+
+.tc-modal-cancel-btn:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+body.dark-theme .tc-modal-cancel-btn {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+body.dark-theme .tc-modal-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+}
+
+.tc-modal-submit-btn {
+    padding: 12px 26px !important;
+    border-radius: 14px !important;
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+.tc-modal-submit-btn:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.5) !important;
+}
+
+
+
+
+
+

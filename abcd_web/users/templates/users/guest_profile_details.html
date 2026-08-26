@@ -1,0 +1,459 @@
+{% extends base_template %}
+{% load static %}
+{% load dict_extras %}
+
+{% block title %}Guest Profile - ABCD{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .profile-card-wrapper {
+        padding: 100px 20px 40px;
+        display: flex;
+        justify-content: center;
+        min-height: calc(100vh - 100px);
+    }
+    .profile-details-card {
+        width: 100%;
+        max-width: 650px;
+        background: #ffffff;
+        border-radius: 35px;
+        padding: 40px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        text-align: center;
+        transition: background 0.3s, border-color 0.3s;
+        height: fit-content;
+    }
+    body.dark-theme .profile-details-card {
+        background: #111827;
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    }
+    .profile-pic-container {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        margin: 0 auto 30px;
+    }
+    .profile-pic-frame {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 4px solid #6366f1;
+        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+    }
+    .profile-pic-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .profile-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .detail-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        max-width: 500px;
+        margin: 0 auto 35px;
+        text-align: left;
+    }
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 18px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+    body.dark-theme .detail-item {
+        background: #1f2937;
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    .detail-label {
+        font-weight: 700;
+        color: #64748b;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    body.dark-theme .detail-label {
+        color: #94a3b8;
+    }
+    .detail-value {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+    body.dark-theme .detail-value {
+        color: #f1f5f9;
+    }
+    .meta-label {
+        display: block;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 4px;
+        text-align: right;
+    }
+    .cta-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: center;
+    }
+    .btn-cta {
+        padding: 12px 24px;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+    }
+    .btn-indigo {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.25);
+    }
+    .btn-indigo:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 25px rgba(99, 102, 241, 0.35);
+    }
+    .btn-purple {
+        background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+        color: white;
+        box-shadow: 0 10px 20px rgba(168, 85, 247, 0.25);
+    }
+    .btn-purple:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 25px rgba(168, 85, 247, 0.35);
+    }
+    .btn-grey {
+        background: #e2e8f0;
+        color: #475569;
+    }
+    .btn-grey:hover {
+        background: #cbd5e1;
+        transform: translateY(-2px);
+    }
+    body.dark-theme .btn-grey {
+        background: #374151;
+        color: #e5e7eb;
+    }
+    body.dark-theme .btn-grey:hover {
+        background: #4b5563;
+    }
+
+    /* Modal Form Styling */
+    .chg-pwd-modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        width: 90%;
+        max-width: 450px;
+        background: white;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        z-index: var(--z-modal);
+        transition: all 0.3s ease;
+        opacity: 0;
+    }
+    .chg-pwd-modal.active {
+        display: block;
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        color: #1e293b;
+    }
+    body.dark-theme .chg-pwd-modal {
+        background: #1e293b;
+        color: #f3f4f6;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .chg-pwd-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: var(--z-modal-overlay);
+    }
+    .chg-pwd-overlay.active {
+        display: block;
+    }
+    .modal-hdr {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-close {
+        cursor: pointer;
+        font-size: 1.8rem;
+        color: #9ca3af;
+    }
+    .modal-close:hover {
+        color: #374151;
+    }
+    body.dark-theme .modal-close:hover {
+        color: #f3f4f6;
+    }
+    .form-group {
+        margin-bottom: 15px;
+        text-align: left;
+    }
+    .form-group label {
+        display: block;
+        font-weight: 700;
+        font-size: 0.8rem;
+        color: #6366f1;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #d1d5db;
+        background: #f9fafb;
+        color: #1f2937;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    body.dark-theme .form-group input {
+        background: #0f172a;
+        border-color: #374151;
+        color: #f9fafb;
+    }
+    .form-group input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+    }
+    @media (max-width: 480px) {
+        .profile-details-card { padding: 25px 15px; }
+        .detail-item {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+            padding: 12px 15px !important;
+        }
+        .detail-item > div {
+            width: 100%;
+        }
+        .detail-label {
+            font-size: 0.75rem;
+        }
+        .detail-value {
+            font-size: 0.9rem;
+            word-break: break-all;
+            width: 100%;
+            text-align: left;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-card-wrapper">
+    <div class="profile-details-card">
+        <div class="profile-pic-container">
+            <div class="profile-pic-frame">
+                <img src="{{ user|user_photo }}" alt="{{ user.username }}">
+            </div>
+        </div>
+        
+        <h2 class="profile-title">Guest Profile</h2>
+        
+        <div class="detail-grid">
+            <div class="detail-item">
+                <span class="detail-label">Username</span>
+                <span class="detail-value">{{ user.username }}</span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">{{ user.email|default:"Not provided" }}</span>
+            </div>
+            
+            <div class="detail-item" style="flex-direction: column; align-items: stretch; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="detail-label">Password</span>
+                    <span class="detail-value">*****</span>
+                </div>
+                <span class="meta-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-align: right; margin-top: 4px;">{{ password_date_display }}</span>
+            </div>
+        </div>
+        
+        <p style="font-size: 0.82rem; color: #e11d48; line-height: 1.4; margin-bottom: 20px; font-weight: 600; text-align: center;">
+            ⚠️ For full profile, please fill the admission form or achievement form and get verified by the institute.
+        </p>
+        
+        <div class="cta-container">
+            {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+            <a href="{% url 'users:admission_form' %}" class="btn-cta btn-indigo">
+                <i class='bx bxs-user-plus'></i> Apply for Admission
+            </a>
+            {% endif %}
+            {% if not nav_achievement %}
+            <a href="{% url 'users:achievement_form' %}" class="btn-cta btn-purple">
+                <i class='bx bxs-trophy'></i> Add Alumni Achievement
+            </a>
+            {% endif %}
+            <button onclick="openChangePasswordModal()" class="btn-cta btn-grey">
+                <i class='bx bxs-key'></i> Change Password
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="chg-pwd-overlay" id="pwdOverlay" onclick="closeChangePasswordModal()"></div>
+<div class="chg-pwd-modal" id="pwdModal">
+    <div class="modal-hdr">
+        <span>Change Password</span>
+        <i class='bx bx-x modal-close' onclick="closeChangePasswordModal()"></i>
+    </div>
+    <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="current_password">Current Password</label>
+            <input type="password" id="current_password" name="current_password" required placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+            <label for="new_password">New Password</label>
+            <input type="password" id="new_password" name="new_password" required placeholder="Enter new password">
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">Confirm New Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required placeholder="Confirm new password">
+        </div>
+        <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <button type="button" class="btn-cta btn-grey" onclick="handleForgotPassword()" style="font-size: 0.8rem; padding: 8px 16px;">Forgot Password?</button>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-cta btn-grey" onclick="closeChangePasswordModal()">Cancel</button>
+                <button type="submit" class="btn-cta btn-indigo">Update Password</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    async function showAlert(title, message) {
+        if (typeof window.showStyledAlert === 'function') {
+            await window.showStyledAlert(title, message);
+        } else if (typeof window.showStyledPopup === 'function') {
+            window.showStyledPopup({ title: title, message: message, type: 'info' });
+        } else {
+            alert(`${title}: ${message}`);
+        }
+    }
+    if (typeof window.showStyledAlert !== 'function') {
+        window.showStyledAlert = showAlert;
+    }
+
+    function openChangePasswordModal() {
+        document.getElementById('pwdOverlay').classList.add('active');
+        document.getElementById('pwdModal').classList.add('active');
+    }
+    function closeChangePasswordModal() {
+        document.getElementById('pwdOverlay').classList.remove('active');
+        document.getElementById('pwdModal').classList.remove('active');
+        document.getElementById('changePasswordForm').reset();
+    }
+    async function handleChangePassword(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        try {
+            const response = await fetch("{% url 'users:change_password' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": formData.get("csrf_token")
+                }
+            });
+            const data = await response.json();
+            if (response.ok && data.status === 'success') {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Success", data.message || "Password changed successfully!", "success");
+                }
+                closeChangePasswordModal();
+                window.location.reload();
+            } else {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Error", data.message || "Failed to change password.", "error");
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Error", "An error occurred. Please try again.", "error");
+            }
+        }
+    }
+    async function handleForgotPassword() {
+        // Use window.showStyledConfirm if available, otherwise CustomPopup.confirm
+        let proceed = false;
+        if (window.showStyledConfirm) {
+            proceed = await window.showStyledConfirm("Forgot Password", "We will send a password reset OTP to your email. Proceed?", false, true);
+        } else {
+            proceed = await CustomPopup.confirm("We will send a password reset OTP to your email. Proceed?", "Forgot Password");
+        }
+        if (!proceed) return;
+
+        const formData = new FormData();
+        formData.append("email", "{{ request.user.email }}");
+        try {
+            const response = await fetch("{% url 'users:forgot_password' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}"
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                closeChangePasswordModal();
+                showAuthOtpModal();
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Success", "Password reset OTP sent to your email!", "success");
+                }
+            } else {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Error", data.message || "Failed to trigger password reset.", "error");
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Error", "An error occurred. Please try again.", "error");
+            }
+        }
+    }
+</script>
+{% include 'partials/password_reset_modal.html' %}
+{% url 'users:guest_page' as resolved_back_url %}
+{% include 'partials/_smart_back_redirect.html' with back_url_path=resolved_back_url %}
+{% endblock %}

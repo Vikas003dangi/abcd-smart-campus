@@ -1,0 +1,119 @@
+# ==================================================
+# PYTHON & DJANGO COMPILED FILES & CACHES
+# ==================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.log
+local_settings.py
+staticfiles/
+
+
+# ==================================================
+# DATABASES & TEMP DB FILES (NEVER COMMIT LOCAL DB)
+# ==================================================
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite3-journal
+db.sqlite3
+
+# ==================================================
+# SECRETS & ENVIRONMENT CONFIGURATIONS
+# ==================================================
+.env
+.env.*
+!.env.example
+
+# ==================================================
+# VIRTUAL ENVIRONMENTS & DEPENDENCIES
+# ==================================================
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+node_modules/
+
+# ==================================================
+# LOCAL DEV BINARIES, TOOLING & SCRIPTS
+# ==================================================
+node.exe
+acli.exe
+install.cmd
+install_tools.bat
+nodevars.bat
+corepack
+corepack.cmd
+npm
+npm.cmd
+npm.ps1
+npx
+npx.cmd
+npx.ps1
+
+# ==================================================
+# TEMPORARY TEST SCRIPTS, DIAGNOSTICS & SCRATCH
+# ==================================================
+check_tags.py
+register.py
+scan_*.py
+send_otp.py
+verify_otp.py
+test_script_*.py
+find_z.py
+fix_*.py
+debug_issues.txt
+diag_reminder*.txt
+emoji_lines.txt
+template_tags.txt
+tmp_*.txt
+scratch/
+
+# Protect official Django test suites from wildcard rules
+!tests.py
+!tests/
+!users/tests.py
+
+# ==================================================
+# DESIGN MOCKUPS, SCREENSHOTS & FLOWCHARTS
+# ==================================================
+bugs/
+New folder/
+Seats/
+static/seat-flow-diagram.html
+static/site-flow-diagram.html
+
+# ==================================================
+# DEVELOPMENT DOCUMENTATION & MARKS
+# ==================================================
+BUG_INVESTIGATION_SUMMARY.md
+COMPREHENSIVE_FIX_PLAN.md
+CRITICAL_BUG_ANALYSIS.md
+TEACHER_FULL_CONTROL_IMPLEMENTATION.md
+COMPLETE_FIX_SUMMARY.md
+META_WHATSAPP_TEMPLATES_GUIDE.md
+SKILL_*.md
+DATABASE_LOCK_FIX.md
+
+# ==================================================
+# USER UPLOADED MEDIA (RUNTIME DISK STORAGE)
+# ==================================================
+media/
+student_photos/
+!media/.gitkeep
+
+# ==================================================
+# IDE, EDITOR & OS GENERATED FILES
+# ==================================================
+.vscode/
+.idea/
+.agent/
+.agents/
+.sixth/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

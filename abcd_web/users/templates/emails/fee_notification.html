@@ -1,0 +1,89 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<tr>
+  <td style="padding:32px;">
+
+    <h2 style="margin-top:0; color:#2c3e50;">
+      {{ title }}
+    </h2>
+
+    <p style="font-size:16px; color:#444;">
+      Hello <strong>{% if teacher_name %}{{ teacher_name }}{% else %}{{ student.full_name }}{% endif %}</strong>,
+    </p>
+
+    <p style="font-size:16px; color:#444;">
+      {% if reminder_type == "submission_student" %}
+        Your fee has been updated successfully for your {{ service_details }}.
+      {% elif reminder_type == "submission_teacher" %}
+        {{ student.full_name }} has submitted fee for {{ service_details }}.
+      {% elif reminder_type == "pre" %}
+        This is a friendly reminder that your fee for the {{ months_text }} ({{ service_details }}) is due in 10 days.<br><br>
+        Please pay on time to avoid any interruptions.
+      {% elif reminder_type == "first_day" %}
+        This is a reminder that your fee for {{ months_text }} ({{ service_details }}) is due today.<br><br>
+        Please submit your payment at your earliest convenience.
+      {% elif reminder_type == "recurring" %}
+        Your fee for {{ months_text }} ({{ service_details }}) is now overdue.<br><br>
+        Please pay immediately to ensure your services continue.
+      {% else %}
+        There is an update regarding your fee.
+      {% endif %}
+    </p>
+
+    <div style="
+      margin:24px 0;
+      padding:18px;
+      background:#f8f9fb;
+      border-radius:8px;
+      font-size:15px;
+      color:#333;
+    ">
+      <strong>Service:</strong> {{ service_details }}<br>
+      <strong>Academic Year:</strong> {{ year }}<br>
+      <strong>Date:</strong> {{ date }}
+    </div>
+
+    {% if months_text %}
+    <div style="
+      margin:20px 0;
+      padding:18px;
+      background:#eef4ff;
+      border-left:4px solid #6c63ff;
+      border-radius:6px;
+      font-size:15px;
+    ">
+      <strong>Fee Details</strong><br>
+      {{ months_text }}
+    </div>
+    {% endif %}
+
+    {% if total_amount %}
+    <p style="font-size:16px; color:#222;">
+      <strong>Total Amount:</strong> ₹{{ total_amount }}
+    </p>
+    {% endif %}
+
+    {% if dashboard_url %}
+    <div style="margin-top:30px; text-align:center;">
+      <a href="{% if dashboard_url %}{{ dashboard_url }}{% elif site_url %}{{ site_url }}{% url 'users:student_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}"
+         style="
+           background:#6c63ff;
+           color:#fff;
+           padding:12px 26px;
+           text-decoration:none;
+           border-radius:6px;
+           font-weight:600;
+         ">
+        Open Dashboard
+      </a>
+    </div>
+    {% endif %}
+
+    <p style="margin-top:32px; font-size:14px; color:#777;">
+      — ABCD Coaching & Library
+    </p>
+
+  </td>
+</tr>
+{% endblock %}

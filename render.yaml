@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: abcd-web-platform
+    env: python
+    rootDir: abcd_web
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: daphne -b 0.0.0.0 -p $PORT abcd_web.asgi:application
+    plan: standard
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: "abcd2013.online,www.abcd2013.online,.onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://abcd2013.online,https://www.abcd2013.online"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: abcd-postgres-db
+          property: connectionString
+
+databases:
+  - name: abcd-postgres-db
+    plan: free
+    databaseName: abcd_db
+    user: abcd_user

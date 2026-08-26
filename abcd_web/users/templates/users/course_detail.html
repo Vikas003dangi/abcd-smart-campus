@@ -1,0 +1,3350 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}{{ course.title }} | ABCD{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* ======================================================
+       UDEMY-STYLE ADVANCED STREAMING PORTAL
+       ====================================================== */
+    :root {
+        --cinema-bg: #1c1d1f;
+        --sidebar-bg: #ffffff;
+        --header-bg: #1c1d1f;
+        --accent: #a435f0; /* Udemy Purple */
+        --accent-hover: #8710d8;
+        --text-main: #1c1d1f;
+        --text-dim: #6a6f73;
+        --border: #d1d7dc;
+        --player-black: #000000;
+        --item-hover: #f7f9fa;
+        --active-bg: #f0f0f0;
+        --success: #2e7d32;
+        --rating-avg-color: #b4690e;
+    }
+
+    body.dark-theme {
+        --sidebar-bg: #1e293b;
+        --text-main: #ffffff;
+        --text-dim: #94a3b8;
+        --border: rgba(255, 255, 255, 0.1);
+        --item-hover: rgba(255, 255, 255, 0.05);
+        --active-bg: rgba(99, 102, 241, 0.1);
+        --rating-avg-color: #fbbf24;
+    }
+
+    /* Premium Input & Textarea Theme Adapters */
+    input[type="text"],
+    textarea,
+    select,
+    .curriculum-search,
+    #qaSearch,
+    #reviewComment,
+    #questionText,
+    .reply-textarea,
+    #reminderTitle,
+    #reviewGuestName {
+        background-color: var(--sidebar-bg) !important;
+        color: var(--text-main) !important;
+        border: 1px solid var(--border) !important;
+    }
+    input::placeholder,
+    textarea::placeholder {
+        color: var(--text-dim) !important;
+        opacity: 0.8;
+    }
+
+    /* Star Rating Box */
+    .star-btn {
+        color: #d1d7dc;
+        transition: color 0.2s;
+    }
+    body.dark-theme .star-btn {
+        color: rgba(255, 255, 255, 0.2);
+    }
+    .star-btn.selected {
+        color: #fbbf24 !important;
+    }
+
+    /* Custom Buttons */
+    .tp-btn-primary {
+        background: var(--accent);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+    .tp-btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+    }
+
+    .download-btn {
+        background: var(--accent);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 4px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+    .download-btn:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+    }
+
+    .reply-box {
+        margin-top: 15px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--active-bg);
+    }
+
+    html {
+        background: var(--sidebar-bg) !important;
+        color: var(--text-main) !important;
+        width: 100% !important;
+        /* NOTE: Do NOT set overflow-x:hidden on <html> — it breaks position:sticky for the navbar */
+    }
+    body {
+        background: var(--sidebar-bg) !important;
+        color: var(--text-main) !important;
+        transition: background-color 0.3s, color 0.3s;
+        overflow-x: hidden !important;
+        width: 100% !important;
+    }
+
+    .udemy-full-wrapper {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        width: 100vw;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        margin-top: 30px; /* Reduced by another 5px as per user request */
+    }
+
+    /* Ensure navbar is above all course detail headers, video elements, and sidebars */
+    .top-nav-menu {
+        z-index: 10005 !important;
+    }
+
+    /* --- HEADER --- */
+    .course-streaming-header {
+        padding: 8px 24px;
+        background: var(--header-bg);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 100 !important; /* Lower than navbar (10005) */
+        color: white;
+        height: 56px;
+    }
+    .header-left { display: flex; align-items: center; gap: 20px; }
+    .header-right { display: flex; align-items: center; gap: 15px; }
+
+    .ud-btn-ghost {
+        color: #d1d7dc;
+        text-decoration: none;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .ud-btn-ghost:hover { background: rgba(255,255,255,0.1); color: white; }
+
+    .ud-btn-outline {
+        border: 1px solid white;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        transition: all 0.2s;
+        background: transparent;
+        cursor: pointer;
+    }
+    .ud-btn-outline:hover { 
+        background: rgba(255,255,255,0.1);
+    }
+    .ud-btn-outline i { font-size: 1.1rem; }
+
+    .ud-more-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 !important;
+    }
+
+    /* --- PROGRESS RING --- */
+    .progress-circle-container {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .progress-circle-bg {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.2);
+        stroke-width: 2;
+    }
+    .progress-circle-bar {
+        fill: none;
+        stroke: #cec0fc;
+        stroke-width: 2;
+        stroke-linecap: round;
+        transition: stroke-dasharray 0.3s;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+    }
+    .progress-icon {
+        position: absolute;
+        color: white;
+        font-size: 1rem;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        margin: 0;
+        line-height: 1;
+    }
+
+    .item-label.is-completed {
+        color: var(--success) !important;
+        font-weight: 600 !important;
+    }
+
+    /* --- MODERN Q&A STYLES --- */
+    .qa-thread {
+        border-bottom: 1px solid var(--border);
+        padding: 24px 0;
+        transition: all 0.3s;
+    }
+    .qa-thread:hover { background: rgba(164, 53, 240, 0.02); }
+    .qa-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--active-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        color: var(--accent);
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .qa-main { flex: 1; min-width: 0; }
+    .qa-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .qa-author { font-weight: 700; color: var(--text-main); font-size: 0.95rem; }
+    .qa-time { font-size: 0.8rem; color: var(--text-dim); }
+    .qa-lesson-tag {
+        background: rgba(164, 53, 240, 0.1);
+        color: var(--accent);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .qa-content { font-size: 1rem; line-height: 1.6; color: var(--text-main); margin: 12px 0; }
+    
+    .qa-actions { display: flex; align-items: center; gap: 20px; margin-top: 15px; }
+    .qa-action-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-dim);
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .qa-action-btn:hover { background: var(--item-hover); color: var(--text-main); }
+    .qa-action-btn.active { color: var(--accent); }
+    .qa-action-btn.upvoted { color: #3b82f6; }
+    .qa-action-btn i { font-size: 1.1rem; }
+
+    .answers-container {
+        margin-left: 20px;
+        border-left: 2px solid var(--border);
+        padding-left: 24px;
+        margin-top: 15px;
+    }
+    .answer-item { margin-bottom: 20px; position: relative; }
+    .answer-item::before {
+        content: "";
+        position: absolute;
+        left: -24px;
+        top: 15px;
+        width: 15px;
+        height: 2px;
+        background: var(--border);
+    }
+    
+    .teacher-badge {
+        background: var(--accent);
+        color: white;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-left: 5px;
+        letter-spacing: 0.5px;
+    }
+    .verified-tick { color: #3b82f6; font-size: 0.9rem; vertical-align: middle; }
+
+    .nested-replies {
+        margin-left: 32px;
+        margin-top: 10px;
+        border-left: 2px solid var(--border);
+        padding-left: 15px;
+    }
+    .reply-item {
+        margin-bottom: 15px;
+        padding: 5px 0;
+    }
+    .qa-action-btn.delete-btn:hover {
+        color: #ef4444 !important;
+        background: #fee2e2;
+    }
+    /* --- ABCD CUSTOM MODAL --- */
+    .abcd-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .abcd-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .abcd-modal-container {
+        background: var(--sidebar-bg);
+        width: 90%;
+        max-width: 400px;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        transform: scale(0.9);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--border);
+        text-align: center;
+    }
+    .abcd-modal-overlay.active .abcd-modal-container {
+        transform: scale(1);
+    }
+    .abcd-modal-icon {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        display: inline-block;
+    }
+    .abcd-modal-icon.info { color: var(--accent); }
+    .abcd-modal-icon.success { color: var(--success); }
+    .abcd-modal-icon.error { color: #ef4444; }
+    .abcd-modal-icon.confirm { color: #f59e0b; }
+
+    .abcd-modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 12px;
+        color: var(--text-main);
+    }
+    .abcd-modal-message {
+        font-size: 1rem;
+        color: var(--text-dim);
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+    .abcd-modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    }
+    .abcd-modal-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        flex: 1;
+    }
+    .abcd-modal-btn-confirm {
+        background: var(--accent);
+        color: white;
+    }
+    .abcd-modal-btn-confirm:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+    .abcd-modal-btn-cancel {
+        background: var(--border);
+        color: var(--text-main);
+    }
+    .abcd-modal-btn-cancel:hover {
+        background: #9ca3af;
+    }
+    .reply-textarea {
+        width: 100%;
+        border: none;
+        background: transparent;
+        resize: none;
+        font-size: 0.95rem;
+        outline: none;
+        min-height: 80px;
+        color: var(--text-main);
+    }
+    .reply-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+    }
+
+    /* --- MAIN LAYOUT --- */
+    .streaming-layout {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        flex: 1;
+    }
+
+    /* --- PLAYER AREA --- */
+    .player-column {
+        display: flex;
+        flex-direction: column;
+        background: var(--cinema-bg);
+    }
+    .main-player-container {
+        position: relative;
+        background: black;
+        width: 100%;
+        max-height: 70vh; /* Prevent it from being too large */
+        aspect-ratio: 16/9;
+        overflow: hidden;
+        margin: 0 auto;
+    }
+    /* Ensure video and iframe fill the container properly without hiding controls */
+    #mainDisplay iframe, #mainDisplay video, #mainDisplay embed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+    
+    #mainDisplay {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+    /* Subtle overlay to help obscure title bar without blocking interactions */
+    #mainDisplay::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 50px;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+        pointer-events: none;
+        z-index: 5;
+    }
+    /* For YouTube specifically, we need to ensure it doesn't add bars */
+    #yt-player {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    /* Player Navigation Overlays */
+    .player-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.4);
+        color: white;
+        width: 48px;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 10;
+        border: none;
+        border-radius: 4px;
+    }
+    .player-nav i { font-size: 2.5rem; }
+    .main-player-container:hover .player-nav { opacity: 1; }
+    .player-nav:hover { background: rgba(0,0,0,0.8); }
+    .player-prev { left: 0; }
+    .player-next { right: 0; }
+
+    /* Zoom / Viewport Fullscreen Styles */
+    .player-zoom-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 105;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(4px);
+    }
+    .player-zoom-btn:hover {
+        background: rgba(0, 0, 0, 0.8);
+        transform: scale(1.1);
+    }
+    .player-zoom-btn i {
+        font-size: 1.3rem;
+    }
+    .main-player-container.viewport-fullscreen {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        z-index: 99999 !important;
+        background: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        aspect-ratio: auto !important;
+    }
+
+    /* --- INFO AREA --- */
+    .content-details {
+        padding: 32px 48px;
+        background: var(--sidebar-bg);
+    }
+    .content-header-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+    .content-header-info h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-main);
+    }
+    .rating-badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #fdf0d5;
+        color: #856404;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+
+    .info-tabs {
+        display: flex;
+        gap: 24px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 24px;
+    }
+    .tab-trigger {
+        padding: 12px 4px;
+        color: var(--text-dim);
+        font-weight: 700;
+        cursor: pointer;
+        position: relative;
+        font-size: 0.95rem;
+        transition: color 0.2s;
+    }
+    .tab-trigger:hover { color: var(--text-main); }
+    .tab-trigger.active { color: var(--text-main); }
+    .tab-trigger.active::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--text-main);
+    }
+
+    /* --- SIDEBAR --- */
+    .sidebar-column {
+        background: var(--sidebar-bg);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 56px);
+        position: sticky;
+        top: 0;
+    }
+    .sidebar-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h3 { font-size: 1rem; font-weight: 700; margin: 0 0 12px 0; }
+    
+    .search-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .search-wrapper i { position: absolute; left: 12px; color: var(--text-dim); }
+    .curriculum-search {
+        width: 100%;
+        padding: 10px 12px 10px 38px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 0.85rem;
+        outline: none;
+        background: var(--active-bg);
+    }
+
+    .curriculum-scroll { flex: 1; overflow-y: auto; }
+    .curriculum-item {
+        display: flex;
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+    .curriculum-item:hover { background: var(--item-hover); }
+    .curriculum-item.active { background: var(--active-bg); }
+
+    .item-num { width: 20px; text-align: center; font-size: 0.85rem; color: var(--text-dim); }
+    .item-main { flex: 1; }
+    .item-label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 4px; line-height: 1.4; }
+    .item-meta { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-dim); }
+
+    @media (max-width: 1100px) {
+        .streaming-layout { grid-template-columns: 1fr; }
+        .sidebar-column { height: auto; position: static; border-left: none; border-top: 1px solid var(--border); }
+        .udemy-full-wrapper { width: 100%; left: 0; right: 0; margin: 35px 0 0 0; }
+    }
+
+    /* --- DROPDOWN MENU --- */
+    .ud-more-menu { position: relative; }
+    .ud-dropdown {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        background: white;
+        border: 1px solid #d1d7dc;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        width: 280px;
+        display: none;
+        flex-direction: column;
+        z-index: 1100;
+        padding: 12px 0;
+    }
+    .ud-dropdown::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        right: 12px;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid white;
+    }
+    body.dark-theme .ud-dropdown { 
+        background: #1c1d1f; 
+        border-color: rgba(255,255,255,0.1);
+    }
+    body.dark-theme .ud-dropdown::before { border-bottom-color: #1c1d1f; }
+
+    .ud-dropdown.show { display: flex; }
+    .ud-dropdown-item {
+        padding: 10px 20px;
+        color: var(--text-main);
+        text-decoration: none;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: background 0.2s;
+    }
+    .ud-dropdown-item:hover { background: #f7f9fa; }
+    body.dark-theme .ud-dropdown-item:hover { background: rgba(255,255,255,0.05); }
+    .ud-dropdown-item i { font-size: 1.2rem; color: var(--text-main); }
+
+    /* Progress Popover */
+    .progress-popover {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: -80px;
+        background: white;
+        border: 1px solid #d1d7dc;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        width: 320px;
+        padding: 24px;
+        display: none;
+        flex-direction: column;
+        z-index: 1100;
+        cursor: default;
+    }
+    .progress-popover::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid white;
+    }
+    .progress-popover.show { display: flex; }
+    body.dark-theme .progress-popover { background: #1c1d1f; border-color: rgba(255,255,255,0.1); }
+    body.dark-theme .progress-popover::before { border-bottom-color: #1c1d1f; }
+
+    /* Share Modal */
+    .share-modal {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+        z-index: 9999; display: none; align-items: center; justify-content: center;
+    }
+    .share-modal-content {
+        background: white; width: 90%; max-width: 420px; border-radius: 20px;
+        padding: 28px; box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+        animation: shareSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes shareSlideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .share-header h3 { font-weight: 800; color: #1e293b; font-size: 1.25rem; }
+    .close-share { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.4rem; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .close-share:hover { background: #e2e8f0; color: #1e293b; }
+    
+    .share-preview-card {
+        display: flex; gap: 16px; padding: 14px; background: #f8fafc;
+        border-radius: 14px; margin-bottom: 24px; border: 1px solid #e2e8f0;
+    }
+    .share-preview-card img { width: 90px; height: 60px; object-fit: cover; border-radius: 8px; background: #e2e8f0; }
+    .share-preview-info { flex: 1; }
+    .share-preview-info h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; color: #1e293b; display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .share-preview-info p { font-size: 0.78rem; color: #64748b; line-height: 1.4; }
+    
+    .share-options {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px;
+    }
+    .share-option {
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .share-option:hover { transform: translateY(-4px); }
+    .share-icon {
+        width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center;
+        justify-content: center; font-size: 1.7rem; color: white; box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+    .s-whatsapp { background: #25D366; }
+    .s-telegram { background: #0088cc; }
+    .s-twitter { background: #000000; }
+    .s-facebook { background: #1877F2; }
+    .s-email { background: #ea4335; }
+    .share-option span { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+    
+    .share-link-box {
+        display: flex; background: #f8fafc; border-radius: 12px;
+        padding: 6px; border: 1.5px solid #e2e8f0; transition: border-color 0.2s;
+    }
+    .share-link-box:focus-within { border-color: #a435f0; }
+    .share-link-box input {
+        flex: 1; background: none; border: none; padding: 10px 14px;
+        font-size: 0.88rem; color: #475569; outline: none; font-weight: 500;
+    }
+    .share-link-box button {
+        background: #a435f0; color: white; border: none; padding: 0 20px;
+        border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        font-size: 0.85rem;
+    }
+    .share-link-box button:hover { background: #8710d8; transform: scale(1.02); }
+    .share-link-box button.copied { background: #22c55e; }
+
+    body.dark-theme .share-modal-content { background: #1c1d1f; border: 1px solid rgba(255,255,255,0.1); }
+    body.dark-theme .share-header h3 { color: white; }
+    body.dark-theme .close-share { background: rgba(255, 255, 255, 0.1); color: #94a3b8; }
+    body.dark-theme .close-share:hover { background: rgba(255, 255, 255, 0.2); color: white; }
+    body.dark-theme .share-preview-card { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+    body.dark-theme .share-preview-info h4 { color: white; }
+    body.dark-theme .share-preview-info p { color: #94a3b8; }
+    body.dark-theme .share-option span { color: #94a3b8; }
+    body.dark-theme .share-link-box { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+    body.dark-theme .share-link-box input { color: #e2e8f0; }
+
+    /* ======================================================
+       RESPONSIVE DESIGN SYSTEM OVERRIDES (Down to 280px)
+       ====================================================== */
+    
+    /* Header Responsiveness */
+    @media (max-width: 768px) {
+        body {
+            padding-bottom: 90px !important;
+        }
+        .header-course-title {
+            display: none !important;
+        }
+        .udemy-full-wrapper {
+            margin-top: 40px !important;
+        }
+        .info-tabs {
+            gap: 16px !important;
+            overflow-x: auto !important;
+            scrollbar-width: none !important; /* Hide scrollbar for Firefox */
+            -webkit-overflow-scrolling: touch !important;
+            white-space: nowrap !important;
+        }
+        .info-tabs::-webkit-scrollbar {
+            display: none !important; /* Hide scrollbar for Chrome, Safari, Opera */
+        }
+        .tab-trigger {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+        }
+        .content-details {
+            padding: 24px 20px !important;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .header-btn-text {
+            display: none !important;
+        }
+        .course-streaming-header {
+            padding: 8px 12px !important;
+        }
+        .header-left, .header-right {
+            gap: 8px !important;
+        }
+        .ud-btn-ghost, .ud-btn-outline {
+            padding: 8px !important;
+        }
+        .header-right .ud-btn-outline {
+            width: 36px !important;
+            height: 36px !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        #starIconInHeader {
+            margin-right: 0 !important;
+        }
+        .course-modal-box {
+            padding: 24px 16px !important;
+        }
+        .modal-body-padding {
+            padding: 20px 16px !important;
+        }
+        .content-header-info {
+            flex-direction: column !important;
+            gap: 12px !important;
+            align-items: flex-start !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .course-streaming-header {
+            padding: 8px 6px !important;
+        }
+        .header-right {
+            gap: 6px !important;
+        }
+        .ud-btn-ghost, .ud-btn-outline {
+            padding: 6px !important;
+        }
+        .ask-scope-grid {
+            grid-template-columns: 1fr !important;
+        }
+        .qa-thread-wrapper {
+            flex-direction: column !important;
+            gap: 12px !important;
+        }
+        .qa-actions {
+            gap: 10px !important;
+            flex-wrap: wrap !important;
+        }
+        .answers-container {
+            margin-left: 8px !important;
+            padding-left: 12px !important;
+        }
+        .answer-item::before {
+            left: -12px !important;
+            width: 8px !important;
+        }
+        .progress-popover {
+            right: -100px !important;
+            width: 260px !important;
+            padding: 16px !important;
+        }
+        .progress-popover::before {
+            left: auto !important;
+            right: 110px !important;
+        }
+        .wheel-item {
+            font-size: 0.85rem !important;
+        }
+        .wheel-picker-container {
+            height: 160px !important;
+        }
+        .wheel-col {
+            padding: 60px 0 !important;
+        }
+        .share-options {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+        }
+        /* Q&A avatar shrink */
+        .qa-avatar {
+            width: 38px !important;
+            height: 38px !important;
+            font-size: 1rem !important;
+            flex-shrink: 0 !important;
+        }
+        /* Curriculum sidebar */
+        .sidebar-header {
+            padding: 14px 12px !important;
+        }
+        .curriculum-item {
+            padding: 10px 12px !important;
+        }
+        .item-label {
+            font-size: 0.82rem !important;
+        }
+        /* Info tabs */
+        .info-tabs {
+            gap: 12px !important;
+        }
+        .tab-trigger {
+            font-size: 0.88rem !important;
+        }
+    }
+
+    @media (max-width: 425px) {
+        .review-item-container {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+        }
+        .share-preview-card {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
+        .share-preview-card img {
+            width: 100% !important;
+            height: auto !important;
+            max-height: 120px !important;
+        }
+        .share-link-box {
+            flex-direction: column !important;
+            gap: 8px !important;
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+        .share-link-box input {
+            background: #f8fafc !important;
+            border: 1.5px solid #e2e8f0 !important;
+            border-radius: 12px !important;
+            width: 100% !important;
+        }
+        body.dark-theme .share-link-box input {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        .share-link-box button {
+            padding: 12px !important;
+            width: 100% !important;
+            border-radius: 12px !important;
+        }
+        .progress-popover {
+            right: -130px !important;
+            width: 240px !important;
+        }
+        .progress-popover::before {
+            right: 140px !important;
+        }
+    }
+    
+    /* ====================================================
+       BREAKPOINT: 450px — compact padding, tabs, Q&A
+       ==================================================== */
+    @media (max-width: 450px) {
+        .content-details {
+            padding: 20px 14px !important;
+        }
+        .info-tabs {
+            gap: 10px !important;
+        }
+        .tab-trigger {
+            font-size: 0.86rem !important;
+            padding: 10px 2px !important;
+        }
+        .qa-thread {
+            padding: 16px 0 !important;
+        }
+        .qa-avatar {
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 0.95rem !important;
+            flex-shrink: 0 !important;
+        }
+        .answers-container {
+            margin-left: 4px !important;
+            padding-left: 10px !important;
+        }
+        .sidebar-header {
+            padding: 12px 10px !important;
+        }
+        .curriculum-item {
+            padding: 10px 10px !important;
+            gap: 8px !important;
+        }
+        .item-label {
+            font-size: 0.8rem !important;
+        }
+        .progress-popover {
+            right: -125px !important;
+            width: 240px !important;
+            padding: 14px !important;
+        }
+        .progress-popover::before {
+            right: 132px !important;
+        }
+        .course-modal-box {
+            padding: 20px 14px !important;
+        }
+        .modal-body-padding {
+            padding: 18px 14px !important;
+        }
+        .share-options {
+            gap: 12px !important;
+        }
+        .share-option-btn {
+            padding: 10px 8px !important;
+            font-size: 0.8rem !important;
+        }
+    }
+
+    /* ====================================================
+       BREAKPOINT: 380px — tighter header, fonts, layout
+       ==================================================== */
+    @media (max-width: 380px) {
+        .course-streaming-header {
+            padding: 6px 8px !important;
+        }
+        .header-left {
+            gap: 4px !important;
+        }
+        .header-right {
+            gap: 3px !important;
+        }
+        .ud-btn-ghost, .ud-btn-outline {
+            padding: 4px !important;
+        }
+        .ud-btn-ghost i {
+            font-size: 1.35rem !important;
+        }
+        .header-right .ud-btn-outline {
+            width: 30px !important;
+            height: 30px !important;
+        }
+        .ud-btn-outline i {
+            font-size: 0.9rem !important;
+        }
+        .content-details {
+            padding: 16px 10px !important;
+        }
+        .info-tabs {
+            gap: 8px !important;
+        }
+        .tab-trigger {
+            font-size: 0.82rem !important;
+        }
+        .progress-popover {
+            right: -140px !important;
+            width: 215px !important;
+        }
+        .progress-popover::before {
+            right: 145px !important;
+        }
+        .qa-actions {
+            gap: 6px !important;
+        }
+        .qa-action-btn {
+            font-size: 0.78rem !important;
+            padding: 4px 6px !important;
+            gap: 3px !important;
+        }
+        .qa-avatar {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 0.88rem !important;
+        }
+        .curriculum-item {
+            padding: 8px 8px !important;
+        }
+        .sidebar-header h3 {
+            font-size: 0.9rem !important;
+        }
+        .item-label {
+            font-size: 0.76rem !important;
+        }
+        .course-modal-box {
+            padding: 16px 10px !important;
+        }
+        .modal-body-padding {
+            padding: 14px 10px !important;
+        }
+        .abcd-modal-btn {
+            font-size: 0.82rem !important;
+            padding: 10px 12px !important;
+        }
+        .wheel-item {
+            font-size: 0.8rem !important;
+        }
+        .wheel-picker-container {
+            height: 140px !important;
+        }
+        .wheel-col {
+            padding: 50px 0 !important;
+        }
+    }
+
+    /* ====================================================
+       BREAKPOINT: 340px — very compact, all elements
+       ==================================================== */
+    @media (max-width: 340px) {
+        .course-streaming-header {
+            padding: 5px 6px !important;
+        }
+        .header-left {
+            gap: 2px !important;
+        }
+        .header-right {
+            gap: 2px !important;
+        }
+        .ud-btn-ghost i {
+            font-size: 1.2rem !important;
+        }
+        .header-right .ud-btn-outline {
+            width: 26px !important;
+            height: 26px !important;
+        }
+        .ud-btn-outline i {
+            font-size: 0.82rem !important;
+        }
+        .progress-circle-container {
+            width: 28px !important;
+            height: 28px !important;
+        }
+        .progress-circle-container svg {
+            width: 28px !important;
+            height: 28px !important;
+        }
+        .progress-icon {
+            font-size: 0.8rem !important;
+        }
+        .content-details {
+            padding: 14px 8px !important;
+        }
+        .info-tabs {
+            gap: 6px !important;
+        }
+        .tab-trigger {
+            font-size: 0.78rem !important;
+            padding: 8px 2px !important;
+        }
+        .progress-popover {
+            right: -155px !important;
+            width: 200px !important;
+            padding: 12px !important;
+            font-size: 0.82rem !important;
+        }
+        .progress-popover::before {
+            right: 160px !important;
+        }
+        .progress-bar-track {
+            height: 5px !important;
+        }
+        .sidebar-header {
+            padding: 10px 8px !important;
+        }
+        .sidebar-header h3 {
+            font-size: 0.85rem !important;
+        }
+        .curriculum-item {
+            padding: 8px 6px !important;
+            gap: 6px !important;
+        }
+        .item-label {
+            font-size: 0.73rem !important;
+        }
+        .item-duration {
+            font-size: 0.7rem !important;
+        }
+        .qa-avatar {
+            width: 28px !important;
+            height: 28px !important;
+            font-size: 0.8rem !important;
+        }
+        .qa-action-btn {
+            font-size: 0.74rem !important;
+            padding: 3px 5px !important;
+        }
+        .course-modal-box {
+            padding: 14px 8px !important;
+            border-radius: 16px !important;
+        }
+        .modal-body-padding {
+            padding: 12px 8px !important;
+        }
+        .abcd-modal-btn {
+            font-size: 0.8rem !important;
+            padding: 9px 10px !important;
+        }
+        .wheel-item {
+            font-size: 0.75rem !important;
+        }
+        .wheel-picker-container {
+            height: 130px !important;
+        }
+        .wheel-col {
+            padding: 46px 0 !important;
+        }
+        .share-options {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+        }
+    }
+
+    /* ====================================================
+       BREAKPOINT: 280px — minimum viable display
+       ==================================================== */
+    @media (max-width: 280px) {
+        .content-details {
+            padding: 12px 6px !important;
+        }
+        .info-tabs {
+            gap: 4px !important;
+        }
+        .tab-trigger {
+            font-size: 0.72rem !important;
+            padding: 6px 2px !important;
+        }
+        .course-streaming-header {
+            padding: 4px 5px !important;
+        }
+        .header-left, .header-right {
+            gap: 1px !important;
+        }
+        .ud-btn-ghost i {
+            font-size: 1.1rem !important;
+        }
+        .header-right .ud-btn-outline {
+            width: 24px !important;
+            height: 24px !important;
+        }
+        .ud-btn-outline i {
+            font-size: 0.78rem !important;
+        }
+        .progress-circle-container {
+            width: 22px !important;
+            height: 22px !important;
+        }
+        .progress-circle-container svg {
+            width: 22px !important;
+            height: 22px !important;
+        }
+        .progress-icon {
+            font-size: 0.65rem !important;
+        }
+        .qa-action-btn {
+            gap: 3px !important;
+            font-size: 0.7rem !important;
+            padding: 3px 4px !important;
+        }
+        .qa-actions {
+            gap: 5px !important;
+        }
+        .qa-avatar {
+            width: 24px !important;
+            height: 24px !important;
+            font-size: 0.72rem !important;
+        }
+        .abcd-modal-btn {
+            font-size: 0.78rem !important;
+            padding: 8px 10px !important;
+        }
+        .curriculum-item {
+            padding: 6px 5px !important;
+            gap: 5px !important;
+        }
+        .item-label {
+            font-size: 0.7rem !important;
+        }
+        .sidebar-header h3 {
+            font-size: 0.8rem !important;
+        }
+        .progress-popover {
+            width: 180px !important;
+            right: -160px !important;
+            font-size: 0.78rem !important;
+        }
+    }
+
+    /* Footer & Contact Info Responsiveness */
+    .footer {
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        overflow-x: hidden !important;
+    }
+    .contact-info p, .contact-info a {
+        word-break: break-all !important;
+        overflow-wrap: break-word !important;
+    }
+    .fav-active {
+        color: #fbbf24 !important;
+    }
+    .arch-active {
+        color: #38bdf8 !important;
+    }
+    .lock-icon-circle {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        font-size: 2.5rem;
+    }
+    .lock-icon-circle.lock-amber {
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #fbbf24;
+    }
+    .lock-icon-circle.lock-red {
+        background: rgba(239, 68, 68, 0.15);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #f87171;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="udemy-full-wrapper">
+    <!-- Header -->
+    <header class="course-streaming-header">
+        <div class="header-left">
+            <a href="{% url 'users:courses' %}" class="ud-btn-ghost">
+                <i class='bx bx-chevron-left' style="font-size: 1.5rem;"></i>
+            </a>
+            <div class="header-course-title" style="font-weight: 700; font-size: 0.95rem; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 15px;">
+                {{ course.title }}
+            </div>
+        </div>
+        
+        <div class="header-right">
+            <div style="display: flex; align-items: center; gap: 10px; color: white; cursor: pointer; padding: 4px 8px; border-radius: 4px; position: relative;" id="progressTrigger">
+                <div class="progress-circle-container">
+                    <svg width="36" height="36" viewBox="0 0 36 36">
+                        <circle class="progress-circle-bg" cx="18" cy="18" r="16"></circle>
+                        <circle class="progress-circle-bar" cx="18" cy="18" r="16" stroke-dasharray="{{ progress_percent }} 100"></circle>
+                    </svg>
+                    <i class='bx bx-trophy progress-icon'></i>
+                </div>
+                <div class="header-btn-text" style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; font-weight: 400;">
+                    Your progress <i class='bx bx-chevron-down' style="font-size: 1.2rem;"></i>
+                </div>
+                
+                <div id="progressPopover" class="progress-popover">
+                    <h4 style="font-weight: 800; margin-bottom: 12px; font-size: 1.1rem; color: var(--text-main);">{{ completed_ids|length }} of {{ curriculum|length }} complete.</h4>
+                    <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 0;">{{ progress_percent }}% through the course!</p>
+                </div>
+            </div>
+
+            <button class="ud-btn-outline" style="color: white; font-weight: 400; font-size: 0.9rem;" onclick="openReviewModal()">
+                <i class='bx bxs-star' id="starIconInHeader" style="color: #fbbf24; margin-right: 4px;"></i> <span class="header-btn-text">Leave a rating</span>
+            </button>
+
+            <button class="ud-btn-outline" onclick="handleShare()"><span class="header-btn-text">Share</span> <i class='bx bx-share-alt'></i></button>
+            
+            <div class="ud-more-menu">
+                <button id="moreMenuBtn" class="ud-btn-outline ud-more-btn">
+                    <i class='bx bx-dots-vertical-rounded' style="font-size: 1.4rem;"></i>
+                </button>
+                <div id="moreMenu" class="ud-dropdown">
+                    <a href="javascript:void(0)" onclick="toggleInteraction('favorite')" class="ud-dropdown-item" id="favLink">
+                        <i class='bx {% if interaction.is_favorite %}bxs-star fav-active{% else %}bx-star{% endif %}' id="favIcon"></i> 
+                        <span id="favText">{% if interaction.is_favorite %}Favorited{% else %}Favorite this course{% endif %}</span>
+                    </a>
+                    <a href="javascript:void(0)" onclick="toggleInteraction('archive')" class="ud-dropdown-item" id="archiveLink">
+                        <i class='bx {% if interaction.is_archived %}bxs-folder-open arch-active{% else %}bx-folder{% endif %}' id="archiveIcon"></i>
+                        <span id="archiveText">{% if interaction.is_archived %}Archived (Restore){% else %}Archive this course{% endif %}</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="streaming-layout">
+        <!-- Main Player Area -->
+        <main class="player-column">
+            <div class="main-player-container" id="playerWrapper">
+                {% if is_locked %}
+                    <div class="locked-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: white; padding: 40px 20px;">
+                        <div class="lock-icon-circle {% if is_pending_student or is_pending_alumni %}lock-amber{% else %}lock-red{% endif %}">
+                            <i class='bx bxs-lock-alt'></i>
+                        </div>
+
+                        {% if is_pending_student %}
+                            <h2 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 800; color: #f8fafc;">Admission Pending</h2>
+                            <p style="color: #cbd5e1; max-width: 480px; margin-bottom: 22px; font-size: 0.95rem; line-height: 1.6;">
+                                This course is reserved for enrolled ABCD Coaching &amp; Library students. It will automatically unlock once your admission is approved by administration.
+                            </p>
+                            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fef3c7; padding: 8px 20px; border-radius: 30px; font-size: 0.85rem; font-weight: 600;">
+                                <i class='bx bx-time-five' style="font-size: 1.1rem;"></i> Status: Pending Verification
+                            </div>
+                        {% elif is_pending_alumni %}
+                            <h2 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 800; color: #f8fafc;">Alumni Approval Pending</h2>
+                            <p style="color: #cbd5e1; max-width: 480px; margin-bottom: 22px; font-size: 0.95rem; line-height: 1.6;">
+                                This course is reserved for verified ABCD alumni. It will automatically unlock once your achievement profile is approved.
+                            </p>
+                            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #fef3c7; padding: 8px 20px; border-radius: 30px; font-size: 0.85rem; font-weight: 600;">
+                                <i class='bx bx-time-five' style="font-size: 1.1rem;"></i> Status: Pending Approval
+                            </div>
+                        {% else %}
+                            <h2 style="font-size: 1.8rem; margin-bottom: 12px; font-weight: 800; color: #f8fafc;">Enrolled Students Only</h2>
+                            <p style="color: #cbd5e1; max-width: 480px; margin-bottom: 25px; font-size: 0.95rem; line-height: 1.6;">
+                                This course is exclusively available for enrolled ABCD Coaching &amp; Library students. Please apply for admission or sign in to an admitted account.
+                            </p>
+                            {% if is_authenticated %}
+                                <a href="{% url 'users:admission_form' %}" class="download-btn" style="background: var(--accent); padding: 12px 32px; font-size: 0.95rem; text-decoration: none; border-radius: 30px; font-weight: 700; color: white;">Apply for Admission</a>
+                            {% else %}
+                                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                                    <a href="{% url 'users:login' %}?next={{ request.path }}" class="download-btn" style="background: var(--accent); padding: 12px 28px; font-size: 0.95rem; text-decoration: none; border-radius: 30px; font-weight: 700; color: white;">Log In</a>
+                                    <a href="{% url 'users:admission_form' %}" class="download-btn" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); padding: 12px 28px; font-size: 0.95rem; text-decoration: none; border-radius: 30px; font-weight: 700; color: white;">Get Admission</a>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <!-- Zoom/Fullscreen Button -->
+                    <button class="player-zoom-btn" id="playerZoomBtn" title="Toggle Zoom / Fullscreen" onclick="togglePlayerZoom(event)">
+                        <i class='bx bx-expand'></i>
+                    </button>
+
+                    <div id="mainDisplay" style="width:100%; height:100%;">
+                        {% if first_video %}
+                            {% if first_video.youtube_id %}
+                                <div id="yt-player"></div>
+                            {% else %}
+                                <video id="localVideo" controls autoplay style="width:100%; height:100%; background:black;">
+                                    <source src="{{ first_video.file.url }}" type="video/mp4">
+                                </video>
+                            {% endif %}
+                        {% else %}
+                            <div style="height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-dim);">
+                                No material selected.
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Prev/Next Controls -->
+                    <button class="player-nav player-prev" id="prevBtn" title="Previous Content">
+                        <i class='bx bx-chevron-left'></i>
+                    </button>
+                    <button class="player-nav player-next" id="nextBtn" title="Next Content">
+                        <i class='bx bx-chevron-right'></i>
+                    </button>
+                {% endif %}
+            </div>
+
+            <div class="content-details">
+                <div class="content-header-info">
+                    <h1 id="activeTitle">
+                        {% if first_video and not is_locked %}{{ first_video.title }}{% else %}{{ course.title }}{% endif %}
+                    </h1>
+                </div>
+
+                <div class="info-tabs">
+                    <div data-target="search" class="tab-trigger"><i class='bx bx-search' style="font-size: 1.2rem;"></i></div>
+                    <div data-target="overview" class="tab-trigger active">Overview</div>
+                    <div data-target="qa" class="tab-trigger">Q&A</div>
+                    <div data-target="reviews" class="tab-trigger">Reviews</div>
+                    <div data-target="learning-tools" class="tab-trigger">Learning tools</div>
+                </div>
+
+                <div id="searchPane" class="tab-content-pane" style="display:none;">
+                    <div style="max-width: 800px; margin: 40px auto; text-align: center;">
+                        <div style="display: flex; gap: 0; margin-bottom: 24px;">
+                            <input type="text" placeholder="Search course content" style="flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-right: none; border-radius: 4px 0 0 4px; outline: none; font-size: 1rem;">
+                            <button style="background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 0 4px 4px 0; cursor: pointer;"><i class='bx bx-search'></i></button>
+                        </div>
+                        <h2 style="font-weight: 800; margin-bottom: 8px;">Start a new search</h2>
+                        <p style="color: var(--text-dim);">To find captions, lectures or resources</p>
+                    </div>
+                </div>
+
+                <div id="overviewPane" class="tab-content-pane">
+                    <div style="line-height: 1.8; color: var(--text-dim); font-size: 1rem;">
+                        <h3 style="color: var(--text-main); font-weight: 800; margin-bottom: 20px;">{{ course.title }}</h3>
+                        <p>{{ course.description|default:"Welcome to this comprehensive course on ABCD." }}</p>
+                        
+                        <div id="materialDescription" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border);"></div>
+
+                        <div id="downloadSection" style="margin-top: 30px; display: none;">
+                            <h4>Resources</h4>
+                            <a href="#" id="downloadBtn" class="ud-btn-outline" download style="color: var(--text-main); border-color: var(--border); width: fit-content;">
+                                <i class='bx bx-download'></i> Download Resource
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="qaPane" class="tab-content-pane" style="display:none;">
+                    <div style="display: flex; gap: 0; margin-bottom: 24px;">
+                        <input type="text" id="qaSearch" placeholder="Search all course questions" style="flex: 1; padding: 12px 16px; border: 1px solid var(--border); border-right: none; border-radius: 4px 0 0 4px; outline: none; font-size: 1rem;" onkeyup="filterQA()">
+                        <button style="background: #1c1d1f; color: white; border: none; padding: 12px 20px; border-radius: 0 4px 4px 0; cursor: pointer;"><i class='bx bx-search'></i></button>
+                    </div>
+
+                    <div style="margin-bottom: 30px; display: flex; align-items: center; justify-content: flex-end;">
+                        <button onclick="openAskModal()" style="background: var(--accent); border: none; color: white; padding: 10px 24px; border-radius: 4px; font-weight: 700; cursor: pointer;">Ask a new question</button>
+                    </div>
+
+                    <div id="qaList">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h4 style="font-weight: 800; margin: 0;">{{ questions.count }} questions in this course</h4>
+                        </div>
+                        
+                        {% for q in questions %}
+                        <div class="qa-thread" id="qa-{{ q.id }}" data-text="{{ q.question|lower }}">
+                            <div class="qa-thread-wrapper" style="display: flex; gap: 16px;">
+                                <div class="qa-avatar">
+                                    {{ q.student.full_name|slice:":1" }}
+                                </div>
+                                <div class="qa-main">
+                                    <div class="qa-meta">
+                                        <span class="qa-author">{{ q.student.full_name }}</span>
+                                        {% if q.material %}
+                                        <span class="qa-lesson-tag">{{ q.material.title }}</span>
+                                        {% endif %}
+                                        <span class="qa-time">{{ q.created_at|timesince }} ago</span>
+                                    </div>
+                                    <div class="qa-content">{{ q.question }}</div>
+                                    
+                                    <div class="qa-actions">
+                                        <button class="qa-action-btn {% if request.user in q.upvotes.all %}upvoted{% endif %}" onclick="toggleUpvote('question', '{{ q.id }}', this)">
+                                            <i class='bx {% if request.user in q.upvotes.all %}bxs-like{% else %}bx-like{% endif %}'></i>
+                                            <span class="upvote-count">{{ q.upvotes.count }}</span>
+                                        </button>
+                                        <button class="qa-action-btn" onclick="toggleAnswers('{{ q.id }}')">
+                                            <i class='bx bx-message-rounded-dots'></i>
+                                            <span>{{ q.answers.count }} Answers</span>
+                                        </button>
+                                        {% if request.user == q.student.user or request.user.is_staff %}
+                                        <button class="qa-action-btn delete-btn" onclick="deleteQAItem('question', '{{ q.id }}')">
+                                            <i class='bx bx-trash'></i>
+                                            <span>Delete</span>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="answers-container" id="answers-{{ q.id }}" style="display: none;">
+                                        {% for ans in q.answers.all %}
+                                        {% if not ans.parent %}
+                                        <div class="answer-item" id="answer-{{ ans.id }}">
+                                            <div class="qa-meta">
+                                                <span class="qa-author">
+                                                    {% if ans.is_teacher_answer %}
+                                                        ABCD <i class='bx bxs-check-circle verified-tick' title="Verified Teacher"></i>
+                                                        <span class="teacher-badge">Teacher</span>
+                                                    {% else %}
+                                                        {{ ans.user.get_full_name|default:ans.user.username }}
+                                                    {% endif %}
+                                                </span>
+                                                <span class="qa-time">{{ ans.created_at|timesince }} ago</span>
+                                            </div>
+                                            <div style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main);">
+                                                {{ ans.answer_text }}
+                                            </div>
+                                            <div class="qa-actions" style="margin-top: 8px;">
+                                                <button class="qa-action-btn {% if request.user in ans.upvotes.all %}upvoted{% endif %}" style="font-size: 0.75rem;" onclick="toggleUpvote('answer', '{{ ans.id }}', this)">
+                                                    <i class='bx {% if request.user in ans.upvotes.all %}bxs-like{% else %}bx-like{% endif %}' style="font-size: 0.9rem;"></i>
+                                                    <span class="upvote-count">{{ ans.upvotes.count }}</span>
+                                                </button>
+                                                <button class="qa-action-btn reply-trigger-btn" 
+                                                        style="font-size: 0.75rem;" 
+                                                        data-qid="{{ q.id }}" 
+                                                        data-ansid="{{ ans.id }}" 
+                                                        data-author="{{ ans.user.get_full_name|default:ans.user.username|escapejs }}" 
+                                                        data-isteacher="{{ ans.is_teacher_answer|yesno:'true,false' }}"
+                                                        onclick="handleReplyClick(this)">
+                                                    <i class='bx bx-reply' style="font-size: 0.9rem;"></i>
+                                                    <span>Reply</span>
+                                                </button>
+                                                {% if request.user == ans.user or request.user.is_staff %}
+                                                <button class="qa-action-btn delete-btn" style="font-size: 0.75rem;" onclick="deleteQAItem('answer', '{{ ans.id }}')">
+                                                    <i class='bx bx-trash' style="font-size: 0.9rem;"></i>
+                                                    <span>Delete</span>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+
+                                            <!-- Nested Replies -->
+                                            <div id="nested-replies-{{ ans.id }}" class="nested-replies" style="display: none;">
+                                                {% for reply in ans.replies.all %}
+                                                <div class="reply-item">
+                                                    <div class="qa-meta" style="font-size: 0.8rem;">
+                                                        <span class="qa-author">{{ reply.user.get_full_name|default:reply.user.username }}</span>
+                                                        <span class="qa-time">{{ reply.created_at|timesince }} ago</span>
+                                                    </div>
+                                                    <div style="font-size: 0.9rem; color: var(--text-main); display: flex; justify-content: space-between; align-items: center;">
+                                                        <span>{{ reply.answer_text }}</span>
+                                                        {% if request.user == reply.user or request.user.is_staff %}
+                                                        <button class="qa-action-btn delete-btn" style="font-size: 0.7rem; padding: 2px;" onclick="deleteQAItem('answer', '{{ reply.id }}')" title="Delete Reply">
+                                                            <i class='bx bx-trash'></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% if ans.replies.count > 0 %}
+                                            <button class="qa-action-btn" style="font-size: 0.75rem; margin-top: 5px; color: var(--primary);" onclick="toggleNestedReplies('{{ ans.id }}')">
+                                                <i class='bx bx-chevron-down'></i>
+                                                <span id="nested-toggle-text-{{ ans.id }}">View {{ ans.replies.count }} Replies</span>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                        {% endfor %}
+
+                                        <!-- Inline Reply Box -->
+                                        <div id="reply-box-{{ q.id }}" class="reply-box" style="display: none;">
+                                            <textarea id="reply-text-{{ q.id }}" class="reply-textarea" placeholder="Write a helpful reply..."></textarea>
+                                            <div class="reply-footer">
+                                                <button class="qa-action-btn" style="background: transparent;" onclick="toggleReplyBox('{{ q.id }}')">Cancel</button>
+                                                <button class="tp-btn-primary" style="padding: 8px 16px; font-size: 0.8rem;" onclick="submitAnswer('{{ q.id }}', this)">Post Reply</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div style="text-align: center; padding: 80px; color: var(--text-dim);">
+                            <i class='bx bx-message-square-detail' style="font-size: 4rem; opacity: 0.2; margin-bottom: 15px;"></i>
+                            <p style="font-weight: 700;">No questions yet. Be the first to start a discussion!</p>
+                        </div>
+                        {% endfor %}
+
+                        <!-- See more -->
+                        <div style="text-align: center; padding: 40px;">
+                            <button class="tp-btn-primary" style="background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 12px 40px;">See more questions</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="reviewsPane" class="tab-content-pane" style="display:none;">
+                    <div style="padding-top: 20px;">
+                        <h3 style="font-weight: 800; margin-bottom: 30px;">Student Feedback</h3>
+                        
+                        <div style="display: flex; gap: 40px; margin-bottom: 48px; flex-wrap: wrap;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 4rem; font-weight: 800; color: var(--rating-avg-color); line-height: 1;">{{ avg_rating }}</div>
+                                <div style="margin: 10px 0; color: #fbbf24; font-size: 1.2rem;">
+                                    {% for i in "12345" %}
+                                        {% if forloop.counter <= avg_rating %}<i class='bx bxs-star'></i>{% else %}<i class='bx bx-star'></i>{% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div style="font-weight: 700; color: var(--rating-avg-color);">Course Rating</div>
+                            </div>
+                            
+                            <div style="flex: 1; min-width: 250px;">
+                                {% for star, count in rating_stats.items reversed %}
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                    <div style="height: 8px; flex: 1; background: var(--border); border-radius: 4px; overflow: hidden;">
+                                        <div class="rating-bar-fill" style="height: 100%; background: var(--accent);" data-width="{% if total_reviews > 0 %}{% widthratio count total_reviews 100 %}{% else %}0{% endif %}"></div>
+                                    </div>
+                                    <div style="width: 100px; font-size: 0.85rem; color: var(--accent); font-weight: 600;">
+                                        {% for i in "12345" %}{% if forloop.counter <= star %}★{% endif %}{% endfor %}
+                                        <span style="color: var(--text-dim); margin-left: 5px;">{% if total_reviews > 0 %}{% widthratio count total_reviews 100 %}{% else %}0{% endif %}%</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <h4 style="font-weight: 800; margin-bottom: 24px;">Reviews</h4>
+                        {% for r in reviews %}
+                        <div class="review-item-container" style="display: flex; gap: 20px; margin-bottom: 32px; border-top: 1px solid var(--border); padding-top: 24px;">
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--active-bg); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--accent);">
+                                {% if r.student %}
+                                    {{ r.student.full_name|slice:":1" }}
+                                {% else %}
+                                    {{ r.guest_name|default:"Unknown"|slice:":1" }}
+                                {% endif %}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; color: var(--text-main); margin-bottom: 4px;">
+                                    {% if r.student %}
+                                        {{ r.student.full_name }}
+                                    {% else %}
+                                        {{ r.guest_name|default:"Unknown" }} <span style="font-size: 0.85rem; font-weight: 600; color: var(--accent); margin-left: 5px;">(Guest)</span>
+                                    {% endif %}
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                                    <div style="color: #fbbf24;">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= r.rating %}<i class='bx bxs-star'></i>{% else %}<i class='bx bx-star'></i>{% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span style="font-size: 0.8rem; color: var(--text-dim);">{{ r.created_at|timesince }} ago</span>
+                                </div>
+                                <p style="line-height: 1.6; color: var(--text-main);">{{ r.comment }}</p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div style="text-align: center; padding: 40px; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 4px;">
+                            No reviews found for this course yet.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div id="learning-toolsPane" class="tab-content-pane" style="display:none;">
+                    <div style="padding-top: 20px;">
+                        <h3 style="font-weight: 800; margin-bottom: 12px;">Learning reminders</h3>
+                        <p style="color: var(--text-dim); margin-bottom: 24px;">Set up push notifications to stay on track for your learning goals.</p>
+                        
+                        <div id="remindersList" style="margin-bottom: 30px;">
+                            {% for r in reminders %}
+                            <div class="reminder-item" style="background: var(--item-hover); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
+                                <div>
+                                    <div style="font-weight: 700; color: var(--text-main);">{{ r.title }}</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-dim);">
+                                        {% if r.recurrence_type == 'once' %}
+                                            Scheduled for: {{ r.reminder_time|date:"d M Y, h:i A" }}
+                                        {% elif r.recurrence_type == 'daily' %}
+                                            Daily at {{ r.reminder_time_daily|time:"h:i A" }}
+                                        {% elif r.recurrence_type == 'weekly' %}
+                                            Every Sat & Sun at {{ r.reminder_time_daily|time:"h:i A" }}
+                                        {% elif r.recurrence_type == 'custom' %}
+                                            {{ r.get_days_display }} at {{ r.reminder_time_daily|time:"h:i A" }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    {% if r.is_sent %}
+                                    <span style="color: var(--success); font-size: 0.75rem; font-weight: 700;">Sent</span>
+                                    {% else %}
+                                    <span style="color: var(--accent); font-size: 0.75rem; font-weight: 700;">Pending</span>
+                                    {% endif %}
+                                    <button onclick="deleteReminder('{{ r.id }}')" style="background: transparent; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px; display: flex; align-items: center;" title="Delete Reminder">
+                                        <i class='bx bx-trash'></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div style="text-align: center; padding: 30px; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 8px;">
+                                No reminders scheduled yet.
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <button onclick="openReminderModal()" style="background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 4px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <i class='bx bx-plus'></i> Add Reminder/Schedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Sidebar Area -->
+        <aside class="sidebar-column">
+            <div class="sidebar-header">
+                <h3>Course Content</h3>
+                <div class="search-wrapper">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="curriculumSearch" class="curriculum-search" placeholder="Search course content">
+                </div>
+            </div>
+            <div class="curriculum-scroll" id="curriculumList">
+                {% for item in curriculum %}
+                    <div class="curriculum-item {% if forloop.first and not is_locked %}active{% endif %}"
+                       id="cur-{{ item.id }}"
+                       data-id="{{ item.id }}"
+                       data-index="{{ forloop.counter0 }}"
+                       data-type="{{ item.material_type }}"
+                       data-ytid="{{ item.youtube_id|default:'' }}"
+                       data-file="{% if item.file %}{{ item.file.url }}{% endif %}"
+                       data-ext="{{ item.external_url|default:'' }}"
+                       data-title="{{ item.title }}"
+                       data-desc="{{ item.description|default:'' }}">
+                        
+                        <div class="item-num">
+                            {% if item.id in completed_ids %}
+                                <i class='bx bxs-check-circle' style="color: #2e7d32;"></i>
+                            {% else %}
+                                {% if item.material_type == 'video' %}<i class='bx bx-play-circle'></i>
+                                {% elif item.material_type == 'document' %}<i class='bx bx-file'></i>
+                                {% else %}<i class='bx bx-link-external'></i>{% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="item-main">
+                            <span class="item-label {% if item.id in completed_ids %}is-completed{% endif %}">{{ item.title }}</span>
+                            <div class="item-meta">
+                                <span>{% if item.material_type == 'video' %}Video{% elif item.material_type == 'document' %}PDF{% else %}Link{% endif %}</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </aside>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="share-modal">
+        <div class="share-modal-content">
+            <div class="share-header">
+                <h3>Share Course</h3>
+                <button class="close-share" onclick="closeShareModal()">&times;</button>
+            </div>
+            
+            <div class="share-preview-card">
+                <img src="{% if course.thumbnail %}{{ course.thumbnail.url }}{% endif %}" alt="Preview">
+                <div class="share-preview-info">
+                    <h4>{{ course.title }}</h4>
+                    <p>Learning is better with friends. Join me on ABCD!</p>
+                </div>
+            </div>
+
+            <div class="share-options">
+                <div class="share-option" onclick="shareTo('whatsapp')">
+                    <div class="share-icon s-whatsapp"><i class='bx bxl-whatsapp'></i></div>
+                    <span>WhatsApp</span>
+                </div>
+                <div class="share-option" onclick="shareTo('telegram')">
+                    <div class="share-icon s-telegram"><i class='bx bxl-telegram'></i></div>
+                    <span>Telegram</span>
+                </div>
+                <div class="share-option" onclick="shareTo('twitter')">
+                    <div class="share-icon s-twitter"><i class='bx bxl-twitter'></i></div>
+                    <span>X / Twitter</span>
+                </div>
+                <div class="share-option" onclick="shareTo('email')">
+                    <div class="share-icon s-email"><i class='bx bx-envelope'></i></div>
+                    <span>Email</span>
+                </div>
+            </div>
+
+            <div class="share-link-box">
+                <input type="text" id="shareUrlInput" readonly value="">
+                <button onclick="copyShareLink()" id="copyShareBtn">Copy Link</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- MODAL: Leave a Review -->
+<div id="reviewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center;">
+    <div class="course-modal-box" style="background:var(--sidebar-bg); width:90%; max-width:500px; padding:32px; border-radius:8px; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <button onclick="closeReviewModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-dim);">&times;</button>
+        <h2 style="font-weight:800; margin-bottom:10px;">How would you rate this course?</h2>
+        <p style="color:var(--text-dim); margin-bottom:24px;">Select a star rating and leave your feedback below.</p>
+        
+        <div style="display:flex; gap:10px; font-size:2.5rem; color:#d1d7dc; justify-content:center; margin-bottom:24px;" id="starRatingBox">
+            <i class='bx bxs-star star-btn' data-val="1" onclick="selectStar(1)" style="cursor:pointer;"></i>
+            <i class='bx bxs-star star-btn' data-val="2" onclick="selectStar(2)" style="cursor:pointer;"></i>
+            <i class='bx bxs-star star-btn' data-val="3" onclick="selectStar(3)" style="cursor:pointer;"></i>
+            <i class='bx bxs-star star-btn' data-val="4" onclick="selectStar(4)" style="cursor:pointer;"></i>
+            <i class='bx bxs-star star-btn' data-val="5" onclick="selectStar(5)" style="cursor:pointer;"></i>
+        </div>
+        
+        {% if not is_authenticated %}
+        <input type="text" id="reviewGuestName" style="width:100%; padding:12px 15px; border:1px solid var(--border); border-radius:4px; margin-bottom:15px; outline:none; background:var(--sidebar-bg); color:var(--text-main);" placeholder="Your Name / Chrome Gmail (e.g. Unknown)">
+        {% endif %}
+        <textarea id="reviewComment" style="width:100%; padding:15px; border:1px solid var(--border); border-radius:4px; height:120px; resize:none; margin-bottom:20px; outline:none;" placeholder="Tell us about your experience..."></textarea>
+        
+        <button onclick="submitReview()" style="width:100%; background:var(--accent); color:white; border:none; padding:14px; border-radius:4px; font-weight:800; cursor:pointer;">Submit Review</button>
+    </div>
+</div>
+
+<!-- MODAL: Ask Question -->
+<div id="askModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center;">
+    <div class="course-modal-box" style="background:var(--sidebar-bg); width:90%; max-width:600px; padding:32px; border-radius:8px; position:relative;">
+        <button onclick="closeAskModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-dim);">&times;</button>
+        <h2 style="font-weight:800; margin-bottom:20px;">Ask a new question</h2>
+        
+        <div id="askStep1">
+            <p style="font-weight:700; margin-bottom:15px;">What is your question related to?</p>
+            <div class="ask-scope-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                <button onclick="setQuestionScope('current')" style="padding:20px; border:1px solid var(--border); background:var(--active-bg); border-radius:8px; cursor:pointer; text-align:left;">
+                    <div style="font-weight:800; margin-bottom:5px;">This content</div>
+                    <div style="font-size:0.8rem; color:var(--text-dim);">Lesson: <span id="currentLessonLabel">...</span></div>
+                </button>
+                <button onclick="setQuestionScope('whole')" style="padding:20px; border:1px solid var(--border); background:var(--active-bg); border-radius:8px; cursor:pointer; text-align:left;">
+                    <div style="font-weight:800; margin-bottom:5px;">Whole course</div>
+                    <div style="font-size:0.8rem; color:var(--text-dim);">General topics, logistics, etc.</div>
+                </button>
+            </div>
+        </div>
+        
+        <div id="askStep2" style="display:none;">
+            <p style="font-weight:700; margin-bottom:10px;">Your Question</p>
+            <textarea id="questionText" style="width:100%; padding:15px; border:1px solid var(--border); border-radius:4px; height:150px; resize:none; margin-bottom:20px;" placeholder="Type your question here..."></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button onclick="document.getElementById('askStep2').style.display='none'; document.getElementById('askStep1').style.display='block';" style="background:transparent; border:none; font-weight:700; cursor:pointer;">Back</button>
+                <button onclick="submitQuestion()" style="background:var(--accent); color:white; border:none; padding:12px 24px; border-radius:4px; font-weight:700; cursor:pointer;">Post Question</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+    console.log("Q&A Engine Version: 2.1 (JSON + Robust Error Handling)");
+    let ytPlayer;
+    let currentIndex = 0;
+    const items = Array.from(document.querySelectorAll('.curriculum-item'));
+
+    function onYouTubeIframeAPIReady() {
+        const firstYtId = "{{ first_video.youtube_id|default:'' }}";
+        if (firstYtId) {
+            initYTPlayer(firstYtId);
+        }
+    }
+
+    function initYTPlayer(videoId) {
+        if (ytPlayer && ytPlayer.destroy) ytPlayer.destroy();
+        ytPlayer = new YT.Player('yt-player', {
+            height: '100%',
+            width: '100%',
+            videoId: videoId,
+            playerVars: { 
+                'autoplay': 1, 
+                'rel': 0, 
+                'origin': window.location.host,
+                'showinfo': 0,
+                'modestbranding': 1,
+                'controls': 1,
+                'autohide': 1
+            },
+            events: { 'onStateChange': onPlayerStateChange }
+        });
+    }
+
+    function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED) {
+            playNext();
+        }
+    }
+
+    function playNext() {
+        if (currentIndex < items.length - 1) {
+            currentIndex++;
+            const nextItem = items[currentIndex];
+            nextItem.click();
+        }
+    }
+
+    function playPrev() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            const prevItem = items[currentIndex];
+            prevItem.click();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof loadGuestProgress === 'function') {
+            loadGuestProgress();
+        }
+        // Apply dynamic widths from data attributes
+        document.querySelectorAll('.rating-bar-fill, .progress-bar-fill').forEach(bar => {
+            const w = bar.getAttribute('data-width') || bar.getAttribute('data-progress');
+            if (w) bar.style.width = w + '%';
+        });
+        const moreMenuBtn = document.getElementById('moreMenuBtn');
+        const moreMenu = document.getElementById('moreMenu');
+        const mainDisplay = document.getElementById('mainDisplay');
+        const activeTitle = document.getElementById('activeTitle');
+        const matDesc = document.getElementById('materialDescription');
+        const downloadSection = document.getElementById('downloadSection');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const searchInput = document.getElementById('curriculumSearch');
+        const localVideo = document.getElementById('localVideo');
+
+        if (localVideo) {
+            localVideo.onended = playNext;
+        }
+
+        if (moreMenuBtn) {
+            moreMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                moreMenu.classList.toggle('show');
+                const progressPopover = document.getElementById('progressPopover');
+                progressPopover && progressPopover.classList.remove('show');
+            });
+        }
+
+        const progressTrigger = document.getElementById('progressTrigger');
+        const progressPopover = document.getElementById('progressPopover');
+
+        if (progressTrigger) {
+            progressTrigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                progressPopover.classList.toggle('show');
+                moreMenu && moreMenu.classList.remove('show');
+            });
+        }
+
+        document.addEventListener('click', () => {
+            moreMenu && moreMenu.classList.remove('show');
+            progressPopover && progressPopover.classList.remove('show');
+        });
+
+        document.querySelectorAll('.tab-trigger').forEach(trigger => {
+            trigger.addEventListener('click', function() {
+                document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content-pane').forEach(p => p.style.display = 'none');
+                this.classList.add('active');
+                document.getElementById(this.dataset.target + 'Pane').style.display = 'block';
+            });
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                items.forEach(item => {
+                    const title = item.dataset.title.toLowerCase();
+                    item.style.display = title.includes(term) ? 'flex' : 'none';
+                });
+            });
+        }
+
+        function switchContent(id, type, ytId, fileUrl, extUrl, title, desc, index) {
+            if (!mainDisplay) return;
+            currentIndex = parseInt(index);
+            items.forEach(el => el.classList.remove('active'));
+            const activeItem = document.getElementById('cur-' + id);
+            if (activeItem) {
+                activeItem.classList.add('active');
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // Track real student engagement
+            trackEngagement('access', id);
+
+            activeTitle.innerText = title;
+            matDesc.innerHTML = desc ? `<h4>Lesson Notes</h4><p>${desc}</p>` : '';
+            
+            if (fileUrl && type !== 'video') {
+                downloadSection.style.display = 'block';
+                downloadBtn.href = fileUrl;
+            } else {
+                downloadSection.style.display = 'none';
+            }
+
+            mainDisplay.innerHTML = '';
+            if (type === 'video') {
+                if (ytId) {
+                    mainDisplay.innerHTML = '<div id="yt-player"></div>';
+                    initYTPlayer(ytId);
+                } else if (fileUrl) {
+                    mainDisplay.innerHTML = `<video id="localVideo" controls autoplay style="width:100%; height:100%; background:black;"><source src="${fileUrl}" type="video/mp4"></video>`;
+                    document.getElementById('localVideo').onended = playNext;
+                }
+            } else if (type === 'document') {
+                mainDisplay.innerHTML = `<iframe src="${fileUrl}" width="100%" height="100%" style="border:none;"></iframe>`;
+            } else if (type === 'link') {
+                mainDisplay.innerHTML = `<div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#111; padding:40px; text-align:center;"><i class='bx bx-link-external' style="font-size:5rem; color:var(--accent); margin-bottom:20px;"></i><h3 style="color:white;">External Resource</h3><p style="color:#94a3b8; margin-bottom:25px;">${title}</p><a href="${extUrl}" target="_blank" class="download-btn" style="text-decoration:none;">Open Resource</a></div>`;
+            }
+
+            if(window.innerWidth < 1100) mainDisplay.scrollIntoView({behavior: 'smooth'});
+        }
+
+        items.forEach(item => {
+            item.addEventListener('click', function() {
+                const d = this.dataset;
+                switchContent(d.id, d.type, d.ytid, d.file, d.ext, d.title, d.desc, d.index);
+            });
+        });
+
+        if (nextBtn) nextBtn.addEventListener('click', playNext);
+        if (prevBtn) prevBtn.addEventListener('click', playPrev);
+
+        // Initial track for first item
+        const activeItem = document.querySelector('.curriculum-item.active');
+        if (activeItem) {
+            trackEngagement('access', activeItem.dataset.id);
+        }
+
+        // Fullscreen Toggle with 'f' key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const wrapper = document.getElementById('playerWrapper');
+                if (wrapper && wrapper.classList.contains('viewport-fullscreen')) {
+                    togglePlayerZoom();
+                }
+            }
+            // Only trigger if not typing in an input/textarea
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                if (e.key.toLowerCase() === 'f') {
+                    const iframe = document.querySelector('#mainDisplay iframe');
+                    const video = document.getElementById('localVideo');
+                    const wrapper = document.getElementById('playerWrapper');
+                    const target = iframe || video || wrapper;
+                    
+                    if (target) {
+                        if (!document.fullscreenElement) {
+                            if (target.requestFullscreen) {
+                                target.requestFullscreen().catch(err => {
+                                    wrapper.requestFullscreen();
+                                });
+                            }
+                        } else {
+                            document.exitFullscreen();
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    function togglePlayerZoom(e) {
+        if (e) e.stopPropagation();
+        const wrapper = document.getElementById('playerWrapper');
+        const zoomBtn = document.getElementById('playerZoomBtn');
+        if (!wrapper || !zoomBtn) return;
+        
+        wrapper.classList.toggle('viewport-fullscreen');
+        const isFullscreen = wrapper.classList.contains('viewport-fullscreen');
+        
+        const icon = zoomBtn.querySelector('i');
+        if (icon) {
+            if (isFullscreen) {
+                icon.className = 'bx bx-collapse';
+                document.body.style.overflow = 'hidden';
+            } else {
+                icon.className = 'bx bx-expand';
+                document.body.style.overflow = '';
+            }
+        }
+    }
+
+    // ======================================================
+    // UNIVERSAL STACKABLE POPUP / MODAL MANAGER (Z-INDEX & CHAINING)
+    // ======================================================
+    window.modalStack = window.modalStack || [];
+
+    function openModal(modalId) {
+        const modal = (typeof modalId === 'string') ? document.getElementById(modalId) : modalId;
+        if (!modal) return;
+
+        const id = modal.id;
+        const existingIndex = window.modalStack.indexOf(id);
+        if (existingIndex !== -1) {
+            window.modalStack.splice(existingIndex, 1);
+        }
+        window.modalStack.push(id);
+
+        const layerIndex = window.modalStack.length;
+        const baseZIndex = 10000 + (layerIndex * 20);
+
+        modal.style.zIndex = baseZIndex;
+        modal.style.position = 'fixed';
+        modal.style.inset = '0';
+
+        const container = modal.querySelector('.abcd-modal-container, .course-modal-box, .share-modal-content');
+        if (container) {
+            container.style.zIndex = baseZIndex + 5;
+            container.style.position = 'relative';
+        }
+
+        modal.style.background = 'rgba(0, 0, 0, 0.65)';
+        modal.style.backdropFilter = 'blur(6px)';
+        modal.style.webkitBackdropFilter = 'blur(6px)';
+
+        if (modal.classList.contains('abcd-modal-overlay')) {
+            modal.classList.add('active');
+        } else {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = (typeof modalId === 'string') ? document.getElementById(modalId) : modalId;
+        if (!modal) return;
+
+        const id = modal.id;
+        const index = window.modalStack.indexOf(id);
+        if (index !== -1) {
+            window.modalStack.splice(index, 1);
+        }
+
+        if (modal.classList.contains('abcd-modal-overlay')) {
+            modal.classList.remove('active');
+        } else {
+            modal.style.display = 'none';
+        }
+        modal.style.zIndex = '';
+    }
+
+    function closeAllModals() {
+        while (window.modalStack.length > 0) {
+            const id = window.modalStack.pop();
+            const modal = document.getElementById(id);
+            if (modal) {
+                if (modal.classList.contains('abcd-modal-overlay')) {
+                    modal.classList.remove('active');
+                } else {
+                    modal.style.display = 'none';
+                }
+                modal.style.zIndex = '';
+            }
+        }
+    }
+
+    // --- REVIEWS LOGIC ---
+    let selectedRating = 0;
+    function openReviewModal() { openModal('reviewModal'); }
+    function closeReviewModal() { closeModal('reviewModal'); }
+    function selectStar(val) {
+        selectedRating = val;
+        document.querySelectorAll('.star-btn').forEach(s => {
+            s.classList.toggle('selected', parseInt(s.dataset.val) <= val);
+        });
+    }
+    function submitReview() {
+        if (!selectedRating) { 
+            showABCDModal({ title: 'Rating Required', message: 'Please select a star rating.', type: 'info' }); 
+            return; 
+        }
+        const comment = document.getElementById('reviewComment').value;
+        const formData = new FormData();
+        formData.append('rating', selectedRating);
+        formData.append('comment', comment);
+
+        const guestNameInput = document.getElementById('reviewGuestName');
+        if (guestNameInput) {
+            formData.append('guest_name', guestNameInput.value.trim());
+        }
+
+        fetch(`/api/courses/${courseId}/review/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) { location.reload(); }
+            else { showABCDModal({ title: 'Error', message: data.error, type: 'error' }); }
+        });
+    }
+
+    // --- Q&A LOGIC ---
+    let questionMaterialId = null;
+    function openAskModal() { 
+        if (!isAuthenticated) {
+            showFeatureAuthPopup("Q&A Features");
+            return;
+        }
+        openModal('askModal'); 
+        document.getElementById('askStep1').style.display = 'block';
+        document.getElementById('askStep2').style.display = 'none';
+        const activeItem = document.querySelector('.curriculum-item.active');
+        document.getElementById('currentLessonLabel').innerText = activeItem ? activeItem.dataset.title : 'None';
+    }
+    function closeAskModal() { closeModal('askModal'); }
+    function setQuestionScope(scope) {
+        const activeItem = document.querySelector('.curriculum-item.active');
+        questionMaterialId = (scope === 'current' && activeItem) ? activeItem.dataset.id : null;
+        document.getElementById('askStep1').style.display = 'none';
+        document.getElementById('askStep2').style.display = 'block';
+    }
+    function submitQuestion() {
+        const text = document.getElementById('questionText').value;
+        if (!text) { 
+            showABCDModal({ title: 'Input Required', message: 'Please type your question.', type: 'info' }); 
+            return; 
+        }
+        const formData = new FormData();
+        formData.append('question', text);
+        if (questionMaterialId) formData.append('material_id', questionMaterialId);
+
+        fetch(`/api/courses/${courseId}/question/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}' },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) { location.reload(); }
+            else { showABCDModal({ title: 'Error', message: data.error, type: 'error' }); }
+        });
+    }
+
+    function showABCDModal(options) {
+        var title = options.title;
+        var message = options.message;
+        var type = options.type || 'info';
+        var confirmText = options.confirmText || 'OK';
+        var cancelText = options.cancelText || 'Cancel';
+        var showCancel = options.showCancel || false;
+        var onConfirm = options.onConfirm || null;
+        var onCancel = options.onCancel || null;
+        var closeAllOnConfirm = options.closeAllOnConfirm !== undefined ? options.closeAllOnConfirm : (type === 'success' || type === 'confirm' || !showCancel);
+
+        const modal = document.getElementById('abcdModal');
+        const icon = document.getElementById('abcdModalIcon');
+        const titleEl = document.getElementById('abcdModalTitle');
+        const msgEl = document.getElementById('abcdModalMessage');
+        const confirmBtn = document.getElementById('abcdModalConfirm');
+        const cancelBtn = document.getElementById('abcdModalCancel');
+
+        // Set Icon
+        let iconHtml = '';
+        if (type === 'success') iconHtml = "<i class='bx bxs-check-circle success'></i>";
+        else if (type === 'error') iconHtml = "<i class='bx bxs-error-circle error'></i>";
+        else if (type === 'confirm') iconHtml = "<i class='bx bxs-help-circle confirm'></i>";
+        else iconHtml = "<i class='bx bxs-info-circle info'></i>";
+        
+        icon.innerHTML = iconHtml;
+        icon.className = `abcd-modal-icon ${type}`;
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        confirmBtn.innerText = confirmText;
+        cancelBtn.innerText = cancelText;
+        cancelBtn.style.display = showCancel ? 'block' : 'none';
+
+        openModal('abcdModal');
+
+        confirmBtn.onclick = () => {
+            if (closeAllOnConfirm) {
+                closeAllModals();
+            } else {
+                closeModal('abcdModal');
+            }
+            if (onConfirm) onConfirm();
+        };
+
+        cancelBtn.onclick = () => {
+            closeModal('abcdModal');
+            if (onCancel) onCancel();
+        };
+
+        modal.onclick = (e) => { 
+            if (e.target === modal) {
+                closeModal('abcdModal');
+            } 
+        };
+    }
+
+    // Replace delete confirmation
+    function deleteQAItem(type, id) {
+        showABCDModal({
+            title: 'Delete Item?',
+            message: `Are you sure you want to delete this ${type}? This action cannot be undone.`,
+            type: 'confirm',
+            showCancel: true,
+            confirmText: 'Delete',
+            onConfirm: () => {
+                fetch('/api/qa/delete/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ type: type, id: id })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        showABCDModal({ title: 'Error', message: data.error, type: 'error' });
+                    }
+                })
+                .catch(err => {
+                    showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
+                });
+            }
+        });
+    }
+
+    function toggleUpvote(type, id, btn) {
+        if (!isAuthenticated) {
+            showFeatureAuthPopup("Q&A Upvotes");
+            return;
+        }
+        fetch('/api/qa/upvote/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ type: type, id: id })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const icon = btn.querySelector('i');
+                const count = btn.querySelector('.upvote-count');
+                count.innerText = data.count;
+                
+                if (data.action === 'added') {
+                    btn.classList.add('upvoted');
+                    icon.classList.replace('bx-like', 'bxs-like');
+                } else {
+                    btn.classList.remove('upvoted');
+                    icon.classList.replace('bxs-like', 'bx-like');
+                }
+            }
+        });
+    }
+
+    function toggleReplyBox(id) {
+        const box = document.getElementById(`reply-box-${id}`);
+        box.style.display = box.style.display === 'none' ? 'block' : 'none';
+        if (box.style.display === 'block') {
+            document.getElementById(`reply-text-${id}`).focus();
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function toggleAnswers(qid) {
+        const container = document.getElementById(`answers-${qid}`);
+        const replyBox = document.getElementById(`reply-box-${qid}`);
+        
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            replyBox.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+            replyBox.style.display = 'none';
+        }
+    }
+
+    function toggleNestedReplies(ansId) {
+        const container = document.getElementById(`nested-replies-${ansId}`);
+        const text = document.getElementById(`nested-toggle-text-${ansId}`);
+        
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            text.innerText = 'Hide Replies';
+        } else {
+            container.style.display = 'none';
+            text.innerText = `View Replies`;
+        }
+    }
+
+    // --- WHEEL PICKER LOGIC ---
+    function initWheel(containerId, items, defaultValue, onScrollChange) {
+        const col = document.getElementById(containerId);
+        if (!col) return;
+        col.innerHTML = '';
+        
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'wheel-item';
+            div.textContent = item;
+            col.appendChild(div);
+        });
+
+        let scrollTimeout;
+        col.addEventListener('scroll', () => {
+            const index = Math.round(col.scrollTop / 40);
+            const children = col.children;
+            for (let i = 0; i < children.length; i++) {
+                children[i].classList.toggle('selected', i === index);
+            }
+            if (onScrollChange) {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(onScrollChange, 80);
+            }
+        });
+
+        // Set default value
+        const defaultIndex = items.indexOf(defaultValue.toString());
+        if (defaultIndex !== -1) {
+            col.scrollTop = defaultIndex * 40;
+        }
+    }
+
+    function getWheelValue(containerId) {
+        const col = document.getElementById(containerId);
+        if (!col) return '';
+        const index = Math.round(col.scrollTop / 40);
+        return col.children[index]?.textContent || '';
+    }
+
+    function syncCourseScheduleDays() {
+        const yearStr = getWheelValue('wheel-date-year');
+        const monthStr = getWheelValue('wheel-date-month');
+        if (!yearStr || !monthStr) return;
+
+        const year = parseInt(yearStr, 10);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthIndex = months.indexOf(monthStr);
+        if (monthIndex === -1) return;
+
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        const daysCol = document.getElementById('wheel-date-day');
+        if (!daysCol) return;
+
+        const currentCount = daysCol.children.length;
+        if (currentCount === daysInMonth) return;
+
+        const currentDayVal = getWheelValue('wheel-date-day');
+        let dayToSelect = parseInt(currentDayVal, 10);
+        if (isNaN(dayToSelect)) dayToSelect = new Date().getDate();
+        if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
+
+        const days = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString().padStart(2, '0'));
+        initWheel('wheel-date-day', days, dayToSelect.toString().padStart(2, '0'));
+    }
+
+    function initAllWheels() {
+        // Time Wheel (Reminder Tab)
+        const hours = Array.from({length: 12}, (_, i) => (i + 1).toString().padStart(2, '0'));
+        const minutes = Array.from({length: 60}, (_, i) => i.toString().padStart(2, '0'));
+        const ampm = ['AM', 'PM'];
+
+        initWheel('wheel-hour', hours, '09');
+        initWheel('wheel-minute', minutes, '00');
+        initWheel('wheel-ampm', ampm, 'AM');
+
+        // Date/Time Wheel (Schedule Tab)
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const years = Array.from({length: 10}, (_, i) => (new Date().getFullYear() + i).toString());
+
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        const days = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+        initWheel('wheel-date-year', years, now.getFullYear().toString(), syncCourseScheduleDays);
+        initWheel('wheel-date-month', months, months[now.getMonth()], syncCourseScheduleDays);
+        initWheel('wheel-date-day', days, now.getDate().toString().padStart(2, '0'));
+        initWheel('wheel-date-hour', hours, '09');
+        initWheel('wheel-date-minute', minutes, '00');
+        initWheel('wheel-date-ampm', ampm, 'AM');
+    }
+
+    // --- REMINDER/SCHEDULE LOGIC ---
+    let activeModalTab = 'reminder';
+    let activeReminderType = 'once';
+
+    function switchModalTab(tab) {
+        activeModalTab = tab;
+        document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`tab-${tab}`).classList.add('active');
+        
+        document.querySelectorAll('.modal-section').forEach(s => s.style.display = 'none');
+        document.getElementById(`modal-section-${tab}`).style.display = 'block';
+    }
+
+    // NOTE: Navbar scroll hide/show is handled by the base template's scroll handler.
+    // Do NOT add a duplicate handler here — it conflicts and causes the navbar to get stuck.
+
+    function switchReminderType(type) {
+        activeReminderType = type;
+        document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`reminder-type-${type}`).classList.add('active');
+        document.getElementById('reminder-days-section').style.display = (type === 'daily') ? 'block' : 'none';
+    }
+
+    function openReminderModal() {
+        if (!isAuthenticated) {
+            showFeatureAuthPopup("Learning Reminders");
+            return;
+        }
+        if (!("Notification" in window)) {
+            showABCDModal({ title: 'Not Supported', message: 'Notifications are not supported in this browser.', type: 'error' });
+            return;
+        }
+
+        Notification.requestPermission().then(perm => {
+            if (perm === 'granted') {
+                openModal('reminderModal');
+                initAllWheels();
+            } else {
+                showABCDModal({ title: 'Permission Denied', message: 'Please enable notifications to use this feature.', type: 'error' });
+            }
+        });
+    }
+
+    function closeReminderModal() {
+        closeModal('reminderModal');
+    }
+
+    function submitReminder() {
+        const payload = {};
+        
+        if (activeModalTab === 'reminder') {
+            const h = getWheelValue('wheel-hour');
+            const m = getWheelValue('wheel-minute');
+            const p = getWheelValue('wheel-ampm');
+            
+            // Convert to 24h for storage
+            let hours24 = parseInt(h);
+            if (p === 'PM' && hours24 < 12) hours24 += 12;
+            if (p === 'AM' && hours24 === 12) hours24 = 0;
+            const timeStr = `${hours24.toString().padStart(2, '0')}:${m}`;
+
+            if (activeReminderType === 'daily') {
+                const days = [];
+                document.querySelectorAll('.day-check:checked').forEach(cb => days.push(parseInt(cb.value)));
+                if (days.length === 0) {
+                    showABCDModal({ title: 'Error', message: 'Please select at least one day.', type: 'error' });
+                    return;
+                }
+                payload.title = "Daily Reminder: {{ course.title }}";
+                payload.reminder_time_daily = timeStr;
+                payload.days_of_week = days;
+                payload.recurrence = 'custom';
+            } else {
+                const now = new Date();
+                const target = new Date();
+                target.setHours(hours24, parseInt(m), 0, 0);
+                if (target <= now) target.setDate(target.getDate() + 1);
+                
+                payload.title = "One-time Reminder: {{ course.title }}";
+                payload.reminder_time = target.toISOString();
+                payload.recurrence = 'once';
+            }
+        } else {
+            const title = document.getElementById('reminderTitle').value;
+            if (!title) {
+                showABCDModal({ title: 'Error', message: 'Please enter a task name.', type: 'error' });
+                return;
+            }
+
+            const d = getWheelValue('wheel-date-day');
+            const moStr = getWheelValue('wheel-date-month');
+            const y = getWheelValue('wheel-date-year');
+            const h = getWheelValue('wheel-date-hour');
+            const m = getWheelValue('wheel-date-minute');
+            const p = getWheelValue('wheel-date-ampm');
+
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const mo = months.indexOf(moStr);
+
+            let hours24 = parseInt(h);
+            if (p === 'PM' && hours24 < 12) hours24 += 12;
+            if (p === 'AM' && hours24 === 12) hours24 = 0;
+
+            const target = new Date(parseInt(y), mo, parseInt(d), hours24, parseInt(m));
+            if (target <= new Date()) {
+                showABCDModal({ title: 'Invalid Time', message: 'Scheduled task date and time must be in the future.', type: 'error' });
+                return;
+            }
+            
+            payload.title = title;
+            payload.reminder_time = target.toISOString();
+            payload.recurrence = 'once';
+        }
+
+        fetch(`/api/courses/{{ course.id }}/reminder/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showABCDModal({
+                    title: 'Success',
+                    message: 'Schedule saved successfully!',
+                    type: 'success',
+                    onConfirm: () => location.reload()
+                });
+            } else {
+                showABCDModal({ title: 'Error', message: data.error, type: 'error' });
+            }
+        });
+    }
+
+    function deleteReminder(reminderId) {
+        showABCDModal({
+            title: 'Delete Reminder',
+            message: 'Are you sure you want to delete this reminder?',
+            type: 'confirm',
+            showCancel: true,
+            confirmText: 'Delete',
+            onConfirm: () => {
+                fetch(`/api/reminders/${reminderId}/delete/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        showABCDModal({ title: 'Error', message: data.error, type: 'error' });
+                    }
+                });
+            }
+        });
+    }
+
+    function handleReplyClick(btn) {
+        if (!isAuthenticated) {
+            showFeatureAuthPopup("Q&A Replies");
+            return;
+        }
+        const qid = btn.getAttribute('data-qid');
+        const ansid = btn.getAttribute('data-ansid');
+        const author = btn.getAttribute('data-author');
+        const isTeacher = btn.getAttribute('data-isteacher') === 'true';
+        showReplyForm(qid, ansid, author, isTeacher);
+    }
+
+    function showReplyForm(qid, parentId, authorName, isTeacher) {
+        // Toggle the main answers if they are hidden
+        const container = document.getElementById(`answers-${qid}`);
+        container.style.display = 'block';
+        
+        const replyBox = document.getElementById(`reply-box-${qid}`);
+        replyBox.style.display = 'block';
+        
+        const textInput = document.getElementById(`reply-text-${qid}`);
+        
+        // If replying to teacher, use @Teacher
+        const mentionName = isTeacher ? 'Teacher' : authorName;
+        textInput.value = `@${mentionName} `;
+        textInput.focus();
+        
+        // Store parentId in a data attribute on the button
+        const postBtn = replyBox.querySelector('button[onclick^="submitAnswer"]');
+        postBtn.setAttribute('data-parent-id', parentId);
+        
+        // Visual indicator that we are replying
+        textInput.placeholder = `Replying to ${mentionName}...`;
+    }
+
+    function submitAnswer(qid, btn) {
+        const textInput = document.getElementById(`reply-text-${qid}`);
+        const text = textInput.value.trim();
+        const parentId = btn.getAttribute('data-parent-id') || '';
+        
+        if (!text) {
+            showABCDModal({ title: 'Input Required', message: 'Please write an answer before posting.', type: 'info' });
+            return;
+        }
+        
+        console.log(`[Q&A v3.0] Submitting answer for question ${qid} (Parent: ${parentId})...`);
+        
+        const originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = 'Posting...';
+
+        const csrftoken = getCookie('csrftoken') || '{{ csrf_token }}';
+
+        const params = new URLSearchParams();
+        params.append('answer', text);
+        if (parentId) params.append('parent_id', parentId);
+
+        fetch(`/api/questions/${qid}/answer/`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrftoken 
+            },
+            body: params
+        })
+        .then(async res => {
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return res.json().then(data => ({ status: res.status, data }));
+            } else {
+                const text = await res.text();
+                return { status: res.status, error: text };
+            }
+        })
+        .then(result => {
+            if (result.status >= 200 && result.status < 300) {
+                if (result.data && result.data.success) {
+                    location.reload();
+                } else {
+                    showABCDModal({ title: 'Error', message: (result.data && result.data.error) || 'Failed to post answer.', type: 'error' });
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                }
+            } else {
+                const errorMsg = result.error || 'Please try again later.';
+                showABCDModal({ title: 'Server Error', message: `Server error (${result.status}): ${errorMsg}`, type: 'error' });
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        })
+        .catch(err => {
+            showABCDModal({ title: 'Network Error', message: 'A network error occurred.', type: 'error' });
+            btn.disabled = false;
+            btn.innerText = originalText;
+        });
+    }
+
+    function filterQA() {
+        const query = document.getElementById('qaSearch').value.toLowerCase();
+        document.querySelectorAll('.qa-thread').forEach(item => {
+            const text = item.getAttribute('data-text');
+            item.style.display = text.includes(query) ? 'block' : 'none';
+        });
+    }
+
+    // --- SERVICE WORKER & POLLING ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/js/abcd-sw.js')
+            .then(reg => console.log('SW Registered', reg.scope))
+            .catch(err => console.log('SW Failed', err));
+    }
+
+    function checkDueReminders() {
+        if (Notification.permission === "granted") {
+            fetch('/api/reminders/due/')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.reminders && data.reminders.length > 0) {
+                        data.reminders.forEach(r => {
+                            new Notification(r.title, {
+                                body: r.message,
+                                icon: '/static/data/favicon/favicon.ico'
+                            }).onclick = () => {
+                                window.focus();
+                                location.href = r.url;
+                            };
+                        });
+                        // Refresh the UI if we are on the reminders pane
+                        if (document.getElementById('learning-toolsPane').style.display !== 'none') {
+                            // Optionally reload or fetch list
+                        }
+                    }
+                });
+        }
+    }
+
+    // Check every 1 minute
+    setInterval(checkDueReminders, 60000);
+    // Initial check
+    setTimeout(checkDueReminders, 5000);
+
+    const isAuthenticated = "{{ is_authenticated }}" === "True";
+    const courseId = "{{ course.id }}";
+
+    function loadGuestProgress() {
+        if (isAuthenticated) return;
+        
+        let completedIds = [];
+        try {
+            const stored = localStorage.getItem('abcd_course_progress_' + courseId);
+            if (stored) {
+                completedIds = JSON.parse(stored);
+            }
+        } catch (e) {
+            console.error('Failed to parse progress:', e);
+        }
+        
+        let completedCount = 0;
+        const totalCount = items.length;
+        
+        items.forEach(item => {
+            const itemId = item.dataset.id;
+            const iconBox = item.querySelector('.item-num');
+            const label = item.querySelector('.item-label');
+            
+            if (completedIds.includes(itemId)) {
+                completedCount++;
+                if (iconBox) {
+                    iconBox.innerHTML = "<i class='bx bxs-check-circle' style='color: #2e7d32;'></i>";
+                }
+                if (label) {
+                    label.classList.add('is-completed');
+                }
+            }
+        });
+        
+        const newPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+        
+        const circleBar = document.querySelector('.progress-circle-bar');
+        if (circleBar) {
+            circleBar.setAttribute('stroke-dasharray', `${newPercent} 100`);
+        }
+        
+        const popover = document.getElementById('progressPopover');
+        if (popover) {
+            popover.innerHTML = `
+                <h4 style="font-weight: 800; margin-bottom: 12px; font-size: 1.1rem; color: var(--text-main);">${completedCount} of ${totalCount} complete.</h4>
+                <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 0;">${newPercent}% through the course!</p>
+            `;
+        }
+    }
+
+    function trackEngagement(action, id, platform = 'generic') {
+        if (!isAuthenticated) {
+            if (action === 'access') {
+                let completedIds = [];
+                try {
+                    const stored = localStorage.getItem('abcd_course_progress_' + courseId);
+                    if (stored) {
+                        completedIds = JSON.parse(stored);
+                    }
+                } catch (e) {}
+                
+                if (!completedIds.includes(id)) {
+                    completedIds.push(id);
+                    localStorage.setItem('abcd_course_progress_' + courseId, JSON.stringify(completedIds));
+                    loadGuestProgress();
+                }
+            }
+            return;
+        }
+
+        const payload = {
+            action: action,
+            platform: platform
+        };
+        if (action === 'access') {
+            payload.material_id = id;
+        } else {
+            payload.course_id = id;
+        }
+
+        fetch('/api/track-engagement/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (action === 'access' && data.success) {
+                const item = document.getElementById(`cur-${id}`);
+                if (item) {
+                    const iconBox = item.querySelector('.item-num');
+                    const label = item.querySelector('.item-label');
+                    if (iconBox && !iconBox.querySelector('.bxs-check-circle')) {
+                        iconBox.innerHTML = "<i class='bx bxs-check-circle' style='color: #2e7d32;'></i>";
+                        if (label) label.classList.add('is-completed');
+                        
+                        // Update Header Progress
+                        const completedCount = document.querySelectorAll('.curriculum-item .bxs-check-circle').length;
+                        const totalCount = document.querySelectorAll('.curriculum-item').length;
+                        const newPercent = Math.round((completedCount / totalCount) * 100);
+                        
+                        const circleBar = document.querySelector('.progress-circle-bar');
+                        if (circleBar) circleBar.setAttribute('stroke-dasharray', `${newPercent} 100`);
+                        
+                        const popover = document.getElementById('progressPopover');
+                        if (popover) {
+                            popover.innerHTML = `
+                                <h4 style="font-weight: 800; margin-bottom: 12px; font-size: 1.1rem; color: var(--text-main);">${completedCount} of ${totalCount} complete.</h4>
+                                <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 0;">${newPercent}% through the course!</p>
+                            `;
+                        }
+                    }
+                }
+            }
+        })
+        .catch(err => console.error('Tracking failed:', err));
+    }
+
+    // --- PROFESSIONAL SHARE SYSTEM ---
+    function handleShare() {
+        const shareData = {
+            title: '{{ course.title|escapejs }}',
+            text: 'I am learning {{ course.title|escapejs }} on ABCD. Join me!',
+            url: window.location.href
+        };
+
+        // Track the intent
+        trackEngagement('share_intent', courseId);
+
+        if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            navigator.share(shareData)
+                .then(() => trackEngagement('share', courseId, 'native'))
+                .catch(() => openShareModal(shareData));
+        } else {
+            openShareModal(shareData);
+        }
+    }
+
+    function openShareModal(data) {
+        document.getElementById('shareUrlInput').value = data.url;
+        openModal('shareModal');
+    }
+
+    function closeShareModal() {
+        closeModal('shareModal');
+    }
+
+    function copyShareLink() {
+        const input = document.getElementById('shareUrlInput');
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        
+        const btn = document.getElementById('copyShareBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        trackEngagement('share', courseId, 'copy_link');
+        
+        setTimeout(() => {
+            btn.textContent = 'Copy Link';
+            btn.classList.remove('copied');
+        }, 2000);
+    }
+
+    function shareTo(platform) {
+        const url = encodeURIComponent(document.getElementById('shareUrlInput').value);
+        const text = encodeURIComponent('Check out this amazing course: {{ course.title|escapejs }}');
+        let shareUrl = '';
+
+        switch(platform) {
+            case 'whatsapp': shareUrl = `https://wa.me/?text=${text}%20${url}`; break;
+            case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
+            case 'twitter': shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`; break;
+            case 'email': shareUrl = `mailto:?subject=${text}&body=${url}`; break;
+        }
+
+        if (shareUrl) {
+            window.open(shareUrl, '_blank');
+            trackEngagement('share', courseId, platform);
+        }
+    }
+
+    function toggleInteraction(action) {
+        if (!isAuthenticated) {
+            showABCDModal({
+                title: 'Login Required',
+                message: 'Please sign in to favorite or archive courses.',
+                type: 'info',
+                confirmText: 'Login Now',
+                showCancel: true,
+                onConfirm: function() {
+                    window.location.href = '/login/?next=' + encodeURIComponent(window.location.pathname);
+                }
+            });
+            return;
+        }
+
+        fetch(`/api/courses/${courseId}/interaction/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ action: action })
+        })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(d => { throw new Error(d.error || 'Server error'); });
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (action === 'favorite') {
+                    const icon = document.getElementById('favIcon');
+                    const text = document.getElementById('favText');
+                    if (data.is_favorite) {
+                        if (icon) {
+                            icon.className = 'bx bxs-star fav-active';
+                        }
+                        if (text) text.innerText = 'Favorited';
+                        showABCDModal({ 
+                            title: 'Added to Favorites', 
+                            message: 'This course has been added to your Favorites tab.', 
+                            type: 'success' 
+                        });
+                    } else {
+                        if (icon) {
+                            icon.className = 'bx bx-star';
+                        }
+                        if (text) text.innerText = 'Favorite this course';
+                        showABCDModal({ 
+                            title: 'Removed from Favorites', 
+                            message: 'This course has been removed from your Favorites.', 
+                            type: 'info' 
+                        });
+                    }
+                } else if (action === 'archive') {
+                    const icon = document.getElementById('archiveIcon');
+                    const text = document.getElementById('archiveText');
+                    if (data.is_archived) {
+                        if (icon) {
+                            icon.className = 'bx bxs-folder-open arch-active';
+                        }
+                        if (text) text.innerText = 'Archived (Restore)';
+                        showABCDModal({ 
+                            title: 'Course Archived', 
+                            message: 'This course has been moved to your Archived tab.', 
+                            type: 'success'
+                        });
+                    } else {
+                        if (icon) {
+                            icon.className = 'bx bx-folder';
+                        }
+                        if (text) text.innerText = 'Archive this course';
+                        showABCDModal({ 
+                            title: 'Course Restored', 
+                            message: 'This course has been restored from your Archived tab.', 
+                            type: 'success' 
+                        });
+                    }
+                }
+                // Close menu
+                const moreMenu = document.getElementById('moreMenu');
+                if (moreMenu) moreMenu.classList.remove('show');
+            }
+        })
+        .catch(err => {
+            console.error('Interaction failed:', err);
+            showABCDModal({ title: 'Error', message: 'Unable to update course status: ' + (err.message || err), type: 'error' });
+        });
+    }
+</script>
+
+<!-- ABCD Custom Modal -->
+<div id="abcdModal" class="abcd-modal-overlay">
+    <div class="abcd-modal-container">
+        <div id="abcdModalIcon" class="abcd-modal-icon"></div>
+        <div id="abcdModalTitle" class="abcd-modal-title"></div>
+        <div id="abcdModalMessage" class="abcd-modal-message"></div>
+        <div class="abcd-modal-actions">
+            <button id="abcdModalCancel" class="abcd-modal-btn abcd-modal-btn-cancel" style="display: none;">Cancel</button>
+            <button id="abcdModalConfirm" class="abcd-modal-btn abcd-modal-btn-confirm">OK</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Reminder/Schedule Modal -->
+    <div id="reminderModal" class="abcd-modal-overlay">
+        <div class="abcd-modal-container" style="max-width: 500px; padding: 0; overflow: hidden;">
+            <!-- Modal Header with Tabs -->
+            <div style="display: flex; background: var(--item-hover); border-bottom: 1px solid var(--border);">
+                <div id="tab-reminder" class="modal-tab active" onclick="switchModalTab('reminder')">
+                    <i class='bx bx-bell'></i> Reminder
+                </div>
+                <div id="tab-schedule" class="modal-tab" onclick="switchModalTab('schedule')">
+                    <i class='bx bx-calendar'></i> Schedule Task
+                </div>
+            </div>
+
+            <div class="modal-body-padding" style="padding: 30px;">
+                <!-- Section 1: Learning Reminder -->
+                <div id="modal-section-reminder" class="modal-section">
+                    <h3 style="margin-bottom: 10px; font-weight: 800;">Learning Reminder</h3>
+                    <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px;">Set a routine or a one-time study alarm.</p>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; background: var(--active-bg); padding: 5px; border-radius: 30px; border: 1px solid var(--border);">
+                        <div id="reminder-type-once" class="sub-tab active" onclick="switchReminderType('once')" style="flex: 1; padding: 8px; text-align: center; cursor: pointer; border-radius: 25px; font-weight: 700; font-size: 0.85rem;">Once</div>
+                        <div id="reminder-type-daily" class="sub-tab" onclick="switchReminderType('daily')" style="flex: 1; padding: 8px; text-align: center; cursor: pointer; border-radius: 25px; font-weight: 700; font-size: 0.85rem;">Daily</div>
+                    </div>
+
+                    <!-- Custom Time Wheel Picker -->
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom: 15px; font-weight: 700; text-align: left;">Notification Time</label>
+                        <div class="wheel-picker-container" id="time-wheel-reminder">
+                            <div class="wheel-col" id="wheel-hour"></div>
+                            <div class="wheel-col" id="wheel-minute"></div>
+                            <div class="wheel-col" id="wheel-ampm"></div>
+                            <div class="wheel-highlight"></div>
+                        </div>
+                    </div>
+
+                    <div id="reminder-days-section" style="text-align: left; margin-bottom: 15px; display: none;">
+                        <label style="display:block; margin-bottom: 10px; font-weight: 700;">Repeat on days</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            <label class="day-chip"><input type="checkbox" class="day-check" value="0" checked><span>Mon</span></label>
+                            <label class="day-chip"><input type="checkbox" class="day-check" value="1" checked><span>Tue</span></label>
+                            <label class="day-chip"><input type="checkbox" class="day-check" value="2" checked><span>Wed</span></label>
+                            <label class="day-chip"><input type="checkbox" class="day-check" value="3" checked><span>Thu</span></label>
+                            <label class="day-chip"><input type="checkbox" class="day-check" value="4" checked><span>Fri</span></label>
+                            <label class="day-chip"><input type="checkbox" class="day-check" value="5"><span>Sat</span></label>
+                            <label class="day-chip"><input type="checkbox" class="day-check" value="6"><span>Sun</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Schedule Task -->
+                <div id="modal-section-schedule" class="modal-section" style="display: none;">
+                    <h3 style="margin-bottom: 10px; font-weight: 800;">Schedule Task</h3>
+                    <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px;">Schedule a specific task or exam date for this course.</p>
+
+                    <div style="text-align: left; margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom: 8px; font-weight: 700;">Task/Topic Name</label>
+                        <input type="text" id="reminderTitle" placeholder="e.g. Complete Assignment 1" style="width:100%; padding:15px; border:1px solid var(--border); border-radius:12px; background:var(--active-bg); color:var(--text-main); font-size: 1rem;">
+                    </div>
+
+                    <!-- Custom Full Date/Time Wheel Picker -->
+                    <div style="text-align: left; margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom: 15px; font-weight: 700;">Date & Time</label>
+                        <div class="wheel-picker-container" id="date-wheel-schedule">
+                            <div class="wheel-col" id="wheel-date-day"></div>
+                            <div class="wheel-col" id="wheel-date-month"></div>
+                            <div class="wheel-col" id="wheel-date-year"></div>
+                            <div class="wheel-col" id="wheel-date-hour"></div>
+                            <div class="wheel-col" id="wheel-date-minute"></div>
+                            <div class="wheel-col" id="wheel-date-ampm"></div>
+                            <div class="wheel-highlight"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="abcd-modal-actions" style="margin-top: 20px;">
+                    <button class="abcd-modal-btn" style="background:var(--item-hover); color:var(--text-main); border-radius: 12px; padding: 15px 25px;" onclick="closeReminderModal()">Cancel</button>
+                    <button class="abcd-modal-btn abcd-modal-btn-confirm" style="border-radius: 12px; padding: 15px 25px;" onclick="submitReminder()">Save Schedule</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-tab {
+            flex: 1; padding: 20px; text-align: center; cursor: pointer; font-weight: 700; color: var(--text-dim); transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .modal-tab.active { color: var(--accent); background: var(--active-bg); border-bottom: 3px solid var(--accent); }
+        .sub-tab { color: var(--text-dim); transition: 0.3s; }
+        .sub-tab.active { background: var(--accent); color: white; box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3); }
+        
+        .day-chip { cursor: pointer; }
+        .day-chip input { display: none; }
+        .day-chip span { display: block; padding: 10px 15px; background: var(--active-bg); border: 1px solid var(--border); border-radius: 20px; font-size: 0.85rem; color: var(--text-dim); transition: 0.3s; }
+        .day-chip input:checked + span { background: var(--accent); color: white; border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        /* Wheel Picker Styling */
+        .wheel-picker-container {
+            display: flex;
+            height: 200px;
+            background: var(--item-hover);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+        }
+        .wheel-col {
+            flex: 1;
+            height: 100%;
+            overflow-y: scroll;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+            text-align: center;
+            scroll-snap-type: y mandatory;
+            padding: 80px 0; /* Vertical center padding */
+        }
+        .wheel-col::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+        .wheel-item {
+            height: 40px;
+            line-height: 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            scroll-snap-align: center;
+            transition: 0.2s;
+        }
+        .wheel-item.selected {
+            color: var(--text-main);
+            transform: scale(1.15);
+        }
+        .wheel-highlight {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            right: 10px;
+            height: 42px;
+            transform: translateY(-50%);
+            background: rgba(124, 58, 237, 0.1);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            pointer-events: none;
+            border-radius: 8px;
+        }
+    </style>
+{% include 'partials/_smart_back_redirect.html' with back_url='users:courses' %}
+{% endblock %}

@@ -1,0 +1,700 @@
+{% extends base_template %}
+{% load static %}
+{% load dict_extras %}
+
+{% block title %}Edit Profile - {{ student.full_name }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<style>
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+    :root {
+        --primary: #6366f1;
+        --bg-gradient: linear-gradient(135deg, #f8f9ff 0%, #eef2ff 100%);
+        --card-bg: #ffffff;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --border-color: #e2e8f0;
+        --shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+    }
+
+    body.dark-theme {
+        --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+        --card-bg: rgba(30, 41, 59, 0.8);
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .edit-wrapper {
+        padding: 100px 20px 40px;
+        display: flex;
+        justify-content: center;
+        min-height: calc(100vh - 100px);
+    }
+
+    .edit-card {
+        width: 100%;
+        max-width: 750px;
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 35px;
+        padding: 40px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+        height: fit-content;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 35px;
+        letter-spacing: -0.5px;
+        color: var(--text-main);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group.full-width {
+        grid-column: span 2;
+    }
+
+    label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: var(--primary);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 14px 18px;
+        border-radius: 15px;
+        border: 2px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-main);
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        background: var(--card-bg);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+
+    .form-control:disabled {
+        background: rgba(0,0,0,0.05);
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .no-photo {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        color: #cbd5e1;
+        background: #f1f5f9;
+        border-radius: 50%;
+    }
+
+    body.dark-theme .no-photo {
+        background: rgba(255, 255, 255, 0.05);
+        color: #475569;
+    }
+
+    .cropper-container {
+        width: 100% !important;
+        background: #f8fafc;
+        border-radius: 15px;
+    }
+
+    .cropper-view-box,
+    .cropper-face {
+        border-radius: 50%;
+    }
+
+    .photo-preview-box {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 15px;
+        background: rgba(0,0,0,0.02);
+        border-radius: 20px;
+        border: 2px dashed var(--border-color);
+    }
+
+    .photo-preview-box img {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .button-row {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .btn-pill {
+        padding: 15px 35px;
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 1rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-save {
+        background: var(--primary);
+        color: white;
+        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-cancel {
+        background: rgba(0,0,0,0.05);
+        color: var(--text-muted);
+    }
+
+    body.dark-theme .btn-cancel {
+        background: rgba(255, 255, 255, 0.05);
+        color: #cbd5e1;
+    }
+
+    .btn-pill:hover {
+        transform: translateY(-3px);
+        filter: brightness(1.1);
+    }
+
+    .error-box {
+        background: #fee2e2;
+        color: #b91c1c;
+        padding: 20px;
+        border-radius: 20px;
+        margin-bottom: 30px;
+        font-weight: 600;
+    }
+
+    @media (max-width: 600px) {
+        .edit-wrapper {
+            padding: 80px 10px 20px;
+        }
+        .edit-card {
+            padding: 25px 15px;
+            border-radius: 25px;
+        }
+        .form-grid { grid-template-columns: 1fr; }
+        .form-group.full-width { grid-column: span 1; }
+        .button-row { flex-direction: column; }
+        .btn-pill { width: 100%; justify-content: center; }
+    }
+    @media (max-width: 480px) {
+        .form-control { padding: 12px 14px; font-size: 0.95rem; }
+    }
+
+    /* Teacher Modal Styling */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+        display: none; z-index: 1000;
+    }
+    .modal-card {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: var(--card-bg); border-radius: 30px; padding: 30px;
+        width: 90%; max-width: 400px; z-index: 1001; display: none;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        border: 1px solid var(--border-color);
+    }
+    .modal-card h2, .modal-card h3 {
+        color: var(--text-main) !important;
+    }
+
+    @media (max-width: 450px) {
+        .modal-card {
+            padding: 20px !important;
+            border-radius: 16px !important;
+            width: 94% !important;
+            max-width: 94% !important;
+        }
+        .modal-card .form-control {
+            padding: 10px 12px !important;
+            font-size: 0.88rem !important;
+        }
+        .modal-card button,
+        .modal-card .btn,
+        .modal-card .btn-pill {
+            padding: 10px 16px !important;
+            font-size: 0.85rem !important;
+            border-radius: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-wrapper">
+    <div class="edit-card">
+        <h1>Edit Profile</h1>
+
+        {% if form.errors %}
+        <div class="error-box">
+            <p>Please fix the following errors:</p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                {% for field, error_list in form.errors.items %}
+                    {% for error in error_list %}<li>{{ field|title }}: {{ error }}</li>{% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" id="edit-form">
+            {% csrf_token %}
+            <!-- Hidden hold fields -->
+            <input type="hidden" name="hold_start_date" id="hidden_hold_start">
+            <input type="hidden" name="hold_duration" id="hidden_hold_duration">
+
+            <div class="form-grid">
+                <!-- Profile Photo -->
+                <div class="form-group full-width" style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px;">
+                    <label style="text-align: center; margin-bottom: 12px; display: block; width: 100%;">Profile Photo</label>
+                    <div style="display: none;">
+                        {{ form.photo }}
+                    </div>
+                    <div style="position: relative; width: 120px; height: 120px;">
+                        <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); cursor: pointer;" onclick="openPhotoActionModal()">
+                            {% if student.photo %}
+                                <img id="photoPreviewCustom" src="{{ student.user|user_photo }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
+                            {% else %}
+                                <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: flex;"></i>
+                            {% endif %}
+                        </div>
+                        <div onclick="openPhotoActionModal()" style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
+                            <i class='bx bxs-pencil'></i>
+                        </div>
+                    </div>
+                    <small style="display: block; margin-top: 10px; color: var(--text-muted); text-align: center;">Max size 2MB. JPG/PNG.</small>
+                </div>
+
+                <!-- Basic Info -->
+                <div class="form-group">
+                    <label>Full Name</label>
+                    {{ form.full_name }}
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    {{ form.email }}
+                </div>
+                <div class="form-group">
+                    <label>Date of Birth</label>
+                    {{ form.dob }}
+                </div>
+                <div class="form-group">
+                    <label>Gender</label>
+                    {{ form.sex }}
+                </div>
+
+                <!-- Status & Service (Conditional / Staff Only) -->
+                <div class="form-group">
+                    <label>Status</label>
+                    {{ form.status }}
+                </div>
+                <div class="form-group">
+                    <label>Service Type</label>
+                    {{ form.service_type }}
+                </div>
+
+                <!-- Service Details -->
+                <div class="form-group full-width" id="coaching-area">
+                    <label>Coaching Batch</label>
+                    {{ form.batch }}
+                </div>
+
+                <div class="form-group" id="library-floor-area">
+                    <label>Library Floor</label>
+                    <input type="text" class="form-control" value="{{ student.seat.floor|default:'Not Assigned' }}" disabled>
+                    <small style="color: var(--text-muted);">Change floor via Admission Form</small>
+                </div>
+                <div class="form-group" id="library-seat-area">
+                    <label>Seat Number</label>
+                    <input type="text" class="form-control" value="{% if student.seat %}{{ student.seat.floor|slice:':1' }}-{{ student.seat.seat_number }}{% else %}N/A{% endif %}" disabled>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    {{ form.mobile_number }}
+                </div>
+                <div class="form-group">
+                    <label>WhatsApp Number</label>
+                    {{ form.whatsapp_number }}
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button type="submit" class="btn-pill btn-save">
+                    <i class='bx bxs-save'></i> Save Changes
+                </button>
+                {% if is_teacher %}
+                    <a href="{% url 'users:student_details' student.id %}" class="btn-pill btn-cancel">Cancel</a>
+                {% else %}
+                    <a href="{% url 'users:student_details_S' %}" class="btn-pill btn-cancel">Cancel</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Hold Modal -->
+    <div class="modal-overlay" id="holdOverlay"></div>
+    <div class="modal-card" id="holdModal">
+        <h2 style="margin-bottom: 20px;">Put Seat on Hold</h2>
+        <div class="form-group">
+            <label>Start Date</label>
+            <input type="date" id="modalHoldStart" class="form-control">
+        </div>
+        <div class="form-group" style="margin-bottom: 25px;">
+            <label>Duration</label>
+            <input type="text" id="modalHoldDuration" class="form-control" placeholder="e.g. 15 days, 1 month">
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-pill btn-save" style="flex: 1;" id="btnConfirmHold">Confirm</button>
+            <button class="btn-pill btn-cancel" style="flex: 1;" id="btnCancelHold">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- End Hold Confirmation Modal -->
+    <div class="modal-card" id="endHoldModal">
+        <h2 style="margin-bottom: 15px; color: #f59e0b;"><i class='bx bx-error-circle'></i> End Student Hold?</h2>
+        <p style="margin-bottom: 25px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">
+            Moving this student back to <strong>'Admitted'</strong> will immediately end their active hold. 
+            Any partial tenants on this seat will be removed, and the student's fee expiry will be recalculated.
+        </p>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-pill btn-save" style="flex: 1; background: #f59e0b;" id="btnConfirmEndHold">End Hold</button>
+            <button class="btn-pill btn-cancel" style="flex: 1;" id="btnCancelEndHold">Cancel</button>
+        </div>
+    </div>
+    <!-- Photo Cropper Modal -->
+    <div class="modal-overlay" id="cropOverlay" style="z-index: 2000;"></div>
+    <div class="modal-card" id="cropModal" style="z-index: 2001; max-width: 500px;">
+        <h3 style="margin-bottom: 20px;">Adjust Photo</h3>
+        <div style="width: 100%; max-height: 350px; overflow: hidden; border-radius: 15px; background: #f1f5f9;">
+            <img id="cropImg" src="" style="max-width: 100%;">
+        </div>
+        <div style="margin-top: 25px; display: flex; gap: 12px;">
+            <button class="btn-pill btn-save" style="flex: 1;" id="btnCropDone">Done</button>
+            <button class="btn-pill btn-cancel" style="flex: 1;" id="btnCropCancel">Cancel</button>
+        </div>
+    </div>
+    <!-- Photo Actions Modal -->
+    <div class="modal-overlay" id="photoActionOverlay" style="z-index: 2100; display: none;" onclick="closePhotoActionModal()"></div>
+    <div class="modal-card" id="photoActionModal" style="z-index: 2101; max-width: 400px; display: none;">
+        <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+            <i class='bx bxs-camera'></i> Profile Photo
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+            <button type="button" class="btn-pill btn-save" style="justify-content: center; background: #6366f1;" onclick="triggerPhotoUpload()">
+                <i class='bx bx-upload'></i> Upload/Change Photo
+            </button>
+            <button type="button" class="btn-pill btn-save" id="btnAdjustPhoto" style="justify-content: center; background: #8b5cf6;" onclick="triggerPhotoCrop()">
+                <i class='bx bx-crop'></i> Adjust & Crop
+            </button>
+            <button type="button" class="btn-pill btn-cancel" id="btnRemovePhoto" style="justify-content: center; background: #ef4444; color: white;" onclick="triggerPhotoRemove()">
+                <i class='bx bx-trash'></i> Remove Photo
+            </button>
+            <button type="button" class="btn-pill btn-cancel" style="justify-content: center;" onclick="closePhotoActionModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... (existing toggleFields and DOB logic) ...
+        const serviceSelect = document.getElementById('id_service_type');
+        const coachingArea = document.getElementById('coaching-area');
+        const floorArea = document.getElementById('library-floor-area');
+        const seatArea = document.getElementById('library-seat-area');
+
+        function toggleFields() {
+            if (!serviceSelect) return;
+            const val = serviceSelect.value;
+            if (coachingArea) coachingArea.style.display = (val === 'Coaching') ? 'block' : 'none';
+            if (floorArea) floorArea.style.display = (val === 'Library') ? 'block' : 'none';
+            if (seatArea) seatArea.style.display = (val === 'Library') ? 'block' : 'none';
+        }
+
+        if (serviceSelect) {
+            serviceSelect.addEventListener('change', toggleFields);
+            toggleFields();
+        }
+
+        // DOB Date Picker Trigger
+        const dobField = document.getElementById('id_dob');
+        if (dobField) {
+            dobField.addEventListener('click', function() {
+                if (typeof this.showPicker === 'function') this.showPicker();
+            });
+            dobField.addEventListener('focus', function() {
+                if (typeof this.showPicker === 'function') this.showPicker();
+            });
+        }
+
+        // Photo Cropper Logic
+        const photoInput = document.getElementById('id_photo');
+        const cropModal = document.getElementById('cropModal');
+        const cropOverlay = document.getElementById('cropOverlay');
+        const cropImg = document.getElementById('cropImg');
+        let cropperInstance = null;
+
+        window.initCropper = function(src) {
+            cropImg.src = src;
+            cropModal.style.display = 'block';
+            cropOverlay.style.display = 'block';
+            
+            if (cropperInstance) cropperInstance.destroy();
+            
+            cropImg.onload = () => {
+                cropperInstance = new Cropper(cropImg, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 0.8,
+                    checkCrossOrigin: false,
+                });
+            };
+            if (cropImg.complete) cropImg.onload();
+        };
+
+        if (photoInput) {
+            photoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        window.initCropper(event.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        document.getElementById('btnCropCancel').onclick = () => {
+            cropModal.style.display = 'none';
+            cropOverlay.style.display = 'none';
+            photoInput.value = "";
+            if (cropperInstance) cropperInstance.destroy();
+        };
+
+        document.getElementById('btnCropDone').onclick = () => {
+            if (!cropperInstance) return;
+            const canvas = cropperInstance.getCroppedCanvas({ width: 600, height: 600 });
+            canvas.toBlob((blob) => {
+                const file = new File([blob], "profile_photo.jpg", { type: "image/jpeg" });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                photoInput.files = dataTransfer.files;
+                
+                // Clear Django delete checkbox since we are uploading a new photo
+                const clearCheckbox = document.querySelector('input[type="checkbox"][name="photo-clear"]');
+                if (clearCheckbox) clearCheckbox.checked = false;
+                
+                // Update preview
+                const previewImg = document.getElementById('photoPreviewCustom');
+                const placeholder = document.getElementById('photoPlaceholderCustom');
+                if (previewImg) {
+                    previewImg.src = canvas.toDataURL('image/jpeg');
+                    previewImg.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
+                
+                cropModal.style.display = 'none';
+                cropOverlay.style.display = 'none';
+                cropperInstance.destroy();
+            }, 'image/jpeg', 0.9);
+        };
+
+        // Global Photo Actions functions
+        window.openPhotoActionModal = function() {
+            const previewImg = document.getElementById('photoPreviewCustom');
+            const hasPhoto = previewImg && previewImg.src && previewImg.style.display !== 'none' && !previewImg.src.endsWith('/');
+            
+            const btnAdjust = document.getElementById('btnAdjustPhoto');
+            const btnRemove = document.getElementById('btnRemovePhoto');
+            
+            if (btnAdjust) btnAdjust.style.display = hasPhoto ? 'block' : 'none';
+            if (btnRemove) btnRemove.style.display = hasPhoto ? 'block' : 'none';
+            
+            document.getElementById('photoActionModal').style.display = 'block';
+            document.getElementById('photoActionOverlay').style.display = 'block';
+        };
+
+        window.closePhotoActionModal = function() {
+            document.getElementById('photoActionModal').style.display = 'none';
+            document.getElementById('photoActionOverlay').style.display = 'none';
+        };
+
+        window.triggerPhotoUpload = function() {
+            if (photoInput) {
+                photoInput.click();
+            }
+            window.closePhotoActionModal();
+        };
+
+        window.triggerPhotoCrop = function() {
+            window.closePhotoActionModal();
+            const previewImg = document.getElementById('photoPreviewCustom');
+            if (previewImg && previewImg.src) {
+                window.initCropper(previewImg.src);
+            }
+        };
+
+        window.triggerPhotoRemove = async function() {
+            if (await CustomPopup.confirm('Are you sure you want to remove the profile photo?', 'Remove Photo')) {
+                const clearCheckbox = document.querySelector('input[type="checkbox"][name="photo-clear"]');
+                if (clearCheckbox) clearCheckbox.checked = true;
+                
+                if (photoInput) photoInput.value = "";
+                
+                const previewImg = document.getElementById('photoPreviewCustom');
+                const placeholder = document.getElementById('photoPlaceholderCustom');
+                if (previewImg) {
+                    previewImg.src = "";
+                    previewImg.style.display = 'none';
+                }
+                if (placeholder) {
+                    placeholder.style.display = 'flex';
+                }
+                window.closePhotoActionModal();
+            }
+        };
+
+        // Hold Logic
+        const statusSelect = document.getElementById('id_status');
+        const holdModal = document.getElementById('holdModal');
+        const holdOverlay = document.getElementById('holdOverlay');
+        let prevStatus = statusSelect ? statusSelect.value : "";
+
+        if (statusSelect) {
+            statusSelect.addEventListener('change', function() {
+                if (this.value === 'on_hold') {
+                    holdModal.style.display = 'block';
+                    holdOverlay.style.display = 'block';
+                    document.getElementById('modalHoldStart').value = new Date().toISOString().split('T')[0];
+                } else {
+                    prevStatus = this.value;
+                }
+            });
+        }
+
+        if (document.getElementById('btnCancelHold')) {
+            document.getElementById('btnCancelHold').onclick = () => {
+                holdModal.style.display = 'none';
+                holdOverlay.style.display = 'none';
+                if (statusSelect) statusSelect.value = prevStatus;
+            };
+        }
+
+        async function showAlert(title, message) {
+            if (typeof window.showStyledAlert === 'function') {
+                await window.showStyledAlert(title, message);
+            } else if (typeof window.showStyledPopup === 'function') {
+                window.showStyledPopup({ title: title, message: message, type: 'info' });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+        if (typeof window.showStyledAlert !== 'function') {
+            window.showStyledAlert = showAlert;
+        }
+
+        if (document.getElementById('btnConfirmHold')) {
+            document.getElementById('btnConfirmHold').onclick = async () => {
+                const start = document.getElementById('modalHoldStart').value;
+                const dur = document.getElementById('modalHoldDuration').value.trim();
+                if (!start || !dur) { 
+                    await showAlert("Details Required", "Please enter all details for the hold."); 
+                    return; 
+                }
+                document.getElementById('hidden_hold_start').value = start;
+                document.getElementById('hidden_hold_duration').value = dur;
+                holdModal.style.display = 'none';
+                holdOverlay.style.display = 'none';
+                prevStatus = 'on_hold';
+            };
+        }
+
+        // End Hold Logic
+        const endHoldModal = document.getElementById('endHoldModal');
+        const initialStatus = statusSelect ? statusSelect.value : "";
+        let isEndingHoldConfirmed = false;
+
+        if (statusSelect) {
+            statusSelect.addEventListener('change', function() {
+                if (initialStatus === 'on_hold' && this.value === 'admitted' && !isEndingHoldConfirmed) {
+                    endHoldModal.style.display = 'block';
+                    holdOverlay.style.display = 'block';
+                }
+            });
+        }
+
+        if (document.getElementById('btnCancelEndHold')) {
+            document.getElementById('btnCancelEndHold').onclick = () => {
+                endHoldModal.style.display = 'none';
+                holdOverlay.style.display = 'none';
+                if (statusSelect) statusSelect.value = 'on_hold'; // Revert
+            };
+        }
+
+        if (document.getElementById('btnConfirmEndHold')) {
+            document.getElementById('btnConfirmEndHold').onclick = () => {
+                isEndingHoldConfirmed = true;
+                endHoldModal.style.display = 'none';
+                holdOverlay.style.display = 'none';
+                // Keep the 'admitted' selection
+            };
+        }
+    });
+
+    if (window.history && window.history.replaceState) {
+        history.replaceState(null, document.title, window.location.href);
+    }
+</script>
+{% url 'users:student_details' student_id=student.id as resolved_back_url %}
+{% include 'partials/_smart_back_redirect.html' with back_url_path=resolved_back_url %}
+{% endblock %}

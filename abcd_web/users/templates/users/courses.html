@@ -1,0 +1,782 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Courses | ABCD{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    :root {
+        --abcd-deep-blue: #153448;
+        --abcd-slate: #526D82;
+        --abcd-cream: #fffcf7;
+        /* Very light beige-white */
+        --abcd-border: rgba(21, 52, 72, 0.08);
+        --ud-star-orange: #b4690e;
+        --ud-purple: #5624d0;
+    }
+
+    .dashboard-container {
+        max-width: 1280px;
+        margin: 20px auto 60px;
+        padding: 0 24px;
+        box-sizing: border-box;
+    }
+
+    .courses-page-header {
+        margin-top: 25px;
+        margin-bottom: 35px;
+    }
+
+    @media (max-width: 768px) {
+        .courses-page-header {
+            margin-top: 15px;
+            margin-bottom: 25px;
+        }
+        .dashboard-container {
+            padding: 0 16px;
+        }
+    }
+
+    .courses-page-header h1 {
+        font-weight: 800;
+        font-size: 2rem;
+        color: #1e1b4b;
+        letter-spacing: -0.5px;
+        margin-bottom: 25px;
+    }
+
+    body.dark-theme .courses-page-header h1 {
+        color: #fff2de;
+    }
+
+    .courses-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 30px;
+    }
+
+    /* Balanced Modern Card - Matching Teacher Side */
+    .course-info-card {
+        background: white;
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 28px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        overflow: visible;
+    }
+
+    body.dark-theme .course-info-card {
+        background: linear-gradient(135deg, #2c3240 0%, #1a1e29 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .course-info-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+        border-color: rgba(99, 102, 241, 0.2);
+    }
+
+    .course-thumbnail {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: #f1f5f9;
+        border-radius: 28px 28px 0 0;
+        overflow: hidden;
+    }
+
+    body.dark-theme .course-thumbnail {
+        background: #111827;
+    }
+
+    .course-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .course-info-card:hover .course-thumbnail img {
+        transform: scale(1.1);
+    }
+
+    .card-body {
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .course-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: #1e1b4b;
+        margin-bottom: 8px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    body.dark-theme .course-title {
+        color: #fff2de;
+    }
+
+    .course-author {
+        font-size: 0.85rem;
+        color: var(--abcd-slate);
+        margin-bottom: 16px;
+    }
+
+    /* Elegant Progress Section */
+    .progress-section {
+        margin-top: auto;
+    }
+
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .progress-text {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--abcd-deep-blue);
+    }
+
+    body.dark-theme .progress-text {
+        color: #a5b4fc;
+    }
+
+    .progress-bar-container {
+        height: 8px;
+        background: rgba(21, 52, 72, 0.06);
+        width: 100%;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    body.dark-theme .progress-bar-container {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #a855f7);
+        width: 0%;
+        border-radius: 10px;
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Rating Wedge - Modern Style */
+    .rating-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .leave-rating-link {
+        font-size: 0.75rem;
+        color: var(--abcd-slate);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+
+    .leave-rating-link:hover {
+        color: #b4690e;
+    }
+
+    .stars-placeholder {
+        color: #fbbf24;
+        font-size: 0.8rem;
+        display: flex;
+        gap: 1px;
+    }
+
+    .live-rating-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #fef3c7;
+        color: #92400e;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    body.dark-theme .live-rating-badge {
+        background: rgba(251, 191, 36, 0.1);
+        color: #fbbf24;
+    }
+
+    /* Discreet More Menu */
+    .card-more-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 5;
+        color: #1e1b4b;
+        opacity: 0;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    body.dark-theme .card-more-btn {
+        background: rgba(30, 27, 75, 0.9);
+        color: white;
+    }
+
+    .course-info-card:hover .card-more-btn {
+        opacity: 1;
+    }
+
+    .ud-dropdown {
+        position: absolute;
+        top: 55px;
+        right: 15px;
+        background: white;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        width: 170px;
+        border-radius: 16px;
+        z-index: 20;
+        display: none;
+        overflow: hidden;
+        animation: menuFadeIn 0.2s ease-out;
+    }
+
+    @keyframes menuFadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    body.dark-theme .ud-dropdown {
+        background: #1e1b4b;
+        border-color: rgba(255,255,255,0.1);
+    }
+
+    .ud-dropdown.active {
+        display: block;
+    }
+
+    .ud-dropdown-item {
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #1e1b4b;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    body.dark-theme .ud-dropdown-item {
+        color: #e2e8f0;
+    }
+
+    .ud-dropdown-item:hover {
+        background: #f8fafc;
+        color: #6366f1;
+    }
+
+    body.dark-theme .ud-dropdown-item:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    /* Tabs Styling */
+    .course-tab {
+        text-decoration: none;
+        color: var(--abcd-slate) !important;
+        font-weight: 700;
+        padding: 5px 10px 15px 10px;
+        position: relative;
+        transition: all 0.3s;
+        font-size: 1rem;
+    }
+
+    .course-tab:hover {
+        color: #6366f1 !important;
+    }
+
+    .course-tab.active {
+        color: #6366f1 !important;
+    }
+
+    .course-tab.active::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: #6366f1;
+        border-radius: 3px 3px 0 0;
+    }
+
+    /* Modal Styling */
+    .rating-modal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 40px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        z-index: 1001;
+        border-radius: 16px;
+        width: 420px;
+        text-align: center;
+        display: none;
+    }
+
+    .rating-modal.active {
+        display: block;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 1000;
+        display: none;
+    }
+
+    .modal-overlay.active {
+        display: block;
+    }
+
+    .courses-empty-state h3 {
+        color: var(--abcd-deep-blue);
+    }
+    .courses-empty-state p {
+        color: var(--abcd-slate);
+    }
+    body.dark-theme .courses-empty-state h3,
+    body.dark-theme .courses-empty-state p {
+        color: wheat !important;
+    }
+
+    @media (max-width: 600px) {
+        .courses-page-header h1 {
+            text-align: center;
+        }
+        .courses-tabs {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    }
+    .fav-active {
+        color: #fbbf24 !important;
+    }
+    .arch-active {
+        color: #38bdf8 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="courses-page-header" data-tour="courses-header">
+        <h1>
+            {% if profile.status == 'admitted' %}My learning{% else %}Our Courses{% endif %}
+        </h1>
+
+        <div class="courses-tabs" data-tour="courses-tabs">
+            <a href="{% url 'users:courses' %}?tab=all" class="course-tab {% if active_tab == 'all' %}active{% endif %}">All Courses</a>
+            {% if is_authenticated %}
+            <a href="{% url 'users:courses' %}?tab=favorites" class="course-tab {% if active_tab == 'favorites' %}active{% endif %}">Favorites</a>
+            <a href="{% url 'users:courses' %}?tab=archived" class="course-tab {% if active_tab == 'archived' %}active{% endif %}">Archived</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="courses-grid" data-tour="courses-grid">
+        {% for course in courses %}
+        <div class="course-info-card">
+            <button class="card-more-btn" onclick="toggleMenu(event, 'menu-{{ course.id }}')">
+                <i class='bx bx-dots-horizontal-rounded'></i>
+            </button>
+            <div id="menu-{{ course.id }}" class="ud-dropdown">
+                <a href="javascript:void(0)" onclick="handleCardShare(event, '{{ course.id }}', '{{ course.title|escapejs }}')" class="ud-dropdown-item"><i class='bx bx-share-alt'></i> Share</a>
+                {% if is_authenticated %}
+                <a href="javascript:void(0)" onclick="toggleCardInteraction(event, '{{ course.id }}', 'favorite')" class="ud-dropdown-item">
+                    <i class='bx {% if course.is_favorite %}bxs-star fav-active{% else %}bx-star{% endif %}'></i> 
+                    <span>{% if course.is_favorite %}Unfavorite{% else %}Favorite{% endif %}</span>
+                </a>
+                <a href="javascript:void(0)" onclick="toggleCardInteraction(event, '{{ course.id }}', 'archive')" class="ud-dropdown-item">
+                    <i class='bx {% if course.is_archived %}bxs-folder-open arch-active{% else %}bx-folder{% endif %}'></i> 
+                    <span>{% if course.is_archived %}Restore{% else %}Archive{% endif %}</span>
+                </a>
+                {% endif %}
+            </div>
+
+            <a href="{% url 'users:course_detail' course.id %}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
+                <div class="course-thumbnail" style="position: relative;">
+                    {% if course.thumbnail %}
+                    <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}">
+                    {% else %}
+                    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:4rem;">🎓</div>
+                    {% endif %}
+                    {% if course.is_locked %}
+                    <div style="position: absolute; top: 12px; left: 12px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(4px); color: #fbbf24; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 5px; border: 1px solid rgba(251, 191, 36, 0.4); z-index: 2;">
+                        <i class='bx bxs-lock-alt'></i>
+                        {% if is_pending_student %}
+                            <span>Not Accessible &bull; Pending Admission</span>
+                        {% elif is_pending_alumni %}
+                            <span>Not Accessible &bull; Pending Approval</span>
+                        {% else %}
+                            <span>Not Accessible &bull; Enrolled Students Only</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    <h3 class="course-title">{{ course.title }}</h3>
+                    <div class="course-author" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>By ABCD Education</span>
+                        {% if course.is_locked %}
+                        <span style="font-size: 0.75rem; color: #f59e0b; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class='bx bxs-lock-alt'></i> Not Accessible
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="progress-section">
+                        <div class="progress-info">
+                            <span class="progress-text">Progress</span>
+                            <span class="progress-text">{{ course.progress_percent|default:0 }}%</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" data-progress="{{ course.progress_percent|default:0 }}"></div>
+                        </div>
+
+                        <div class="rating-row" style="justify-content: space-between;">
+                            <div class="leave-rating-link" onclick="openRatingModal(event, '{{ course.title }}', '{{ course.id }}')">
+                                <div class="stars-placeholder">
+                                    <i class='bx bx-star'></i><i class='bx bx-star'></i><i class='bx bx-star'></i><i class='bx bx-star'></i><i class='bx bx-star'></i>
+                                </div>
+                                <span>Leave a rating</span>
+                            </div>
+                            <div class="live-rating-badge">
+                                <i class='bx bxs-star'></i>
+                                {{ course.avg_rating|default:0|floatformat:1 }}
+                                <span style="opacity: 0.6; font-weight: 500; font-size: 0.7rem; margin-left: 2px;">({{ course.total_reviews|default:0 }})</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% empty %}
+        <div class="courses-empty-state" style="text-align: center; grid-column: 1 / -1; padding: 60px;">
+            {% if active_tab == 'favorites' %}
+            <i class='bx bx-star' style="font-size: 5rem; color: #fbbf24; opacity: 0.7; margin-bottom: 20px; display: block;"></i>
+            <h3 style="font-weight: 800; margin-bottom: 10px;">No favorite courses yet</h3>
+            <p style="color: var(--abcd-slate); margin-bottom: 20px;">Click "Favorite" on any course to easily find it here anytime.</p>
+            <a href="{% url 'users:courses' %}?tab=all" class="course-tab active" style="display: inline-block; padding: 10px 22px; text-decoration: none;">Browse All Courses</a>
+            {% elif active_tab == 'archived' %}
+            <i class='bx bx-folder' style="font-size: 5rem; color: var(--abcd-slate); opacity: 0.7; margin-bottom: 20px; display: block;"></i>
+            <h3 style="font-weight: 800; margin-bottom: 10px;">No archived courses</h3>
+            <p style="color: var(--abcd-slate); margin-bottom: 20px;">Courses you archive will be stored here safely.</p>
+            <a href="{% url 'users:courses' %}?tab=all" class="course-tab active" style="display: inline-block; padding: 10px 22px; text-decoration: none;">Browse All Courses</a>
+            {% else %}
+            <i class='bx bx-book-reader' style="font-size: 5rem; color: var(--abcd-border); margin-bottom: 20px; display: block;"></i>
+            <h3 style="font-weight: 800; margin-bottom: 10px;">Your learning journey awaits</h3>
+            <p style="color: var(--abcd-slate);">Start your first course to see it appear here.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Structure stays same but styled -->
+<div id="modalOverlay" class="modal-overlay" onclick="closeRatingModal()"></div>
+<div id="ratingModal" class="rating-modal">
+    <span
+        style="position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 1.5rem; color: var(--abcd-slate);"
+        onclick="closeRatingModal()">&times;</span>
+    <h3 id="modalCourseTitle" style="font-weight: 900; color: var(--abcd-deep-blue); margin-bottom: 10px;">How was your
+        experience?</h3>
+    <div id="ratingLabel" style="font-weight: 700; color: var(--ud-star-orange); margin-bottom: 20px;">Select Stars
+    </div>
+    <div class="star-rating-input" id="starInput"
+        style="display: flex; justify-content: center; gap: 10px; font-size: 2.5rem; color: var(--ud-star-orange);">
+        <i class='bx bx-star' data-value="1"></i>
+        <i class='bx bx-star' data-value="2"></i>
+        <i class='bx bx-star' data-value="3"></i>
+        <i class='bx bx-star' data-value="4"></i>
+        <i class='bx bx-star' data-value="5"></i>
+    </div>
+    <button onclick="submitReviewFromModal()"
+        style="background: var(--abcd-deep-blue); color: white; border: none; padding: 14px 30px; font-weight: 700; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 20px;">Submit
+        Review</button>
+</div>
+
+<!-- Professional Share Modal -->
+<div id="shareModal" class="share-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+    <div class="share-modal-content" style="background:white; width:90%; max-width:400px; padding:30px; border-radius:20px; position:relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+        <button onclick="closeShareModal()" style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:1.5rem; cursor:pointer; color:var(--text-dim);">&times;</button>
+        <h3 style="margin-top:0; margin-bottom:10px; font-weight:800; color:var(--abcd-deep-blue);">Share Course</h3>
+        <p style="color:var(--abcd-slate); font-size:0.9rem; margin-bottom:20px;">Share this course with your friends and community.</p>
+        
+        <div style="display:flex; flex-direction:column; gap:15px;">
+            <div style="display:flex; align-items:center; background:#f8fafc; padding:12px; border-radius:12px; border:1px solid var(--abcd-border);">
+                <input type="text" id="shareUrlInput" readonly style="flex:1; border:none; background:none; font-size:0.85rem; color:var(--abcd-deep-blue); font-family:monospace; outline:none;">
+                <button id="copyShareBtn" onclick="copyShareLink()" style="background:var(--abcd-deep-blue); color:white; border:none; padding:8px 15px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer; transition:all 0.2s;">Copy Link</button>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-top:10px;">
+                <button onclick="shareTo('whatsapp')" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer;">
+                    <div style="width:50px; height:50px; background:#25D366; color:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class='bx bxl-whatsapp'></i></div>
+                    <span style="font-size:0.75rem; font-weight:600; color:var(--abcd-slate);">WhatsApp</span>
+                </button>
+                <button onclick="shareTo('telegram')" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer;">
+                    <div style="width:50px; height:50px; background:#0088cc; color:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class='bx bxl-telegram'></i></div>
+                    <span style="font-size:0.75rem; font-weight:600; color:var(--abcd-slate);">Telegram</span>
+                </button>
+                <button onclick="shareTo('twitter')" style="display:flex; flex-direction:column; align-items:center; gap:8px; background:none; border:none; cursor:pointer;">
+                    <div style="width:50px; height:50px; background:#000; color:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;"><i class='bx bxl-twitter'></i></div>
+                    <span style="font-size:0.75rem; font-weight:600; color:var(--abcd-slate);">X / Twitter</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleMenu(event, menuId) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.querySelectorAll('.ud-dropdown').forEach(m => {
+            if (m.id !== menuId) m.classList.remove('active');
+        });
+        document.getElementById(menuId).classList.toggle('active');
+    }
+
+    let currentCourseId = null;
+    let currentRating = 0;
+
+    function openRatingModal(event, title, courseId) {
+        event.preventDefault();
+        event.stopPropagation();
+        currentCourseId = courseId;
+        currentRating = 0;
+        document.getElementById('modalCourseTitle').innerText = title;
+        document.getElementById('ratingModal').classList.add('active');
+        document.getElementById('modalOverlay').classList.add('active');
+        resetStars();
+    }
+
+    function closeRatingModal() {
+        document.getElementById('ratingModal').classList.remove('active');
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    const starInput = document.getElementById('starInput');
+    if (starInput) {
+        const stars = starInput.querySelectorAll('i');
+        const ratingLabel = document.getElementById('ratingLabel');
+        const labels = ["Select Stars", "Poor", "Average", "Good", "Very Good", "Exceptional!"];
+
+        stars.forEach(star => {
+            star.addEventListener('mouseenter', function () {
+                const val = parseInt(this.dataset.value);
+                updateStars(val);
+            });
+
+            star.addEventListener('click', function () {
+                currentRating = parseInt(this.dataset.value);
+                updateStars(currentRating);
+            });
+        });
+
+        starInput.addEventListener('mouseleave', function () {
+            updateStars(currentRating || 0);
+        });
+    }
+
+    function updateStars(val) {
+        document.querySelectorAll('#starInput i').forEach(star => {
+            const starVal = parseInt(star.dataset.value);
+            if (starVal <= val) {
+                star.classList.replace('bx-star', 'bxs-star');
+            } else {
+                star.classList.replace('bxs-star', 'bx-star');
+            }
+        });
+        const labels = ["Select Stars", "Poor", "Average", "Good", "Very Good", "Exceptional!"];
+        document.getElementById('ratingLabel').innerText = labels[val] || labels[0];
+    }
+
+    function resetStars() {
+        currentRating = 0;
+        updateStars(0);
+    }
+
+    async function showAlert(title, message) {
+        if (typeof window.showStyledAlert === 'function') {
+            await window.showStyledAlert(title, message);
+        } else if (typeof window.showStyledPopup === 'function') {
+            window.showStyledPopup({ title: title, message: message, type: 'info' });
+        } else {
+            alert(`${title}: ${message}`);
+        }
+    }
+    if (typeof window.showStyledAlert !== 'function') {
+        window.showStyledAlert = showAlert;
+    }
+
+    async function submitReviewFromModal() {
+        if (!currentCourseId || !currentRating) {
+            await showAlert("Rating Required", "Please select a rating before submitting.");
+            return;
+        }
+        const formData = new FormData();
+        formData.append('rating', currentRating);
+        formData.append('comment', "Submitted from courses list.");
+
+        try {
+            const res = await fetch(`/api/courses/${currentCourseId}/review/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                await showAlert("Error", data.error || "Failed to submit review.");
+            }
+        } catch (err) {
+            console.error('Review submission error:', err);
+            await showAlert("Error", "A network error occurred. Please try again.");
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.progress-bar-fill').forEach(bar => {
+            const progress = bar.getAttribute('data-progress');
+            if (progress) bar.style.width = progress + '%';
+        });
+    });
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.ud-dropdown').forEach(m => m.classList.remove('active'));
+    });
+
+    // --- Interaction & Share Logic ---
+    let currentShareData = null;
+
+    function handleCardShare(event, courseId, title) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const url = window.location.origin + `/courses/${courseId}/`;
+        currentShareData = { title: title, url: url };
+
+        // Track intent
+        fetch('/api/track-engagement/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ action: 'share_intent', course_id: courseId })
+        });
+
+        if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            navigator.share({ title: title, text: `Check out this course: ${title}`, url: url })
+                .catch(() => openShareModal(currentShareData));
+        } else {
+            openShareModal(currentShareData);
+        }
+    }
+
+    function openShareModal(data) {
+        document.getElementById('shareUrlInput').value = data.url;
+        document.getElementById('shareModal').style.display = 'flex';
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareModal').style.display = 'none';
+    }
+
+    function copyShareLink() {
+        const input = document.getElementById('shareUrlInput');
+        input.select();
+        navigator.clipboard.writeText(input.value);
+        const btn = document.getElementById('copyShareBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+    }
+
+    function shareTo(platform) {
+        const url = encodeURIComponent(currentShareData.url);
+        const text = encodeURIComponent(`Check out this amazing course: ${currentShareData.title}`);
+        let shareUrl = '';
+        if (platform === 'whatsapp') shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`;
+        else if (platform === 'telegram') shareUrl = `https://t.me/share/url?url=${url}&text=${text}`;
+        else if (platform === 'twitter') shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+        window.open(shareUrl, '_blank');
+    }
+
+    function toggleCardInteraction(event, courseId, action) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        fetch(`/api/courses/${courseId}/interaction/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ action: action })
+        })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(d => { throw new Error(d.error || 'Server error'); });
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        })
+        .catch(err => {
+            console.error('Interaction failed:', err);
+            alert('Unable to update course: ' + (err.message || err));
+        });
+    }
+</script>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

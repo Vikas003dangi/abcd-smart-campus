@@ -1,0 +1,101 @@
+{% load static %}
+{% comment %}
+
+{% endcomment %}
+
+<div class="seat-modal-overlay" id="seatModalOverlay" style="display:none;">
+    
+    <div class="seat-modal-container" id="seatModalContainer" style="display:none;">
+        
+        <div class="seat-modal-header">
+            <h3 id="seatModalTitle">Select Your Seat</h3>
+            <button class="seat-modal-close-btn" id="seatModalCloseBtn" aria-label="Close modal">&times;</button>
+        </div>
+        
+        <div class="seat-modal-body" id="seatModalBody">
+             
+          <!-- SHIFT SEAT NOTICE (GROUND FLOOR ONLY – VISUAL INFO) -->
+          <div id="shiftSeatNotice" class="shift-seat-notice" style="
+              display:none;
+              background:#f3e8ff;
+              border-left:5px solid #7c3aed;
+              padding:12px;
+              border-radius:8px;
+              margin-bottom:14px;
+              font-size:14px;
+              color:#2e1065;
+          ">
+              <strong>Important:</strong><br>
+              Seats <strong>40 to 53</strong> on the <strong>Ground Floor</strong> support
+              <strong>shift-wise seating</strong>.<br>
+              <strong>Morning:</strong> 8 AM – 2 PM &nbsp;|&nbsp;
+              <strong>Evening:</strong> 2 PM – 8 PM<br>
+              Full-day selection is available <strong>only if both shifts are free</strong>. <br>
+              And <small>If one shift is occupied, the other may be available.</small>
+          </div>
+
+          <div class="seat-modal-footer">
+            <div class="legend">
+                <div class="legend-item"><span class="legend-box available"><i class='bx bxs-chair'></i></span> Available</div>
+                <div class="legend-item"><span class="legend-box occupied"><i class='bx bxs-chair'></i></span> Occupied</div>
+                <div class="legend-item"><span class="legend-box pending"><i class='bx bxs-chair'></i></span> Pending</div>
+                <div class="legend-item"><span class="legend-box on-hold"><i class='bx bxs-chair'></i></span> On Hold</div>
+                <div class="legend-item"><span class="legend-box shift-occupied"><i class='bx bxs-chair'></i></span> Shift (Occupied)</div>
+            </div>            
+          </div>
+
+            {% include 'users/_seat_grids.html' %}
+
+        </div>
+        
+        <!-- scrolling functionality -->
+        <div class="indicator-layer" aria-hidden="true"></div>
+            <div class="scroll-indicator up" id="scrollIndicatorUp"
+                role="button" tabindex="0" aria-label="Scroll to top" title="Scroll to top" data-action="scroll-top">
+                <i class='bxrds bx-chevron-up-circle' style="--bx-duotone-primary-color:#ffffff;"></i>
+            </div>
+
+            <div class="scroll-indicator down" id="scrollIndicatorDown"
+                role="button" tabindex="0" aria-label="Scroll to bottom" title="Scroll to bottom" data-action="scroll-bottom">
+                <i class='bxrds bx-chevron-up-circle bx-rotate-180' style="--bx-duotone-primary-color:#ffffff;"></i>
+            </div>
+        </div>
+        
+        <div class="seat-modal-footer">
+          
+          <!-- SHIFT SEAT REMINDER -->
+          <div style="
+                margin:8px 0 10px;
+                font-size:13px;
+                color:#4c1d95;
+                text-align:center;
+                ">
+                Ground Floor seats <strong>40–53</strong> Allows
+                <strong>shift-based availability</strong>.
+              </div>
+              
+            <button class="confirm-seat-btn" id="confirmSeatBtn" disabled>Confirm Selection</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= Seat Interest Modal  ================= -->
+<div id="seatInterestOverlay" class="seat-interest-overlay hidden">
+  <div class="seat-interest-modal">
+    <h3>Seat Not Available</h3>
+
+    <p id="seatInterestText">
+      This seat is currently unavailable.
+    </p>
+
+    <div class="seat-interest-actions">
+      <button id="seatInterestConfirm" class="btn-primary">
+        Notify Me
+      </button>
+      <button id="seatInterestCancel" class="btn-secondary">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+<!-- ============================================================ -->

@@ -1,0 +1,2097 @@
+{% extends 'users/teacher_dashboard.html' %}
+{% load static %}
+
+{% block title %}{{ course.title }} - Teacher Preview | ABCD{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ======================================================
+     UDEMY-STYLE TEACHER PREVIEW HUB
+     ====================================================== */
+  :root {
+    --cinema-bg: #1c1d1f;
+    --sidebar-bg: #ffffff;
+    --header-bg: #1c1d1f;
+    --accent: #a435f0; /* Udemy Purple */
+    --accent-hover: #8710d8;
+    --text-main: #1c1d1f;
+    --text-dim: #6a6f73;
+    --border: #d1d7dc;
+    --player-black: #000000;
+    --item-hover: #f7f9fa;
+    --active-bg: #f0f0f0;
+    --success: #2e7d32;
+    --cream: #fffdfa;
+  }
+
+  body.dark-theme {
+    --sidebar-bg: #1e293b;
+    --text-main: #ffffff;
+    --text-dim: #94a3b8;
+    --border: rgba(255, 255, 255, 0.1);
+    --item-hover: rgba(255, 255, 255, 0.05);
+    --active-bg: rgba(164, 53, 240, 0.1);
+    --cream: #1e293b;
+  }
+
+  body {
+    background-color: var(--sidebar-bg) !important;
+    color: var(--text-main) !important;
+    transition: background-color 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+
+  .tp-full-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    margin-top: 35px; /* Minimized for a compact dashboard integration */
+  }
+
+  /* --- HEADER --- */
+  .tp-preview-header {
+    padding: 8px 24px;
+    background: var(--header-bg);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    color: white;
+    height: 56px;
+  }
+
+  .tp-back-btn {
+    color: #d1d7dc;
+    text-decoration: none;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .tp-back-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+
+  .header-mode-tag {
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-left: 1px solid rgba(255,255,255,0.2);
+    padding-left: 15px;
+    color: #cec0fc;
+  }
+
+  .tp-rating-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Zoom / Viewport Fullscreen Styles */
+  .player-zoom-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 105;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
+  }
+  .player-zoom-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      transform: scale(1.1);
+  }
+  .player-zoom-btn i {
+      font-size: 1.3rem;
+  }
+  .tp-main-player-container.viewport-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      z-index: 99999 !important;
+      background: black !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      aspect-ratio: auto !important;
+  }
+
+  /* --- MAIN LAYOUT --- */
+  .tp-streaming-layout {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    flex: 1;
+    background: var(--cream);
+  }
+
+  /* --- PLAYER AREA --- */
+  .tp-player-column {
+    display: flex;
+    flex-direction: column;
+    background: var(--cinema-bg);
+    overflow-y: auto;
+  }
+
+  .tp-main-player-container {
+    position: relative;
+    background: black;
+    width: 100%;
+    max-height: 70vh;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+
+  #mainPlayerFrame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .tp-player-placeholder {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .tp-player-placeholder i { font-size: 4rem; margin-bottom: 15px; opacity: 0.3; }
+
+  /* --- CONTENT AREA --- */
+  .tp-details-area {
+    padding: 32px 48px;
+    background: var(--sidebar-bg);
+  }
+
+  .tp-content-header {
+    margin-bottom: 24px;
+  }
+  .tp-content-header h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    color: var(--text-main);
+  }
+
+  .info-tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .tab-trigger {
+    padding: 12px 4px;
+    color: var(--text-dim);
+    font-weight: 700;
+    cursor: pointer;
+    position: relative;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+  }
+  .tab-trigger:hover { color: var(--text-main); }
+  .tab-trigger.active { color: var(--text-main); }
+  .tab-trigger.active::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--text-main);
+  }
+
+  .tab-content-pane { display: none; }
+  .tab-content-pane.active { display: block; }
+
+  /* Share Modal */
+  .share-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
+    z-index: 200000; display: none; align-items: center; justify-content: center;
+  }
+  .share-modal-content {
+    background: white; width: 90%; max-width: 420px; border-radius: 20px;
+    padding: 28px; box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    animation: shareSlideUp 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes shareSlideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  
+  .share-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .share-header h3 { font-weight: 800; color: #1e293b; font-size: 1.25rem; }
+  .close-share { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.4rem; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .close-share:hover { background: #e2e8f0; color: #1e293b; }
+  
+  .share-preview-card {
+    display: flex; gap: 16px; padding: 14px; background: #f8fafc;
+    border-radius: 14px; margin-bottom: 24px; border: 1px solid #e2e8f0;
+  }
+  .share-preview-card img { width: 90px; height: 60px; object-fit: cover; border-radius: 8px; background: #e2e8f0; }
+  .share-preview-info { flex: 1; }
+  .share-preview-info h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; color: #1e293b; display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .share-preview-info p { font-size: 0.78rem; color: #64748b; line-height: 1.4; }
+  
+  .share-options {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px;
+  }
+  .share-option {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .share-option:hover { transform: translateY(-4px); }
+  .share-icon {
+    width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center;
+    justify-content: center; font-size: 1.7rem; color: white; box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+  }
+  .s-whatsapp { background: #25D366; }
+  .s-telegram { background: #0088cc; }
+  .s-twitter { background: #000000; }
+  .s-facebook { background: #1877F2; }
+  .s-email { background: #ea4335; }
+  .share-option span { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+  
+  .share-link-box {
+    display: flex; background: #f8fafc; border-radius: 12px;
+    padding: 6px; border: 1.5px solid #e2e8f0; transition: border-color 0.2s;
+  }
+  .share-link-box:focus-within { border-color: #6366f1; }
+  .share-link-box input {
+    flex: 1; background: none; border: none; padding: 10px 14px;
+    font-size: 0.88rem; color: #475569; outline: none; font-weight: 500;
+  }
+  .share-link-box button {
+    background: #6366f1; color: white; border: none; padding: 0 20px;
+    border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    font-size: 0.85rem;
+  }
+  .share-link-box button:hover { background: #4f46e5; transform: scale(1.02); }
+  .share-link-box button.copied { background: #22c55e; }
+
+  /* --- SIDEBAR --- */
+  .tp-sidebar-column {
+    background: var(--sidebar-bg);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 56px);
+    position: sticky;
+    top: 0;
+  }
+
+  .tp-sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tp-sidebar-header h3 { font-size: 1rem; font-weight: 700; margin: 0 0 12px 0; }
+
+  .tp-search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .tp-search-wrapper i { position: absolute; left: 12px; color: var(--text-dim); }
+  .tp-curriculum-search {
+    width: 100%;
+    padding: 10px 12px 10px 38px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.85rem;
+    outline: none;
+    background: var(--active-bg);
+    color: var(--text-main);
+  }
+
+  .tp-curriculum-scroll { flex: 1; overflow-y: auto; }
+  .tp-curriculum-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.2s;
+    align-items: center;
+  }
+  .tp-curriculum-item:hover { background: var(--item-hover); }
+  .tp-curriculum-item.active { background: var(--active-bg); }
+
+  .tp-item-icon { font-size: 1.2rem; color: var(--text-dim); flex-shrink: 0; }
+  .tp-item-main { flex: 1; min-width: 0; }
+  .tp-item-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 2px; }
+  .tp-item-meta { font-size: 0.75rem; color: var(--text-dim); }
+
+  /* STATS CARDS */
+  .tp-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .tp-stat-card {
+    background: var(--sidebar-bg);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .tp-stat-val { font-size: 1.8rem; font-weight: 800; color: var(--accent); display: block; }
+  .tp-stat-label { font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
+
+  /* Q&A / REVIEWS LIST */
+  .tp-list-item {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tp-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .tp-answer-box {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin: 12px 0;
+    font-size: 0.9rem;
+    outline: none;
+    background: var(--cream);
+    color: var(--text-main);
+  }
+  .tp-btn-primary {
+    background: var(--cinema-bg);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  /* --- MODERN Q&A STYLES (MATCH STUDENT) --- */
+  .qa-thread { border-bottom: 1px solid var(--border); padding: 24px 0; }
+  .qa-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--active-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: var(--accent);
+      font-size: 1.1rem;
+      flex-shrink: 0;
+  }
+  .qa-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .qa-author { font-weight: 700; color: var(--text-main); font-size: 0.9rem; }
+  .qa-time { font-size: 0.75rem; color: var(--text-dim); }
+  .qa-content { font-size: 0.95rem; line-height: 1.6; color: var(--text-main); margin: 10px 0; }
+  .qa-actions { display: flex; align-items: center; gap: 15px; margin-top: 12px; }
+  .qa-action-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 6px;
+      border-radius: 4px;
+  }
+  .qa-action-btn:hover { background: var(--item-hover); color: var(--text-main); }
+  .qa-action-btn.upvoted { color: #3b82f6; }
+  
+  .answers-container { margin-left: 15px; border-left: 2px solid var(--border); padding-left: 20px; margin-top: 15px; }
+  .answer-item { margin-bottom: 15px; }
+  
+  .teacher-badge {
+      background: var(--accent);
+      color: white;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-left: 5px;
+  }
+  .verified-tick { color: #3b82f6; font-size: 0.9rem; vertical-align: middle; }
+
+    .nested-replies {
+        margin-left: 32px;
+        margin-top: 10px;
+        border-left: 2px solid var(--border);
+        padding-left: 15px;
+    }
+    .reply-item {
+        margin-bottom: 15px;
+        padding: 5px 0;
+    }
+    /* --- ABCD CUSTOM MODAL --- */
+    .abcd-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .abcd-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .abcd-modal-container {
+        background: #fff;
+        width: 90%;
+        max-width: 400px;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        transform: scale(0.9);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid var(--border);
+        text-align: center;
+    }
+    .abcd-modal-overlay.active .abcd-modal-container {
+        transform: scale(1);
+    }
+    .abcd-modal-icon {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        display: inline-block;
+    }
+    .abcd-modal-icon.info { color: #a435f0; }
+    .abcd-modal-icon.success { color: #2e7d32; }
+    .abcd-modal-icon.error { color: #ef4444; }
+    .abcd-modal-icon.confirm { color: #f59e0b; }
+
+    .abcd-modal-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        margin-bottom: 12px;
+        color: #1c1d1f;
+    }
+    .abcd-modal-message {
+        font-size: 1rem;
+        color: #6a6f73;
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+    .abcd-modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    }
+    .abcd-modal-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        flex: 1;
+    }
+    .abcd-modal-btn-confirm {
+        background: #a435f0;
+        color: white;
+    }
+    .abcd-modal-btn-confirm:hover {
+        background: #8710d8;
+        transform: translateY(-2px);
+    }
+    .abcd-modal-btn-cancel {
+        background: #d1d7dc;
+        color: #1c1d1f;
+    }
+    .abcd-modal-btn-cancel:hover {
+        background: #9ca3af;
+    }
+    .reply-box {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+  .reply-textarea {
+      width: 100%;
+      border: none;
+      background: transparent;
+      resize: none;
+      font-size: 0.9rem;
+      outline: none;
+      min-height: 60px;
+      color: var(--text-main);
+  }
+  .reply-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+
+  /* LEADERBOARD */
+  .leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    background: var(--active-bg);
+    padding: 12px 20px;
+    border-radius: 8px;
+  }
+  .rank-num { font-size: 1.2rem; font-weight: 900; color: var(--accent); width: 30px; }
+  .lb-info { flex: 1; }
+  .lb-top { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 700; }
+  .lb-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .lb-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+
+  /* ======================================================
+     RESPONSIVE DESIGN SYSTEM (Down to 280px)
+     Matches course_detail.html breakpoint patterns
+     ====================================================== */
+
+  @media (max-width: 1100px) {
+    .tp-streaming-layout { grid-template-columns: 1fr; }
+    .tp-sidebar-column { height: auto; position: static; border-left: none; border-top: 1px solid var(--border); }
+    .tp-full-wrapper { width: 100%; left: 0; right: 0; margin: 0; margin-top: -24px; }
+  }
+
+  /* ====================================================
+     BREAKPOINT: 768px — mobile header, tabs scroll
+     ==================================================== */
+  @media (max-width: 768px) {
+    body {
+      padding-bottom: 90px !important;
+    }
+    .tp-full-wrapper {
+      margin-top: 40px !important;
+    }
+    .header-mode-tag {
+      display: none !important;
+    }
+    .tp-details-area {
+      padding: 24px 20px !important;
+    }
+    .info-tabs {
+      gap: 16px !important;
+      overflow-x: auto !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+      white-space: nowrap !important;
+    }
+    .info-tabs::-webkit-scrollbar {
+      display: none !important;
+    }
+    .tab-trigger {
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+    .tp-insights-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .tp-content-header h1 {
+      font-size: 1.3rem !important;
+    }
+    .tp-content-header > div {
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+      font-size: 0.82rem !important;
+    }
+  }
+
+  /* ====================================================
+     BREAKPOINT: 600px — hide share text, compact header
+     ==================================================== */
+  @media (max-width: 600px) {
+    .tp-preview-header {
+      padding: 8px 12px !important;
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+      height: auto !important;
+      min-height: 48px !important;
+    }
+    .tp-back-btn span {
+      display: none !important;
+    }
+    .tp-back-btn {
+      padding: 6px 8px !important;
+    }
+    .tp-rating-badge {
+      font-size: 0.78rem !important;
+      padding: 4px 8px !important;
+    }
+    .tp-rating-badge span {
+      display: none !important;
+    }
+    .tp-preview-header > div:last-child {
+      gap: 8px !important;
+    }
+    .tp-preview-header > div:last-child .tp-back-btn {
+      padding: 5px 10px !important;
+      font-size: 0.8rem !important;
+    }
+    .tp-details-area {
+      padding: 20px 16px !important;
+    }
+    .tp-content-header h1 {
+      font-size: 1.2rem !important;
+    }
+    .qa-thread {
+      padding: 18px 12px !important;
+    }
+    .qa-thread > div {
+      gap: 10px !important;
+    }
+    .leaderboard-item {
+      padding: 10px 14px !important;
+      gap: 10px !important;
+    }
+    .lb-top {
+      flex-direction: column !important;
+      gap: 4px !important;
+      font-size: 0.85rem !important;
+    }
+    .share-options {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 16px !important;
+    }
+  }
+
+  /* ====================================================
+     BREAKPOINT: 480px — compact everything
+     ==================================================== */
+  @media (max-width: 480px) {
+    .tp-preview-header {
+      padding: 6px 8px !important;
+    }
+    .tp-details-area {
+      padding: 18px 12px !important;
+    }
+    .info-tabs {
+      gap: 10px !important;
+    }
+    .tab-trigger {
+      font-size: 0.86rem !important;
+      padding: 10px 2px !important;
+    }
+    .tp-content-header h1 {
+      font-size: 1.1rem !important;
+    }
+    .tp-insights-grid {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px !important;
+    }
+    .tp-stat-card {
+      padding: 14px 10px !important;
+    }
+    .tp-stat-val {
+      font-size: 1.4rem !important;
+    }
+    .tp-stat-label {
+      font-size: 0.68rem !important;
+    }
+    .qa-avatar {
+      width: 36px !important;
+      height: 36px !important;
+      font-size: 0.95rem !important;
+    }
+    .qa-actions {
+      gap: 8px !important;
+      flex-wrap: wrap !important;
+    }
+    .qa-action-btn {
+      font-size: 0.75rem !important;
+      padding: 3px 5px !important;
+      gap: 3px !important;
+    }
+    .answers-container {
+      margin-left: 6px !important;
+      padding-left: 10px !important;
+    }
+    .answer-item::before {
+      left: -10px !important;
+      width: 6px !important;
+    }
+    .tp-sidebar-header {
+      padding: 12px 10px !important;
+    }
+    .tp-sidebar-header h3 {
+      font-size: 0.92rem !important;
+    }
+    .tp-curriculum-item {
+      padding: 10px 10px !important;
+      gap: 8px !important;
+    }
+    .tp-item-label {
+      font-size: 0.8rem !important;
+    }
+    .tp-item-meta {
+      font-size: 0.7rem !important;
+    }
+    .leaderboard-item {
+      padding: 8px 10px !important;
+      gap: 8px !important;
+      flex-wrap: wrap !important;
+    }
+    .rank-num {
+      font-size: 1rem !important;
+      width: 24px !important;
+    }
+    .lb-top {
+      font-size: 0.8rem !important;
+    }
+    .tp-list-item {
+      padding: 14px 10px !important;
+    }
+    .tp-avatar {
+      width: 34px !important;
+      height: 34px !important;
+      font-size: 0.85rem !important;
+    }
+    .tp-list-item > div {
+      gap: 10px !important;
+    }
+    .reply-box {
+      padding: 10px !important;
+    }
+    .reply-textarea {
+      font-size: 0.82rem !important;
+      min-height: 50px !important;
+    }
+    .tp-btn-primary {
+      font-size: 0.78rem !important;
+      padding: 8px 14px !important;
+    }
+    .abcd-modal-container {
+      padding: 22px 16px !important;
+    }
+    .abcd-modal-title {
+      font-size: 1.25rem !important;
+    }
+    .abcd-modal-message {
+      font-size: 0.9rem !important;
+      margin-bottom: 20px !important;
+    }
+    .abcd-modal-btn {
+      font-size: 0.82rem !important;
+      padding: 10px 16px !important;
+    }
+    /* Reviews panel */
+    #reviewsPane > div:first-child {
+      padding: 16px !important;
+    }
+    #reviewsPane > div:first-child > div {
+      gap: 20px !important;
+    }
+    #reviewsPane > div:first-child > div > div:first-child {
+      min-width: 80px !important;
+    }
+    #reviewsPane > div:first-child > div > div:first-child > div:first-child {
+      font-size: 2.5rem !important;
+    }
+    #reviewsPane > div:first-child > div > div:last-child {
+      min-width: auto !important;
+    }
+  }
+
+  /* ====================================================
+     BREAKPOINT: 450px — tighter tabs, Q&A
+     ==================================================== */
+  @media (max-width: 450px) {
+    .tp-details-area {
+      padding: 16px 10px !important;
+    }
+    .info-tabs {
+      gap: 8px !important;
+    }
+    .tab-trigger {
+      font-size: 0.82rem !important;
+    }
+    .qa-avatar {
+      width: 32px !important;
+      height: 32px !important;
+      font-size: 0.88rem !important;
+    }
+    .tp-curriculum-item {
+      padding: 8px 8px !important;
+    }
+    .tp-item-label {
+      font-size: 0.76rem !important;
+    }
+    .share-preview-card {
+      flex-direction: column !important;
+      align-items: center !important;
+      text-align: center !important;
+    }
+    .share-preview-card img {
+      width: 100% !important;
+      height: auto !important;
+      max-height: 120px !important;
+    }
+    .share-link-box {
+      flex-direction: column !important;
+      gap: 8px !important;
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+    .share-link-box input {
+      background: #f8fafc !important;
+      border: 1.5px solid #e2e8f0 !important;
+      border-radius: 12px !important;
+      width: 100% !important;
+    }
+    body.dark-theme .share-link-box input {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    .share-link-box button {
+      padding: 12px !important;
+      width: 100% !important;
+      border-radius: 12px !important;
+    }
+    .nested-replies {
+      margin-left: 12px !important;
+      padding-left: 10px !important;
+    }
+  }
+
+  /* ====================================================
+     BREAKPOINT: 380px — tight header, compact fonts
+     ==================================================== */
+  @media (max-width: 380px) {
+    .tp-preview-header {
+      padding: 5px 6px !important;
+    }
+    .tp-back-btn {
+      padding: 4px 6px !important;
+    }
+    .tp-back-btn i {
+      font-size: 1.2rem !important;
+    }
+    .tp-rating-badge {
+      padding: 3px 6px !important;
+      font-size: 0.72rem !important;
+    }
+    .tp-details-area {
+      padding: 14px 8px !important;
+    }
+    .tp-content-header h1 {
+      font-size: 1rem !important;
+    }
+    .info-tabs {
+      gap: 6px !important;
+    }
+    .tab-trigger {
+      font-size: 0.78rem !important;
+      padding: 8px 2px !important;
+    }
+    .qa-avatar {
+      width: 28px !important;
+      height: 28px !important;
+      font-size: 0.82rem !important;
+    }
+    .qa-actions {
+      gap: 5px !important;
+    }
+    .qa-action-btn {
+      font-size: 0.72rem !important;
+      padding: 2px 4px !important;
+      gap: 2px !important;
+    }
+    .tp-insights-grid {
+      gap: 8px !important;
+    }
+    .tp-stat-card {
+      padding: 10px 6px !important;
+    }
+    .tp-stat-val {
+      font-size: 1.2rem !important;
+    }
+    .tp-stat-label {
+      font-size: 0.62rem !important;
+    }
+    .tp-sidebar-header {
+      padding: 10px 8px !important;
+    }
+    .tp-sidebar-header h3 {
+      font-size: 0.85rem !important;
+    }
+    .tp-curriculum-item {
+      padding: 7px 6px !important;
+      gap: 6px !important;
+    }
+    .tp-item-label {
+      font-size: 0.73rem !important;
+    }
+    .tp-item-icon {
+      font-size: 1rem !important;
+    }
+    .tp-avatar {
+      width: 28px !important;
+      height: 28px !important;
+      font-size: 0.75rem !important;
+    }
+    .tp-list-item {
+      padding: 10px 6px !important;
+    }
+    .leaderboard-item {
+      padding: 6px 8px !important;
+      gap: 6px !important;
+    }
+    .rank-num {
+      font-size: 0.9rem !important;
+      width: 20px !important;
+    }
+    .abcd-modal-container {
+      padding: 18px 12px !important;
+    }
+    .abcd-modal-title {
+      font-size: 1.15rem !important;
+    }
+    .abcd-modal-message {
+      font-size: 0.85rem !important;
+    }
+    .abcd-modal-btn {
+      font-size: 0.78rem !important;
+      padding: 9px 12px !important;
+    }
+    .share-options {
+      gap: 10px !important;
+    }
+  }
+
+  /* ====================================================
+     BREAKPOINT: 340px — very compact, all elements
+     ==================================================== */
+  @media (max-width: 340px) {
+    .tp-preview-header {
+      padding: 4px 5px !important;
+    }
+    .tp-back-btn i {
+      font-size: 1.1rem !important;
+    }
+    .tp-details-area {
+      padding: 12px 6px !important;
+    }
+    .tp-content-header h1 {
+      font-size: 0.92rem !important;
+    }
+    .info-tabs {
+      gap: 5px !important;
+    }
+    .tab-trigger {
+      font-size: 0.74rem !important;
+      padding: 7px 2px !important;
+    }
+    .qa-avatar {
+      width: 24px !important;
+      height: 24px !important;
+      font-size: 0.75rem !important;
+    }
+    .qa-action-btn {
+      font-size: 0.68rem !important;
+      padding: 2px 3px !important;
+    }
+    .tp-insights-grid {
+      grid-template-columns: 1fr !important;
+      gap: 6px !important;
+    }
+    .tp-stat-card {
+      padding: 8px !important;
+    }
+    .tp-stat-val {
+      font-size: 1.1rem !important;
+    }
+    .tp-sidebar-header {
+      padding: 8px 6px !important;
+    }
+    .tp-sidebar-header h3 {
+      font-size: 0.8rem !important;
+    }
+    .tp-curriculum-item {
+      padding: 6px 5px !important;
+      gap: 5px !important;
+    }
+    .tp-item-label {
+      font-size: 0.7rem !important;
+    }
+    .tp-item-icon {
+      font-size: 0.9rem !important;
+    }
+    .tp-avatar {
+      width: 24px !important;
+      height: 24px !important;
+      font-size: 0.7rem !important;
+    }
+    .tp-list-item {
+      padding: 8px 5px !important;
+    }
+    .answers-container {
+      margin-left: 2px !important;
+      padding-left: 8px !important;
+    }
+    .nested-replies {
+      margin-left: 6px !important;
+      padding-left: 6px !important;
+    }
+    .abcd-modal-container {
+      padding: 14px 8px !important;
+      border-radius: 12px !important;
+    }
+    .abcd-modal-title {
+      font-size: 1.05rem !important;
+    }
+    .abcd-modal-btn {
+      font-size: 0.76rem !important;
+      padding: 8px 10px !important;
+    }
+    .share-options {
+      gap: 8px !important;
+    }
+    .share-icon {
+      width: 42px !important;
+      height: 42px !important;
+      font-size: 1.3rem !important;
+      border-radius: 12px !important;
+    }
+  }
+
+  /* ====================================================
+     BREAKPOINT: 280px — minimum viable display
+     ==================================================== */
+  @media (max-width: 280px) {
+    .tp-details-area {
+      padding: 10px 5px !important;
+    }
+    .tp-content-header h1 {
+      font-size: 0.85rem !important;
+    }
+    .info-tabs {
+      gap: 3px !important;
+    }
+    .tab-trigger {
+      font-size: 0.7rem !important;
+      padding: 6px 1px !important;
+    }
+    .tp-preview-header {
+      padding: 3px 4px !important;
+    }
+    .tp-back-btn i {
+      font-size: 1rem !important;
+    }
+    .qa-avatar {
+      width: 22px !important;
+      height: 22px !important;
+      font-size: 0.68rem !important;
+    }
+    .qa-action-btn {
+      font-size: 0.64rem !important;
+      padding: 1px 2px !important;
+    }
+    .qa-actions {
+      gap: 3px !important;
+    }
+    .tp-curriculum-item {
+      padding: 5px 4px !important;
+      gap: 4px !important;
+    }
+    .tp-item-label {
+      font-size: 0.66rem !important;
+    }
+    .tp-sidebar-header h3 {
+      font-size: 0.75rem !important;
+    }
+    .tp-stat-val {
+      font-size: 1rem !important;
+    }
+    .tp-stat-label {
+      font-size: 0.58rem !important;
+    }
+    .abcd-modal-btn {
+      font-size: 0.72rem !important;
+      padding: 7px 8px !important;
+    }
+    .share-icon {
+      width: 36px !important;
+      height: 36px !important;
+      font-size: 1.1rem !important;
+      border-radius: 10px !important;
+    }
+    .share-option span {
+      font-size: 0.62rem !important;
+    }
+  }
+
+  /* Dark theme share modal support */
+  body.dark-theme .share-modal-content { background: #1c1d1f; border: 1px solid rgba(255,255,255,0.1); }
+  body.dark-theme .share-header h3 { color: white; }
+  body.dark-theme .close-share { background: rgba(255, 255, 255, 0.1); color: #94a3b8; }
+  body.dark-theme .close-share:hover { background: rgba(255, 255, 255, 0.2); color: white; }
+  body.dark-theme .share-preview-card { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+  body.dark-theme .share-preview-info h4 { color: white; }
+  body.dark-theme .share-preview-info p { color: #94a3b8; }
+  body.dark-theme .share-option span { color: #94a3b8; }
+  body.dark-theme .share-link-box { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+  body.dark-theme .share-link-box input { color: #e2e8f0; }
+  body.dark-theme .abcd-modal-container { background: #1e293b; }
+  body.dark-theme .abcd-modal-title { color: #fff; }
+  body.dark-theme .abcd-modal-message { color: #94a3b8; }
+  body.dark-theme .reply-box { background: var(--sidebar-bg); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tp-full-wrapper">
+  <!-- Header -->
+  <header class="tp-preview-header">
+    <div style="display: flex; align-items: center;">
+      <a href="{% url 'users:teacher_courses' %}" class="tp-back-btn">
+        <i class='bx bx-chevron-left' style="font-size: 1.5rem;"></i>
+        <span>Back to Course Management</span>
+      </a>
+      <div class="header-mode-tag">
+        {{ course.title }} <span style="opacity: 0.6; font-weight: 400; margin-left: 10px;">• Teacher Preview</span>
+      </div>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <div class="tp-rating-badge">
+        <i class='bx bxs-star' style="color: #fbbf24;"></i>
+        <span>{{ avg_rating }} Ratings</span>
+      </div>
+      <button class="tp-back-btn" style="color: white; border: 1px solid rgba(255,255,255,0.3);" onclick="handleShare()">
+        Share <i class='bx bx-share-alt' style="margin-left: 5px;"></i>
+      </button>
+    </div>
+  </header>
+
+  <div class="tp-streaming-layout">
+    <!-- Main Player Area -->
+    <main class="tp-player-column">
+      <div class="tp-main-player-container" id="playerWrapper">
+        <!-- Zoom/Fullscreen Button -->
+        <button class="player-zoom-btn" id="playerZoomBtn" title="Toggle Zoom / Fullscreen" onclick="togglePlayerZoom(event)">
+            <i class='bx bx-expand'></i>
+        </button>
+        <div id="playerContainer" style="width:100%; height:100%;">
+          {% if first_video %}
+            <div id="yt-player"></div>
+          {% else %}
+            <div class="tp-player-placeholder">
+              <i class='bx bx-video-off'></i>
+              <p>Select a lesson to start previewing</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="tp-details-area">
+        <div class="tp-content-header">
+          <h1 id="activeTitle">{{ course.title }}</h1>
+          <div style="display: flex; gap: 20px; font-size: 0.9rem; color: var(--text-dim); font-weight: 600;">
+            <span><i class='bx bx-list-ul'></i> {{ curriculum.count }} Curriculum items</span>
+            <span><i class='bx bx-user'></i> {{ enrolled_count }} Students enrolled</span>
+          </div>
+        </div>
+
+        <div class="info-tabs">
+          <div class="tab-trigger active" data-target="overview">Overview</div>
+          <div class="tab-trigger" data-target="insights">Course Insights</div>
+          <div class="tab-trigger" data-target="qa">Q&A ({{ questions.count }})</div>
+          <div class="tab-trigger" data-target="reviews">Student Reviews ({{ reviews.count }})</div>
+          <div class="tab-trigger" data-target="watch-insights">Watch Insights</div>
+        </div>
+
+        <!-- Panel: Overview -->
+        <div id="overviewPane" class="tab-content-pane active">
+          <div style="padding: 10px 0;">
+            <h2 style="font-weight: 800; margin-bottom: 15px;">About this course</h2>
+            <div style="line-height: 1.8; color: var(--text-main); font-size: 1.05rem;">
+              {{ course.description|linebreaks }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Insights -->
+        <div id="insightsPane" class="tab-content-pane">
+          <div class="tp-insights-grid">
+            <div class="tp-stat-card">
+              <span class="tp-stat-val">{{ enrolled_count }}</span>
+              <span class="tp-stat-label">Total Students</span>
+            </div>
+            <div class="tp-stat-card">
+              <span class="tp-stat-val">{{ avg_rating }} ★</span>
+              <span class="tp-stat-label">Course Quality</span>
+            </div>
+            <div class="tp-stat-card">
+              <span class="tp-stat-val">{{ questions.count }}</span>
+              <span class="tp-stat-label">Open Questions</span>
+            </div>
+            <div class="tp-stat-card">
+              <span class="tp-stat-val">{{ share_count }}</span>
+              <span class="tp-stat-label">Total Shares</span>
+            </div>
+          </div>
+
+          <div style="background: rgba(164, 53, 240, 0.05); padding: 24px; border-radius: 8px; border: 1px dashed var(--accent);">
+            <h4 style="margin-bottom: 12px; color: var(--text-main); font-weight: 800;">Course Performance Summary</h4>
+            <p style="font-size: 0.95rem; color: var(--text-dim); line-height: 1.6;">
+              Your course is maintaining an average rating of <strong>{{ avg_rating }} stars</strong>. 
+              Students are highly engaged with your content. Responding to the {{ questions.count }} open questions could improve your score further.
+            </p>
+          </div>
+        </div>
+
+        <!-- Panel: Q&A -->
+        <div id="qaPane" class="tab-content-pane">
+          <div id="qaList">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 20px;">
+                <h4 style="font-weight: 800; margin: 0;">{{ questions.count }} student questions</h4>
+            </div>
+
+            {% for q in questions %}
+            <div class="qa-thread" id="qa-{{ q.id }}" style="padding: 24px 20px;">
+              <div style="display: flex; gap: 16px;">
+                <div class="qa-avatar">{{ q.student.full_name|slice:":1" }}</div>
+                <div class="qa-main">
+                  <div class="qa-meta">
+                    <span class="qa-author">{{ q.student.full_name }}</span>
+                    {% if q.material %}<span class="qa-lesson-tag" style="background: rgba(164, 53, 240, 0.1); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">{{ q.material.title }}</span>{% endif %}
+                    <span class="qa-time">{{ q.created_at|timesince }} ago</span>
+                  </div>
+                  <div class="qa-content" style="font-weight: 500;">{{ q.question }}</div>
+                  
+                  <div class="qa-actions">
+                    <button class="qa-action-btn {% if request.user in q.upvotes.all %}upvoted{% endif %}" onclick="toggleUpvote('question', '{{ q.id }}', this)">
+                      <i class='bx {% if request.user in q.upvotes.all %}bxs-like{% else %}bx-like{% endif %}'></i>
+                      <span class="upvote-count">{{ q.upvotes.count }}</span>
+                    </button>
+                    <button class="qa-action-btn" onclick="toggleAnswers('{{ q.id }}')">
+                      <i class='bx bx-message-rounded-dots'></i>
+                      <span>{{ q.answers.count }} Answers</span>
+                    </button>
+                    <button class="qa-action-btn delete-btn" onclick="deleteQAItem('question', '{{ q.id }}')">
+                      <i class='bx bx-trash'></i>
+                      <span>Delete</span>
+                    </button>
+                  </div>
+
+                  <div class="answers-container" id="answers-{{ q.id }}" style="display: none;">
+                    {% for ans in q.answers.all %}
+                    {% if not ans.parent %}
+                    <div class="answer-item" id="answer-{{ ans.id }}">
+                      <div class="qa-meta">
+                        <span class="qa-author">
+                          {% if ans.is_teacher_answer %}
+                          ABCD <i class='bx bxs-check-circle verified-tick' title="Verified Teacher"></i>
+                          <span class="teacher-badge">Teacher</span>
+                          {% else %}
+                          {{ ans.user.get_full_name|default:ans.user.username }}
+                          {% endif %}
+                        </span>
+                        <span class="qa-time">{{ ans.created_at|timesince }} ago</span>
+                      </div>
+                      <div style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main);">
+                        {{ ans.answer_text }}
+                      </div>
+                      <div class="qa-actions" style="margin-top: 8px;">
+                        <button class="qa-action-btn {% if request.user in ans.upvotes.all %}upvoted{% endif %}" style="font-size: 0.75rem;" onclick="toggleUpvote('answer', '{{ ans.id }}', this)">
+                          <i class='bx {% if request.user in ans.upvotes.all %}bxs-like{% else %}bx-like{% endif %}' style="font-size: 0.9rem;"></i>
+                          <span class="upvote-count">{{ ans.upvotes.count }}</span>
+                        </button>
+                        <button class="qa-action-btn reply-trigger-btn" 
+                                style="font-size: 0.75rem;" 
+                                data-qid="{{ q.id }}" 
+                                data-ansid="{{ ans.id }}" 
+                                data-author="{{ ans.user.get_full_name|default:ans.user.username|escapejs }}" 
+                                data-isteacher="{{ ans.is_teacher_answer|yesno:'true,false' }}"
+                                onclick="handleReplyClick(this)">
+                            <i class='bx bx-reply' style="font-size: 0.9rem;"></i>
+                            <span>Reply</span>
+                        </button>
+                        <button class="qa-action-btn delete-btn" style="font-size: 0.75rem;" onclick="deleteQAItem('answer', '{{ ans.id }}')">
+                            <i class='bx bx-trash' style="font-size: 0.9rem;"></i>
+                            <span>Delete</span>
+                        </button>
+                      </div>
+
+                      <!-- Nested Replies -->
+                      <div id="nested-replies-{{ ans.id }}" class="nested-replies" style="display: none; margin-top: 10px; border-left: 2px solid var(--border); padding-left: 16px;">
+                          {% for reply in ans.replies.all %}
+                          <div class="reply-item" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start;">
+                              <div style="flex: 1;">
+                                  <div class="qa-meta" style="font-size: 0.8rem;">
+                                      <span class="qa-author">{{ reply.user.get_full_name|default:reply.user.username }}</span>
+                                      <span class="qa-time">{{ reply.created_at|timesince }} ago</span>
+                                  </div>
+                                  <div style="font-size: 0.9rem; color: var(--text-main);">{{ reply.answer_text }}</div>
+                              </div>
+                              <button class="qa-action-btn delete-btn" style="font-size: 0.7rem; padding: 2px;" onclick="deleteQAItem('answer', '{{ reply.id }}')" title="Delete Reply">
+                                  <i class='bx bx-trash'></i>
+                              </button>
+                          </div>
+                          {% endfor %}
+                          </div>
+                          {% if ans.replies.count > 0 %}
+                          <button class="qa-action-btn" style="font-size: 0.75rem; margin-top: 5px; color: var(--primary);" onclick="toggleNestedReplies('{{ ans.id }}')">
+                              <i class='bx bx-chevron-down'></i>
+                              <span id="nested-toggle-text-{{ ans.id }}">View {{ ans.replies.count }} Replies</span>
+                          </button>
+                          {% endif %}
+                      </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    <div id="reply-box-{{ q.id }}" class="reply-box" style="display: none;">
+                      <textarea id="reply-text-{{ q.id }}" class="reply-textarea" placeholder="Write a verified response..."></textarea>
+                      <div class="reply-footer">
+                        <button class="qa-action-btn" style="background: transparent;" onclick="toggleReplyBox('{{ q.id }}')">Cancel</button>
+                        <button class="tp-btn-primary" style="padding: 8px 16px; font-size: 0.8rem;" onclick="submitAnswer('{{ q.id }}', this)">Post Verified Answer</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% empty %}
+            <div style="text-align: center; padding: 60px; color: var(--text-dim);">
+              <i class='bx bx-message-square-detail' style="font-size: 3.5rem; margin-bottom: 15px; opacity: 0.3;"></i>
+              <p style="font-weight: 700;">No student questions in this course yet.</p>
+            </div>
+            {% endfor %}
+
+            <div style="text-align: center; padding: 30px;">
+                <button class="tp-btn-primary" style="background: transparent; color: var(--accent); border: 1px solid var(--accent);">Load more questions</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Reviews -->
+        <div id="reviewsPane" class="tab-content-pane">
+          <div style="background: var(--sidebar-bg); padding: 24px; border-radius: 8px; margin-bottom: 30px; border: 1px solid var(--border);">
+            <h3 style="font-weight: 800; margin-bottom: 24px; color: var(--text-main);">Student Feedback Overview</h3>
+            <div style="display: flex; gap: 40px; flex-wrap: wrap; align-items: center;">
+              <div style="text-align: center; min-width: 120px;">
+                <div style="font-size: 3.5rem; font-weight: 900; color: #b45309; line-height: 1;">{{ avg_rating }}</div>
+                <div style="margin: 10px 0; color: #fbbf24; font-size: 1.1rem;">
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= avg_rating %}<i class='bx bxs-star'></i>{% else %}<i class='bx bx-star'></i>{% endif %}
+                  {% endfor %}
+                </div>
+                <div style="font-weight: 700; color: #b45309; font-size: 0.9rem;">Course Rating</div>
+              </div>
+              
+              <div style="flex: 1; min-width: 280px;">
+                {% for star, count in rating_stats.items reversed %}
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                  <div style="width: 50px; font-weight: 700; font-size: 0.85rem; color: var(--text-dim);">{{ star }} Stars</div>
+                  <div style="height: 10px; flex: 1; background: #f1f5f9; border-radius: 5px; overflow: hidden;">
+                    <div class="rating-bar-fill" style="height: 100%; background: #64748b;" data-width="{% if total_reviews > 0 %}{% widthratio count total_reviews 100 %}{% else %}0{% endif %}"></div>
+                  </div>
+                  <div style="width: 45px; font-size: 0.85rem; font-weight: 700; color: var(--text-main); text-align: right;">
+                    {% if total_reviews > 0 %}{% widthratio count total_reviews 100 %}{% else %}0{% endif %}%
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <h4 style="font-weight: 800; margin: 0 0 20px 10px; color: var(--text-main);">Individual Reviews</h4>
+          {% for r in reviews %}
+          <div class="tp-list-item">
+            <div style="display: flex; gap: 15px;">
+              <div class="tp-avatar" style="background: #fdf0d5; color: #856404;">{{ r.student.full_name|slice:":1" }}</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; color: var(--text-main);">{{ r.student.full_name }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">{{ r.created_at|date:"M d, Y" }}</div>
+                <div style="margin: 8px 0; color: #fbbf24;">
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= r.rating %}<i class='bx bxs-star'></i>{% else %}<i class='bx bx-star'></i>{% endif %}
+                  {% endfor %}
+                </div>
+                <p style="line-height: 1.6;">{{ r.comment|default:"(No written comment provided)" }}</p>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <div style="text-align: center; padding: 60px; color: var(--text-dim);">
+            <i class='bx bx-star' style="font-size: 3.5rem; margin-bottom: 15px; opacity: 0.3;"></i>
+            <p style="font-weight: 700;">No ratings or reviews yet.</p>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Panel: Watch Insights -->
+        <div id="watch-insightsPane" class="tab-content-pane">
+          <div style="padding: 10px 0;">
+            <h2 style="font-weight: 800; margin-bottom: 25px;">Content Performance Leaderboard</h2>
+            <div class="leaderboard-list">
+              {% for item in leaderboard_data %}
+              <div class="leaderboard-item">
+                <div class="rank-num">{{ forloop.counter }}</div>
+                <div class="lb-info">
+                  <div class="lb-top">
+                    <span>{{ item.title }}</span>
+                    <span>{{ item.unique_students }} Students</span>
+                  </div>
+                  <div class="lb-bar-bg">
+                    {% with percentage=item.unique_students|add:0 %}
+                    <div class="lb-bar-fill" data-width="{{ percentage }}" data-max="{{ max_students }}"></div>
+                    {% endwith %}
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <p>No student engagement data yet.</p>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Sidebar Area -->
+    <aside class="tp-sidebar-column">
+      <div class="tp-sidebar-header">
+        <h3>Course Content</h3>
+        <div class="tp-search-wrapper">
+          <i class='bx bx-search'></i>
+          <input type="text" id="contentSearch" class="tp-curriculum-search" placeholder="Search course content" onkeyup="filterContent()">
+        </div>
+      </div>
+      
+      <div class="tp-curriculum-scroll" id="curriculumList">
+        {% for item in curriculum %}
+        <div class="tp-curriculum-item {% if forloop.first %}active{% endif %}" 
+             data-title="{{ item.title|lower }}"
+             data-material-type="{{ item.material_type }}"
+             data-external-url="{{ item.external_url|default:'' }}"
+             data-file-url="{% if item.file %}{{ item.file.url }}{% endif %}"
+             data-item-name="{{ item.title|escapejs }}"
+             data-item-id="{{ item.id }}"
+             onclick="switchContent(this)">
+          <div class="tp-item-icon">
+            {% if item.material_type == 'video' %}<i class='bx bx-play-circle'></i>
+            {% elif item.material_type == 'document' %}<i class='bx bx-file'></i>
+            {% elif item.material_type == 'image' %}<i class='bx bx-image'></i>
+            {% else %}<i class='bx bx-link'></i>
+            {% endif %}
+          </div>
+          <div class="tp-item-main">
+            <span class="tp-item-label">{{ item.title }}</span>
+            <div class="tp-item-meta">{{ item.get_material_type_display }}</div>
+          </div>
+        </div>
+        {% empty %}
+        <div style="padding: 40px; text-align: center; color: var(--text-dim);">
+          <i class='bx bx-ghost' style="font-size: 3rem; display: block; margin-bottom: 10px; opacity: 0.3;"></i>
+          <p>Empty curriculum</p>
+        </div>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="shareModal" class="share-modal">
+    <div class="share-modal-content">
+      <div class="share-header">
+        <h3>Share Course</h3>
+        <button class="close-share" onclick="closeShareModal()">&times;</button>
+      </div>
+      
+      <div class="share-preview-card">
+        <img src="{% if course.thumbnail %}{{ course.thumbnail.url }}{% endif %}" alt="Preview">
+        <div class="share-preview-info">
+          <h4>{{ course.title }}</h4>
+          <p>Join this course to enhance your skills with premium curriculum.</p>
+        </div>
+      </div>
+
+      <div class="share-options">
+        <div class="share-option" onclick="shareTo('whatsapp')">
+          <div class="share-icon s-whatsapp"><i class='bx bxl-whatsapp'></i></div>
+          <span>WhatsApp</span>
+        </div>
+        <div class="share-option" onclick="shareTo('telegram')">
+          <div class="share-icon s-telegram"><i class='bx bxl-telegram'></i></div>
+          <span>Telegram</span>
+        </div>
+        <div class="share-option" onclick="shareTo('twitter')">
+          <div class="share-icon s-twitter"><i class='bx bxl-twitter'></i></div>
+          <span>X / Twitter</span>
+        </div>
+        <div class="share-option" onclick="shareTo('email')">
+          <div class="share-icon s-email"><i class='bx bx-envelope'></i></div>
+          <span>Email</span>
+        </div>
+      </div>
+
+      <div class="share-link-box">
+        <input type="text" id="shareUrlInput" readonly value="">
+        <button onclick="copyShareLink()" id="copyShareBtn">Copy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+  let ytPlayer;
+  
+  function onYouTubeIframeAPIReady() {
+    const firstItem = document.querySelector('.tp-curriculum-item.active');
+    if (firstItem && firstItem.getAttribute('data-material-type') === 'video') {
+      const url = firstItem.getAttribute('data-external-url');
+      const videoId = extractYTId(url);
+      if (videoId) initYTPlayer(videoId);
+    }
+  }
+
+  function initYTPlayer(videoId) {
+    if (ytPlayer && ytPlayer.destroy) ytPlayer.destroy();
+    ytPlayer = new YT.Player('yt-player', {
+      height: '100%',
+      width: '100%',
+      videoId: videoId,
+      playerVars: { 
+        'autoplay': 1, 
+        'rel': 0, 
+        'origin': window.location.origin,
+        'modestbranding': 1,
+        'controls': 1
+      }
+    });
+  }
+
+  // Robust Tab Logic
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('.tab-trigger');
+    if (!trigger) return;
+    
+    const targetId = trigger.getAttribute('data-target');
+    const targetPane = document.getElementById(targetId + 'Pane');
+    
+    if (targetPane) {
+      // Deactivate all
+      document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content-pane').forEach(p => p.classList.remove('active'));
+      
+      // Activate target
+      trigger.classList.add('active');
+      targetPane.classList.add('active');
+    }
+  });
+
+  function filterContent() {
+    const query = document.getElementById('contentSearch').value.toLowerCase();
+    document.querySelectorAll('.tp-curriculum-item').forEach(item => {
+      const title = item.getAttribute('data-title');
+      item.style.display = title.includes(query) ? 'flex' : 'none';
+    });
+  }
+
+  function switchContent(el) {
+    const type = el.getAttribute('data-material-type');
+    const url = el.getAttribute('data-external-url');
+    const fileUrl = el.getAttribute('data-file-url');
+    const title = el.getAttribute('data-item-name');
+    const materialId = el.getAttribute('data-item-id');
+
+    document.querySelectorAll('.tp-curriculum-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    
+    // Track access
+    trackEngagement('access', materialId);
+
+    // Update metadata
+    const activeTitle = document.getElementById('activeTitle');
+    if (activeTitle) activeTitle.innerText = title;
+
+    const container = document.getElementById('playerContainer');
+    
+    if (type === 'video') {
+      const videoId = extractYTId(url);
+      if (videoId) {
+        // Prepare container for API
+        container.innerHTML = '<div id="yt-player"></div>';
+        initYTPlayer(videoId);
+      } else if (fileUrl) {
+        container.innerHTML = `<video id="localVideo" controls autoplay style="width:100%; height:100%; background:black;">
+                                  <source src="${fileUrl}" type="video/mp4">
+                                </video>`;
+      } else {
+        container.innerHTML = `<div class="tp-player-placeholder"><i class='bx bx-error'></i><p>Video content not found</p></div>`;
+      }
+    } else if (type === 'document' || type === 'image') {
+      container.innerHTML = `<iframe id="mainPlayerFrame" src="${fileUrl}" style="background:white; width:100%; height:100%; border:none;"></iframe>`;
+    } else {
+      container.innerHTML = `<div class="tp-player-placeholder">
+                                <i class='bx bx-link-external'></i>
+                                <p>External link: <a href="${url}" target="_blank" style="color:var(--accent)">Open in new tab</a></p>
+                             </div>`;
+    }
+    
+    if(window.innerWidth < 1100) container.scrollIntoView({behavior: 'smooth'});
+  }
+
+  function extractYTId(url) {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) return match[2];
+    if (url.length === 11 && !url.includes('/') && !url.includes('?')) return url;
+    return '';
+  }
+
+  function toggleUpvote(type, id, btn) {
+    fetch('/api/qa/upvote/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ type: type, id: id })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        const countSpan = btn.querySelector('.upvote-count');
+        const icon = btn.querySelector('i');
+        countSpan.innerText = data.count;
+        
+        if (data.action === 'added') {
+          btn.classList.add('upvoted');
+          icon.classList.replace('bx-like', 'bxs-like');
+        } else {
+          btn.classList.remove('upvoted');
+          icon.classList.replace('bxs-like', 'bx-like');
+        }
+      }
+    });
+  }
+
+  function toggleReplyBox(id) {
+    const box = document.getElementById(`reply-box-${id}`);
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    if (box.style.display === 'block') {
+        document.getElementById(`reply-text-${id}`).focus();
+    }
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function showABCDModal(options) {
+    var title = options.title;
+    var message = options.message;
+    var type = options.type || 'info';
+    var confirmText = options.confirmText || 'OK';
+    var cancelText = options.cancelText || 'Cancel';
+    var showCancel = options.showCancel || false;
+    var onConfirm = options.onConfirm || null;
+
+    const modal = document.getElementById('abcdModal');
+    const icon = document.getElementById('abcdModalIcon');
+    const titleEl = document.getElementById('abcdModalTitle');
+    const msgEl = document.getElementById('abcdModalMessage');
+    const confirmBtn = document.getElementById('abcdModalConfirm');
+    const cancelBtn = document.getElementById('abcdModalCancel');
+
+    let iconHtml = '';
+    if (type === 'success') iconHtml = "<i class='bx bxs-check-circle success'></i>";
+    else if (type === 'error') iconHtml = "<i class='bx bxs-error-circle error'></i>";
+    else if (type === 'confirm') iconHtml = "<i class='bx bxs-help-circle confirm'></i>";
+    else iconHtml = "<i class='bx bxs-info-circle info'></i>";
+    
+    icon.innerHTML = iconHtml;
+    icon.className = `abcd-modal-icon ${type}`;
+    titleEl.innerText = title;
+    msgEl.innerText = message;
+    confirmBtn.innerText = confirmText;
+    cancelBtn.innerText = cancelText;
+    cancelBtn.style.display = showCancel ? 'block' : 'none';
+
+    modal.classList.add('active');
+
+    const close = () => modal.classList.remove('active');
+    confirmBtn.onclick = () => { close(); if (onConfirm) onConfirm(); };
+    cancelBtn.onclick = close;
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+  }
+
+  function deleteQAItem(type, id) {
+    showABCDModal({
+      title: 'Delete Item?',
+      message: `Are you sure you want to delete this ${type}? This action cannot be undone.`,
+      type: 'confirm',
+      showCancel: true,
+      confirmText: 'Delete',
+      onConfirm: () => {
+        fetch('/api/qa/delete/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}'
+          },
+          body: JSON.stringify({ type: type, id: id })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            location.reload();
+          } else {
+            showABCDModal({ title: 'Error', message: data.error, type: 'error' });
+          }
+        })
+        .catch(err => {
+          showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
+        });
+      }
+    });
+  }
+
+  function toggleAnswers(qid) {
+    const container = document.getElementById(`answers-${qid}`);
+    const replyBox = document.getElementById(`reply-box-${qid}`);
+    
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      replyBox.style.display = 'block';
+    } else {
+      container.style.display = 'none';
+      replyBox.style.display = 'none';
+    }
+  }
+
+  function toggleNestedReplies(ansId) {
+    const container = document.getElementById(`nested-replies-${ansId}`);
+    const text = document.getElementById(`nested-toggle-text-${ansId}`);
+    
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+      text.innerText = 'Hide Replies';
+    } else {
+      container.style.display = 'none';
+      text.innerText = `View Replies`;
+    }
+  }
+
+  function handleReplyClick(btn) {
+    const qid = btn.getAttribute('data-qid');
+    const ansid = btn.getAttribute('data-ansid');
+    const author = btn.getAttribute('data-author');
+    const isTeacher = btn.getAttribute('data-isteacher') === 'true';
+    showReplyForm(qid, ansid, author, isTeacher);
+  }
+
+  function showReplyForm(qid, parentId, authorName, isTeacher) {
+    const container = document.getElementById(`answers-${qid}`);
+    container.style.display = 'block';
+    
+    const replyBox = document.getElementById(`reply-box-${qid}`);
+    replyBox.style.display = 'block';
+    
+    const textInput = document.getElementById(`reply-text-${qid}`);
+    
+    const mentionName = isTeacher ? 'Teacher' : authorName;
+    textInput.value = `@${mentionName} `;
+    textInput.focus();
+    
+    const postBtn = replyBox.querySelector('button[onclick^="submitAnswer"]');
+    postBtn.setAttribute('data-parent-id', parentId);
+    
+    textInput.placeholder = `Replying as Teacher to ${mentionName}...`;
+  }
+
+  function submitAnswer(qid, btn) {
+    const textInput = document.getElementById(`reply-text-${qid}`);
+    const text = textInput.value.trim();
+    const parentId = btn.getAttribute('data-parent-id') || '';
+
+    if (!text) {
+      showABCDModal({ title: 'Input Required', message: "Please enter a response.", type: 'info' });
+      return;
+    }
+    
+    console.log(`[Q&A v3.0] Teacher submitting answer for question ${qid} (Parent: ${parentId})...`);
+
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Posting...';
+
+    const csrftoken = getCookie('csrftoken') || '{{ csrf_token }}';
+
+    const params = new URLSearchParams();
+    params.append('answer', text);
+    if (parentId) params.append('parent_id', parentId);
+
+    fetch(`/api/questions/${qid}/answer/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrftoken
+      },
+      body: params
+    })
+    .then(async res => {
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        return res.json().then(data => ({ status: res.status, data }));
+      } else {
+        const text = await res.text();
+        return { status: res.status, error: text };
+      }
+    })
+    .then(result => {
+      if (result.status >= 200 && result.status < 300) {
+        if (result.data && result.data.success) {
+          btn.innerText = 'Answer Saved!';
+          btn.style.background = 'var(--success)';
+          setTimeout(() => {
+            location.reload();
+          }, 800);
+        } else {
+          showABCDModal({ title: 'Error', message: (result.data && result.data.error) || "Failed to post answer", type: 'error' });
+          btn.disabled = false;
+          btn.innerText = 'Post Verified Answer';
+        }
+      } else {
+        const errorMsg = result.error || 'Please try again later.';
+        showABCDModal({ title: 'Server Error', message: `Server error (${result.status}): ${errorMsg}`, type: 'error' });
+        btn.disabled = false;
+        btn.innerText = 'Post Verified Answer';
+      }
+    })
+    .catch(err => {
+      console.error('Teacher Network error:', err);
+      showABCDModal({ title: 'Network Error', message: "A network error occurred.", type: 'error' });
+      btn.disabled = false;
+      btn.innerText = 'Post Verified Answer';
+    });
+  }
+
+  function trackEngagement(action, id, platform = 'generic') {
+    fetch('/api/track-engagement/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken') || '{{ csrf_token }}'
+      },
+      body: JSON.stringify({
+        action: action,
+        course_id: id,
+        platform: platform
+      })
+    })
+    .then(res => res.json())
+    .catch(err => console.error('Tracking failed:', err));
+  }
+
+  // --- PROFESSIONAL SHARE SYSTEM ---
+  function handleShare() {
+    const shareData = {
+      title: '{{ course.title|escapejs }}',
+      text: 'Master this course with premium curriculum: {{ course.title|escapejs }}',
+      url: window.location.origin + "{% url 'users:course_detail' course.id %}"
+    };
+
+    // Track the intent
+    trackEngagement('share_intent', '{{ course.id }}');
+
+    if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      navigator.share(shareData)
+        .then(() => trackEngagement('share', '{{ course.id }}', 'native'))
+        .catch(() => openShareModal(shareData));
+    } else {
+      openShareModal(shareData);
+    }
+  }
+
+  function openShareModal(data) {
+    document.getElementById('shareUrlInput').value = data.url;
+    document.getElementById('shareModal').style.display = 'flex';
+  }
+
+  function closeShareModal() {
+    document.getElementById('shareModal').style.display = 'none';
+  }
+
+  function copyShareLink() {
+    const input = document.getElementById('shareUrlInput');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    
+    const btn = document.getElementById('copyShareBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    trackEngagement('share', '{{ course.id }}', 'copy_link');
+    
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  }
+
+  function shareTo(platform) {
+    const url = encodeURIComponent(document.getElementById('shareUrlInput').value);
+    const text = encodeURIComponent('Check out this amazing course: {{ course.title|escapejs }}');
+    let shareUrl = '';
+
+    switch(platform) {
+      case 'whatsapp': shareUrl = `https://wa.me/?text=${text}%20${url}`; break;
+      case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
+      case 'twitter': shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`; break;
+      case 'email': shareUrl = `mailto:?subject=${text}&body=${url}`; break;
+    }
+
+    if (shareUrl) {
+      window.open(shareUrl, '_blank');
+      trackEngagement('share', '{{ course.id }}', platform);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.lb-bar-fill').forEach(bar => {
+      const val = parseInt(bar.getAttribute('data-width')) || 0;
+      const max = parseInt(bar.getAttribute('data-max')) || 1;
+      const percent = (val / max) * 100;
+      setTimeout(() => {
+        bar.style.width = percent + '%';
+      }, 300);
+    });
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.rating-bar-fill, .lb-bar-fill').forEach(bar => {
+      const w = bar.getAttribute('data-width');
+      if (w) bar.style.width = w + '%';
+    });
+  });
+
+  // Fullscreen / Zoom logic
+  function togglePlayerZoom(e) {
+      if (e) e.stopPropagation();
+      const wrapper = document.getElementById('playerWrapper');
+      const zoomBtn = document.getElementById('playerZoomBtn');
+      if (!wrapper || !zoomBtn) return;
+      
+      wrapper.classList.toggle('viewport-fullscreen');
+      const isFullscreen = wrapper.classList.contains('viewport-fullscreen');
+      
+      const icon = zoomBtn.querySelector('i');
+      if (icon) {
+          if (isFullscreen) {
+              icon.className = 'bx bx-collapse';
+              document.body.style.overflow = 'hidden';
+          } else {
+              icon.className = 'bx bx-expand';
+              document.body.style.overflow = '';
+          }
+      }
+  }
+
+  document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+          const wrapper = document.getElementById('playerWrapper');
+          if (wrapper && wrapper.classList.contains('viewport-fullscreen')) {
+              togglePlayerZoom();
+          }
+      }
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+          if (e.key.toLowerCase() === 'f') {
+              const iframe = document.querySelector('#mainPlayerFrame');
+              const wrapper = document.getElementById('playerWrapper');
+              const target = iframe || wrapper;
+              
+              if (target) {
+                  if (!document.fullscreenElement) {
+                      if (target.requestFullscreen) {
+                          target.requestFullscreen().catch(err => {
+                              wrapper.requestFullscreen();
+                          });
+                      }
+                  } else {
+                      document.exitFullscreen();
+                  }
+              }
+          }
+      }
+  });
+</script>
+
+<!-- ABCD Custom Modal -->
+<div id="abcdModal" class="abcd-modal-overlay">
+    <div class="abcd-modal-container">
+        <div id="abcdModalIcon" class="abcd-modal-icon"></div>
+        <div id="abcdModalTitle" class="abcd-modal-title"></div>
+        <div id="abcdModalMessage" class="abcd-modal-message"></div>
+        <div class="abcd-modal-actions">
+            <button id="abcdModalCancel" class="abcd-modal-btn abcd-modal-btn-cancel" style="display: none;">Cancel</button>
+            <button id="abcdModalConfirm" class="abcd-modal-btn abcd-modal-btn-confirm">OK</button>
+        </div>
+    </div>
+</div>
+{% include 'partials/_smart_back_redirect.html' with back_url='users:teacher_courses' %}
+{% endblock %}

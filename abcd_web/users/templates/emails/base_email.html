@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ subject|default:"ABCD Coaching & Library" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    /* --- RESET & EMAIL SAFE STYLES --- */
+    body, table, td, a {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table {
+      border-collapse: collapse !important;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      height: 100% !important;
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    /* --- CONTAINER --- */
+    .email-wrapper {
+      width: 100%;
+      padding: 40px 0;
+      background-color: #f8fafc;
+    }
+
+    .email-card {
+      max-width: 580px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+    }
+
+    /* --- TOP ACCENT BAR --- */
+    .top-accent-bar {
+      height: 5px;
+      background: linear-gradient(90deg, #4f46e5 0%, #8b5cf6 50%, #ec4899 100%);
+    }
+
+    /* --- BRAND HEADER --- */
+    .email-header {
+      padding: 28px 32px 16px;
+      text-align: center;
+      background: #ffffff;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .email-header img {
+      max-width: 130px;
+      height: auto;
+      display: block;
+      margin: 0 auto 10px;
+    }
+
+    .email-header h1 {
+      color: #0f172a;
+      font-size: 18px;
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .email-header p {
+      color: #64748b;
+      font-size: 13px;
+      margin: 3px 0 0;
+    }
+
+    /* --- HERO ILLUSTRATION CONTAINER --- */
+    .hero-illustration-wrapper {
+      text-align: center;
+      background: #f8fafc;
+      padding: 20px 20px 10px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .hero-illustration-wrapper img {
+      max-width: 100%;
+      width: 320px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      border: none;
+    }
+
+    /* --- BODY --- */
+    .email-body {
+      padding: 32px;
+      color: #334155;
+      font-size: 15px;
+      line-height: 1.65;
+    }
+
+    .email-body h2 {
+      margin-top: 0;
+      margin-bottom: 14px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+
+    .email-body p {
+      margin: 0 0 16px;
+      color: #334155;
+    }
+
+    /* --- BUTTONS --- */
+    .btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 13px 28px;
+      background-color: #4f46e5;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+    }
+
+    .btn:hover {
+      background-color: #4338ca;
+    }
+
+    .btn-secondary {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 11px 22px;
+      background-color: #f1f5f9;
+      color: #334155 !important;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* --- ALERT BLOCKS --- */
+    .alert {
+      padding: 16px;
+      border-radius: 12px;
+      margin: 20px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .alert-success {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    .alert-danger {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    /* --- FOOTER --- */
+    .email-footer {
+      background-color: #f8fafc;
+      padding: 24px 32px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .email-footer a {
+      color: #4f46e5;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* --- MOBILE RESPONSIVE --- */
+    @media screen and (max-width: 600px) {
+      .email-wrapper {
+        padding: 16px 8px;
+      }
+      .email-body {
+        padding: 24px 20px;
+      }
+      .email-header {
+        padding: 24px 20px 14px;
+      }
+      .hero-illustration-wrapper img {
+        width: 260px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="email-wrapper">
+
+    <div class="email-card">
+
+      <!-- TOP GRADIENT ACCENT -->
+      <div class="top-accent-bar"></div>
+
+      <!-- BRAND HEADER -->
+      <div class="email-header">
+        {% if logo_url %}
+        <img src="{{ logo_url }}" alt="ABCD Logo">
+        {% elif site_url %}
+        <img src="{{ site_url }}/static/data/dark-logo.png" alt="ABCD Logo">
+        {% endif %}
+        <h1>ABCD Coaching & Library</h1>
+        <p>Premium Education & Study Environment</p>
+      </div>
+
+      <!-- HERO 2D CHARACTER ILLUSTRATION -->
+      {% if illustration_url %}
+      <div class="hero-illustration-wrapper">
+        <img src="{{ illustration_url }}" alt="ABCD Illustration">
+      </div>
+      {% endif %}
+
+      <!-- BODY -->
+      <div class="email-body">
+        {% block content %}
+        <!-- Email-specific content goes here -->
+        {% endblock %}
+      </div>
+
+      <!-- FOOTER -->
+      <div class="email-footer">
+        <p style="margin:0 0 8px; font-weight: 500;">
+          © {{ now|date:"Y" }} ABCD Coaching & Library • Ganj Basoda, MP
+        </p>
+        <p style="margin:0;">
+          <a href="{% if site_url %}{{ site_url }}{% else %}/{% endif %}">Main Portal</a> &nbsp;•&nbsp;
+          <a href="{% if site_url %}{{ site_url }}{% url 'users:login' %}{% else %}{% url 'users:login' %}{% endif %}">Student Login</a>
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+</html>

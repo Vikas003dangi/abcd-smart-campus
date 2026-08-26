@@ -1,0 +1,2232 @@
+{% extends 'users/teacher_dashboard.html' %}
+{% load static %}
+
+{% block title %}Course Management | ABCD{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<style>
+  /* Cropper Styles - High Vibrance Selection & Bright Highlight */
+  .cropper-container-wrapper {
+    max-width: 100%;
+    max-height: 400px;
+    margin-bottom: 20px;
+    background: #f1f1f1;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  #cropperImage { max-width: 100%; display: block; }
+  
+  .cropper-container {
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .cropper-bg {
+    background-image: none !important;
+    background-color: #0f172a !important;
+  }
+
+  /* Unselected outer vignette - Keep strictly below crop box */
+  .cropper-modal {
+    background-color: rgba(15, 23, 42, 0.45) !important;
+    opacity: 1 !important;
+    z-index: 1 !important;
+  }
+
+  /* Force Crop Box to sit WAY ABOVE the dark vignette */
+  .cropper-crop-box {
+    z-index: 100 !important;
+  }
+
+  /* Remove any overlay mask inside the selected area */
+  .cropper-face {
+    background-color: transparent !important;
+    opacity: 0 !important;
+    display: none !important;
+  }
+
+  /* Selected crop box frame - Vibrant Electric Blue Outline */
+  .cropper-view-box {
+    outline: 2px solid #3b82f6 !important;
+    outline-offset: 0 !important;
+    border: none !important;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5) !important;
+    background-color: transparent !important;
+    z-index: 101 !important;
+    opacity: 1 !important;
+  }
+
+  /* Cloned image inside view-box MUST remain in 100% PURE ORIGINAL NATURAL FULL BRIGHTNESS */
+  .cropper-view-box img {
+    filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    mix-blend-mode: normal !important;
+  }
+
+  /* Electric Blue Rule of Thirds Grid Lines */
+  .cropper-dashed {
+    border: 0 solid rgba(59, 130, 246, 0.5) !important;
+  }
+  .cropper-dashed.dashed-h {
+    border-top-width: 1px !important;
+    border-bottom-width: 1px !important;
+  }
+  .cropper-dashed.dashed-v {
+    border-left-width: 1px !important;
+    border-right-width: 1px !important;
+  }
+
+  /* Electric Blue Corner Brackets (L-shaped) */
+  .cropper-point.point-nw {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-top: 4px solid #3b82f6 !important;
+    border-left: 4px solid #3b82f6 !important;
+    top: -4px !important;
+    left: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+  .cropper-point.point-ne {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-top: 4px solid #3b82f6 !important;
+    border-right: 4px solid #3b82f6 !important;
+    top: -4px !important;
+    right: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+  .cropper-point.point-sw {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-bottom: 4px solid #3b82f6 !important;
+    border-left: 4px solid #3b82f6 !important;
+    bottom: -4px !important;
+    left: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+  .cropper-point.point-se {
+    width: 22px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border-bottom: 4px solid #3b82f6 !important;
+    border-right: 4px solid #3b82f6 !important;
+    bottom: -4px !important;
+    right: -4px !important;
+    opacity: 1 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+
+  /* Electric Blue Mid-side Handles */
+  .cropper-point.point-n {
+    width: 30px !important;
+    height: 6px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    top: -4px !important;
+    margin-left: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+  .cropper-point.point-s {
+    width: 30px !important;
+    height: 6px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    bottom: -4px !important;
+    margin-left: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+  .cropper-point.point-e {
+    width: 6px !important;
+    height: 30px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    right: -4px !important;
+    margin-top: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+  .cropper-point.point-w {
+    width: 6px !important;
+    height: 30px !important;
+    background-color: #3b82f6 !important;
+    border: 1px solid #ffffff !important;
+    left: -4px !important;
+    margin-top: -15px !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
+    z-index: 110 !important;
+  }
+
+  /* Edge lines */
+  .cropper-line {
+    background-color: #3b82f6 !important;
+    opacity: 0.8 !important;
+  }
+
+  /* Tool buttons styling for Cropper Toolbar */
+  .tc-crop-tool-btn {
+    padding: 8px 14px !important;
+    border-radius: 10px !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    cursor: pointer;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .tc-crop-tool-btn:hover {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+    border-color: #6366f1 !important;
+    transform: translateY(-1px) !important;
+  }
+
+  .tc-crop-tool-btn.danger:hover {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+  }
+
+  body.dark-theme .tc-crop-tool-btn {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #f1f5f9 !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  body.dark-theme .tc-crop-tool-btn:hover {
+    background: #6366f1 !important;
+    color: #ffffff !important;
+    border-color: #6366f1 !important;
+  }
+
+  .tc-crop-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .tc-preview-actions {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+  }
+  .tc-preview-btn {
+    background: rgba(21, 52, 72, 0.9);
+    color: white;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .tc-preview-btn:hover {
+    background: #153448;
+    transform: translateY(-2px);
+  }
+  .tc-preview-btn.tc-btn-remove {
+    background: rgba(153, 27, 27, 0.9);
+  }
+  .tc-preview-btn.tc-btn-remove:hover {
+    background: #991b1b;
+  }
+
+  /* ======================================================
+     TEACHER COURSES – Uses dashboard's own containers
+     Only adds course-specific styles. All fonts, colors,
+     nav, sidebar, footer come from teacher_dashboard.html
+  ====================================================== */  
+  
+  /* --- LAYOUT WRAPPER --- */
+  .tc-wrapper {
+    max-width: 1400px;
+    margin: 80px auto 100px;
+    padding: 0 40px;
+    min-height: 80vh;
+  }
+
+  /* --- PAGE HERO / HEADER --- */
+  .tc-hero {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    border-radius: 32px;
+    padding: 35px 45px;
+    margin-bottom: 45px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+    box-shadow: 0 20px 50px rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  body.dark-theme .tc-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  }
+
+  .tc-hero-content h2 {
+    font-family: 'Inter', 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 2rem;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .tc-hero-content p {
+    opacity: 0.85;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .tc-action-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .tc-action-btn {
+    padding: 12px 24px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
+    color: white;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+  }
+  .tc-action-btn:hover {
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  }
+
+  /* --- ALERTS --- */
+  .tc-alert {
+    padding: 14px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #10b98133; }
+  .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #ef444433; }
+  .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b33; }
+  .alert-info { background: #e0f2fe; color: #075985; border: 1px solid #0ea5e933; }
+
+  .tc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 25px;
+  }
+  
+  .tc-card {
+    background: white;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  body.dark-theme .tc-card {
+    background: #1e1b4b;
+    border-color: rgba(255,255,255,0.05);
+  }
+  .tc-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.2);
+  }
+
+  .tc-card-thumb {
+    height: 180px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  body.dark-theme .tc-card-thumb {
+    background: #111827;
+  }
+  .tc-card-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tc-card:hover .tc-card-thumb img {
+    transform: scale(1.1);
+  }
+
+  .tc-status-badge {
+    position: absolute;
+    top: 15px; right: 15px;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
+    z-index: 5;
+  }
+  .badge-active { background: rgba(34,197,94,0.85); color: #fff; }
+  .badge-inactive { background: rgba(239,68,68,0.85); color: #fff; }
+
+  .tc-card-body {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .tc-card-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1e1b4b;
+    margin-bottom: 8px;
+    line-height: 1.4;
+    transition: color 0.3s ease;
+  }
+  body.dark-theme .tc-card-title {
+    color: #fff2de;
+  }
+  
+  .tc-rating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+  }
+  .tc-rating-badge i {
+    color: #fbbf24;
+    font-size: 0.9rem;
+  }
+
+  .tc-card-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+  body.dark-theme .tc-card-meta { color: rgba(255,242,222,0.6); }
+
+  .tc-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    flex-wrap: nowrap;
+  }
+
+  .tc-card-admin-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  body.dark-theme .tc-card-admin-actions {
+    border-top-color: rgba(255,255,255,0.05);
+  }
+
+  .tc-card-btn {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.8rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.25);
+  }
+  body.dark-theme .btn-primary {
+    background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+    color: #1e1b4b;
+    box-shadow: 0 4px 12px rgba(129, 140, 248, 0.15);
+  }
+  body.dark-theme .btn-primary:hover {
+    background: linear-gradient(135deg, #a5b4fc 0%, #d8b4fe 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(129, 140, 248, 0.25);
+  }
+
+  .btn-outline {
+    background: rgba(99, 102, 241, 0.06);
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.15);
+  }
+  .btn-outline:hover {
+    background: #6366f1;
+    color: #fff;
+    border-color: #6366f1;
+    transform: translateY(-2px);
+  }
+  body.dark-theme .btn-outline {
+    background: rgba(129, 140, 248, 0.06);
+    color: #a5b4fc;
+    border: 1px solid rgba(129, 140, 248, 0.2);
+  }
+  body.dark-theme .btn-outline:hover {
+    background: #818cf8;
+    color: #1e1b4b;
+    border-color: #818cf8;
+    transform: translateY(-2px);
+  }
+
+  .btn-status {
+    flex: 4;
+    font-size: 0.75rem;
+    border: 1px solid transparent;
+  }
+  .btn-status-active {
+    background: rgba(34, 197, 94, 0.08);
+    color: #15803d;
+    border-color: rgba(34, 197, 94, 0.15);
+  }
+  .btn-status-active:hover {
+    background: #22c55e !important;
+    color: #fff !important;
+    border-color: #22c55e !important;
+    transform: translateY(-2px);
+  }
+  .btn-status-inactive {
+    background: rgba(245, 158, 11, 0.08);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.15);
+  }
+  .btn-status-inactive:hover {
+    background: #f59e0b !important;
+    color: #fff !important;
+    border-color: #f59e0b !important;
+    transform: translateY(-2px);
+  }
+  
+  body.dark-theme .btn-status-active {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.2);
+  }
+  body.dark-theme .btn-status-inactive {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.2);
+  }
+
+  .btn-danger {
+    flex: 1;
+    background: rgba(239, 68, 68, 0.08);
+    color: #b91c1c;
+    border: 1px solid rgba(239, 68, 68, 0.15);
+  }
+  .btn-danger:hover {
+    background: #ef4444;
+    color: #fff;
+    border-color: #ef4444;
+    transform: translateY(-2px);
+  }
+  body.dark-theme .btn-danger {
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.2);
+  }
+  body.dark-theme .btn-danger:hover {
+    background: #ef4444;
+    color: #fff;
+    border-color: #ef4444;
+    transform: translateY(-2px);
+  }
+
+  /* --- EMPTY STATE --- */
+  .tc-empty {
+    text-align: center;
+    padding: 60px 20px;
+    grid-column: 1 / -1;
+  }
+  .tc-empty .icon { font-size: 3rem; margin-bottom: 10px; }
+  .tc-empty p { opacity: 0.6; }
+  body.dark-theme .tc-empty h3,
+  body.dark-theme .tc-empty p {
+    color: wheat;
+  }
+
+  /* --- MODAL CONTAINER & BACKGROUND --- */
+  .tc-modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .tc-modal-bg.open { display: flex; }
+
+  .tc-modal-box {
+    background: #ffffff;
+    color: #0f172a;
+    width: 550px;
+    max-width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 24px;
+    padding: 32px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    position: relative;
+    animation: modalPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  body.dark-theme .tc-modal-box {
+    background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%);
+    color: #f8fafc;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(139, 92, 246, 0.15);
+  }
+
+  .tc-modal-box h2 {
+    font-family: 'Inter', 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 1.35rem;
+    color: #0f172a;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+  body.dark-theme .tc-modal-box h2 {
+    color: #ffffff;
+  }
+
+  @keyframes modalPop {
+    from { transform: scale(0.9) translateY(15px); opacity: 0; }
+    to   { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  /* Modal Close Button */
+  .tc-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 22px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+  }
+  .tc-modal-close:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+    transform: rotate(90deg);
+  }
+  body.dark-theme .tc-modal-close {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #f8fafc !important;
+  }
+  body.dark-theme .tc-modal-close:hover {
+    background: #ef4444;
+    color: #ffffff !important;
+    border-color: #ef4444;
+    transform: rotate(90deg);
+  }
+
+  /* Modal Action Buttons (Cancel / Apply) */
+  .tc-modal-cancel-btn {
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .tc-modal-cancel-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+  body.dark-theme .tc-modal-cancel-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  body.dark-theme .tc-modal-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+  }
+
+  .tc-modal-submit-btn {
+    padding: 12px 26px;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+  .tc-modal-submit-btn:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.5);
+  }
+
+  .tc-form-group { margin-bottom: 18px; }
+  .tc-form-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #526D82;
+  }
+  body.dark-theme .tc-form-label { color: rgba(255,242,222,0.6); }
+
+  .tc-form-input,
+  .tc-form-textarea,
+  .tc-form-select {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(0,0,0,0.1);
+    font-size: 0.95rem;
+    background: #f9fafb;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  body.dark-theme .tc-form-input,
+  body.dark-theme .tc-form-textarea,
+  body.dark-theme .tc-form-select {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,242,222,0.15);
+    color: #fff2de;
+  }
+  .tc-form-input:focus,
+  .tc-form-textarea:focus,
+  .tc-form-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+  }
+
+  /* Upload Zone */
+  .tc-upload-zone {
+    border: 2px dashed rgba(82,109,130,0.35);
+    border-radius: 14px;
+    padding: 25px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .tc-upload-zone:hover {
+    border-color: #667eea;
+    background: rgba(102,126,234,0.03);
+  }
+  .tc-upload-zone input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10 !important;
+  }
+  .tc-upload-preview {
+    margin-top: 12px;
+    display: none;
+    position: relative;
+    z-index: 20 !important;
+  }
+  .tc-upload-preview img {
+    max-width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 10px;
+  }
+
+  .tc-submit-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.2s ease;
+  }
+  .tc-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102,126,234,0.3);
+  }
+
+  /* --- YT WIZARD MODAL --- */
+  .yt-wizard-box { width: 750px; }
+  .yt-tabs { display: flex; gap: 0; margin-bottom: 25px; border-bottom: 2px solid rgba(0,0,0,0.08); }
+  .yt-tab { flex:1; padding: 12px; text-align:center; font-weight:700; font-size:0.85rem; cursor:pointer; border-bottom: 3px solid transparent; transition: all 0.2s; background:none; border-top:none; border-left:none; border-right:none; color:#526D82; }
+  .yt-tab.active { color:#667eea; border-bottom-color:#667eea; }
+  .yt-panel { display: none; } .yt-panel.active { display: block; }
+  .yt-loading { text-align:center; padding:40px; opacity:0.6; }
+  .yt-error { padding:15px; background:#fee2e2; color:#991b1b; border-radius:12px; margin-bottom:15px; font-weight:600; }
+  .yt-list { max-height: 400px; overflow-y: auto; }
+  .yt-item { display:flex; gap:15px; padding:12px; border-radius:12px; margin-bottom:8px; cursor:pointer; transition: background 0.2s; border:1.5px solid transparent; align-items:center; }
+  .yt-item:hover { background: rgba(102,126,234,0.05); }
+  .yt-item.selected { border-color:#667eea; background:rgba(102,126,234,0.08); }
+  .yt-item img { width:120px; height:68px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+  .yt-item-info { flex:1; min-width:0; }
+  .yt-item-title { font-weight:700; font-size:0.9rem; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .yt-item-meta { font-size:0.78rem; opacity:0.6; }
+  .yt-item .yt-order { width:28px; height:28px; border-radius:50%; background:#667eea; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem; flex-shrink:0; }
+  .yt-import-btn { padding:10px 20px; border-radius:10px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; font-weight:700; cursor:pointer; font-size:0.85rem; transition:all 0.2s; }
+  .yt-import-btn:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(102,126,234,0.3); }
+  .yt-import-btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+  .yt-custom-form { margin-top:20px; padding-top:20px; border-top:1px solid rgba(0,0,0,0.08); }
+  .yt-thumb-option { display:flex; gap:10px; align-items:center; margin-top:10px; font-size:0.85rem; }
+  .yt-thumb-option input[type=checkbox] { width:18px; height:18px; }
+
+  .tc-back-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .tc-back-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateX(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  }
+
+  /* --- RESPONSIVE --- */
+  @media (max-width: 992px) {
+    .tc-wrapper {
+      padding: 0 20px;
+      margin: 40px auto 60px;
+    }
+    .tc-hero {
+      padding: 30px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .tc-hero {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+      padding: 25px 20px;
+      gap: 20px;
+      border-radius: 24px;
+    }
+    .tc-hero-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tc-hero-content > div {
+      justify-content: center;
+      width: 100%;
+    }
+    .tc-hero-content h2 {
+      font-size: 1.6rem;
+      white-space: nowrap;
+    }
+    .tc-hero-content p {
+      font-size: 0.9rem;
+    }
+    .tc-action-bar {
+      justify-content: center;
+      width: 100%;
+    }
+    .tc-action-btn {
+      flex: 1;
+      justify-content: center;
+      font-size: 0.85rem;
+      padding: 10px 16px;
+    }
+    .tc-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .tc-card-meta {
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+    .tc-card-actions {
+      flex-wrap: wrap;
+    }
+    .tc-card-actions .btn-primary {
+      flex: 1 0 100%;
+      margin-bottom: 8px;
+    }
+    .tc-card-actions .btn-outline {
+      flex: 1;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .tc-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 550px) {
+    .tc-modal-box {
+      padding: 20px 15px;
+      border-radius: 16px;
+    }
+    .tc-modal-close {
+      top: 10px;
+      right: 15px;
+    }
+    .tc-modal-box h2 {
+      font-size: 1.4rem;
+      margin-bottom: 15px !important;
+    }
+    .tc-submit-btn {
+      padding: 12px;
+      font-size: 0.9rem;
+      margin-top: 15px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .tc-wrapper {
+      padding: 0 12px;
+      margin: 20px auto 40px;
+    }
+    .tc-hero {
+      padding: 20px 15px;
+      gap: 15px;
+    }
+    .tc-hero-content h2 {
+      font-size: 1.35rem;
+      white-space: nowrap;
+    }
+    .tc-action-bar {
+      flex-direction: column;
+    }
+    .tc-action-btn {
+      width: 100%;
+      flex: none;
+    }
+    .tc-card {
+      border-radius: 20px;
+    }
+    .tc-card-body {
+      padding: 15px;
+    }
+    .tc-card-title {
+      font-size: 1.05rem;
+    }
+    .tc-card-meta {
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+      gap: 10px;
+    }
+    .tc-card-actions {
+      flex-wrap: wrap;
+    }
+    .tc-card-actions .btn-primary {
+      flex: 1 0 100%;
+      margin-bottom: 8px;
+    }
+    .tc-card-actions .btn-outline {
+      flex: 1;
+    }
+    .tc-card-btn {
+      padding: 8px 10px;
+      font-size: 0.75rem;
+    }
+    .tc-card-admin-actions {
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+    .btn-status {
+      font-size: 0.72rem;
+    }
+    .yt-tabs {
+      margin-bottom: 15px;
+    }
+    .yt-tab {
+      padding: 8px 4px;
+      font-size: 0.75rem;
+    }
+    .yt-item {
+      gap: 8px;
+      padding: 8px;
+    }
+    .yt-item img {
+      width: 80px;
+      height: 45px;
+    }
+    .yt-item-title {
+      font-size: 0.8rem;
+    }
+    .yt-item-meta {
+      font-size: 0.7rem;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .tc-hero-content h2 {
+      font-size: 1.12rem;
+      white-space: nowrap;
+    }
+    .tc-back-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 1.3rem;
+    }
+    .yt-item img {
+      width: 64px;
+      height: 36px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+  <main class="tc-wrapper">
+    <!-- Page Hero -->
+    <section class="tc-hero" data-tour="tc-hero">
+      <div class="tc-hero-content">
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+          <a href="{% url 'users:teacher_dashboard' %}" class="tc-back-btn" title="Back to Dashboard">
+            <i class='bx bx-left-arrow-alt'></i>
+          </a>
+          <h2 style="margin-bottom: 0;">🎓 Course Management</h2>
+        </div>
+        <p>Create, organize, and manage your online curriculum from this hub.</p>
+      </div>
+      <div class="tc-action-bar" data-tour="tc-action-bar">
+        <button class="tc-action-btn" onclick="openCourseModal()" data-tour="course-create-btn">
+          <i class='bx bx-plus-circle'></i> Create New Course
+        </button>
+        <button class="tc-action-btn" onclick="openYTWizard()" data-tour="course-sync-yt-btn">
+          <i class='bx bx-sync'></i> Sync YouTube
+        </button>
+      </div>
+    </section>
+
+    <!-- Django Messages -->
+    {% if messages %}
+      <div style="margin-bottom: 30px;">
+        {% for msg in messages %}
+          <div class="tc-alert alert-{{ msg.tags|default:'info' }}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Course Grid -->
+    <div class="tc-grid" id="courseGrid" data-tour="course-list-grid">
+      {% for course in courses %}
+      <div class="tc-card">
+        <div class="tc-card-thumb">
+          {% if course.thumbnail %}
+            <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}">
+          {% else %}
+            🎓
+          {% endif %}
+          <span class="tc-status-badge {% if course.is_active %}badge-active{% else %}badge-inactive{% endif %}">
+            {% if course.is_active %}Active{% else %}Inactive{% endif %}
+          </span>
+        </div>
+        <div class="tc-card-body">
+          <h3 class="tc-card-title">{{ course.title }}</h3>
+          
+          <div class="tc-rating-badge">
+            <i class='bx bxs-star'></i>
+            <span>{{ course.average_rating }}</span>
+            <span style="opacity:0.6; font-weight:400; font-size:0.7rem; margin-left:4px;">({{ course.review_count }})</span>
+          </div>
+
+          <div class="tc-card-meta">
+            <span>🎬 {{ course.video_count }} Videos</span>
+            <span>📄 {{ course.studymaterial_set.count }} Materials</span>
+          </div>
+
+          <!-- Main Actions Row -->
+          <div class="tc-card-actions">
+            <a href="{% url 'users:teacher_course_materials' course.id %}" class="tc-card-btn btn-primary">Materials</a>
+            <button class="tc-card-btn btn-outline" 
+                    onclick="openEditModal('{{ course.id }}', '{{ course.title|escapejs }}', '{{ course.description|escapejs }}', '{% if course.is_active %}1{% else %}0{% endif %}', '{% if course.thumbnail %}{{ course.thumbnail.url }}{% endif %}', '{% if course.target_public %}1{% else %}0{% endif %}', '{% if course.target_coaching %}1{% else %}0{% endif %}', '{{ course.target_coaching_batches|escapejs }}', '{% if course.target_alumni %}1{% else %}0{% endif %}', '{% if course.target_library %}1{% else %}0{% endif %}', '{{ course.target_library_floors|escapejs }}', '{% if course.target_private %}1{% else %}0{% endif %}')">
+              Edit
+            </button>
+            <a href="{% url 'users:teacher_course_preview' course.id %}" class="tc-card-btn btn-outline">Preview</a>
+          </div>
+
+          <!-- Admin Actions Row -->
+          <div class="tc-card-admin-actions">
+            <button type="button"
+                    class="tc-card-btn btn-status {% if course.is_active %}btn-status-active{% else %}btn-status-inactive{% endif %}"
+                    data-toggle-url="{% url 'users:toggle_course_status' course.id %}"
+                    data-active="{% if course.is_active %}1{% else %}0{% endif %}"
+                    onclick="toggleCourseStatus(this)">
+              {% if course.is_active %}
+                <i class='bx bx-check-circle'></i> Active
+              {% else %}
+                <i class='bx bx-x-circle'></i> Inactive
+              {% endif %}
+            </button>
+            
+            {% if request.user.is_superuser %}
+            <a href="{% url 'users:delete_course' course.id %}" class="tc-card-btn btn-danger delete-course-btn">
+              <i class='bx bx-trash'></i>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="tc-empty">
+        <div class="icon">📭</div>
+        <h3>No courses yet</h3>
+        <p>Click <strong>Create New Course</strong> or <strong>Sync YouTube</strong> to get started.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+
+<!-- ===== CREATE COURSE MODAL ===== -->
+<div id="courseModal" class="tc-modal-bg">
+  <div class="tc-modal-box">
+    <button class="tc-modal-close" onclick="closeCourseModal()"><i class='bx bx-x'></i></button>
+    <h2 style="font-weight: 800; margin-bottom: 25px;">Create New Course</h2>
+
+    <form method="post" action="{% url 'users:add_course' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Course Title *</label>
+        <input type="text" name="title" class="tc-form-input"
+               placeholder="e.g. Spoken English Mastery" required>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Description (optional)</label>
+        <textarea name="description" class="tc-form-textarea" rows="3"
+                  placeholder="Brief overview of this course..."></textarea>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Course Thumbnail</label>
+        <div class="tc-upload-zone" id="uploadZone">
+          <input type="file" id="courseThumbInput" name="thumbnail" accept="image/*"
+                 onchange="handleThumbSelection(this)">
+          <input type="hidden" name="cropped_thumbnail" id="croppedThumbData">
+          <div id="uploadLabel">🖼 Click to upload image (1280×720 recommended)</div>
+          <div class="tc-upload-preview" id="thumbPreview">
+            <img id="thumbPreviewImg" src="" alt="Preview">
+            <button type="button" class="tc-crop-trigger" onclick="reCropImage()">✂ Edit/Crop Image</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label" style="text-align: center;">For Whom the Course Is</label>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+            <input type="checkbox" name="target_public" class="target-chk target-public" value="1" checked>
+            Public (For Everyone)
+          </label>
+
+          <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" name="target_coaching" class="target-chk target-coaching" value="1">
+              For Coaching Students
+            </label>
+            <div class="batch-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Batches:</span>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="coaching_batches" value="all" checked> All Batches
+              </label>
+              {% for value, name in BATCH_CHOICES %}
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="coaching_batches" value="{{ value }}"> {{ name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+            <input type="checkbox" name="target_alumni" class="target-chk target-alumni" value="1">
+            For Alumni (Achievement form filled)
+          </label>
+
+          <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" name="target_library" class="target-chk target-library" value="1">
+              For Library Students
+            </label>
+            <div class="floor-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Floor:</span>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="library_floors" value="both" checked> Both Floors
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="library_floors" value="Ground Floor"> Ground Floor
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="library_floors" value="1st Floor"> 1st Floor
+              </label>
+            </div>
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+            <input type="checkbox" name="target_private" class="target-chk target-private" value="1">
+            Private (just to add)
+          </label>
+        </div>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Visibility</label>
+        <select name="is_active" class="tc-form-select">
+          <option value="1">🟢 Active (visible to students)</option>
+          <option value="0">🔴 Inactive (draft / hidden)</option>
+        </select>
+      </div>
+
+      <button type="submit" class="tc-submit-btn">Save & Publish Course</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== EDIT COURSE MODAL ===== -->
+<div id="editCourseModal" class="tc-modal-bg">
+  <div class="tc-modal-box">
+    <button class="tc-modal-close" onclick="closeEditModal()"><i class='bx bx-x'></i></button>
+    <h2 style="font-weight: 800; margin-bottom: 25px;">Edit Course Details</h2>
+
+    <form method="post" id="editCourseForm" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="course_id" id="editCourseId">
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Course Title *</label>
+        <input type="text" name="title" id="editCourseTitle" class="tc-form-input" required>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Description</label>
+        <textarea name="description" id="editCourseDesc" class="tc-form-textarea" rows="3"></textarea>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Change Thumbnail</label>
+        <div class="tc-upload-zone" id="editUploadZone">
+          <input type="file" id="editCourseThumbInput" accept="image/*"
+                 onchange="handleThumbSelection(this, 'edit')">
+          <input type="hidden" name="cropped_thumbnail" id="editCroppedThumbData">
+          <input type="hidden" name="remove_thumbnail" id="editRemoveThumb" value="0">
+          <div id="editUploadLabel">🖼 Click to change image</div>
+          <div class="tc-upload-preview" id="editThumbPreview" style="display:block;">
+            <img id="editThumbPreviewImg" src="" alt="Preview">
+            <div class="tc-preview-actions">
+              <button type="button" class="tc-preview-btn tc-btn-crop" onclick="reCropImage('edit')">✂ Edit/Crop</button>
+              <button type="button" class="tc-preview-btn tc-btn-remove" onclick="removeThumbnail()">🗑 Remove</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label" style="text-align: center;">For Whom the Course Is</label>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+            <input type="checkbox" name="target_public" class="target-chk target-public" value="1">
+            Public (For Everyone)
+          </label>
+
+          <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" name="target_coaching" class="target-chk target-coaching" value="1">
+              For Coaching Students
+            </label>
+            <div class="batch-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Batches:</span>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="coaching_batches" value="all"> All Batches
+              </label>
+              {% for value, name in BATCH_CHOICES %}
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="coaching_batches" value="{{ value }}"> {{ name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+            <input type="checkbox" name="target_alumni" class="target-chk target-alumni" value="1">
+            For Alumni (Achievement form filled)
+          </label>
+
+          <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" name="target_library" class="target-chk target-library" value="1">
+              For Library Students
+            </label>
+            <div class="floor-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Floor:</span>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="library_floors" value="both"> Both Floors
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="library_floors" value="Ground Floor"> Ground Floor
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                <input type="checkbox" name="library_floors" value="1st Floor"> 1st Floor
+              </label>
+            </div>
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+            <input type="checkbox" name="target_private" class="target-chk target-private" value="1">
+            Private (just to add)
+          </label>
+        </div>
+      </div>
+
+      <div class="tc-form-group">
+        <label class="tc-form-label">Visibility</label>
+        <select name="is_active" id="editCourseActive" class="tc-form-select">
+          <option value="1">🟢 Active</option>
+          <option value="0">🔴 Inactive</option>
+        </select>
+      </div>
+
+      <button type="submit" class="tc-submit-btn">Update Course</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== IMAGE CROP MODAL ===== -->
+<div id="cropModal" class="tc-modal-bg">
+  <div class="tc-modal-box" style="max-width: 880px; width: 95%;">
+    <button class="tc-modal-close" onclick="closeCropModal()"><i class='bx bx-x'></i></button>
+    <div style="margin-bottom: 16px;">
+      <h2 style="font-weight: 800; font-size: 1.4rem; margin: 0 0 6px 0;">✂ Crop Your Course Thumbnail (16:9)</h2>
+      <p style="margin: 0; font-size: 0.88rem; opacity: 0.7;">Pan, zoom, or adjust the 16:9 selection handles to frame your cover image.</p>
+    </div>
+    
+    <div class="tc-crop-container" style="background: #1e293b; border-radius: 16px; overflow: hidden; margin-bottom: 16px; height: 440px; border: 1px solid rgba(99, 102, 241, 0.25);">
+      <img id="cropperImage" src="" alt="To Crop" style="max-width: 100%; display: block;">
+    </div>
+
+    <!-- Interactive Cropper Toolbar Controls -->
+    <div class="tc-crop-toolbar" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; padding: 10px 14px; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 14px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <button type="button" class="tc-crop-tool-btn" onclick="zoomCropper(0.1)" title="Zoom In"><i class='bx bx-zoom-in'></i> Zoom In</button>
+        <button type="button" class="tc-crop-tool-btn" onclick="zoomCropper(-0.1)" title="Zoom Out"><i class='bx bx-zoom-out'></i> Zoom Out</button>
+        <div style="width: 1px; height: 20px; background: rgba(148, 163, 184, 0.3); margin: 0 4px;"></div>
+        <button type="button" class="tc-crop-tool-btn" onclick="rotateCropper(-90)" title="Rotate Left (-90°)"><i class='bx bx-undo'></i> Rotate Left</button>
+        <button type="button" class="tc-crop-tool-btn" onclick="rotateCropper(90)" title="Rotate Right (+90°)"><i class='bx bx-redo'></i> Rotate Right</button>
+        <div style="width: 1px; height: 20px; background: rgba(148, 163, 184, 0.3); margin: 0 4px;"></div>
+        <button type="button" class="tc-crop-tool-btn" onclick="flipHCropper()" title="Flip Horizontal"><i class='bx bx-reflect-vertical'></i> Flip</button>
+      </div>
+      <div>
+        <button type="button" class="tc-crop-tool-btn danger" onclick="resetCropper()" title="Reset Selection"><i class='bx bx-refresh'></i> Reset</button>
+      </div>
+    </div>
+    
+    <div style="display: flex; justify-content: flex-end; gap: 14px;">
+      <button type="button" class="tc-modal-cancel-btn" onclick="closeCropModal()">Cancel</button>
+      <button type="button" class="tc-modal-submit-btn" onclick="applyCrop()"><i class='bx bx-crop'></i> Apply Crop & Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== YOUTUBE SYNC WIZARD ===== -->
+<div id="ytWizard" class="tc-modal-bg">
+  <div class="tc-modal-box yt-wizard-box">
+    <button class="tc-modal-close" onclick="closeYTWizard()"><i class='bx bx-x'></i></button>
+    <h2 style="font-weight:800; margin-bottom:5px;">🎬 YouTube Sync Wizard</h2>
+    <p style="opacity:0.6; margin-bottom:20px; font-size:0.9rem;">Import playlists or pick individual videos from your channel.</p>
+
+    <div class="yt-tabs">
+      <button class="yt-tab active" onclick="switchYTTab('playlists')">📋 Import Playlist</button>
+      <button class="yt-tab" onclick="switchYTTab('videos')">🎥 Pick Videos</button>
+    </div>
+
+    <!-- TAB 1: PLAYLISTS -->
+    <div id="ytPanelPlaylists" class="yt-panel active">
+      <div id="ytPlLoading" class="yt-loading">🔄 Loading playlists from your channel...</div>
+      <div id="ytPlError" class="yt-error" style="display:none"></div>
+      <div id="ytPlList" class="yt-list"></div>
+      
+      <div class="yt-custom-form" id="ytPlaylistForm" style="display:none;">
+        <div class="yt-thumb-option">
+          <input type="checkbox" id="ytPlUseThumb" checked onchange="toggleYTPlManualThumb(this)">
+          <label for="ytPlUseThumb">Use YouTube playlist thumbnail as cover</label>
+        </div>
+        <div class="tc-form-group" id="ytPlManualThumbGroup" style="display:none; margin-top:10px;">
+          <label class="tc-form-label">Or upload custom thumbnail</label>
+          <div class="tc-upload-zone" style="padding:10px;">
+            <input type="file" id="ytPlThumbInput" accept="image/*" onchange="handleThumbSelection(this, 'yt-pl')">
+            <div style="font-size:0.8rem; opacity:0.7;">🖼 Click to upload custom cover</div>
+          </div>
+        </div>
+        <input type="hidden" id="ytPlCroppedThumbData">
+        
+        <div class="tc-form-group" style="margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 15px;">
+          <label class="tc-form-label" style="text-align: center;">For Whom the Course Is</label>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" class="target-chk target-public" value="1" checked>
+              Public (For Everyone)
+            </label>
+
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+                <input type="checkbox" class="target-chk target-coaching" value="1">
+                For Coaching Students
+              </label>
+              <div class="batch-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Batches:</span>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="coaching_batches" value="all" checked> All Batches
+                </label>
+                {% for value, name in BATCH_CHOICES %}
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="coaching_batches" value="{{ value }}"> {{ name }}
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" class="target-chk target-alumni" value="1">
+              For Alumni (Achievement form filled)
+            </label>
+
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+                <input type="checkbox" class="target-chk target-library" value="1">
+                For Library Students
+              </label>
+              <div class="floor-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Floor:</span>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="library_floors" value="both" checked> Both Floors
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="library_floors" value="Ground Floor"> Ground Floor
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="library_floors" value="1st Floor"> 1st Floor
+                </label>
+              </div>
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" class="target-chk target-private" value="1">
+              Private (Just to add)
+            </label>
+          </div>
+        </div>
+
+        <button class="yt-import-btn" id="ytPlFinalBtn" style="width:100%; margin-top:15px; padding:14px;">
+          🚀 Import Selected Playlist
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 2: PICK VIDEOS -->
+    <div id="ytPanelVideos" class="yt-panel">
+      <div id="ytVdLoading" class="yt-loading">🔄 Loading videos from your channel...</div>
+      <div id="ytVdError" class="yt-error" style="display:none"></div>
+      <div id="ytVdList" class="yt-list"></div>
+
+      <div class="yt-custom-form" id="ytCustomForm" style="display:none;">
+        <div class="tc-form-group">
+          <label class="tc-form-label">Course Title *</label>
+          <input type="text" id="ytCustomTitle" class="tc-form-input" placeholder="Name your course...">
+        </div>
+        <div class="yt-thumb-option">
+          <input type="checkbox" id="ytUseThumb" checked onchange="toggleYTManualThumb(this)">
+          <label for="ytUseThumb">Use first video's thumbnail as course cover</label>
+        </div>
+        <div class="tc-form-group" id="ytManualThumbGroup" style="display:none; margin-top:10px;">
+          <label class="tc-form-label">Or upload custom thumbnail</label>
+          <div class="tc-upload-zone" style="padding:10px;">
+            <input type="file" id="ytThumbInput" accept="image/*" onchange="handleThumbSelection(this, 'yt')">
+            <div style="font-size:0.8rem; opacity:0.7;">🖼 Click to upload custom cover</div>
+          </div>
+        </div>
+        <input type="hidden" id="ytCroppedThumbData">
+        
+        <div class="tc-form-group" style="margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 15px;">
+          <label class="tc-form-label" style="text-align: center;">For Whom the Course Is</label>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" class="target-chk target-public" value="1" checked>
+              Public (For Everyone)
+            </label>
+
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+                <input type="checkbox" class="target-chk target-coaching" value="1">
+                For Coaching Students
+              </label>
+              <div class="batch-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Batches:</span>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="coaching_batches" value="all" checked> All Batches
+                </label>
+                {% for value, name in BATCH_CHOICES %}
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="coaching_batches" value="{{ value }}"> {{ name }}
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" class="target-chk target-alumni" value="1">
+              For Alumni (Achievement form filled)
+            </label>
+
+            <div style="display: flex; flex-direction: column; gap: 5px; margin-left: 0;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+                <input type="checkbox" class="target-chk target-library" value="1">
+                For Library Students
+              </label>
+              <div class="floor-select-container" style="display: none; margin-left: 24px; flex-direction: column; gap: 5px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #526D82;">Select Floor:</span>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="library_floors" value="both" checked> Both Floors
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="library_floors" value="Ground Floor"> Ground Floor
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem;">
+                  <input type="checkbox" name="library_floors" value="1st Floor"> 1st Floor
+                </label>
+              </div>
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+              <input type="checkbox" class="target-chk target-private" value="1">
+              Private (Just to Add)
+            </label>
+          </div>
+        </div>
+
+        <button class="yt-import-btn" style="width:100%; margin-top:15px; padding:14px;" onclick="createCustomCourse()">
+          🚀 Create Course from Selected Videos
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<!-- Cropper.js JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+  const csrfToken = '{{ csrf_token }}';
+  let cropper = null;
+  let activeInputType = 'manual'; // 'manual', 'edit', 'yt', 'yt-pl'
+
+  // === BASIC MODAL HELPERS ===
+  function openCourseModal() {
+    const modal = document.getElementById('courseModal');
+    // Clear inputs (except CSRF token and defaults)
+    const titleInput = modal.querySelector('input[name="title"]');
+    if (titleInput) titleInput.value = "";
+    const descTextarea = modal.querySelector('textarea[name="description"]');
+    if (descTextarea) descTextarea.value = "";
+    
+    // Reset thumbnail preview
+    document.getElementById('croppedThumbData').value = "";
+    document.getElementById('courseThumbInput').value = "";
+    document.getElementById('thumbPreview').style.display = 'none';
+    document.getElementById('thumbPreviewImg').src = "";
+    
+    const publicChk = modal.querySelector('.target-public');
+    const coachingChk = modal.querySelector('.target-coaching');
+    const alumniChk = modal.querySelector('.target-alumni');
+    const libraryChk = modal.querySelector('.target-library');
+    const privateChk = modal.querySelector('.target-private');
+
+    if (publicChk) publicChk.checked = true;
+    if (coachingChk) coachingChk.checked = false;
+    if (alumniChk) alumniChk.checked = false;
+    if (libraryChk) libraryChk.checked = false;
+    if (privateChk) privateChk.checked = false;
+
+    // Reset batches and floors
+    const batchChks = modal.querySelectorAll('.batch-select-container input[type="checkbox"]');
+    batchChks.forEach(chk => {
+      chk.checked = (chk.value === 'all');
+    });
+    const floorChks = modal.querySelectorAll('.floor-select-container input[type="checkbox"]');
+    floorChks.forEach(chk => {
+      chk.checked = (chk.value === 'both');
+    });
+
+    if (publicChk) publicChk.dispatchEvent(new Event('change'));
+
+    modal.classList.add('open');
+  }
+  function closeCourseModal() { document.getElementById('courseModal').classList.remove('open'); }
+  
+  function openEditModal(id, title, desc, active, thumbUrl, targetPublic, targetCoaching, coachingBatches, targetAlumni, targetLibrary, libraryFloors, targetPrivate) {
+    document.getElementById('editCourseId').value = id;
+    document.getElementById('editCourseTitle').value = title;
+    document.getElementById('editCourseDesc').value = desc;
+    document.getElementById('editCourseActive').value = active;
+    document.getElementById('editCourseForm').action = "/teacher/courses/" + id + "/edit/";
+    
+    // Reset flags
+    document.getElementById('editRemoveThumb').value = "0";
+    document.getElementById('editCroppedThumbData').value = "";
+    
+    if (thumbUrl && thumbUrl !== 'None' && thumbUrl !== '') {
+      document.getElementById('editThumbPreviewImg').src = thumbUrl;
+      document.getElementById('editThumbPreview').style.display = 'block';
+    } else {
+      document.getElementById('editThumbPreview').style.display = 'none';
+    }
+
+    // Populate targets in Edit Modal
+    const modal = document.getElementById('editCourseModal');
+    const publicChk = modal.querySelector('.target-public');
+    const coachingChk = modal.querySelector('.target-coaching');
+    const alumniChk = modal.querySelector('.target-alumni');
+    const libraryChk = modal.querySelector('.target-library');
+    const privateChk = modal.querySelector('.target-private');
+
+    if (publicChk) publicChk.checked = (targetPublic === '1');
+    if (coachingChk) coachingChk.checked = (targetCoaching === '1');
+    if (alumniChk) alumniChk.checked = (targetAlumni === '1');
+    if (libraryChk) libraryChk.checked = (targetLibrary === '1');
+    if (privateChk) privateChk.checked = (targetPrivate === '1');
+
+    // Populate coaching batches
+    const batchList = coachingBatches ? coachingBatches.split(',').map(s => s.trim()) : [];
+    const batchChks = modal.querySelectorAll('.batch-select-container input[type="checkbox"]');
+    batchChks.forEach(chk => {
+      chk.checked = batchList.includes(chk.value);
+    });
+
+    // Populate library floors
+    const floorList = libraryFloors ? libraryFloors.split(',').map(s => s.trim()) : [];
+    const floorChks = modal.querySelectorAll('.floor-select-container input[type="checkbox"]');
+    floorChks.forEach(chk => {
+      chk.checked = floorList.includes(chk.value);
+    });
+
+    // Dispatch change event to update mutual exclusivity / display logic
+    if (publicChk) publicChk.dispatchEvent(new Event('change'));
+    if (coachingChk) coachingChk.dispatchEvent(new Event('change'));
+    if (alumniChk) alumniChk.dispatchEvent(new Event('change'));
+    if (libraryChk) libraryChk.dispatchEvent(new Event('change'));
+    if (privateChk) privateChk.dispatchEvent(new Event('change'));
+    
+    document.getElementById('editCourseModal').classList.add('open');
+  }
+  function closeEditModal() { document.getElementById('editCourseModal').classList.remove('open'); }
+
+  async function removeThumbnail() {
+    const confirmed = await window.showStyledConfirm('Remove Thumbnail', 'Are you sure you want to remove this thumbnail?');
+    if (confirmed) {
+      document.getElementById('editRemoveThumb').value = "1";
+      document.getElementById('editThumbPreview').style.display = 'none';
+      document.getElementById('editThumbPreviewImg').src = "";
+      document.getElementById('editCroppedThumbData').value = "";
+      document.getElementById('editCourseThumbInput').value = "";
+    }
+  }
+
+  // === CROPPER LOGIC ===
+  function handleThumbSelection(input, type = 'manual') {
+    activeInputType = type;
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        openCropModal(e.target.result);
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  let cropperFlipH = false;
+
+  function openCropModal(imageSrc) {
+    const modal = document.getElementById('cropModal');
+    const image = document.getElementById('cropperImage');
+    image.src = imageSrc;
+    modal.classList.add('open');
+    cropperFlipH = false;
+    
+    if (cropper) cropper.destroy();
+    
+    setTimeout(() => {
+      cropper = new Cropper(image, {
+        aspectRatio: 16 / 9,
+        viewMode: 1,
+        dragMode: 'move', // Prevents drawing new crop boxes when clicking!
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: false,
+        autoCropArea: 0.9,
+        responsive: true,
+        restore: false,
+        checkCrossOrigin: false,
+        highlight: false,
+        guides: true,
+        center: true,
+        background: false,
+      });
+    }, 350);
+  }
+
+  function closeCropModal() {
+    document.getElementById('cropModal').classList.remove('open');
+    if (cropper) cropper.destroy();
+    cropper = null;
+    cropperFlipH = false;
+  }
+
+  function zoomCropper(delta) {
+    if (cropper) cropper.zoom(delta);
+  }
+
+  function rotateCropper(degree) {
+    if (cropper) cropper.rotate(degree);
+  }
+
+  function flipHCropper() {
+    if (!cropper) return;
+    cropperFlipH = !cropperFlipH;
+    cropper.scaleX(cropperFlipH ? -1 : 1);
+  }
+
+  function resetCropper() {
+    if (!cropper) return;
+    cropperFlipH = false;
+    cropper.reset();
+  }
+
+  function applyCrop() {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({ width: 800, height: 450 });
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.80);
+    
+    if (activeInputType === 'manual') {
+      document.getElementById('thumbPreviewImg').src = croppedDataUrl;
+      document.getElementById('thumbPreview').style.display = 'block';
+      document.getElementById('croppedThumbData').value = croppedDataUrl;
+    } else if (activeInputType === 'edit') {
+      document.getElementById('editThumbPreviewImg').src = croppedDataUrl;
+      document.getElementById('editThumbPreview').style.display = 'block';
+      document.getElementById('editCroppedThumbData').value = croppedDataUrl;
+    } else if (activeInputType === 'yt') {
+      document.getElementById('ytCroppedThumbData').value = croppedDataUrl;
+      const label = document.querySelector('#ytManualThumbGroup div[style*="font-size:0.8rem"]');
+      if (label) label.textContent = '✅ Custom thumbnail ready';
+    } else if (activeInputType === 'yt-pl') {
+      document.getElementById('ytPlCroppedThumbData').value = croppedDataUrl;
+      const label = document.querySelector('#ytPlManualThumbGroup div[style*="font-size:0.8rem"]');
+      if (label) label.textContent = '✅ Custom thumbnail ready';
+    }
+    
+    closeCropModal();
+  }
+
+  function reCropImage(type = 'manual') {
+    let imgId = 'thumbPreviewImg';
+    if (type === 'edit') imgId = 'editThumbPreviewImg';
+    const currentSrc = document.getElementById(imgId).src;
+    if (currentSrc) {
+      activeInputType = type;
+      openCropModal(currentSrc);
+    }
+  }
+
+  // === YT WIZARD ===
+  let ytPlLoaded = false, ytVdLoaded = false;
+  let selectedVideos = []; 
+  let currentPlaylistId = null;
+
+  function openYTWizard() {
+    document.getElementById('ytWizard').classList.add('open');
+    if (!ytPlLoaded) loadPlaylists();
+  }
+  function closeYTWizard() { document.getElementById('ytWizard').classList.remove('open'); }
+
+  function switchYTTab(tab) {
+    document.querySelectorAll('.yt-tab').forEach((t,i) => { t.classList.toggle('active', (tab === 'playlists' ? i === 0 : i === 1)); });
+    document.getElementById('ytPanelPlaylists').classList.toggle('active', tab === 'playlists');
+    document.getElementById('ytPanelVideos').classList.toggle('active', tab === 'videos');
+    if (tab === 'videos' && !ytVdLoaded) loadVideos();
+  }
+
+  function toggleYTManualThumb(cb) { document.getElementById('ytManualThumbGroup').style.display = cb.checked ? 'none' : 'block'; }
+  function toggleYTPlManualThumb(cb) { document.getElementById('ytPlManualThumbGroup').style.display = cb.checked ? 'none' : 'block'; }
+
+  // --- PLAYLISTS ---
+  function loadPlaylists() {
+    fetch("{% url 'users:yt_fetch_playlists' %}")
+      .then(r => r.json()).then(data => {
+        document.getElementById('ytPlLoading').style.display = 'none';
+        if (data.error) { showErr('ytPlError', data.error); return; }
+        const list = document.getElementById('ytPlList');
+        if (!data.playlists.length) { list.innerHTML = '<div class="yt-loading">No playlists found.</div>'; return; }
+        list.innerHTML = data.playlists.map(pl => `
+          <div class="yt-item" onclick="prepPlaylist('${pl.id}', this)">
+            <img src="${pl.thumbnail}" alt="">
+            <div class="yt-item-info">
+              <div class="yt-item-title">${esc(pl.title)}</div>
+              <div class="yt-item-meta">${pl.description || 'Playlist'}</div>
+            </div>
+            <div class="yt-order" style="display:none;">✓</div>
+          </div>
+        `).join('');
+        ytPlLoaded = true;
+      });
+  }
+
+  function prepPlaylist(plId, el) {
+    currentPlaylistId = plId;
+    document.querySelectorAll('#ytPlList .yt-item').forEach(item => item.classList.remove('selected'));
+    document.querySelectorAll('#ytPlList .yt-order').forEach(o => o.style.display = 'none');
+    el.classList.add('selected');
+    el.querySelector('.yt-order').style.display = 'flex';
+    document.getElementById('ytPlaylistForm').style.display = 'block';
+  }
+
+  document.getElementById('ytPlFinalBtn').onclick = function() {
+    if (!currentPlaylistId) return;
+    const btn = this;
+    btn.disabled = true; btn.textContent = '⏳ Importing...';
+
+    const container = document.getElementById('ytPlaylistForm');
+    const target_public = container.querySelector('.target-public').checked;
+    const target_coaching = container.querySelector('.target-coaching').checked;
+    const target_alumni = container.querySelector('.target-alumni').checked;
+    const target_library = container.querySelector('.target-library').checked;
+    const target_private = container.querySelector('.target-private').checked;
+
+    // Selected batches
+    const coaching_batches = [];
+    if (target_coaching) {
+      container.querySelectorAll('.batch-select-container input[type="checkbox"]:checked').forEach(chk => {
+        coaching_batches.push(chk.value);
+      });
+    }
+
+    // Selected floors
+    const library_floors = [];
+    if (target_library) {
+      container.querySelectorAll('.floor-select-container input[type="checkbox"]:checked').forEach(chk => {
+        library_floors.push(chk.value);
+      });
+    }
+    
+    fetch("{% url 'users:yt_import_playlist' %}", {
+      method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':csrfToken},
+      body: JSON.stringify({
+        playlist_id: currentPlaylistId,
+        use_playlist_thumbnail: document.getElementById('ytPlUseThumb').checked,
+        custom_thumbnail_data: document.getElementById('ytPlCroppedThumbData').value,
+        target_public: target_public,
+        target_coaching: target_coaching,
+        target_alumni: target_alumni,
+        target_library: target_library,
+        target_private: target_private,
+        coaching_batches: coaching_batches,
+        library_floors: library_floors
+      })
+    }).then(r => r.json()).then(data => {
+      if (data.error) { btn.textContent = '❌ ' + data.error; btn.disabled = false; return; }
+      btn.textContent = '✅ Success!';
+      setTimeout(() => location.reload(), 1000);
+    });
+  };
+
+  // --- VIDEOS ---
+  function loadVideos() {
+    fetch("{% url 'users:yt_fetch_videos' %}")
+      .then(r => r.json()).then(data => {
+        document.getElementById('ytVdLoading').style.display = 'none';
+        if (data.error) { showErr('ytVdError', data.error); return; }
+        const list = document.getElementById('ytVdList');
+        list.innerHTML = data.videos.map(v => `
+          <div class="yt-item" data-vid="${v.videoId}" data-title="${esc(v.title)}" data-thumb="${v.thumbnail}" onclick="toggleVideo(this)">
+            <img src="${v.thumbnail}" alt="">
+            <div class="yt-item-info">
+              <div class="yt-item-title">${esc(v.title)}</div>
+            </div>
+            <div class="yt-order" style="display:none;"></div>
+          </div>
+        `).join('');
+        ytVdLoaded = true;
+      });
+  }
+
+  function toggleVideo(el) {
+    const vid = el.dataset.vid;
+    const idx = selectedVideos.findIndex(v => v.videoId === vid);
+    if (idx > -1) { selectedVideos.splice(idx, 1); el.classList.remove('selected'); }
+    else { selectedVideos.push({videoId: vid, title: el.dataset.title}); el.classList.add('selected'); }
+    
+    document.querySelectorAll('#ytVdList .yt-item').forEach(item => {
+      const i = selectedVideos.findIndex(v => v.videoId === item.dataset.vid);
+      const badge = item.querySelector('.yt-order');
+      if (i > -1) { badge.style.display = 'flex'; badge.textContent = i + 1; }
+      else { badge.style.display = 'none'; }
+    });
+    document.getElementById('ytCustomForm').style.display = selectedVideos.length > 0 ? 'block' : 'none';
+  }
+
+  async function createCustomCourse() {
+    const title = document.getElementById('ytCustomTitle').value.trim();
+    if (!title) { 
+      await window.showStyledAlert('Title Required', 'Please enter a title for your custom course.');
+      return; 
+    }
+    const btn = document.querySelector('#ytCustomForm .yt-import-btn');
+    btn.disabled = true; btn.textContent = '⏳ Creating...';
+
+    const container = document.getElementById('ytCustomForm');
+    const target_public = container.querySelector('.target-public').checked;
+    const target_coaching = container.querySelector('.target-coaching').checked;
+    const target_alumni = container.querySelector('.target-alumni').checked;
+    const target_library = container.querySelector('.target-library').checked;
+    const target_private = container.querySelector('.target-private').checked;
+
+    // Selected batches
+    const coaching_batches = [];
+    if (target_coaching) {
+      container.querySelectorAll('.batch-select-container input[type="checkbox"]:checked').forEach(chk => {
+        coaching_batches.push(chk.value);
+      });
+    }
+
+    // Selected floors
+    const library_floors = [];
+    if (target_library) {
+      container.querySelectorAll('.floor-select-container input[type="checkbox"]:checked').forEach(chk => {
+        library_floors.push(chk.value);
+      });
+    }
+    
+    fetch("{% url 'users:yt_create_custom_course' %}", {
+      method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':csrfToken},
+      body: JSON.stringify({ 
+        title, 
+        video_ids: selectedVideos.map(v=>v.videoId), 
+        use_first_thumbnail: document.getElementById('ytUseThumb').checked,
+        custom_thumbnail_data: document.getElementById('ytCroppedThumbData').value,
+        target_public: target_public,
+        target_coaching: target_coaching,
+        target_alumni: target_alumni,
+        target_library: target_library,
+        target_private: target_private,
+        coaching_batches: coaching_batches,
+        library_floors: library_floors
+      })
+    }).then(r => r.json()).then(data => {
+      if (data.error) { btn.textContent = '❌ ' + data.error; btn.disabled = false; return; }
+      btn.textContent = '✅ Success!';
+      setTimeout(() => location.reload(), 1000);
+    });
+  }
+
+  // Target Checkbox Mutual Exclusivity and Show/Hide Logic
+  function setupTargetInteractions(containerSelector) {
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+
+    const publicChk = container.querySelector('.target-public');
+    const coachingChk = container.querySelector('.target-coaching');
+    const alumniChk = container.querySelector('.target-alumni');
+    const libraryChk = container.querySelector('.target-library');
+    const privateChk = container.querySelector('.target-private');
+
+    const batchContainer = container.querySelector('.batch-select-container');
+    const floorContainer = container.querySelector('.floor-select-container');
+
+    const allTargetChks = [publicChk, coachingChk, alumniChk, libraryChk, privateChk].filter(Boolean);
+
+    function updateStates() {
+      const isPublicChecked = publicChk && publicChk.checked;
+      const isPrivateChecked = privateChk && privateChk.checked;
+      const isCoachingChecked = coachingChk && coachingChk.checked;
+      const isAlumniChecked = alumniChk && alumniChk.checked;
+      const isLibraryChecked = libraryChk && libraryChk.checked;
+
+      const isAnySpecificChecked = isCoachingChecked || isAlumniChecked || isLibraryChecked;
+
+      // 1. Reset all disabled states first
+      allTargetChks.forEach(chk => { chk.disabled = false; });
+
+      // 2. Apply mutual exclusivity
+      if (isPublicChecked) {
+        if (coachingChk) { coachingChk.checked = false; coachingChk.disabled = true; }
+        if (alumniChk) { alumniChk.checked = false; alumniChk.disabled = true; }
+        if (libraryChk) { libraryChk.checked = false; libraryChk.disabled = true; }
+        if (privateChk) { privateChk.checked = false; privateChk.disabled = true; }
+      } else if (isPrivateChecked) {
+        if (publicChk) { publicChk.checked = false; publicChk.disabled = true; }
+        if (coachingChk) { coachingChk.checked = false; coachingChk.disabled = true; }
+        if (alumniChk) { alumniChk.checked = false; alumniChk.disabled = true; }
+        if (libraryChk) { libraryChk.checked = false; libraryChk.disabled = true; }
+      } else if (isAnySpecificChecked) {
+        if (publicChk) { publicChk.checked = false; publicChk.disabled = true; }
+        if (privateChk) { privateChk.checked = false; privateChk.disabled = true; }
+      }
+
+      // 3. Show/hide batch/floor containers based on checked status
+      if (coachingChk && coachingChk.checked) {
+        if (batchContainer) batchContainer.style.display = 'flex';
+      } else {
+        if (batchContainer) batchContainer.style.display = 'none';
+      }
+
+      if (libraryChk && libraryChk.checked) {
+        if (floorContainer) floorContainer.style.display = 'flex';
+      } else {
+        if (floorContainer) floorContainer.style.display = 'none';
+      }
+    }
+
+    // Bind change listeners to primary target checkboxes
+    allTargetChks.forEach(chk => {
+      chk.addEventListener('change', updateStates);
+    });
+
+    // Bind sub-checkboxes for coaching batches
+    if (batchContainer) {
+      const allBatchesChk = batchContainer.querySelector('input[value="all"]');
+      const specificBatchChks = Array.from(batchContainer.querySelectorAll('input[type="checkbox"]')).filter(c => c.value !== 'all');
+
+      if (allBatchesChk) {
+        allBatchesChk.addEventListener('change', () => {
+          if (allBatchesChk.checked) {
+            specificBatchChks.forEach(c => { c.checked = false; });
+          }
+        });
+        specificBatchChks.forEach(c => {
+          c.addEventListener('change', () => {
+            if (c.checked) {
+              allBatchesChk.checked = false;
+            }
+          });
+        });
+      }
+    }
+
+    // Bind sub-checkboxes for library floors
+    if (floorContainer) {
+      const bothFloorsChk = floorContainer.querySelector('input[value="both"]');
+      const specificFloorChks = Array.from(floorContainer.querySelectorAll('input[type="checkbox"]')).filter(c => c.value !== 'both');
+
+      if (bothFloorsChk) {
+        bothFloorsChk.addEventListener('change', () => {
+          if (bothFloorsChk.checked) {
+            specificFloorChks.forEach(c => { c.checked = false; });
+          }
+        });
+        specificFloorChks.forEach(c => {
+          c.addEventListener('change', () => {
+            if (c.checked) {
+              bothFloorsChk.checked = false;
+            }
+          });
+        });
+      }
+    }
+
+    // Initial state run
+    updateStates();
+  }
+
+  // Initialize event handlers on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    setupTargetInteractions('#courseModal');
+    setupTargetInteractions('#editCourseModal');
+    setupTargetInteractions('#ytPlaylistForm');
+    setupTargetInteractions('#ytCustomForm');
+  });
+
+  // Helpers
+  function showErr(id, msg) { const el = document.getElementById(id); el.style.display = 'block'; el.textContent = '❌ ' + msg; }
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCourseModal(); closeYTWizard(); closeEditModal(); closeCropModal(); } });
+
+  // Handle Delete Course with Styled Confirm
+  document.addEventListener('click', async function(e) {
+    const btn = e.target.closest('.delete-course-btn');
+    if (!btn) return;
+    
+    e.preventDefault();
+    const confirmed = await window.showStyledConfirm(
+      'Delete Course',
+      'Are you sure you want to <b>delete</b> this course permanently?'
+    );
+    
+    if (confirmed) {
+      window.location.href = btn.href;
+    }
+  });
+  // === INSTANT AJAX TOGGLE FOR COURSE STATUS ===
+  async function toggleCourseStatus(btn) {
+    const url = btn.dataset.toggleUrl;
+    const wasActive = btn.dataset.active === '1';
+    const nowActive = !wasActive;
+    const card = btn.closest('.tc-card');
+    const badge = card ? card.querySelector('.tc-status-badge') : null;
+
+    // ── Optimistic UI update (instant) ──
+    btn.dataset.active = nowActive ? '1' : '0';
+    btn.classList.remove('btn-status-active', 'btn-status-inactive');
+    btn.classList.add(nowActive ? 'btn-status-active' : 'btn-status-inactive');
+    btn.innerHTML = nowActive
+      ? "<i class='bx bx-check-circle'></i> Active"
+      : "<i class='bx bx-x-circle'></i> Inactive";
+
+    if (badge) {
+      badge.classList.remove('badge-active', 'badge-inactive');
+      badge.classList.add(nowActive ? 'badge-active' : 'badge-inactive');
+      badge.textContent = nowActive ? 'Active' : 'Inactive';
+    }
+
+    // ── Background fetch ──
+    try {
+      const resp = await fetch(url, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      if (!resp.ok) throw new Error('Server error');
+      const data = await resp.json();
+      if (!data.success) throw new Error('Toggle failed');
+    } catch (err) {
+      // Revert on failure
+      btn.dataset.active = wasActive ? '1' : '0';
+      btn.classList.remove('btn-status-active', 'btn-status-inactive');
+      btn.classList.add(wasActive ? 'btn-status-active' : 'btn-status-inactive');
+      btn.innerHTML = wasActive
+        ? "<i class='bx bx-check-circle'></i> Active"
+        : "<i class='bx bx-x-circle'></i> Inactive";
+      if (badge) {
+        badge.classList.remove('badge-active', 'badge-inactive');
+        badge.classList.add(wasActive ? 'badge-active' : 'badge-inactive');
+        badge.textContent = wasActive ? 'Active' : 'Inactive';
+      }
+      if (window.showStyledAlert) {
+        window.showStyledAlert('Error', 'Could not toggle course status. Please try again.');
+      }
+    }
+  }
+</script>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

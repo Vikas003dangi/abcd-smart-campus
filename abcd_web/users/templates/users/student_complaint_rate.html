@@ -1,0 +1,232 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Rate Complaint - ABCD Coaching & Library{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+    <style>
+        .rate-container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .rate-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(21, 52, 72, 0.08);
+            transition: all 0.3s ease;
+        }
+        body.dark-theme .rate-card {
+            background: rgba(30, 20, 50, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f1f5f9;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+        .rate-card h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: #1e1b4b;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        body.dark-theme .rate-card h2 {
+            color: #fff;
+        }
+        .complaint-info {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(21, 52, 72, 0.05);
+        }
+        body.dark-theme .complaint-info {
+            background: rgba(15, 23, 42, 0.3);
+            border-color: rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+        }
+        .complaint-info p {
+            margin: 6px 0;
+            font-size: 1.05rem;
+        }
+        .form-group { margin-bottom: 24px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #7b61ff;
+        }
+        .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1.5px solid #cbd5e1;
+            background: #f8fafc;
+            font-size: 0.95rem;
+            color: #1e293b;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .form-group textarea:focus {
+            border-color: #7b61ff;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.15);
+        }
+        body.dark-theme .form-group select, body.dark-theme .form-group textarea {
+            background: rgba(15, 23, 42, 0.3);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: #f1f5f9;
+        }
+        body.dark-theme .form-group textarea:focus {
+            border-color: #9061ff;
+            background-color: rgba(15, 23, 42, 0.5);
+            box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.25);
+        }
+        
+        /* Interactive stars */
+        .rating-stars-row {
+            display: flex;
+            gap: 10px;
+            margin: 12px 0;
+            justify-content: center;
+        }
+        .rating-star {
+            font-size: 2.8rem;
+            cursor: pointer;
+            color: #cbd5e1;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+        .rating-star:hover {
+            transform: scale(1.2);
+        }
+        .rating-star.active {
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #7b61ff 0%, #6366f1 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(123, 97, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(123, 97, 255, 0.45);
+            background: linear-gradient(135deg, #8c75ff 0%, #7578f5 100%);
+        }
+        .btn-submit:active {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(123, 97, 255, 0.3);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="rate-container">
+    <div class="rate-card">
+        <h2>Rate Resolved Complaint</h2>
+        
+        <div class="complaint-info">
+            <p><strong>Complaint ID:</strong> #{{ complaint.code }}</p>
+            <p><strong>Subject:</strong> {{ complaint.display_subject }}</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>How satisfied are you with the resolution?</label>
+                <div style="display: none;">
+                    {{ form.rating }}
+                </div>
+                <div class="rating-stars-row">
+                    <span class="rating-star" data-value="1">&#9733;</span>
+                    <span class="rating-star" data-value="2">&#9733;</span>
+                    <span class="rating-star" data-value="3">&#9733;</span>
+                    <span class="rating-star" data-value="4">&#9733;</span>
+                    <span class="rating-star" data-value="5">&#9733;</span>
+                </div>
+                <p style="font-size: 0.85rem; opacity: 0.7; margin-top: 5px; text-align: center;">(1 = Poor, 5 = Excellent)</p>
+            </div>
+            
+            <div class="form-group">
+                <label>Any additional feedback?</label>
+                {{ form.feedback }}
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <i class='bx bx-check-shield'></i> Submit Rating
+            </button>
+        </form>
+        
+        <div style="text-align: center; margin-top: 25px;">
+            <a href="{% url 'users:student_complaints' %}" style="color: #7b61ff; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                <i class='bx bx-arrow-back'></i> Back to Complaints
+            </a>
+        </div>
+    </div>
+</div>
+{% include 'partials/_smart_back_redirect.html' with context_aware=True %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ratingInput = document.querySelector('input[name="rating"]');
+        const stars = document.querySelectorAll('.rating-star');
+        
+        function highlightStars(val) {
+            stars.forEach(star => {
+                const starVal = parseInt(star.dataset.value);
+                if (starVal <= val) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        // Initialize rating input
+        const initialVal = parseInt(ratingInput?.value) || 5;
+        if (ratingInput) ratingInput.value = initialVal;
+        highlightStars(initialVal);
+        
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const val = parseInt(this.dataset.value);
+                if (ratingInput) ratingInput.value = val;
+                highlightStars(val);
+            });
+            
+            star.addEventListener('mouseenter', function() {
+                const val = parseInt(this.dataset.value);
+                stars.forEach(s => {
+                    s.style.color = parseInt(s.dataset.value) <= val ? '#fbbf24' : '#cbd5e1';
+                });
+            });
+        });
+        
+        const starsContainer = document.querySelector('.rating-stars-row');
+        starsContainer?.addEventListener('mouseleave', function() {
+            const currentVal = parseInt(ratingInput?.value) || 5;
+            stars.forEach(s => {
+                s.style.color = ''; // reset inline hover colors
+            });
+            highlightStars(currentVal);
+        });
+    });
+</script>
+{% endblock %}

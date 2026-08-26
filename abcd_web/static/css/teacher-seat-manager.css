@@ -1,0 +1,622 @@
+/* ---------------------------------- */
+/* 1. TEACHER MODAL STYLES */
+/* ---------------------------------- */
+#teacherModalOverlay,
+.teacher-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  z-index: 1040;
+  opacity: 0;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+  display: none;
+  /* Hidden by default */
+}
+
+
+/* Visible overlay */
+#teacherModalOverlay.visible,
+.teacher-modal-overlay.visible {
+  opacity: 1;
+  display: flex !important;
+  place-items: center;
+}
+
+.teacher-modal {
+  background: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.30) !important;
+  width: min(940px, 96%) !important;
+  max-width: 940px !important;
+  max-height: 82vh !important;
+  overflow: auto !important;
+  z-index: 20000 !important;
+  opacity: 0;
+  transform: scale(1);
+  transition: all 0.3s ease;
+  display: none !important;
+  position: fixed;
+  /* Use fixed for full viewport centering */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* 
+.teacher-modal {
+    opacity: 1;
+    transform: scale(1);
+    display: block;
+    transform: translate(-50%, -50%) scale(1);
+} */
+
+.teacher-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  z-index: 1050;
+  opacity: 0;
+  pointer-events: none;
+  /* Not clickable when hidden */
+  display: none;
+}
+
+/* NEW RULE: When the modal itself has the 'open' class */
+.teacher-modal.open {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  display: block !important;
+  pointer-events: auto;
+  /* Clickable when open */
+}
+
+.teacher-modal-header h3 {
+  font-size: 1.5rem;
+  color: #333;
+  margin: 0;
+}
+
+.teacher-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  line-height: 34px;
+  text-align: center;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: #555;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 21000;
+  /* above modal content */
+  transition: 0.2s ease;
+  padding: 0;
+}
+
+.teacher-modal-close:hover {
+  color: #000;
+  background: rgba(0, 0, 0, 0.12);
+  transform: scale(1.1);
+}
+
+.teacher-modal-close:focus {
+  outline: 2px solid rgba(102, 126, 234, 0.6);
+}
+
+.teacher-modal-body {
+  padding: 20px 25px 25px;
+}
+
+/* ---------- Teacher modal: blur & stacking helpers ---------- */
+.seat-layout.content-blurred,
+.seat-layout-wrapper.content-blurred {
+  filter: blur(6px);
+  pointer-events: none;
+  transition: filter 180ms ease;
+  pointer-events: none;
+}
+
+/* Lock body scroll while modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Overlay sits above content but below the modal */
+.teacher-modal-overlay {
+  z-index: 1040;
+  pointer-events: auto;
+}
+
+/* Modal above overlay */
+.teacher-modal {
+  z-index: 1050;
+  pointer-events: auto;
+}
+
+/* Ensure overlay visible class shows overlay (already exists),
+   and teacher modal visible state is above overlay */
+/* .teacher-modal-overlay.visible .teacher-modal {
+  pointer-events: auto;
+} */
+
+/* ---------------------------------- */
+/* 2. MODAL CONTENT & ACTIONS */
+/* ---------------------------------- */
+#seatDetailsContent {
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+#seatDetailsContent p {
+  margin: 0 0 10px;
+}
+
+#seatDetailsContent strong {
+  color: #333;
+  margin-right: 8px;
+}
+
+#seatDetailsContent .status-label {
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 5px;
+  color: white;
+  font-size: 1rem;
+}
+
+.status-label.available {
+  background: #95a5a6;
+}
+
+/* Grey */
+.status-label.occupied {
+  background: #2ecc71;
+}
+
+/* Green */
+.status-label.pending {
+  background: #3498db;
+}
+
+/* Blue */
+
+/* support both on_hold (from backend/JS) and old on-hold */
+.status-label.on_hold,
+.status-label.on-hold {
+  background: #f39c12;
+  /* Orange */
+}
+
+
+
+.teacher-modal-actions {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px dashed #ccc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-action {
+  display: block;
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-action:hover {
+  opacity: 0.85;
+}
+
+.btn-success {
+  background: #2ecc71;
+  color: white;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+/* Form styles inside modal */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e1e8ed;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: #f8f9fa;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* ---------------------------------- */
+/* 3. TEACHER SEAT LAYOUT STYLES */
+/* ---------------------------------- */
+
+/* Add a visual cue for the teacher */
+.seat-layout .seat {
+  transition: all 0.2s ease, box-shadow 0.2s ease;
+}
+
+.seat-layout .seat:not(.empty-space):hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(102, 126, 234, 0.8);
+  z-index: 10;
+}
+
+/* Show student name on the seat */
+.seat .seat-label.student-name {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: white;
+  padding: 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+}
+
+.seat.available .seat-label.student-name {
+  display: none;
+  /* Hide if accidentally set on available */
+}
+
+
+
+/* === PERMANENT Modal & Overlay Styling (teacher-seat-manager) === */
+/* Overlay (covers whole viewport) */
+#teacherModalOverlay,
+.teacher-modal-overlay,
+.seat-modal-overlay {
+  position: fixed;
+  inset: 0;
+  /* top:0; right:0; bottom:0; left:0; */
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.46);
+  z-index: 15000;
+  pointer-events: auto;
+  display: none;
+  /* toggled by JS */
+}
+
+/* Generic modal container */
+#seatDetailsModal,
+#assignStudentModal,
+.teacher-modal,
+.seat-modal-container {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: min(940px, 96%) !important;
+  max-width: 940px !important;
+  max-height: 82vh !important;
+  overflow: auto !important;
+  z-index: 20000 !important;
+  display: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.30) !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* modal structural pieces (simple, tweak as required) */
+.seat-modal-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.seat-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.seat-modal-body {
+  padding: 12px 16px;
+  max-height: calc(82vh - 140px);
+  overflow: auto;
+}
+
+.seat-modal-footer {
+  padding: 10px 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* visible utility classes (manipulated by JS) */
+.teacher-modal.open {
+  display: block !important;
+}
+
+.teacher-modal-overlay.visible,
+#teacherModalOverlay.visible {
+  display: block !important;
+}
+
+/* Blur the grid but not the modal (modal is fixed so unaffected) */
+.seat-layout.content-blurred,
+.seat-layout-wrapper.content-blurred {
+  filter: blur(6px);
+  transition: filter 160ms ease;
+  pointer-events: none;
+}
+
+/* Prevent body scroll while modal open */
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Small responsive tweaks */
+@media (max-width:480px) {
+
+  #seatDetailsModal,
+  #assignStudentModal {
+    width: calc(100% - 24px) !important;
+    left: 50% !important;
+    top: 55% !important;
+    transform: translate(-50%, -45%) !important;
+  }
+}
+
+/* --- Fix: ensure header + close icon are visible when modal is open --- */
+/* Put this at the end of teacher-seat-manager.css to override earlier rules. */
+.teacher-modal.open .teacher-modal-header,
+#seatDetailsModal.open .teacher-modal-header {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
+}
+
+.teacher-modal.open .teacher-modal-close,
+#seatDetailsModal.open .teacher-modal-close {
+  display: inline-flex !important;
+  z-index: 21000 !important;
+  color: #555 !important;
+  opacity: 1 !important;
+}
+
+/* extra safety: ensure seat modal header (bottom-sheet style) also shows its close button */
+.seat-modal-overlay.visible .seat-modal-container .seat-modal-header,
+.seat-modal-container.open .seat-modal-header {
+  display: flex !important;
+  pointer-events: auto !important;
+}
+
+/* ===== Seat assign modal — responsive tweaks ===== */
+/* Put into: /mnt/data/teacher-seat-manager.css */
+
+.teacher-modal.assign-modal,
+#assignStudentModal {
+  box-sizing: border-box;
+  max-width: 920px;
+  /* comfortable max width on desktop */
+  width: calc(100% - 64px);
+  /* responsive on small screens */
+  margin: 24px auto;
+  /* center horizontally with vertical offset */
+  padding: 18px 22px;
+  border-radius: 8px;
+}
+
+/* Hold modal – similar look to assign modal */
+.teacher-modal.hold-modal,
+#holdModal {
+  box-sizing: border-box;
+  max-width: 520px;
+  width: calc(100% - 64px);
+  margin: 24px auto;
+  padding: 18px 22px;
+  border-radius: 8px;
+}
+
+/* modal header: keep icon on top-right */
+.teacher-modal.assign-modal .modal-header,
+#assignStudentModal .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+}
+
+/* modal body spacing for form groups */
+#assignStudentModal .form-group {
+  margin-bottom: 14px;
+}
+
+/* better spacing for labels/controls */
+#assignStudentModal label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+#assignStudentModal .form-control,
+#assignStudentModal select,
+#assignStudentModal input[type="text"],
+#assignStudentModal input[type="email"],
+#assignStudentModal input[type="password"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #dcdcdc;
+  background: #fff;
+  font-size: 0.95rem;
+}
+
+/* small helper text */
+#assignStudentModal .form-text {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 6px;
+}
+
+/* center the action area and button */
+.assign-modal-actions {
+  display: flex;
+  justify-content: center;
+  /* center horizontally */
+  align-items: center;
+  padding-top: 10px;
+  padding-bottom: 6px;
+}
+
+/* Make the confirm button look wide but not full bleed */
+#assignStudentModal .btn-confirm {
+  min-width: 260px;
+  max-width: 90%;
+  padding: 12px 26px;
+  border-radius: 8px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+/* smaller screens: make modal full width with slight padding */
+@media (max-width: 520px) {
+
+  .teacher-modal.assign-modal,
+  #assignStudentModal {
+    width: calc(100% - 28px);
+    margin: 12px auto;
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  #assignStudentModal .btn-confirm {
+    min-width: 200px;
+    padding: 10px 18px;
+  }
+
+  /* Make two-column rows stack vertically on tiny screens (if used) */
+  #assignStudentModal .form-row {
+    display: block;
+  }
+
+  #assignStudentModal .form-row .form-group {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+/* Accessibility: focus ring for keyboard users */
+#assignStudentModal .form-control:focus,
+#assignStudentModal select:focus {
+  outline: 3px solid rgba(52, 152, 219, 0.15);
+  border-color: #7fb3dd;
+}
+
+
+
+/* Legend box */
+.legend-box.on_hold,
+.legend-box.on-hold {
+  background: #f39c12;
+  border-color: #f39c12;
+}
+
+
+
+
+
+.teacher-shift-block {
+  border: 1px solid #ddd;
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.teacher-shift-block .shift-label {
+  font-size: 0.8rem;
+  color: #666;
+  margin-left: 6px;
+}
+
+.shift-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+
+/* HOLD OWNER (yellow/orange) */
+.seat.hold-owner {
+  background: linear-gradient(135deg, #f39c12, #f1c40f);
+  color: #111;
+}
+
+/* PARTIAL STUDENT (pink) */
+.seat.partial {
+  background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+  color: #111;
+}
+
+/* SPLIT HOLD + PARTIAL */
+.seat.shift-hold-partial {
+  background: linear-gradient(135deg,
+      #f39c12 0%,
+      #f39c12 50%,
+      #ff9a9e 50%,
+      #ff9a9e 100%);
+}

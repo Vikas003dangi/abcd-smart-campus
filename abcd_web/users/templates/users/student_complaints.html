@@ -1,0 +1,1029 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Complaint Box - ABCD Coaching & Library{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  /* Base Container */
+  .dashboard-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 20px;
+  }
+
+  /* Improved Welcome Card */
+  .complaints-welcome-card {
+    background: linear-gradient(135deg, #7b61ff 0%, #6366f1 100%);
+    color: white;
+    border-radius: 24px;
+    padding: clamp(20px, 4vw, 32px);
+    margin-bottom: 30px;
+    box-shadow: 0 12px 35px rgba(99, 102, 241, 0.2);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: clamp(16px, 3vw, 24px);
+    border: none;
+    transition: all 0.3s ease;
+  }
+
+  body.dark-theme .complaints-welcome-card {
+    background: linear-gradient(135deg, #4f3bbf 0%, #312e81 100%);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+  }
+
+  .complaints-welcome-card .welcome-icon {
+    background: rgba(255, 255, 255, 0.2);
+    width: clamp(64px, 8vw, 80px);
+    height: clamp(64px, 8vw, 80px);
+    border-radius: clamp(14px, 2vw, 20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    animation: floatIcon 3s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  .complaints-welcome-card .welcome-icon i {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    color: #ffffff;
+  }
+
+  @keyframes floatIcon {
+    0%, 100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-8px) rotate(5deg);
+    }
+  }
+
+  .complaints-welcome-card .welcome-text h2 {
+    color: white;
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .complaints-welcome-card .welcome-text p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(0.9rem, 2vw, 1rem);
+    line-height: 1.5;
+  }
+
+  /* Complaint form layout */
+  .complaint-form-card {
+    background: #ffffff;
+    border-radius: clamp(16px, 3vw, 24px);
+    padding: clamp(20px, 4vw, 30px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(21, 52, 72, 0.08);
+    transition: all 0.3s ease;
+  }
+
+  body.dark-theme .complaint-form-card {
+    background: rgba(30, 20, 50, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .complaint-form-card h3 {
+    margin-bottom: 20px;
+    font-size: clamp(1.15rem, 3vw, 1.35rem);
+    font-weight: 800;
+    color: #1e1b4b;
+    letter-spacing: -0.3px;
+  }
+
+  body.dark-theme .complaint-form-card h3 {
+    color: #ffffff;
+  }
+
+  .complaint-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 20px 24px;
+    margin-top: 6px;
+  }
+
+  .complaint-field {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .complaint-field label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 8px;
+  }
+
+  body.dark-theme .complaint-field label {
+    color: #cbd5e1;
+  }
+
+  .complaint-field input[type="text"],
+  .complaint-field textarea {
+    width: 100%;
+    border-radius: 12px;
+    border: 1.5px solid #cbd5e1;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: #f8fafc;
+    color: #1e293b;
+  }
+
+  .complaint-field input[type="text"]:focus,
+  .complaint-field textarea:focus {
+    border-color: #7b61ff;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.15);
+  }
+
+  body.dark-theme .complaint-field input[type="text"],
+  body.dark-theme .complaint-field textarea {
+    background-color: rgba(15, 23, 42, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #f1f5f9;
+  }
+
+  body.dark-theme .complaint-field input[type="text"]:focus,
+  body.dark-theme .complaint-field textarea:focus {
+    border-color: #9061ff;
+    background-color: rgba(15, 23, 42, 0.5);
+    box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.25);
+  }
+
+  /* Custom Premium Select Dropdowns */
+  .abcd-select-wrapper {
+    position: relative;
+    width: 100%;
+    user-select: none;
+  }
+
+  .abcd-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 18px;
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #1e293b;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  body.dark-theme .abcd-select-trigger {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(15, 23, 42, 0.3);
+    color: #f1f5f9;
+  }
+
+  .abcd-select-trigger:hover {
+    border-color: #7b61ff;
+    background: #ffffff;
+  }
+
+  body.dark-theme .abcd-select-trigger:hover {
+    border-color: #9061ff;
+    background: rgba(15, 23, 42, 0.5);
+  }
+
+  .abcd-select-wrapper.open .abcd-select-trigger {
+    border-color: #7b61ff;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.15);
+  }
+
+  body.dark-theme .abcd-select-wrapper.open .abcd-select-trigger {
+    border-color: #9061ff;
+    background: rgba(15, 23, 42, 0.5);
+    box-shadow: 0 0 0 4px rgba(123, 97, 255, 0.25);
+  }
+
+  .abcd-select-trigger i {
+    font-size: 1.2rem;
+    color: #7b61ff;
+    transition: transform 0.3s;
+  }
+
+  body.dark-theme .abcd-select-trigger i {
+    color: #9061ff;
+  }
+
+  .abcd-select-wrapper.open .abcd-select-trigger i {
+    transform: rotate(180deg);
+  }
+
+  .abcd-select-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  body.dark-theme .abcd-select-dropdown {
+    background: #1a0533;
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  }
+
+  .abcd-select-wrapper.open .abcd-select-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .abcd-select-option {
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  body.dark-theme .abcd-select-option {
+    color: #cbd5e1;
+  }
+
+  .abcd-select-option:hover {
+    background: rgba(123, 97, 255, 0.08);
+    color: #7b61ff;
+    padding-left: 20px;
+  }
+
+  body.dark-theme .abcd-select-option:hover {
+    background: rgba(144, 97, 255, 0.15);
+    color: #c084fc;
+    padding-left: 20px;
+  }
+
+  .abcd-select-option.selected {
+    background: #7b61ff;
+    color: #ffffff;
+  }
+
+  body.dark-theme .abcd-select-option.selected {
+    background: #9061ff;
+    color: #ffffff;
+  }
+
+  /* Custom Scrollbar for dropdowns */
+  .abcd-select-dropdown::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .abcd-select-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .abcd-select-dropdown::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+
+  body.dark-theme .abcd-select-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .abcd-select-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .complaint-field textarea {
+    min-height: 130px;
+    resize: vertical;
+  }
+
+  .complaint-section-title {
+    display: block;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  body.dark-theme .complaint-section-title {
+    color: #f1f5f9;
+  }
+
+  .complaint-field small {
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-top: 6px;
+  }
+
+  body.dark-theme .complaint-field small {
+    color: #94a3b8;
+  }
+
+  /* Photo slots */
+  .photo-upload-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 10px;
+  }
+
+  .photo-slot {
+    position: relative;
+    flex: 1 1 180px;
+    min-width: 180px;
+    max-width: 220px;
+    min-height: 140px;
+    border-radius: 16px;
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  body.dark-theme .photo-slot {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .photo-slot:hover {
+    border-color: #7b61ff;
+    background: #f1f5f9;
+  }
+
+  body.dark-theme .photo-slot:hover {
+    border-color: #7b61ff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .photo-slot.hidden {
+    display: none;
+  }
+
+  .photo-slot label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 20px 10px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    gap: 8px;
+    transition: all 0.2s ease;
+  }
+
+  body.dark-theme .photo-slot label {
+    color: #94a3b8 !important;
+  }
+
+  .photo-slot label i {
+    font-size: 2.2rem;
+    color: #94a3b8;
+    transition: color 0.2s ease;
+  }
+
+  .photo-slot:hover label i {
+    color: #7b61ff;
+  }
+
+  .photo-slot input[type="file"] {
+    display: none;
+  }
+
+  .preview-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    z-index: 5;
+  }
+
+  .preview-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .remove-preview-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(15, 23, 42, 0.75);
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    z-index: 10;
+  }
+
+  .remove-preview-btn:hover {
+    background: #ef4444;
+    transform: scale(1.1);
+  }
+
+  /* Table styles */
+  .complaint-history {
+    margin-top: 40px;
+  }
+
+  .complaint-table {
+    width: 100%;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(21, 52, 72, 0.08);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.dark-theme .complaint-table {
+    background: rgba(30, 20, 50, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  .complaint-table table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+  }
+
+  .complaint-table th {
+    background: linear-gradient(135deg, #7b61ff 0%, #6366f1 100%);
+    color: white;
+    padding: 16px 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: left;
+  }
+
+  body.dark-theme .complaint-table th {
+    background: linear-gradient(135deg, #4f3bbf 0%, #312e81 100%);
+  }
+
+  .complaint-table td {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+    color: #334155;
+  }
+
+  body.dark-theme .complaint-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+  }
+
+  .complaint-table tbody tr {
+    transition: background-color 0.2s ease;
+  }
+
+  .complaint-table tbody tr:hover {
+    background-color: #f8fafc;
+  }
+
+  body.dark-theme .complaint-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Animated Submit Button */
+  .btn-primary-animated {
+    background: linear-gradient(135deg, #7b61ff 0%, #6366f1 100%);
+    color: white;
+    border: none;
+    padding: 14px 36px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1.05rem;
+    box-shadow: 0 8px 20px rgba(123, 97, 255, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary-animated:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(123, 97, 255, 0.45);
+    background: linear-gradient(135deg, #8c75ff 0%, #7578f5 100%);
+  }
+
+  .btn-primary-animated:active {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(123, 97, 255, 0.3);
+  }
+
+  /* Rating Modal */
+  .rating-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+  }
+
+  .rating-modal.open {
+    display: flex;
+  }
+
+  .rating-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .rating-modal-card {
+    position: relative;
+    background: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    max-width: 440px;
+    width: 92%;
+    z-index: 1;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(21, 52, 72, 0.08);
+  }
+
+  body.dark-theme .rating-modal-card {
+    background: #1e1432;
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .rating-stars-row {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0 16px;
+  }
+
+  .rating-star {
+    font-size: 2.2rem;
+    cursor: pointer;
+    color: #cbd5e1;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .rating-star:hover {
+    transform: scale(1.15);
+  }
+
+  .rating-star.active {
+    color: #fbbf24;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+  }
+
+  .btn-modal-cancel {
+    padding: 10px 20px;
+    border-radius: 50px;
+    border: 1.5px solid #cbd5e1;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 600;
+    color: #475569;
+    transition: all 0.2s;
+  }
+
+  .btn-modal-cancel:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+  }
+
+  body.dark-theme .btn-modal-cancel {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+  }
+
+  body.dark-theme .btn-modal-cancel:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+  }
+
+  @media (max-width: 768px) {
+    .complaint-form-grid {
+      grid-template-columns: 1fr;
+    }
+    .complaints-welcome-card {
+      flex-direction: column;
+      text-align: center;
+      padding: 24px;
+      gap: 16px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container" style="padding-top: 20px;">
+  <!-- Modern Welcome Card -->
+  <div class="complaints-welcome-card">
+    <div class="welcome-icon">
+      <i class='bx bx-edit-alt'></i>
+    </div>
+    <div class="welcome-text">
+      <h2>📝 Complaint Box</h2>
+      <p>
+        Hi {{ student.full_name }}, if you face any issue in coaching or library
+        (Wi-Fi, noise, cleaning, washroom, water, etc.), please tell us here.
+      </p>
+    </div>
+  </div>
+
+  <!-- Complaint Form -->
+  <div class="complaint-form-card">
+    <h3>Raise a new complaint</h3>
+    <form id="raiseComplaintForm" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="complaint-form-grid">
+        <div class="complaint-field">
+          <label for="{{ form.subject.id_for_label }}">Complaint type</label>
+          {{ form.subject }}
+        </div>
+        <div class="complaint-field">
+          <label for="{{ form.custom_subject.id_for_label }}">Subject (only for “Anything else”)</label>
+          {{ form.custom_subject }}
+          <small>Leave blank for fixed options. Required for “Anything else”.</small>
+        </div>
+      </div>
+
+      <div class="complaint-field" style="margin-top: 15px;">
+        <span class="complaint-section-title">Describe your issue</span>
+        {{ form.message }}
+      </div>
+
+      <div style="margin-top: 15px;">
+        <span class="complaint-section-title">Attach photos (optional – up to 3)</span>
+        <div class="photo-upload-row">
+          <div class="photo-slot" id="photo1-wrapper">
+            <label for="id_image1">
+              <i class='bx bx-camera'></i>
+              <span>Photo 1</span>
+            </label>
+            {{ form.image1 }}
+            <div class="preview-wrapper">
+              <img src="" alt="Preview 1">
+              <button type="button" class="remove-preview-btn" onclick="removePhoto(1)">×</button>
+            </div>
+          </div>
+          <div class="photo-slot hidden" id="photo2-wrapper">
+            <label for="id_image2">
+              <i class='bx bx-camera'></i>
+              <span>Photo 2 (optional)</span>
+            </label>
+            {{ form.image2 }}
+            <div class="preview-wrapper">
+              <img src="" alt="Preview 2">
+              <button type="button" class="remove-preview-btn" onclick="removePhoto(2)">×</button>
+            </div>
+          </div>
+          <div class="photo-slot hidden" id="photo3-wrapper">
+            <label for="id_image3">
+              <i class='bx bx-camera'></i>
+              <span>Photo 3 (optional)</span>
+            </label>
+            {{ form.image3 }}
+            <div class="preview-wrapper">
+              <img src="" alt="Preview 3">
+              <button type="button" class="remove-preview-btn" onclick="removePhoto(3)">×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 30px; display: flex; justify-content: center;">
+        <button type="submit" class="btn-primary-animated">
+          <i class='bx bx-send'></i> Submit Complaint
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Previous Complaints -->
+  <div class="complaint-history">
+    <div class="complaint-table">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Subject</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if complaints %}
+          {% for c in complaints %}
+          <tr>
+            <td>{{ c.code }}</td>
+            <td>{{ c.display_subject }}</td>
+            <td>{{ c.created_at|date:"d M Y" }}</td>
+            <td>
+              {% if c.status == 'new' %}
+              <span style="color:#e67e22;font-weight:600;">New</span>
+              {% elif c.status == 'in_progress' %}
+              <span style="color:#2980b9;font-weight:600;">In progress</span>
+              {% else %}
+              <span style="color:#27ae60;font-weight:600;">Resolved</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.status == 'resolved' and not c.rating %}
+              <a href="{% url 'users:complaint_rate' c.id %}" class="complaint-rate-link" data-code="{{ c.code }}"
+                data-subject="{{ c.display_subject }}"
+                style="color:#7b61ff; text-decoration: none; font-weight: 600;">Rate now</a>
+              {% elif c.rating %}
+              ⭐ {{ c.rating }}/5
+              {% else %}
+              –
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td colspan="5" class="detail-cell">
+              <strong>Detail:</strong> {{ c.message|linebreaksbr }}
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="5" style="text-align:center; padding: 40px; opacity: 0.6;">No complaints submitted yet.</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Rating Modal -->
+<div id="rating-modal" class="rating-modal">
+  <div class="rating-modal-backdrop"></div>
+  <div class="rating-modal-card">
+    <h4 style="margin-bottom:6px; font-weight: 800; font-size: 1.2rem;">Rate this complaint</h4>
+    <p id="rating-modal-subtitle" style="font-size:.85rem; opacity:.8; margin-bottom:12px;"></p>
+    <form id="rating-form" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="rating" id="rating-input" value="5">
+      <div class="rating-stars-row">
+        <span class="rating-star" data-value="1">&#9733;</span>
+        <span class="rating-star" data-value="2">&#9733;</span>
+        <span class="rating-star" data-value="3">&#9733;</span>
+        <span class="rating-star" data-value="4">&#9733;</span>
+        <span class="rating-star" data-value="5">&#9733;</span>
+      </div>
+      <textarea name="feedback" id="rating-feedback" class="complaint-field textarea"
+        style="margin-top: 12px; min-height: 90px;"
+        placeholder="Optional feedback..." rows="3"></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+        <button type="button" id="rating-cancel-btn" class="btn-modal-cancel">Cancel</button>
+        <button type="submit" class="btn-primary-animated" style="padding: 10px 24px; font-size: 0.95rem;">Submit</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // --- CUSTOM SELECT TRANSFORMATION ---
+  function initCustomSelects() {
+    document.querySelectorAll('select.form-control').forEach(select => {
+      if (select.dataset.customized) return;
+      select.dataset.customized = "true";
+      select.style.display = 'none';
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'abcd-select-wrapper';
+
+      const trigger = document.createElement('div');
+      trigger.className = 'abcd-select-trigger';
+      trigger.innerHTML = `<span>${select.options[select.selectedIndex]?.text || 'Select...'}</span><i class='bx bx-chevron-down'></i>`;
+
+      const dropdown = document.createElement('div');
+      dropdown.className = 'abcd-select-dropdown';
+
+      Array.from(select.options).forEach(option => {
+        const optDiv = document.createElement('div');
+        optDiv.className = 'abcd-select-option';
+        if (option.selected) optDiv.classList.add('selected');
+        optDiv.textContent = option.text;
+        optDiv.dataset.value = option.value;
+
+        optDiv.addEventListener('click', () => {
+          select.value = option.value;
+          trigger.querySelector('span').textContent = option.text;
+          dropdown.querySelectorAll('.abcd-select-option').forEach(o => o.classList.remove('selected'));
+          optDiv.classList.add('selected');
+          wrapper.classList.remove('open');
+
+          // Trigger native change event
+          select.dispatchEvent(new Event('change'));
+        });
+        dropdown.appendChild(optDiv);
+      });
+
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = wrapper.classList.contains('open');
+        document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
+        if (!isOpen) wrapper.classList.add('open');
+      });
+
+      wrapper.appendChild(trigger);
+      wrapper.appendChild(dropdown);
+      select.parentNode.insertBefore(wrapper, select.nextSibling);
+    });
+
+    // Close all dropdowns when clicking outside
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
+    });
+  }
+
+  // Global removePhoto function so it can be called from onclick attribute
+  function removePhoto(inputNum) {
+    const fileInput = document.getElementById(`id_image${inputNum}`);
+    const wrapper = document.getElementById(`photo${inputNum}-wrapper`);
+    const previewWrapper = wrapper?.querySelector('.preview-wrapper');
+    const img = previewWrapper?.querySelector('img');
+    const label = wrapper?.querySelector('label');
+    
+    if (fileInput) fileInput.value = ''; // clear input
+    if (img) img.src = '';
+    if (previewWrapper) previewWrapper.style.display = 'none';
+    if (label) label.style.opacity = '1';
+
+    // Cascade hide and clear next slots
+    if (inputNum === 1) {
+      removePhoto(2);
+      const wrap2 = document.getElementById('photo2-wrapper');
+      if (wrap2) wrap2.classList.add('hidden');
+    } else if (inputNum === 2) {
+      removePhoto(3);
+      const wrap3 = document.getElementById('photo3-wrapper');
+      if (wrap3) wrap3.classList.add('hidden');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize custom selects
+    initCustomSelects();
+
+    const raiseForm = document.getElementById('raiseComplaintForm');
+    if (raiseForm) {
+      let isSubmitting = false;
+      raiseForm.addEventListener('submit', function(e) {
+        if (isSubmitting) {
+          e.preventDefault();
+          return false;
+        }
+        isSubmitting = true;
+        const submitBtn = raiseForm.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          submitBtn.style.opacity = '0.7';
+          submitBtn.style.pointerEvents = 'none';
+        }
+      });
+    }
+
+    // Photo preview and progressive revealing logic
+    function setupPhotoUpload(num) {
+      const fileInput = document.getElementById(`id_image${num}`);
+      const wrapper = document.getElementById(`photo${num}-wrapper`);
+      const previewWrapper = wrapper?.querySelector('.preview-wrapper');
+      const img = previewWrapper?.querySelector('img');
+      const label = wrapper?.querySelector('label');
+      const nextWrapper = document.getElementById(`photo${num + 1}-wrapper`);
+
+      fileInput?.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            if (img) img.src = e.target.result;
+            if (previewWrapper) previewWrapper.style.display = 'block';
+            if (label) label.style.opacity = '0';
+            if (nextWrapper && nextWrapper.classList.contains('hidden')) {
+              nextWrapper.classList.remove('hidden');
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    [1, 2, 3].forEach(num => setupPhotoUpload(num));
+
+    // Rating Modal Logic
+    const modal = document.getElementById('rating-modal');
+    const backdrop = modal?.querySelector('.rating-modal-backdrop');
+    const form = document.getElementById('rating-form');
+    const ratingInput = document.getElementById('rating-input');
+    const subtitle = document.getElementById('rating-modal-subtitle');
+    const cancelBtn = document.getElementById('rating-cancel-btn');
+    const stars = modal?.querySelectorAll('.rating-star');
+    const links = document.querySelectorAll('.complaint-rate-link');
+
+    function openModal(href, code, subject) {
+      if (!form) return;
+      form.action = href;
+      ratingInput.value = '5';
+      highlightStars(5);
+      subtitle.textContent = code + ' – ' + subject;
+      modal.classList.add('open');
+    }
+
+    function closeModal() { modal.classList.remove('open'); }
+
+    function highlightStars(value) {
+      stars?.forEach(star => {
+        star.classList.toggle('active', parseInt(star.dataset.value) <= value);
+      });
+    }
+
+    links.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal(link.getAttribute('href'), link.dataset.code, link.dataset.subject);
+      });
+    });
+
+    stars?.forEach(star => {
+      star.addEventListener('click', () => {
+        ratingInput.value = star.dataset.value;
+        highlightStars(parseInt(star.dataset.value));
+      });
+      
+      star.addEventListener('mouseenter', () => {
+        const hoverVal = parseInt(star.dataset.value);
+        stars.forEach(s => {
+          s.style.color = parseInt(s.dataset.value) <= hoverVal ? '#fbbf24' : '#cbd5e1';
+        });
+      });
+    });
+
+    const starsRow = modal?.querySelector('.rating-stars-row');
+    starsRow?.addEventListener('mouseleave', () => {
+      const activeVal = parseInt(ratingInput.value) || 5;
+      stars?.forEach(s => {
+        s.style.color = ''; // reset inline styles to use css class styles
+      });
+      highlightStars(activeVal);
+    });
+
+    cancelBtn?.addEventListener('click', closeModal);
+    backdrop?.addEventListener('click', closeModal);
+  });
+</script>
+{% include 'partials/_smart_back_redirect.html' with context_aware=True %}
+{% endblock %}

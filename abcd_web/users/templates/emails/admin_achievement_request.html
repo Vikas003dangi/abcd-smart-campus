@@ -1,0 +1,33 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif;">
+  <tr>
+    <td style="padding: 10px 0;">
+      <h2 style="color:#1f2937; margin-bottom:12px;">New Alumni Achievement Request</h2>
+      
+      <p style="font-size:15px; color:#374151; line-height:1.6;">
+        <b>{{ student_name }}</b> has submitted a new achievement request.<br><br>
+        <b>Summary:</b> {{ achievement_summary }}
+      </p>
+
+      {% url 'users:teacher_dashboard' as default_achieve_teacher_dash %}
+      <div style="margin:30px 0; text-align:center;">
+        <a href="{% if action_url %}{{ action_url }}{% elif site_url %}{{ site_url }}{{ default_achieve_teacher_dash }}{% else %}{{ default_achieve_teacher_dash }}{% endif %}"
+           style="
+             background:#2563eb;
+             color:#ffffff;
+             padding:12px 26px;
+             text-decoration:none;
+             border-radius:6px;
+             font-weight:600;
+             display:inline-block;
+           ">
+          Review Request
+        </a>
+      </div>
+      
+    </td>
+  </tr>
+</table>
+{% endblock %}

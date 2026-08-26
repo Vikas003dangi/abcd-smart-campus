@@ -1,0 +1,2537 @@
+/* ================================================== */
+/* SEAT LAYOUT SYSTEM - COMPLETE STYLESHEET */
+/* ================================================== */
+
+/* ================================================== */
+/* 1. MODAL OVERLAY & CONTAINER */
+/* ================================================== */
+
+#teacherModalOverlay,
+.teacher-modal-overlay,
+.seat-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    z-index: 1040;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: none;
+}
+
+.seat-modal-overlay.visible {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+.seat-modal-container {
+    position: relative;
+    bottom: 0;
+    left: 0;
+    max-width: 760px;
+    width: calc(100% - 40px);
+    margin: 12px auto;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.seat-modal-overlay.visible .seat-modal-container {
+    transform: translateY(0) !important;
+}
+
+/* ================================================== */
+/* 2. MODAL HEADER, BODY & FOOTER */
+/* ================================================== */
+
+.seat-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    position: relative;
+    z-index: 20200;
+}
+
+.seat-modal-header h3 {
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.seat-modal-close-btn {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #888;
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+}
+
+body.dark-theme .seat-modal-close-btn {
+    color: #f8fafc !important;
+}
+
+.seat-modal-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 20250;
+}
+
+.seat-modal-body {
+    max-height: calc(100vh - 170px);
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 18px;
+    padding-top: 12px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.seat-modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-top: 1px solid #e0e0e0;
+    background: #f9f9f9;
+}
+
+.seat-modal-footer .legend {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* ================================================== */
+/* 3. LEGEND STYLES */
+/* ================================================== */
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+}
+
+.legend-box {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    display: inline-block;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.legend-box.available {
+    color: #000;
+}
+
+.legend-box.occupied {
+    color: #9b59b6;
+}
+
+.legend-box.pending {
+    color: #3498db;
+}
+
+.legend-box.on-hold,
+.legend-box.on_hold {
+    color: #f39c12;
+}
+
+.legend-box.shift-occupied {
+    color: #7c3aed;
+}
+
+.legend-box i {
+    font-size: 1.2rem;
+}
+
+.confirm-seat-btn {
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: bold;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.confirm-seat-btn:hover {
+    background: #5a6cd8;
+}
+
+.confirm-seat-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* ================================================== */
+/* 4. SEAT BASE STYLES */
+/* ================================================== */
+
+.seat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 80px;
+    min-height: 96px;
+    padding: 10px 5px 5px;
+    border: 2px solid transparent;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.seat:has(.vertical) {
+    min-width: 52px;
+    min-height: 110px;
+    padding: 14px 4px 4px !important;
+}
+
+.seat.empty-space {
+    background: transparent;
+    border: none;
+    cursor: default;
+    min-height: 80px;
+}
+
+/* ================================================== */
+/* 5. SEAT NUMBER BADGE */
+/* ================================================== */
+
+.seat-number {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+    z-index: 2;
+    transition: all 0.2s ease;
+    background: #f0f0f0;
+    color: #444;
+}
+
+.seat-number-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 4px 7px;
+    border-radius: 50%;
+    z-index: 5;
+}
+
+/* ================================================== */
+/* 6. SEAT ICON GROUP */
+/* ================================================== */
+
+.seat-icon-group {
+    font-size: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: color 0.2s ease;
+    color: #444;
+}
+
+.seat-icon-group .lamp-icon {
+    font-size: 1.3rem;
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: color 0.2s ease;
+    color: #95a5a6;
+}
+
+.seat-icon-group.desk-first .bx-chair {
+    margin-left: -5px;
+}
+
+.seat-icon-group.chair-first .bx-chair {
+    margin-right: -5px;
+}
+
+/* Vertical Layout */
+.seat-icon-group.vertical {
+    flex-direction: column;
+    font-size: 3rem;
+    justify-content: center;
+    width: 100%;
+    line-height: 1;
+}
+
+.seat-icon-group.vertical .desk-lamp-wrapper {
+    position: relative;
+    line-height: 1;
+    font-size: 3rem;
+}
+
+.seat-icon-group.vertical .lamp-icon {
+    font-size: 1.1rem;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.seat-icon-group.vertical.chair-above .bxs-chair {
+    margin-bottom: 2px;
+    font-size: 3rem;
+}
+
+.seat-icon-group.vertical.chair-below .bxs-chair {
+    margin-top: 2px;
+    font-size: 3rem;
+}
+
+.seat-icon-group.vertical .rotate-180 {
+    transform: rotate(180deg);
+}
+
+/* ================================================== */
+/* 7. SEAT LABEL */
+/* ================================================== */
+
+.seat-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+    background: #fff;
+    transition: all 0.2s ease;
+    color: #333;
+    border-color: #aaa;
+}
+
+.seat .seat-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    max-width: 98%;
+    overflow: visible;
+    white-space: nowrap;
+    padding: 2px 8px;
+    display: inline-block;
+}
+
+.seat .seat-label.pt {
+    background: #e84393;
+}
+
+.seat .seat-label.hold {
+    background: #f39c12;
+}
+
+/* ================================================== */
+/* 8. SEAT STATUS STYLES - AVAILABLE */
+/* ================================================== */
+
+.seat.available .seat-icon-group {
+    color: black;
+}
+
+.seat.available .lamp-icon {
+    color: #95a5a6;
+}
+
+.seat.available .seat-number {
+    background: #f0f0f0;
+    color: #7d09a0;
+    border: 1px solid #7d09a0;
+}
+
+.seat.available .seat-label {
+    color: #7d09a0;
+    border-color: #646464;
+}
+
+.seat.available:hover {
+    border-color: #3498db;
+    background: #f0f8ff;
+}
+
+/* ================================================== */
+/* ICON COLOR RULES (Per SKILL.md images)
+/* ================================================== */
+/* 
+ * IMPORTANT: Icons are NEVER white!
+ * 
+ * FULL SINGLE-STATE SEATS: Icons = Border = Theme color
+ *   - Non-shift Selected: Blue (A2)
+ *   - Non-shift Pending: Blue (T2)
+ *   - Shift Pending (full): Blue (T3)
+ *   - Non-shift Occupied: Green (A34, L18, T36)
+ *   - Shift Occupied FULL DAY: Purple (A35, L17, T37)
+ *   - Full Day Hold (shift or non-shift): Orange (A36, L9, T38)
+ *   - Full Day Temp Allotment: Pink (T39, A37)
+ *
+ * PARTIAL/MIXED/DEFAULT STATES: Icons = DEFAULT BLACK (#333)
+ *   - Shift with only morning occupied/hold
+ *   - Shift with only evening occupied/hold
+ *   - Two different students on one seat
+ *   - Diagonal splits (Hold+Partial, etc.)
+ *   - Available seats
+ */
+/* ================================================== */
+
+/* ================================================== */
+/* 9. SEAT STATUS STYLES - OCCUPIED (Standard = GREEN) */
+/* Per SKILL.md images A34, T36: Light green bg, green icons */
+/* ================================================== */
+
+/* Standard non-shift occupied seats are GREEN per SKILL.md */
+.seat.occupied {
+    border-color: #2ecc71;
+    background-color: #d4edda;
+    /* Light green background */
+    cursor: not-allowed;
+}
+
+/* Shift seat fully occupied = not-allowed */
+.shift-seat.occupied-full,
+.shift-seat.occupied-morning.occupied-evening {
+    cursor: not-allowed;
+}
+
+/* Shift seat fully occupied = not-allowed */
+.shift-seat.occupied-full,
+.shift-seat.occupied-morning.occupied-evening {
+    cursor: not-allowed;
+}
+
+/* Force pointer for hold states (unless essentially fully occupied) */
+div.seat[data-status="on_hold"],
+div.seat.on_hold,
+div.seat.hold-full,
+div.seat.shift-seat.hold-full,
+div.seat[data-status="on_hold"]:hover,
+div.seat.on_hold:hover,
+div.seat.hold-full:hover,
+div.seat.shift-seat.hold-full:hover,
+div.seat[data-status="on_hold"] *,
+div.seat.hold-full * {
+    cursor: pointer !important;
+}
+
+/* Icons match theme color (green), not white - per A34.png, T36.png */
+.seat.occupied:not(.on_hold):not(.hold-full) .seat-icon-group {
+    color: #2ecc71;
+}
+
+.seat.occupied:not(.on_hold):not(.hold-full) .lamp-icon {
+    color: #2ecc71;
+}
+
+/* Non-shift occupied = GREEN number circle */
+.seat.occupied .seat-number {
+    background: #2ecc71;
+    border: 2px solid #27ae60;
+    color: white;
+}
+
+.seat.occupied .seat-label {
+    background: #2ecc71;
+    color: white;
+    border-color: #27ae60;
+}
+
+/* Light green background variant for admission form display */
+.seat.occupied-light {
+    border-color: #2ecc71;
+    background-color: #d4edda;
+}
+
+.seat.occupied-light .seat-icon-group {
+    color: #2ecc71;
+}
+
+.seat.occupied-light .lamp-icon {
+    color: #2ecc71;
+}
+
+.seat.occupied-light .seat-number {
+    background: #e74c3c;
+    border: 1px solid #c0392b;
+    color: white;
+}
+
+.seat.occupied-light .seat-label {
+    background: #2ecc71;
+    color: white;
+    border-color: #27ae60;
+}
+
+/* Additional seat status styles for user's own seats */
+.seat-inner.occupied-by-user {
+    background: #4CAF50;
+    color: white;
+}
+
+.seat-inner.on-hold-by-user {
+    background: #FF9800;
+    color: white;
+}
+
+.seat-inner.partially-occupied {
+    background: linear-gradient(45deg, #9C27B0 50%, #E0E0E0 50%);
+    color: white;
+    border-color: #8e44ad;
+}
+
+/* ================================================== */
+/* 10. SEAT STATUS STYLES - PENDING */
+/* ================================================== */
+
+.seat.pending {
+    border-color: #3498db;
+    background-color: #ebf6ff;
+}
+
+.seat.pending .seat-icon-group {
+    color: #3498db;
+}
+
+.seat.pending .lamp-icon {
+    color: #3498db;
+}
+
+.seat.pending .seat-number {
+    background: #3498db;
+    border: 1px solid #2980b9;
+    color: white;
+}
+
+.seat.pending .seat-label {
+    background: #3498db;
+    color: white;
+    border-color: #2980b9;
+}
+
+/* ================================================== */
+/* 11. SEAT STATUS STYLES - ON HOLD */
+/* ================================================== */
+
+.seat.on-hold,
+.seat.on_hold {
+    border-color: #f39c12;
+    background-color: #fff3cd;
+    cursor: not-allowed;
+}
+
+.seat.on-hold .seat-icon-group,
+.seat.on_hold .seat-icon-group {
+    color: #f39c12;
+}
+
+.seat.on-hold .lamp-icon,
+.seat.on_hold .lamp-icon {
+    color: #f39c12;
+}
+
+/* Non-shift on hold = ORANGE number circle */
+.seat.on-hold .seat-number,
+.seat.on_hold .seat-number {
+    background: #f39c12;
+    border: 2px solid #e67e22;
+    color: white;
+}
+
+.seat.on-hold .seat-label,
+.seat.on_hold .seat-label {
+    background: #f39c12;
+    color: white;
+    border-color: #e67e22;
+}
+
+/* ================================================== */
+/* 12. SEAT STATUS STYLES - SELECTED */
+/* ================================================== */
+
+.seat.selected {
+    border-color: #667eea;
+    background: #f0f1ff;
+}
+
+.seat.selected .seat-icon-group {
+    color: #667eea;
+}
+
+.seat.selected .lamp-icon {
+    color: #667eea;
+}
+
+.seat.selected .seat-number {
+    background: #667eea;
+    border: 1px solid #5a6cd8;
+    color: white;
+}
+
+.seat.selected .seat-label {
+    background: #667eea;
+    color: white;
+    border-color: #5a6cd8;
+}
+
+/* ================================================== */
+/* 13. SPECIAL SEATS (Buddha Icon) */
+/* ================================================== */
+
+.seat.special {
+    cursor: default;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.seat.special img {
+    width: 100%;
+    max-width: 60px;
+    height: auto;
+    opacity: 0.9;
+}
+
+.seat.special.info-pin {
+    grid-row: auto;
+}
+
+.seat.special.info-pin .seat-icon-group {
+    font-size: 2.5rem;
+    color: #7f8c8d;
+}
+
+.seat.special.info-pin .seat-label {
+    color: #7f8c8d;
+    border-color: transparent;
+    background: transparent;
+}
+
+/* ================================================== */
+/* 14. SHIFT-BASED SEAT STYLES (Seats 40-53) */
+/* ================================================== */
+
+.shift-seat {
+    position: relative;
+    overflow: visible;
+}
+
+.shift-seat .seat-half {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.shift-seat .seat-morning {
+    top: 0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.shift-seat .seat-evening {
+    bottom: 0;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+.shift-seat .seat-icon-group,
+.shift-seat .seat-number,
+.shift-seat .seat-label {
+    position: relative;
+    z-index: 3;
+    transition: all 0.2s ease !important;
+}
+
+/* ================================================== */
+/* 15. SHIFT SEAT - SELECTION STATES (Blue) */
+/* ================================================== */
+
+.shift-seat.selected-morning {
+    border: 2px solid #2563eb;
+}
+
+.shift-seat.selected-morning .seat-morning {
+    background: #2563eb;
+}
+
+/* Selected (any shift) */
+.shift-seat.selected-morning .seat-number,
+.shift-seat.selected-evening .seat-number,
+.shift-seat.selected-full .seat-number {
+    background: #2563eb;
+    color: #fff;
+    border: 1px solid #2563eb;
+}
+
+/* Morning selection label - positioned in the morning half (top 25% of seat) */
+/* Must have higher z-index than .seat-icon-group (z-index: 3) */
+.seat-morning-label {
+    position: absolute;
+    top: 25%;
+    /* Position in morning half area */
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Match .seat-label styling */
+    font-size: 0.42rem;
+    font-weight: 700;
+    color: #8d17d1;
+    background: #fff;
+    padding: 1px 2px;
+    border-radius: 20px;
+    border: 1px solid #667eea;
+    z-index: 50;
+    /* Higher than icons (z-index: 3) */
+    white-space: nowrap;
+    max-width: 98%;
+    overflow: visible;
+    display: inline-block;
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+/* Evening selection label - positioned in evening half (bottom 25% of seat aka 75% from top) */
+.seat-evening-label {
+    position: absolute;
+    top: 75%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.42rem;
+    font-weight: 700;
+    color: #8d17d1;
+    background: #fff;
+    padding: 1px 2px;
+    border-radius: 20px;
+    border: 1px solid #667eea;
+    z-index: 50;
+    white-space: nowrap;
+    max-width: 98%;
+    overflow: visible;
+    display: inline-block;
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+/* ================================================== */
+/* 15. SHIFT SEAT - SELECTION / PENDING STATES (Blue) */
+/* ================================================== */
+
+/* Base style for Blue states */
+/* Single-shift states: transparent bg so available half stays clean */
+.shift-seat.selected-morning,
+.shift-seat.shift-pending-morning,
+.shift-seat.selected-evening,
+.shift-seat.shift-pending-evening {
+    border: 2px solid #3498db;
+    background-color: transparent;
+}
+
+/* Full-day blue states: keep the light blue tint */
+.shift-seat.selected-full,
+.shift-seat.shift-pending-full,
+.shift-seat.pending {
+    border: 2px solid #3498db;
+    background-color: #ebf8ff;
+    /* Light blue base */
+}
+
+/* Differentiate Morning (LIGHT) and Evening (DARKER) Blue */
+.shift-seat.selected-morning .seat-morning,
+.shift-seat.shift-pending-morning .seat-morning {
+    background-color: #93c5fd;
+    /* Clearly visible blue */
+    z-index: 1;
+}
+
+.shift-seat.selected-evening .seat-evening,
+.shift-seat.shift-pending-evening .seat-evening {
+    background-color: #3498db;
+    /* Darker blue */
+    z-index: 1;
+}
+
+/* Force horizontal divider for split blue states */
+.shift-seat.selected-morning::after,
+.shift-seat.shift-pending-morning::after,
+.shift-seat.selected-evening::after,
+.shift-seat.shift-pending-evening::after {
+    display: block !important;
+}
+
+/* Full Day solid states */
+.shift-seat.selected-full .seat-morning,
+.shift-seat.selected-full .seat-evening {
+    background-color: transparent !important;
+}
+
+.shift-seat.selected-full .seat-icon-group,
+.shift-seat.selected-full .lamp-icon {
+    color: #2563eb !important;
+}
+
+.shift-seat.shift-pending-full .seat-morning,
+.shift-seat.shift-pending-full .seat-evening,
+.shift-seat.pending .seat-morning,
+.shift-seat.pending .seat-evening {
+    background-color: #3498db;
+    /* Solid blue for full day */
+}
+
+/* Badge for blue states */
+.shift-seat.selected-morning .seat-number,
+.shift-seat.shift-pending-morning .seat-number,
+.shift-seat.selected-evening .seat-number,
+.shift-seat.shift-pending-evening .seat-number,
+.shift-seat.selected-full .seat-number,
+.shift-seat.shift-pending-full .seat-number,
+.shift-seat.pending .seat-number {
+    background: #3498db;
+    border: 1px solid #2980b9;
+    color: #fff;
+    z-index: 10;
+}
+
+/* ================================================== */
+/* 15.4 SHIFT SEAT - HOLD + TEMP STATES               */
+/* When one shift is on Hold AND a temp student sits   */
+/* The held-shift half shows: Left=Orange | Right=Pink */
+/* The other shift half shows: Solid Pink (temp only)  */
+/* Per user images: T19, T20, T25, T27 variants        */
+/* ================================================== */
+
+/* MORNING HOLD + FULL-DAY TEMP APPROVED               */
+/* Morning area (top half): Left=Orange, Right=Pink    */
+/* Evening area (bottom half): Solid Pink (temp)       */
+.shift-seat.hold-morning-with-temp {
+    border: 2px solid #e84393 !important;
+    background-color: #fff0f5 !important;
+}
+
+.shift-seat.hold-morning-with-temp .seat-morning {
+    background: linear-gradient(to right, #fcd34d 49.2%, #000 49.2%, #000 50.8%, #ff9abe 50.8%) !important;
+    z-index: 1;
+}
+
+.shift-seat.hold-morning-with-temp .seat-evening {
+    background-color: #ff9abe !important;
+    z-index: 1;
+}
+
+.shift-seat.hold-morning-with-temp::after {
+    display: block !important;
+}
+
+.shift-seat.hold-morning-with-temp .seat-number {
+    background: #e84393;
+    border: 1px solid #c13175;
+    color: #fff;
+    z-index: 10;
+}
+
+.shift-seat.hold-morning-with-temp .seat-label,
+.shift-seat.hold-morning-with-temp .seat-morning-label,
+.shift-seat.hold-morning-with-temp .seat-evening-label {
+    display: none !important;
+}
+
+/* EVENING HOLD + FULL-DAY TEMP APPROVED               */
+/* Morning area (top half): Solid Pink (temp only)     */
+/* Evening area (bottom half): Left=Pink, Right=Orange */
+.shift-seat.hold-evening-with-temp {
+    border: 2px solid #e84393 !important;
+    background-color: #fff0f5 !important;
+}
+
+.shift-seat.hold-evening-with-temp .seat-morning {
+    background-color: #f9a8d4 !important;
+    z-index: 1;
+}
+
+.shift-seat.hold-evening-with-temp .seat-evening {
+    background: linear-gradient(to right, #ff9abe 49.2%, #000 49.2%, #000 50.8%, #fcd34d 50.8%) !important;
+    z-index: 1;
+}
+
+.shift-seat.hold-evening-with-temp::after {
+    display: block !important;
+}
+
+.shift-seat.hold-evening-with-temp .seat-number {
+    background: #e84393;
+    border: 1px solid #c13175;
+    color: #fff;
+    z-index: 10;
+}
+
+.shift-seat.hold-evening-with-temp .seat-label,
+.shift-seat.hold-evening-with-temp .seat-morning-label,
+.shift-seat.hold-evening-with-temp .seat-evening-label {
+    display: none !important;
+}
+
+/* PENDING version of MORNING HOLD + TEMP REQUEST      */
+/* (before teacher approves - same visual but animated)*/
+.shift-seat.pending-hold-morning-with-temp {
+    border: 2px solid #e84393 !important;
+    background-color: #fff0f5 !important;
+    animation: temp-pulse 1.5s ease-in-out infinite;
+}
+
+.shift-seat.pending-hold-morning-with-temp .seat-morning {
+    background: linear-gradient(to right, #fcd34d 49.2%, #000 49.2%, #000 50.8%, #ff9abe 50.8%) !important;
+    z-index: 1;
+}
+
+.shift-seat.pending-hold-morning-with-temp .seat-evening {
+    background-color: #ff9abe !important;
+    z-index: 1;
+}
+
+.shift-seat.pending-hold-morning-with-temp::after {
+    display: block !important;
+}
+
+.shift-seat.pending-hold-morning-with-temp .seat-number {
+    background: #e84393;
+    border: 1px solid #c13175;
+    color: #fff;
+    z-index: 10;
+}
+
+.shift-seat.pending-hold-morning-with-temp .seat-label,
+.shift-seat.pending-hold-morning-with-temp .seat-morning-label,
+.shift-seat.pending-hold-morning-with-temp .seat-evening-label {
+    display: none !important;
+}
+
+/* PENDING version of EVENING HOLD + TEMP REQUEST      */
+.shift-seat.pending-hold-evening-with-temp {
+    border: 2px solid #e84393 !important;
+    background-color: #fff0f5 !important;
+    animation: temp-pulse 1.5s ease-in-out infinite;
+}
+
+.shift-seat.pending-hold-evening-with-temp .seat-morning {
+    background-color: #f9a8d4 !important;
+    z-index: 1;
+}
+
+.shift-seat.pending-hold-evening-with-temp .seat-evening {
+    background: linear-gradient(to right, #ff9abe 49.2%, #000 49.2%, #000 50.8%, #fcd34d 50.8%) !important;
+    z-index: 1;
+}
+
+.shift-seat.pending-hold-evening-with-temp::after {
+    display: block !important;
+}
+
+.shift-seat.pending-hold-evening-with-temp .seat-number {
+    background: #e84393;
+    border: 1px solid #c13175;
+    color: #fff;
+    z-index: 10;
+}
+
+
+
+/* SINGLE-SHIFT ONLY APPROVED TEMP OVER HOLD */
+/* Evening Hold + Evening Temp Approved (Morning is not part of this class so it can be Available) */
+.shift-seat.hold-evening-temp-evening {
+    border: 2px solid #e84393 !important;
+    background-color: transparent !important;
+}
+
+.shift-seat.hold-evening-temp-evening .seat-evening {
+    background: linear-gradient(to right, #fcd34d 49.2%, #000 49.2%, #000 50.8%, #ff9abe 50.8%) !important;
+    z-index: 1;
+}
+
+.shift-seat.hold-evening-temp-evening::after {
+    display: block !important;
+}
+
+.shift-seat.hold-evening-temp-evening .seat-number {
+    background: #e84393;
+    border: 1px solid #c13175;
+    color: #fff;
+    z-index: 10;
+}
+
+/* Hide the evening label inside the box */
+.shift-seat.hold-evening-temp-evening .seat-evening-label,
+.shift-seat.hold-evening-temp-evening .seat-label {
+    display: none !important;
+}
+
+/* Morning Hold + Morning Temp Approved (Evening is not part of this class so it can be Available) */
+.shift-seat.hold-morning-temp-morning {
+    border: 2px solid #e84393 !important;
+    background-color: transparent !important;
+}
+
+.shift-seat.hold-morning-temp-morning .seat-morning {
+    background: linear-gradient(to right, #ff9abe 49.2%, #000 49.2%, #000 50.8%, #fcd34d 50.8%) !important;
+    z-index: 1;
+}
+
+.shift-seat.hold-morning-temp-morning::after {
+    display: block !important;
+}
+
+.shift-seat.hold-morning-temp-morning .seat-number {
+    background: #e84393;
+    border: 1px solid #c13175;
+    color: #fff;
+    z-index: 10;
+}
+
+/* Hide the morning label inside the box */
+.shift-seat.hold-morning-temp-morning .seat-morning-label,
+.shift-seat.hold-morning-temp-morning .seat-label {
+    display: none !important;
+}
+
+/* ================================================== */
+/* 15.5 SHIFT SEAT - TEMPORARY / PARTIAL STATES (Pink) */
+/* ================================================== */
+
+/* Single-shift temp/partial states: transparent bg so available half stays clean */
+.shift-seat.selected-temp-morning,
+.shift-seat.selected-temp-evening,
+.shift-seat.shift-pending-temp-morning,
+.shift-seat.shift-pending-temp-evening,
+.shift-seat.shift-partial {
+    border: 2px solid #e84393 !important;
+    background-color: transparent !important;
+}
+
+/* Full-day temp/partial states: keep the light pink tint */
+.shift-seat.selected-temp-full,
+.shift-seat.shift-pending-temp-full,
+.shift-seat.partial {
+    border: 2px solid #e84393 !important;
+    background-color: #fff0f5 !important;
+    /* Light pink base */
+}
+
+/* Differentiate Morning (LIGHT) and Evening (DARKER) Pink */
+.shift-seat.selected-temp-morning .seat-morning,
+.shift-seat.shift-pending-temp-morning .seat-morning,
+.shift-seat.partial .seat-morning,
+.shift-seat.shift-partial .seat-morning {
+    background-color: #f9a8d4 !important;
+    /* Clearly visible pink */
+    z-index: 1;
+}
+
+.shift-seat.selected-temp-evening .seat-evening,
+.shift-seat.shift-pending-temp-evening .seat-evening,
+.shift-seat.shift-partial .seat-evening {
+    background-color: #ff9abe !important;
+    /* Darker pink */
+    z-index: 1;
+}
+
+/* Full Day Temp - Solid darker pink halves for clear visibility */
+.shift-seat.selected-temp-full .seat-morning,
+.shift-seat.selected-temp-full .seat-evening,
+.shift-seat.shift-pending-temp-full .seat-morning,
+.shift-seat.shift-pending-temp-full .seat-evening {
+    background-color: #f9a8d4 !important;
+    z-index: 1;
+}
+
+/* Icons for Full Day Temp - Pink */
+.shift-seat.selected-temp-full .seat-icon-group,
+.shift-seat.selected-temp-full .lamp-icon,
+.shift-seat.shift-pending-temp-full .seat-icon-group,
+.shift-seat.shift-pending-temp-full .lamp-icon {
+    color: #e84393 !important;
+}
+
+/* Force divider for partial/temp split */
+.shift-seat.selected-temp-morning::after,
+.shift-seat.selected-temp-evening::after,
+.shift-seat.shift-pending-temp-morning::after,
+.shift-seat.shift-pending-temp-evening::after,
+.shift-seat.partial::after,
+.shift-seat.shift-partial::after {
+    display: block !important;
+}
+
+/* Badge for pink states */
+.shift-seat.selected-temp-morning .seat-number,
+.shift-seat.selected-temp-evening .seat-number,
+.shift-seat.selected-temp-full .seat-number,
+.shift-seat.shift-pending-temp-morning .seat-number,
+.shift-seat.shift-pending-temp-evening .seat-number,
+.shift-seat.shift-pending-temp-full .seat-number,
+.shift-seat.partial .seat-number,
+.shift-seat.shift-partial .seat-number {
+    background: #e84393;
+    border: 1px solid #c13175;
+    color: #fff;
+    z-index: 10;
+}
+
+
+/* Standard seat temporary selection (non-shift seats) */
+.seat.selected-temp,
+.seat.pending-temp {
+    border-color: #ff9abe;
+    background: #fff0f5;
+}
+
+.seat.selected-temp .seat-icon-group,
+.seat.pending-temp .seat-icon-group {
+    color: #e84393;
+}
+
+.seat.selected-temp .lamp-icon,
+.seat.pending-temp .lamp-icon {
+    color: #e84393;
+}
+
+/* Shift Seat Temp Selection Labels - White pill to override hold states */
+.shift-seat.selected-temp-full .seat-label,
+.shift-seat.selected-temp-morning .seat-label,
+.shift-seat.selected-temp-evening .seat-label,
+.shift-seat.shift-pending-temp-full .seat-label,
+.shift-seat.shift-pending-temp-morning .seat-label,
+.shift-seat.shift-pending-temp-evening .seat-label {
+    background: #fff !important;
+    color: #e84393 !important;
+    border: 1px solid #e84393 !important;
+    z-index: 50;
+}
+
+.seat.selected-temp .seat-number,
+.seat.pending-temp .seat-number {
+    background: #ff9abe;
+    border: 1px solid #ff7aa5;
+    color: white;
+}
+
+.seat.selected-temp .seat-label,
+.seat.pending-temp .seat-label {
+    background: #ff9abe;
+    color: white;
+    border-color: #ff7aa5;
+}
+
+
+/* ================================================== */
+/* ================================================== */
+/* 16. SHIFT SEAT - OCCUPIED STATES (Purple) */
+/* Per SKILL.md L17, T37: Light purple bg with purple icons */
+/* ================================================== */
+
+/* Container for shift seat horizontal split */
+.shift-seat {
+    position: relative;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+/* Horizontal Divider Line for split shifts */
+.shift-seat.shift-seat::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    background: #000;
+    /* Solid black divider line as seen in L3.png */
+    z-index: 2;
+    transform: translateY(-50%);
+    display: none;
+    /* Only show for split states */
+}
+
+/* Base style for any occupied shift part */
+/* Single-shift occupied: transparent bg so available half stays clean */
+.shift-seat.occupied-morning,
+.shift-seat.occupied-evening {
+    border-color: #7c3aed;
+    background-color: transparent;
+}
+
+/* Full-day occupied: keep the light purple tint */
+.shift-seat.occupied-full {
+    border-color: #7c3aed;
+    background-color: #ede9fe;
+    /* Light purple base per A35.png */
+}
+
+/* Differentiate Morning (LIGHT) and Evening (DARKER) to match T15.png/L3.png split view */
+.shift-seat.occupied-morning .seat-morning {
+    background-color: #c4b5fd;
+    /* Clearly visible purple for top */
+    z-index: 1;
+}
+
+.shift-seat.occupied-evening .seat-evening {
+    background-color: #8b5cf6;
+    /* Darker purple for bottom (matches T15 split) */
+    z-index: 1;
+}
+
+/* Show divider when any split-shift property is active and it's not a full-day state */
+.shift-seat.occupied-morning::after,
+.shift-seat.occupied-evening::after,
+.shift-seat.hold-morning::after,
+.shift-seat.hold-evening::after,
+.shift-seat.selected-morning::after,
+.shift-seat.selected-evening::after,
+.shift-seat.shift-pending-morning::after,
+.shift-seat.shift-pending-evening::after,
+.shift-seat.partial::after,
+.shift-seat.shift-partial::after {
+    display: block !important;
+}
+
+/* Hide divider for Full Day states explicitly to avoid overlap */
+.shift-seat.occupied-full::after,
+.shift-seat.hold-full::after,
+.shift-seat.selected-full::after,
+.shift-seat.shift-pending-full::after,
+.shift-seat.pending::after {
+    display: none !important;
+}
+
+
+/* Full Day - Solid Color but should be LIGHT per A35.png */
+.shift-seat.occupied-full .seat-morning,
+.shift-seat.occupied-full .seat-evening {
+    background-color: transparent;
+    /* Let the container bg-color (#ede9fe) show through */
+}
+
+/* Icons: ONLY occupied-full gets purple icons per L17.png, T37.png */
+.shift-seat.occupied-full .seat-icon-group,
+.shift-seat.occupied-full .lamp-icon {
+    color: #7c3aed;
+}
+
+/* Mixed/Partial shift occupied = DEFAULT black icons per SKILL.md icons = black rule */
+.shift-seat.occupied-morning:not(.occupied-full) .seat-icon-group,
+.shift-seat.occupied-evening:not(.occupied-full) .seat-icon-group {
+    color: #333;
+}
+
+/* Shift seat full-day occupied = PURPLE number circle */
+/* Partial shift occupied keeps default */
+.shift-seat.occupied-full .seat-number {
+    background: #7c3aed;
+    border: 2px solid #6d28d9;
+    color: #fff;
+    z-index: 10;
+}
+
+/* Partial shift occupied (one shift only) = purple border */
+.shift-seat.occupied-morning:not(.occupied-full) .seat-number,
+.shift-seat.occupied-evening:not(.occupied-full) .seat-number {
+    border: 2px solid #7c3aed;
+    z-index: 10;
+}
+
+/* -------------------------------------------------- */
+/* SHIFT SEAT LABELS (Pills) */
+/* -------------------------------------------------- */
+
+/* Main label used for Occupied(F) - matches A35.png (Purple bg, white text) */
+.shift-seat.occupied-full .seat-label {
+    background: #7c3aed;
+    border: 1px solid #7c3aed;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+/* Split Labels (Morning/Evening) - match T15.png/L3.png (White bg, black text, black border) */
+.seat-morning-label,
+.seat-evening-label {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    color: #000;
+    border: 1px solid #000;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    z-index: 50;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.seat-morning-label {
+    top: 22%;
+}
+
+.seat-evening-label {
+    top: 78%;
+}
+
+/* Ensure Split Morning label is visible when only Morning is occupied */
+.shift-seat.occupied-morning .seat-morning-label {
+    display: block;
+}
+
+/* ================================================== */
+/* 17. SHIFT SEAT - HOLD STATES (Orange) */
+/* Per SKILL.md L9, T38: Light orange bg with orange icons */
+/* ================================================== */
+
+/* Base style for any hold shift part */
+/* Single-shift hold: transparent bg so available half stays clean */
+.shift-seat.hold-morning,
+.shift-seat.hold-evening {
+    border-color: #f59e0b;
+    background-color: transparent;
+}
+
+/* Full-day hold: keep the light orange tint */
+.shift-seat.hold-full,
+.shift-seat.on_hold {
+    border-color: #f59e0b;
+    background-color: #fef3cd;
+    /* Light orange base per A36.png */
+}
+
+/* Differentiate Morning (LIGHT) and Evening (DARKER) to match A16.png split view */
+.shift-seat.hold-morning .seat-morning {
+    background-color: #fcd34d;
+    /* Clearly visible orange for top */
+    z-index: 1;
+}
+
+.shift-seat.hold-evening .seat-evening {
+    background-color: #f6ad55;
+    /* Darker orange for bottom (matches A16 split) */
+    z-index: 1;
+}
+
+/* Show divider for any split Hold state */
+.shift-seat.hold-morning::after,
+.shift-seat.hold-evening::after {
+    display: block !important;
+}
+
+/* Full Day Hold - Solid Color but should be LIGHT per A36.png */
+.shift-seat.hold-full .seat-morning,
+.shift-seat.hold-full .seat-evening {
+    background-color: transparent;
+    /* Let the container bg-color (#fef3cd) show through */
+}
+
+/* On hold - seat number badge */
+/* Shift seat hold = ORANGE number circle */
+.shift-seat.hold-morning .seat-number,
+.shift-seat.hold-evening .seat-number,
+.shift-seat.hold-full .seat-number,
+.shift-seat.on_hold .seat-number,
+.seat.on_hold .seat-number {
+    background: #f39c12;
+    border: 2px solid #e67e22;
+    color: white;
+    z-index: 10;
+}
+
+/* Icons: ONLY hold-full gets orange icons per L9.png */
+.shift-seat.hold-full .seat-icon-group,
+.shift-seat.on_hold .seat-icon-group,
+.shift-seat.hold-full .lamp-icon,
+.shift-seat.on_hold .lamp-icon {
+    color: #f59e0b;
+}
+
+/* Partial shift hold = DEFAULT black icons per SKILL.md icons = black rule */
+.shift-seat.hold-morning:not(.hold-full) .seat-icon-group,
+.shift-seat.hold-evening:not(.hold-full) .seat-icon-group {
+    color: #333;
+}
+
+/* -------------------------------------------------- */
+/* SHIFT SEAT HOLD LABELS (Pills) */
+/* -------------------------------------------------- */
+
+/* Main label used for Hold(F) - matches A36.png (Orange bg, white text) */
+.shift-seat.hold-full .seat-label,
+.shift-seat.on_hold .seat-label {
+    background: #f59e0b;
+    border: 1px solid #f59e0b;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+}
+
+/* Split Hold labels already use .seat-morning-label (White bgs) defined above */
+
+
+/* ================================================== */
+/* 18. SHIFT SEAT - NUMBER POSITION FIX */
+/* ================================================== */
+
+.shift-seat .seat-number {
+    position: absolute !important;
+    top: -10px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    z-index: 10;
+    min-width: 22px;
+    height: 22px;
+    line-height: 18px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+    pointer-events: none;
+    border-radius: 999px;
+    transition: all 0.2s ease;
+}
+
+/* Available State */
+.shift-seat.available .seat-number {
+    background: #f0f0f0;
+    color: #7d09a0;
+    border: 1px solid #7d09a0;
+}
+
+/* Pending State */
+.shift-seat.pending .seat-number {
+    background: #3498db;
+    border: 1px solid #2980b9;
+    color: #ffffff;
+}
+
+/* ================================================== */
+/* 19. SHIFT SEAT - LABELS */
+/* ================================================== */
+
+.shift-seat .seat-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    padding: 2px 6px;
+    border-radius: 12px;
+}
+
+.shift-seat .seat-label.morning,
+.shift-seat .seat-label.evening,
+.shift-seat .seat-label.full {
+    background: #2563eb;
+}
+
+/* ================================================== */
+/* 20. LEGACY GRADIENT STYLES (Fallback) */
+/* ================================================== */
+
+.seat.shift-morning {
+    background: linear-gradient(to bottom right, #9b59b6 50%, #ecf0f1 50%);
+}
+
+.seat.shift-evening {
+    background: linear-gradient(to top left, #9b59b6 50%, #ecf0f1 50%);
+}
+
+.seat.shift-split {
+    background: linear-gradient(to bottom, #9b59b6 50%, #8e44ad 50%);
+}
+
+/* Shift seat occupied states - single shift only */
+.shift-seat.shift-morning-only {
+    border: 2px solid #7c3aed;
+}
+
+.shift-seat.shift-morning-only .seat-morning {
+    background: #7c3aed;
+}
+
+.shift-seat.shift-morning-only .seat-evening {
+    background: transparent;
+}
+
+.shift-seat.shift-morning-only .seat-number {
+    background: #7c3aed;
+    border: 1px solid #7c3aed;
+    color: #fff;
+}
+
+/* Icons remain DEFAULT (black) for partial shift states per SKILL.md */
+/* Only color icons when full-day single-state */
+.shift-seat.shift-morning-only .seat-icon-group,
+.shift-seat.shift-morning-only .lamp-icon {
+    color: #333;
+    /* Default black */
+}
+
+.shift-seat.shift-evening-only {
+    border: 2px solid #7c3aed;
+}
+
+.shift-seat.shift-evening-only .seat-evening {
+    background: #7c3aed;
+}
+
+.shift-seat.shift-evening-only .seat-morning {
+    background: transparent;
+}
+
+.shift-seat.shift-evening-only .seat-number {
+    background: #7c3aed;
+    border: 1px solid #7c3aed;
+    color: #fff;
+}
+
+/* Icons remain DEFAULT (black) for partial shift states per SKILL.md */
+.shift-seat.shift-evening-only .seat-icon-group,
+.shift-seat.shift-evening-only .lamp-icon {
+    color: #333;
+    /* Default black */
+}
+
+/* Partial/Temporary Tenant - Pink per T39.png, A37.png */
+/* Light pink bg with pink icons matching theme */
+.seat.partial {
+    background: #fff0f5;
+    /* Light pink background */
+    border-color: #ff9abe;
+}
+
+/* Icons match theme color (pink), not black - per T39.png, A37.png */
+.seat.partial .seat-icon-group {
+    color: #e84393;
+}
+
+.seat.partial .lamp-icon {
+    color: #e84393;
+}
+
+.seat.partial .seat-label {
+    background: #ff9abe;
+    color: white;
+    border-color: #ff7aa5;
+}
+
+/* Hold + Partial (Diagonal Split) - Orange/Pink per T40.jpg, A38.jpg */
+/* Icons are BLACK when there are 2 different colors on one seat */
+.seat.hold-partial {
+    background: linear-gradient(135deg, #f59e0b 0%, #f59e0b 48%, #333 48%, #333 52%, #ff9abe 52%, #ff9abe 100%);
+    border-color: #333;
+    cursor: not-allowed;
+}
+
+.shift-seat.hold-partial .seat-morning,
+.shift-seat.hold-partial .seat-evening {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* No hover effects on hold-partial seats */
+.seat.hold-partial:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #f59e0b 48%, #333 48%, #333 52%, #ff9abe 52%, #ff9abe 100%) !important;
+    border-color: #333 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Hold+Partial (non-shift) labels: Owner name top-left, Temp bottom-right */
+.seat.hold-partial .seat-morning-label {
+    position: absolute;
+    top: 6px;
+    left: 4px;
+    right: auto;
+    transform: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #333;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 5px;
+    border-radius: 8px;
+    border: 1px solid #f39c12;
+    z-index: 50;
+    white-space: nowrap;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.seat.hold-partial .seat-evening-label {
+    position: absolute;
+    bottom: 6px;
+    right: 4px;
+    left: auto;
+    top: auto;
+    transform: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #831843;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 8px;
+    border-radius: 8px;
+    border: 1px solid #ff7aa5;
+    z-index: 50;
+    white-space: nowrap;
+}
+
+.seat.hold-partial .seat-label {
+    display: none !important;
+}
+
+.seat.hold-partial .seat-number {
+    background: #e74c3c;
+    border: 2px solid #c0392b;
+    color: white;
+}
+
+/* BLACK icons for diagonal splits - per T40.jpg, A38.jpg */
+.seat.hold-partial .seat-icon-group,
+.seat.diagonal-hold-partial .seat-icon-group,
+.seat.shift-occupied-hold .seat-icon-group,
+.seat.shift-partial .seat-icon-group {
+    color: #000 !important;
+}
+
+.seat.hold-partial .lamp-icon,
+.seat.diagonal-hold-partial .lamp-icon,
+.seat.shift-occupied-hold .lamp-icon,
+.seat.shift-partial .lamp-icon {
+    color: #000 !important;
+}
+
+/* Shift Partial - Purple/Pink Split */
+.seat.shift-partial {
+    background: linear-gradient(to bottom, #9b59b6 50%, #ff9abe 50%);
+}
+
+/* Both Shifts Partial (Pink/Pink - but visually split for clarity) */
+.seat.shift-both-partial {
+    background: #ff9abe;
+    border-color: #ff7aa5;
+}
+
+.seat.shift-both-partial .seat-morning,
+.seat.shift-both-partial .seat-evening {
+    background: #ff9abe;
+}
+
+.seat.shift-both-partial .seat-number {
+    background: #ff9abe;
+    border: 1px solid #ff7aa5;
+    color: white;
+}
+
+/* Diagonal Hold + Partial (Orange top-left to bottom-right, Pink bottom-left to top-right) */
+.seat.diagonal-hold-partial {
+    background: linear-gradient(135deg, #f59e0b 0%, #f59e0b 48%, #333 48%, #333 52%, #ff9abe 52%, #ff9abe 100%);
+    border: 2px solid #333;
+    cursor: not-allowed;
+}
+
+/* No hover effects on diagonal-hold-partial seats */
+.seat.diagonal-hold-partial:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #f59e0b 48%, #333 48%, #333 52%, #ff9abe 52%, #ff9abe 100%) !important;
+    border-color: #333 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.seat.diagonal-hold-partial .seat-number {
+    background: #f59e0b;
+    border: 1px solid #e67e22;
+    color: white;
+}
+
+/* One Shift Occupied (Purple), One Shift Hold (Orange) - Mixed Split */
+.seat.shift-occupied-hold {
+    background: linear-gradient(to bottom, #7c3aed 50%, #f59e0b 50%);
+    border: 2px solid #333;
+}
+
+.seat.shift-occupied-hold .seat-number {
+    background: #7c3aed;
+    border: 1px solid #6d28d9;
+    color: white;
+}
+
+/* ================================================== */
+/* 20.5 SHIFT-WISE MIXED STATE COLORS */
+/* ================================================== */
+
+/* === SHIFT-WISE OCCUPIED COLORS === */
+
+/* Morning occupied + Evening available - TOP PURPLE, BOTTOM WHITE */
+.shift-seat.shift-morning-occupied-only .seat-morning {
+    background: #7c3aed;
+}
+
+.shift-seat.shift-morning-occupied-only .seat-evening {
+    background: #fff;
+}
+
+.shift-seat.shift-morning-occupied-only {
+    border-color: #7c3aed;
+    background-color: #ede9fe;
+    /* Light purple base */
+}
+
+/* Icons remain DEFAULT (black) when only one shift occupied per SKILL.md */
+/* Only use theme color when FULL DAY single-state */
+.shift-seat.shift-morning-occupied-only .seat-icon-group,
+.shift-seat.shift-morning-occupied-only .lamp-icon {
+    color: #333;
+    /* Default black */
+}
+
+/* Morning available + Evening occupied - TOP WHITE, BOTTOM PURPLE */
+.shift-seat.shift-evening-occupied-only .seat-morning {
+    background: #fff;
+}
+
+.shift-seat.shift-evening-occupied-only .seat-evening {
+    background: #7c3aed;
+}
+
+.shift-seat.shift-evening-occupied-only {
+    border-color: #7c3aed;
+    background-color: #ede9fe;
+    /* Light purple base */
+}
+
+/* Icons remain DEFAULT (black) when only one shift occupied per SKILL.md */
+.shift-seat.shift-evening-occupied-only .seat-icon-group,
+.shift-seat.shift-evening-occupied-only .lamp-icon {
+    color: #333;
+    /* Default black */
+}
+
+/* Morning pending + Evening available - TOP BLUE, BOTTOM WHITE */
+.shift-seat.shift-pending-morning .seat-morning {
+    background: #3498db;
+}
+
+.shift-seat.shift-pending-morning .seat-evening {
+    background: #fff;
+}
+
+.shift-seat.shift-pending-morning {
+    border-color: #3498db;
+}
+
+/* Morning available + Evening pending - TOP WHITE, BOTTOM BLUE */
+.shift-seat.shift-pending-evening .seat-morning {
+    background: #fff;
+}
+
+.shift-seat.shift-pending-evening .seat-evening {
+    background: #3498db;
+}
+
+.shift-seat.shift-pending-evening {
+    border-color: #3498db;
+}
+
+/* Full day pending - BOTH HALVES BLUE */
+.shift-seat.shift-pending-full .seat-morning,
+.shift-seat.shift-pending-full .seat-evening {
+    background: #3498db;
+}
+
+.shift-seat.shift-pending-full {
+    border-color: #3498db;
+}
+
+/* Pending seat number badge */
+.shift-seat.shift-pending-morning .seat-number,
+.shift-seat.shift-pending-evening .seat-number,
+.shift-seat.shift-pending-full .seat-number {
+    background: #3498db;
+    border: 1px solid #2980b9;
+    color: #fff;
+}
+
+/* Morning occupied + Evening pending - TOP PURPLE, BOTTOM BLUE */
+.shift-seat.occupied-morning.shift-pending-evening .seat-morning {
+    background: #7c3aed;
+}
+
+.shift-seat.occupied-morning.shift-pending-evening .seat-evening {
+    background: #3498db;
+}
+
+/* Morning pending + Evening occupied - TOP BLUE, BOTTOM PURPLE */
+.shift-seat.shift-pending-morning.occupied-evening .seat-morning {
+    background: #3498db;
+}
+
+.shift-seat.shift-pending-morning.occupied-evening .seat-evening {
+    background: #7c3aed;
+}
+
+/* Morning occupied + Evening hold - TOP PURPLE, BOTTOM ORANGE */
+.shift-seat.occupied-morning.hold-evening .seat-morning {
+    background: #7c3aed;
+}
+
+.shift-seat.occupied-morning.hold-evening .seat-evening {
+    background: #f59e0b;
+}
+
+/* Morning hold + Evening occupied - TOP ORANGE, BOTTOM PURPLE */
+.shift-seat.hold-morning.occupied-evening .seat-morning {
+    background: #f59e0b;
+}
+
+.shift-seat.hold-morning.occupied-evening .seat-evening {
+    background: #7c3aed;
+}
+
+/* ================================================== */
+/* 21. LAYOUT GRIDS */
+/* ================================================== */
+
+.seat-layout {
+    display: grid;
+    gap: 10px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 2px solid #ccc;
+    background: #fff;
+    border-radius: 10px;
+    align-items: center;
+    justify-items: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#ground-floor-layout {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+    max-width: 480px;
+    gap: 15px;
+}
+
+#first-floor-layout {
+    grid-template-columns: repeat(4, minmax(100px, 1fr));
+    max-width: 800px;
+}
+
+/* ================================================== */
+/* 22. SCROLL INDICATORS */
+/* ================================================== */
+
+.scroll-indicator {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: rgba(0, 0, 0, 0.247);
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease, transform 200ms ease;
+    z-index: 9999;
+    will-change: opacity, transform;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.scroll-indicator.up {
+    top: auto;
+    transform: translateX(-50%) translateY(-6px);
+}
+
+.scroll-indicator.down {
+    bottom: 20px;
+    transform: translateX(-50%) translateY(6px);
+}
+
+.scroll-indicator.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.scroll-indicator.interactive {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.scroll-indicator i,
+.scroll-indicator svg {
+    color: #ffffff !important;
+    pointer-events: none;
+}
+
+.indicator-layer {
+    position: relative;
+}
+
+.indicator-layer .scroll-indicator {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+}
+
+/* ================================================== */
+/* 23. SEAT INTEREST MODAL */
+/* ================================================== */
+
+.seat-interest-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.seat-interest-overlay.hidden {
+    display: none;
+}
+
+.seat-interest-modal {
+    background: #ffffff;
+    padding: 20px 24px;
+    border-radius: 10px;
+    width: 320px;
+    max-width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.seat-interest-modal h3 {
+    margin-top: 0;
+    font-size: 18px;
+}
+
+.seat-interest-modal p {
+    font-size: 14px;
+    color: #444;
+    margin: 12px 0 18px;
+}
+
+.seat-interest-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-secondary {
+    background: #e5e7eb;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* DOB INPUT STYLES */
+.dob-input {
+    border-radius: 12px;
+    border: 2px solid #dcdde1;
+    padding: 12px;
+    transition: 0.3s ease;
+}
+
+.dob-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* PHOTO INPUT STYLES */
+.photo-input {
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* ================================================== */
+/* 24. RESPONSIVE DESIGN */
+/* ================================================== */
+
+@media (max-width: 600px) {
+
+    .seat .seat-icon-group i,
+    .seat .seat-icon-group svg {
+        font-size: 2.8rem !important;
+    }
+
+    .seat .lamp-icon {
+        font-size: 1rem !important;
+    }
+
+    .seat .seat-icon-group {
+        transform: scale(0.85);
+    }
+
+    .seat .seat-number {
+        font-size: 0.75rem;
+    }
+
+    /* Hide seat labels on small screens - colors only */
+    .seat .seat-label,
+    .seat .seat-morning-label,
+    .seat .seat-evening-label {
+        display: none !important;
+    }
+
+    .seat.special img.buddha-icon {
+        max-width: 50px;
+    }
+}
+
+@media (max-width: 480px) {
+    .scroll-indicator {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    .scroll-indicator.up {
+        top: 10px;
+    }
+
+    .scroll-indicator.down {
+        bottom: 10px;
+    }
+}
+
+@media (max-width: 450px) {
+
+    .seat .seat-icon-group i,
+    .seat .seat-icon-group svg {
+        font-size: 2.2rem !important;
+    }
+
+    .seat .lamp-icon {
+        font-size: 0.8rem !important;
+    }
+
+    .seat .seat-icon-group {
+        transform: scale(0.85);
+    }
+
+    .seat .seat-number {
+        font-size: 0.7rem;
+    }
+
+    .seat .seat-label {
+        font-size: 0.6rem;
+    }
+
+    .seat.special img.buddha-icon {
+        max-width: 40px;
+    }
+
+    /* Shrink seat border-box and cap width to prevent overlap */
+    .seat {
+        min-width: 46px;
+        min-height: 70px;
+        padding: 4px 2px 2px;
+        box-sizing: border-box;
+        max-width: 100%;
+    }
+
+    .seat-layout {
+        gap: 4px;
+    }
+}
+
+@media (max-width: 420px) {
+    .seat-modal-header h3 {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 400px) {
+
+    .seat .seat-icon-group i,
+    .seat .seat-icon-group svg {
+        font-size: 2.1rem !important;
+    }
+
+    .seat .lamp-icon {
+        font-size: 0.6rem !important;
+    }
+
+    .seat .seat-icon-group {
+        transform: scale(0.75);
+    }
+
+    .seat .seat-number {
+        font-size: 0.65rem;
+    }
+
+    .seat .seat-label {
+        font-size: 0.55rem;
+    }
+
+    .seat.special img.buddha-icon {
+        max-width: 35px;
+    }
+
+    .seat-layout {
+        gap: 5px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 0.8rem;
+    }
+
+    .legend-box {
+        width: 15px;
+        height: 15px;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+    }
+
+    .seat {
+        min-width: 48px;
+        padding: 5px 2px 2px;
+        min-height: 72px;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 375px) {
+    .seat-modal-header h3 {
+        font-size: 1.1rem;
+    }
+
+    .seat-layout {
+        gap: 5px;
+        padding: 8px;
+    }
+
+    .seat .seat-icon-group i,
+    .seat .seat-icon-group svg {
+        font-size: 2.05rem !important;
+    }
+
+    .confirm-seat-btn {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 365px) {
+    .seat-layout {
+        gap: 3px;
+        padding: 0px;
+    }
+}
+
+@media (max-width: 350px) {
+    .seat-modal-header h3 {
+        font-size: 1rem;
+    }
+}
+
+/* ================================================== */
+/* STUDENT VIEW STYLES (your_seat_status.html) */
+/* Per SKILL.md: Student's own seat = vivid, others = faded */
+/* ================================================== */
+
+/* Container marker for student view context */
+.student-view .seat {
+    cursor: default;
+}
+
+/* --- STUDENT'S OWN SEAT (vivid indigo emphasis) --- */
+.seat.my-seat {
+    transform: scale(1.05);
+    z-index: 10;
+    position: relative;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+/* My seat - Occupied (Indigo — distinct from green "available") */
+.seat.my-seat.occupied {
+    border-color: #6366f1;
+    background-color: #eef2ff;
+}
+
+.seat.my-seat.occupied .seat-icon-group,
+.seat.my-seat.occupied .lamp-icon {
+    color: #4f46e5;
+}
+
+.seat.my-seat.occupied .seat-number {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: 1px solid #4f46e5;
+    color: white;
+}
+
+.seat.my-seat.occupied .seat-label {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    border-color: #4f46e5;
+}
+
+/* My seat - Shift occupied (indigo halves for student's own shift) */
+.seat.my-seat.shift-seat.occupied-morning .seat-morning {
+    background: #eef2ff !important;
+}
+
+.seat.my-seat.shift-seat.occupied-evening .seat-evening {
+    background: #eef2ff !important;
+}
+
+.seat.my-seat.shift-seat.occupied-full .seat-morning,
+.seat.my-seat.shift-seat.occupied-full .seat-evening {
+    background: #eef2ff !important;
+}
+
+.seat.my-seat.shift-seat .seat-number {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: 1px solid #4f46e5;
+    color: white;
+}
+
+/* My seat - On Hold (Amber — status indicator) */
+.seat.my-seat.on-hold,
+.seat.my-seat.on_hold {
+    border-color: #f59e0b;
+    background-color: #fff3cd;
+}
+
+.seat.my-seat.on-hold .seat-icon-group,
+.seat.my-seat.on_hold .seat-icon-group {
+    color: #f59e0b;
+}
+
+.seat.my-seat.on-hold .seat-number,
+.seat.my-seat.on_hold .seat-number {
+    background: #f59e0b;
+    border: 1px solid #d97706;
+    color: white;
+}
+
+.seat.my-seat.on-hold .seat-label,
+.seat.my-seat.on_hold .seat-label {
+    background: #f59e0b;
+    color: white;
+    border-color: #d97706;
+}
+
+/* --- OTHER STUDENTS' SEATS (faded appearance) --- */
+.seat.other-seat {
+    opacity: 0.55;
+    filter: grayscale(0.15) brightness(1.1);
+    cursor: default;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.seat.other-seat .seat-label {
+    opacity: 0.85;
+    font-size: 0.7rem;
+}
+
+/* Ensure other seats don't show ring emphasis */
+.seat.other-seat:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Faded occupied (green becomes muted) */
+.seat.other-seat.occupied {
+    background-color: rgba(46, 204, 113, 0.6);
+    border-color: rgba(46, 204, 113, 0.6);
+}
+
+/* Faded shift occupied (purple becomes muted) */
+.seat.other-seat.shift-seat.occupied-morning .seat-morning,
+.seat.other-seat.shift-seat.occupied-evening .seat-evening,
+.seat.other-seat.shift-seat.occupied-full .seat-morning,
+.seat.other-seat.shift-seat.occupied-full .seat-evening {
+    background: rgba(124, 58, 237, 0.6);
+}
+
+/* Faded on hold (orange becomes muted) */
+.seat.other-seat.on-hold,
+.seat.other-seat.on_hold {
+    background-color: rgba(255, 243, 205, 0.7);
+    border-color: rgba(245, 158, 11, 0.6);
+}
+
+/* Faded pending (blue becomes muted) */
+.seat.other-seat.pending {
+    background-color: rgba(235, 246, 255, 0.7);
+    border-color: rgba(52, 152, 219, 0.6);
+}
+
+/* Faded temporary/partial (pink becomes muted) */
+.seat.other-seat.partial,
+.seat.other-seat.selected-temp {
+    background-color: rgba(255, 154, 190, 0.5);
+    border-color: rgba(255, 122, 165, 0.6);
+}
+
+/* ================================================== */
+/* LOCKED SEATS STYLING */
+/* ================================================== */
+
+/* ---- Public / Student Views: Clean disabled slate style ---- */
+.seat.locked:not(.available),
+.seat[data-locked="true"]:not(.available) {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 1.5px solid #94a3b8 !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+}
+
+.seat.locked:not(.available) .seat-icon-group,
+.seat[data-locked="true"]:not(.available) .seat-icon-group {
+    color: #94a3b8 !important;
+}
+
+.seat.locked:not(.available) .lamp-icon,
+.seat[data-locked="true"]:not(.available) .lamp-icon {
+    color: #94a3b8 !important;
+}
+
+.seat.locked:not(.available) .seat-number,
+.seat[data-locked="true"]:not(.available) .seat-number {
+    background: #64748b !important;
+    color: #fff !important;
+    border-color: #475569 !important;
+}
+
+.seat.locked:not(.available) .seat-label,
+.seat[data-locked="true"]:not(.available) .seat-label {
+    color: #475569 !important;
+    border-color: #94a3b8 !important;
+    background: #f1f5f9 !important;
+}
+
+.seat-half.locked {
+    background: #64748b !important;
+    background-color: #64748b !important;
+    color: #ffffff !important;
+    border-color: #475569 !important;
+    cursor: not-allowed !important;
+}
+
+/* ---- Shift seats with ANY partial lock: highlight border on entire seat ---- */
+.seat.locked-morning,
+.seat.locked-evening {
+    border: 1.5px solid #94a3b8 !important;
+}
+
+/* Dark theme adjustments for locked seats */
+body.dark-theme .seat.locked,
+body.dark-theme .seat[data-locked="true"] {
+    border: 1.5px solid #9ca3af !important;
+}
+
+body.dark-theme .seat.locked .seat-icon-group,
+body.dark-theme .seat[data-locked="true"] .seat-icon-group {
+    color: #9ca3af !important;
+}
+
+body.dark-theme .seat.locked .lamp-icon,
+body.dark-theme .seat[data-locked="true"] .lamp-icon {
+    color: #9ca3af !important;
+}
+
+body.dark-theme .seat.locked .seat-number,
+body.dark-theme .seat[data-locked="true"] .seat-number {
+    background: #374151 !important;
+    color: #f3f4f6 !important;
+    border-color: #6b7280 !important;
+}
+
+body.dark-theme .seat.locked .seat-label,
+body.dark-theme .seat[data-locked="true"] .seat-label {
+    color: #f3f4f6 !important;
+    border-color: #6b7280 !important;
+    background: #374151 !important;
+}
+
+body.dark-theme .seat.locked-morning,
+body.dark-theme .seat.locked-evening {
+    border-color: #9ca3af !important;
+}
+
+.seat-lock-badge {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    z-index: 10;
+}
+
+/* ================================================== */
+/* LOCK BUTTON & SHIFT OPTION ROW STYLING */
+/* ================================================== */
+
+.btn-lock {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+    color: #f9fafb !important;
+    border: 1px solid #374151 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+.btn-lock:hover {
+    background: linear-gradient(135deg, #111827 0%, #030712 100%) !important;
+    border-color: #4b5563 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.dark-theme .btn-lock {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+    color: #f9fafb !important;
+    border: 1px solid #4b5563 !important;
+}
+
+body.dark-theme .btn-lock:hover {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+    border-color: #6b7280 !important;
+}
+
+.shift-option-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    background: rgba(125, 125, 125, 0.08);
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(125, 125, 125, 0.15);
+    transition: all 0.3s ease;
+}
+
+body.dark-theme .shift-option-row {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.shift-option-btn-wrap {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* ================================================== */
+/* RESPONSIVE MOBILE MODAL ADJUSTMENTS */
+/* ================================================== */
+
+@media (max-width: 576px) {
+    .shift-option-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .shift-option-row > span {
+        font-size: 0.9rem;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .shift-option-btn-wrap {
+        display: flex;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .shift-option-btn-wrap .btn-action {
+        flex: 1 1 0;
+        width: 100%;
+        font-size: 0.8rem !important;
+        padding: 8px 4px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        border-radius: 8px !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .shift-option-btn-wrap .btn-action {
+        font-size: 0.74rem !important;
+        padding: 7px 2px !important;
+        letter-spacing: -0.2px;
+    }
+}
+
+

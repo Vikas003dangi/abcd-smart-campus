@@ -1,0 +1,101 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="max-width:640px;margin:auto;background:#ffffff;
+              border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.08);
+              overflow:hidden;">
+
+  <!-- Header -->
+  <tr>
+    <td style="padding:28px 32px 18px 32px;
+               background:linear-gradient(135deg,#f2994a,#f2c94c);
+               color:#ffffff;">
+      <h2 style="margin:0;font-size:22px;font-weight:700;">
+        🪑 Seat Hold Request
+      </h2>
+      <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">
+        Action required by admin
+      </p>
+    </td>
+  </tr>
+
+  <!-- Body -->
+  <tr>
+    <td style="padding:28px 32px;color:#2b2b2b;">
+
+      <p style="font-size:15px;line-height:1.6;margin-top:0;">
+        A student has requested to
+        <strong>put their library seat on hold</strong>.
+        Please review the details carefully.
+      </p>
+
+      <!-- Info Card -->
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="background:#fff7ed;border-radius:10px;
+                    padding:18px;margin:20px 0;">
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Student Name:</strong><br>
+            {{ student.full_name }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Seat Number:</strong><br>
+            {{ seat.seat_number|default:"N/A" }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Floor:</strong><br>
+            {{ seat.get_floor_display|default:"N/A" }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Requested Duration:</strong><br>
+            {{ duration }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Start Date:</strong><br>
+            {{ start_date }}
+          </td>
+        </tr>
+      </table>
+
+      <p style="font-size:14px;color:#555;line-height:1.6;">
+        Please approve or reject this seat hold request
+        from the teacher dashboard.
+      </p>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:30px 0 10px;">
+        <a href="{% if dashboard_url %}{{ dashboard_url }}{% elif site_url %}{{ site_url }}{% url 'users:teacher_dashboard' %}{% else %}{% url 'users:teacher_dashboard' %}{% endif %}"
+           style="display:inline-block;padding:14px 26px;
+                  background:#f2994a;color:#ffffff;
+                  text-decoration:none;border-radius:8px;
+                  font-size:15px;font-weight:600;">
+          🧾 Review Seat Hold Request
+        </a>
+      </div>
+
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td style="padding:16px 32px;background:#fafafa;
+               color:#777;font-size:12px;text-align:center;">
+      Automated alert from
+      <strong>ABCD Coaching & Library</strong><br>
+      This request requires timely action.
+    </td>
+  </tr>
+
+</table>
+
+{% endblock %}

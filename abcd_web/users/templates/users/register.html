@@ -1,0 +1,2394 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
+    <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'data/favicon/apple-touch-icon.png' %}" />
+    <meta name="apple-mobile-web-app-title" content="ABCD (coaching & library)" />
+    <link rel="manifest" href="{% static 'data/favicon/site.webmanifest' %}" />
+
+    <title>ABCD - Login/Register</title>
+
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='https://cdn.boxicons.com/fonts/brands/boxicons-brands.min.css' rel='stylesheet'>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+
+        * {margin: 0;padding: 0;box-sizing: border-box; font-family: Arial, Helvetica, sans-serif;}
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; 
+            background: linear-gradient(to top, #112a3b, #5683a1a6, #fff2de);   
+        }
+
+        /* MESSAGES CONTAINER*/
+        .messages-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            width: 350px;
+        }
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 1;
+            /* THIS IS THE CRITICAL LINE THAT WAS MISSING/INCORRECT BEFORE */
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: translateX(0);
+        }
+        .alert.fade-out {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        .alert-success { background-color: #d4edda; color: #155724; border-left: 5px solid #28a745; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border-left: 5px solid #dc3545; }
+        .alert-info { background-color: #d1ecf1; color: #0c5460; border-left: 5px solid #17a2b8; }
+        /* ==================================================== */
+
+        /* Welcome Header Styles */
+        .welcome-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+        }
+
+        .welcome-content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .welcome-content p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Messages Container */
+        .messages-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: opacity 0.3s ease;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+
+        .Login-Registration_card {
+            position: relative;
+            width: 900px;
+            height: 500px;
+            background-color:#faf9f617;
+            border-radius: 30px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+            margin: 20px;
+            /* margin-top: 20px; */
+            overflow: hidden;
+        }
+
+        .form-box {
+            position: absolute;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            color: #112a3b;
+            text-align: center;
+            padding: 40px;
+            z-index: 1;
+            transition: .6s ease-in-out,visibility 0s 0.6s;
+        }
+
+        .Login-Registration_card.active .form-box {
+            right: 50%;
+        }
+
+        .Login-Registration_card.active .login-form-box {
+            visibility: hidden;
+            z-index: 0;
+        }
+
+        .form-box.Registration-form-box {
+            visibility: hidden;
+        }
+
+        .Login-Registration_card.active .Registration-form-box {
+            visibility: visible;
+            z-index: 1;
+            transition: visibility 0s linear 0.6s;
+        }   
+
+        .Login-Registration_card form{
+            width: 100%;
+        }
+
+        .Login-Registration_card h1 {
+            font-size: 2.5rem;
+            margin: -10px 0 20px;
+        }
+
+        .Registration-form-box h1 {
+            font-size: 2.3rem;
+        }
+
+        .input-box {
+            position: relative;
+            width: 100%;
+            margin: 30px 0;
+        }
+
+        .input-box input{
+            width: 100%;   
+            padding: 13px 50px 13px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .Registration-form-box .input-box {
+            margin-bottom: 10px;  /* previously maybe 18-20px */
+        }
+
+        .Registration-form-box.input-box input{
+            width: 100%;
+            padding: 10px 12px;    /* previously maybe 16px */
+            height: 42px;          /* previously around 50-55px */
+            font-size: 0.9rem;
+        }
+
+        .input-box input:focus{
+            outline: none;
+            border-color: #526D82;
+            box-shadow: 0 0 5px rgba(82, 109, 130, 0.5);
+        }
+        .input-box input:focus + i {
+            color: #764ba2;
+        }
+
+        .input-box input::placeholder{
+            color: #999;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        .input-box i{
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #667eea;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-link{
+            text-align: left;
+            margin: -15px 0 15px 20px;
+        }
+
+        .forgot-link a{
+            font-size: 1rem;
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .forgot-link a:hover{
+            text-decoration: underline;
+        }
+
+        .login-btn, .register-btn{
+            background-color: #526D82;
+            color: beige;
+            border: 1px solid black;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            justify-content: center;
+            text-align: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            width: 100%;
+            height: 50px;
+            cursor: pointer;
+        }
+        .login-btn:hover, .register-btn:hover{
+            color:#526D82;
+            background-color: beige;
+            border: 1px solid #526D82;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-btn:active, .register-btn:active{
+            background-color: rgba(184, 184, 162, 0.705);
+        }
+
+        .Login-Registration_card p{
+            margin: 20px 0 10px;
+            font-size: 1rem;
+            color: #333;
+        }   
+
+        .social-login {
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .social-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .google-btn {
+            /* width: 80%; */
+            max-width: 260px;
+            display: inline-flex;
+            align-items: center;
+            /* gap: 4px; */
+            padding: 8px;
+            border-radius: 999px;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            background: #fff;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .google-btn img {
+            height: 20px;
+        }
+
+        .google-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+        }
+
+
+        .toggle-box{
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .toggle-box::before{
+            content: '';
+            position: absolute;
+            background-color:#faf9f6;
+            left: -150%;
+            width: 200%;
+            height: 100%;
+            /* border: 2px solid #526D82; */
+            border-radius: 150px;
+            z-index: 2;
+            transition: 1s ease-in-out;
+        }
+
+        .Login-Registration_card.active .toggle-box::before{
+            left: 50%;
+        }
+
+        .toggle-panel{
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            /* background-color:#faf9f66b; */
+            /* backdrop-filter: blur(10px); */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #112a3b;
+            text-align: center;
+            padding: 40px;
+            z-index: 2;
+            transition: .6s ease-in-out;
+        }
+        .toggle-panel.toggle-left {
+            left: 0;
+            transition-delay: .6s;
+        }
+
+        .Login-Registration_card.active .toggle-panel.toggle-left{
+            left: -50%;
+            transition-delay: .25s;
+        }
+
+        .toggle-panel.toggle-right {
+            right: -50%;
+            transition-delay: .25s;
+        }
+
+        .Login-Registration_card.active .toggle-panel.toggle-right{
+            right: 0;
+            transition-delay: .6s;
+        }
+
+        .toggle-panel p{
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .toggle-panel .register-btn, .toggle-panel .login-btn{
+            width: 160px;
+            height: 46px;
+            color:#526D82;
+            background-color: beige;
+            border: 1px solid #526D82;
+            /* background: transparent;     */
+            border: 2px solid #526D82;
+        }
+        .toggle-panel .register-btn:hover, .toggle-panel .login-btn:hover{
+            color: beige;
+            background-color: #526D82;
+            border: 1px solid black;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;          /* light grey ring */
+            border-top-color: #2563eb;           /* blue segment */
+            animation: spin 0.7s linear infinite;
+            margin-right: 6px;
+            vertical-align: -2px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+
+        @media screen and (max-width: 800px) {
+            .Login-Registration_card{
+                height: calc(100vh - 40px);
+                /* display: none; */
+            }
+            .form-box{
+                bottom: 0;
+                width: 100%;
+                height: 70%;
+            }
+            .Login-Registration_card.active .form-box{
+                right: 0;
+                bottom: 30%;
+            }
+            .toggle-box::before{
+                left: 0;
+                top: -170%;
+                width: 100%;
+                height: 200%;
+                border-radius: 20vw;
+            }
+            .Login-Registration_card.active .toggle-box::before{
+                left: 0;
+                top: 70%;
+            }
+            .toggle-panel{
+                width: 100%;
+                height: 30%;
+            }
+            .toggle-panel.toggle-left{
+                top: 0;
+            }
+            .Login-Registration_card.active .toggle-panel.toggle-left{
+                left: 0;
+                top: -30%;
+            }
+            .toggle-panel.toggle-right{
+                right: 0;
+                bottom: -30%;
+            }
+            .Login-Registration_card.active .toggle-panel.toggle-right{
+                bottom: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .welcome-header {
+                padding: 30px 15px;
+            }
+            .welcome-content h1 {
+                font-size: 2rem;
+            }
+            .welcome-content p {
+                font-size: 1rem;
+            }
+            .messages-container {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin: 20px;
+                max-width: none;
+            }
+        }
+
+        @media screen and (max-width: 550px){
+            .toggle-panel h1{
+                font-size: 1.8rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .register h2, .login-side h2 {
+                font-size: 1.4rem;
+            }
+
+            .Registration-form-box h1 {
+            font-size: 2rem;
+        }
+        }
+        @media (max-height: 700px) or (min-width: 401px) {
+            
+            .Registration-form-box h1 {
+                font-size: 1.5rem;}
+        }
+
+
+        @media screen and (max-width: 400px) {
+
+            .form-box{
+                padding: 20px;
+            }
+
+            .toggle-panel h1{
+                font-size: 1.5rem;
+            }
+
+            .Login-Registration_card{
+                width: 100%;
+                /* border-radius: 0; */
+                box-shadow: none;
+            }
+            .input-box input{
+                padding: 13px 40px 13px 15px;
+            }
+            .input-box i{
+                right: 10px;
+            }
+
+            .login-btn, .register-btn{
+                font-size: 1.2rem;
+                height: 45px;
+            }
+            .toggle-panel .register-btn, .toggle-panel .login-btn{
+                width: 140px;
+                height: 40px;
+                font-size: 1rem;
+            }
+    
+        }
+        @media (max-width: 330px) and (max-height: 740px) {
+            .form-box h1 {
+                font-size: 2rem;            /* smaller title on tiny screens */
+                margin: -15px 0 15px;       /* slightly tighter vertical spacing */
+                line-height: 1.05;          /* keep it compact but readable */
+                word-break: keep-all;       /* try to avoid awkward breaks */
+            }
+
+            /* Optional: if the header still wraps too much, reduce subtitle size too */
+            .welcome-content p {
+                font-size: 0.95rem;
+            }
+
+            .toggle-panel h1{
+                font-size: 1.2rem;
+            }
+            .toggle-panel p{
+                font-size: 1rem;
+                margin-bottom: 10px;
+        }
+        }
+        @media (max-height: 720px) {
+            .register-btn{
+                font-size: 1rem;
+                font-weight: 400;
+                width: 80%;
+                height: 30px;
+            }
+            
+            .toggle-right {
+                padding: 0px;
+                bottom: -40%;
+                
+            }
+            .Registration-form-box .input-box {
+                margin: 10px 0;
+            }
+            
+        }
+
+        /* CUSTOM POPUP STYLES */
+        .modal-overlay-styled {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10000; display: none;
+        }
+        .modal-overlay-styled.active { display: block; }
+        .admission-modal-styled {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: min(400px, 90vw); max-height: 90vh; overflow-y: auto;
+            display: none; z-index: 10001; animation: slideIn 0.3s ease;
+        }
+        .admission-modal-styled.active { display: block; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translate(-50%, -48%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        .modal-header-styled {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border-radius: 12px 12px 0 0;
+        }
+        .modal-header-styled h2 { margin: 0; font-size: 1.1rem; }
+        .modal-close-btn-styled {
+            background: none; border: none; color: white; font-size: 1.5rem;
+            cursor: pointer; opacity: 0.8; transition: opacity 0.2s;
+        }
+        .modal-close-btn-styled:hover { opacity: 1; }
+        .modal-body-styled { padding: 20px; color: #333; font-size: 0.95rem; line-height: 1.5; }
+        .modal-footer-styled {
+            padding: 15px 20px; border-top: 1px solid #eee;
+            display: flex; justify-content: flex-end; gap: 10px;
+        }
+        .btn-styled {
+            padding: 8px 20px; border-radius: 6px; border: none;
+            font-weight: 600; cursor: pointer; transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .btn-primary-styled { background: #7b61ff; color: white; }
+
+        /* ============================================================
+           FORGOT PASSWORD – 3-STEP MODAL SYSTEM
+           Matches the register.html design language exactly.
+        ============================================================ */
+
+        /* Shared backdrop */
+        .fp-overlay {
+            position: fixed; inset: 0;
+            background: rgba(17, 42, 59, 0.65);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 11000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fpFadeIn 0.25s ease;
+        }
+        .fp-overlay.fp-active { display: flex; }
+        @keyframes fpFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        #statusModalOverlay {
+            z-index: 15000 !important;
+        }
+        #statusModal {
+            z-index: 15001 !important;
+        }
+
+        /* Card */
+        .fp-card {
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.25), 0 8px 24px rgba(0,0,0,0.15);
+            width: min(420px, 92vw);
+            overflow: hidden;
+            animation: fpSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes fpSlideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.96); }
+            to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        }
+
+        /* Gradient header stripe */
+        .fp-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 22px 24px 18px;
+            color: #fff;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+        .fp-header-icon {
+            width: 40px; height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            margin-right: 12px;
+        }
+        .fp-header-left { display: flex; align-items: center; }
+        .fp-header h3 {
+            margin: 0 0 3px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+        .fp-header p {
+            margin: 0;
+            font-size: 0.8rem;
+            opacity: 0.85;
+            font-weight: 400;
+        }
+        .fp-close {
+            background: rgba(255,255,255,0.15);
+            border: none; color: #fff;
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .fp-close:hover { background: rgba(255,255,255,0.3); }
+
+        /* Step indicator */
+        .fp-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            padding: 16px 24px 0;
+        }
+        .fp-step-dot {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            background: #f5f5f5;
+            color: #bbb;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .fp-step-dot.done {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+            color: #fff;
+        }
+        .fp-step-dot.active {
+            background: #fff;
+            border-color: #667eea;
+            color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
+        }
+        .fp-step-line {
+            flex: 1; height: 2px;
+            background: #ddd;
+            transition: background 0.4s;
+            max-width: 50px;
+        }
+        .fp-step-line.done { background: linear-gradient(90deg, #667eea, #764ba2); }
+
+        /* Body */
+        .fp-body {
+            padding: 20px 24px 24px;
+        }
+        .fp-body .fp-desc {
+            font-size: 0.88rem;
+            color: #555;
+            margin: 0 0 16px;
+            line-height: 1.5;
+        }
+
+        /* Input field */
+        .fp-field {
+            position: relative;
+            margin-bottom: 14px;
+        }
+        .fp-field label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #526D82;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .fp-field input {
+            width: 100%;
+            padding: 11px 42px 11px 14px;
+            border: 1.5px solid #dde3ea;
+            border-radius: 9px;
+            font-size: 0.92rem;
+            color: #112a3b;
+            background: #f8fafc;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .fp-field input:focus {
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+        }
+        .fp-field input::placeholder { color: #aab; font-size: 0.88rem; }
+        .fp-field .fp-eye {
+            position: absolute;
+            right: 13px;
+            bottom: 10px;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1.05rem;
+            user-select: none;
+        }
+
+        /* OTP boxes */
+        .fp-otp-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 6px;
+        }
+        .fp-otp-box {
+            width: 46px; height: 52px;
+            border: 1.5px solid #dde3ea;
+            border-radius: 9px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-align: center;
+            color: #112a3b;
+            background: #f8fafc;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .fp-otp-box:focus {
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+        }
+        .fp-otp-hint {
+            font-size: 0.78rem;
+            color: #888;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+        .fp-resend-link {
+            font-size: 0.8rem;
+            text-align: center;
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-bottom: 14px;
+            display: block;
+        }
+        .fp-resend-link:hover { color: #764ba2; }
+
+        /* Footer actions */
+        .fp-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+        .fp-btn {
+            padding: 10px 22px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .fp-btn-secondary {
+            background: #f0f0f0;
+            color: #555;
+        }
+        .fp-btn-secondary:hover { background: #e0e0e0; }
+        .fp-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(102,126,234,0.4);
+        }
+        .fp-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(102,126,234,0.5);
+        }
+        .fp-btn-primary:active { transform: translateY(0); }
+        .fp-btn-primary:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading row */
+        .fp-loading-row {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.83rem;
+            color: #667eea;
+            margin-top: 10px;
+        }
+        .fp-loading-row.fp-show { display: flex; }
+        .fp-spinner {
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(102,126,234,0.25);
+            border-top-color: #667eea;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+
+        /* Error / success inline message */
+        .fp-msg {
+            font-size: 0.82rem;
+            padding: 8px 12px;
+            border-radius: 7px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .fp-msg.fp-show { display: block; }
+        .fp-msg.fp-err  { background: #fdecea; color: #b71c1c; border-left: 3px solid #e53935; }
+        .fp-msg.fp-ok   { background: #e8f5e9; color: #1b5e20; border-left: 3px solid #43a047; }
+
+        /* Password strength bar */
+        .fp-strength-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: #eee;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .fp-strength-fill {
+            height: 100%;
+            border-radius: 2px;
+            width: 0;
+            transition: width 0.3s, background 0.3s;
+        }
+
+        /* ============================================================
+           FORGOT PASSWORD – RESPONSIVE ADJUSTMENTS
+        ============================================================ */
+
+        /* Make overlay scrollable so card never gets clipped on short screens */
+        .fp-overlay {
+            padding: 16px;
+            overflow-y: auto;
+            align-items: flex-start;  /* let card sit near top when scrolling */
+        }
+        /* Centre card vertically only when there is enough space */
+        @media (min-height: 560px) {
+            .fp-overlay { align-items: center; }
+        }
+
+        /* ── Tablet / small laptop (≤ 600px) ── */
+        @media (max-width: 600px) {
+            .fp-card {
+                width: 100%;
+                border-radius: 14px;
+            }
+            .fp-header {
+                padding: 18px 18px 14px;
+            }
+            .fp-header h3  { font-size: 1.05rem; }
+            .fp-header p   { font-size: 0.75rem; }
+            .fp-header-icon {
+                width: 34px; height: 34px;
+                font-size: 1rem;
+                margin-right: 10px;
+            }
+            .fp-steps      { padding: 12px 18px 0; }
+            .fp-body       { padding: 16px 18px 20px; }
+            .fp-body .fp-desc { font-size: 0.85rem; margin-bottom: 12px; }
+            .fp-field input { padding: 10px 38px 10px 12px; font-size: 0.88rem; }
+            .fp-actions {
+                flex-direction: column-reverse;   /* primary button on top */
+                gap: 8px;
+            }
+            .fp-btn {
+                width: 100%;
+                text-align: center;
+                padding: 11px 16px;
+            }
+        }
+
+        /* ── Small phone (≤ 420px) ── */
+        @media (max-width: 420px) {
+            .fp-overlay { padding: 10px; }
+            .fp-card    { border-radius: 12px; }
+            .fp-header  { padding: 14px 14px 12px; }
+            .fp-body    { padding: 14px 14px 18px; }
+
+            /* OTP boxes: shrink to fit 6 across a 390px screen */
+            .fp-otp-box {
+                width: 38px;
+                height: 44px;
+                font-size: 1.2rem;
+                border-radius: 7px;
+            }
+            .fp-otp-row { gap: 5px; }
+
+            .fp-step-dot  { width: 24px; height: 24px; font-size: 0.7rem; }
+            .fp-step-line { max-width: 36px; }
+        }
+
+        /* ── Very small phone (≤ 360px) ── */
+        @media (max-width: 360px) {
+            .fp-otp-box {
+                width: 33px;
+                height: 40px;
+                font-size: 1.1rem;
+                border-radius: 6px;
+            }
+            .fp-otp-row { gap: 4px; }
+            .fp-header-icon { display: none; }   /* hide emoji icon to save space */
+        }
+
+        /* ── Very short screens (phones in landscape) ── */
+        @media (max-height: 500px) {
+            .fp-header  { padding: 10px 16px 8px; }
+            .fp-steps   { padding: 8px 16px 0; }
+            .fp-body    { padding: 10px 16px 14px; }
+            .fp-body .fp-desc { display: none; }  /* hide description to save vertical space */
+            .fp-field   { margin-bottom: 8px; }
+            .fp-field input { padding: 8px 36px 8px 12px; }
+            .fp-otp-box { height: 40px; }
+        }
+
+        /* Registration Errors and Success Animation styles */
+        .register-errors-container {
+            margin-bottom: 15px;
+            color: #721c24;
+            font-size: 0.9em;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            text-align: left;
+            width: 100%;
+        }
+
+        /* Full-screen Success Overlay */
+        .reg-success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .reg-success-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Success Card */
+        .reg-success-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8) translateY(20px);
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        body.dark-theme .reg-success-card {
+            background: #1e1e2d;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .reg-success-overlay.active .reg-success-card {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Checkmark SVG animation */
+        .checkmark-svg {
+            width: 80px;
+            height: 80px;
+            display: block;
+            margin: 0 auto 20px;
+        }
+        .checkmark-circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 4;
+            stroke-miterlimit: 10;
+            stroke: #2ecc71;
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark-check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            stroke-width: 4;
+            stroke: #2ecc71;
+            fill: none;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+        }
+
+        @keyframes stroke {
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* Confetti particles */
+        .confetti-particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f2d74e;
+            opacity: 0;
+            z-index: 999998;
+        }
+
+        /* Content styles */
+        .reg-success-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        body.dark-theme .reg-success-title {
+            color: #f1f5f9;
+        }
+        .reg-success-desc {
+            font-size: 0.95rem;
+            color: #64748b;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        body.dark-theme .reg-success-desc {
+            color: #94a3b8;
+        }
+        .reg-success-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff;
+            border: none;
+            padding: 12px 28px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
+            transition: all 0.3s ease;
+        }
+        .reg-success-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(102, 126, 234, 0.35);
+        }
+    </style>
+
+</head>
+<body>
+    {% include 'partials/_master_loader.html' %}
+
+    <!--MESSAGES CONTAINER-->
+    <!-- <div class="messages-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    </div> -->
+    <div class="Login-Registration_card {% if registration_failed %}active{% endif %}">
+
+        <div class="form-box login-form-box">
+            <form action="{% url 'users:login' %}" method="POST">
+                {% csrf_token %}
+                <h1>Login</h1>
+                <!-- This block will show login-specific messages -->
+                {% if messages and not registration_failed %}
+                    <div class="messages-container" style="position: static; width: 100%; max-width: none; margin-bottom: 15px;">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}" style="box-shadow: none; margin-bottom: 5px; padding: 10px 15px; font-size: 0.9rem;">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="input-box">
+                    <input type="text" id="login_username" name="username" placeholder="Username or Email" required autocomplete="username">
+                    <i class='bxr bx-user'></i>
+                </div>
+                <div class="input-box">
+                    <input type="password" id="login_password" name="password" placeholder="Password" required autocomplete="current-password">
+                    <i class='bx bx-eye-slash' id="toggleLoginPassword"></i>
+                </div>
+                
+                <!-- Forgot link -->
+                <div class="forgot-link">
+                    <a id="forgotTrigger" href="javascript:void(0);">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="login-btn">Login</button>
+                
+                <!-- Sign in with Google -->
+                <div class="social-login">
+                    <p class="social-text">Or continue with</p>
+                    <a class="google-btn" href="{% url 'social:begin' 'google-oauth2' %}">
+                        <img src="{% static 'data/google.png' %}" alt="Google logo">
+                        <span>Sign in with Google</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <div class="form-box Registration-form-box">
+            <form id="manualRegisterForm" action="{% url 'users:register' %}" method="POST">
+                {% csrf_token %}
+                <h1>Register Now</h1>
+                <div id="register_errors" class="register-errors-container"></div>
+
+                <!-- ADD THIS BLOCK TO SHOW VALIDATION ERRORS -->
+                {% if form.errors %}
+                    <div class="error-message-list">
+                        <ul style="list-style-type: none; padding: 0; margin: 0; text-align: left;">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li style="color: #721c24; margin-bottom: 10px; font-size: 0.9em; background: #f8d7da; padding: 10px; border-radius: 5px;">{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li style="color: #721c24; margin-bottom: 10px; font-size: 0.9em; background: #f8d7da; padding: 10px; border-radius: 5px;">{{ error }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                <!-- END OF NEW BLOCK -->
+
+                <div class="input-box">
+                    <input type="text" name="username" placeholder="Username" required />
+                    <i class="bxr bx-user"></i>
+                </div>
+                <div class="input-box">
+                    <input type="email" name="email" placeholder="Email (required)" required />
+                    <i class="bxr bx-envelope"></i>
+                </div>
+                <div class="input-box">
+                    <input type="password" name="password1" placeholder="Create Password" required />
+                    <i class="bxr bx-eye-slash"></i>
+                </div>
+                <div class="input-box">
+                    <input type="password" name="password2" placeholder="Confirm Password" required />
+                    <i class="bxr bx-check-circle"></i>
+                </div>
+                <button type="submit" class="register-btn">Register</button>
+
+                <!-- Sign in with Google -->
+                <div class="social-login">
+                    <p class="social-text">Or continue with</p>
+                    <a class="google-btn" href="{% url 'social:begin' 'google-oauth2' %}">
+                        <img src="{% static 'data/google.png' %}" alt="Google logo">
+                        <span>Sign in with Google</span>
+                    </a>
+                </div>
+
+                </form>
+        </div>
+        
+        <div class="toggle-box">
+            <div class="toggle-panel toggle-left">
+                <h1>Hello Student, Welcome!</h1>
+                <p>Don't have an account?</p>
+                <button class="register-btn toggle-register-btn">Register</button>
+            </div>
+            <div class="toggle-panel toggle-right">
+                <h1>Hi Student, Welcome Back!</h1>
+                <p>Already have an account?</p>
+                <button class="login-btn toggle-login-btn">Login</button>
+            </div>
+        </div>
+    </div>
+
+
+                <!-- ===================================================
+                     FORGOT PASSWORD – STEP 1: Enter Email
+                ================================================== -->
+                <div id="forgotModal" class="fp-overlay">
+                    <div class="fp-card">
+                        <!-- Header -->
+                        <div class="fp-header">
+                            <div class="fp-header-left">
+                                <div class="fp-header-icon">🔐</div>
+                                <div class="fp-header-text">
+                                    <h3>Reset Password</h3>
+                                    <p>Verify your identity to continue</p>
+                                </div>
+                            </div>
+                            <button class="fp-close" id="fp_cancel" type="button" title="Close">✕</button>
+                        </div>
+                        <!-- Step indicator -->
+                        <div class="fp-steps">
+                            <div class="fp-step-dot active">1</div>
+                            <div class="fp-step-line"></div>
+                            <div class="fp-step-dot">2</div>
+                            <div class="fp-step-line"></div>
+                            <div class="fp-step-dot">3</div>
+                        </div>
+                        <!-- Body -->
+                        <div class="fp-body">
+                            <p class="fp-desc">Enter your registered email address. We'll send a 6-digit OTP to verify it's you.</p>
+                            <div id="fp_step1_msg" class="fp-msg"></div>
+                            <div class="fp-field">
+                                <label for="fp_email">Registered Email</label>
+                                <input type="email" id="fp_email" placeholder="you@example.com" autocomplete="email">
+                                <i class="bxr bx-envelope fp-eye" style="cursor:default;"></i>
+                            </div>
+                            <div id="fp_loading" class="fp-loading-row">
+                                <div class="fp-spinner"></div>
+                                Sending OTP to your email…
+                            </div>
+                            <div class="fp-actions">
+                                <button type="button" class="fp-btn fp-btn-secondary" id="fp_cancel_alt">Cancel</button>
+                                <button type="button" class="fp-btn fp-btn-primary" id="fp_send">Send OTP &rarr;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===================================================
+                     REGISTRATION – STEP 2: Enter OTP
+                ================================================== -->
+                <div id="registerOtpModal" class="fp-overlay">
+                    <div class="fp-card">
+                        <!-- Header -->
+                        <div class="fp-header" style="background: linear-gradient(135deg, #7b61ff, #5b4bdf);">
+                            <div class="fp-header-left">
+                                <div class="fp-header-icon">📩</div>
+                                <div class="fp-header-text">
+                                    <h3>Verify Email</h3>
+                                    <p>Check your email for the code</p>
+                                </div>
+                            </div>
+                            <button class="fp-close" id="reg_otp_cancel" type="button" title="Close">✕</button>
+                        </div>
+                        <!-- Body -->
+                        <div class="fp-body">
+                            <p class="fp-desc">We sent a 6-digit code to <strong id="reg_otp_email_display"></strong>. It expires in 5 minutes.</p>
+                            <div id="reg_otp_msg" class="fp-msg"></div>
+                            <div class="fp-otp-row">
+                                <input class="fp-otp-box" id="reg_otp_d1" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="reg_otp_d2" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="reg_otp_d3" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="reg_otp_d4" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="reg_otp_d5" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="reg_otp_d6" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                            </div>
+                            <!-- hidden combined OTP for backend -->
+                            <input type="hidden" id="reg_otp">
+                            <p class="fp-otp-hint">Didn't get it? <button type="button" class="fp-resend-btn" id="reg_resend" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: 0.8rem; font-family: inherit; font-weight: inherit; padding: 0;">Resend OTP</button></p>
+                            <div class="fp-actions">
+                                <button type="button" class="fp-btn fp-btn-secondary" id="reg_otp_back">← Back</button>
+                                <button type="button" class="fp-btn fp-btn-primary" id="reg_verify">Submit &rarr;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premium Registration Success Animation Overlay -->
+                <div id="regSuccessOverlay" class="reg-success-overlay">
+                    <div class="reg-success-card">
+                        <!-- SVG Checkmark Animation -->
+                        <svg class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                            <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                        </svg>
+                        
+                        <h2 class="reg-success-title">Registered Successfully!</h2>
+                        <p class="reg-success-desc">Welcome to ABCD Coaching & Library.<br>Your account is active and verified.</p>
+                        
+                        <button type="button" class="reg-success-btn" id="regSuccessContinueBtn">Get Started</button>
+                    </div>
+                </div>
+
+                <!-- ===================================================
+                     FORGOT PASSWORD – STEP 2: Enter OTP
+                ================================================== -->
+                <div id="otpModal" class="fp-overlay">
+                    <div class="fp-card">
+                        <!-- Header -->
+                        <div class="fp-header">
+                            <div class="fp-header-left">
+                                <div class="fp-header-icon">📩</div>
+                                <div class="fp-header-text">
+                                    <h3>Enter OTP</h3>
+                                    <p>Check your inbox for the code</p>
+                                </div>
+                            </div>
+                            <button class="fp-close" id="fp_otp_cancel" type="button" title="Close">✕</button>
+                        </div>
+                        <!-- Step indicator -->
+                        <div class="fp-steps">
+                            <div class="fp-step-dot done">✓</div>
+                            <div class="fp-step-line done"></div>
+                            <div class="fp-step-dot active">2</div>
+                            <div class="fp-step-line"></div>
+                            <div class="fp-step-dot">3</div>
+                        </div>
+                        <!-- Body -->
+                        <div class="fp-body">
+                            <p class="fp-desc">We sent a 6-digit code to <strong id="fp_otp_email_display"></strong>. It expires in 5 minutes.</p>
+                            <div id="fp_otp_msg" class="fp-msg"></div>
+                            <div class="fp-otp-row">
+                                <input class="fp-otp-box" id="fp_otp_d1" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="fp_otp_d2" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="fp_otp_d3" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="fp_otp_d4" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="fp_otp_d5" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                                <input class="fp-otp-box" id="fp_otp_d6" maxlength="1" inputmode="numeric" pattern="[0-9]" type="text">
+                            </div>
+                            <!-- hidden combined OTP for backend -->
+                            <input type="hidden" id="fp_otp">
+                            <p class="fp-otp-hint">Didn't get it? <button type="button" class="fp-resend-btn" id="fp_resend" style="background: none; border: none; color: #667eea; cursor: pointer; text-decoration: underline; font-size: 0.8rem; font-family: inherit; font-weight: inherit; padding: 0;">Resend OTP</button></p>
+                            <div class="fp-actions">
+                                <button type="button" class="fp-btn fp-btn-secondary" id="fp_otp_back">← Back</button>
+                                <button type="button" class="fp-btn fp-btn-primary" id="fp_verify">Verify &rarr;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===================================================
+                     FORGOT PASSWORD – STEP 3: New Password
+                ================================================== -->
+                <div id="resetModal" class="fp-overlay">
+                    <div class="fp-card">
+                        <!-- Header -->
+                        <div class="fp-header">
+                            <div class="fp-header-left">
+                                <div class="fp-header-icon">🔑</div>
+                                <div class="fp-header-text">
+                                    <h3>New Password</h3>
+                                    <p>Choose a strong, unique password</p>
+                                </div>
+                            </div>
+                            <button class="fp-close" id="fp_reset_cancel" type="button" title="Close">✕</button>
+                        </div>
+                        <!-- Step indicator -->
+                        <div class="fp-steps">
+                            <div class="fp-step-dot done">✓</div>
+                            <div class="fp-step-line done"></div>
+                            <div class="fp-step-dot done">✓</div>
+                            <div class="fp-step-line done"></div>
+                            <div class="fp-step-dot active">3</div>
+                        </div>
+                        <!-- Body -->
+                        <div class="fp-body">
+                            <p class="fp-desc">OTP verified ✅ &nbsp;Now set your new password.</p>
+                            <div id="fp_reset_msg" class="fp-msg"></div>
+                            <div class="fp-field">
+                                <label for="new_pass">New Password</label>
+                                <input type="password" id="new_pass" placeholder="Min 8 characters" autocomplete="new-password">
+                                <i class="bxr bx-eye-slash fp-eye" id="fp_eye1"></i>
+                            </div>
+                            <div class="fp-strength-bar"><div class="fp-strength-fill" id="fp_strength_fill"></div></div>
+                            <div class="fp-field" style="margin-top:12px;">
+                                <label for="confirm_pass">Confirm Password</label>
+                                <input type="password" id="confirm_pass" placeholder="Re-enter password" autocomplete="new-password">
+                                <i class="bxr bx-eye-slash fp-eye" id="fp_eye2"></i>
+                            </div>
+                            <div class="fp-actions">
+                                <button type="button" class="fp-btn fp-btn-secondary" id="fp_reset_cancel_alt">Cancel</button>
+                                <button type="button" class="fp-btn fp-btn-primary" id="fp_reset">Reset Password ✓</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+    <script>
+        const Login_Registration_Card = document.querySelector('.Login-Registration_card');
+        const registerBtn = document.querySelector('.toggle-register-btn');
+        const loginBtn = document.querySelector('.toggle-login-btn');
+
+        registerBtn.addEventListener('click', () => {
+            Login_Registration_Card.classList.add('active');
+        });
+        loginBtn.addEventListener('click', () => {
+            Login_Registration_Card.classList.remove('active');
+        });
+
+        // --- SCRIPT FOR AUTO-HIDING MESSAGES & PASSWORD TOGGLE ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.messages-container .alert');
+            alerts.forEach(function(alert) {
+                // Set a timer for 5 seconds
+                setTimeout(function() {
+                    // Add the fade-out class to trigger the CSS transition
+                    alert.classList.add('fade-out');
+                    // After the transition ends, remove the element
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 500); // This should match the CSS transition duration
+                }, 5000); // 5000 milliseconds = 5 seconds
+            });
+
+            // Toggle Password Visibility on verify google screen
+            const togglePassword = document.getElementById('togglePassword');
+            if (togglePassword) {
+                const passwordInput = document.getElementById('password');
+                togglePassword.addEventListener('click', function() {
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+                    this.classList.toggle('bx-hide');
+                    this.classList.toggle('bx-show');
+                    this.style.color = type === 'text' ? '#667eea' : '#999';
+                });
+            }
+        });
+
+        // ----------------------------------------------------
+
+        // Add focus effect to input fields
+        const inputBoxes = document.querySelectorAll('.input-box input');
+        inputBoxes.forEach(input => {
+            input.addEventListener('focus', () => {
+                input.classList.add('focused');
+            });
+            input.addEventListener('blur', () => {  
+                input.classList.remove('focused');
+            });
+        });
+
+        // Add hover effect to buttons  
+        const buttons = document.querySelectorAll('.login-btn, .register-btn');
+        buttons.forEach(button => {
+            button.addEventListener('mouseover', () => {
+                button.classList.add('hovered');
+            });
+            button.addEventListener('mouseout', () => {
+                button.classList.remove('hovered');
+            });
+        });
+
+        // Add hover effect to social media icons
+        const socialMediaIcons = document.querySelectorAll('.social-media_icons a img');
+        socialMediaIcons.forEach(icon => {
+            icon.addEventListener('mouseover', () => {
+                icon.classList.add('hovered');
+            });
+            icon.addEventListener('mouseout', () => {
+                icon.classList.remove('hovered');
+            });
+        });
+
+        document.querySelectorAll('.input-box i.bx-eye-slash, .input-box i.bx-eye').forEach(function(icon) {
+            icon.addEventListener('click', function() {
+                const input = this.parentNode.querySelector('input');
+                if (input.type === "password") {
+                input.type = "text";
+                this.classList.remove('bx-eye-slash');
+                this.classList.add('bx-eye');
+                } else {
+                input.type = "password";
+                this.classList.remove('bx-eye');
+                this.classList.add('bx-eye-slash');
+                }
+            });
+        });
+
+        // ---- CSRF helper (from Django docs) ----
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        // Read CSRF token fresh on every call (stale const breaks after Google OAuth rotates the session)
+        function getCsrf() { return getCookie('csrftoken'); }
+
+        // --- CUSTOM POPUP SYSTEM ---
+        const statusModalOverlay = document.getElementById('statusModalOverlay');
+        const statusModal = document.getElementById('statusModal');
+        const statusModalTitle = document.getElementById('statusModalTitle');
+        const statusModalContent = document.getElementById('statusModalContent');
+        const statusModalCloseBtn = document.getElementById('statusModalCloseBtn');
+        const statusModalConfirmBtn = document.getElementById('statusModalConfirmBtn');
+
+        window.showStyledAlert = function (title, message, type = 'info') {
+            return new Promise((resolve) => {
+                statusModalTitle.textContent = title || 'Alert';
+                statusModalContent.innerHTML = message;
+                statusModalConfirmBtn.textContent = 'OK';
+
+                const modalHeader = statusModal.querySelector('.modal-header-styled');
+
+                // Color coding
+                if (type === 'success') {
+                    statusModalConfirmBtn.className = 'btn btn-primary';
+                    statusModalConfirmBtn.style.background = '#27ae60';
+                    statusModalConfirmBtn.style.borderColor = '#27ae60';
+                    statusModalConfirmBtn.style.color = '#ffffff';
+                    statusModalTitle.style.color = '#ffffff';
+                    if (modalHeader) {
+                        modalHeader.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+                    }
+                } else if (type === 'error' || type === 'warning') {
+                    statusModalConfirmBtn.className = 'btn btn-danger';
+                    statusModalConfirmBtn.style.background = '#e74c3c';
+                    statusModalConfirmBtn.style.borderColor = '#e74c3c';
+                    statusModalConfirmBtn.style.color = '#ffffff';
+                    statusModalTitle.style.color = '#ffffff';
+                    if (modalHeader) {
+                        modalHeader.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                    }
+                } else {
+                    statusModalConfirmBtn.className = 'btn btn-primary';
+                    statusModalConfirmBtn.style.background = '';
+                    statusModalConfirmBtn.style.borderColor = '';
+                    statusModalConfirmBtn.style.color = '';
+                    statusModalTitle.style.color = '';
+                    if (modalHeader) {
+                        modalHeader.style.background = '';
+                    }
+                }
+
+                const close = () => {
+                    statusModalOverlay.classList.remove('active');
+                    statusModal.classList.remove('active');
+                    statusModalTitle.style.color = '';
+                    if (modalHeader) {
+                        modalHeader.style.background = '';
+                    }
+                    resolve();
+                };
+
+                statusModalConfirmBtn.onclick = close;
+                statusModalCloseBtn.onclick = close;
+                statusModalOverlay.onclick = close;
+
+                statusModalOverlay.classList.add('active');
+                statusModal.classList.add('active');
+            });
+        };
+
+        // =====================================================
+        // FORGOT PASSWORD – 3-STEP FLOW (Premium UI)
+        // =====================================================
+
+        // --- Helpers ---
+        function fpShow(id) {
+            document.getElementById(id).classList.add('fp-active');
+        }
+        function fpHide(id) {
+            document.getElementById(id).classList.remove('fp-active');
+        }
+        function fpHideAll() {
+            ['forgotModal','otpModal','resetModal'].forEach(fpHide);
+        }
+        function showFpMsg(elId, text, type /* 'fp-err' | 'fp-ok' */) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            el.textContent = text;
+            el.className = 'fp-msg fp-show ' + type;
+        }
+        function hideFpMsg(elId) {
+            const el = document.getElementById(elId);
+            if (el) { el.className = 'fp-msg'; el.textContent = ''; }
+        }
+
+        // --- Step 1: Open modal ---
+        document.getElementById('forgotTrigger').addEventListener('click', function(){
+            document.getElementById('fp_email').value = '';
+            hideFpMsg('fp_step1_msg');
+            fpHideAll();
+            fpShow('forgotModal');
+            setTimeout(() => document.getElementById('fp_email').focus(), 200);
+        });
+
+        // --- Close buttons ---
+        ['fp_cancel','fp_cancel_alt'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', () => fpHide('forgotModal'));
+        });
+        document.getElementById('fp_otp_cancel').addEventListener('click', () => fpHideAll());
+        ['fp_reset_cancel','fp_reset_cancel_alt'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', () => fpHideAll());
+        });
+
+        // Back button: OTP → Email
+        document.getElementById('fp_otp_back').addEventListener('click', function(){
+            fpHide('otpModal');
+            fpShow('forgotModal');
+        });
+
+        // --- OTP box navigation (auto-advance + backspace) ---
+        const otpBoxes = ['fp_otp_d1','fp_otp_d2','fp_otp_d3','fp_otp_d4','fp_otp_d5','fp_otp_d6'];
+        otpBoxes.forEach((id, idx) => {
+            const box = document.getElementById(id);
+            box.addEventListener('input', function(e) {
+                // allow only digits
+                box.value = box.value.replace(/\D/g, '').slice(-1);
+                if (box.value && idx < otpBoxes.length - 1) {
+                    document.getElementById(otpBoxes[idx + 1]).focus();
+                }
+            });
+            box.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !box.value && idx > 0) {
+                    document.getElementById(otpBoxes[idx - 1]).focus();
+                }
+            });
+            box.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+                pasted.split('').forEach((ch, i) => {
+                    if (otpBoxes[i]) document.getElementById(otpBoxes[i]).value = ch;
+                });
+                const lastFilled = Math.min(pasted.length, 5);
+                document.getElementById(otpBoxes[lastFilled]).focus();
+            });
+        });
+        function getOtpValue() {
+            return otpBoxes.map(id => document.getElementById(id).value).join('');
+        }
+        function clearOtpBoxes() {
+            otpBoxes.forEach(id => document.getElementById(id).value = '');
+        }
+
+        // --- Password strength ---
+        document.getElementById('new_pass').addEventListener('input', function() {
+            const v = this.value;
+            const fill = document.getElementById('fp_strength_fill');
+            let score = 0;
+            if (v.length >= 8) score++;
+            if (/[A-Z]/.test(v)) score++;
+            if (/[0-9]/.test(v)) score++;
+            if (/[^A-Za-z0-9]/.test(v)) score++;
+            const widths = ['0%','25%','50%','75%','100%'];
+            const colors = ['#eee','#e53935','#fb8c00','#fdd835','#43a047'];
+            fill.style.width = widths[score];
+            fill.style.background = colors[score];
+        });
+
+        // --- Eye toggles for password fields ---
+        function setupEye(eyeId, inputId) {
+            const eye = document.getElementById(eyeId);
+            const inp = document.getElementById(inputId);
+            if (!eye || !inp) return;
+            eye.addEventListener('click', function(){
+                if (inp.type === 'password') {
+                    inp.type = 'text';
+                    eye.classList.replace('bx-eye-slash', 'bx-eye');
+                } else {
+                    inp.type = 'password';
+                    eye.classList.replace('bx-eye', 'bx-eye-slash');
+                }
+            });
+        }
+        setupEye('fp_eye1', 'new_pass');
+        setupEye('fp_eye2', 'confirm_pass');
+
+        // ---- STEP 1: Send OTP ----
+        document.getElementById('fp_send').addEventListener('click', async function(){
+            const email = document.getElementById('fp_email').value.trim();
+            hideFpMsg('fp_step1_msg');
+
+            if (!email) {
+                showFpMsg('fp_step1_msg', 'Please enter your registered email.', 'fp-err');
+                document.getElementById('fp_email').focus();
+                return;
+            }
+
+            const sendBtn = this;
+            const loading = document.getElementById('fp_loading');
+
+            sendBtn.disabled = true;
+            loading.classList.add('fp-show');
+
+            try {
+                const r = await fetch("{% url 'users:forgot_password' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `email=${encodeURIComponent(email)}`
+                });
+                const j = await r.json();
+
+                loading.classList.remove('fp-show');
+                sendBtn.disabled = false;
+
+                if (j.status === 'ok') {
+                    // Transition to step 2
+                    fpHide('forgotModal');
+                    clearOtpBoxes();
+                    hideFpMsg('fp_otp_msg');
+                    document.getElementById('otpModal').dataset.email = email;
+                    document.getElementById('fp_otp_email_display').textContent = email;
+                    fpShow('otpModal');
+                    
+                    // Directly initialize resend button with returned server state
+                    updateFpResendUI(document.getElementById('fp_resend'), j.attempts, j.cooldown_seconds);
+                    
+                    setTimeout(() => document.getElementById('fp_otp_d1').focus(), 200);
+                } else {
+                    showFpMsg('fp_step1_msg', j.message || 'Error sending OTP. Try again.', 'fp-err');
+                }
+            } catch (err) {
+                console.error('Forgot-password send error:', err);
+                loading.classList.remove('fp-show');
+                sendBtn.disabled = false;
+                showFpMsg('fp_step1_msg', 'Network error. Please check your connection and try again.', 'fp-err');
+            }
+        });
+
+        // Allow Enter key on email input
+        document.getElementById('fp_email').addEventListener('keydown', function(e){
+            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('fp_send').click(); }
+        });
+
+        // ---- STEP 1.5: Resend OTP ----
+        let fpResendInterval = null;
+
+        function updateFpResendUI(element, attempt_count, seconds) {
+            if (!element) return;
+            
+            if (fpResendInterval) {
+                clearInterval(fpResendInterval);
+            }
+
+            if (seconds > 0) {
+                element.style.pointerEvents = 'none';
+                element.style.opacity = '0.5';
+                element.disabled = true;
+                
+                let secondsLeft = seconds;
+                element.textContent = `Resend OTP (${attempt_count} of 3) in ${secondsLeft}s`;
+                
+                fpResendInterval = setInterval(() => {
+                    secondsLeft--;
+                    if (secondsLeft <= 0) {
+                        clearInterval(fpResendInterval);
+                        if (attempt_count >= 3) {
+                            element.textContent = `Resend OTP (3 of 3 attempts used)`;
+                            element.style.pointerEvents = 'none';
+                            element.style.opacity = '0.5';
+                            element.disabled = true;
+                        } else {
+                            element.textContent = `Resend OTP`;
+                            element.style.pointerEvents = '';
+                            element.style.opacity = '';
+                            element.disabled = false;
+                        }
+                    } else {
+                        element.textContent = `Resend OTP (${attempt_count} of 3) in ${secondsLeft}s`;
+                    }
+                }, 1000);
+            } else {
+                if (attempt_count >= 3) {
+                    element.textContent = `Resend OTP (3 of 3 attempts used)`;
+                    element.style.pointerEvents = 'none';
+                    element.style.opacity = '0.5';
+                    element.disabled = true;
+                } else {
+                    element.textContent = `Resend OTP`;
+                    element.style.pointerEvents = '';
+                    element.style.opacity = '';
+                    element.disabled = false;
+                }
+            }
+        }
+
+        async function syncFpResendStatus() {
+            const element = document.getElementById('fp_resend');
+            if (!element) return;
+            try {
+                const response = await fetch("{% url 'users:otp_status' %}");
+                if (response.ok) {
+                    const data = await response.json();
+                    updateFpResendUI(element, data.attempts, data.cooldown_seconds);
+                }
+            } catch (e) {
+                console.error("Error syncing OTP status:", e);
+            }
+        }
+
+        // Call sync on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            syncFpResendStatus();
+        });
+
+        document.getElementById('fp_resend').addEventListener('click', async function(){
+            const email = document.getElementById('otpModal').dataset.email || '';
+            if (!email) { showFpMsg('fp_otp_msg', 'Session expired. Please restart.', 'fp-err'); return; }
+            this.style.pointerEvents = 'none';
+            this.textContent = 'Sending…';
+            try {
+                const r = await fetch("{% url 'users:forgot_password' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `email=${encodeURIComponent(email)}`
+                });
+                const j = await r.json();
+                if (r.status === 429) {
+                    await window.showStyledAlert("Rate Limit Exceeded", j.message || "Please try again later.", "warning");
+                    await syncFpResendStatus();
+                } else if (r.ok && j.status === 'ok') {
+                    clearOtpBoxes();
+                    showFpMsg('fp_otp_msg', 'A new OTP has been sent to your email.', 'fp-ok');
+                    document.getElementById('fp_otp_d1').focus();
+                    updateFpResendUI(this, j.attempts, j.cooldown_seconds);
+                } else {
+                    this.textContent = 'Resend OTP';
+                    this.style.pointerEvents = '';
+                    showFpMsg('fp_otp_msg', j.message || 'Error resending OTP.', 'fp-err');
+                }
+            } catch(e) {
+                this.textContent = 'Resend OTP';
+                this.style.pointerEvents = '';
+                showFpMsg('fp_otp_msg', 'Network error. Try again.', 'fp-err');
+            }
+        });
+
+        // ---- STEP 2: Verify OTP ----
+        document.getElementById('fp_verify').addEventListener('click', async function(){
+            const otp = getOtpValue();
+            const email = document.getElementById('otpModal').dataset.email || '';
+            hideFpMsg('fp_otp_msg');
+
+            if (!email) {
+                showFpMsg('fp_otp_msg', 'Session expired. Please restart.', 'fp-err');
+                return;
+            }
+            if (otp.length < 6) {
+                showFpMsg('fp_otp_msg', 'Please enter the full 6-digit OTP.', 'fp-err');
+                document.getElementById('fp_otp_d1').focus();
+                return;
+            }
+
+            const verifyBtn = this;
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying…';
+
+            try {
+                const r = await fetch("{% url 'users:verify_otp' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `email=${encodeURIComponent(email)}&otp=${encodeURIComponent(otp)}`
+                });
+                const j = await r.json();
+
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = 'Verify &rarr;';
+
+                if (j.status === 'ok') {
+                    // Transition to step 3
+                    fpHide('otpModal');
+                    hideFpMsg('fp_reset_msg');
+                    document.getElementById('new_pass').value = '';
+                    document.getElementById('confirm_pass').value = '';
+                    document.getElementById('fp_strength_fill').style.width = '0';
+                    fpShow('resetModal');
+                    setTimeout(() => document.getElementById('new_pass').focus(), 200);
+                } else {
+                    showFpMsg('fp_otp_msg', j.message || 'Incorrect or expired OTP. Please try again.', 'fp-err');
+                    clearOtpBoxes();
+                    document.getElementById('fp_otp_d1').focus();
+                }
+            } catch (err) {
+                console.error('OTP verify error:', err);
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = 'Verify &rarr;';
+                showFpMsg('fp_otp_msg', 'Network error. Please try again.', 'fp-err');
+            }
+        });
+
+        // ---- STEP 3: Reset Password ----
+        document.getElementById('fp_reset').addEventListener('click', async function(){
+            const new_pass = document.getElementById('new_pass').value;
+            const confirm_pass = document.getElementById('confirm_pass').value;
+            hideFpMsg('fp_reset_msg');
+
+            if (!new_pass || !confirm_pass) {
+                showFpMsg('fp_reset_msg', 'Please fill in both password fields.', 'fp-err');
+                return;
+            }
+            if (new_pass !== confirm_pass) {
+                showFpMsg('fp_reset_msg', 'Passwords do not match. Please check and try again.', 'fp-err');
+                document.getElementById('confirm_pass').focus();
+                return;
+            }
+            if (new_pass.length < 8) {
+                showFpMsg('fp_reset_msg', 'Password must be at least 8 characters long.', 'fp-err');
+                document.getElementById('new_pass').focus();
+                return;
+            }
+
+            const resetBtn = this;
+            resetBtn.disabled = true;
+            resetBtn.textContent = 'Resetting…';
+
+            try {
+                const r = await fetch("{% url 'users:reset_password' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `new_password=${encodeURIComponent(new_pass)}&confirm_password=${encodeURIComponent(confirm_pass)}`
+                });
+                const j = await r.json();
+
+                if (j.status === 'ok') {
+                    fpHideAll();
+                    if (j.redirect) {
+                        await window.showStyledAlert('✅ Password Reset & Account Linked!', 'Your password has been changed successfully and your Google account has been linked.<br><br>Redirecting...');
+                        window.location = j.redirect;
+                    } else {
+                        await window.showStyledAlert('✅ Password Reset!', 'Your password has been changed successfully.<br><br>You can now log in with your new password.');
+                        window.location = "{% url 'users:login' %}";
+                    }
+                } else {
+                    resetBtn.disabled = false;
+                    resetBtn.textContent = 'Reset Password ✓';
+                    showFpMsg('fp_reset_msg', j.message || 'Error resetting password. Try again.', 'fp-err');
+                }
+            } catch (err) {
+                console.error('Reset password error:', err);
+                resetBtn.disabled = false;
+                resetBtn.textContent = 'Reset Password ✓';
+                showFpMsg('fp_reset_msg', 'Network error. Please try again.', 'fp-err');
+            }
+        });
+
+        // =====================================================
+        // MANUAL REGISTRATION – OTP & SUCCESS ANIMATION FLOW
+        // =====================================================
+
+        // Helper to check password strength
+        function isPasswordStrong(password) {
+            if (password.length < 8) return { valid: false, message: 'Password must be at least 8 characters long.' };
+            if (!/[A-Z]/.test(password)) return { valid: false, message: 'Password must contain at least one uppercase letter.' };
+            if (!/[a-z]/.test(password)) return { valid: false, message: 'Password must contain at least one lowercase letter.' };
+            if (!/[0-9]/.test(password)) return { valid: false, message: 'Password must contain at least one number.' };
+            if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return { valid: false, message: 'Password must contain at least one special character.' };
+            return { valid: true };
+        }
+
+        // OTP helper functions
+        const regOtpBoxes = ['reg_otp_d1','reg_otp_d2','reg_otp_d3','reg_otp_d4','reg_otp_d5','reg_otp_d6'];
+        regOtpBoxes.forEach((id, idx) => {
+            const box = document.getElementById(id);
+            if (!box) return;
+            box.addEventListener('input', function(e) {
+                if (box.value && idx < regOtpBoxes.length - 1) {
+                    document.getElementById(regOtpBoxes[idx + 1]).focus();
+                }
+            });
+            box.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !box.value && idx > 0) {
+                    document.getElementById(regOtpBoxes[idx - 1]).focus();
+                }
+            });
+            box.addEventListener('paste', function(e) {
+                const text = (e.clipboardData || window.clipboardData).getData('text');
+                const digits = text.replace(/[^0-9]/g, '').split('').slice(0, 6);
+                let lastFilled = 0;
+                for (let i = 0; i < digits.length; i++) {
+                    if (regOtpBoxes[i]) {
+                        document.getElementById(regOtpBoxes[i]).value = digits[i];
+                        lastFilled = i;
+                    }
+                }
+                document.getElementById(regOtpBoxes[lastFilled]).focus();
+                e.preventDefault();
+            });
+        });
+
+        function getRegOtpValue() {
+            return regOtpBoxes.map(id => document.getElementById(id).value).join('');
+        }
+        function clearRegOtpBoxes() {
+            regOtpBoxes.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+        }
+        function showRegOtpMsg(text, type) {
+            const el = document.getElementById('reg_otp_msg');
+            if (el) {
+                el.textContent = text;
+                el.className = 'fp-msg fp-show ' + type;
+            }
+        }
+        function hideRegOtpMsg() {
+            const el = document.getElementById('reg_otp_msg');
+            if (el) { el.className = 'fp-msg'; el.textContent = ''; }
+        }
+
+        // Cancel and Back buttons for Reg OTP modal
+        document.getElementById('reg_otp_cancel').addEventListener('click', () => fpHide('registerOtpModal'));
+        document.getElementById('reg_otp_back').addEventListener('click', () => fpHide('registerOtpModal'));
+
+        // Confetti Generator
+        function launchConfetti(container) {
+            const colors = ['#f2d74e', '#95c3de', '#e9a8f1', '#6ef1a8', '#f16e6e', '#6e8af1'];
+            for (let i = 0; i < 80; i++) {
+                const p = document.createElement('div');
+                p.classList.add('confetti-particle');
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.top = -10 - Math.random() * 20 + 'px';
+                p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                p.style.width = Math.random() * 8 + 6 + 'px';
+                p.style.height = Math.random() * 12 + 6 + 'px';
+                p.style.transform = `rotate(${Math.random() * 360}deg)`;
+                
+                const duration = Math.random() * 2 + 2;
+                const drift = (Math.random() - 0.5) * 200;
+                
+                p.style.transition = `transform ${duration}s linear, top ${duration}s linear, opacity ${duration}s ease-out`;
+                container.appendChild(p);
+                
+                setTimeout(() => {
+                    p.style.top = '105vh';
+                    p.style.transform = `translate(${drift}px, 0px) rotate(${Math.random() * 720}deg)`;
+                    p.style.opacity = '1';
+                }, 50);
+                
+                setTimeout(() => {
+                    p.remove();
+                }, duration * 1000 + 100);
+            }
+        }
+
+        // Success animation display
+        function showRegisteredSuccessAnimation(redirectUrl) {
+            const overlay = document.getElementById('regSuccessOverlay');
+            if (!overlay) {
+                window.location.href = redirectUrl;
+                return;
+            }
+            
+            overlay.classList.add('active');
+            launchConfetti(overlay);
+            
+            let redirected = false;
+            const doRedirect = () => {
+                if (!redirected) {
+                    redirected = true;
+                    window.location.href = redirectUrl;
+                }
+            };
+            
+            document.getElementById('regSuccessContinueBtn').onclick = doRedirect;
+            setTimeout(doRedirect, 4500);
+        }
+
+        // Submit manual registration form via AJAX to request OTP
+        const manualRegForm = document.getElementById('manualRegisterForm');
+        if (manualRegForm) {
+            manualRegForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const errorDiv = document.getElementById('register_errors');
+                errorDiv.style.display = 'none';
+                errorDiv.innerHTML = '';
+
+                // Password client-side validation
+                const p1 = this.querySelector('input[name="password1"]').value;
+                const p2 = this.querySelector('input[name="password2"]').value;
+
+                if (p1 !== p2) {
+                    errorDiv.textContent = 'Passwords do not match.';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                const pwCheck = isPasswordStrong(p1);
+                if (!pwCheck.valid) {
+                    errorDiv.textContent = pwCheck.message;
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                // Send AJAX request
+                const formData = new FormData(this);
+                formData.append('action', 'send_otp');
+
+                const regBtn = this.querySelector('.register-btn');
+                const originalText = regBtn.innerHTML;
+                regBtn.disabled = true;
+                regBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Sending OTP...`;
+
+                try {
+                    const r = await fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': getCsrf()
+                        }
+                    });
+                    const j = await r.json();
+                    
+                    regBtn.disabled = false;
+                    regBtn.innerHTML = originalText;
+
+                    if (j.status === 'ok') {
+                        // Open OTP verification modal
+                        document.getElementById('reg_otp_email_display').textContent = formData.get('email');
+                        document.getElementById('registerOtpModal').dataset.email = formData.get('email');
+                        clearRegOtpBoxes();
+                        hideRegOtpMsg();
+                        fpShow('registerOtpModal');
+                        
+                        setTimeout(() => document.getElementById('reg_otp_d1').focus(), 200);
+                        updateRegResendUI(j.attempts, j.cooldown_seconds);
+                    } else {
+                        errorDiv.textContent = j.message || 'Error occurred during registration.';
+                        errorDiv.style.display = 'block';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    regBtn.disabled = false;
+                    regBtn.innerHTML = originalText;
+                    errorDiv.textContent = 'Network error. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
+            });
+        }
+
+        // Resend registration OTP
+        let regResendInterval = null;
+        function updateRegResendUI(attempt_count, seconds) {
+            const element = document.getElementById('reg_resend');
+            if (!element) return;
+            
+            if (regResendInterval) clearInterval(regResendInterval);
+
+            if (seconds > 0) {
+                element.style.pointerEvents = 'none';
+                element.style.opacity = '0.5';
+                element.disabled = true;
+                
+                let secondsLeft = seconds;
+                element.textContent = `Resend OTP (${attempt_count} of 5) in ${secondsLeft}s`;
+                
+                regResendInterval = setInterval(() => {
+                    secondsLeft--;
+                    if (secondsLeft <= 0) {
+                        clearInterval(regResendInterval);
+                        if (attempt_count >= 5) {
+                            element.textContent = `Resend OTP (5 of 5 attempts used)`;
+                            element.style.pointerEvents = 'none';
+                            element.style.opacity = '0.5';
+                            element.disabled = true;
+                        } else {
+                            element.textContent = `Resend OTP`;
+                            element.style.pointerEvents = '';
+                            element.style.opacity = '';
+                            element.disabled = false;
+                        }
+                    } else {
+                        element.textContent = `Resend OTP (${attempt_count} of 5) in ${secondsLeft}s`;
+                    }
+                }, 1000);
+            } else {
+                element.textContent = `Resend OTP`;
+                element.style.pointerEvents = '';
+                element.style.opacity = '';
+                element.disabled = false;
+            }
+        }
+
+        document.getElementById('reg_resend').addEventListener('click', async function(){
+            const email = document.getElementById('registerOtpModal').dataset.email || '';
+            if (!email) return;
+
+            const resendBtn = this;
+            resendBtn.style.pointerEvents = 'none';
+            resendBtn.style.opacity = '0.5';
+
+            try {
+                const r = await fetch("{% url 'users:register' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=resend_otp`
+                });
+                const j = await r.json();
+
+                if (j.status === 'ok') {
+                    showRegOtpMsg('A new OTP has been sent.', 'fp-ok');
+                    updateRegResendUI(j.attempts, j.cooldown_seconds);
+                } else {
+                    showRegOtpMsg(j.message || 'Error resending OTP.', 'fp-err');
+                    resendBtn.style.pointerEvents = '';
+                    resendBtn.style.opacity = '';
+                }
+            } catch (err) {
+                console.error(err);
+                showRegOtpMsg('Network error. Please try again.', 'fp-err');
+                resendBtn.style.pointerEvents = '';
+                resendBtn.style.opacity = '';
+            }
+        });
+
+        // Verify registration OTP
+        document.getElementById('reg_verify').addEventListener('click', async function(){
+            const otp = getRegOtpValue();
+            const email = document.getElementById('registerOtpModal').dataset.email || '';
+            hideRegOtpMsg();
+
+            if (!email) {
+                showRegOtpMsg('Session expired. Please restart.', 'fp-err');
+                return;
+            }
+            if (otp.length < 6) {
+                showRegOtpMsg('Please enter the full 6-digit OTP.', 'fp-err');
+                document.getElementById('reg_otp_d1').focus();
+                return;
+            }
+
+            const verifyBtn = this;
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying…';
+
+            try {
+                const r = await fetch("{% url 'users:register' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': getCsrf(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=verify_otp&otp=${encodeURIComponent(otp)}`
+                });
+                const j = await r.json();
+
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = 'Submit &rarr;';
+
+                if (j.status === 'ok') {
+                    fpHide('registerOtpModal');
+                    showRegisteredSuccessAnimation(j.redirect);
+                } else {
+                    showRegOtpMsg(j.message || 'Incorrect or expired OTP. Please try again.', 'fp-err');
+                    clearRegOtpBoxes();
+                    document.getElementById('reg_otp_d1').focus();
+                }
+            } catch (err) {
+                console.error('OTP verify error:', err);
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = 'Submit &rarr;';
+                showRegOtpMsg('Network error. Please try again.', 'fp-err');
+            }
+        });
+
+        // Auto-trigger Forgot Password modal if forgot_email parameter is present
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const forgotEmail = urlParams.get('forgot_email');
+            if (forgotEmail) {
+                const emailInput = document.getElementById('fp_email');
+                if (emailInput) {
+                    emailInput.value = forgotEmail;
+                }
+                // Call fpShow defined in register.html
+                if (typeof fpShow === 'function') {
+                    fpShow('forgotModal');
+                }
+            }
+        });
+
+        if (window.history && window.history.replaceState) {
+            history.replaceState(null, document.title, window.location.href);
+        }
+
+        // Always clear choice modal and welcome popup session keys when on login/register page so re-login triggers popup
+        try {
+            sessionStorage.removeItem('abcd_choice_modal_shown');
+            sessionStorage.removeItem('abcd_welcome_popup_shown');
+        } catch(e) {}
+    </script>
+
+    <!-- ================= GENERAL STATUS MODAL ================= -->
+    <div id="statusModalOverlay" class="modal-overlay-styled"></div>
+    <div id="statusModal" class="admission-modal-styled">
+        <div class="modal-header-styled">
+            <h2 id="statusModalTitle">Alert</h2>
+            <button type="button" class="modal-close-btn-styled" id="statusModalCloseBtn">×</button>
+        </div>
+        <div class="modal-body-styled">
+            <div id="statusModalContent"></div>
+        </div>
+        <div class="modal-footer-styled">
+            <button type="button" class="btn-styled btn-primary-styled" id="statusModalConfirmBtn">OK</button>
+        </div>
+    </div>
+{% if user.is_authenticated %}
+<script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
+<script src="{% static 'js/push-permission.js' %}"></script>
+{% endif %}
+{% include 'partials/_smart_back_redirect.html' with back_url='users:home_page' %}
+</body>
+</html>

@@ -1,0 +1,708 @@
+{% extends "users/teacher_dashboard.html" %}
+{% load static %}
+
+{% block title %}Student Details - {{ student.full_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<style>
+    :root {
+        --profile-primary: #6366f1;
+        --profile-card-bg: #ffffff;
+        --profile-text: #1e293b;
+        --profile-muted: #64748b;
+        --profile-border: #e2e8f0;
+        --profile-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+    }
+
+    body.dark-theme {
+        --profile-card-bg: rgba(30, 41, 59, 0.6);
+        --profile-text: #f1f5f9;
+        --profile-muted: #94a3b8;
+        --profile-border: rgba(255, 255, 255, 0.1);
+        --profile-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .profile-wrapper {
+        padding: 100px 20px 40px;
+        display: flex;
+        justify-content: center;
+        min-height: calc(100vh - 100px);
+    }
+
+    .profile-card {
+        width: 100%;
+        max-width: 550px;
+        background: var(--profile-card-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 40px;
+        padding: 40px;
+        position: relative;
+        box-shadow: var(--profile-shadow);
+        border: 1px solid var(--profile-border);
+        height: fit-content;
+    }
+
+    /* Half-Circle Out Photo Header */
+    .photo-container {
+        position: absolute;
+        top: -65px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 6px solid var(--profile-card-bg);
+        background: var(--profile-card-bg);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+        overflow: visible;
+    }
+
+    .photo-frame {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .photo-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .photo-frame:hover img {
+        transform: scale(1.1);
+    }
+
+    .photo-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.4);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.3s ease;
+        color: white; font-weight: 700; font-size: 0.9rem;
+    }
+
+    .photo-frame:hover .photo-overlay {
+        opacity: 1;
+    }
+
+    .edit-photo-btn {
+        position: absolute;
+        bottom: 5px; right: 5px;
+        width: 35px; height: 35px;
+        background: var(--profile-primary);
+        color: white;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        border: 3px solid var(--profile-card-bg);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        cursor: pointer;
+        z-index: 20;
+        transition: transform 0.2s ease;
+    }
+
+    .edit-photo-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .no-photo {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 4rem;
+        color: #cbd5e1;
+        background: #f1f5f9;
+        border-radius: 50%;
+    }
+
+    body.dark-theme .no-photo {
+        background: rgba(255, 255, 255, 0.05);
+        color: #475569;
+    }
+
+    /* Cropper Container Visibility */
+    .cropper-container {
+        width: 100% !important;
+        background: #f8fafc;
+        border-radius: 15px;
+    }
+
+    .cropper-view-box,
+    .cropper-face {
+        border-radius: 50%;
+    }
+
+    .student-name {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--profile-text);
+        margin: 60px 0 30px;
+        letter-spacing: -0.5px;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .details-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-bottom: 35px;
+    }
+
+    .detail-row {
+        display: flex;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--profile-border);
+        transition: all 0.2s ease;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        width: 110px;
+        font-weight: 700;
+        color: var(--profile-primary);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+        flex: 1;
+        font-weight: 600;
+        color: var(--profile-text);
+        font-size: 1.05rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .status-admitted { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .status-pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .status-on_hold { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    .footer-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .pill-btn {
+        padding: 12px 25px;
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-grey { background: rgba(0,0,0,0.05); color: var(--profile-muted); }
+    body.dark-theme .btn-grey { background: rgba(255,255,255,0.05); color: #bdc3c7; }
+
+    .btn-indigo {
+        background: var(--profile-primary);
+        color: white;
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-danger {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .pill-btn:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.05);
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+        display: none; z-index: 1500;
+    }
+    .modal-card {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: var(--profile-card-bg); border-radius: 30px; padding: 30px;
+        width: 90%; max-width: 500px; z-index: 1501; display: none;
+        box-shadow: var(--profile-shadow);
+        border: 1px solid var(--profile-border);
+    }
+
+    .delete-warning {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        padding: 20px;
+        border-radius: 20px;
+        margin: 20px 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    @media (max-width: 480px) {
+        .profile-card { padding: 25px 15px; }
+        .student-name { font-size: 1.6rem; }
+        .detail-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+            padding: 12px 15px !important;
+        }
+        .detail-label {
+            width: auto !important;
+            font-size: 0.75rem;
+        }
+        .detail-value {
+            font-size: 0.95rem;
+            width: 100%;
+            word-break: break-all;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-wrapper">
+    <div class="profile-card">
+        <!-- Photo Header -->
+        <div class="photo-container">
+            <div class="photo-frame" onclick="viewPhoto()">
+                <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" id="profile-img-main">
+                <div class="photo-overlay">SEE</div>
+            </div>
+            <div class="edit-photo-btn" onclick="openPhotoManager()" title="Manage Photo">
+                <i class='bx bxs-pencil'></i>
+            </div>
+        </div>
+
+        <h1 class="student-name">{{ student.full_name }}</h1>
+
+        <div class="details-list">
+            <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">
+                    <span class="status-badge status-{{ student.status }}">
+                        {{ student.get_status_display }}
+                    </span>
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">DOB</span>
+                <span class="detail-value">{{ student.dob|date:"d M Y"|default:"Not set" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Gender</span>
+                <span class="detail-value">{{ student.sex|default:"Not set" }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Service</span>
+                <span class="detail-value">{{ student.get_service_type_display }}</span>
+            </div>
+
+            {% if student.service_type == 'Coaching' %}
+                <div class="detail-row">
+                    <span class="detail-label">Batch</span>
+                    <span class="detail-value">{{ student.get_batch_display|default:"Not assigned" }}</span>
+                </div>
+            {% elif student.service_type == 'Library' %}
+                <div class="detail-row">
+                    <span class="detail-label">Floor</span>
+                    <span class="detail-value">{{ student.seat.floor|default:"Not assigned" }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Seat</span>
+                    <span class="detail-value">
+                        {% if student.seat %}
+                            {{ student.seat.floor|slice:":1" }}-{{ student.seat.seat_number }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </span>
+                </div>
+            {% endif %}
+
+            <div class="detail-row">
+                <span class="detail-label">Mobile</span>
+                <span class="detail-value">{{ student.mobile_number }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Whatsapp</span>
+                <span class="detail-value">
+                    <i class='bx bxl-whatsapp' style="color: #25d366; margin-right: 5px;"></i> {{ student.whatsapp_number }}
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">{{ student.user.email|default:"Not provided" }}</span>
+            </div>
+        </div>
+
+        <div class="footer-actions">
+            <a href="{% url 'users:teacher_dashboard' %}" class="pill-btn btn-grey">
+                <i class='bx bx-arrow-back'></i> Back
+            </a>
+            <a href="{% url 'users:edit_student' student.id %}" class="pill-btn btn-indigo">
+                <i class='bx bxs-edit-alt'></i> Edit
+            </a>
+            <button type="button" class="pill-btn btn-danger" onclick="openDeleteModal()">
+                <i class='bx bxs-trash'></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Broad View Modal -->
+<div id="photoBroadView" class="modal-overlay" style="display:none; z-index: 2000; background: rgba(0,0,0,0.9);">
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 2001;">
+        <button onclick="closePhotoView()" style="background: none; border: none; color: white; font-size: 2.5rem; cursor: pointer;"><i class='bx bx-x'></i></button>
+    </div>
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 40px;">
+        <img id="broadViewImg" src="" style="max-width: 95%; max-height: 95%; border-radius: 10px; box-shadow: 0 0 50px rgba(0,0,0,0.8);">
+    </div>
+</div>
+
+<!-- Photo Manager Modal -->
+<div id="photoManagerModal" class="modal-card">
+    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+        <i class='bx bxs-camera'></i> Profile Photo
+    </h3>
+    
+    <div id="cropperWrapper" style="display:none; margin-bottom: 20px;">
+        <div style="width: 100%; max-height: 350px; overflow: hidden; border-radius: 15px; background: #f1f5f9;">
+            <img id="cropperImg" src="" style="max-width: 100%;" crossorigin="anonymous">
+        </div>
+        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px;">
+            <button class="pill-btn btn-indigo" onclick="saveCrop(event)" style="padding: 12px 25px;">
+                <i class='bx bx-check'></i> Save
+            </button>
+            <button class="pill-btn btn-grey" onclick="cancelCrop()" style="padding: 12px 25px;">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <div id="photoActions">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+            <label class="pill-btn btn-indigo" style="cursor: pointer; justify-content: center;">
+                <i class='bx bx-upload'></i> 
+                <span>{% if student.photo %}Change Photo{% else %}Upload Photo{% endif %}</span>
+                <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handleFileSelect(event)">
+            </label>
+            
+            {% if student.photo %}
+            <button class="pill-btn btn-indigo" onclick="startAdjustment()" style="justify-content: center; background: #6366f1;">
+                <i class='bx bx-crop'></i> Adjust & Crop
+            </button>
+            <form action="{% url 'users:delete_profile_photo' student.id %}" method="post" style="display:contents;">
+                {% csrf_token %}
+                <button type="button" class="pill-btn btn-danger" style="justify-content: center;" onclick="removePhoto(this)">
+                    <i class='bx bx-trash'></i> Remove
+                </button>
+            </form>
+            <script>
+                async function removePhoto(btn) {
+                    if (await window.showStyledConfirm('Remove Photo', 'Are you sure you want to <b>remove</b> the profile photo?')) {
+                        btn.closest('form').submit();
+                    }
+                }
+            </script>
+            {% endif %}
+            
+            <button class="pill-btn btn-grey" onclick="closePhotoManager()" style="justify-content: center;">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+<div id="photoManagerOverlay" class="modal-overlay" onclick="closePhotoManager()"></div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="modal-card">
+    <h3 style="color: #ef4444; display: flex; align-items: center; gap: 10px;">
+        <i class='bx bxs-error-circle'></i> Delete Student Profile?
+    </h3>
+    <div class="delete-warning">
+        <strong>CRITICAL ACTION:</strong> This will permanently delete <b>{{ student.full_name }}</b> from the database.
+        <br><br>
+        • All login credentials will be destroyed.<br>
+        • All seat assignments will be cleared.<br>
+        • All payment records and history will be lost.<br>
+        • This action <b>cannot</b> be undone.
+    </div>
+    <div style="display: flex; gap: 12px; justify-content: center;">
+        <form action="{% url 'users:delete_student' student.id %}" method="post" style="margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'users:teacher_dashboard' %}">
+            <button type="submit" class="pill-btn" style="background: #ef4444; color: white;">
+                Yes, Delete Everything
+            </button>
+        </form>
+        <button class="pill-btn btn-grey" onclick="closeDeleteModal()">
+            Cancel
+        </button>
+    </div>
+</div>
+<div id="deleteModalOverlay" class="modal-overlay" onclick="closeDeleteModal()"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+    let cropperInstance = null;
+
+    function viewPhoto() {
+        const img = document.getElementById('profile-img-main');
+        if (img) {
+            document.getElementById('broadViewImg').src = img.src;
+            document.getElementById('photoBroadView').style.display = 'block';
+        }
+    }
+
+    function closePhotoView() {
+        document.getElementById('photoBroadView').style.display = 'none';
+    }
+
+    function openPhotoManager() {
+        document.getElementById('photoManagerModal').style.display = 'block';
+        document.getElementById('photoManagerOverlay').style.display = 'block';
+    }
+
+    function closePhotoManager() {
+        if (cropperInstance) cancelCrop();
+        document.getElementById('photoManagerModal').style.display = 'none';
+        document.getElementById('photoManagerOverlay').style.display = 'none';
+    }
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                initCropper(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function startAdjustment() {
+        const img = document.querySelector('.photo-frame #profile-img-main');
+        if (img) initCropper(img.src);
+        else window.showStyledAlert("No Photo", "No photo to adjust. Please upload a photo first.");
+    }
+
+    function initCropper(src) {
+        const wrapper = document.getElementById('cropperWrapper');
+        const img = document.getElementById('cropperImg');
+        const actions = document.getElementById('photoActions');
+        
+        img.src = src;
+        wrapper.style.display = 'block';
+        actions.style.display = 'none';
+        
+        if (cropperInstance) cropperInstance.destroy();
+        
+        // Wait for image to load and container to render
+        img.onload = () => {
+            // Small delay to ensure container size is calculated
+            setTimeout(() => {
+                cropperInstance = new Cropper(img, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.8,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                    checkCrossOrigin: false,
+                    ready: function() {
+                        console.log("Cropper is ready");
+                    }
+                });
+            }, 100);
+        };
+        // If image already cached/loaded
+        if (img.complete) img.onload();
+    }
+
+    function cancelCrop() {
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+        document.getElementById('cropperWrapper').style.display = 'none';
+        document.getElementById('photoActions').style.display = 'block';
+    }
+
+    async function saveCrop(event) {
+        if (!cropperInstance) {
+            await window.showStyledAlert("Please Wait", "Tool not ready. Please wait.");
+            return;
+        }
+        
+        const saveBtn = event.target.closest('button');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Saving...";
+
+        try {
+            const canvas = cropperInstance.getCroppedCanvas({ 
+                width: 600, 
+                height: 600,
+                fillColor: '#fff',
+            });
+
+            if (!canvas) throw new Error("Canvas failed");
+
+            // Use DataURL for maximum reliability
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const formData = new FormData();
+            formData.append('photo_base64', dataUrl);
+            
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            const csrf = csrfInput ? csrfInput.value : '{{ csrf_token }}';
+            formData.append('csrfmiddlewaretoken', csrf);
+
+            fetch("{% url 'users:upload_profile_photo' student.id %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrf
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.message || "Status " + response.status);
+                    }).catch(() => {
+                        throw new Error("Server error " + response.status);
+                    });
+                }
+            })
+            .catch(err => {
+                console.error("Upload error:", err);
+                window.showStyledAlert("Upload Failed", err.message);
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            });
+
+        } catch (e) {
+            window.showStyledAlert("Process Failed", e.message);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteConfirmModal').style.display = 'none';
+        document.getElementById('deleteModalOverlay').style.display = 'none';
+    }
+
+    function openDeleteModal() {
+        const studentName = "{{ student.full_name }}";
+        const hasAdmission = true; // We are in student_details, so profile exists
+        const hasAlumni = "{{ student.has_achievement|yesno:'true,false' }}" === "true";
+        const form = document.querySelector('#deleteConfirmModal form');
+
+        // Reuse the deleteScopeModal logic from the base template if possible
+        // But student_details has its own local modal HTML. I will update it to be granular.
+        
+        const modal = document.getElementById('deleteConfirmModal');
+        const overlay = document.getElementById('deleteModalOverlay');
+        const warningDiv = modal.querySelector('.delete-warning');
+        
+        if (hasAlumni) {
+            // Transform local modal into granular one
+            modal.querySelector('h3').innerHTML = "<i class='bx bxs-error-circle'></i> Delete Student Service?";
+            warningDiv.innerHTML = `
+                <p style="margin-bottom: 15px; color: var(--profile-text);">Choose what you want to delete for <strong>${studentName}</strong>:</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; background: rgba(99, 102, 241, 0.1); border-radius: 12px; color: var(--profile-primary); font-weight: 600;">
+                        <input type="radio" name="delete_scope" value="admission" checked>
+                        <span>Delete Admission Profile Only</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; background: rgba(167, 139, 250, 0.1); border-radius: 12px; color: #8b5cf6; font-weight: 600;">
+                        <input type="radio" name="delete_scope" value="alumni">
+                        <span>Delete Alumni Record Only</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 12px; color: #ef4444; font-weight: 600;">
+                        <input type="radio" name="delete_scope" value="complete">
+                        <span>Delete Completely (Wipe Everything)</span>
+                    </label>
+                </div>
+            `;
+            // Update the form button to handle radio selection
+            const submitBtn = modal.querySelector('button[type="submit"]');
+            submitBtn.textContent = "Confirm Selection";
+            
+            // Override form submit to ensure delete_scope is sent correctly
+            // Actually the radio name is already 'delete_scope' and it's inside the form's sibling? 
+            // Wait, the radio is in warningDiv, which is NOT in the form. I'll move it or inject it.
+            
+            form.onsubmit = function(e) {
+                const checkedRadio = modal.querySelector('input[name="delete_scope"]:checked');
+                const selected = checkedRadio ? checkedRadio.value : 'admission';
+                let hiddenInput = form.querySelector('input[name="delete_scope"]');
+                if (!hiddenInput) {
+                    hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'delete_scope';
+                    form.appendChild(hiddenInput);
+                }
+                hiddenInput.value = selected;
+            };
+        } else {
+            // Standard single-service delete UI
+            modal.querySelector('h3').innerHTML = "<i class='bx bxs-error-circle'></i> Delete Student Profile?";
+            warningDiv.innerHTML = `
+                <strong>CRITICAL ACTION:</strong> This will permanently delete <b>${studentName}</b> from the database.
+                <br><br>
+                • All login credentials will be destroyed.<br>
+                • All seat assignments will be cleared.<br>
+                • This action <b>cannot</b> be undone.
+                <input type="hidden" name="delete_scope" value="complete">
+            `;
+        }
+
+        modal.style.display = 'block';
+        overlay.style.display = 'block';
+    }
+
+    if (window.history && window.history.replaceState) {
+        history.replaceState(null, null, window.location.href);
+    }
+</script>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

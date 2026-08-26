@@ -1,0 +1,81 @@
+# ==================================================
+# DOCKER BUILD IGNORE RULES FOR ABCD WEB
+# ==================================================
+
+# Git and Version Control
+.git/
+.github/
+.gitignore
+
+# Python Bytecode & Logs
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.log
+
+# Databases & Runtime Wal Files (Never build local DB into images)
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite3-journal
+db.sqlite3
+
+# Environment & Local Secrets
+.env
+.env.*
+!.env.example
+
+# Local Virtual Environments & Packages
+venv/
+.venv/
+env/
+ENV/
+node_modules/
+
+# Local Dev Binaries & Scripts
+node.exe
+acli.exe
+install.cmd
+install_tools.bat
+nodevars.bat
+corepack
+npm*
+npx*
+
+# Temporary Files, Diagnostics & Scratch
+scratch/
+check_tags.py
+register.py
+scan_*.py
+send_otp.py
+verify_otp.py
+test_script_*.py
+find_z.py
+fix_*.py
+debug_issues.txt
+diag_reminder*.txt
+emoji_lines.txt
+template_tags.txt
+tmp_*.txt
+
+# Design Mockups & Docs
+bugs/
+New folder/
+Seats/
+*.md
+docs/
+.docs/
+
+# Media Uploads (Should be mounted as volume or S3 bucket in production)
+media/
+student_photos/
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+.agent/
+.agents/
+.sixth/
+.DS_Store
+Thumbs.db

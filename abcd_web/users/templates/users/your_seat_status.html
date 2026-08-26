@@ -1,0 +1,4363 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Seat Status - ABCD Library</title>
+
+    <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='https://cdn.boxicons.com/fonts/brands/boxicons-brands.min.css' rel='stylesheet'>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="{% static 'css/seat-layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/seat-patterns-enhanced.css' %}">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(to top, #112a3b, #5683a1a6, #fff2de);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+
+        body.dark-theme {
+            background: linear-gradient(to top, #140570, #300448da, #17022c);
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 45px auto 30px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.18);
+            overflow: visible;
+            transition: background 0.3s ease;
+        }
+
+        body.dark-theme .container {
+            background: rgba(30, 20, 50, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+
+        /* --- HUB NAVIGATION (NAVBAR) --- */
+        .hub-navbar {
+            position: sticky;
+            top: 15px;
+            margin: 15px auto;
+            max-width: 1200px;
+            width: calc(100% - 40px);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 1001;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        body.dark-theme .hub-navbar {
+            background: rgba(30, 20, 50, 0.7);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .hub-nav-left, .hub-nav-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .hub-nav-right {
+            justify-content: flex-end;
+        }
+
+        .hub-nav-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        body.dark-theme .back-btn {
+            background: linear-gradient(135deg, #8e5196 0%, #4c4d9b 100%);
+            box-shadow: 0 4px 15px rgba(142, 81, 150, 0.3);
+        }
+
+        .hub-title {
+            font-family: 'Playball', cursive;
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        body.dark-theme .hub-title {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .content-body {
+            padding: 30px;
+        }
+
+        /* Hold Form Section */
+        .hold-section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #e1e8ed;
+        }
+
+        body.dark-theme .hold-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .hold-section h3 {
+            margin-bottom: 20px;
+            color: #667eea;
+            font-weight: 800;
+            font-size: 1.3rem;
+            text-transform: uppercase;
+        }
+
+        /* Expandable Form Logic */
+        .hold-expand-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hold-expand-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .hold-expand-btn i {
+            font-size: 1.5rem;
+            transition: transform 0.3s;
+        }
+
+        .hold-expand-btn.active i.chevron {
+            transform: rotate(180deg);
+        }
+
+        .expandable-container {
+            max-height: 0;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 0;
+            overflow: hidden;
+        }
+
+        .expandable-container.show {
+            max-height: 800px;
+            opacity: 1;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed rgba(102, 126, 234, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: #7b61ff;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #e1e8ed;
+            background: #fff;
+            font-size: 1.1rem;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        body.dark-theme .form-control {
+            background: rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .status-message {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.1rem;
+        }
+
+        .status-message.pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .status-message.active {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .btn-end-hold {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 15px;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .btn-end-hold:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+        }
+
+        /* Layout Reordering Styles */
+        .floor-heading {
+            margin: 0 0 20px 0;
+            padding-left: 15px;
+            border-left: 5px solid #667eea;
+            color: #333;
+            font-size: clamp(0.85rem, 2.2vw, 1.4rem);
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        body.dark-theme .floor-heading { color: #fff; }
+        
+        .floor-divider {
+            border: 0;
+            border-top: 2px dashed #e1e8ed;
+            margin: 20px 0;
+        }
+        
+        .floor-content {
+            background: #fff !important; /* Always white for visibility */
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+            min-height: 200px;
+            color: #333 !important; /* Always dark text */
+        }
+
+        /* Library Layout Section */
+        .layout-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        body.dark-theme .layout-header-row {
+            border-bottom-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .layout-header-left h3 {
+            margin: 0;
+            color: #333;
+            font-size: clamp(1rem, 2.5vw, 1.5rem);
+            font-weight: 800;
+        }
+
+        body.dark-theme .layout-header-left h3 {
+            color: #fff;
+        }
+
+        .seat-info-line {
+            margin: 5px 0;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+        body.dark-theme .seat-info-line {
+            color: #f5deb3;  /* wheat */
+        }
+        body.dark-theme .seat-info-line span {
+            color: #f5deb3 !important;
+        }
+
+        /* Hidden native select kept for JS compatibility */
+        #floorViewSelector { display: none; }
+
+        /* Custom floor dropdown */
+        .floor-custom-select {
+            position: relative;
+            display: inline-block;
+            min-width: 175px;
+            user-select: none;
+        }
+        .floor-custom-trigger {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 14px;
+            border-radius: 12px;
+            border: 1.5px solid rgba(118, 75, 162, 0.25);
+            background: #f8fafc;
+            color: #4a5568;
+            font-weight: 700;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .floor-custom-trigger:hover {
+            border-color: #764ba2;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(118, 75, 162, 0.18);
+        }
+        .floor-custom-select.open .floor-custom-trigger {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+        .floor-custom-trigger .fcs-chevron {
+            font-size: 1rem;
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+            color: #764ba2;
+        }
+        .floor-custom-select.open .fcs-chevron {
+            transform: rotate(180deg);
+        }
+        .floor-custom-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 100%;
+            background: #fff;
+            border-radius: 12px;
+            border: 1.5px solid rgba(118, 75, 162, 0.18);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.18);
+            overflow: hidden;
+            z-index: 500;
+            opacity: 0;
+            transform: translateY(-6px) scaleY(0.95);
+            transform-origin: top right;
+            transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+        .floor-custom-select.open .floor-custom-dropdown {
+            opacity: 1;
+            transform: translateY(0) scaleY(1);
+            pointer-events: auto;
+        }
+        .floor-custom-option {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 11px 16px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #4a5568;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .floor-custom-option:hover {
+            background: rgba(102, 126, 234, 0.08);
+            color: #667eea;
+        }
+        .floor-custom-option.selected {
+            background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.08));
+            color: #764ba2;
+        }
+        .floor-custom-option i { font-size: 1rem; }
+
+        /* Dark theme */
+        body.dark-theme .floor-custom-trigger {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.12);
+            color: #e2e8f0;
+        }
+        body.dark-theme .floor-custom-trigger:hover {
+            border-color: #ec4899;
+            box-shadow: 0 5px 14px rgba(236, 72, 153, 0.2);
+        }
+        body.dark-theme .floor-custom-select.open .floor-custom-trigger {
+            border-color: #ec4899;
+            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.18);
+        }
+        body.dark-theme .floor-custom-trigger .fcs-chevron { color: #a78bfa; }
+        body.dark-theme .floor-custom-dropdown {
+            background: #1e1035;
+            border-color: rgba(255,255,255,0.1);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.45);
+        }
+        body.dark-theme .floor-custom-option { color: #cbd5e1; }
+        body.dark-theme .floor-custom-option:hover {
+            background: rgba(236, 72, 153, 0.12);
+            color: #f9a8d4;
+        }
+        body.dark-theme .floor-custom-option.selected {
+            background: rgba(236, 72, 153, 0.18);
+            color: #f9a8d4;
+        }
+
+        /* --- SEAT BORDER BOX OPTIMIZATION --- */
+        .seat {
+            min-width: 92px !important;
+            min-height: 88px !important;
+            height: 88px !important;
+            padding: 8px 4px 4px !important;
+            box-sizing: border-box !important;
+        }
+        .shift-seat {
+            min-height: 88px !important;
+            height: 88px !important;
+        }
+        .seat:has(.vertical),
+        .seat.vertical {
+            min-width: 52px !important;
+            min-height: 110px !important;
+            height: 110px !important;
+            padding: 14px 4px 4px !important;
+        }
+
+        /* --- SEAT STATUS OVERRIDES (Available is Green, Occupied is Violet) --- */
+        /* Available Seats -> Green */
+        .seat.available {
+            border: 1px solid rgba(46, 204, 113, 0.3) !important;
+            background-color: transparent !important;
+        }
+        .seat.available .seat-icon-group {
+            color: #2ecc71 !important;
+        }
+        .seat.available .lamp-icon {
+            color: #2ecc71 !important;
+        }
+        .seat.available .seat-number {
+            background: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            color: white !important;
+        }
+        .seat.available .seat-label {
+            background: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            color: white !important;
+        }
+
+        .seat-morning-label.status-locked,
+        .seat-evening-label.status-locked {
+            background: #64748b !important;
+            border-color: #475569 !important;
+            color: #ffffff !important;
+        }
+
+        .seat-morning-label.status-available,
+        .seat-evening-label.status-available {
+            background: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            color: #ffffff !important;
+        }
+
+        .seat-half.shift-available {
+            background-color: #2ecc71 !important;
+        }
+
+        body.dark-theme .seat-morning-label.status-locked,
+        body.dark-theme .seat-evening-label.status-locked {
+            background: #374151 !important;
+            border-color: #6b7280 !important;
+            color: #d1d5db !important;
+        }
+
+        /* Locked seats border & label styling in Light & Dark themes */
+        .seat.locked,
+        .seat[data-locked="true"],
+        .seat.locked-morning,
+        .seat.locked-evening {
+            border: 1.5px solid #94a3b8 !important;
+        }
+
+        .seat.locked .seat-label,
+        .seat[data-locked="true"] .seat-label {
+            color: #475569 !important;
+            border-color: #94a3b8 !important;
+            background: #f1f5f9 !important;
+        }
+
+        body.dark-theme .seat.locked,
+        body.dark-theme .seat[data-locked="true"],
+        body.dark-theme .seat.locked-morning,
+        body.dark-theme .seat.locked-evening {
+            border: 1.5px solid #9ca3af !important;
+        }
+
+        body.dark-theme .seat.locked .seat-label,
+        body.dark-theme .seat[data-locked="true"] .seat-label {
+            color: #f3f4f6 !important;
+            border-color: #6b7280 !important;
+            background: #374151 !important;
+        }
+
+        /* Occupied Seats -> Distinct Violet (#7c3aed) */
+        .seat.occupied {
+            border-color: #7c3aed !important;
+            background-color: #ede9fe !important;
+        }
+        .seat.occupied:not(.on_hold):not(.hold-full) .seat-icon-group {
+            color: #7c3aed !important;
+        }
+        .seat.occupied:not(.on_hold):not(.hold-full) .lamp-icon {
+            color: #7c3aed !important;
+        }
+        .seat.occupied .seat-number {
+            background: #7c3aed !important;
+            border: 2px solid #6d28d9 !important;
+            color: white !important;
+        }
+        .seat.occupied .seat-label {
+            background: #7c3aed !important;
+            color: white !important;
+            border-color: #6d28d9 !important;
+        }
+
+        /* Seat Status Highlighting - Let seat-layout.css handle all colors */
+        /* Only override what's unique to the student view */
+
+        /* --- Rotating conic glow border animation for my-seat --- */
+        @property --seat-glow-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+        @keyframes seat-rotate-glow {
+            0%   { --seat-glow-angle: 0deg; }
+            100% { --seat-glow-angle: 360deg; }
+        }
+        @keyframes seat-breathe {
+            0%, 100% { box-shadow: 0 0 12px 2px rgba(99, 102, 241, 0.35), 0 0 25px 4px rgba(139, 92, 246, 0.15); }
+            50%      { box-shadow: 0 0 18px 5px rgba(99, 102, 241, 0.55), 0 0 35px 8px rgba(139, 92, 246, 0.25); }
+        }
+
+        /* My seat highlight — premium animated indigo/violet glow border */
+        .seat.my-seat {
+            border: 3px solid transparent !important;
+            background-image:
+                linear-gradient(var(--seat-bg, #eef2ff), var(--seat-bg, #eef2ff)),
+                conic-gradient(from var(--seat-glow-angle), #6366f1, #8b5cf6, #a78bfa, #c084fc, #8b5cf6, #6366f1) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+            animation: seat-rotate-glow 3s linear infinite, seat-breathe 2.5s ease-in-out infinite !important;
+            z-index: 10;
+            position: relative;
+            transform: scale(1.06);
+        }
+        .seat.my-seat .seat-icon-group {
+            color: #4f46e5 !important;
+        }
+        .seat.my-seat .lamp-icon,
+        .seat.my-seat i {
+            color: #4f46e5 !important;
+        }
+        .seat.my-seat .seat-number {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+            border-color: #4f46e5 !important;
+            color: #ffffff !important;
+        }
+        .seat.my-seat .seat-label,
+        .seat.my-seat .seat-morning-label,
+        .seat.my-seat .seat-evening-label {
+            border-color: #4f46e5 !important;
+        }
+        /* "You" labels get the premium indigo look */
+        .seat.my-seat .seat-label.you-label,
+        .seat.my-seat .seat-morning-label.you-label,
+        .seat.my-seat .seat-evening-label.you-label {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+            color: #ffffff !important;
+            border-color: #4f46e5 !important;
+        }
+
+        /* --- Theme status tokens for my-seat status coloring --- */
+        :root {
+            --seat-avail-bg: #d1fae5;
+            --seat-occ-bg: #f3e8ff;
+            --seat-hold-bg: #fef3c7;
+            --seat-label-bg: #ffffff;
+        }
+
+        /* --- Shift halves backgrounds when not the user's shift --- */
+        /* 1. Student's own shift: indigo background */
+        .seat.my-seat.shift-seat.my-shift-morning .seat-morning,
+        .seat.my-seat.shift-seat.my-shift-full .seat-morning {
+            background-color: var(--seat-bg, #eef2ff) !important;
+        }
+        .seat.my-seat.shift-seat.my-shift-evening .seat-evening,
+        .seat.my-seat.shift-seat.my-shift-full .seat-evening {
+            background-color: var(--seat-bg, #eef2ff) !important;
+        }
+
+        /* 2. Other shift is Available: GREEN background */
+        .seat.my-seat.shift-seat.my-shift-evening:not(.occupied-morning):not(.hold-morning) .seat-morning,
+        .seat.my-seat.shift-seat.my-shift-morning:not(.occupied-evening):not(.hold-evening) .seat-evening {
+            background-color: var(--seat-avail-bg) !important;
+        }
+        /* 3. Other shift is Occupied: VIOLET background */
+        .seat.my-seat.shift-seat.my-shift-evening.occupied-morning .seat-morning,
+        .seat.my-seat.shift-seat.my-shift-morning.occupied-evening .seat-evening {
+            background-color: var(--seat-occ-bg) !important;
+        }
+        /* 4. Other shift is Hold: AMBER background */
+        .seat.my-seat.shift-seat.my-shift-evening.hold-morning .seat-morning,
+        .seat.my-seat.shift-seat.my-shift-morning.hold-evening .seat-evening {
+            background-color: var(--seat-hold-bg) !important;
+        }
+
+        /* --- Other shift labels: white background with colored text and borders --- */
+        /* Morning Label - Available */
+        .seat.my-seat.shift-seat.my-shift-evening:not(.occupied-morning):not(.hold-morning) .seat-morning-label {
+            background: var(--seat-label-bg) !important;
+            color: #10b981 !important;
+            border: 1.5px solid #10b981 !important;
+        }
+        /* Evening Label - Available */
+        .seat.my-seat.shift-seat.my-shift-morning:not(.occupied-evening):not(.hold-evening) .seat-evening-label {
+            background: var(--seat-label-bg) !important;
+            color: #10b981 !important;
+            border: 1.5px solid #10b981 !important;
+        }
+
+        /* Morning Label - Occupied */
+        .seat.my-seat.shift-seat.my-shift-evening.occupied-morning .seat-morning-label {
+            background: var(--seat-label-bg) !important;
+            color: #8b5cf6 !important;
+            border: 1.5px solid #8b5cf6 !important;
+        }
+        /* Evening Label - Occupied */
+        .seat.my-seat.shift-seat.my-shift-morning.occupied-evening .seat-evening-label {
+            background: var(--seat-label-bg) !important;
+            color: #8b5cf6 !important;
+            border: 1.5px solid #8b5cf6 !important;
+        }
+
+        /* Morning Label - Hold */
+        .seat.my-seat.shift-seat.my-shift-evening.hold-morning .seat-morning-label {
+            background: var(--seat-label-bg) !important;
+            color: #f59e0b !important;
+            border: 1.5px solid #f59e0b !important;
+        }
+        /* Evening Label - Hold */
+        .seat.my-seat.shift-seat.my-shift-morning.hold-evening .seat-evening-label {
+            background: var(--seat-label-bg) !important;
+            color: #f59e0b !important;
+            border: 1.5px solid #f59e0b !important;
+        }
+
+        /* Other seats: read-only (no clicks in student dashboard) */
+        .student-view .seat {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        /* Wheel Picker Modals */
+        .abcd-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .abcd-modal-overlay.active {
+            display: flex;
+        }
+
+        .abcd-modal-container {
+            background: white;
+            border-radius: 24px;
+            width: 95%;
+            max-width: 420px;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+            overflow: hidden;
+            animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        body.dark-theme .abcd-modal-container {
+            background: #1e1e2d;
+            color: #fff;
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        body.dark-theme .modal-header {
+            border-bottom-color: #333;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #333;
+            text-transform: uppercase;
+        }
+
+        body.dark-theme .modal-header h3 {
+            color: #fff;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .wheel-picker-container {
+            display: flex;
+            height: 220px;
+            background: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+            user-select: none; /* Prevent text selection while scrolling */
+        }
+
+        /* Prevent masks from blocking mouse interaction */
+        .wheel-picker-container::before, .wheel-picker-container::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; height: 80px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .wheel-picker-container::before { top: 0; background: linear-gradient(to bottom, #f8f9fa, transparent); }
+        .wheel-picker-container::after { bottom: 0; background: linear-gradient(to top, #f8f9fa, transparent); }
+        
+        body.dark-theme .wheel-picker-container::before { background: linear-gradient(to bottom, #111, transparent); }
+        body.dark-theme .wheel-picker-container::after { background: linear-gradient(to top, #111, transparent); }
+
+        body.dark-theme .wheel-picker-container {
+            background: #111;
+            border-color: #333;
+        }
+
+        .wheel-col {
+            flex: 1;
+            height: 100%;
+            overflow-y: scroll;
+            scrollbar-width: none;
+            text-align: center;
+            scroll-snap-type: y mandatory;
+            padding: 85px 0;
+            border-right: 1px solid rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 5;
+            scroll-behavior: smooth;
+        }
+
+        .wheel-col:last-child { border-right: none; }
+
+        .wheel-col::-webkit-scrollbar {
+            display: none;
+        }
+
+        .wheel-item {
+            height: 50px;
+            line-height: 50px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #aaa;
+            scroll-snap-align: center;
+            scroll-snap-stop: always; /* Crucial: Prevents skipping items during fast scrolls */
+            transition: 0.2s;
+        }
+
+        .wheel-item.selected {
+            color: #667eea;
+            transform: scale(1.2);
+        }
+
+        body.dark-theme .wheel-item.selected {
+            color: #a29bfe;
+        }
+
+        .wheel-highlight {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            right: 10px;
+            height: 54px;
+            transform: translateY(-50%);
+            background: rgba(102, 126, 234, 0.1);
+            border-top: 1px solid #667eea;
+            border-bottom: 1px solid #667eea;
+            border-radius: 14px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .btn-submit-modal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 25px;
+            text-transform: uppercase;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .theme-toggle-fixed {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .hub-mobile-header {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 15px 20px;
+            margin: 0;
+            background: transparent;
+            box-sizing: border-box;
+        }
+
+        .hub-mobile-title {
+            font-family: 'Playball', cursive;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        body.dark-theme .hub-mobile-title {
+            background: linear-gradient(135deg, #f5deb3 0%, #e6be8a 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-link-mobile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .back-link-mobile:hover {
+            transform: scale(1.1);
+        }
+
+        body.dark-theme .back-link-mobile {
+            background: linear-gradient(135deg, #8e5196 0%, #4c4d9b 100%);
+            box-shadow: 0 4px 10px rgba(142, 81, 150, 0.3);
+        }
+
+        /* --- SEARCH BAR AND PULSE HIGH-LIGHT --- */
+        .hub-search-wrapper {
+            background: #fff;
+            border: 1.5px solid #eee;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            width: 45px;
+            height: 45px;
+            overflow: hidden;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .hub-search-wrapper.expanded {
+            width: 300px;
+            border-color: #764ba2;
+        }
+
+        .hub-search-wrapper input {
+            border: none;
+            outline: none;
+            width: 100%;
+            height: 100%;
+            padding-left: 20px;
+            padding-right: 45px;
+            font-size: 0.95rem;
+            background: transparent;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-weight: 500;
+        }
+
+        .hub-search-wrapper.expanded input {
+            opacity: 1;
+            transition: opacity 0.4s 0.1s;
+        }
+
+        body.dark-theme .hub-search-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-theme .hub-search-wrapper input {
+            color: #fff;
+        }
+
+        .hub-search-btn {
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.4rem;
+            width: 45px;
+            height: 45px;
+            position: absolute;
+            right: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s;
+        }
+
+        .hub-search-wrapper.expanded .hub-search-btn {
+            color: #764ba2;
+        }
+
+        body.dark-theme .hub-search-btn {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .hub-search-wrapper.expanded .hub-search-btn {
+            color: #f5deb3;
+        }
+
+        .hub-mobile-header.search-active .hub-mobile-title {
+            display: none !important;
+        }
+        .hub-mobile-header.search-active .hub-search-container-mobile {
+            flex: 1;
+            width: 100%;
+        }
+        .hub-mobile-header.search-active .hub-search-wrapper {
+            width: 100%;
+        }
+        .hub-mobile-header.search-active {
+            gap: 10px;
+        }
+
+        .seat.search-match {
+            animation: pulse-highlight 1.5s infinite;
+            z-index: 10;
+        }
+
+        .seat.active-match {
+            outline: 3px solid #f97316 !important;
+            outline-offset: 2px !important;
+            z-index: 12 !important;
+        }
+
+        @keyframes pulse-highlight {
+            0% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0.7); transform: scale(1); }
+            50% { box-shadow: 0 0 0 15px rgba(118, 75, 162, 0); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0); transform: scale(1); }
+        }
+
+        .search-nav-popup {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 6px 12px;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+
+        body.dark-theme .search-nav-popup {
+            background: #1e1b4b !important;
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .search-nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 0 2px;
+            display: none;
+            align-items: center;
+            color: #6366f1;
+            transition: transform 0.2s;
+        }
+        .search-nav-btn:hover {
+            transform: scale(1.15);
+        }
+        body.dark-theme .search-nav-btn {
+            color: #a78bfa;
+        }
+
+        /* --- SEARCH AUTOCOMPLETE DROPDOWN --- */
+        .search-autocomplete {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 1002;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        body.dark-theme .search-autocomplete {
+            background: #1e1b4b;
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #334155;
+            transition: background 0.2s, color 0.2s;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        body.dark-theme .autocomplete-item {
+            color: #cbd5e1;
+        }
+
+        .autocomplete-item:hover, .autocomplete-item.active {
+            background: #f1f5f9;
+            color: #6366f1;
+        }
+
+        body.dark-theme .autocomplete-item:hover, body.dark-theme .autocomplete-item.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: #a78bfa;
+        }
+
+        /* Align Column 2 and Column 3 closer on First Floor Layout on all screen widths */
+        #first-floor-layout .seat:nth-child(4n+2) {
+            position: relative;
+            left: clamp(5px, 2.5vw, 25px);
+        }
+        #first-floor-layout .seat:nth-child(4n+3) {
+            position: relative;
+            left: clamp(-25px, -2.5vw, -5px);
+        }
+
+        /* --- Media Queries --- */
+
+        @media (max-width: 1150px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 1050px) {
+            .hub-navbar .hub-nav-center {
+                display: none !important;
+            }
+            .hub-mobile-header {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 15px auto 10px;
+                width: 100%;
+                text-align: center;
+            }
+            .hub-mobile-title {
+                font-family: 'Playball', cursive;
+                font-size: 1.8rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                margin: 0;
+            }
+            body.dark-theme .hub-mobile-title {
+                background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .seat-icon-group {
+                font-size: 2.2rem !important;
+            }
+            .seat-icon-group.vertical {
+                font-size: 2.2rem !important;
+            }
+            .seat-icon-group.vertical .desk-lamp-wrapper {
+                font-size: 2.2rem !important;
+            }
+            .seat-icon-group.vertical.chair-above .bxs-chair,
+            .seat-icon-group.vertical.chair-below .bxs-chair {
+                font-size: 2.5rem !important;
+            }
+            .seat-icon-group .lamp-icon,
+            .seat-icon-group.vertical .lamp-icon {
+                font-size: 0.95rem !important;
+            }
+            .seat {
+                min-width: 68px !important;
+                min-height: 85px !important;
+                padding: 6px 3px 3px !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 44px !important;
+                min-height: 88px !important;
+            }
+
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.75rem !important;
+            }
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 15px 15px 30px !important;
+            }
+
+            .hub-navbar {
+                margin: 0 0 15px 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+            }
+
+            .container {
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+                border-radius: 16px;
+            }
+            .theme-toggle-fixed {
+                width: 50px;
+                height: 50px;
+                bottom: 15px;
+                right: 15px;
+            }
+
+            .back-btn span {
+                display: none;
+            }
+
+            .back-btn {
+                padding: 0;
+                border-radius: 12px;
+                width: 45px;
+                height: 35px;
+                justify-content: center;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px 10px 20px !important;
+            }
+
+            .hub-navbar {
+                padding: 0 15px !important;
+                margin: 0 0 15px 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+                height: 60px !important;
+                top: 10px !important;
+            }
+            .hub-search-wrapper.expanded {
+                width: 250px !important;
+            }
+            .content-body {
+                padding: 15px;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(65px, 1fr));
+                gap: 10px;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(75px, 1fr));
+                gap: 12px;
+            }
+            .seat-icon-group {
+                font-size: 1.7rem !important;
+            }
+            .seat-icon-group .lamp-icon {
+                font-size: 0.9rem !important;
+                top: -8px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 12px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -12px !important;
+            }
+            .seat {
+                min-width: 54px !important;
+                max-width: 76px !important;
+                margin: 0 auto !important;
+                min-height: 85px !important;
+                padding: 5px 2px 2px !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 36px !important;
+                min-height: 70px !important;
+            }
+            /* DO NOT HIDE SEAT LABELS: Override display:none !important from base system */
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.7rem !important;
+                padding: 1px 4px !important;
+                max-width: 90% !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            .seat-number {
+                width: 22px !important;
+                height: 22px !important;
+                font-size: 0.8rem !important;
+                top: -10px !important;
+                line-height: 22px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.35rem !important;
+            }
+            .hub-mobile-title {
+                font-size: 1.4rem;
+            }
+            .theme-toggle-fixed {
+                width: 40px;
+                height: 40px;
+                font-size: 1.4rem;
+            }
+            /* Compact hold button on small screens */
+            .hold-expand-btn {
+                padding: 11px 15px !important;
+                font-size: 0.95rem !important;
+                border-radius: 10px !important;
+            }
+            .hold-expand-btn i {
+                font-size: 1.2rem !important;
+            }
+        }
+
+        @media (max-width: 450px) {
+            /* Reset column 2/3 inward offsets — at narrow widths they cause overlap */
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 8px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -8px !important;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(46px, 1fr)) !important;
+                gap: 8px !important;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(56px, 1fr)) !important;
+                gap: 10px !important;
+            }
+            .seat-icon-group {
+                font-size: 1.25rem !important;
+            }
+            .seat-icon-group .lamp-icon,
+            .seat-icon-group.vertical .lamp-icon {
+                font-size: 0.6rem !important;
+                top: -6px !important;
+            }
+            .seat {
+                min-width: 42px !important;
+                max-width: 66px !important;
+                margin: 0 auto !important;
+                min-height: 75px !important;
+                padding: 4px 1px 1px !important;
+                box-sizing: border-box !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 30px !important;
+                min-height: 75px !important;
+            }
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.6rem !important;
+                padding: 1px 2px !important;
+            }
+            .seat-number {
+                width: 22px !important;
+                height: 22px !important;
+                font-size: 0.8rem !important;
+                top: -10px !important;
+                line-height: 22px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.28rem !important;
+            }
+            .abcd-modal-container {
+                max-width: 92% !important;
+                border-radius: 16px !important;
+            }
+            .modal-body {
+                padding: 16px !important;
+            }
+            .modal-header {
+                padding: 12px 16px !important;
+            }
+            .btn-submit-modal {
+                padding: 12px !important;
+                font-size: 0.95rem !important;
+                margin-top: 15px !important;
+                border-radius: 10px !important;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .floor-content {
+                padding: 5px !important;
+                 border-radius: 15px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .theme-toggle-fixed {
+                width: 35px;
+                height: 35px;
+                font-size: 1.2rem;
+            }
+            .floor-content {
+                padding: 2px !important;
+                 border-radius: 10px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .hub-search-wrapper.expanded {
+                width: 200px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 5px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -5px !important;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(40px, 1fr)) !important;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(48px, 1fr)) !important;
+            }
+            .seat-icon-group {
+                font-size: 1.1rem !important;
+            }
+            .seat {
+                min-width: 38px !important;
+                max-width: 56px !important;
+                margin: 0 auto !important;
+                min-height: 60px !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 26px !important;
+                min-height: 50px !important;
+            }
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                font-size: 0.46rem !important;
+                padding: 1px 1px !important;
+            }
+            .seat-number {
+                width: 17px !important;
+                height: 17px !important;
+                font-size: 0.65rem !important;
+                top: -8px !important;
+                line-height: 17px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.22rem !important;
+            }
+            .hub-mobile-title {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 340px) {
+            #first-floor-layout {
+                gap: 8px !important;
+            }
+            #ground-floor-layout {
+                gap: 10px !important;
+            }
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                font-size: 0.44rem !important;
+                padding: 1px 2px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.2rem !important;
+            }
+        }
+
+        @media (max-width: 330px) {
+            #first-floor-layout {
+                gap: 8px !important;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .content-body {
+                padding: 10px 4px;
+            }
+        }
+
+        /* --- SEARCH BAR AND PULSE HIGH-LIGHT --- */
+        .hub-search-wrapper {
+            background: #fff;
+            border: 1.5px solid #eee;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            width: 45px;
+            height: 45px;
+            overflow: hidden;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .hub-search-wrapper.expanded {
+            width: 250px;
+            border-color: #764ba2;
+        }
+
+        .hub-search-wrapper input {
+            border: none;
+            outline: none;
+            width: 100%;
+            height: 100%;
+            padding-left: 20px;
+            padding-right: 45px;
+            font-size: 0.95rem;
+            background: transparent;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-weight: 500;
+        }
+
+        .hub-search-wrapper.expanded input {
+            opacity: 1;
+            transition: opacity 0.4s 0.1s;
+        }
+
+        body.dark-theme .hub-search-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-theme .hub-search-wrapper input {
+            color: #fff;
+        }
+
+        .hub-search-btn {
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.4rem;
+            width: 45px;
+            height: 45px;
+            position: absolute;
+            right: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s;
+        }
+
+        .hub-search-wrapper.expanded .hub-search-btn {
+            color: #764ba2;
+        }
+
+        body.dark-theme .hub-search-btn {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .hub-search-wrapper.expanded .hub-search-btn {
+            color: #f5deb3;
+        }
+
+        .hub-mobile-header.search-active .hub-mobile-title {
+            display: none !important;
+        }
+        .hub-mobile-header.search-active .hub-search-wrapper {
+            flex: 1;
+            width: auto;
+        }
+        .hub-mobile-header.search-active {
+            gap: 10px;
+        }
+
+        .seat.search-match {
+            animation: pulse-highlight 1.5s infinite;
+            z-index: 10;
+        }
+
+        @keyframes pulse-highlight {
+            0% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0.7); transform: scale(1); }
+            50% { box-shadow: 0 0 0 15px rgba(118, 75, 162, 0); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0); transform: scale(1); }
+        }
+
+        /* Prevent duplicate label displaying on shift-seats in split shift states */
+        .seat.occupied-morning .seat-label,
+        .seat.occupied-evening .seat-label,
+        .seat.hold-morning .seat-label,
+        .seat.hold-evening .seat-label,
+        .seat.hold-partial .seat-label,
+        .seat.hold-morning-temp-morning .seat-label,
+        .seat.hold-evening-temp-evening .seat-label {
+            display: none !important;
+        }
+
+        /* Allow Ground Floor seats 47 and 20 labels to write complete text without truncation */
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-label,
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-morning-label,
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-evening-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-morning-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-evening-label {
+            max-width: none !important;
+            width: auto !important;
+            white-space: nowrap !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'partials/_master_loader.html' %}
+    <!-- Unified Premium Header -->
+    <nav class="hub-navbar">
+        <div class="hub-nav-left">
+            <a href="{% url 'users:student_dashboard' %}" class="back-btn">
+                <i class='bx bx-left-arrow-alt'></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="hub-nav-center">
+            <div class="hub-title">Your Seat Status</div>
+        </div>
+
+        <div class="hub-nav-right" style="position: relative;">
+            <div class="hub-search-wrapper" id="hubSearchWrapper">
+                <input type="text" id="seatSearchInput" placeholder="Search seat...">
+                <button class="hub-search-btn" id="hubSearchBtn">
+                    <i class='bx bx-search'></i>
+                </button>
+            </div>
+            <!-- Autocomplete list dropdown -->
+            <div id="searchAutocomplete" class="search-autocomplete"></div>
+            <!-- Floating Search Nav Popup -->
+            <div id="seatSearchNav" class="search-nav-popup">
+                <span id="seatSearchCount" style="font-weight: 600;">0 / 0</span>
+                <button id="seatSearchPrev" class="search-nav-btn" type="button" aria-label="Previous result"><i class='bx bx-chevron-up'></i></button>
+                <button id="seatSearchNext" class="search-nav-btn" type="button" aria-label="Next result"><i class='bx bx-chevron-down'></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Secondary Header for smaller screens -->
+    <div class="hub-mobile-header">
+        <h1 class="hub-mobile-title">Your Seat Status</h1>
+    </div>
+
+    <div class="container">
+
+
+
+        <main class="content-body">
+            <!-- Seat Hold Request Section -->
+            <section class="hold-section">
+                <h3>Your Seat Hold & Change Requests</h3>
+
+                {% if pending_switch %}
+                <div class="status-message pending" style="background: linear-gradient(135deg, #f0f4ff 0%, #dbe4ff 100%); color: #3b5998; border: 1px solid #764ba2; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class='bx bx-time-five' style="font-size: 2rem; color: #764ba2;"></i>
+                        <div>
+                            Your request to switch to seat <strong>{% if pending_switch.target_seat.floor == 'Ground Floor' %}G{% else %}F{% endif %}-{{ pending_switch.target_seat.seat_number }}</strong> ({{ pending_switch.target_shift|capfirst }}{% if pending_switch.is_temporary %} - Temporary{% endif %}) is pending.
+                        </div>
+                    </div>
+                    <button class="btn-end-hold" onclick="cancelPendingSwitch()" style="background: #e74c3c; margin: 0; white-space: nowrap; font-weight: 700; border-radius: 8px; border: none; padding: 8px 16px; color: white; cursor: pointer;">Cancel Request</button>
+                </div>
+                {% endif %}
+
+                {% if hold_req and hold_req.status == 'pending' %}
+                <div class="status-message pending">
+                    <i class='bx bx-time-five' style="font-size: 2rem;"></i>
+                    <div>
+                        Your request to hold your seat <strong>{{ hold_req.seat.seat_number }}</strong> is pending with teacher to accept and your seat will be on hold by <strong>{{ hold_req.start_date|date:"d M Y" }}</strong> for <strong>{{ days_of_hold }} days</strong>
+                        <br>
+                        <button class="btn-end-hold" onclick="cancelPendingHold()">Cancel Request</button>
+                    </div>
+                </div>
+                {% elif hold_req and hold_req.status == 'approved' and not hold_req.cancel_requested %}
+                <div class="status-message" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); color: #155724; border: 1px solid #b1dfbb;">
+                    <i class='bx bx-check-shield' style="font-size: 2rem;"></i>
+                    <div>
+                        Your request to hold your seat <strong>{{ hold_req.seat.seat_number }}</strong> is accepted by teacher and your seat will be on hold in <strong>{{ remaining_days }} days</strong> by <strong>{{ hold_req.start_date|date:"d M Y" }}</strong> for <strong>{{ days_of_hold }} days</strong>
+                        <br>
+                        <button class="btn-end-hold" onclick="requestCancelApproved()">Cancel Hold</button>
+                    </div>
+                </div>
+                {% elif hold_req and hold_req.status == 'approved' and hold_req.cancel_requested %}
+                <div class="status-message" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); color: #856404; border: 1px solid #ffc107;">
+                    <i class='bx bx-loader-circle bx-spin' style="font-size: 2rem;"></i>
+                    <div>
+                        Your cancellation request for seat <strong>{{ hold_req.seat.seat_number }}</strong> hold is under review by teacher.
+                    </div>
+                </div>
+                {% elif scheduled_hold and not hold_req %}
+                {# Teacher-scheduled future hold — no student request exists #}
+                <div class="status-message" style="background: linear-gradient(135deg, #e8f4fd 0%, #d0eaff 100%); color: #1565c0; border: 2px solid #64b5f6; position: relative; overflow: hidden; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(33, 150, 243, 0.15);">
+                    <!-- premium decorative accent -->
+                    <div style="position:absolute;top:0;left:0;width:8px;height:100%;background:linear-gradient(180deg,#2196f3,#1565c0);"></div>
+                    
+                    <div style="display: flex; align-items: flex-start; gap: 20px;">
+                        <div style="background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                            <i class='bx bx-calendar-event' style="font-size: 2.5rem; color: #1565c0;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 1.25rem; font-weight: 800; color: #0d47a1; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Upcoming Hold Scheduled
+                            </h4>
+                            <p style="margin: 0; font-size: 1.1rem; line-height: 1.5; color: #1565c0;">
+                                Your seat <strong>{{ seat.seat_number }}</strong> will go on hold from 
+                                <span style="background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 6px; font-weight: 700;">{{ scheduled_hold.hold_start_date|date:"d M Y" }}</span> 
+                                to 
+                                <span style="background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 6px; font-weight: 700;">{{ scheduled_hold.hold_end_date|date:"d M Y" }}</span>.
+                            </p>
+                            <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                                <span style="font-size: 0.9rem; color: #1976d2; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                                    <i class='bx bx-info-circle'></i> Automatically activates on start date
+                                </span>
+                                <button class="btn-action btn-warning" style="background: #e67e22; color: white; border: none; padding: 10px 20px; border-radius: 30px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);" onclick="requestCancelScheduledHold()">
+                                    <i class='bx bx-envelope'></i> Request Cancellation
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% elif seat.hold_status == 'active' %}
+                <div class="status-message active">
+                    <i class='bx bx-check-shield' style="font-size: 2rem;"></i>
+                    <div>
+                        <strong>Currently on Hold:</strong> From {{ seat.hold_start_date|date:"d M Y" }} 
+                        to {{ seat.hold_end_date|date:"d M Y" }}.
+                        <br>
+                        <button class="btn-end-hold" onclick="requestEndHold()">Request End Hold Early</button>
+                    </div>
+                </div>
+                {% else %}
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button class="hold-expand-btn" id="toggleHoldBtn" style="flex: 1; min-width: 200px; margin: 0;">
+                        <i class='bx bxs-lock-alt'></i>
+                        <span>Put the seat on Hold</span>
+                        <i class='bx bx-chevron-down chevron' style="margin-left: auto;"></i>
+                    </button>
+                    <button class="hold-expand-btn btn-switch-seat" id="toggleSwitchSeatBtn" style="flex: 1; min-width: 200px; margin: 0; background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);">
+                        <i class='bx bx-transfer'></i>
+                        <span>Request TO Switch Seat</span>
+                    </button>
+                </div>
+
+                <div class="expandable-container" id="holdFormContainer">
+                    <form id="holdForm" autocomplete="off">
+                        <div class="form-group">
+                            <label>Select Start Date</label>
+                            <input type="text" id="start_date_display" class="form-control" 
+                                placeholder="Click to choose start date" readonly>
+                            <input type="hidden" id="start_date" name="start_date" required>
+                            <small style="color: #666; margin-top: 5px; display: block;">Note: Hold must start at least 3 days from today.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Duration of Hold</label>
+                            <input type="text" id="duration_display" class="form-control" 
+                                placeholder="Click to choose duration" readonly>
+                            <input type="hidden" id="id_duration" name="duration" required>
+                            <small style="color: #666; margin-top: 5px; display: block;">Range: 15 days to 3 months (90 days).</small>
+                        </div>
+
+                        <button type="submit" class="hold-expand-btn" id="holdSubmitBtn" 
+                            style="margin-top: 10px; background: #2ecc71;">
+                            <i class='bx bx-paper-plane'></i> Submit Hold Request
+                        </button>
+                        <p id="hold-form-message" style="margin-top: 15px; font-weight: 700; text-align: center;"></p>
+                    </form>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- Library Layout Section -->
+            <section class="layout-section">
+                <div class="layout-header-row">
+                    <div class="layout-header-left">
+                        <h3>Live Library Status</h3>
+                        <p class="seat-info-line">
+                            Your Seat: <span style="color: #764ba2;">{{ seat.seat_number }}</span> | 
+                            Floor: <span style="color: #764ba2;">{{ seat.floor }}</span>
+                        </p>
+                    </div>
+                    <div class="layout-header-right">
+                        <label style="font-weight: 700; margin-right: 8px;">View:</label>
+                        <!-- Hidden native select kept for JS compatibility -->
+                        <select id="floorViewSelector" style="display:none;" data-no-enhance="true">
+                            {% if seat.floor == 'Ground Floor' %}
+                            <option value="Ground Floor" selected>Ground Floor</option>
+                            <option value="1st Floor">1st Floor</option>
+                            {% else %}
+                            <option value="1st Floor" selected>1st Floor</option>
+                            <option value="Ground Floor">Ground Floor</option>
+                            {% endif %}
+                        </select>
+                        <!-- Custom dropdown UI -->
+                        <div class="floor-custom-select" id="floorCustomSelect">
+                            <div class="floor-custom-trigger" id="floorCustomTrigger">
+                                <span id="floorCustomLabel">
+                                    {% if seat.floor == 'Ground Floor' %}Ground Floor (your floor){% else %}1st Floor (your floor){% endif %}
+                                </span>
+                                <i class="bx bx-chevron-down fcs-chevron"></i>
+                            </div>
+                            <div class="floor-custom-dropdown" id="floorCustomDropdown">
+                                {% if seat.floor == 'Ground Floor' %}
+                                <div class="floor-custom-option selected" data-value="Ground Floor">
+                                    <i class="bx bx-building-house"></i> Ground Floor (your floor)
+                                </div>
+                                <div class="floor-custom-option" data-value="1st Floor">
+                                    <i class="bx bx-up-arrow-alt"></i> 1st Floor
+                                </div>
+                                {% else %}
+                                <div class="floor-custom-option selected" data-value="1st Floor">
+                                    <i class="bx bx-up-arrow-alt"></i> 1st Floor (your floor)
+                                </div>
+                                <div class="floor-custom-option" data-value="Ground Floor">
+                                    <i class="bx bx-building-house"></i> Ground Floor
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="layout-containers-wrapper" class="student-view" style="display: flex; flex-direction: column; gap: 40px;">
+                    <div id="top-floor-section">
+                        <h4 class="floor-heading" id="top-floor-heading"></h4>
+                        <div class="floor-content" id="top-floor-content"></div>
+                    </div>
+                    <hr class="floor-divider">
+                    <div id="bottom-floor-section">
+                        <h4 class="floor-heading" id="bottom-floor-heading"></h4>
+                        <div class="floor-content" id="bottom-floor-content"></div>
+                    </div>
+                </div>
+
+                <!-- Hidden storage for the included grids -->
+                <div id="hidden-grids-source" style="display: none;">
+                    {% include 'users/_seat_grids.html' %}
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-fixed" onclick="toggleTheme()">
+        <i class='bx bx-moon' id="themeIcon"></i>
+    </div>
+
+    <!-- Modal for Start Date Selection -->
+    <div id="startDateModal" class="abcd-modal-overlay">
+        <div class="abcd-modal-container">
+            <div class="modal-header">
+                <h3>Select Start Date</h3>
+                <button type="button" class="modal-close" onclick="closeModal('startDateModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="wheel-picker-container">
+                    <div class="wheel-col" id="wheel-year"></div>
+                    <div class="wheel-col" id="wheel-month"></div>
+                    <div class="wheel-col" id="wheel-day"></div>
+                    <div class="wheel-highlight"></div>
+                </div>
+                <button type="button" class="btn-submit-modal" onclick="confirmStartDate()">SET START DATE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Duration Selection -->
+    <div id="durationModal" class="abcd-modal-overlay">
+        <div class="abcd-modal-container">
+            <div class="modal-header">
+                <h3>Select Hold Duration</h3>
+                <button type="button" class="modal-close" onclick="closeModal('durationModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="text-align: center; margin-bottom: 20px; font-weight: 800; color: #667eea; text-transform: uppercase;">
+                    Months & Days
+                </div>
+                <div class="wheel-picker-container">
+                    <div class="wheel-col" id="wheel-dur-months"></div>
+                    <div class="wheel-col" id="wheel-dur-days"></div>
+                    <div class="wheel-highlight"></div>
+                </div>
+                <div id="durationCalcHint" style="text-align: center; margin-top: 20px; font-size: 1.1rem; font-weight: 700; color: #555;">
+                    Total: 0 days
+                </div>
+                <button type="button" class="btn-submit-modal" onclick="confirmDuration()">SET DURATION</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CONFIRM/ALERT POPUP MODAL ================= -->
+    <div id="statusModalOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.65);display:none;z-index:9998;backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);"></div>
+    <div id="statusModal" class="status-modal-card" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.4);width:min(440px,90vw);max-height:90vh;overflow-y:auto;display:none;z-index:9999;animation:slideInPopup 0.3s ease;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid rgba(0,0,0,0.08);background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);color:white;border-radius:16px 16px 0 0;" id="statusModalHeader">
+            <h3 id="statusModalTitle" style="margin:0;font-size:1.25rem;font-weight:700;color:#ffffff;">Alert</h3>
+            <button type="button" id="statusModalCloseBtn" style="background:none;border:none;font-size:1.8rem;cursor:pointer;color:white;opacity:0.8;">&times;</button>
+        </div>
+        <div style="padding:22px;" id="statusModalContent"></div>
+        <div style="padding:15px 22px;display:flex;gap:12px;justify-content:flex-end;border-radius:0 0 16px 16px;" id="statusModalFooter">
+            <button type="button" id="statusModalCancelBtn" style="padding:10px 22px;font-weight:600;border:none;border-radius:8px;cursor:pointer;font-size:0.95rem;min-width:90px;">Cancel</button>
+            <button type="button" id="statusModalConfirmBtn" style="padding:10px 22px;font-weight:600;border:none;border-radius:8px;cursor:pointer;font-size:0.95rem;min-width:90px;">OK</button>
+        </div>
+    </div>
+
+    <!-- ================= SEAT SWITCH POPUPS ================= -->
+    <div id="switchSelectionBanner" class="switch-selection-banner" style="display: none;">
+        <i class="bx bx-info-circle" style="font-size: 1.4rem;"></i>
+        <span>Select a seat/shift from layout to request a switch</span>
+    </div>
+
+    <div id="switchShiftModal" class="styled-modal-overlay" style="display: none;">
+        <div class="styled-modal-box">
+            <h3 id="switchModalTitle">Select Shift for Switch</h3>
+            <p id="switchModalMessage"></p>
+            <div id="switchModalButtons" class="modal-btn-container"></div>
+            <button id="switchModalClose" class="modal-close-btn">Cancel</button>
+        </div>
+    </div>
+
+    <div id="switchRequestToastGroup" class="bubble-toast-group" style="display: none;">
+        <button id="switchRequestToast" type="button" class="bubble-toast-submit">
+            <i class='bx bx-check-circle animated-check-icon'></i>
+            <span id="switchRequestToastLabel">Request Change: Seat F-25 - FULL</span>
+        </button>
+        <button id="switchRequestCancel" type="button" class="bubble-toast-cancel">
+            <i class='bx bx-x-circle animated-cancel-icon'></i>
+            <span>Cancel</span>
+        </button>
+    </div>
+
+    <style>
+        @keyframes slideInPopup { from { opacity:0; transform:translate(-50%,-48%); } to { opacity:1; transform:translate(-50%,-50%); } }
+        
+        /* STATUS MODAL LIGHT THEME */
+        #statusModal {
+            background: #ffffff !important;
+            color: #1e293b !important;
+            border: 1px solid #e2e8f0;
+        }
+        #statusModalHeader {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        }
+        #statusModalTitle {
+            color: #ffffff !important;
+        }
+        #statusModalContent {
+            color: #1e293b !important;
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+        #statusModalContent p, #statusModalContent div {
+            color: #1e293b !important;
+        }
+        #statusModalFooter {
+            background: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+        }
+        #statusModalCancelBtn {
+            background: #e2e8f0 !important;
+            color: #334155 !important;
+        }
+        #statusModalCancelBtn:hover {
+            background: #cbd5e1 !important;
+        }
+        #statusModalConfirmBtn {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        /* STATUS MODAL DARK THEME */
+        body.dark-theme #statusModal {
+            background: #1f1b2e !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            color: #f1f5f9 !important;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8) !important;
+        }
+        body.dark-theme #statusModalHeader {
+            background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        body.dark-theme #statusModalTitle {
+            color: #ffffff !important;
+        }
+        body.dark-theme #statusModalContent {
+            color: #f1f5f9 !important;
+        }
+        body.dark-theme #statusModalContent p, body.dark-theme #statusModalContent div {
+            color: #f1f5f9 !important;
+        }
+        body.dark-theme #statusModalFooter {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        body.dark-theme #statusModalCancelBtn {
+            background: rgba(255, 255, 255, 0.12) !important;
+            color: #cbd5e1 !important;
+        }
+        body.dark-theme #statusModalCancelBtn:hover {
+            background: rgba(255, 255, 255, 0.22) !important;
+        }
+
+        /* Selection Mode Styles */
+        .switch-selection-mode #layout-containers-wrapper .seat {
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            transition: all 0.3s ease;
+        }
+        .switch-selection-mode #layout-containers-wrapper .seat:not(.available):not(.selectable-hold):not(.selectable-shift):not(.selected):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full):not(.temp-selected) {
+            opacity: 0.45;
+            filter: grayscale(20%);
+        }
+        .switch-selection-mode #layout-containers-wrapper .seat.available:not(.selected):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full):not(.temp-selected),
+        .switch-selection-mode #layout-containers-wrapper .seat.selectable-hold:not(.selected):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full):not(.temp-selected),
+        .switch-selection-mode #layout-containers-wrapper .seat.selectable-shift:not(.selected):not(.selected-morning):not(.selected-evening):not(.selected-full):not(.selected-temp):not(.selected-temp-morning):not(.selected-temp-evening):not(.selected-temp-full):not(.temp-selected) {
+            opacity: 1 !important;
+            box-shadow: 0 0 14px rgba(142, 45, 226, 0.7);
+            border: 2px solid #8e2de2 !important;
+            transform: scale(1.04);
+        }
+        
+        /* Active Selected Seat Highlights (Admission Form Style) */
+        .switch-selection-mode #layout-containers-wrapper .seat.selected,
+        .switch-selection-mode #layout-containers-wrapper .seat.selected-morning,
+        .switch-selection-mode #layout-containers-wrapper .seat.selected-evening,
+        .switch-selection-mode #layout-containers-wrapper .seat.selected-full,
+        .switch-selection-mode #layout-containers-wrapper .seat.selected-temp,
+        .switch-selection-mode #layout-containers-wrapper .seat.selected-temp-morning,
+        .switch-selection-mode #layout-containers-wrapper .seat.selected-temp-evening,
+        .switch-selection-mode #layout-containers-wrapper .seat.selected-temp-full,
+        .switch-selection-mode #layout-containers-wrapper .seat.temp-selected {
+            box-shadow: 0 0 24px rgba(37, 99, 235, 0.95) !important;
+            transform: scale(1.09) !important;
+            z-index: 100 !important;
+            opacity: 1 !important;
+        }
+
+        /* Shift selected states (Normal Blue) */
+        #layout-containers-wrapper .shift-seat.selected-morning {
+            border: 2px solid #2563eb !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-morning .seat-morning {
+            background-color: #93c5fd !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-evening {
+            border: 2px solid #2563eb !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-evening .seat-evening {
+            background-color: #2563eb !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-full {
+            border: 2px solid #2563eb !important;
+            background: #ebf8ff !important;
+            background-color: #ebf8ff !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-full .seat-morning,
+        #layout-containers-wrapper .shift-seat.selected-full .seat-evening {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-full .seat-icon-group,
+        #layout-containers-wrapper .shift-seat.selected-full .lamp-icon {
+            color: #2563eb !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-full .seat-number,
+        #layout-containers-wrapper .shift-seat.selected-full .seat-label {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        /* Shift selected-temp states (Pinkish/Orange) */
+        #layout-containers-wrapper .shift-seat.selected-temp-morning {
+            border: 2px solid #e84393 !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-temp-morning .seat-morning {
+            background-color: #f9a8d4 !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-temp-evening {
+            border: 2px solid #e84393 !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-temp-evening .seat-evening {
+            background-color: #ff9abe !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-temp-full {
+            border: 2px solid #e84393 !important;
+            background-color: #fff0f5 !important;
+        }
+        #layout-containers-wrapper .shift-seat.selected-temp-full .seat-morning,
+        #layout-containers-wrapper .shift-seat.selected-temp-full .seat-evening {
+            background-color: #f9a8d4 !important;
+        }
+
+        /* Standard seat selected states */
+        #layout-containers-wrapper .seat.selected {
+            border: 2px solid #2563eb !important;
+            background: #ebf8ff !important;
+        }
+        #layout-containers-wrapper .seat.selected .seat-icon-group,
+        #layout-containers-wrapper .seat.selected .lamp-icon {
+            color: #2563eb !important;
+        }
+        #layout-containers-wrapper .seat.selected .seat-number,
+        #layout-containers-wrapper .seat.selected .seat-label {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #1d4ed8 !important;
+        }
+
+        #layout-containers-wrapper .seat.selected-temp {
+            border: 2px solid #e84393 !important;
+            background: #fff0f5 !important;
+        }
+        #layout-containers-wrapper .seat.selected-temp .seat-icon-group,
+        #layout-containers-wrapper .seat.selected-temp .lamp-icon {
+            color: #e84393 !important;
+        }
+        #layout-containers-wrapper .seat.selected-temp .seat-number,
+        #layout-containers-wrapper .seat.selected-temp .seat-label {
+            background: #e84393 !important;
+            color: #ffffff !important;
+            border-color: #d63031 !important;
+        }
+
+        /* Label overrides for active selections */
+        #layout-containers-wrapper .shift-seat.selected-morning .seat-morning-label,
+        #layout-containers-wrapper .shift-seat.selected-evening .seat-evening-label,
+        #layout-containers-wrapper .shift-seat.selected-full .seat-morning-label,
+        #layout-containers-wrapper .shift-seat.selected-full .seat-evening-label {
+            background: #2563eb !important;
+            color: #ffffff !important;
+            border-color: #1d4ed8 !important;
+            font-weight: 700 !important;
+        }
+
+        #layout-containers-wrapper .shift-seat.selected-temp-morning .seat-morning-label,
+        #layout-containers-wrapper .shift-seat.selected-temp-evening .seat-evening-label,
+        #layout-containers-wrapper .shift-seat.selected-temp-full .seat-morning-label,
+        #layout-containers-wrapper .shift-seat.selected-temp-full .seat-evening-label {
+            background: #e84393 !important;
+            color: #ffffff !important;
+            border-color: #d63031 !important;
+            font-weight: 700 !important;
+        }
+
+        /* Modal and Banner Styles */
+        .switch-selection-banner {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(74, 0, 224, 0.4);
+            z-index: 9999;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translate(-50%, -20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        /* Premium Floating Action Bar UI & Animations */
+        .bubble-toast-group {
+            position: fixed;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.6),
+                        0 0 30px rgba(16, 185, 129, 0.25);
+            z-index: 10000;
+            animation: floatPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .bubble-toast-submit {
+            position: relative;
+            background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
+            color: #ffffff;
+            padding: 13px 26px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.98rem;
+            letter-spacing: 0.02em;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            outline: none;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Animated shimmer sweep overlay */
+        .bubble-toast-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                transparent 100%
+            );
+            transform: skewX(-25deg);
+            animation: sweepShimmer 3.2s infinite ease-in-out;
+        }
+
+        .bubble-toast-submit:hover {
+            transform: translateY(-3px) scale(1.03);
+            background: linear-gradient(135deg, #34d399 0%, #10b981 60%, #059669 100%);
+            box-shadow: 0 14px 32px rgba(16, 185, 129, 0.65), 0 0 15px rgba(52, 211, 153, 0.5);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .bubble-toast-submit:active {
+            transform: translateY(1px) scale(0.97);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+        }
+
+        .animated-check-icon {
+            font-size: 1.45rem;
+            display: inline-block;
+            animation: iconPulseGlow 2s infinite ease-in-out;
+        }
+
+        .bubble-toast-cancel {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            padding: 13px 20px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .bubble-toast-cancel:hover {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 12px 26px rgba(239, 68, 68, 0.6);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .bubble-toast-cancel:active {
+            transform: translateY(1px) scale(0.96);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+        }
+
+        .animated-cancel-icon {
+            font-size: 1.35rem;
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .bubble-toast-cancel:hover .animated-cancel-icon {
+            transform: rotate(90deg);
+        }
+
+        /* KEYFRAME ANIMATIONS */
+        @keyframes floatPopIn {
+            0% { transform: translate(-50%, 90px) scale(0.8); opacity: 0; }
+            70% { transform: translate(-50%, -6px) scale(1.03); opacity: 1; }
+            100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+        }
+
+        @keyframes sweepShimmer {
+            0% { left: -150%; }
+            20% { left: 150%; }
+            100% { left: 150%; }
+        }
+
+        @keyframes iconPulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8)); }
+            50% { transform: scale(1.22); filter: drop-shadow(0 0 10px rgba(52, 211, 153, 1)); }
+        }
+        
+        .styled-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .styled-modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+            text-align: center;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        body.dark-theme .styled-modal-box {
+            background: #1f1b2e;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #f1f5f9;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.75);
+        }
+        body.dark-theme .styled-modal-box h3 {
+            color: #f1f5f9;
+        }
+        body.dark-theme .styled-modal-box p {
+            color: #cbd5e1;
+        }
+        body.dark-theme .modal-btn-container button.btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e2e8f0;
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        body.dark-theme .modal-close-btn {
+            color: #94a3b8;
+        }
+        body.dark-theme .modal-close-btn:hover {
+            color: #f1f5f9;
+        }
+        
+        .styled-modal-box h3 {
+            margin-bottom: 12px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .styled-modal-box p {
+            color: #666;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .modal-btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .modal-btn-container button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .modal-btn-container button.btn-primary {
+            background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);
+            color: white;
+        }
+        
+        .modal-btn-container button.btn-secondary {
+            background: #f1f3f5;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+        
+        .modal-close-btn {
+            background: transparent;
+            color: #868e96;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 8px 16px;
+            font-size: 0.95rem;
+        }
+    </style>
+
+    <script>
+        const CSRF_TOKEN = '{{ csrf_token }}';
+        const API_URL = "{% url 'users:api_request_seat_hold' %}";
+        const SEAT_STATUS_API_URL = "{% url 'users:api_get_seat_status' %}";
+        const CURRENT_FLOOR = "{{ seat.floor }}";
+        const MIN_HOLD_DATE = new Date('{{ min_hold_date }}');
+        const CURRENT_USER_ID = Number('{{ request.user.id|default:"0" }}');
+        const PENDING_SWITCH_SEAT = "{{ pending_switch.target_seat.seat_number|default:'' }}" || null;
+        const PENDING_SWITCH_FLOOR = "{{ pending_switch.target_seat.floor|default:'' }}" || null;
+
+        var isSwitchSelectionActive = false;
+        var selectedSwitchSeat = null;
+
+        // --- Theme Persistence ---
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            const isDark = document.body.classList.contains('dark-theme');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+        }
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || savedTheme === 'dark-theme') {
+            document.body.classList.add('dark-theme');
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.className = 'bx bx-sun';
+        }
+
+        window.showStyledAlert = window.showStyledAlert || function(title, message) {
+            if (typeof showStyledPopup === 'function') {
+                showStyledPopup({ title: title, message: message, type: 'info' });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        };
+
+        // --- WHEEL PICKER CORE ---
+        function initWheel(containerId, items, defaultValue) {
+            const col = document.getElementById(containerId);
+            if (!col) return;
+            
+            const currentItems = Array.from(col.children).map(c => c.textContent);
+            const itemsChanged = JSON.stringify(currentItems) !== JSON.stringify(items);
+            
+            if (itemsChanged) {
+                // Save current selection before wipe
+                const oldVal = getWheelValue(containerId);
+                col.innerHTML = '';
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'wheel-item';
+                    div.textContent = item;
+                    col.appendChild(div);
+                });
+                // Try to restore selection or use default
+                const newIndex = items.indexOf(oldVal) !== -1 ? items.indexOf(oldVal) : items.indexOf(defaultValue.toString());
+                if (newIndex !== -1) col.scrollTop = newIndex * 40;
+            }
+
+            // High performance scroll listener
+            col.onscroll = () => {
+                const index = Math.round(col.scrollTop / 50);
+                const children = col.children;
+                for(let i=0; i<children.length; i++) {
+                    children[i].classList.toggle('selected', i === index);
+                }
+                
+                // Debounced sync to prevent wobbly behavior
+                if (containerId === 'wheel-year' || containerId === 'wheel-month') {
+                    clearTimeout(col.syncTimeout);
+                    col.syncTimeout = setTimeout(syncStartDateWheels, 150);
+                }
+                if (containerId === 'wheel-dur-months') {
+                    clearTimeout(col.syncTimeout);
+                    col.syncTimeout = setTimeout(syncDurationWheels, 150);
+                }
+                if (containerId.startsWith('wheel-dur')) updateDurationHint();
+            };
+
+            // Set initial position if first render
+            if (itemsChanged || col.scrollTop === 0) {
+                const targetVal = defaultValue ? defaultValue.toString() : items[0];
+                const targetIndex = items.indexOf(targetVal);
+                if (targetIndex !== -1) col.scrollTop = targetIndex * 50;
+            }
+        }
+
+        function getWheelValue(containerId) {
+            const col = document.getElementById(containerId);
+            if(!col) return '';
+            const index = Math.round(col.scrollTop / 50);
+            return col.children[index]?.textContent || '';
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+
+        // --- START DATE LOGIC ---
+        function syncStartDateWheels() {
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() + 3);
+            const minYear = minDate.getFullYear(), minMonth = minDate.getMonth(), minDay = minDate.getDate();
+            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+            const currY = parseInt(getWheelValue('wheel-year')) || minYear;
+            const currMStr = getWheelValue('wheel-month') || monthNames[minMonth];
+            const currM = monthNames.indexOf(currMStr);
+            const currD = parseInt(getWheelValue('wheel-day')) || minDay;
+
+            // Update Months based on Year
+            const availableMonths = (currY === minYear) ? monthNames.slice(minMonth) : monthNames;
+            initWheel('wheel-month', availableMonths, currMStr);
+
+            // Update Days based on Month
+            const activeM = monthNames.indexOf(getWheelValue('wheel-month'));
+            const lastDay = new Date(currY, activeM + 1, 0).getDate();
+            let startDay = (currY === minYear && activeM === minMonth) ? minDay : 1;
+            const availableDays = [];
+            for(let i=startDay; i<=lastDay; i++) availableDays.push(i.toString().padStart(2,'0'));
+            initWheel('wheel-day', availableDays, currD.toString().padStart(2,'0'));
+        }
+
+        function openStartDatePicker() {
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() + 3);
+            const minYear = minDate.getFullYear();
+            
+            const years = [];
+            for(let i=minYear; i<=minYear+5; i++) years.push(i.toString());
+            
+            initWheel('wheel-year', years, minYear);
+            syncStartDateWheels();
+            openModal('startDateModal');
+        }
+
+        async function confirmStartDate() {
+            const y = getWheelValue('wheel-year'), mStr = getWheelValue('wheel-month'), d = getWheelValue('wheel-day');
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const m = (months.indexOf(mStr)+1).toString().padStart(2,'0');
+            const selected = new Date(`${y}-${m}-${d}`);
+            if (selected < MIN_HOLD_DATE) { 
+                await window.showStyledAlert('Invalid Date', `Hold must start on or after <b>${MIN_HOLD_DATE.toDateString()}</b>`); 
+                return; 
+            }
+            document.getElementById('start_date_display').value = `${d} ${mStr} ${y}`;
+            document.getElementById('start_date').value = `${y}-${m}-${d}`;
+            closeModal('startDateModal');
+        }
+
+        // --- DURATION LOGIC ---
+        function syncDurationWheels() {
+            const mVal = parseInt(getWheelValue('wheel-dur-months')) || 0;
+            const dVal = getWheelValue('wheel-dur-days');
+
+            let availableDays = [];
+            let defaultDay = dVal;
+
+            if (mVal === 3) {
+                availableDays = ["0 Days"];
+                defaultDay = "0 Days";
+            } else if (mVal === 0) {
+                for(let i=15; i<=30; i++) availableDays.push(i.toString() + (i===1 ? ' Day' : ' Days'));
+                if (parseInt(dVal) < 15) defaultDay = "15 Days";
+            } else {
+                for(let i=0; i<=30; i++) availableDays.push(i.toString() + (i===1 ? ' Day' : ' Days'));
+            }
+            initWheel('wheel-dur-days', availableDays, defaultDay);
+        }
+
+        function openDurationPicker() {
+            const months = Array.from({length:4}, (_,i)=>i.toString() + (i===1 ? ' Month' : ' Months'));
+            initWheel('wheel-dur-months', months, '0 Months');
+            syncDurationWheels();
+            openModal('durationModal');
+            updateDurationHint();
+        }
+
+        function updateDurationHint() {
+            const mVal = parseInt(getWheelValue('wheel-dur-months')), dVal = parseInt(getWheelValue('wheel-dur-days'));
+            document.getElementById('durationCalcHint').textContent = `Total: ${(mVal * 30) + dVal} days`;
+        }
+
+        async function confirmDuration() {
+            const mVal = parseInt(getWheelValue('wheel-dur-months')), dVal = parseInt(getWheelValue('wheel-dur-days'));
+            const total = (mVal * 30) + dVal;
+            if (total < 15 || total > 90) { 
+                await window.showStyledAlert('Invalid Duration', "Hold duration must be between <b>15 and 90 days</b>."); 
+                return; 
+            }
+            let text = (mVal > 0 ? `${mVal} Month${mVal > 1 ? 's' : ''} ` : "") + (dVal > 0 ? `${dVal} Day${dVal > 1 ? 's' : ''}` : "");
+            document.getElementById('duration_display').value = text.trim();
+            document.getElementById('id_duration').value = text.trim();
+            closeModal('durationModal');
+        }
+
+        // --- INTERFACE LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleBtn = document.getElementById('toggleHoldBtn'), container = document.getElementById('holdFormContainer');
+            if (toggleBtn) toggleBtn.onclick = () => { toggleBtn.classList.toggle('active'); container.classList.toggle('show'); };
+            document.getElementById('start_date_display')?.addEventListener('click', openStartDatePicker);
+            document.getElementById('duration_display')?.addEventListener('click', openDurationPicker);
+
+            document.getElementById('holdForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('holdSubmitBtn'), msg = document.getElementById('hold-form-message');
+                btn.disabled = true; btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Processing...";
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+                        body: JSON.stringify({ start_date: document.getElementById('start_date').value, duration: document.getElementById('id_duration').value })
+                    });
+                    const result = await res.json();
+                    if(res.ok) { msg.style.color = '#2ecc71'; msg.innerHTML = "✅ Success! Request sent."; setTimeout(() => location.reload(), 2000); }
+                    else throw new Error(result.message);
+                } catch(err) { 
+                    msg.style.color = '#e74c3c'; 
+                    msg.textContent = err.message; 
+                    btn.disabled = false; 
+                    btn.innerHTML = "<i class='bx bx-paper-plane'></i> Submit Hold Request";
+                    await window.showStyledAlert('Request Failed', err.message);
+                }
+            });
+        });
+
+        // --- Styled Popup Logic ---
+        const _overlay = document.getElementById('statusModalOverlay');
+        const _modal = document.getElementById('statusModal');
+        const _title = document.getElementById('statusModalTitle');
+        const _content = document.getElementById('statusModalContent');
+        const _closeBtn = document.getElementById('statusModalCloseBtn');
+        const _cancelBtn = document.getElementById('statusModalCancelBtn');
+        const _confirmBtn = document.getElementById('statusModalConfirmBtn');
+
+        // Helper to reset status modal state
+        function closeStatusModal() {
+            _overlay.style.display = 'none';
+            _modal.style.display = 'none';
+            _title.style.color = '';
+            if (typeof window.setButtonLoading === 'function' && _confirmBtn) {
+                window.setButtonLoading(_confirmBtn, false);
+            }
+            const modalHeader = _modal.firstElementChild;
+            if (modalHeader) {
+                modalHeader.style.background = '';
+            }
+        }
+
+        window.showStyledAlert = function(title, message) {
+            return new Promise((resolve) => {
+                closeStatusModal();
+                _title.textContent = title || 'Alert';
+                _content.innerHTML = `<div style="padding:10px;line-height:1.5;">${message}</div>`;
+                _cancelBtn.style.display = 'none';
+                _confirmBtn.textContent = 'OK';
+
+                const modalHeader = _modal.firstElementChild;
+                const isErrorOrWarning = title.toLowerCase().includes('error') || 
+                                         title.toLowerCase().includes('fail') || 
+                                         title.toLowerCase().includes('warning') || 
+                                         title.toLowerCase().includes('limit');
+                const isSuccess = title.toLowerCase().includes('success') || 
+                                  title.toLowerCase().includes('ok') || 
+                                  title.toLowerCase().includes('done');
+
+                if (isSuccess) {
+                    _confirmBtn.style.background = '#27ae60';
+                    _confirmBtn.style.color = '#ffffff';
+                    _title.style.color = '#ffffff';
+                    if (modalHeader) {
+                        modalHeader.style.background = 'linear-gradient(135deg, #27ae60 0%, #2ecc71 100%)';
+                    }
+                } else if (isErrorOrWarning) {
+                    _confirmBtn.style.background = '#e74c3c';
+                    _confirmBtn.style.color = '#ffffff';
+                    _title.style.color = '#ffffff';
+                    if (modalHeader) {
+                        modalHeader.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                    }
+                } else {
+                    _confirmBtn.style.background = 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)';
+                    _confirmBtn.style.color = 'white';
+                    _title.style.color = '';
+                    if (modalHeader) {
+                        modalHeader.style.background = '';
+                    }
+                }
+
+                const close = () => {
+                    closeStatusModal();
+                    resolve();
+                };
+                _confirmBtn.onclick = close;
+                _closeBtn.onclick = close;
+                _overlay.onclick = close;
+                _overlay.style.display='block'; _modal.style.display='block';
+            });
+        };
+
+        window.showStyledConfirm = function(title, message, isDelete) {
+            return new Promise((resolve) => {
+                closeStatusModal();
+                _title.textContent = title || 'Confirm';
+                _content.innerHTML = `<div style="padding:10px;line-height:1.5;">${message}</div>`;
+                _cancelBtn.style.display = 'inline-block';
+
+                const isDeleteAction = isDelete || 
+                                       title.toLowerCase().includes('delete') || 
+                                       title.toLowerCase().includes('reject') || 
+                                       title.toLowerCase().includes('remove') ||
+                                       title.toLowerCase().includes('clear');
+
+                _confirmBtn.textContent = isDeleteAction ? 'Yes, Delete' : 'Yes';
+
+                const modalHeader = _modal.firstElementChild;
+
+                if (isDeleteAction) {
+                    _confirmBtn.style.background = '#e74c3c';
+                    _confirmBtn.style.color = 'white';
+                    _title.style.color = '#ffffff';
+                    if (modalHeader) {
+                        modalHeader.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                    }
+                } else {
+                    _confirmBtn.style.background = 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)';
+                    _confirmBtn.style.color = 'white';
+                    _title.style.color = '';
+                    if (modalHeader) {
+                        modalHeader.style.background = '';
+                    }
+                }
+
+                const onConfirm = () => {
+                    if (typeof window.setButtonLoading === 'function') {
+                        window.setButtonLoading(_confirmBtn, true, isDeleteAction ? 'Deleting...' : 'Processing...');
+                    }
+                    resolve(true);
+                };
+                const onCancel = () => {
+                    closeStatusModal();
+                    resolve(false);
+                };
+                _confirmBtn.onclick = onConfirm;
+                _cancelBtn.onclick = onCancel;
+                _closeBtn.onclick = onCancel;
+                _overlay.onclick = onCancel;
+                _overlay.style.display='block'; _modal.style.display='block';
+            });
+        };
+
+        async function cancelPendingHold() {
+            if(await window.showStyledConfirm('Cancel Hold Request', 'Are you sure you want to <b>cancel</b> your pending hold request? This will delete the request immediately.', true)) {
+                handleHoldAction('cancel_pending');
+            }
+        }
+
+        async function requestCancelApproved() {
+            if(await window.showStyledConfirm('Cancel Approved Hold', 'Are you sure you want to cancel your approved hold? A cancellation request will be sent to the teacher for review.')) {
+                handleHoldAction('cancel_approved');
+            }
+        }
+
+        async function requestEndHold() {
+            if(await window.showStyledConfirm('End Hold Early', 'Are you sure you want to request to <b>end your hold early</b>? The teacher will review this request.')) {
+                handleHoldAction('request_end');
+            }
+        }
+
+        async function requestCancelScheduledHold() {
+            if(await window.showStyledConfirm(
+                'Request Hold Cancellation',
+                'Send a cancellation request to your teacher for the <b>scheduled upcoming hold</b>? The teacher will review and remove it if approved.',
+                false
+            )) {
+                handleHoldAction('cancel_scheduled_hold');
+            }
+        }
+
+        async function handleHoldAction(action) {
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+                    body: JSON.stringify({ action: action })
+                });
+                const result = await res.json();
+                await window.showStyledAlert(res.ok ? 'Success' : 'Error', result.message);
+                if(res.ok) location.reload();
+            } catch(e) {
+                await window.showStyledAlert('Error', 'An unexpected error occurred while processing your request.');
+            }
+        }
+
+        // --- GRID LAYOUT LOGIC ---
+        const floorSelector = document.getElementById('floorViewSelector');
+
+        function getGroundWrapper() {
+            return document.getElementById('ground-floor-wrapper');
+        }
+        function getFirstWrapper() {
+            return document.getElementById('first-floor-wrapper');
+        }
+
+        function initFloorOrder() {
+            // Initial setup based on user's floor
+            const myFloor = CURRENT_FLOOR || 'Ground Floor';
+            updateFloorDisplay(myFloor);
+            if (floorSelector) floorSelector.value = myFloor;
+        }
+
+        function updateFloorDisplay(selectedTopFloor) {
+            const topContent = document.getElementById('top-floor-content');
+            const bottomContent = document.getElementById('bottom-floor-content');
+            const topHeading = document.getElementById('top-floor-heading');
+            const bottomHeading = document.getElementById('bottom-floor-heading');
+            const groundWrapper = getGroundWrapper();
+            const firstWrapper = getFirstWrapper();
+
+            // Ensure wrappers are visible (they are display:none in _seat_grids)
+            if(groundWrapper) groundWrapper.style.display = 'block';
+            if(firstWrapper) firstWrapper.style.display = 'block';
+
+            if (selectedTopFloor === 'Ground Floor') {
+                if(topHeading) topHeading.textContent = "Ground Floor Library Seat Layout";
+                if(bottomHeading) bottomHeading.textContent = "1st Floor Library Seat Layout";
+                if(groundWrapper && topContent) topContent.appendChild(groundWrapper);
+                if(firstWrapper && bottomContent) bottomContent.appendChild(firstWrapper);
+            } else {
+                if(topHeading) topHeading.textContent = "1st Floor Library Seat Layout";
+                if(bottomHeading) bottomHeading.textContent = "Ground Floor Library Seat Layout";
+                if(firstWrapper && topContent) topContent.appendChild(firstWrapper);
+                if(groundWrapper && bottomContent) bottomContent.appendChild(groundWrapper);
+            }
+            
+            // Refresh grid data immediately
+            refreshGrids();
+        }
+
+        async function refreshGrids() {
+            const groundWrapper = getGroundWrapper();
+            const firstWrapper = getFirstWrapper();
+            await Promise.all([
+                loadFloorData('Ground Floor', groundWrapper), 
+                loadFloorData('1st Floor', firstWrapper)
+            ]);
+        }
+
+        async function loadFloorData(floor, wrapper) {
+            const targetWrapper = wrapper || (floor === 'Ground Floor' ? getGroundWrapper() : getFirstWrapper());
+            if(!targetWrapper) return;
+            try {
+                const res = await fetch(`${SEAT_STATUS_API_URL}?floor=${encodeURIComponent(floor)}`);
+                const data = await res.json();
+                if (data && Array.isArray(data.seats)) {
+                    renderSeatsInWrapper(targetWrapper, data.seats);
+                }
+            } catch(e) { console.error("Grid load error:", e); }
+        }
+
+        function renderSeatsInWrapper(wrapper, seats) {
+            if (!wrapper || !Array.isArray(seats)) return;
+            
+            seats.forEach(seat => {
+                const rawNum = String(seat.seat_number);
+                const cleanNum = rawNum.replace('G-', '').replace('F-', '').trim();
+                const seatEl = wrapper.querySelector(`.seat[data-seat-id="${rawNum}"]`) ||
+                               wrapper.querySelector(`.seat[data-seat-id="${cleanNum}"]`);
+                if (!seatEl) return;
+
+                // Store full seat data
+                seatEl.dataset.info = JSON.stringify(seat);
+
+                // --- RESET: Remove all status classes, keep structural classes ---
+                const isShift = seat.is_shift_enabled;
+                // Preserve data-seat-id and structural stuff, nuke status classes
+                seatEl.classList.remove(
+                    'available', 'occupied', 'on_hold', 'on-hold',
+                    'locked', 'locked-morning', 'locked-evening',
+                    'occupied-full', 'occupied-morning', 'occupied-evening',
+                    'hold-full', 'hold-morning', 'hold-evening',
+                    'partial', 'shift-partial', 'shift-both-partial',
+                    'hold-partial', 'pending-temp', 'diagonal-hold-partial',
+                    'hold-morning-temp-morning', 'hold-evening-temp-evening',
+                    'my-seat', 'other-seat', 'selectable-hold', 'selectable-shift',
+                    'my-shift-morning', 'my-shift-evening', 'my-shift-full',
+                    'temp-selected', 'selected', 'selected-temp',
+                    'selected-morning', 'selected-evening', 'selected-full',
+                    'selected-temp-morning', 'selected-temp-evening', 'selected-temp-full'
+                );
+                delete seatEl.dataset.locked;
+                // Ensure shift-seat class matches the data
+                if (isShift && !seatEl.classList.contains('shift-seat')) {
+                    seatEl.classList.add('shift-seat');
+                }
+
+                // Reset half backgrounds (they exist in HTML template already)
+                const morningHalf = seatEl.querySelector('.seat-morning');
+                const eveningHalf = seatEl.querySelector('.seat-evening');
+                if (morningHalf) { morningHalf.style.backgroundColor = ''; morningHalf.classList.remove('locked', 'shift-available'); delete morningHalf.dataset.locked; }
+                if (eveningHalf) { eveningHalf.style.backgroundColor = ''; eveningHalf.classList.remove('locked', 'shift-available'); delete eveningHalf.dataset.locked; }
+
+                // Remove old dynamic labels
+                seatEl.querySelectorAll('.seat-morning-label, .seat-evening-label').forEach(l => l.remove());
+                
+                const labelEl = seatEl.querySelector('.seat-label');
+                if (labelEl) {
+                    labelEl.style.display = '';
+                    labelEl.textContent = 'Available';
+                }
+
+                // Check ownership from API (user_shift is only present for the student's own seat)
+                const isMine = seat.user_shift !== undefined;
+
+                // =====================================================
+                // SHIFT-ENABLED SEATS (Ground Floor #40-53)
+                // Mirrors admission-seat-selector.js logic exactly
+                if (isShift) {
+                    const lockedShiftsList = (seat.locked_shifts || '').split(',').filter(Boolean);
+                    const isFullyLocked = seat.is_locked || lockedShiftsList.includes('full');
+
+                    // Only show locked status when in switch selection mode
+                    // In normal view, locked-available seats appear as 'Available'
+                    if (isSwitchSelectionActive) {
+                        if (isFullyLocked) {
+                            seatEl.classList.add('locked');
+                            seatEl.dataset.locked = 'true';
+                            if (morningHalf) morningHalf.classList.add('locked');
+                            if (eveningHalf) eveningHalf.classList.add('locked');
+                            if (labelEl) labelEl.textContent = '🔒 Locked';
+                        } else {
+                            if (lockedShiftsList.includes('morning') && morningHalf) {
+                                morningHalf.classList.add('locked');
+                                morningHalf.dataset.locked = 'true';
+                                seatEl.classList.add('locked-morning');
+                            }
+                            if (lockedShiftsList.includes('evening') && eveningHalf) {
+                                eveningHalf.classList.add('locked');
+                                eveningHalf.dataset.locked = 'true';
+                                seatEl.classList.add('locked-evening');
+                            }
+                        }
+                    }
+
+                    // ---- OCCUPIED (with awareness of temporary allotments) ----
+                    const morningTaken = seat.morning_taken;
+                    const eveningTaken = seat.evening_taken;
+                    const fullDayTaken = seat.full_day_taken;
+                    const morningTemp = seat.morning_temp_allotted;
+                    const eveningTemp = seat.evening_temp_allotted;
+
+                    // --- FULL DAY TAKEN ---
+                    if (fullDayTaken) {
+                        if (seat.full_day_hold) {
+                            seatEl.classList.add('on_hold');
+                            const days = seat.full_day_hold_remaining_days || 0;
+                            const holdText = (days > 0) ? `Hold(${days})` : 'Hold';
+                            if (labelEl) labelEl.textContent = holdText;
+                        } else {
+                            seatEl.classList.add('occupied-full');
+                            if (labelEl) {
+                                labelEl.textContent = isMine ? 'You' : 'Occupied(F)';
+                            }
+                        }
+                    }
+                    // --- BOTH SHIFTS TAKEN ---
+                    else if (morningTaken && eveningTaken) {
+                        if (seat.morning_hold) {
+                            seatEl.classList.add('hold-morning');
+                        } else {
+                            seatEl.classList.add('occupied-morning');
+                        }
+                        if (seat.evening_hold) {
+                            seatEl.classList.add('hold-evening');
+                        } else {
+                            seatEl.classList.add('occupied-evening');
+                        }
+
+                        if (labelEl) labelEl.style.display = 'none';
+
+                        const mLabel = document.createElement('span');
+                        mLabel.className = 'seat-morning-label';
+                        if (seat.morning_hold) {
+                            const mDays = seat.morning_hold_remaining_days;
+                            mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                        } else {
+                            mLabel.textContent = (isMine && (seat.user_shift === 'morning' || seat.user_shift === 'full')) ? 'You' : 'Occupied(M)';
+                        }
+                        seatEl.appendChild(mLabel);
+
+                        const eLabel = document.createElement('span');
+                        eLabel.className = 'seat-evening-label';
+                        if (seat.evening_hold) {
+                            const eDays = seat.evening_hold_remaining_days;
+                            eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                        } else {
+                            eLabel.textContent = (isMine && (seat.user_shift === 'evening' || seat.user_shift === 'full')) ? 'You' : 'Occupied(E)';
+                        }
+                        seatEl.appendChild(eLabel);
+                    }
+                    // --- ONLY MORNING TAKEN ---
+                    else if (morningTaken) {
+                        if (seat.morning_hold) {
+                            seatEl.classList.add('hold-morning');
+                        } else {
+                            seatEl.classList.add('occupied-morning');
+                        }
+
+                        if (labelEl) labelEl.style.display = 'none';
+
+                        const mLabel = document.createElement('span');
+                        mLabel.className = 'seat-morning-label';
+                        if (seat.morning_hold) {
+                            const mDays = seat.morning_hold_remaining_days;
+                            mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                        } else {
+                            mLabel.textContent = (isMine && (seat.user_shift === 'morning' || seat.user_shift === 'full')) ? 'You' : 'Occupied(M)';
+                        }
+                        seatEl.appendChild(mLabel);
+
+                        const eLabel = document.createElement('span');
+                        eLabel.className = 'seat-evening-label';
+                        if (seat.evening_hold) {
+                            seatEl.classList.add('hold-evening');
+                            const eDays = seat.evening_hold_remaining_days;
+                            eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                        } else {
+                            const isELocked = isSwitchSelectionActive && lockedShiftsList.includes('evening');
+                            eLabel.className = 'seat-evening-label ' + (isELocked ? 'status-locked' : 'status-available');
+                            eLabel.textContent = isELocked ? '🔒 Locked' : 'Available';
+                            if (!isELocked && eveningHalf) {
+                                eveningHalf.classList.add('shift-available');
+                            }
+                        }
+                        seatEl.appendChild(eLabel);
+                    }
+                    // --- ONLY EVENING TAKEN ---
+                    else if (eveningTaken) {
+                        if (seat.evening_hold) {
+                            seatEl.classList.add('hold-evening');
+                        } else {
+                            seatEl.classList.add('occupied-evening');
+                        }
+
+                        if (labelEl) labelEl.style.display = 'none';
+
+                        const mLabel = document.createElement('span');
+                        mLabel.className = 'seat-morning-label';
+                        if (seat.morning_hold) {
+                            seatEl.classList.add('hold-morning');
+                            const mDays = seat.morning_hold_remaining_days;
+                            mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                        } else {
+                            const isMLocked = isSwitchSelectionActive && lockedShiftsList.includes('morning');
+                            mLabel.className = 'seat-morning-label ' + (isMLocked ? 'status-locked' : 'status-available');
+                            mLabel.textContent = isMLocked ? '🔒 Locked' : 'Available';
+                            if (!isMLocked && morningHalf) {
+                                morningHalf.classList.add('shift-available');
+                            }
+                        }
+                        seatEl.appendChild(mLabel);
+
+                        const eLabel = document.createElement('span');
+                        eLabel.className = 'seat-evening-label';
+                        if (seat.evening_hold) {
+                            const eDays = seat.evening_hold_remaining_days;
+                            eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                        } else {
+                            eLabel.textContent = (isMine && (seat.user_shift === 'evening' || seat.user_shift === 'full')) ? 'You' : 'Occupied(E)';
+                        }
+                        seatEl.appendChild(eLabel);
+                    }
+                    // --- HOLD-ONLY (no shifts taken) ---
+                    else if (seat.morning_hold || seat.evening_hold || seat.full_day_hold) {
+                        if (seat.morning_hold && seat.evening_hold) {
+                            seatEl.classList.add('hold-morning', 'hold-evening');
+                            if (labelEl) labelEl.style.display = 'none';
+
+                            const mLabel = document.createElement('span');
+                            mLabel.className = 'seat-morning-label';
+                            const mDays = seat.morning_hold_remaining_days;
+                            mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                            seatEl.appendChild(mLabel);
+
+                            const eLabel = document.createElement('span');
+                            eLabel.className = 'seat-evening-label';
+                            const eDays = seat.evening_hold_remaining_days;
+                            eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                            seatEl.appendChild(eLabel);
+                        } else if (seat.full_day_hold) {
+                            seatEl.classList.add('hold-full');
+                            const days = seat.full_day_hold_remaining_days || 0;
+                            if (labelEl) labelEl.textContent = (days > 0) ? `Hold(${days})` : 'Hold';
+                        } else if (seat.morning_hold) {
+                            seatEl.classList.add('hold-morning');
+                            if (labelEl) labelEl.style.display = 'none';
+
+                            const mLabel = document.createElement('span');
+                            mLabel.className = 'seat-morning-label';
+                            const days = seat.morning_hold_remaining_days;
+                            mLabel.textContent = (days && days > 0) ? `Hold M(${days})` : 'Hold M';
+                            seatEl.appendChild(mLabel);
+
+                            const eLabel = document.createElement('span');
+                            eLabel.className = 'seat-evening-label';
+                            eLabel.textContent = 'Available';
+                            seatEl.appendChild(eLabel);
+                        } else if (seat.evening_hold) {
+                            seatEl.classList.add('hold-evening');
+                            if (labelEl) labelEl.style.display = 'none';
+
+                            const mLabel = document.createElement('span');
+                            mLabel.className = 'seat-morning-label';
+                            mLabel.textContent = 'Available';
+                            seatEl.appendChild(mLabel);
+
+                            const eLabel = document.createElement('span');
+                            eLabel.className = 'seat-evening-label';
+                            const days = seat.evening_hold_remaining_days;
+                            eLabel.textContent = (days && days > 0) ? `Hold E(${days})` : 'Hold E';
+                            seatEl.appendChild(eLabel);
+                        }
+                    }
+                    // --- BOTH SHIFTS FREE ---
+                    else {
+                        const isMLocked = isSwitchSelectionActive && (lockedShiftsList.includes('morning') || isFullyLocked);
+                        const isELocked = isSwitchSelectionActive && (lockedShiftsList.includes('evening') || isFullyLocked);
+
+                        if (isSwitchSelectionActive && (isMLocked || isELocked)) {
+                            if (isFullyLocked) {
+                                seatEl.classList.add('locked');
+                                if (labelEl) labelEl.textContent = '🔒 Locked';
+                            } else {
+                                if (labelEl) labelEl.style.display = 'none';
+
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label ' + (isMLocked ? 'status-locked' : 'status-available');
+                                mLabel.textContent = isMLocked ? '🔒 Locked' : 'Available';
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label ' + (isELocked ? 'status-locked' : 'status-available');
+                                eLabel.textContent = isELocked ? '🔒 Locked' : 'Available';
+                                seatEl.appendChild(eLabel);
+
+                                if (!isMLocked && morningHalf) {
+                                    morningHalf.classList.add('shift-available');
+                                }
+                                if (!isELocked && eveningHalf) {
+                                    eveningHalf.classList.add('shift-available');
+                                }
+
+                                if (isMLocked && isELocked) {
+                                    seatEl.classList.add('locked');
+                                }
+                            }
+                        } else {
+                            seatEl.classList.add('available');
+                            if (labelEl) labelEl.textContent = 'Available';
+                        }
+                    }
+
+                } // end if (isShift)
+                // =====================================================
+                // STANDARD (NON-SHIFT) SEATS
+                // =====================================================
+                else {
+                    // In switch mode: show locked status; in normal mode: show as Available
+                    if (isSwitchSelectionActive && (seat.is_locked || seat.locked_shifts === 'full')) {
+                        seatEl.classList.remove('available');
+                        seatEl.classList.add('locked');
+                        seatEl.dataset.locked = 'true';
+                        if (labelEl) labelEl.textContent = '🔒 Locked';
+                    } else if (seat.is_on_hold || seat.full_day_hold || seat.status === 'on_hold') {
+                        seatEl.classList.add('on_hold');
+                        const days = seat.full_day_hold_remaining_days || seat.remaining_days || 0;
+                        if (labelEl) labelEl.textContent = (days > 0) ? `Hold(${days})` : 'Hold';
+                    } else if (seat.status === 'occupied' || seat.full_day_taken) {
+                        seatEl.classList.add('occupied');
+                        if (labelEl) labelEl.textContent = isMine ? 'You' : 'Occupied';
+                    } else {
+                        seatEl.classList.add('available');
+                        if (labelEl) labelEl.textContent = 'Available';
+                    }
+
+                }
+                // Check if this seat has any selectable hold (hold with > 10 days left)
+                let hasSelectableHold = false;
+                let hasSelectableShift = false;
+                if (isShift) {
+                    if (!seat.morning_taken || !seat.evening_taken) {
+                        hasSelectableShift = true;
+                    }
+                    if (seat.morning_hold && (seat.morning_hold_remaining_days || 0) > 10) {
+                        hasSelectableHold = true;
+                    }
+                    if (seat.evening_hold && (seat.evening_hold_remaining_days || 0) > 10) {
+                        hasSelectableHold = true;
+                    }
+                    if (seat.full_day_hold && (seat.full_day_hold_remaining_days || 0) > 10) {
+                        hasSelectableHold = true;
+                    }
+                } else {
+                    if ((seat.is_on_hold || seat.full_day_hold || seat.status === 'on_hold') && 
+                        ((seat.full_day_hold_remaining_days || seat.remaining_days || 0) > 10)) {
+                        hasSelectableHold = true;
+                    }
+                }
+                if (hasSelectableHold) {
+                    seatEl.classList.add('selectable-hold');
+                }
+                if (hasSelectableShift) {
+                    seatEl.classList.add('selectable-shift');
+                }
+
+                // Highlight pending switch target seat
+                if (PENDING_SWITCH_SEAT && PENDING_SWITCH_FLOOR && 
+                    seat.seat_number === PENDING_SWITCH_SEAT && seat.floor === PENDING_SWITCH_FLOOR) {
+                    seatEl.classList.add('pending-switch-target');
+                }
+
+                // --- MY SEAT vs OTHER SEAT classes (for visual emphasis/fading) ---
+                if (isMine) {
+                    seatEl.classList.add('my-seat');
+                    if (seat.user_shift === 'morning') {
+                        seatEl.classList.add('my-shift-morning');
+                    } else if (seat.user_shift === 'evening') {
+                        seatEl.classList.add('my-shift-evening');
+                    } else if (seat.user_shift === 'full') {
+                        seatEl.classList.add('my-shift-full');
+                    }
+                }
+
+                // Apply active switch selection state if this seat is currently selected
+                if (selectedSwitchSeat && 
+                    String(selectedSwitchSeat.seat_number) === String(seat.seat_number) && 
+                    selectedSwitchSeat.floor === seat.floor) {
+                    
+                    const shift = selectedSwitchSeat.shift;
+                    const isTemp = selectedSwitchSeat.is_temporary;
+
+                    seatEl.classList.add('temp-selected');
+
+                    if (isShift) {
+                        if (isTemp) {
+                            if (shift === 'morning') seatEl.classList.add('selected-temp-morning');
+                            else if (shift === 'evening') seatEl.classList.add('selected-temp-evening');
+                            else if (shift === 'full') seatEl.classList.add('selected-temp-full');
+                        } else {
+                            if (shift === 'morning') seatEl.classList.add('selected-morning');
+                            else if (shift === 'evening') seatEl.classList.add('selected-evening');
+                            else if (shift === 'full') seatEl.classList.add('selected-full');
+                        }
+
+                        const mLabel = seatEl.querySelector('.seat-morning-label');
+                        const eLabel = seatEl.querySelector('.seat-evening-label');
+                        const labelEl = seatEl.querySelector('.seat-label');
+
+                        if (shift === 'morning') {
+                            if (mLabel) {
+                                mLabel.textContent = 'Selected';
+                            } else if (labelEl) {
+                                labelEl.style.display = 'none';
+                                const newMLabel = document.createElement('span');
+                                newMLabel.className = 'seat-morning-label';
+                                newMLabel.textContent = 'Selected';
+                                seatEl.appendChild(newMLabel);
+                            }
+                        } else if (shift === 'evening') {
+                            if (eLabel) {
+                                eLabel.textContent = 'Selected';
+                            } else if (labelEl) {
+                                labelEl.style.display = 'none';
+                                const newELabel = document.createElement('span');
+                                newELabel.className = 'seat-evening-label';
+                                newELabel.textContent = 'Selected';
+                                seatEl.appendChild(newELabel);
+                            }
+                        } else if (shift === 'full') {
+                            if (mLabel) mLabel.textContent = 'Selected';
+                            if (eLabel) eLabel.textContent = 'Selected';
+                            if (labelEl) {
+                                labelEl.style.display = '';
+                                labelEl.textContent = 'Selected';
+                            }
+                        }
+                    } else {
+                        if (isTemp) seatEl.classList.add('selected-temp');
+                        else seatEl.classList.add('selected');
+                        
+                        const labelEl = seatEl.querySelector('.seat-label');
+                        if (labelEl) {
+                            labelEl.style.display = '';
+                            labelEl.textContent = 'Selected';
+                        }
+                    }
+                }
+            });
+
+            // Add you-label class to all labels containing "You"
+            wrapper.querySelectorAll('.seat-label, .seat-morning-label, .seat-evening-label').forEach(el => {
+                if (el.textContent.trim() === 'You') {
+                    el.classList.add('you-label');
+                } else {
+                    el.classList.remove('you-label');
+                }
+            });
+        }
+
+        // --- SEARCH BAR IMPLEMENTATION ---
+        function initSearch() {
+            const input = document.getElementById('seatSearchInput');
+            const wrapper = document.getElementById('hubSearchWrapper');
+            const btn = document.getElementById('hubSearchBtn');
+            const nav = document.getElementById('seatSearchNav');
+            const autocompleteDiv = document.getElementById('searchAutocomplete');
+
+            let matchedSeats = [];
+            let matchedIndex = 0;
+            let searchTimer = null;
+
+            function wordsToNumber(str) {
+                const cleanStr = str.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+                if (!cleanStr) return null;
+
+                const ones = {
+                    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 
+                    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9
+                };
+                const teens = {
+                    'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+                    'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19
+                };
+                const tens = {
+                    'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 
+                    'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90
+                };
+
+                if (ones[cleanStr] !== undefined) return ones[cleanStr];
+                if (teens[cleanStr] !== undefined) return teens[cleanStr];
+                if (tens[cleanStr] !== undefined) return tens[cleanStr];
+
+                for (const [tenWord, tenVal] of Object.entries(tens)) {
+                    if (cleanStr.startsWith(tenWord)) {
+                        const remainder = cleanStr.substring(tenWord.length).trim();
+                        if (remainder === '') return tenVal;
+                        if (ones[remainder] !== undefined) return tenVal + ones[remainder];
+                    }
+                }
+
+                const parts = cleanStr.split(/\s+/);
+                let total = 0;
+                let currentVal = 0;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const p = parts[i];
+                    if (p === 'and') continue;
+
+                    if (ones[p] !== undefined) {
+                        currentVal += ones[p];
+                    } else if (teens[p] !== undefined) {
+                        currentVal += teens[p];
+                    } else if (tens[p] !== undefined) {
+                        currentVal += tens[p];
+                    } else {
+                        return null;
+                    }
+                }
+
+                total += currentVal;
+                return total > 0 ? total : null;
+            }
+
+            function clearSeatSearchHighlights() {
+                document.querySelectorAll('.seat').forEach(seat => {
+                    seat.classList.remove('search-match', 'active-match');
+                });
+                
+                if (nav) {
+                    nav.style.display = 'none';
+                    const countSpan = nav.querySelector('span');
+                    if (countSpan) {
+                        countSpan.textContent = '';
+                        countSpan.style.color = '';
+                    }
+                    const chevronBtns = nav.querySelectorAll('.search-nav-btn');
+                    chevronBtns.forEach(btn => btn.style.display = 'none');
+                }
+                matchedSeats = [];
+                matchedIndex = 0;
+            }
+
+            function switchFloor(floorName) {
+                if (floorSelector) {
+                    floorSelector.value = floorName;
+                    updateFloorDisplay(floorName);
+                    const container = document.querySelector('.container');
+                    if (container) {
+                        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            }
+
+            function updateSearchCountText() {
+                if (!nav) return;
+                const countSpan = nav.querySelector('span');
+                const prevBtn = nav.querySelector('.search-nav-btn[id*="Prev"]');
+                const nextBtn = nav.querySelector('.search-nav-btn[id*="Next"]');
+
+                if (matchedSeats.length === 0) {
+                    if (countSpan) {
+                        countSpan.textContent = 'No results';
+                        countSpan.style.color = '#ef4444';
+                    }
+                    if (prevBtn) prevBtn.style.display = 'none';
+                    if (nextBtn) nextBtn.style.display = 'none';
+                } else {
+                    if (countSpan) {
+                        countSpan.textContent = (matchedIndex + 1) + ' / ' + matchedSeats.length;
+                        countSpan.style.color = '';
+                    }
+                    if (matchedSeats.length > 1) {
+                        if (prevBtn) prevBtn.style.display = 'flex';
+                        if (nextBtn) nextBtn.style.display = 'flex';
+                    } else {
+                        if (prevBtn) prevBtn.style.display = 'none';
+                        if (nextBtn) nextBtn.style.display = 'none';
+                    }
+                }
+            }
+
+            function navigateMatch(direction) {
+                if (matchedSeats.length === 0) return;
+
+                matchedSeats.forEach(seat => {
+                    seat.classList.remove('active-match');
+                });
+
+                if (direction === 'next') {
+                    matchedIndex = (matchedIndex + 1) % matchedSeats.length;
+                } else {
+                    matchedIndex = (matchedIndex - 1 + matchedSeats.length) % matchedSeats.length;
+                }
+
+                const activeSeat = matchedSeats[matchedIndex];
+                if (activeSeat) {
+                    activeSeat.classList.add('active-match');
+                    const wrapper = activeSeat.closest('#ground-floor-wrapper') || activeSeat.closest('#first-floor-wrapper');
+                    if (wrapper && floorSelector) {
+                        const targetFloor = wrapper.id === 'ground-floor-wrapper' ? 'Ground Floor' : '1st Floor';
+                        if (floorSelector.value !== targetFloor) {
+                            floorSelector.value = targetFloor;
+                            updateFloorDisplay(targetFloor);
+                        }
+                    }
+                    setTimeout(() => {
+                        activeSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                    }, 50);
+                }
+
+                updateSearchCountText();
+            }
+
+            // Bind chevron events
+            document.getElementById('seatSearchPrev')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateMatch('prev');
+            });
+            document.getElementById('seatSearchNext')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                navigateMatch('next');
+            });
+
+            if (btn && wrapper && input) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const wasExpanded = wrapper.classList.contains('expanded');
+                    
+                    wrapper.classList.remove('expanded');
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'bx bx-search';
+                    
+                    if (!wasExpanded) {
+                        wrapper.classList.add('expanded');
+                        if (icon) icon.className = 'bx bx-x';
+                        setTimeout(() => input.focus(), 100);
+                        
+                        if (input.value.trim().length > 0) {
+                            if (nav) nav.style.display = 'flex';
+                        }
+                    } else {
+                        input.value = '';
+                        clearSeatSearchHighlights();
+                        if (autocompleteDiv) autocompleteDiv.style.display = 'none';
+                    }
+                });
+            }
+
+            // Focus listener to show nav
+            input?.addEventListener('focus', () => {
+                if (matchedSeats.length > 0 && nav) {
+                    nav.style.display = 'flex';
+                }
+            });
+
+            // Close on click outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.hub-search-wrapper') && !e.target.closest('.search-nav-popup') && !e.target.closest('.search-autocomplete')) {
+                    wrapper?.classList.remove('expanded');
+                    const icon = btn?.querySelector('i');
+                    if (icon) icon.className = 'bx bx-search';
+                    if (nav) nav.style.display = 'none';
+                    if (autocompleteDiv) autocompleteDiv.style.display = 'none';
+                }
+            });
+
+            function handleSearch(term, isAccordionTrigger = false) {
+                const clean = term.toLowerCase().trim();
+
+                if (clean.length === 0) {
+                    clearTimeout(searchTimer);
+                    clearSeatSearchHighlights();
+                    return;
+                }
+
+                // Immediate floor layout checks (skip if triggered from accordion/selector change)
+                if (!isAccordionTrigger) {
+                    if (clean === 'first floor' || clean === 'frist floor' || clean === '1st floor' || clean === 'first' || clean === '1st') {
+                        clearTimeout(searchTimer);
+                        switchFloor('1st Floor');
+                        if (input) input.value = '';
+                        clearSeatSearchHighlights();
+                        return;
+                    }
+                    if (clean === 'ground floor' || clean === 'ground') {
+                        clearTimeout(searchTimer);
+                        switchFloor('Ground Floor');
+                        if (input) input.value = '';
+                        clearSeatSearchHighlights();
+                        return;
+                    }
+                }
+
+                // Debounce search by 300ms
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    document.querySelectorAll('.seat').forEach(seat => {
+                        seat.classList.remove('search-match', 'active-match');
+                    });
+
+                    // Select all seats inside layout containers
+                    const allSeats = document.querySelectorAll('#layout-containers-wrapper .seat');
+
+                    matchedSeats = [];
+                    matchedIndex = 0;
+
+                    // Check status query mapping
+                    let isStatusQuery = false;
+                    let matchesStatus = (seat) => false;
+                    
+                    const queryMap = {
+                        'available': 'available',
+                        'avail': 'available',
+                        'occupied': 'occupied',
+                        'shift occupied': 'shift_occupied',
+                        'shift_occupied': 'shift_occupied',
+                        'shift': 'shift_occupied',
+                        'on hold': 'on_hold',
+                        'on_hold': 'on_hold',
+                        'hold': 'on_hold',
+                        'temporary': 'temporary',
+                        'temp': 'temporary',
+                        'temporary allotted': 'temporary',
+                        'locked': 'locked',
+                        'lock': 'locked',
+                        'seat locked': 'locked',
+                        'shift locked': 'locked',
+                        'locked seat': 'locked',
+                        'locked shift': 'locked'
+                    };
+
+                    let matchedTarget = null;
+                    for (const [key, target] of Object.entries(queryMap)) {
+                        if (key.startsWith(clean) || clean.startsWith(key)) {
+                            matchedTarget = target;
+                            break;
+                        }
+                    }
+
+                    if (matchedTarget) {
+                        isStatusQuery = true;
+                        const target = matchedTarget;
+                        matchesStatus = (seat) => {
+                            const hasClass = (cls) => seat.classList.contains(cls);
+                            const labelsText = Array.from(seat.querySelectorAll('.seat-label, .seat-morning-label, .seat-evening-label'))
+                                .map(el => el.textContent.toLowerCase());
+                            const hasLabel = (text) => labelsText.some(t => t.includes(text));
+
+                            if (target === 'available') {
+                                return hasClass('available') || hasLabel('available');
+                            } else if (target === 'occupied') {
+                                return hasClass('occupied') || hasClass('occupied-full') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied') || hasLabel('you');
+                            } else if (target === 'shift_occupied') {
+                                return hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'));
+                            } else if (target === 'on_hold') {
+                                return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold');
+                            } else if (target === 'temporary') {
+                                return hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp');
+                            } else if (target === 'locked') {
+                                return hasClass('locked') || hasClass('locked-morning') || hasClass('locked-evening') || seat.dataset.locked === 'true' || hasLabel('locked') || hasLabel('🔒');
+                            }
+                            return false;
+                        };
+                    }
+
+                    let exactSeatNum = null;
+                    const isDigitPattern = /^[0-9]+$/;
+                    if (isDigitPattern.test(clean)) {
+                        const numVal = parseInt(clean, 10);
+                        if (numVal >= 1 && numVal <= 9) {
+                            exactSeatNum = String(numVal);
+                        }
+                    } else {
+                        const numVal = wordsToNumber(clean);
+                        if (numVal !== null) {
+                            exactSeatNum = String(numVal);
+                        }
+                    }
+
+                    allSeats.forEach(seat => {
+                        if (seat.classList.contains('special') || seat.classList.contains('empty-space')) return;
+
+                        let match = false;
+                        const ownSeatKeywords = ['me', 'my seat', 'mine', 'my', 'you'];
+
+                        if (ownSeatKeywords.includes(clean) && seat.classList.contains('my-seat')) {
+                            match = true;
+                        } else if (isStatusQuery) {
+                            match = matchesStatus(seat);
+                        } else if (exactSeatNum) {
+                            const seatId = (seat.getAttribute('data-seat-id') || '').trim();
+                            const seatText = (seat.querySelector('.seat-number')?.innerText || seat.innerText || '').trim();
+                            if (seatId === exactSeatNum || seatText === exactSeatNum) {
+                                match = true;
+                            }
+                        } else {
+                            const seatId = (seat.getAttribute('data-seat-id') || '').trim();
+                            const seatText = (seat.querySelector('.seat-number')?.innerText || seat.innerText || '').trim();
+                            const studentName = (seat.getAttribute('data-student-name') || '').trim();
+                            if (studentName.toLowerCase().includes(clean) ||
+                                seatId.toLowerCase() === clean ||
+                                seatId.toLowerCase().includes(clean) ||
+                                seatText.toLowerCase().includes(clean)) {
+                                match = true;
+                            }
+                        }
+
+                        if (match) {
+                            seat.classList.add('search-match');
+                            matchedSeats.push(seat);
+                        }
+                    });
+
+                    if (nav) nav.style.display = 'flex';
+                    updateSearchCountText();
+
+                    const firstSeat = matchedSeats[0];
+                    if (firstSeat) {
+                        firstSeat.classList.add('active-match');
+                        const wrapper = firstSeat.closest('#ground-floor-wrapper') || firstSeat.closest('#first-floor-wrapper');
+                        if (wrapper && floorSelector) {
+                            const targetFloor = wrapper.id === 'ground-floor-wrapper' ? 'Ground Floor' : '1st Floor';
+                            if (floorSelector.value !== targetFloor) {
+                                floorSelector.value = targetFloor;
+                                updateFloorDisplay(targetFloor);
+                            }
+                        }
+                        setTimeout(() => {
+                            firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                        }, 50);
+                    }
+                }, isAccordionTrigger ? 0 : 300); // Trigger immediately if called from accordion/selector click
+            }
+
+            input?.addEventListener('input', (e) => {
+                const val = e.target.value;
+
+                // Handle Autocomplete menu on '/' character
+                if (val.startsWith('/')) {
+                    if (autocompleteDiv) {
+                        autocompleteDiv.style.display = 'block';
+                        const filterText = val.toLowerCase();
+                        const options = ['/Ground Floor', '/First Floor'];
+                        const filtered = options.filter(opt => opt.toLowerCase().includes(filterText));
+                        
+                        autocompleteDiv.innerHTML = '';
+                        if (filtered.length > 0) {
+                            filtered.forEach(opt => {
+                                const item = document.createElement('div');
+                                item.className = 'autocomplete-item';
+                                item.textContent = opt;
+                                item.addEventListener('click', () => {
+                                    const floorName = opt.replace('/', '');
+                                    switchFloor(floorName === 'First Floor' ? '1st Floor' : floorName);
+                                    input.value = '';
+                                    autocompleteDiv.style.display = 'none';
+                                    clearSeatSearchHighlights();
+                                });
+                                autocompleteDiv.appendChild(item);
+                            });
+                        } else {
+                            autocompleteDiv.style.display = 'none';
+                        }
+                    }
+                    if (nav) nav.style.display = 'none';
+                } else {
+                    if (autocompleteDiv) autocompleteDiv.style.display = 'none';
+                    handleSearch(val);
+                }
+            });
+
+            // Expose handleSearch to window so accordion toggler/selector can re-trigger search
+            window._triggerActiveSearch = (val) => {
+                handleSearch(val, true);
+            };
+        }
+
+        // Initialize logic
+        document.addEventListener('DOMContentLoaded', () => {
+            initFloorOrder();
+            initSearch();
+            setInterval(refreshGrids, 5000);
+
+            floorSelector?.addEventListener('change', (e) => {
+                updateFloorDisplay(e.target.value);
+                // Re-run search if a query exists, to update matched highlights
+                const searchInput = document.getElementById('seatSearchInput');
+                if (searchInput && searchInput.value.trim().length > 0) {
+                    window._triggerActiveSearch?.(searchInput.value);
+                }
+            });
+
+            // --- Custom floor dropdown logic ---
+            const fcsWrap  = document.getElementById('floorCustomSelect');
+            const fcsTrig  = document.getElementById('floorCustomTrigger');
+            const fcsLabel = document.getElementById('floorCustomLabel');
+            const fcsOpts  = fcsWrap?.querySelectorAll('.floor-custom-option');
+
+            function fcsClose() { fcsWrap?.classList.remove('open'); }
+
+            function fcsSetLabel(val) {
+                if (!fcsLabel) return;
+                const myFloor = '{{ seat.floor }}';
+                const suffix  = (val === myFloor) ? ' (your floor)' : '';
+                fcsLabel.textContent = val + suffix;
+            }
+
+            fcsTrig?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fcsWrap.classList.toggle('open');
+            });
+
+            fcsOpts?.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    const val = opt.dataset.value;
+                    // Update selection state
+                    fcsOpts.forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    fcsSetLabel(val);
+                    fcsClose();
+                    // Sync hidden native select and fire change
+                    if (floorSelector && floorSelector.value !== val) {
+                        floorSelector.value = val;
+                        floorSelector.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+
+            // Close when clicking outside
+            document.addEventListener('click', fcsClose);
+
+            // When JS sets floorSelector.value directly (e.g. search auto-switch),
+            // keep the custom label in sync via a MutationObserver on the <select>
+            // (value changes don't fire MutationObserver, so we patch initFloorOrder)
+            const _origUpdateFloorDisplay = updateFloorDisplay;
+            window.updateFloorDisplay = function(val) {
+                _origUpdateFloorDisplay(val);
+                fcsSetLabel(val);
+                fcsOpts?.forEach(o => {
+                    o.classList.toggle('selected', o.dataset.value === val);
+                });
+            };
+        });
+
+        // ===================================================================
+        // SEAT SWITCHING CONTROLLER LOGIC
+        // ===================================================================
+
+        function showStyledPopup({ title = 'Notice', message = '', type = 'info', onOk = null, okText = 'OK', contactUrl = null, contactText = 'Contact' } = {}) {
+            const existing = document.getElementById('styledPopupOverlay');
+            if (existing) existing.remove();
+
+            const isDark = document.body.classList.contains('dark-theme');
+
+            const colors = {
+                warning: { 
+                    border: '#ffc107', 
+                    icon: '⚠️', 
+                    titleColor: isDark ? '#ffd166' : '#856404',
+                    btnBg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                },
+                error: { 
+                    border: '#dc3545', 
+                    icon: '❌', 
+                    titleColor: isDark ? '#ff6b6b' : '#721c24',
+                    btnBg: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                },
+                info: { 
+                    border: '#17a2b8', 
+                    icon: 'ℹ️', 
+                    titleColor: isDark ? '#38bdf8' : '#0c5460',
+                    btnBg: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                },
+                success: { 
+                    border: '#28a745', 
+                    icon: '✅', 
+                    titleColor: isDark ? '#34d399' : '#155724',
+                    btnBg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                }
+            };
+            const c = colors[type] || colors.info;
+
+            const bgStyle = isDark
+                ? 'background:#1f1b2e;border:1px solid rgba(255,255,255,0.14);color:#f1f5f9;box-shadow:0 25px 70px rgba(0,0,0,0.75);'
+                : 'background:#ffffff;border:1px solid rgba(0,0,0,0.08);color:#1e293b;box-shadow:0 25px 70px rgba(0,0,0,0.25);';
+
+            const msgColor = isDark ? '#cbd5e1' : '#475569';
+
+            const overlay = document.createElement('div');
+            overlay.id = 'styledPopupOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+
+            const box = document.createElement('div');
+            box.style.cssText = `${bgStyle}border-radius:20px;padding:32px 28px;max-width:420px;width:90%;text-align:center;animation:popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)`;
+
+            let buttonsHtml = '';
+            if (contactUrl) {
+                buttonsHtml = `
+                    <div style="display:flex;gap:12px;justify-content:center;align-items:center;width:100%;margin-top:22px;">
+                        <a href="${contactUrl}" target="_blank" style="flex:1;padding:12px 18px;border-radius:10px;font-size:0.95rem;font-weight:700;text-decoration:none;text-align:center;background:linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);color:#fff;box-shadow:0 4px 14px rgba(79,70,229,0.4);transition:all 0.2s ease;display:inline-flex;align-items:center;justify-content:center;gap:6px;"><i class='bx bx-support' style='font-size:1.1rem;'></i> ${contactText}</a>
+                        <button id="styledPopupOkBtn" style="flex:1;padding:12px 18px;border-radius:10px;font-size:0.95rem;font-weight:700;border:none;cursor:pointer;background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:#fff;box-shadow:0 4px 14px rgba(239,68,68,0.4);transition:all 0.2s ease;">${okText}</button>
+                    </div>
+                `;
+            } else {
+                buttonsHtml = `
+                    <div style="margin-top:22px;">
+                        <button id="styledPopupOkBtn" style="background:${c.btnBg};color:#fff;border:none;padding:12px 36px;border-radius:10px;font-size:0.98rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,0.3);transition:all 0.2s ease;">${okText}</button>
+                    </div>
+                `;
+            }
+
+            box.innerHTML = `<div style="font-size:2.8rem;margin-bottom:12px">${c.icon}</div>`
+                + `<h3 style="color:${c.titleColor};margin-bottom:12px;font-size:1.3rem;font-weight:800;letter-spacing:-0.01em">${title}</h3>`
+                + `<p style="color:${msgColor};font-size:0.95rem;line-height:1.6;margin:0">${message}</p>`
+                + buttonsHtml;
+
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            const okBtn = document.getElementById('styledPopupOkBtn');
+            const closePopup = function () { overlay.remove(); if (onOk) onOk(); };
+            if (okBtn) okBtn.addEventListener('click', closePopup);
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) closePopup(); });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleBtn = document.getElementById('toggleSwitchSeatBtn');
+            const banner = document.getElementById('switchSelectionBanner');
+            const toast = document.getElementById('switchRequestToast');
+            const modal = document.getElementById('switchShiftModal');
+            const modalTitle = document.getElementById('switchModalTitle');
+            const modalMsg = document.getElementById('switchModalMessage');
+            const modalBtns = document.getElementById('switchModalButtons');
+            const modalClose = document.getElementById('switchModalClose');
+            const wrapper = document.getElementById('layout-containers-wrapper');
+
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    isSwitchSelectionActive = !isSwitchSelectionActive;
+                    if (isSwitchSelectionActive) {
+                        document.body.classList.add('switch-selection-mode');
+                        toggleBtn.innerHTML = "<i class='bx bx-x'></i> <span>Cancel Selection</span>";
+                        toggleBtn.style.background = '#e74c3c';
+                        if (banner) banner.style.display = 'flex';
+                        // Re-render grids to reveal locked seats in switch mode
+                        refreshGrids();
+                        if (wrapper) wrapper.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        deactivateSwitchMode();
+                    }
+                });
+            }
+
+            function deactivateSwitchMode() {
+                isSwitchSelectionActive = false;
+                document.body.classList.remove('switch-selection-mode');
+                if (toggleBtn) {
+                    toggleBtn.innerHTML = "<i class='bx bx-transfer'></i> <span>Request TO Switch Seat</span>";
+                    toggleBtn.style.background = 'linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%)';
+                }
+                if (banner) banner.style.display = 'none';
+                clearSeatSelection();
+            }
+
+            wrapper.addEventListener('click', (e) => {
+                if (!isSwitchSelectionActive) return;
+                const seatEl = e.target.closest('.seat');
+                if (!seatEl) return;
+
+                let seatInfo = null;
+                if (seatEl.dataset.info) {
+                    try { seatInfo = JSON.parse(seatEl.dataset.info); } catch(err){}
+                }
+
+                // Ignore clicks on seats without valid data
+                if (!seatInfo || !seatInfo.seat_number) return;
+
+                const isLockedSeat = seatEl.classList.contains('locked') || seatEl.dataset.locked === 'true' || (seatInfo.is_locked || seatInfo.locked_shifts === 'full');
+                const clickedHalf = e.target.closest('.seat-half');
+                const isLockedHalf = clickedHalf && (clickedHalf.classList.contains('locked') || clickedHalf.dataset.locked === 'true');
+
+                if (isLockedSeat || isLockedHalf) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showStyledPopup({
+                        title: '🔒 Seat Locked',
+                        message: 'This seat/shift is locked by the Librarian and cannot be selected. For more information, contact your teacher.',
+                        type: 'error',
+                        contactUrl: 'https://wa.me/919827662450',
+                        contactText: 'Contact',
+                        okText: 'Cancel'
+                    });
+                    return false;
+                }
+
+                e.stopPropagation();
+                handleSeatSelection(seatInfo, seatEl);
+            });
+
+            function handleSeatSelection(seat, seatEl) {
+                const mySeatNumber = "{{ seat.seat_number }}";
+                const myFloor = "{{ seat.floor }}";
+                if (seat.seat_number === mySeatNumber && seat.floor === myFloor) {
+                    showStyledPopup({
+                        title: 'Denied',
+                        message: 'You cannot switch to your own seat.',
+                        type: 'error'
+                    });
+                    return;
+                }
+
+                const isShift = seat.is_shift_enabled;
+
+                if (isShift) {
+                    modalBtns.innerHTML = '';
+                    let hasOptions = false;
+
+                    const mTaken = seat.morning_taken;
+                    const mHold = seat.morning_hold;
+                    const mDays = seat.morning_hold_remaining_days || 0;
+
+                    const eTaken = seat.evening_taken;
+                    const eHold = seat.evening_hold;
+                    const eDays = seat.evening_hold_remaining_days || 0;
+
+                    // --- Locked shift detection ---
+                    const lockedShifts = (seat.locked_shifts || '').split(',').filter(Boolean);
+                    const isFullyLocked = seat.is_locked || lockedShifts.includes('full');
+                    const morningLocked = isFullyLocked || lockedShifts.includes('morning');
+                    const eveningLocked = isFullyLocked || lockedShifts.includes('evening');
+
+                    // If entire seat is locked, block immediately
+                    if (isFullyLocked) {
+                        showStyledPopup({
+                            title: '🔒 Seat Locked',
+                            message: 'This seat is locked by the Librarian and cannot be selected. For more information, contact your teacher.',
+                            type: 'error',
+                            contactUrl: 'https://wa.me/919827662450',
+                            contactText: 'Contact',
+                            okText: 'Cancel'
+                        });
+                        return;
+                    }
+
+                    modalTitle.textContent = `Select Shift - Seat ${seat.floor === 'Ground Floor' ? 'G' : 'F'}-${seat.seat_number}`;
+                    let lockedNote = '';
+                    if (morningLocked && eveningLocked) {
+                        lockedNote = '<br><span style="color:#e74c3c;font-size:0.85rem;">⚠️ Both shifts are locked by the Librarian.</span>';
+                    } else if (morningLocked) {
+                        lockedNote = '<br><span style="color:#e74c3c;font-size:0.85rem;">⚠️ Morning shift is locked by the Librarian.</span>';
+                    } else if (eveningLocked) {
+                        lockedNote = '<br><span style="color:#e74c3c;font-size:0.85rem;">⚠️ Evening shift is locked by the Librarian.</span>';
+                    }
+                    modalMsg.innerHTML = `Please choose a shift option for this seat:${lockedNote}`;
+
+                    // Morning option — only if NOT locked
+                    if (!morningLocked) {
+                        if (!mTaken) {
+                            hasOptions = true;
+                            createOptionButton('Morning Shift', 'morning', false, 0);
+                        } else if (mHold && mDays > 10) {
+                            hasOptions = true;
+                            createOptionButton(`Morning Shift (Temporary - ${mDays} days remaining)`, 'morning', true, mDays);
+                        }
+                    }
+
+                    // Evening option — only if NOT locked
+                    if (!eveningLocked) {
+                        if (!eTaken) {
+                            hasOptions = true;
+                            createOptionButton('Evening Shift', 'evening', false, 0);
+                        } else if (eHold && eDays > 10) {
+                            hasOptions = true;
+                            createOptionButton(`Evening Shift (Temporary - ${eDays} days remaining)`, 'evening', true, eDays);
+                        }
+                    }
+
+                    // Full Day option — only if NEITHER shift is locked
+                    if (!morningLocked && !eveningLocked) {
+                        if (!mTaken && !eTaken) {
+                            hasOptions = true;
+                            createOptionButton('Full Day Shift', 'full', false, 0);
+                        } else {
+                            const mSelectable = !mTaken || (mHold && mDays > 10);
+                            const eSelectable = !eTaken || (eHold && eDays > 10);
+                            if (mSelectable && eSelectable && (mHold || eHold)) {
+                                let exp = 999;
+                                if (mHold) exp = Math.min(exp, mDays);
+                                if (eHold) exp = Math.min(exp, eDays);
+                                hasOptions = true;
+                                createOptionButton(`Full Day Shift (Temporary - ${exp} days remaining)`, 'full', true, exp);
+                            }
+                        }
+                    }
+
+                    if (!hasOptions) {
+                        // Build a helpful message explaining why no shifts are available
+                        let reason = 'This seat is fully occupied or the hold has 10 or fewer days remaining.';
+                        let contactUrl = null;
+                        if (morningLocked || eveningLocked) {
+                            const lockedParts = [];
+                            if (morningLocked) lockedParts.push('Morning');
+                            if (eveningLocked) lockedParts.push('Evening');
+                            reason = `The <b>${lockedParts.join(' & ')}</b> shift(s) are locked by the Librarian, and the remaining shift(s) are occupied. No shift is available for selection.<br><br>For more information, contact your teacher.`;
+                            contactUrl = 'https://wa.me/919827662450';
+                        }
+                        showStyledPopup({
+                            title: morningLocked || eveningLocked ? '🔒 Shift Locked' : 'Denied',
+                            message: reason,
+                            type: 'error',
+                            contactUrl: contactUrl,
+                            contactText: 'Contact',
+                            okText: 'Cancel'
+                        });
+                        return;
+                    }
+
+                    modal.style.display = 'flex';
+
+                    modalClose.onclick = () => {
+                        modal.style.display = 'none';
+                    };
+
+                    function createOptionButton(label, shift, isTemp, days) {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn-primary';
+                        btn.textContent = label;
+                        btn.onclick = () => {
+                            modal.style.display = 'none';
+                            if (isTemp) {
+                                showStyledPopup({
+                                    title: 'Warning - Temporary Allotment',
+                                    message: `This shift is only available for <b>${days} days</b>. If you switch, you will be automatically removed from the seat after this period and left with no seat. Do you want to proceed?`,
+                                    type: 'warning',
+                                    okText: 'Yes, Proceed',
+                                    onOk: () => {
+                                        selectSeat(seat, seatEl, shift, true, days);
+                                    }
+                                });
+                            } else {
+                                selectSeat(seat, seatEl, shift, false, 0);
+                            }
+                        };
+                        modalBtns.appendChild(btn);
+                    }
+
+                } else {
+                    const isHold = seat.is_on_hold || seat.full_day_hold || seat.status === 'on_hold';
+                    const holdDays = seat.full_day_hold_remaining_days || seat.remaining_days || 0;
+                    const isOccupied = seat.status === 'occupied' || seat.full_day_taken;
+
+                    if (isOccupied && !isHold) {
+                        showStyledPopup({
+                            title: 'Denied',
+                            message: 'This seat is occupied.',
+                            type: 'error'
+                        });
+                        return;
+                    } else if (isHold) {
+                        if (holdDays > 10) {
+                            showStyledPopup({
+                                title: 'Warning - Temporary Allotment',
+                                message: `This seat is only available for <b>${holdDays} days</b>. If you switch, you will be automatically removed from the seat after this period and left with no seat. Do you want to proceed?`,
+                                type: 'warning',
+                                okText: 'Yes, Proceed',
+                                onOk: () => {
+                                    selectSeat(seat, seatEl, 'full', true, holdDays);
+                                }
+                            });
+                        } else {
+                            showStyledPopup({
+                                title: 'Denied',
+                                message: 'This seat is on hold with 10 or fewer days remaining.',
+                                type: 'error'
+                            });
+                        }
+                    } else {
+                        selectSeat(seat, seatEl, 'full', false, 0);
+                    }
+                }
+            }
+
+            function clearSeatSelection() {
+                selectedSwitchSeat = null;
+                document.querySelectorAll('.seat.temp-selected').forEach(el => {
+                    el.classList.remove('temp-selected');
+                });
+                const toastGroup = document.getElementById('switchRequestToastGroup');
+                if (toastGroup) toastGroup.style.display = 'none';
+                refreshGrids();
+            }
+
+            function selectSeat(seat, seatEl, shift, isTemp, days) {
+                selectedSwitchSeat = {
+                    seat_number: seat.seat_number,
+                    floor: seat.floor,
+                    shift: shift,
+                    is_temporary: isTemp,
+                    temp_hold_days: days
+                };
+
+                // Trigger refreshGrids to render exact Admission Form colors & "Selected" label
+                refreshGrids();
+
+                const suffix = isTemp ? ` (Temporary - ${days} Days)` : '';
+                const toastGroup = document.getElementById('switchRequestToastGroup');
+                const toastLabel = document.getElementById('switchRequestToastLabel');
+                if (toastLabel) {
+                    toastLabel.textContent = `Request Change: Seat ${seat.floor === 'Ground Floor' ? 'G' : 'F'}-${seat.seat_number} - ${shift.toUpperCase()}${suffix}`;
+                }
+                if (toastGroup) toastGroup.style.display = 'flex';
+            }
+
+            const toastCancelBtn = document.getElementById('switchRequestCancel');
+            if (toastCancelBtn) {
+                toastCancelBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    clearSeatSelection();
+                });
+            }
+
+            const toastSubmitBtn = document.getElementById('switchRequestToast');
+            if (toastSubmitBtn) {
+                toastSubmitBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    if (!selectedSwitchSeat) return;
+                    
+                    if (typeof window.setButtonLoading === 'function') {
+                        window.setButtonLoading(toastSubmitBtn, true, 'Submitting Request...');
+                    }
+
+                    try {
+                        const response = await fetch("{% url 'users:api_request_seat_switch' %}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': CSRF_TOKEN
+                            },
+                            body: JSON.stringify(selectedSwitchSeat)
+                        });
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            showStyledPopup({
+                                title: 'Success',
+                                message: 'Your seat switch request has been submitted successfully!',
+                                type: 'success',
+                                onOk: () => {
+                                    window.location.reload();
+                                }
+                            });
+                        } else {
+                            showStyledPopup({
+                                title: 'Error',
+                                message: data.message || 'An error occurred.',
+                                type: 'error'
+                            });
+                        }
+                    } catch (err) {
+                        showStyledPopup({
+                            title: 'Error',
+                            message: err.message || 'Connection error.',
+                            type: 'error'
+                        });
+                    } finally {
+                        if (typeof window.setButtonLoading === 'function') {
+                            window.setButtonLoading(toastSubmitBtn, false);
+                        }
+                    }
+                });
+            }
+        });
+
+        async function cancelPendingSwitch() {
+            try {
+                const response = await fetch("{% url 'users:api_cancel_seat_switch' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN
+                    }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStyledPopup({
+                        title: 'Success',
+                        message: 'Your switch request was successfully cancelled and deleted.',
+                        type: 'success',
+                        onOk: () => {
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    showStyledPopup({
+                        title: 'Error',
+                        message: data.message || 'An error occurred.',
+                        type: 'error'
+                    });
+                }
+            } catch (err) {
+                showStyledPopup({
+                    title: 'Error',
+                    message: err.message || 'Connection error.',
+                    type: 'error'
+                });
+            }
+        }
+    </script>
+{% if user.is_authenticated %}
+<script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
+<script src="{% static 'js/push-permission.js' %}"></script>
+{% endif %}
+{% include 'partials/_smart_back_redirect.html' with back_url='users:student_dashboard' %}
+</body>
+</html>

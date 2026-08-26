@@ -1,0 +1,1624 @@
+{% extends 'users/teacher_dashboard.html' %}
+{% load static %}
+
+{% block title %}Fees Record | Teacher Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Professional Dashboard Accounting Redesign */
+    .fees-record-container {
+        padding: 40px 40px 80px;
+        max-width: 1400px;
+        margin: 0 auto;
+        min-height: 90vh;
+    }
+
+    /* 1. Dashboard Header Logic */
+    .record-header-section {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .header-tag {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 2.5px;
+        margin-bottom: 15px;
+        background: #f8fafc;
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .record-header-section h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin: 0;
+        letter-spacing: -1.2px;
+    }
+
+    .header-subtext {
+        color: #64748b;
+        margin: 15px auto 0;
+        font-size: 1.05rem;
+        max-width: 600px;
+        line-height: 1.6;
+    }
+
+    .header-chip-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: white;
+        padding: 8px 18px;
+        border-radius: 100px;
+        margin-top: 25px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+
+    .header-chip-badge i {
+        color: #4f46e5;
+        font-size: 1rem;
+    }
+
+    .header-chip-badge span {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .header-chip-badge b {
+        color: #1e293b;
+        font-weight: 800;
+        margin-left: 4px;
+    }
+
+    /* 2. Wide Search Interface */
+    .search-row-area {
+        position: sticky;
+        top: 105px;
+        z-index: 100;
+        background: transparent;
+        padding: 10px 0;
+        margin-top: -10px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: center;
+        pointer-events: none;
+    }
+    body.dark-theme .search-row-area {
+        background: transparent;
+    }
+
+    .search-input-container {
+        position: relative;
+        width: 100%;
+        max-width: 650px;
+        pointer-events: auto;
+    }
+
+    .search-input-container > i {
+        position: absolute;
+        left: 24px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    .search-input-container input {
+        width: 100%;
+        padding: 14px 24px 14px 55px;
+        border-radius: 30px;
+        border: 1.5px solid rgba(99, 102, 241, 0.25);
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        font-size: 0.95rem;
+        color: #1e293b;
+        animation: search-glow-idle 3s ease-in-out infinite;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .search-input-container input:hover {
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .search-input-container input:focus {
+        outline: none;
+        border-color: #6366f1;
+        animation: search-focus-glow 2s infinite ease-in-out;
+    }
+
+    .search-input-container:focus-within > i {
+        color: #6366f1;
+    }
+
+    /* 3. Wide Dashboard Table Area */
+    .dashboard-table-card {
+        background: white;
+        border-radius: 28px;
+        overflow: hidden;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    }
+
+    .table-responsive {
+        width: 100%;
+        max-height: 500px;
+        overflow-y: auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .fees-table-layout thead th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #f8fafc;
+        box-shadow: inset 0 -1px 0 #f1f5f9;
+    }
+
+    body.dark-theme .fees-table-layout thead th {
+        background: #0f172a !important;
+        box-shadow: inset 0 -1px 0 #334155;
+    }
+
+    .fees-table-layout {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .fees-table-layout th {
+        background: #f8fafc;
+        padding: 22px 30px;
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1.8px;
+        color: #94a3b8;
+        font-weight: 800;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .fees-table-layout td {
+        padding: 20px 30px;
+        border-bottom: 1px solid #f8fafc;
+        color: #475569;
+        font-size: 0.95rem;
+    }
+
+    .fees-table-layout tr:hover {
+        background: #fcfdfe;
+    }
+
+    .receipt-id-pill {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #4f46e5;
+        background: #eef2ff;
+        padding: 6px 14px;
+        border-radius: 10px;
+        border: 1px solid #e0e7ff;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        user-select: all;
+    }
+
+    .receipt-id-pill:hover {
+        background: #e0e7ff;
+        color: #4338ca;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+    }
+
+    .student-bold {
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .amount-success {
+        font-weight: 800;
+        color: #10b981;
+    }
+
+    .btn-action-ghost {
+        background: #f8fafc;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        padding: 9px 20px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-action-ghost:hover {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+    }
+
+    /* 4. Selection Mode & Toolbar */
+    .selection-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding: 12px 25px;
+        background: white;
+        border-radius: 20px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from { transform: translateY(-10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .selection-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .select-btn-main {
+        background: #f8fafc;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .select-btn-main:hover {
+        background: #f1f5f9;
+        color: #1e293b;
+    }
+
+    .select-btn-main.active {
+        background: #475569;
+        color: white;
+        border-color: #475569;
+    }
+
+    .bulk-delete-btn {
+        background: #fff1f2;
+        color: #e11d48;
+        border: 1px solid #fecdd3;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .bulk-delete-btn:hover:not(:disabled) {
+        background: #e11d48;
+        color: white;
+        border-color: #e11d48;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
+    }
+
+    .bulk-delete-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        filter: grayscale(1);
+    }
+
+    /* Checkbox Styles */
+    .checkbox-col {
+        width: 40px;
+        display: none;
+    }
+
+    .custom-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #4f46e5;
+    }
+
+    .selected-count-badge {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #4f46e5;
+        background: #eef2ff;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    /* 5. Modal Polish */
+    .confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(8px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .conf-content {
+        background: white;
+        border-radius: 24px;
+        width: 90%;
+        max-width: 400px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+    }
+
+    /* 6. Wide Premium Empty State Section */
+    .wide-empty-region {
+        background: #ffffff;
+        border-radius: 32px;
+        padding: 100px 40px;
+        text-align: center;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.02);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .illustration-placeholder {
+        margin-bottom: 40px;
+        position: relative;
+    }
+
+    .illustration-placeholder i {
+        font-size: 5rem;
+        color: #e2e8f0;
+    }
+
+    .illustration-placeholder .sub-icon {
+        position: absolute;
+        bottom: -5px;
+        right: -10px;
+        background: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #cbd5e1;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        border: 1px solid #f1f5f9;
+        font-size: 1.2rem;
+    }
+
+    .wide-empty-region h3 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin: 0 0 15px;
+        letter-spacing: -0.5px;
+    }
+
+    .wide-empty-region p {
+        color: #94a3b8;
+        font-size: 1.1rem;
+        max-width: 450px;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* Dark Mode Polish */
+    body.dark-theme .selection-controls,
+    body.dark-theme .conf-content {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    body.dark-theme .select-btn-main { background: #0f172a; border-color: #334155; }
+    body.dark-theme .selected-count-badge { background: #4f46e5; color: white; }
+
+    /* Dark Mode Styling */
+    body.dark-theme .record-header-section h1 { color: #f8fafc; }
+    body.dark-theme .header-tag { background: #0f172a; border-color: #1e293b; }
+    body.dark-theme .header-chip-badge { background: #1e293b; border-color: #334155; }
+    body.dark-theme .header-chip-badge span { color: #94a3b8; }
+    body.dark-theme .header-chip-badge b { color: #f1f5f9; }
+    body.dark-theme .dashboard-table-card,
+    body.dark-theme .wide-empty-region {
+        background: #1e293b;
+        border-color: #334155;
+    }
+    body.dark-theme .search-input-container input {
+        background: rgba(30, 41, 59, 0.95);
+        border: 1px solid rgba(192, 132, 252, 0.2);
+        color: white;
+        animation: search-glow-idle-dark 3s ease-in-out infinite;
+    }
+    body.dark-theme .search-input-container input:hover {
+        border-color: rgba(192, 132, 252, 0.4);
+    }
+    body.dark-theme .search-input-container input:focus {
+        border-color: #c084fc;
+        animation: search-focus-glow-dark 2s infinite ease-in-out;
+    }
+    body.dark-theme .search-input-container > i {
+        color: rgba(255, 255, 255, 0.55);
+    }
+    body.dark-theme .search-input-container:focus-within > i {
+        color: #c084fc;
+    }
+    body.dark-theme .fees-table-layout th { background: #0f172a; border-color: #334155; }
+    body.dark-theme .fees-table-layout td { border-color: #1e293b; color: #cbd5e1; }
+    body.dark-theme .fees-table-layout tr:hover { background: #273549 !important; }
+    body.dark-theme .receipt-id-pill {
+        background: rgba(79, 70, 229, 0.2);
+        color: #a5b4fc;
+        border-color: rgba(99, 102, 241, 0.35);
+    }
+    body.dark-theme .receipt-id-pill:hover {
+        background: rgba(79, 70, 229, 0.4);
+        color: #c7d2fe;
+        border-color: #6366f1;
+    }
+    body.dark-theme .student-bold,
+    body.dark-theme .wide-empty-region h3 { color: #f1f5f9; }
+    body.dark-theme .btn-action-ghost { background: #0f172a; border-color: #334155; color: #94a3b8; }
+    body.dark-theme .btn-action-ghost:hover { background: #4f46e5; color: white; border-color: #4f46e5; }
+    body.dark-theme .illustration-placeholder i { color: #334155; }
+    body.dark-theme .illustration-placeholder .sub-icon { background: #1e293b; border-color: #334155; color: #475569; }
+
+    /* Download PDF Button in Modal */
+    /* Premium Modal General Styling - Light & Dark Theme */
+    .fees-modal-content {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 28px !important;
+        box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.15) !important;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .modal-header {
+        padding: 22px 28px !important;
+        background: #f8fafc !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .modal-hdr-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0f172a !important;
+        margin: 0;
+        letter-spacing: -0.3px;
+    }
+
+    .btn-download-modal {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+        color: #ffffff !important;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25) !important;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-download-modal:hover {
+        background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35) !important;
+        color: #ffffff !important;
+    }
+    .btn-download-modal i {
+        font-size: 1.1rem;
+    }
+
+    .close-btn {
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        font-size: 1.3rem !important;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b !important;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .close-btn:hover {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+        transform: rotate(90deg) scale(1.08);
+    }
+
+    /* Modal Dark Theme Polish */
+    body.dark-theme .fees-modal-content {
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+    }
+    body.dark-theme .modal-header {
+        background: #0f172a !important;
+        border-bottom-color: #334155 !important;
+    }
+    body.dark-theme .modal-hdr-title {
+        color: #f8fafc !important;
+    }
+    body.dark-theme .btn-download-modal {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35) !important;
+    }
+    body.dark-theme .btn-download-modal:hover {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45) !important;
+    }
+    body.dark-theme .close-btn {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #94a3b8 !important;
+    }
+    body.dark-theme .close-btn:hover {
+        background: #334155 !important;
+        color: #f1f5f9 !important;
+        transform: rotate(90deg) scale(1.08);
+    }
+    body.dark-theme .field-item label {
+        color: #94a3b8 !important;
+    }
+    body.dark-theme #mPaymentDate,
+    body.dark-theme #mStudentName,
+    body.dark-theme #mMobile,
+    body.dark-theme #mExpiryDate {
+        color: #f1f5f9 !important;
+    }
+    body.dark-theme #mReceiptNo {
+        color: #818cf8 !important;
+    }
+    body.dark-theme .modal-service-card {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+    body.dark-theme #mService {
+        color: #cbd5e1 !important;
+    }
+    body.dark-theme .modal-months-card {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+    }
+    body.dark-theme .modal-months-hdr {
+        background: #1e293b !important;
+        border-bottom-color: #334155 !important;
+        color: #94a3b8 !important;
+    }
+    body.dark-theme #monthsTableBody tr {
+        border-bottom-color: #334155 !important;
+    }
+    body.dark-theme #monthsTableBody td {
+        color: #f1f5f9 !important;
+    }
+
+    /* Copy Toast Bubble */
+    .copy-toast-bubble {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(80px);
+        opacity: 0;
+        background: #1e293b;
+        color: #f8fafc;
+        padding: 10px 22px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        z-index: 100000;
+        pointer-events: none;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .copy-toast-bubble i {
+        color: #10b981;
+        font-size: 1.1rem;
+    }
+    .copy-toast-bubble.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+    body.dark-theme .copy-toast-bubble {
+        background: #f8fafc;
+        color: #0f172a;
+        border-color: #e2e8f0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Tablet Responsiveness (541px - 991px) - Standard 1-line table layout when space is available */
+    @media (min-width: 541px) and (max-width: 991px) {
+        .fees-record-container { padding: 20px 16px 60px; }
+        .fees-table-layout th,
+        .fees-table-layout td {
+            padding: 14px 12px;
+            font-size: 0.85rem;
+        }
+        .btn-action-ghost {
+            padding: 7px 14px;
+            font-size: 0.78rem;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .fees-table-layout th:nth-child(4), .fees-table-layout td:nth-child(4) { display: none; }
+    }
+
+    /* Small Mobile Screens ONLY (<= 540px) - Action button moves to next line when space is constrained */
+    @media (max-width: 540px) {
+        .fees-record-container { padding: 12px 8px 40px; }
+        .record-header-section { margin-bottom: 25px; }
+        .record-header-section h1 { font-size: 1.8rem; }
+        .header-subtext { font-size: 0.9rem; }
+
+        .dashboard-table-card {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+        }
+
+        .table-responsive {
+            overflow: visible !important;
+            max-height: none !important;
+            display: block;
+            width: 100%;
+        }
+
+        .fees-table-layout {
+            display: block;
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        .fees-table-layout thead {
+            display: none !important;
+        }
+
+        .fees-table-layout tbody {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0;
+        }
+
+        .fees-table-layout tr.fee-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            background: #ffffff;
+            border: 1px solid #f1f5f9;
+            border-radius: 18px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+        }
+
+        body.dark-theme .fees-table-layout tr.fee-row {
+            background: #1e293b;
+            border-color: #334155;
+            box-shadow: none;
+        }
+
+        body.dark-theme .fees-table-layout tr.fee-row:hover {
+            background: #273549 !important;
+        }
+
+        .fees-table-layout td.checkbox-col {
+            order: 1;
+            display: flex;
+            align-items: center;
+            padding: 0 !important;
+            margin-right: 6px;
+        }
+
+        .fees-table-layout td:nth-child(2) {
+            order: 2;
+            padding: 0 !important;
+            border: none !important;
+            flex: 1;
+        }
+
+        .fees-table-layout td:nth-child(6) {
+            order: 3;
+            padding: 0 !important;
+            border: none !important;
+            text-align: right;
+        }
+
+        .fees-table-layout td:nth-child(3) {
+            order: 4;
+            width: 55%;
+            padding: 6px 0 0 0 !important;
+            border: none !important;
+            display: block !important;
+        }
+
+        .fees-table-layout td:nth-child(4) {
+            display: none !important;
+        }
+
+        .fees-table-layout td:nth-child(5) {
+            order: 5;
+            width: 45%;
+            padding: 6px 0 0 0 !important;
+            border: none !important;
+            text-align: right;
+            font-size: 0.8rem !important;
+            color: #64748b;
+        }
+        body.dark-theme .fees-table-layout td:nth-child(5) {
+            color: #94a3b8;
+        }
+
+        .fees-table-layout td:nth-child(7) {
+            order: 6;
+            width: 100%;
+            padding: 10px 0 0 0 !important;
+            border-top: 1px dashed #f1f5f9 !important;
+            margin-top: 6px;
+            text-align: center !important;
+            display: block !important;
+        }
+
+        body.dark-theme .fees-table-layout td:nth-child(7) {
+            border-top-color: #334155 !important;
+        }
+
+        .btn-action-ghost {
+            width: 100%;
+            justify-content: center;
+            padding: 9px 14px;
+            font-size: 0.78rem;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+
+        body.dark-theme .btn-action-ghost {
+            background: #0f172a;
+            color: #cbd5e1;
+            border-color: #334155;
+        }
+        body.dark-theme .btn-action-ghost:hover {
+            background: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+
+        .fees-modal { padding: 12px !important; }
+        .fees-modal-content { border-radius: 24px !important; }
+        .modal-header { padding: 16px 18px !important; gap: 10px !important; }
+        .modal-hdr-title { font-size: 1.15rem !important; }
+        .btn-download-modal { padding: 7px 12px !important; font-size: 0.78rem !important; border-radius: 10px !important; }
+        .modal-body { padding: 20px 16px !important; }
+        .info-row-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 14px !important; margin-bottom: 20px !important; }
+        .search-input-container input {
+            padding: 12px 20px 12px 48px;
+            font-size: 0.9rem;
+            border-radius: 24px;
+        }
+        .search-input-container > i {
+            left: 18px;
+            font-size: 1.1rem;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .modal-hdr-title { font-size: 1.02rem !important; }
+        .btn-download-modal { padding: 6px 10px !important; font-size: 0.74rem !important; }
+        .btn-download-modal i { font-size: 0.95rem !important; }
+        .info-row-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+    }
+
+
+
+
+
+    @keyframes search-focus-glow {
+        0%, 100% {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2.5px rgba(99, 102, 241, 0.25), 0 4px 16px rgba(99, 102, 241, 0.2);
+        }
+        50% {
+            border-color: #a855f7;
+            box-shadow: 0 0 0 5px rgba(168, 85, 247, 0.3), 0 8px 24px rgba(168, 85, 247, 0.35);
+        }
+    }
+
+    @keyframes search-focus-glow-dark {
+        0%, 100% {
+            border-color: #c084fc;
+            box-shadow: 0 0 0 2.5px rgba(192, 132, 252, 0.25), 0 4px 16px rgba(192, 132, 252, 0.25);
+        }
+        50% {
+            border-color: #e9d5ff;
+            box-shadow: 0 0 0 5px rgba(233, 213, 255, 0.35), 0 8px 24px rgba(233, 213, 255, 0.4);
+        }
+    }
+
+    @keyframes search-glow-idle {
+        0%, 100% {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 3px 10px rgba(99, 102, 241, 0.12), 0 0 0 1px rgba(99, 102, 241, 0.08);
+        }
+        50% {
+            border-color: rgba(168, 85, 247, 0.55);
+            box-shadow: 0 5px 18px rgba(168, 85, 247, 0.28), 0 0 10px rgba(168, 85, 247, 0.18);
+        }
+    }
+
+    @keyframes search-glow-idle-dark {
+        0%, 100% {
+            border-color: rgba(192, 132, 252, 0.2);
+            box-shadow: 0 4px 12px rgba(192, 132, 252, 0.1), 0 0 0 1px rgba(192, 132, 252, 0.05);
+        }
+        50% {
+            border-color: rgba(233, 213, 255, 0.45);
+            box-shadow: 0 6px 20px rgba(233, 213, 255, 0.25), 0 0 12px rgba(233, 213, 255, 0.15);
+        }
+    }
+    .search-nav-popup {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 20px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        border: 1px solid #f1f5f9;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 16px;
+        z-index: 1000;
+        animation: searchNavFadeIn 0.2s ease-out;
+    }
+    body.dark-theme .search-nav-popup {
+        background: #1e293b;
+        border-color: #334155;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    @keyframes searchNavFadeIn {
+        from { opacity: 0; transform: translateY(-5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .search-nav-popup span {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #64748b;
+        white-space: nowrap;
+    }
+    
+    .search-nav-popup .search-nav-btn {
+        background: none;
+        border: none;
+        color: #4f46e5;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    body.dark-theme .search-nav-popup .search-nav-btn {
+        color: #c084fc;
+    }
+    .search-nav-popup .search-nav-btn:hover {
+        background: rgba(99, 102, 241, 0.1);
+    }
+    body.dark-theme .search-nav-popup .search-nav-btn:hover {
+        background: rgba(192, 132, 252, 0.1);
+    }
+
+    .fee-row.active-row-match {
+        outline: 2px solid #6366f1 !important;
+        background: rgba(99, 102, 241, 0.08) !important;
+    }
+    body.dark-theme .fee-row.active-row-match {
+        outline: 2px solid #c084fc !important;
+        background: rgba(192, 132, 252, 0.15) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="fees-record-container">
+    <!-- Professional Dashboard Header -->
+    <header class="record-header-section">
+        <span class="header-tag">Accounting History</span>
+        <h1>Fees Record</h1>
+        <p class="header-subtext">
+            View, track, and manage all digitally generated fee receipts and historical student submissions in a unified accounting log.
+        </p>
+        
+        <div class="header-chip-badge">
+            <i class='bx bx-check-double'></i>
+            <span>Verified Transactions: <b>{{ page_obj.paginator.count }}</b></span>
+        </div>
+    </header>
+
+    <!-- Wide Premium Search Area -->
+    <section class="search-row-area">
+        <div class="search-input-container">
+            <i class='bx bx-search-alt'></i>
+            <input type="text" id="feesSearch" placeholder="Search receipt, student name, mobile or date..." value="{{ search_query }}" autocomplete="off">
+            <div id="feesSearchNav" class="search-nav-popup">
+                <span id="feesSearchCount"></span>
+                <button id="feesSearchPrev" class="search-nav-btn" type="button"><i class="bx bx-chevron-up"></i></button>
+                <button id="feesSearchNext" class="search-nav-btn" type="button"><i class="bx bx-chevron-down"></i></button>
+            </div>
+        </div>
+    </section>
+
+    {% if page_obj %}
+    <!-- Selection Action Toolbar -->
+    <section class="selection-controls">
+        <div class="selection-left">
+            <button type="button" class="select-btn-main" id="toggleSelectBtn" onclick="toggleSelectionMode()">
+                <i class='bx bx-check-square'></i> Select
+            </button>
+            <div id="selectionInfo" style="display: none; align-items: center; gap: 12px;">
+                <input type="checkbox" class="custom-checkbox" id="selectAllCheckbox" onclick="handleSelectAll(this)">
+                <span class="selected-count-badge"><span id="selectedCount">0</span> Selected</span>
+            </div>
+        </div>
+        <div class="selection-right">
+            <button type="button" class="bulk-delete-btn" id="bulkDeleteBtn" style="display: none;" disabled onclick="openBulkDeleteModal()">
+                <i class='bx bx-trash'></i> Delete
+            </button>
+        </div>
+    </section>
+
+    <!-- Wide Dashboard Table Card -->
+    <section class="dashboard-table-card">
+        <div class="table-responsive">
+            <table class="fees-table-layout">
+                <thead>
+                    <tr>
+                        <th class="checkbox-col"></th>
+                        <th>Receipt #</th>
+                        <th>Student</th>
+                        <th>Mobile</th>
+                        <th>Submission Date</th>
+                        <th>Amount</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in page_obj %}
+                    <tr class="fee-row">
+                        <td class="checkbox-col">
+                            <input type="checkbox" class="custom-checkbox row-checkbox" data-id="{{ tx.id }}" onclick="updateSelectedCount()">
+                        </td>
+                        <td><span class="receipt-id-pill" onclick="copyReceiptNo('{{ tx.receipt_number }}', event)" title="Click to copy receipt number">{{ tx.receipt_number }} <i class='bx bx-copy' style="font-size: 0.8rem; opacity: 0.7;"></i></span></td>
+                        <td><span class="student-bold">{{ tx.student.full_name }}</span></td>
+                        <td style="color: #94a3b8; font-size: 0.85rem;">{{ tx.student.mobile_number }}</td>
+                        <td style="font-weight: 600;">{{ tx.payment_date|date:"d M Y" }}</td>
+                        <td><span class="amount-success">₹{{ tx.total_amount }}</span></td>
+                        <td style="text-align: right;">
+                            <button class="btn-action-ghost" 
+                                    data-tx-id="{{ tx.id }}"
+                                    data-receipt="{{ tx.receipt_number }}"
+                                    data-name="{{ tx.student.full_name }}"
+                                    data-mobile="{{ tx.student.mobile_number }}"
+                                    data-pdate="{{ tx.payment_date|date:'d M Y' }}"
+                                    data-edate="{{ tx.expiry_date|date:'d M Y' }}"
+                                    data-total="{{ tx.total_amount }}"
+                                    data-service="{{ tx.service_snapshot }}"
+                                    data-email="{{ tx.email_sent|yesno:'true,false' }}"
+                                    data-whatsapp="{{ tx.whatsapp_sent|yesno:'true,false' }}"
+                                    data-months='{{ tx.months_snapshot|json_script:"temp"|safe }}'
+                                    onclick="prepareAndOpenModal(this)">
+                                <i class='bx bx-list-ul'></i> View Details
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <!-- Professional Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav style="margin-top: 40px; display: flex; justify-content: center; gap: 8px;">
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" style="min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e2e8f0; border-radius: 14px; color: #64748b; text-decoration: none; font-weight: 700; transition: all 0.2s;"><i class='bx bx-chevron-left'></i></a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span style="min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #4f46e5; color: white; border-radius: 14px; font-weight: 700;">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" style="min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e2e8f0; border-radius: 14px; color: #64748b; text-decoration: none; font-weight: 700; transition: all 0.2s;">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" style="min-width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #e2e8f0; border-radius: 14px; color: #64748b; text-decoration: none; font-weight: 700; transition: all 0.2s;"><i class='bx bx-chevron-right'></i></a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <!-- Wide Intentional Dashboard Empty State -->
+    <section class="wide-empty-region">
+        <div class="illustration-placeholder">
+            <i class='bx bx-folder-open'></i>
+            <div class="sub-icon">
+                <i class='bx bx-search-alt-2'></i>
+            </div>
+        </div>
+        <h3>No records available yet</h3>
+        <p>Student fee submissions and digitally generated receipts will be automatically logged here as they occur in the system.</p>
+    </section>
+    {% endif %}
+</main>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div id="bulkDeleteModal" class="confirmation-modal">
+    <div class="conf-content">
+        <div style="width: 60px; height: 60px; background: #fff1f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #e11d48; font-size: 1.8rem;">
+            <i class='bx bx-error-circle'></i>
+        </div>
+        <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 10px;">Delete Selected Records?</h3>
+        <p style="color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 30px;">
+            You are about to permanently remove <b id="modalDeleteCount">0</b> fee record(s). This action cannot be undone.
+        </p>
+        <form id="bulkDeleteForm" method="POST" action="{% url 'users:bulk_delete_fees' %}">
+            {% csrf_token %}
+            <div id="selectedIdsContainer"></div>
+            <div style="display: flex; gap: 12px;">
+                <button type="button" onclick="closeBulkDeleteModal()" style="flex: 1; padding: 12px; border-radius: 14px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button type="submit" style="flex: 1; padding: 12px; border-radius: 14px; border: none; background: #e11d48; color: white; font-weight: 700; cursor: pointer;">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Details Modal (Logic Preserved & Enhanced) -->
+<div id="txModal" class="fees-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+    <div class="fees-modal-content" style="background: white; border-radius: 32px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);">
+        <div class="modal-header">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h3 class="modal-hdr-title">Receipt Details</h3>
+                <button type="button" id="mDownloadBtn" class="btn-download-modal" onclick="downloadCurrentReceiptPdf()" title="Download PDF Receipt">
+                    <i class='bx bx-download'></i> Receipt
+                </button>
+            </div>
+            <button class="close-btn" onclick="closeTxModal()" title="Close Modal" aria-label="Close Modal"><i class='bx bx-x'></i></button>
+        </div>
+        <div class="modal-body" style="padding: 36px;">
+            <div class="info-row-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 30px;">
+                <div class="field-item">
+                    <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Receipt Number</label>
+                    <span id="mReceiptNo" style="font-size: 1.1rem; font-weight: 700; color: #4f46e5;">-</span>
+                </div>
+                <div class="field-item">
+                    <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Payment Date</label>
+                    <span id="mPaymentDate" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</span>
+                </div>
+                <div class="field-item">
+                    <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Student Name</label>
+                    <span id="mStudentName" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</span>
+                </div>
+                <div class="field-item">
+                    <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Mobile Number</label>
+                    <span id="mMobile" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</span>
+                </div>
+                <div class="field-item">
+                    <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Fee Expiry</label>
+                    <span id="mExpiryDate" style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">-</span>
+                </div>
+                <div class="field-item">
+                    <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Total Amount</label>
+                    <span id="mTotal" style="color: #10b981; font-weight: 800; font-size: 1.3rem;">₹0</span>
+                </div>
+            </div>
+
+            <div class="field-item modal-service-card" style="margin-bottom: 25px; padding: 18px; background: #f8fafc; border-radius: 16px; border: 1px solid #f1f5f9;">
+                <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Service Snapshot</label>
+                <span id="mService" style="font-weight: 600; color: #475569; font-size: 0.9rem;">-</span>
+            </div>
+
+            <div class="modal-months-card" style="background: #fff; border-radius: 16px; border: 1px solid #f1f5f9; overflow: hidden;">
+                <div class="modal-months-hdr" style="padding: 14px 20px; background: #f8fafc; border-bottom: 1px solid #f1f5f9; font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">
+                    Months Covered
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tbody id="monthsTableBody">
+                        <!-- Injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <div id="mEmailStatus" style="flex: 1; padding: 14px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 0.85rem;">
+                    <i class='bx bx-envelope'></i> Email
+                </div>
+                <div id="mWhatsappStatus" style="flex: 1; padding: 14px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 0.85rem;">
+                    <i class='bx bxl-whatsapp'></i> WhatsApp
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    let isSelectionMode = false;
+
+    function toggleSelectionMode() {
+        isSelectionMode = !isSelectionMode;
+        const toggleBtn = document.getElementById('toggleSelectBtn');
+        const selectionInfo = document.getElementById('selectionInfo');
+        const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+        const checkboxCols = document.querySelectorAll('.checkbox-col');
+        
+        if (isSelectionMode) {
+            toggleBtn.innerHTML = "<i class='bx bx-x'></i> Cancel";
+            toggleBtn.classList.add('active');
+            selectionInfo.style.display = 'flex';
+            bulkDeleteBtn.style.display = 'flex';
+            checkboxCols.forEach(col => col.style.display = 'table-cell');
+        } else {
+            toggleBtn.innerHTML = "<i class='bx bx-check-square'></i> Select";
+            toggleBtn.classList.remove('active');
+            selectionInfo.style.display = 'none';
+            bulkDeleteBtn.style.display = 'none';
+            checkboxCols.forEach(col => col.style.display = 'none');
+            // Reset all checkboxes
+            document.getElementById('selectAllCheckbox').checked = false;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        }
+    }
+
+    function handleSelectAll(mainCb) {
+        document.querySelectorAll('.row-checkbox').forEach(cb => {
+            cb.checked = mainCb.checked;
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.row-checkbox:checked');
+        const count = selected.length;
+        document.getElementById('selectedCount').innerText = count;
+        
+        const deleteBtn = document.getElementById('bulkDeleteBtn');
+        deleteBtn.disabled = count === 0;
+
+        // Sync Select All checkbox
+        const totalRows = document.querySelectorAll('.row-checkbox').length;
+        document.getElementById('selectAllCheckbox').checked = (count === totalRows && totalRows > 0);
+    }
+
+    function openBulkDeleteModal() {
+        const selected = document.querySelectorAll('.row-checkbox:checked');
+        const count = selected.length;
+        document.getElementById('modalDeleteCount').innerText = count;
+        
+        const container = document.getElementById('selectedIdsContainer');
+        container.innerHTML = '';
+        selected.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'transaction_ids[]';
+            input.value = cb.getAttribute('data-id');
+            container.appendChild(input);
+        });
+
+        document.getElementById('bulkDeleteModal').style.display = 'flex';
+    }
+
+    function closeBulkDeleteModal() {
+        document.getElementById('bulkDeleteModal').style.display = 'none';
+    }
+
+    function prepareAndOpenModal(btn) {
+        const txId = btn.getAttribute('data-tx-id');
+        const receiptNo = btn.getAttribute('data-receipt');
+        const name = btn.getAttribute('data-name');
+        const mobile = btn.getAttribute('data-mobile');
+        const pDate = btn.getAttribute('data-pdate');
+        const eDate = btn.getAttribute('data-edate');
+        const total = btn.getAttribute('data-total');
+        const service = btn.getAttribute('data-service');
+        const emailSent = btn.getAttribute('data-email') === 'true';
+        const whatsappSent = btn.getAttribute('data-whatsapp') === 'true';
+        
+        const monthsHtml = btn.getAttribute('data-months');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(monthsHtml, 'text/html');
+        const scriptTag = doc.querySelector('script');
+        let months = [];
+        if (scriptTag) {
+            try {
+                months = JSON.parse(scriptTag.textContent);
+            } catch (e) {
+                console.error("Error parsing months snapshot", e);
+            }
+        }
+
+        openTxDetails(txId, months, receiptNo, name, mobile, pDate, eDate, total, service, emailSent, whatsappSent);
+    }
+
+    let activeTxId = null;
+
+    function openTxDetails(txId, months, receiptNo, name, mobile, pDate, eDate, total, service, emailSent, whatsappSent) {
+        activeTxId = txId;
+        document.getElementById('mReceiptNo').innerText = receiptNo;
+        document.getElementById('mPaymentDate').innerText = pDate;
+        document.getElementById('mStudentName').innerText = name;
+        document.getElementById('mMobile').innerText = mobile;
+        document.getElementById('mExpiryDate').innerText = eDate;
+        document.getElementById('mTotal').innerText = "₹" + total;
+        document.getElementById('mService').innerText = service;
+
+        const isDark = document.body.classList.contains('dark-theme');
+
+        const tableBody = document.getElementById('monthsTableBody');
+        tableBody.innerHTML = '';
+        if (Array.isArray(months)) {
+            months.forEach(m => {
+                const amtDisplay = (typeof m.amount === 'number' && m.amount > 0) ? `₹${m.amount}` : (m.amount === 'Paid' || m.amount === 0 ? 'Paid' : `₹${m.amount}`);
+                const borderColor = isDark ? '#334155' : '#f1f5f9';
+                const textColor = isDark ? '#f1f5f9' : '#1e293b';
+                const row = `<tr style="border-bottom: 1px solid ${borderColor};">
+                    <td style="padding: 12px 20px; font-weight: 600; color: ${textColor};">${m.month}</td>
+                    <td style="padding: 12px 20px; text-align: right; font-weight: 700; color: #10b981;">${amtDisplay}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        const emailBox = document.getElementById('mEmailStatus');
+        const whatsappBox = document.getElementById('mWhatsappStatus');
+
+        if (emailSent) {
+            emailBox.style.background = isDark ? 'rgba(16, 185, 129, 0.15)' : '#d1fae5';
+            emailBox.style.color = isDark ? '#34d399' : '#065f46';
+            emailBox.innerHTML = "<i class='bx bx-check-circle'></i> Email Sent";
+        } else {
+            emailBox.style.background = isDark ? '#0f172a' : '#f1f5f9';
+            emailBox.style.color = isDark ? '#64748b' : '#94a3b8';
+            emailBox.innerHTML = "<i class='bx bx-x-circle'></i> Email Not Sent";
+        }
+
+        if (whatsappSent) {
+            whatsappBox.style.background = isDark ? 'rgba(34, 197, 94, 0.15)' : '#dcfce7';
+            whatsappBox.style.color = isDark ? '#4ade80' : '#166534';
+            whatsappBox.innerHTML = "<i class='bx bxl-whatsapp'></i> WhatsApp Sent";
+        } else {
+            whatsappBox.style.background = isDark ? '#0f172a' : '#f1f5f9';
+            whatsappBox.style.color = isDark ? '#64748b' : '#94a3b8';
+            whatsappBox.innerHTML = "<i class='bx bxl-whatsapp'></i> WhatsApp Not Sent";
+        }
+
+        document.getElementById('txModal').style.display = 'flex';
+    }
+
+    function copyReceiptNo(receiptNum, event) {
+        if (event) event.stopPropagation();
+        if (!receiptNum) return;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(receiptNum).then(() => {
+                showCopyToast("Receipt " + receiptNum + " copied!");
+            }).catch(err => {
+                fallbackCopy(receiptNum);
+            });
+        } else {
+            fallbackCopy(receiptNum);
+        }
+    }
+
+    function fallbackCopy(text) {
+        const tempInput = document.createElement('input');
+        tempInput.value = text;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        showCopyToast("Receipt " + text + " copied!");
+    }
+
+    let toastTimer = null;
+    function showCopyToast(msg) {
+        const toast = document.getElementById('copyToast');
+        if (!toast) return;
+        document.getElementById('copyToastText').innerText = msg || 'Copied!';
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 1200);
+    }
+
+    function downloadCurrentReceiptPdf() {
+        if (!activeTxId) {
+            alert("Transaction ID missing.");
+            return;
+        }
+        const downloadBtn = document.getElementById('mDownloadBtn');
+        const originalHtml = downloadBtn.innerHTML;
+        downloadBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Generating...";
+        downloadBtn.disabled = true;
+
+        const receiptNo = document.getElementById('mReceiptNo').innerText || activeTxId;
+        const targetUrl = '/teacher/fees-record/download/' + activeTxId + '/';
+
+        fetch(targetUrl)
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        let errMsg = "HTTP " + res.status;
+                        try {
+                            const json = JSON.parse(text);
+                            if (json.message) errMsg = json.message;
+                        } catch(e) {}
+                        throw new Error(errMsg);
+                    });
+                }
+                return res.blob();
+            })
+            .then(blob => {
+                if (blob.type && blob.type.includes('json')) {
+                    throw new Error("Server returned JSON instead of PDF");
+                }
+                window.isDownloadingFile = true;
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'Fee_Receipt_' + receiptNo + '.pdf';
+                a.setAttribute('download', 'Fee_Receipt_' + receiptNo + '.pdf');
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    window.isDownloadingFile = false;
+                }, 1000);
+                if (typeof showCopyToast === 'function') {
+                    showCopyToast("PDF Receipt downloaded!");
+                }
+            })
+            .catch(err => {
+                console.error("Download error:", err);
+                alert("Error downloading receipt: " + err.message + "\n\nNote: If this is a 404 error, please restart your Django server (python manage.py runserver) so the new URL route is loaded by Django.");
+            })
+            .finally(() => {
+                downloadBtn.innerHTML = originalHtml;
+                downloadBtn.disabled = false;
+            });
+    }
+
+
+
+
+    function closeTxModal() {
+        document.getElementById('txModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('txModal');
+        const bulkModal = document.getElementById('bulkDeleteModal');
+        if (event.target == modal) {
+            closeTxModal();
+        }
+        if (event.target == bulkModal) {
+            closeBulkDeleteModal();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('feesSearch');
+        const tableRows = document.querySelectorAll('.fee-row');
+        const bnavSearchBtn = document.getElementById('bnavSearchBtn');
+        
+        let searchTimer = null;
+        let matchedRows = [];
+        let matchedIndex = 0;
+        
+        const searchNav = document.getElementById('feesSearchNav');
+        const searchCount = document.getElementById('feesSearchCount');
+        const searchPrev = document.getElementById('feesSearchPrev');
+        const searchNext = document.getElementById('feesSearchNext');
+
+        function clearSearchHighlights() {
+            tableRows.forEach(row => {
+                row.classList.remove('active-row-match');
+            });
+            if (searchNav) searchNav.style.display = 'none';
+            matchedRows = [];
+            matchedIndex = 0;
+        }
+
+        function navigateRowMatch(direction) {
+            if (matchedRows.length === 0) return;
+            
+            matchedRows.forEach(row => row.classList.remove('active-row-match'));
+            
+            if (direction === 'next') {
+                matchedIndex = (matchedIndex + 1) % matchedRows.length;
+            } else {
+                matchedIndex = (matchedIndex - 1 + matchedRows.length) % matchedRows.length;
+            }
+            
+            const activeRow = matchedRows[matchedIndex];
+            if (activeRow) {
+                activeRow.classList.add('active-row-match');
+                activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            if (searchCount) {
+                searchCount.textContent = `${matchedIndex + 1} / ${matchedRows.length}`;
+            }
+        }
+
+        if (searchPrev) searchPrev.addEventListener('click', () => navigateRowMatch('prev'));
+        if (searchNext) searchNext.addEventListener('click', () => navigateRowMatch('next'));
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    
+                    clearSearchHighlights();
+                    
+                    if (query === '') {
+                        tableRows.forEach(row => {
+                            row.style.display = '';
+                        });
+                        return;
+                    }
+
+                    tableRows.forEach(row => {
+                        const receipt = (row.querySelector('.receipt-id-pill')?.textContent || '').toLowerCase();
+                        const student = (row.querySelector('.student-bold')?.textContent || '').toLowerCase();
+                        const mobile = (row.cells[3]?.textContent || '').toLowerCase();
+                        const date = (row.cells[4]?.textContent || '').toLowerCase();
+                        const amount = (row.cells[5]?.textContent || '').toLowerCase();
+
+                        if (receipt.includes(query) || student.includes(query) || mobile.includes(query) || date.includes(query) || amount.includes(query)) {
+                            row.style.display = '';
+                            matchedRows.push(row);
+                        } else {
+                            row.style.display = 'none';
+                            // Uncheck hidden rows if filtered out to avoid accidental deletion
+                            const cb = row.querySelector('.row-checkbox');
+                            if (cb && cb.checked) {
+                                cb.checked = false;
+                                row.classList.remove('row-selected');
+                            }
+                        }
+                    });
+
+                    if (searchNav) {
+                        searchNav.style.display = 'flex';
+                        if (matchedRows.length === 0) {
+                            searchCount.textContent = 'No results';
+                            searchCount.style.color = '#ef4444';
+                            searchPrev.style.display = 'none';
+                            searchNext.style.display = 'none';
+                        } else {
+                            searchCount.style.color = '';
+                            searchCount.textContent = `1 / ${matchedRows.length}`;
+                            
+                            if (matchedRows.length > 1) {
+                                searchPrev.style.display = 'flex';
+                                searchNext.style.display = 'flex';
+                            } else {
+                                searchPrev.style.display = 'none';
+                                searchNext.style.display = 'none';
+                            }
+                            
+                            // Highlight first match and scroll to it
+                            const firstRow = matchedRows[0];
+                            if (firstRow) {
+                                firstRow.classList.add('active-row-match');
+                                firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }
+                    }
+                    
+                    // Sync Select All checkbox
+                    if (typeof updateSelectedCount === 'function') {
+                        updateSelectedCount();
+                    }
+                }, 300);
+            });
+
+            // Trigger search immediately if a query is present on load
+            if (searchInput.value.trim() !== '') {
+                searchInput.dispatchEvent(new Event('input'));
+            }
+        }
+
+        if (bnavSearchBtn && searchInput) {
+            bnavSearchBtn.addEventListener('click', function(e) {
+                const searchContainer = document.querySelector('.search-input-container');
+                if (searchContainer) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation(); // Prevent parent openMobSearch from firing
+                    
+                    searchContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    searchContainer.classList.remove('glow-focus-highlight');
+                    void searchContainer.offsetWidth; // Reflow to reset CSS animation
+                    searchContainer.classList.add('glow-focus-highlight');
+                    
+                    searchInput.focus();
+                }
+            });
+        }
+    });
+</script>
+<!-- Copy Toast Bubble -->
+<div id="copyToast" class="copy-toast-bubble">
+    <i class='bx bx-check-circle'></i>
+    <span id="copyToastText">Receipt number copied!</span>
+</div>
+
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

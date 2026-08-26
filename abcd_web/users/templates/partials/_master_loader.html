@@ -1,0 +1,713 @@
+<style>
+  /* --- MASTER LOADER OVERLAY STYLE --- */
+  .master-loader-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #111a2e 0%, #080d1a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999999;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  /* --- LIGHT THEME STYLE OVERRIDES --- */
+  .master-loader-overlay.light-theme {
+      background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+  }
+
+  .master-loader-overlay.light-theme .loader-brand {
+      color: #1e293b;
+      text-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+  }
+
+  .master-loader-overlay.light-theme .loader-subtitle {
+      color: #4f46e5;
+  }
+
+  .master-loader-overlay.light-theme .loader-status-text {
+      color: #475569;
+  }
+
+  .master-loader-overlay.light-theme .circle-core {
+      background-color: #f1f5f9;
+  }
+
+  .master-loader-overlay.light-theme .glowing-bg {
+      fill: rgba(99, 102, 241, 0.02);
+      stroke: rgba(99, 102, 241, 0.1);
+  }
+
+  .master-loader-overlay.light-theme .loader-progress-bar {
+      background: rgba(0, 0, 0, 0.05);
+  }
+
+  .master-loader-overlay.light-theme .orbit-ring-1 {
+      stroke: rgba(139, 92, 246, 0.25);
+  }
+
+  .master-loader-overlay.light-theme .orbit-ring-2 {
+      stroke: rgba(168, 85, 247, 0.2);
+  }
+
+  .master-loader-overlay.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+  }
+
+  .loader-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      width: 100%;
+      max-width: 450px;
+  }
+
+  /* Mascot SVG Styling & Animations */
+  .mascot-wrapper {
+      width: clamp(140px, 25vw, 240px);
+      height: clamp(140px, 25vw, 240px);
+      margin-bottom: 20px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  }
+
+  .abcd-mascot-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+  }
+
+  /* Base Mascot SVG Elements Colors */
+  .glowing-bg {
+      fill: rgba(99, 102, 241, 0.05);
+      stroke: rgba(99, 102, 241, 0.15);
+      stroke-width: 1.5;
+  }
+
+  .orbit-ring {
+      fill: none;
+      stroke-width: 1.5;
+      transform-origin: 100px 100px;
+  }
+
+  .orbit-ring-1 {
+      stroke: rgba(139, 92, 246, 0.4);
+      animation: loaderOrbitRing 8s linear infinite;
+  }
+
+  .orbit-ring-2 {
+      stroke: rgba(168, 85, 247, 0.3);
+      animation: loaderOrbitRingInverse 12s linear infinite;
+  }
+
+  .book-cover {
+      fill: #4c1d95;
+      stroke: #6d28d9;
+      stroke-width: 1.5;
+  }
+
+  .book-page {
+      fill: #ffffff;
+      stroke: #e2e8f0;
+      stroke-width: 1;
+  }
+
+  .owl-body {
+      fill: #3b82f6;
+      animation: loaderHoverOwl 3s ease-in-out infinite alternate;
+      transform-origin: 100px 105px;
+  }
+
+  .owl-belly {
+      fill: #eff6ff;
+  }
+
+  .owl-feather {
+      fill: #1d4ed8;
+  }
+
+  .owl-eye-white {
+      fill: #ffffff;
+  }
+
+  .owl-eye-pupil {
+      fill: #1e293b;
+  }
+
+  .owl-eye-shine {
+      fill: #ffffff;
+  }
+
+  .glasses-frame {
+      fill: none;
+      stroke: #f59e0b;
+      stroke-width: 2.5;
+  }
+
+  .glasses-bridge {
+      stroke: #f59e0b;
+      stroke-width: 3;
+  }
+
+  .owl-beak {
+      fill: #f59e0b;
+  }
+
+  .owl-wing {
+      fill: #2563eb;
+      transform-origin: 100px 105px;
+  }
+
+  .left-wing {
+      animation: loaderWingFlapLeft 3s ease-in-out infinite alternate;
+  }
+
+  .right-wing {
+      animation: loaderWingFlapRight 3s ease-in-out infinite alternate;
+  }
+
+  .cap-top {
+      fill: #1e293b;
+      stroke: #475569;
+      stroke-width: 1;
+  }
+
+  .cap-base {
+      fill: #0f172a;
+  }
+
+  .cap-tassel {
+      stroke: #f59e0b;
+      stroke-width: 1.5;
+      fill: none;
+  }
+
+  .cap-tassel-end {
+      fill: #f59e0b;
+  }
+
+  .sparkle {
+      fill: #fcd34d;
+      opacity: 0.8;
+  }
+
+  .sparkle-1 {
+      animation: loaderPulseGlow 1.5s ease-in-out infinite alternate;
+  }
+
+  .sparkle-2 {
+      animation: loaderPulseGlow 1.5s ease-in-out infinite alternate-reverse;
+  }
+
+  /* Animations */
+  @keyframes loaderHoverOwl {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-10px); }
+  }
+
+  @keyframes loaderWingFlapLeft {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-6deg); }
+  }
+
+  @keyframes loaderWingFlapRight {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(6deg); }
+  }
+
+  @keyframes loaderOrbitRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+  }
+
+  @keyframes loaderOrbitRingInverse {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+  }
+
+  @keyframes loaderPulseGlow {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Spinner Box */
+  .spinner-box {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: transparent;
+      margin-bottom: 20px;
+  }
+
+  .circle-border {
+      width: 40px;
+      height: 40px;
+      padding: 3px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      background: linear-gradient(0deg, rgba(99, 102, 241, 0.1) 33%, rgba(99, 102, 241, 1) 100%);
+      animation: loaderSpin 0.8s linear infinite;
+  }
+
+  .circle-core {
+      width: 100%;
+      height: 100%;
+      background-color: #080d1a;
+      border-radius: 50%;
+  }
+
+  .master-loader-overlay.light-theme .circle-core {
+      background-color: #f1f5f9;
+  }
+
+  @keyframes loaderSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+  }
+
+  /* Brand Typography Styles */
+  .loader-brand {
+      color: #ffffff;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      margin: 5px 0;
+      font-family: 'Righteous', sans-serif, system-ui;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.25);
+  }
+
+  .loader-subtitle {
+      color: #7b61ff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+  }
+
+  .loader-progress-bar {
+      width: 140px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 12px;
+  }
+
+  .loader-progress-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #7b61ff, #a855f7);
+      border-radius: 10px;
+      animation: loaderProgressInfinite 1.8s ease-in-out infinite;
+      transform-origin: left;
+  }
+
+  @keyframes loaderProgressInfinite {
+      0% { transform: scaleX(0) translateX(0); }
+      50% { transform: scaleX(0.55) translateX(55%); }
+      100% { transform: scaleX(0) translateX(190%); }
+  }
+
+  .loader-status-text {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      animation: loaderPulseOpacity 1.2s infinite alternate;
+  }
+
+  @keyframes loaderPulseOpacity {
+      0% { opacity: 0.45; }
+      100% { opacity: 1; }
+  }
+
+  /* --- ERROR / OFFLINE BOX STYLE --- */
+  .loader-error-box {
+      display: none;
+      margin-top: 15px;
+      padding: 16px 24px;
+      border-radius: 16px;
+      background: rgba(239, 68, 68, 0.07);
+      border: 1.5px solid rgba(239, 68, 68, 0.2);
+      max-width: 380px;
+      width: calc(100% - 20px);
+      box-sizing: border-box;
+      animation: loaderSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes loaderSlideUp {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+  }
+
+  .loader-error-title {
+      color: #ef4444;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+  }
+
+  .loader-error-desc {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      margin-bottom: 15px;
+  }
+
+  .master-loader-overlay.light-theme .loader-error-desc {
+      color: #475569;
+  }
+
+  .loader-btn-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+  }
+
+  .loader-btn {
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      outline: none;
+  }
+
+  .loader-btn-retry {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
+  }
+
+  .loader-btn-retry:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35);
+  }
+
+  .loader-btn-cancel {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .loader-btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.15);
+  }
+
+  .master-loader-overlay.light-theme .loader-btn-cancel {
+      background: rgba(0, 0, 0, 0.05);
+      color: #1e293b;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .master-loader-overlay.light-theme .loader-btn-cancel:hover {
+      background: rgba(0, 0, 0, 0.08);
+  }
+</style>
+
+<!-- ABCD Master Loader Overlay -->
+<div id="master-loader" class="master-loader-overlay">
+  <!-- Inline JS to set theme class immediately before rendering to prevent white/dark flash -->
+  <script>
+      (function() {
+          const savedTheme = localStorage.getItem('theme');
+          const loader = document.getElementById('master-loader');
+          if (savedTheme === 'dark' || savedTheme === 'dark-theme') {
+              loader.classList.add('dark-theme');
+              loader.classList.remove('light-theme');
+          } else {
+              loader.classList.add('light-theme');
+              loader.classList.remove('dark-theme');
+          }
+      })();
+  </script>
+  
+  <div class="loader-content">
+    <div class="mascot-wrapper">
+      <!-- Custom SVG 2D Owl Mascot -->
+      <svg class="abcd-mascot-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Glowing Ambient Circle -->
+        <circle class="glowing-bg" cx="100" cy="100" r="85" />
+        
+        <!-- Orbiting Rings -->
+        <ellipse class="orbit-ring orbit-ring-1" cx="100" cy="100" rx="90" ry="25" />
+        <ellipse class="orbit-ring orbit-ring-2" cx="100" cy="100" rx="25" ry="90" />
+
+        <!-- Open Book Base -->
+        <g class="book-group">
+          <!-- Book Pages/Cover -->
+          <path class="book-cover" d="M40 145 C 70 135, 100 145, 100 145 C 100 145, 130 135, 160 145 L 165 160 C 135 150, 100 160, 100 160 C 100 160, 65 150, 35 160 Z" />
+          <path class="book-page" d="M45 142 C 72 133, 98 142, 98 142 L 98 155 C 98 155, 72 146, 45 155 Z" />
+          <path class="book-page" d="M155 142 C 128 133, 102 142, 102 142 L 102 155 C 102 155, 128 146, 155 155 Z" />
+        </g>
+
+        <!-- Cute 2D Study Owl -->
+        <g class="owl-group">
+          <!-- Owl Body -->
+          <ellipse class="owl-body" cx="100" cy="105" rx="35" ry="42" />
+          <ellipse class="owl-belly" cx="100" cy="108" rx="25" ry="32" />
+
+          <!-- Owl Ears / Feathers -->
+          <polygon class="owl-feather" points="68,75 80,68 85,82" />
+          <polygon class="owl-feather" points="132,75 120,68 115,82" />
+
+          <!-- Owl Face (Eyes & Beak) -->
+          <!-- Left Eye -->
+          <circle class="owl-eye-white" cx="85" cy="95" r="12" />
+          <circle class="owl-eye-pupil" cx="87" cy="95" r="6" />
+          <circle class="owl-eye-shine" cx="89" cy="93" r="2.5" />
+          
+          <!-- Right Eye -->
+          <circle class="owl-eye-white" cx="115" cy="95" r="12" />
+          <circle class="owl-eye-pupil" cx="113" cy="95" r="6" />
+          <circle class="owl-eye-shine" cx="111" cy="93" r="2.5" />
+          
+          <!-- Glasses Bridge & Frames -->
+          <circle class="glasses-frame" cx="85" cy="95" r="14" />
+          <circle class="glasses-frame" cx="115" cy="95" r="14" />
+          <line class="glasses-bridge" x1="99" y1="95" x2="101" y2="95" />
+
+          <!-- Beak -->
+          <polygon class="owl-beak" points="100,103 96,110 104,110" />
+
+          <!-- Cute Wings -->
+          <path class="owl-wing left-wing" d="M65 105 C 55 110, 52 125, 62 132 C 67 122, 67 112, 65 105" />
+          <path class="owl-wing right-wing" d="M135 105 C 145 110, 148 125, 138 132 C 133 122, 133 112, 135 105" />
+
+          <!-- Graduation Cap (Mortarboard) -->
+          <polygon class="cap-top" points="100,53 130,62 100,71 70,62" />
+          <rect class="cap-base" x="88" y="66" width="24" height="8" rx="2" />
+          <path class="cap-tassel" d="M130 62 L 134 76 L 132 80" />
+          <circle class="cap-tassel-end" cx="132" cy="81" r="2.5" />
+        </g>
+
+        <!-- Tiny Floating Sparkles -->
+        <path class="sparkle sparkle-1" d="M35 60 L 37 65 L 42 67 L 37 69 L 35 74 L 33 69 L 28 67 L 33 65 Z" />
+        <path class="sparkle sparkle-2" d="M165 60 L 167 65 L 172 67 L 167 69 L 165 74 L 163 69 L 158 67 L 163 65 Z" />
+      </svg>
+    </div>
+
+    <!-- Spinner Rings -->
+    <div class="spinner-box">
+      <div class="circle-border">
+        <div class="circle-core"></div>
+      </div>
+    </div>
+
+    <!-- Brand Typography & Status -->
+    <h2 class="loader-brand">ABCD</h2>
+    <p class="loader-subtitle">COACHING & LIBRARY</p>
+    
+    <div class="loader-progress-bar">
+      <div class="loader-progress-fill"></div>
+    </div>
+    
+    <p class="loader-status-text" id="loader-status-msg">Loading Excellence...</p>
+
+    <!-- Error/Offline Fallback UI -->
+    <div class="loader-error-box" id="loader-error-container">
+      <div class="loader-error-title">
+        <i class='bx bx-error-circle' style='font-size: 1.2rem; vertical-align: middle;'></i>
+        <span id="loader-error-title-text">Could Not Load Page</span>
+      </div>
+      <p class="loader-error-desc" id="loader-error-desc-text">Taking longer than usual. Please check your internet connection.</p>
+      <div class="loader-btn-row">
+        <button type="button" class="loader-btn loader-btn-retry" onclick="window.location.reload();">
+          <i class='bx bx-refresh' style='font-size: 1.1rem;'></i> Retry
+        </button>
+        <button type="button" class="loader-btn loader-btn-cancel" onclick="document.getElementById('master-loader').classList.add('fade-out');">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  (placeholderScope => {
+      const loader = document.getElementById('master-loader');
+      if (!loader) return;
+
+      const phrases = [
+          "Loading Excellence...",
+          "Preparing your dashboard...",
+          "Setting up the desk...",
+          "Aligning the books...",
+          "Unlocking potential..."
+      ];
+      
+      const statusMsg = document.getElementById('loader-status-msg');
+      if (statusMsg) {
+          statusMsg.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+      }
+
+      // Hide loader on window fully loaded
+      function hideLoader() {
+          clearTimeout(watchdogTimer);
+          loader.classList.add('fade-out');
+          setTimeout(() => {
+              loader.style.display = 'none';
+              resetErrorUI();
+          }, 450);
+      }
+
+      // Restore Normal Spinner state
+      function resetErrorUI() {
+          const errorContainer = document.getElementById('loader-error-container');
+          const progressBar = document.querySelector('.loader-progress-bar');
+          const spinner = document.querySelector('.spinner-box');
+          if (errorContainer) errorContainer.style.display = 'none';
+          if (statusMsg) statusMsg.style.display = 'block';
+          if (progressBar) progressBar.style.display = 'block';
+          if (spinner) spinner.style.display = 'flex';
+      }
+
+      if (document.readyState === 'complete') {
+          hideLoader();
+      } else {
+          window.addEventListener('load', hideLoader);
+      }
+
+      // Watchdog / Timeout state timer
+      let watchdogTimer;
+      function startWatchdog() {
+          clearTimeout(watchdogTimer);
+          watchdogTimer = setTimeout(() => {
+              showErrorUI("Could Not Load Page", "The page is taking longer than usual to load. It might be due to a server delay or slow connection.");
+          }, 8000); // 8 seconds watchdog
+      }
+
+      // Start watchdog if loader is active initially
+      if (!loader.classList.contains('fade-out')) {
+          startWatchdog();
+      }
+
+      // Network Offline State Handler
+      function showOfflineUI() {
+          clearTimeout(watchdogTimer);
+          showErrorUI("No Internet Connection", "Your device is offline. Please check your network cables or Wi-Fi settings.");
+      }
+
+      // Generic error display
+      function showErrorUI(title, description) {
+          const errorContainer = document.getElementById('loader-error-container');
+          const progressBar = document.querySelector('.loader-progress-bar');
+          const spinner = document.querySelector('.spinner-box');
+          
+          if (errorContainer) {
+              if (spinner) spinner.style.display = 'none';
+              if (progressBar) progressBar.style.display = 'none';
+              if (statusMsg) statusMsg.style.display = 'none';
+              
+              document.getElementById('loader-error-title-text').textContent = title;
+              document.getElementById('loader-error-desc-text').textContent = description;
+              errorContainer.style.display = 'block';
+          }
+      }
+
+      // Initial offline check
+      if (!navigator.onLine) {
+          showOfflineUI();
+      }
+
+      // Online/Offline Events
+      window.addEventListener('offline', showOfflineUI);
+      window.addEventListener('online', () => {
+          resetErrorUI();
+          startWatchdog();
+      });
+
+      // Show loader on page transition / unload
+      window.addEventListener('beforeunload', function() {
+          if (window.isDownloadingFile) {
+              window.isDownloadingFile = false;
+              return;
+          }
+          resetErrorUI();
+          loader.style.display = 'flex';
+          loader.classList.remove('fade-out');
+          startWatchdog();
+      });
+
+      // Handle back/forward cache restore (e.g. safari)
+      window.addEventListener('pageshow', function(event) {
+          if (event.persisted) {
+              hideLoader();
+          }
+      });
+
+      // Intercept any link click or form submission to show the loader instantly
+      document.addEventListener('click', function(e) {
+          const link = e.target.closest('a');
+          if (link) {
+              const href = link.getAttribute('href');
+              const target = link.getAttribute('target');
+              
+              if (href && 
+                  !href.startsWith('#') && 
+                  !href.startsWith('javascript:') && 
+                  !href.startsWith('mailto:') && 
+                  !href.startsWith('tel:') && 
+                  !link.hasAttribute('download') &&
+                  target !== '_blank' &&
+                  !link.hasAttribute('data-bs-toggle') &&
+                  !link.hasAttribute('onclick') &&
+                  !e.defaultPrevented) {
+
+                  
+                  resetErrorUI();
+                  loader.style.display = 'flex';
+                  loader.classList.remove('fade-out');
+                  startWatchdog();
+                  if (!navigator.onLine) {
+                      showOfflineUI();
+                  }
+              }
+          }
+      });
+
+      document.addEventListener('submit', function(e) {
+          const form = e.target.closest('form');
+          if (form && form.getAttribute('target') === '_blank') return;
+          
+          if (!e.defaultPrevented) {
+              resetErrorUI();
+              loader.style.display = 'flex';
+              loader.classList.remove('fade-out');
+              startWatchdog();
+              if (!navigator.onLine) {
+                  showOfflineUI();
+              }
+          }
+      });
+  })();
+</script>

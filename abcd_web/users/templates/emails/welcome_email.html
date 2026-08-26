@@ -1,0 +1,31 @@
+{% extends 'emails/base_email.html' %}
+
+{% block content %}
+<table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif;">
+  <tr>
+    <td style="padding: 10px 0;">
+      <h2 style="color:#1f2937; margin-bottom:12px;">Welcome to ABCD Coaching & Library!</h2>
+      
+      <p style="font-size:15px; color:#374151; line-height:1.6;">
+        Dear {{ username }},<br><br>
+        We are thrilled to welcome you to the <strong>ABCD Coaching & Library</strong> platform! Whether you are a student looking to excel in your studies and access our library, or a teacher dedicating your time to educating others, we are excited to have you on board.
+      </p>
+      
+      <p style="font-size:15px; color:#374151; line-height:1.6; margin-top:15px;">
+        To get started, click the button below to log in to your account and explore your dashboard.
+      </p>
+
+      <div style="margin:30px 0; text-align:center;">
+        <a href="{% if login_url %}{{ login_url }}{% elif site_url %}{{ site_url }}{% url 'users:login' %}{% else %}{% url 'users:login' %}{% endif %}"
+           style="background:#7b61ff; color:#ffffff; padding:12px 26px; text-decoration:none; border-radius:6px; font-weight:600; display:inline-block;">
+          Log In to ABCD
+        </a>
+      </div>
+
+      <p style="font-size:14px; color:#6b7280; line-height:1.6; margin-top:20px;">
+        If you have any questions or need assistance, feel free to contact us or visit our center.
+      </p>
+    </td>
+  </tr>
+</table>
+{% endblock %}

@@ -1,0 +1,15 @@
+{
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Windows",
+  "pythonPath": "C:\\Users\\vikas\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+  "extraPaths": [
+    "C:\\Users\\vikas\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages",
+    "C:\\Users\\vikas\\AppData\\Roaming\\Python\\Python313\\site-packages",
+    "B:\\ABCD\\abcd_web"
+  ],
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true,
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none",
+  "reportIncompatibleVariableOverride": "none"
+}

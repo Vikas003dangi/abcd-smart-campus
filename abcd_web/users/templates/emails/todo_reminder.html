@@ -1,0 +1,127 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<table width="100%" cellpadding="0" cellspacing="0">
+
+  {# ── Coloured top strip: deep purple → indigo (matches hub palette) ── #}
+  <tr>
+    <td style="
+      background: linear-gradient(135deg, #7b61ff 0%, #4f46e5 100%);
+      padding: 28px 28px 22px;
+      text-align: center;
+      border-radius: 10px 10px 0 0;
+    ">
+      <div style="font-size: 36px; line-height: 1; margin-bottom: 10px;">🔔</div>
+      <p style="
+        margin: 0;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.75);
+      ">ABCD To-Do Hub</p>
+      <h1 style="
+        margin: 8px 0 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 0.3px;
+      ">Your Reminder is Due!</h1>
+    </td>
+  </tr>
+
+  {# ── Body ── #}
+  <tr>
+    <td style="padding: 32px 28px 8px;">
+
+      <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.7;">
+        Hi there 👋 — here is a reminder you set on the
+        <strong style="color: #7b61ff;">ABCD To-Do Hub</strong>.
+        It is scheduled to fire now.
+      </p>
+
+      {# ── Title highlighted box ── #}
+      <div style="
+        margin: 0 0 20px;
+        padding: 18px 20px;
+        background: linear-gradient(135deg, #ede9fe 0%, #f0f4ff 100%);
+        border-left: 5px solid #7b61ff;
+        border-radius: 8px;
+      ">
+        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #7b61ff;">
+          Reminder Title
+        </p>
+        <p style="margin: 0; font-size: 18px; font-weight: 700; color: #1f2937;">
+          ⏰ {{ title }}
+        </p>
+      </div>
+
+      {# ── Optional note ── #}
+      {% if note %}
+      <div style="
+        margin: 0 0 20px;
+        padding: 16px 18px;
+        background: #f8f9fb;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+      ">
+        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #6b7280;">
+          Note
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.65;">
+          {{ note }}
+        </p>
+      </div>
+      {% endif %}
+
+      {# ── Recurrence badge ── #}
+      <p style="margin: 0 0 28px; font-size: 14px; color: #6b7280;">
+        Recurrence:&nbsp;
+        <span style="
+          display: inline-block;
+          padding: 3px 12px;
+          background: #ede9fe;
+          color: #5b21b6;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: capitalize;
+        ">{{ recurrence }}</span>
+      </p>
+
+      {# ── CTA button ── #}
+      <div style="text-align: center; margin-bottom: 28px;">
+        <a href="{% if todo_url %}{{ todo_url }}{% elif site_url %}{{ site_url }}{% url 'users:todo_hub' %}{% else %}{% url 'users:todo_hub' %}{% endif %}"
+           style="
+             display: inline-block;
+             padding: 13px 32px;
+             background: linear-gradient(135deg, #7b61ff 0%, #4f46e5 100%);
+             color: #ffffff !important;
+             text-decoration: none;
+             border-radius: 8px;
+             font-size: 15px;
+             font-weight: 700;
+             letter-spacing: 0.3px;
+             box-shadow: 0 4px 14px rgba(123,97,255,0.35);
+           ">
+          📋 Open To-Do Hub
+        </a>
+      </div>
+
+      {# ── Polite sign-off ── #}
+      <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
+        This email was sent automatically by the ABCD To-Do Hub reminder system.<br>
+        You can manage your reminders at any time from the To-Do Hub.
+      </p>
+
+    </td>
+  </tr>
+
+  {# ── Thin accent divider before base footer ── #}
+  <tr>
+    <td style="height: 4px; background: linear-gradient(90deg, #7b61ff, #4f46e5);"></td>
+  </tr>
+
+</table>
+{% endblock %}

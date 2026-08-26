@@ -1,0 +1,524 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Contact Us - ABCD Coaching & Library{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+  <style>
+    /* ---------- CONTACT PAGE LAYOUT ---------- */
+    .contact-wrapper {
+      max-width: 1140px;
+      margin: 30px auto 70px;
+      padding: 0 20px;
+      font-family: inherit;
+    }
+
+    /* ---------- KEYFRAME ANIMATIONS ---------- */
+    @keyframes floatIcon {
+      0% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-5px) rotate(2deg); }
+      100% { transform: translateY(0px) rotate(0deg); }
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes socialGlow {
+      0% { border-color: rgba(123, 97, 255, 0.15); box-shadow: 0 10px 30px rgba(123, 97, 255, 0.06); }
+      50% { border-color: rgba(123, 97, 255, 0.35); box-shadow: 0 15px 40px rgba(123, 97, 255, 0.15); }
+      100% { border-color: rgba(123, 97, 255, 0.15); box-shadow: 0 10px 30px rgba(123, 97, 255, 0.06); }
+    }
+
+    @keyframes shineSweep {
+      from { left: -100%; }
+      to { left: 200%; }
+    }
+
+    /* ---------- HEADER SECTION ---------- */
+    .contact-header {
+      text-align: center;
+      margin-bottom: 42px;
+      animation: fadeInUp 0.5s ease-out both;
+    }
+
+    .contact-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 30px;
+      background: rgba(123, 97, 255, 0.1);
+      color: #7b61ff;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .live-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #7b61ff;
+      display: inline-block;
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+
+    .contact-header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin: 0 0 10px;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    body.dark-theme .contact-header h1 {
+      color: #f8fafc;
+    }
+
+    .contact-header p {
+      margin: 0;
+      color: #64748b;
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+
+    body.dark-theme .contact-header p {
+      color: #94a3b8;
+    }
+
+    /* ---------- CONTACT CARDS GRID ---------- */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+
+    .contact-card {
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      border-radius: 22px;
+      padding: 30px 24px 26px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .contact-card:nth-child(1) { animation-delay: 0.1s; }
+    .contact-card:nth-child(2) { animation-delay: 0.2s; }
+    .contact-card:nth-child(3) { animation-delay: 0.3s; }
+    .contact-card:nth-child(4) { animation-delay: 0.4s; }
+
+    body.dark-theme .contact-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .contact-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 22px 45px rgba(15, 23, 42, 0.14);
+    }
+
+    body.dark-theme .contact-card:hover {
+      box-shadow: 0 22px 45px rgba(0, 0, 0, 0.45);
+    }
+
+    .contact-icon-wrapper {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      font-size: 1.8rem;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .contact-icon-wrapper i {
+      display: inline-block;
+      animation: floatIcon 3.5s ease-in-out infinite;
+    }
+
+    .contact-card:nth-child(2) .contact-icon-wrapper i { animation-delay: 0.5s; }
+    .contact-card:nth-child(3) .contact-icon-wrapper i { animation-delay: 1.0s; }
+    .contact-card:nth-child(4) .contact-icon-wrapper i { animation-delay: 1.5s; }
+
+    .contact-card:hover .contact-icon-wrapper {
+      transform: scale(1.12);
+    }
+
+    /* Card Color Themes */
+    .card-phone .contact-icon-wrapper { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+    .card-phone:hover { border-color: rgba(37, 99, 235, 0.3); }
+    .card-phone .contact-btn { background: #2563eb; }
+    .card-phone .contact-btn:hover { background: #1d4ed8; box-shadow: 0 8px 22px rgba(37, 99, 235, 0.38); }
+
+    .card-whatsapp .contact-icon-wrapper { background: rgba(37, 211, 102, 0.1); color: #25d366; }
+    .card-whatsapp:hover { border-color: rgba(37, 211, 102, 0.3); }
+    .card-whatsapp .contact-btn { background: #25d366; }
+    .card-whatsapp .contact-btn:hover { background: #1eaf53; box-shadow: 0 8px 22px rgba(37, 211, 102, 0.38); }
+
+    .card-email .contact-icon-wrapper { background: rgba(123, 97, 255, 0.1); color: #7b61ff; }
+    .card-email:hover { border-color: rgba(123, 97, 255, 0.3); }
+    .card-email .contact-btn { background: #7b61ff; }
+    .card-email .contact-btn:hover { background: #6246ea; box-shadow: 0 8px 22px rgba(123, 97, 255, 0.38); }
+
+    .card-location .contact-icon-wrapper { background: rgba(234, 88, 12, 0.1); color: #ea580c; }
+    .card-location:hover { border-color: rgba(234, 88, 12, 0.3); }
+    .card-location .contact-btn { background: #ea580c; }
+    .card-location .contact-btn:hover { background: #c2410c; box-shadow: 0 8px 22px rgba(234, 88, 12, 0.38); }
+
+    .contact-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: #0f172a;
+    }
+
+    body.dark-theme .contact-card h3 {
+      color: #f8fafc;
+    }
+
+    .contact-card p {
+      margin: 0 0 20px;
+      color: #64748b;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+
+    body.dark-theme .contact-card p {
+      color: #94a3b8;
+    }
+
+    .contact-card p strong {
+      color: #334155;
+    }
+
+    body.dark-theme .contact-card p strong {
+      color: #cbd5e1;
+    }
+
+    .contact-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 20px;
+      border-radius: 14px;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .contact-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transform: skewX(-25deg);
+      transition: none;
+    }
+
+    .contact-btn:hover::before {
+      animation: shineSweep 0.75s ease;
+    }
+
+    .contact-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    /* ---------- SOCIAL CONNECT SECTION ---------- */
+    .social-section {
+      text-align: center;
+      margin-bottom: 48px;
+      background: linear-gradient(135deg, rgba(123, 97, 255, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
+      border: 1px solid rgba(123, 97, 255, 0.15);
+      padding: 36px 28px;
+      border-radius: 24px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.45s both, socialGlow 6s ease-in-out infinite;
+    }
+
+    body.dark-theme .social-section {
+      background: linear-gradient(135deg, rgba(30, 27, 75, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);
+      border: 1px solid rgba(123, 97, 255, 0.2);
+    }
+
+    .social-section h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 0 0 8px;
+      color: #0f172a;
+    }
+
+    body.dark-theme .social-section h2 {
+      color: #f8fafc;
+    }
+
+    .social-section .social-lead-text {
+      color: #475569;
+      font-size: 1.02rem;
+      font-weight: 500;
+      margin: 0 0 24px;
+      line-height: 1.5;
+    }
+
+    body.dark-theme .social-section .social-lead-text {
+      color: #cbd5e1;
+    }
+
+    .social-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .social-pill {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 26px;
+      border-radius: 14px;
+      text-decoration: none;
+      color: #ffffff !important;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+    }
+
+    .social-pill::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+      transform: skewX(-25deg);
+    }
+
+    .social-pill:hover::before {
+      animation: shineSweep 0.75s ease;
+    }
+
+    .social-pill:hover {
+      transform: translateY(-4px) scale(1.03);
+    }
+
+    .social-pill i {
+      font-size: 1.3rem;
+      transition: transform 0.3s ease;
+    }
+
+    .social-pill:hover i {
+      transform: scale(1.2) rotate(-5deg);
+    }
+
+    .instagram-pill {
+      background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    }
+    .instagram-pill:hover {
+      box-shadow: 0 12px 28px rgba(220, 39, 67, 0.42);
+    }
+
+    .youtube-pill {
+      background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    }
+    .youtube-pill:hover {
+      box-shadow: 0 12px 28px rgba(255, 0, 0, 0.42);
+    }
+
+    /* ---------- MAP SECTION ---------- */
+    .map-container {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 24px;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+    }
+
+    body.dark-theme .map-container {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .map-container h2 {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin: 0 0 20px;
+      color: #0f172a;
+    }
+
+    body.dark-theme .map-container h2 {
+      color: #f8fafc;
+    }
+
+    .map-container h2 i {
+      color: #ea580c;
+      animation: floatIcon 3s ease-in-out infinite;
+    }
+
+    .map-wrapper {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    }
+
+    .map-container iframe {
+      width: 100%;
+      height: 380px;
+      border: none;
+      display: block;
+      transition: filter 0.4s ease;
+    }
+
+    body.dark-theme .map-container iframe {
+      filter: invert(90%) hue-rotate(180deg) contrast(1.1) opacity(0.9);
+    }
+
+    @media (max-width: 640px) {
+      .contact-header h1 { font-size: 2rem; }
+      .social-buttons { flex-direction: column; width: 100%; }
+      .social-pill { width: 100%; justify-content: center; box-sizing: border-box; }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <main class="contact-wrapper">
+    <!-- HEADER -->
+    <div class="contact-header">
+        <span class="contact-badge"><span class="live-pulse-dot"></span> Reach Out</span>
+        <h1>Contact ABCD</h1>
+        <p>Any Body Can Do — We’re always here to help you grow & succeed.</p>
+    </div>
+    
+    <!-- CONTACT GRID -->
+    <div class="contact-grid">
+        <div class="contact-card card-phone">
+            <div class="contact-icon-wrapper">
+                <i class="bx bx-phone-call"></i>
+            </div>
+            <h3>Call Us</h3>
+            <p>Speak directly with our guidance team for quick course or seat assistance.</p>
+            <a class="contact-btn" href="tel:9827662450">
+                <i class="bx bx-phone"></i> Call Now
+            </a>
+        </div>
+        
+        <div class="contact-card card-whatsapp">
+            <div class="contact-icon-wrapper">
+                <i class="bx bxl-whatsapp"></i>
+            </div>
+            <h3>WhatsApp</h3>
+            <p>Instant support, fee inquiries, and live seat reservations on WhatsApp.</p>
+            <a class="contact-btn" href="https://wa.me/919827662450" target="_blank" rel="noopener noreferrer">
+                <i class="bx bxl-whatsapp"></i> Chat on WhatsApp
+            </a>
+        </div>
+        
+        <div class="contact-card card-email">
+            <div class="contact-icon-wrapper">
+                <i class="bx bx-envelope"></i>
+            </div>
+            <h3>Email Us</h3>
+            <p>
+                <strong>abcd2013baq@gmail.com</strong><br>
+                support@abcd2013.online
+            </p>
+            <a class="contact-btn" href="mailto:abcd2013baq@gmail.com">
+                <i class="bx bx-paper-plane"></i> Send Email
+            </a>
+        </div>
+        
+        <div class="contact-card card-location">
+            <div class="contact-icon-wrapper">
+                <i class="bx bx-map-pin"></i>
+            </div>
+            <h3>Visit Us</h3>
+            <p>
+                Infront of Block Office, Bareth Road,<br>
+                Ganj Basoda, Madhya Pradesh
+            </p>
+            <a class="contact-btn" href="https://maps.app.goo.gl/zmLayHYQ6dD49Nc28" target="_blank" rel="noopener noreferrer">
+                <i class="bx bx-directions"></i> Open in Maps
+            </a>
+        </div>
+    </div>
+    
+    <!-- SOCIAL CONNECT SECTION -->
+    <div class="social-section">
+        <h2>Connect With Us</h2>
+        <p class="social-lead-text">Join our vibrant learning community, stay updated with daily highlights, and master English with us online!</p>
+        
+        <div class="social-buttons">
+            <a class="social-pill instagram-pill" href="https://www.instagram.com/abcd_vibes7/" target="_blank" rel="noopener noreferrer">
+                <i class="bx bxl-instagram"></i> @abcd_vibes7
+            </a>
+            
+            <a class="social-pill youtube-pill" href="https://www.youtube.com/@englishekkhoz8279" target="_blank" rel="noopener noreferrer">
+                <i class="bx bxl-youtube"></i> ABCD Official Channel
+            </a>
+        </div>
+    </div>
+
+    <!-- MAP SECTION -->
+    <div class="map-container">
+        <h2><i class="bx bx-map-alt"></i> Our Location</h2>
+        <div class="map-wrapper">
+            <iframe
+              src="https://www.google.com/maps?q=ABCD%20coaching%20and%20library%20Ganj%20Basoda&output=embed"
+              loading="lazy"
+              title="ABCD Coaching & Library Location">
+            </iframe>
+        </div>
+    </div>
+  </main>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

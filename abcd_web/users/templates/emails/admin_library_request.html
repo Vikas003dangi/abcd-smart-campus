@@ -1,0 +1,77 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+
+<!-- Card -->
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:auto;background:#ffffff;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.08);overflow:hidden;">
+  
+  <!-- Header -->
+  <tr>
+    <td style="padding:28px 32px 18px 32px;background:linear-gradient(135deg,#6a5cff,#8f7cff);color:#ffffff;">
+      <h2 style="margin:0;font-size:22px;font-weight:700;">
+        📚 New Library Admission Request
+      </h2>
+      <p style="margin:6px 0 0;font-size:14px;opacity:0.9;">
+        Action required from admin
+      </p>
+    </td>
+  </tr>
+
+  <!-- Body -->
+  <tr>
+    <td style="padding:28px 32px;color:#2b2b2b;">
+      
+      <p style="font-size:15px;line-height:1.6;margin-top:0;">
+        A student has submitted a <strong>library admission / seat request</strong>.
+        Please review the details below:
+      </p>
+
+      <!-- Info box -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f7fb;border-radius:10px;padding:18px;margin:20px 0;">
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Student Name:</strong><br>
+            {{ student.full_name }}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Request Type:</strong><br>
+            {% if is_new %}New Admission{% else %}Seat Change{% endif %} - {{ shift }} Shift
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;">
+            <strong>Requested Seat:</strong><br>
+            Seat {{ seat.seat_number|default:"N/A" }} ({{ seat.get_floor_display|default:"N/A" }})
+          </td>
+        </tr>
+      </table>
+
+      <p style="font-size:14px;color:#555;line-height:1.6;">
+        Please log in to the teacher dashboard to approve or reject this request.
+      </p>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:30px 0 10px;">
+        <a href="{% if dashboard_url %}{{ dashboard_url }}{% elif site_url %}{{ site_url }}{% url 'users:teacher_dashboard' %}{% else %}{% url 'users:teacher_dashboard' %}{% endif %}"
+           style="display:inline-block;padding:14px 26px;background:#6a5cff;color:#ffffff;
+                  text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;">
+          🔍 Open Teacher Dashboard
+        </a>
+      </div>
+
+    </td>
+  </tr>
+
+  <!-- Footer note -->
+  <tr>
+    <td style="padding:16px 32px;background:#fafafa;color:#777;font-size:12px;text-align:center;">
+      This is an automated system email from <strong>ABCD Coaching & Library</strong>.<br>
+      Please do not reply to this email.
+    </td>
+  </tr>
+
+</table>
+
+{% endblock %}

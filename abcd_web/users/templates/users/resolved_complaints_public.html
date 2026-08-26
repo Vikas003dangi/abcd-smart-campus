@@ -1,0 +1,716 @@
+{% extends 'home_page.html' %}
+{% load static %}
+
+{% block title %}Resolved Complaints | ABCD Coaching & Library{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Page Layout */
+    .page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 120px 20px 60px;
+    }
+
+    /* Hero Card */
+    .hero-card {
+        background: linear-gradient(135deg, #7b61ff 0%, #6366f1 100%);
+        border-radius: 24px;
+        padding: 40px;
+        color: #ffffff;
+        box-shadow: 0 12px 35px rgba(99, 102, 241, 0.25);
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 30px;
+    }
+
+    body.dark-theme .hero-card {
+        background: linear-gradient(135deg, #4f3bbf 0%, #312e81 100%);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .hero-icon-wrapper {
+        background: rgba(255, 255, 255, 0.18);
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        flex-shrink: 0;
+        animation: floatHeroIcon 4s ease-in-out infinite;
+    }
+
+    .hero-icon-wrapper i {
+        font-size: 3.2rem;
+        color: #ffffff;
+    }
+
+    @keyframes floatHeroIcon {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50% { transform: translateY(-8px) rotate(3deg); }
+    }
+
+    .hero-text-content h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin-bottom: 8px;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+    }
+
+    .hero-text-content p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.05rem;
+        line-height: 1.6;
+        margin-bottom: 0;
+    }
+
+    .resolved-count-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        padding: 6px 14px;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 10;
+    }
+
+    /* Complaint Cards */
+    .complaint-card {
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(99, 102, 241, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .complaint-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(99, 102, 241, 0.08);
+        border-color: rgba(99, 102, 241, 0.2);
+    }
+
+    body.dark-theme .complaint-card {
+        background: rgba(30, 20, 50, 0.45);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    body.dark-theme .complaint-card:hover {
+        border-color: rgba(168, 85, 247, 0.25);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    }
+
+    .complaint-meta-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .student-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(99, 102, 241, 0.08);
+        color: #4f46e5;
+        padding: 6px 14px;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    body.dark-theme .student-badge {
+        background: rgba(168, 85, 247, 0.12);
+        color: #c084fc;
+    }
+
+    .resolved-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        padding: 4px 10px;
+        border-radius: 30px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 8px;
+    }
+
+    .date-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    body.dark-theme .date-text {
+        color: #94a3b8;
+    }
+
+    .complaint-subject {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #1e1b4b;
+        margin-bottom: 12px;
+        letter-spacing: -0.3px;
+    }
+
+    body.dark-theme .complaint-subject {
+        color: #ffffff;
+    }
+
+    .complaint-msg {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #475569;
+        margin-bottom: 20px;
+    }
+
+    body.dark-theme .complaint-msg {
+        color: #cbd5e1;
+    }
+
+    /* Rating Stars */
+    .rating-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .rating-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    body.dark-theme .rating-label {
+        color: #94a3b8;
+    }
+
+    .stars-wrapper {
+        display: inline-flex;
+        gap: 2px;
+        color: #fbbf24;
+        font-size: 1.2rem;
+    }
+
+    /* Quote Feedback Box */
+    .feedback-quote-box {
+        background: #f8fafc;
+        border-left: 4px solid #6366f1;
+        border-radius: 0 16px 16px 0;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        position: relative;
+        display: flex;
+        gap: 12px;
+    }
+
+    body.dark-theme .feedback-quote-box {
+        background: rgba(15, 23, 42, 0.3);
+        border-left-color: #a855f7;
+    }
+
+    .quote-icon {
+        font-size: 1.4rem;
+        color: #6366f1;
+        opacity: 0.4;
+        line-height: 1;
+    }
+
+    body.dark-theme .quote-icon {
+        color: #a855f7;
+    }
+
+    .feedback-text {
+        font-style: italic;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: #334155;
+        margin-bottom: 0;
+    }
+
+    body.dark-theme .feedback-text {
+        color: #cbd5e1;
+    }
+
+    /* Images Grid */
+    .images-grid {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+    }
+
+    .complaint-img-link {
+        display: block;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 2px solid transparent;
+    }
+
+    .complaint-img-link:hover {
+        transform: scale(1.04);
+        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.2);
+        border-color: #6366f1;
+    }
+
+    body.dark-theme .complaint-img-link:hover {
+        border-color: #a855f7;
+        box-shadow: 0 8px 25px rgba(168, 85, 247, 0.3);
+    }
+
+    .complaint-img-link img {
+        width: 140px;
+        height: 95px;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* Premium Pagination */
+    .pagination-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 45px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 22px;
+        border-radius: 30px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #ffffff !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s ease;
+        border: none;
+        text-decoration: none;
+    }
+
+    body.dark-theme .pagination-btn {
+        background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+    }
+
+    .pagination-btn:not(.disabled):hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        background: linear-gradient(135deg, #5a73e8 0%, #6b409c 100%);
+    }
+
+    body.dark-theme .pagination-btn:not(.disabled):hover {
+        background: linear-gradient(135deg, #b56eff 0%, #8b4eff 100%);
+        box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+    }
+
+    .pagination-btn.disabled {
+        background: #cbd5e1;
+        color: #64748b !important;
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    body.dark-theme .pagination-btn.disabled {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    .page-info {
+        font-size: 0.95rem;
+        color: #475569;
+        font-weight: 500;
+    }
+
+    body.dark-theme .page-info {
+        color: #94a3b8;
+    }
+
+    /* Empty State */
+    .empty-state-container {
+        text-align: center;
+        padding: 80px 20px;
+        background: #ffffff;
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(99, 102, 241, 0.08);
+    }
+
+    body.dark-theme .empty-state-container {
+        background: rgba(30, 20, 50, 0.45);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        color: #6366f1;
+        margin-bottom: 20px;
+    }
+
+    body.dark-theme .empty-state-icon {
+        color: #a855f7;
+    }
+
+    .empty-state-text {
+        font-size: 1.15rem;
+        color: #475569;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    body.dark-theme .empty-state-text {
+        color: #94a3b8;
+    }
+
+    /* Lightbox Styles */
+    .image-lightbox {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .image-lightbox.open {
+        display: flex;
+        opacity: 1;
+    }
+    .image-lightbox .lb-card {
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+        transform: scale(0.9);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .image-lightbox.open .lb-card {
+        transform: scale(1);
+    }
+    .image-lightbox img.lb-img {
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        display: block;
+    }
+    .image-lightbox .lb-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: none;
+        border: none;
+        color: #ffffff;
+        font-size: 2.5rem;
+        cursor: pointer;
+        z-index: 100000;
+        line-height: 1;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+    .image-lightbox .lb-close:hover {
+        opacity: 1;
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 768px) {
+        .page-container {
+            padding-top: 100px;
+        }
+        .hero-card {
+            padding: 30px;
+            flex-direction: column;
+            text-align: center;
+            gap: 15px;
+        }
+        .hero-icon-wrapper {
+            width: 70px;
+            height: 70px;
+        }
+        .hero-icon-wrapper i {
+            font-size: 2.8rem;
+        }
+        .hero-text-content h1 {
+            font-size: 1.8rem;
+        }
+        .hero-text-content p {
+            font-size: 0.95rem;
+        }
+        .complaint-card {
+            padding: 24px;
+        }
+        .complaint-subject {
+            font-size: 1.2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-container {
+            padding-top: 85px;
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+        .hero-card {
+            padding: 24px 16px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+        }
+        .hero-text-content h1 {
+            font-size: 1.5rem;
+        }
+        .hero-text-content p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .resolved-count-badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            top: 15px;
+            right: 15px;
+        }
+        .complaint-card {
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 18px;
+        }
+        .complaint-meta-header {
+            margin-bottom: 12px;
+        }
+        .student-badge {
+            padding: 4px 10px;
+            font-size: 0.75rem;
+        }
+        .date-text {
+            font-size: 0.75rem;
+        }
+        .complaint-subject {
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+        }
+        .complaint-msg {
+            font-size: 0.88rem;
+            margin-bottom: 14px;
+            line-height: 1.5;
+        }
+        .feedback-quote-box {
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+        .feedback-text {
+            font-size: 0.85rem;
+        }
+        .complaint-img-link img {
+            width: 100px;
+            height: 70px;
+        }
+        .pagination-container {
+            justify-content: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .pagination-btn {
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+        .page-info {
+            order: -1;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <div class="hero-card">
+      <div class="resolved-count-badge">
+        Total Resolved: {{ page_obj.paginator.count }}
+      </div>
+      <div class="hero-icon-wrapper">
+        <i class="bx bxs-check-shield"></i>
+      </div>
+      <div class="hero-text-content">
+        <h1>Resolved Complaints</h1>
+        <p>We believe in transparency. Below are the complaints raised by our students that have been successfully resolved by the administration.</p>
+      </div>
+    </div>
+
+    {% for c in page_obj %}
+      <div class="complaint-card">
+
+        <div class="complaint-meta-header">
+          <div>
+            <span class="student-badge"><i class="bx bx-user"></i> Student #{{ c.student.id }}</span>
+            <span class="resolved-badge"><i class="bx bx-check"></i> Resolved</span>
+          </div>
+          <div class="date-text">
+            <i class="bx bx-calendar"></i> {{ c.created_at|date:"d M Y" }}
+          </div>
+        </div>
+
+        <div class="complaint-subject">
+          {{ c.display_subject }}
+        </div>
+
+        <div class="complaint-msg">
+          {{ c.message }}
+        </div>
+
+        {% if c.rating %}
+          <div class="rating-section">
+            <span class="rating-label">Student Rating:</span>
+            <div class="stars-wrapper">
+              {% if c.rating == 5 %}
+                <i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bxs-star"></i>
+              {% elif c.rating == 4 %}
+                <i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bx-star"></i>
+              {% elif c.rating == 3 %}
+                <i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bx-star"></i><i class="bx bx-star"></i>
+              {% elif c.rating == 2 %}
+                <i class="bx bxs-star"></i><i class="bx bxs-star"></i><i class="bx bx-star"></i><i class="bx bx-star"></i><i class="bx bx-star"></i>
+              {% elif c.rating == 1 %}
+                <i class="bx bxs-star"></i><i class="bx bx-star"></i><i class="bx bx-star"></i><i class="bx bx-star"></i><i class="bx bx-star"></i>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if c.feedback %}
+          <div class="feedback-quote-box">
+            <i class="bx bxs-quote-left quote-icon"></i>
+            <p class="feedback-text">“{{ c.feedback }}”</p>
+          </div>
+        {% endif %}
+
+        {% if c.image1 or c.image2 or c.image3 %}
+          <div class="images-grid">
+            {% if c.image1 %}
+              <a href="{{ c.image1.url }}" class="complaint-img-link" title="Zoom image">
+                <img src="{{ c.image1.url }}" alt="Complaint Image 1">
+              </a>
+            {% endif %}
+            {% if c.image2 %}
+              <a href="{{ c.image2.url }}" class="complaint-img-link" title="Zoom image">
+                <img src="{{ c.image2.url }}" alt="Complaint Image 2">
+              </a>
+            {% endif %}
+            {% if c.image3 %}
+              <a href="{{ c.image3.url }}" class="complaint-img-link" title="Zoom image">
+                <img src="{{ c.image3.url }}" alt="Complaint Image 3">
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+      </div>
+    {% empty %}
+      <div class="empty-state-container">
+        <i class="bx bx-folder-open empty-state-icon"></i>
+        <p class="empty-state-text">No resolved complaints yet.</p>
+      </div>
+    {% endfor %}
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div class="pagination-container">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="pagination-btn"><i class="bx bx-left-arrow-alt"></i> Previous</a>
+        {% else %}
+          <span class="pagination-btn disabled"><i class="bx bx-left-arrow-alt"></i> Previous</span>
+        {% endif %}
+
+        <span class="page-info">Page <strong>{{ page_obj.number }}</strong> of {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="pagination-btn">Next <i class="bx bx-right-arrow-alt"></i></a>
+        {% else %}
+          <span class="pagination-btn disabled">Next <i class="bx bx-right-arrow-alt"></i></span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+</div>
+
+<!-- Lightbox Markup -->
+<div id="imageLightbox" class="image-lightbox" aria-hidden="true" role="dialog" aria-label="Image preview">
+  <button class="lb-close" aria-label="Close lightbox">&times;</button>
+  <div class="lb-card">
+    <img id="lbImg" src="" alt="Complaint image" class="lb-img">
+  </div>
+</div>
+
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const lightbox = document.getElementById('imageLightbox');
+    const lbImg = document.getElementById('lbImg');
+    const closeBtn = lightbox.querySelector('.lb-close');
+
+    document.querySelectorAll('.complaint-img-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            lbImg.src = link.href;
+            lightbox.classList.add('open');
+        });
+    });
+
+    const closeLightbox = () => {
+        lightbox.classList.remove('open');
+    };
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+            closeLightbox();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && lightbox.classList.contains('open')) {
+            closeLightbox();
+        }
+    });
+});
+</script>
+{% endblock %}

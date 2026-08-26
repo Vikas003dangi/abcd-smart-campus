@@ -1,0 +1,1278 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}ABCD's Hall of Fame{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* --- CSS VARIABLES FOR DYNAMIC THEME SUPPORT --- */
+    :root {
+        --hall-primary: #7c3aed;
+        --hall-primary-glow: rgba(124, 58, 237, 0.15);
+        --hall-secondary: #db2777;
+        --hall-accent: #fbbf24;
+        --hall-bg-card: rgba(255, 255, 255, 0.9);
+        --hall-border-card: rgba(124, 58, 237, 0.15);
+        --hall-text-main: #0f172a;
+        --hall-text-muted: #475569;
+        --hall-shadow-card: 0 10px 30px rgba(124, 58, 237, 0.05);
+        --hall-shadow-hover: 0 20px 40px rgba(124, 58, 237, 0.15);
+        --hall-glass-bg: rgba(255, 255, 255, 0.6);
+        --hall-glass-border: rgba(124, 58, 237, 0.2);
+        --hall-input-bg: #ffffff;
+    }
+
+    body.dark-theme {
+        --hall-primary: #a78bfa;
+        --hall-primary-glow: rgba(167, 139, 250, 0.25);
+        --hall-secondary: #f472b6;
+        --hall-accent: #fbbf24;
+        --hall-bg-card: rgba(30, 41, 59, 0.8);
+        --hall-border-card: rgba(255, 255, 255, 0.1);
+        --hall-text-main: #f8fafc;
+        --hall-text-muted: #cbd5e1;
+        --hall-shadow-card: 0 10px 35px rgba(0, 0, 0, 0.3);
+        --hall-shadow-hover: 0 20px 50px rgba(167, 139, 250, 0.2);
+        --hall-glass-bg: rgba(15, 23, 42, 0.6);
+        --hall-glass-border: rgba(255, 255, 255, 0.15);
+        --hall-input-bg: #1e293b;
+    }
+
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* --- COMPACT & BORDERLESS HEADER SECTION --- */
+    .hall-header-section {
+        text-align: center;
+        margin-bottom: 35px;
+        padding: 10px 0;
+    }
+
+    .hall-title {
+        font-weight: 900;
+        font-size: 2.8rem;
+        background: linear-gradient(135deg, var(--hall-primary) 0%, var(--hall-secondary) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 8px;
+        letter-spacing: -1.2px;
+    }
+
+    .hall-subtitle {
+        font-size: 1.15rem;
+        color: var(--hall-text-muted);
+        font-weight: 500;
+        margin-top: 0;
+        letter-spacing: 0.5px;
+    }
+
+    /* --- TABS & ACTIONS BAR (TEACHER VIEW) --- */
+    .hall-actions-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .back-btn-wrapper,
+    .edit-btn-wrapper {
+        display: flex;
+        align-items: center;
+    }
+
+    .back-btn-wrapper {
+        justify-content: flex-start;
+    }
+
+    .edit-btn-wrapper {
+        justify-content: flex-end;
+    }
+
+    .hall-back-btn,
+    .hall-edit-btn {
+        background: var(--hall-bg-card);
+        color: var(--hall-primary);
+        border: 1px solid var(--hall-border-card);
+        padding: 12px 28px;
+        border-radius: 50px;
+        font-weight: 750;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: var(--hall-shadow-card);
+        cursor: pointer;
+        font-size: 0.95rem;
+    }
+
+    .hall-back-btn:hover {
+        background: var(--hall-primary);
+        color: white;
+        border-color: var(--hall-primary);
+        transform: translateX(-4px);
+        box-shadow: var(--hall-shadow-hover);
+    }
+
+    .hall-moderation-tabs {
+        background: rgba(0, 0, 0, 0.04);
+        padding: 6px;
+        border-radius: 50px;
+        display: flex;
+        gap: 5px;
+        border: 1px solid rgba(0, 0, 0, 0.02);
+    }
+
+    body.dark-theme .hall-moderation-tabs {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .h-tab {
+        padding: 10px 24px;
+        border-radius: 50px;
+        font-weight: 750;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        background: transparent;
+        color: var(--hall-text-muted);
+        font-size: 0.9rem;
+    }
+
+    .h-tab.active {
+        background: var(--hall-bg-card);
+        color: var(--hall-primary);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .hall-edit-btn {
+        background: var(--hall-primary);
+        color: white;
+        border-color: var(--hall-primary);
+        box-shadow: 0 4px 15px var(--hall-primary-glow);
+    }
+
+    .hall-edit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--hall-primary-glow);
+    }
+
+    .hall-edit-btn.editing {
+        background: #ef4444;
+        border-color: #ef4444;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+
+    .hall-edit-btn.editing:hover {
+        box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+    }
+
+    /* --- ACHIEVER CARDS GRID & ITEM DESIGN --- */
+    .ach-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+        gap: 30px;
+    }
+
+    .ach-container {
+        background: var(--hall-bg-card);
+        border-radius: 28px;
+        padding: 35px 30px;
+        border: 1px solid var(--hall-border-card);
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        box-shadow: var(--hall-shadow-card);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .ach-container:hover {
+        transform: translateY(-10px);
+        box-shadow: var(--hall-shadow-hover);
+        border-color: var(--hall-primary);
+    }
+
+    /* Trophy Ribbon Badge for 5 star ratings */
+    .top-rated-badge {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15rem;
+        box-shadow: 0 4px 10px rgba(245, 158, 11, 0.35);
+        z-index: 2;
+    }
+
+    .ach-photo-wrapper {
+        position: relative;
+        margin-bottom: 22px;
+    }
+
+    .ach-photo {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid var(--hall-bg-card);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        transition: all 0.4s ease;
+        z-index: 1;
+        position: relative;
+    }
+
+    .ach-photo-ring {
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        right: -4px;
+        bottom: -4px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--hall-primary), var(--hall-secondary));
+        z-index: 0;
+        opacity: 0.6;
+        transition: all 0.4s ease;
+    }
+
+    .ach-container:hover .ach-photo-ring {
+        transform: rotate(180deg);
+        opacity: 1;
+        box-shadow: 0 0 15px var(--hall-primary-glow);
+    }
+
+    .ach-name {
+        font-weight: 800;
+        font-size: 1.35rem;
+        color: var(--hall-text-main);
+        margin-bottom: 6px;
+    }
+
+    .ach-post {
+        font-weight: 800;
+        color: var(--hall-primary);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, var(--hall-primary), var(--hall-secondary));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Meta Info Pills */
+    .ach-meta-info {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .meta-pill {
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 5px 12px;
+        border-radius: 50px;
+        background: rgba(124, 58, 237, 0.05);
+        color: var(--hall-primary);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid rgba(124, 58, 237, 0.1);
+    }
+
+    body.dark-theme .meta-pill {
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--hall-primary);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .ach-rating {
+        display: flex;
+        gap: 4px;
+        color: var(--hall-accent);
+        font-size: 1.25rem;
+        margin-top: auto;
+    }
+
+    /* --- MODERATION ACTIONS (TEACHER OVERLAY) --- */
+    .mod-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.85);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+        padding: 30px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 5;
+        backdrop-filter: blur(8px);
+    }
+
+    .ach-container:hover .mod-overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .mod-btn {
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 50px;
+        border: none;
+        font-weight: 750;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+    .mod-approve {
+        background: #10b981;
+        color: white;
+    }
+
+    .mod-approve:hover {
+        background: #059669;
+        transform: scale(1.03);
+    }
+
+    .mod-reject {
+        background: #ef4444;
+        color: white;
+    }
+
+    .mod-reject:hover {
+        background: #dc2626;
+        transform: scale(1.03);
+    }
+
+    .mod-view-detail {
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .mod-view-detail:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: scale(1.03);
+    }
+
+    /* DELETE MODE */
+    .delete-overlay {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 10;
+        display: none;
+    }
+
+    .ach-container.edit-mode .delete-overlay {
+        display: block;
+    }
+
+    .del-btn {
+        background: #ef4444;
+        color: white;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+        font-size: 1.1rem;
+    }
+
+    .del-btn:hover {
+        transform: scale(1.15);
+        background: #dc2626;
+    }
+
+    /* --- EMPTY / ERROR STATES --- */
+    .empty-msg {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--hall-text-muted);
+        background: var(--hall-bg-card);
+        border: 1px solid var(--hall-border-card);
+        border-radius: 28px;
+        box-shadow: var(--hall-shadow-card);
+    }
+
+    body.dark-theme .empty-msg {
+        background: rgba(30, 41, 59, 0.5);
+        color: var(--hall-text-muted);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .empty-msg i {
+        font-size: 4.5rem;
+        margin-bottom: 20px;
+        color: var(--hall-primary);
+        display: block;
+    }
+
+    .empty-msg p {
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    /* --- CALL TO ACTION BANNERS --- */
+    .cta-banner {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(219, 39, 119, 0.08) 100%);
+        border: 1px solid rgba(124, 58, 237, 0.15);
+        border-radius: 28px;
+        padding: 40px;
+        margin-top: 60px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 30px;
+        box-shadow: var(--hall-shadow-card);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    body.dark-theme .cta-banner {
+        background: linear-gradient(135deg, rgba(167, 139, 250, 0.12) 0%, rgba(244, 114, 182, 0.12) 100%);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .cta-content {
+        flex: 1 1 500px;
+    }
+
+    .cta-content h3 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #5b21b6;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    body.dark-theme .cta-content h3 {
+        color: #f1f5f9;
+    }
+
+    .cta-content p {
+        color: var(--hall-text-muted);
+        font-size: 1.05rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .cta-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .cta-btn {
+        padding: 14px 32px;
+        border-radius: 50px;
+        font-weight: 750;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid transparent;
+    }
+
+    .cta-btn.primary {
+        background: linear-gradient(135deg, var(--hall-primary) 0%, var(--hall-secondary) 100%);
+        color: white;
+        box-shadow: 0 4px 15px var(--hall-primary-glow);
+    }
+
+    .cta-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--hall-primary-glow);
+    }
+
+    .cta-btn.secondary {
+        background: var(--hall-bg-card);
+        color: var(--hall-text-main);
+        border-color: var(--hall-border-card);
+        box-shadow: var(--hall-shadow-card);
+    }
+
+    .cta-btn.secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--hall-shadow-hover);
+        background: var(--hall-primary);
+        color: white;
+        border-color: var(--hall-primary);
+    }
+
+    /* --- RESPONSIVE STYLES --- */
+    @media (max-width: 900px) {
+        .dashboard-container {
+            padding: 20px 15px;
+        }
+
+        .hall-title {
+            font-size: 2.5rem;
+        }
+
+        .hall-subtitle {
+            font-size: 1.05rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .hall-actions-bar {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .back-btn-wrapper {
+            width: auto;
+            order: 1;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .edit-btn-wrapper {
+            width: auto;
+            order: 2;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .hall-tabs-wrapper {
+            width: 100%;
+            order: 3;
+            display: flex;
+            justify-content: center;
+            margin-top: 5px;
+        }
+
+        .hall-back-btn,
+        .hall-edit-btn {
+            width: auto;
+            padding: 10px 22px;
+            font-size: 0.9rem;
+            justify-content: center;
+        }
+
+        .hall-moderation-tabs {
+            width: 100%;
+            justify-content: space-around;
+        }
+
+        .cta-banner {
+            padding: 30px 20px;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .cta-content {
+            flex: 1 1 100%;
+        }
+
+        .cta-content h3 {
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .cta-actions {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .cta-btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .hall-title {
+            font-size: 2rem;
+        }
+
+        .hall-subtitle {
+            font-size: 0.9rem;
+        }
+
+        .ach-grid {
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .ach-container {
+            padding: 25px 20px;
+            border-radius: 20px;
+        }
+
+        .ach-photo {
+            width: 95px;
+            height: 95px;
+            border-width: 3px;
+        }
+
+        .ach-name {
+            font-size: 1.15rem;
+        }
+
+        .ach-post {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+    }
+
+    /* Extreme small screen support (down to 250px) */
+    @media (max-width: 400px) {
+        .hall-title {
+            font-size: 1.6rem;
+        }
+
+        .h-tab {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+
+        .ach-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* --- SEARCH: No Results Empty State --- */
+    .hall-no-results {
+        display: none;
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--hall-text-muted);
+        background: var(--hall-bg-card);
+        border: 1px solid var(--hall-border-card);
+        border-radius: 28px;
+        box-shadow: var(--hall-shadow-card);
+        animation: hallNoResultsFade 0.4s ease;
+    }
+
+    @keyframes hallNoResultsFade {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .hall-no-results i {
+        font-size: 3.5rem;
+        margin-bottom: 15px;
+        display: block;
+        color: var(--hall-primary);
+        opacity: 0.6;
+    }
+
+    .hall-no-results .no-res-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--hall-text-main);
+        margin: 0 0 6px;
+    }
+
+    .hall-no-results .no-res-sub {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--hall-text-muted);
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header Banner -->
+    <div class="hall-header-section">
+        <h1 class="hall-title">ABCD's Hall of Fame</h1>
+        <p class="hall-subtitle">Celebrating our Achievers and Aspiring leaders</p>
+    </div>
+
+    <!-- Action Bar & Tabs (Staff / Moderation View) -->
+    <div class="hall-actions-bar">
+        <div class="back-btn-wrapper">
+            <a href="javascript:history.back()" class="hall-back-btn">
+                <i class='bx bx-left-arrow-alt'></i> Back
+            </a>
+        </div>
+
+        {% if is_teacher %}
+        <div class="hall-tabs-wrapper">
+            <div class="hall-moderation-tabs">
+                <button class="h-tab active" onclick="switchSection('approved', event)">Approved Achievers ({{ approved|length }})</button>
+                <button class="h-tab" onclick="switchSection('pending', event)">Requests ({{ pending|length }})</button>
+            </div>
+        </div>
+
+        <div class="edit-btn-wrapper">
+            <button class="hall-edit-btn" id="masterEditBtn" onclick="toggleEditMode()">
+                <i class='bx bx-edit-alt'></i> Edit
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- APPROVED ACHIEVERS SECTION -->
+    <div id="approved-section" class="hall-section">
+        <div class="ach-grid">
+            {% for ach in approved %}
+            <div class="ach-container" data-url="{% url 'users:achievement_detail' ach.pk %}"
+                data-name="{{ ach.first_name }} {{ ach.last_name }}" data-designation="{{ ach.short_achievement }}"
+                data-city="{{ ach.working_city }}" data-year="{{ ach.selection_year }}" data-rating="{{ ach.rating }}"
+                onclick="handleAchClick(this)">
+                {% if is_teacher %}
+                <div class="delete-overlay">
+                    <form action="{% url 'users:delete_student' ach.user.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="del-btn delete-confirm-btn" title="Delete Alumni Record"
+                            data-student-name="{{ ach.first_name }} {{ ach.last_name }}"
+                            data-has-admission="{% if ach.has_profile %}true{% else %}false{% endif %}"
+                            data-has-alumni="true" data-confirm-title="Delete Alumni Record"
+                            data-confirm-msg="Are you sure you want to delete the alumni record for {{ ach.first_name }} {{ ach.last_name }}?">
+                            <i class='bx bx-trash'></i>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                {% if ach.rating == 5 %}
+                <div class="top-rated-badge" title="Top Performer">
+                    <i class='bx bxs-trophy'></i>
+                </div>
+                {% endif %}
+
+                <div class="ach-photo-wrapper">
+                    <div class="ach-photo-ring"></div>
+                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}">
+                </div>
+                <div class="ach-name">{{ ach.first_name }} {{ ach.last_name }}</div>
+                <div class="ach-post">{{ ach.short_achievement }}</div>
+
+                <div class="ach-meta-info">
+                    <span class="meta-pill"><i class='bx bx-map-pin'></i> {{ ach.working_city }}</span>
+                    <span class="meta-pill"><i class='bx bx-calendar'></i> {{ ach.selection_year }}</span>
+                </div>
+
+                <div class="ach-rating">
+                    {% for i in "12345" %}
+                    {% if forloop.counter <= ach.rating %} <i class='bx bxs-star'></i>
+                        {% else %}
+                        <i class='bx bx-star' style="color: #cbd5e1;"></i>
+                        {% endif %}
+                        {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-msg">
+                <i class='bx bx-trophy'></i>
+                <p>The Hall of Fame is waiting for its first achievers.</p>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="hall-no-results" id="hallNoResultsApproved" role="alert" aria-live="polite">
+            <i class='bx bx-search-alt-2'></i>
+            <p class="no-res-title">No achievers found</p>
+            <p class="no-res-sub">Try a different keyword or search term</p>
+        </div>
+    </div>
+
+    {% if is_teacher %}
+    <!-- PENDING REQUESTS SECTION -->
+    <div id="pending-section" class="hall-section" style="display:none;">
+        <div class="ach-grid">
+            {% for ach in pending %}
+            <div class="ach-container" data-name="{{ ach.first_name }} {{ ach.last_name }}"
+                data-designation="{{ ach.short_achievement }}" data-city="{{ ach.working_city }}"
+                data-year="{{ ach.selection_year }}" data-rating="{{ ach.rating }}">
+                <div class="ach-photo-wrapper">
+                    <div class="ach-photo-ring"></div>
+                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}">
+                </div>
+                <div class="ach-name">{{ ach.first_name }} {{ ach.last_name }}</div>
+                <div class="ach-post">{{ ach.short_achievement }}</div>
+
+                <div class="ach-meta-info">
+                    <span class="meta-pill"><i class='bx bx-map-pin'></i> {{ ach.working_city }}</span>
+                    <span class="meta-pill"><i class='bx bx-calendar'></i> {{ ach.selection_year }}</span>
+                </div>
+
+                <div class="mod-overlay">
+                    <form action="{% url 'users:approve_achievement' ach.pk %}" method="post" style="width:100%">
+                        {% csrf_token %}
+                        <button type="submit" class="mod-btn mod-approve delete-confirm-btn"
+                            data-confirm-title="Approve Request"
+                            data-confirm-msg="Are you sure you want to approve the achievement request for {{ ach.first_name }} {{ ach.last_name }}?">
+                            <i class='bx bx-check'></i> Approve
+                        </button>
+                    </form>
+                    <form action="{% url 'users:delete_achievement' ach.pk %}" method="post" style="width:100%">
+                        {% csrf_token %}
+                        <button type="submit" class="mod-btn mod-reject delete-confirm-btn" style="background:#ef4444;"
+                            data-confirm-title="Delete Request"
+                            data-confirm-msg="Are you sure you want to delete the achievement request for {{ ach.first_name }} {{ ach.last_name }}? The user will be able to submit a new request later.">
+                            <i class='bx bx-trash'></i> Delete
+                        </button>
+                    </form>
+                    <a href="{% url 'users:achievement_detail' ach.pk %}" class="mod-btn mod-view-detail">View
+                        Detail</a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-msg">
+                <i class='bx bx-message-square-detail'></i>
+                <p>No pending requests.</p>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="hall-no-results" id="hallNoResultsPending" role="alert" aria-live="polite">
+            <i class='bx bx-search-alt-2'></i>
+            <p class="no-res-title">No pending requests found</p>
+            <p class="no-res-sub">Try a different keyword or search term</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ROLE-BASED CALL TO ACTIONS -->
+    {% if not request.user.is_authenticated %}
+    <!-- Non-logged in visitors / guests CTA -->
+    <div class="cta-banner">
+        <div class="cta-content">
+            <h3>🚀 Ready to shape your career?</h3>
+            <p>Join ABCD Coaching & Library to master English grammar, gain speaking confidence, and enjoy our peaceful,
+                fully-equipped study hall.</p>
+        </div>
+        <div class="cta-actions">
+            <a href="{% url 'users:admission_form' %}" class="cta-btn primary"><i class='bx bx-edit'></i> Get
+                Admission</a>
+            <a href="{% url 'users:register' %}" class="cta-btn secondary">Register Now</a>
+        </div>
+    </div>
+    {% elif is_teacher %}
+    <!-- Teachers: No CTA needed -->
+    {% elif nav_achievement %}
+    <!-- Alumni who has already submitted achievement -->
+    <div class="cta-banner">
+        <div class="cta-content">
+            <h3>✏️ Keep your achievement profile updated</h3>
+            <p>Has your job designation, employer, or city changed? Keep your details current to guide new students.</p>
+        </div>
+        <div class="cta-actions">
+            <a href="{% url 'users:edit_alumni' %}" class="cta-btn primary"><i class='bx bx-edit-alt'></i> Update
+                Success Story</a>
+        </div>
+    </div>
+    {% else %}
+    <!-- Logged in students who haven't submitted yet -->
+    <div class="cta-banner">
+        <div class="cta-content">
+            <h3>🏆 Share your success with our community!</h3>
+            <p>Cleared an exam or secured a placement? Inspire your peers and future aspirants by listing your
+                achievement here.</p>
+        </div>
+        <div class="cta-actions">
+            <a href="{% url 'users:achievement_form' %}" class="cta-btn primary"><i class='bx bx-trophy'></i> Submit
+                Achievement</a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    let isEditMode = false;
+
+    // Click handler for Achiever cards (navigates if not in edit mode)
+    function handleAchClick(el) {
+        if (!isEditMode) {
+            window.location.href = el.getAttribute('data-url');
+        }
+    }
+
+    // Tab switcher (Teacher moderation sections)
+    function switchSection(id, event) {
+        document.querySelectorAll('.hall-section').forEach(function (s) {
+            s.style.display = 'none';
+        });
+        document.getElementById(id + '-section').style.display = 'block';
+        document.querySelectorAll('.h-tab').forEach(function (b) {
+            b.classList.remove('active');
+        });
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        }
+        if (typeof _globalMatchedEls !== 'undefined') _globalMatchedEls = [];
+        if (typeof _globalCurrentIdx !== 'undefined') _globalCurrentIdx = -1;
+        // Re-run search on active section if a search term is active
+        var dInput = document.getElementById('desktopSearchInput') || document.getElementById('desktopSearch');
+        var mInput = document.getElementById('mobileSearchInput');
+        var activeQ = (dInput && dInput.value.trim()) || (mInput && mInput.value.trim()) || '';
+        if (activeQ && typeof window.customPageSearch === 'function') {
+            window.customPageSearch(activeQ);
+        }
+    }
+
+    // Toggle teacher Edit Mode (shows trash buttons, disables normal card click navigation)
+    function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const btn = document.getElementById('masterEditBtn');
+        const containers = document.querySelectorAll('.ach-container');
+
+        if (isEditMode) {
+            btn.classList.add('editing');
+            btn.innerHTML = "<i class='bx bx-check'></i> Done Editing";
+            containers.forEach(function (c) {
+                c.classList.add('edit-mode');
+            });
+        } else {
+            btn.classList.remove('editing');
+            btn.innerHTML = "<i class='bx bx-edit-alt'></i> Edit";
+            containers.forEach(function (c) {
+                c.classList.remove('edit-mode');
+            });
+        }
+    }
+
+    // Ensure window.showStyledConfirm fallback exists
+    if (!window.showStyledConfirm) {
+        window.showStyledConfirm = function (title, message, isDelete = false) {
+            return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+                const box = document.createElement('div');
+                box.style.cssText = 'background:#fff;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
+                const icon = isDelete ? '🗑️' : '❓';
+                const btnBg = isDelete ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+                box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:10px">${icon}</div>`
+                    + `<h3 style="color:#1e293b;margin-bottom:12px;font-size:1.25rem;font-weight:700">${title}</h3>`
+                    + `<p style="color:#64748b;font-size:0.95rem;line-height:1.6;margin-bottom:22px">${message}</p>`
+                    + `<div style="display:flex;justify-content:center;gap:12px;">`
+                    + `<button id="stCancelBtn" style="background:#e2e8f0;color:#334155;border:none;padding:10px 24px;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;">Cancel</button>`
+                    + `<button id="stConfirmBtn" style="background:${btnBg};color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;">Confirm</button>`
+                    + `</div>`;
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+
+                document.getElementById('stCancelBtn').onclick = () => { overlay.remove(); resolve(false); };
+                document.getElementById('stConfirmBtn').onclick = () => { overlay.remove(); resolve(true); };
+                overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+            });
+        };
+    }
+
+    document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.delete-confirm-btn');
+        if (!btn) return;
+        e.preventDefault();
+        const form = btn.closest('form');
+        const msg = btn.dataset.confirmMsg || 'Are you sure you want to proceed?';
+        const title = btn.dataset.confirmTitle || 'Confirm Action';
+        const isDelete = btn.classList.contains('mod-reject') || btn.classList.contains('del-btn') || title.toLowerCase().includes('delete');
+
+        const confirmed = await window.showStyledConfirm(title, msg, isDelete);
+        if (confirmed) {
+            form.submit();
+        }
+    });
+
+    // Delete record confirmation
+    async function confirmDelete(btn) {
+        if (await window.showStyledConfirm('Delete Record', 'Are you sure you want to <b>permanently delete</b> this record? This cannot be undone.', true)) {
+            btn.closest('form').submit();
+        }
+    }
+
+    // ============================================================
+    // HALL OF FAME — CUSTOM PAGE SEARCH ENGINE
+    // ============================================================
+    (function () {
+        'use strict';
+
+        // --- Helpers ---
+        function getActiveSection() {
+            var sections = document.querySelectorAll('.hall-section');
+            for (var i = 0; i < sections.length; i++) {
+                if (sections[i].style.display !== 'none') return sections[i];
+            }
+            // Default to first visible
+            return sections[0] || null;
+        }
+
+        function getNoResultsEl(section) {
+            if (!section) return null;
+            return section.querySelector('.hall-no-results');
+        }
+
+        function clearHighlightsLocal() {
+            document.querySelectorAll('.search-highlight').forEach(function (h) {
+                var parent = h.parentNode;
+                if (parent) {
+                    h.replaceWith(document.createTextNode(h.textContent));
+                    parent.normalize();
+                }
+            });
+        }
+
+        function highlightTextInNode(textNode, term) {
+            var text = textNode.textContent;
+            var safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var regex = new RegExp('(' + safeTerm + ')', 'gi');
+            if (!regex.test(text)) return;
+            if (textNode.parentNode && textNode.parentNode.classList && textNode.parentNode.classList.contains('search-highlight')) return;
+
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = text.replace(regex, '<span class="search-highlight" tabindex="-1">$1</span>');
+            var parent = textNode.parentNode;
+            if (!parent) return;
+            while (tempDiv.firstChild) {
+                parent.insertBefore(tempDiv.firstChild, textNode);
+            }
+            parent.removeChild(textNode);
+        }
+
+        function walkTextNodes(el, term) {
+            if (!el) return;
+            if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'INPUT', 'TEXTAREA', 'BUTTON', 'IMG'].includes(el.nodeName)) return;
+            if (el.classList && (el.classList.contains('delete-overlay') || el.classList.contains('mod-overlay') || el.classList.contains('hall-no-results'))) return;
+
+            if (el.nodeType === 3) {
+                var text = el.textContent;
+                if (text && text.trim() !== '') {
+                    highlightTextInNode(el, term);
+                }
+                return;
+            }
+            var children = Array.from(el.childNodes);
+            for (var i = 0; i < children.length; i++) {
+                walkTextNodes(children[i], term);
+            }
+        }
+
+        function parseRatingQuery(val) {
+            // Accept: "5", "5 star", "5star", "5 stars"
+            var m = val.match(/^(\d)/);
+            if (m) return parseInt(m[1], 10);
+            // Also accept word forms
+            var wordMap = { 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5 };
+            var lower = val.toLowerCase().trim();
+            for (var w in wordMap) {
+                if (lower.indexOf(w) === 0) return wordMap[w];
+            }
+            return null;
+        }
+
+        // --- Main Search Function ---
+        window.customPageSearch = function (query) {
+            clearHighlightsLocal();
+
+            // Reset all no-results states
+            document.querySelectorAll('.hall-no-results').forEach(function (el) {
+                el.style.display = 'none';
+            });
+
+            // Reset global match tracking (used by base template's arrow nav)
+            if (typeof _globalMatchedEls !== 'undefined') _globalMatchedEls = [];
+            if (typeof _globalCurrentIdx !== 'undefined') _globalCurrentIdx = -1;
+
+            var term = query.trim();
+            var lowerTerm = term.toLowerCase();
+
+            // If user is typing a keyword prefix (e.g. "/des"), wait for ":" before searching
+            if (lowerTerm.charAt(0) === '/') {
+                var colonIdx = lowerTerm.indexOf(':');
+                if (colonIdx === -1) {
+                    // Don't search yet — keyword popup is active
+                    if (typeof updateDesktopNavUI === 'function') updateDesktopNavUI();
+                    if (typeof updateMobileNavUI === 'function') updateMobileNavUI();
+                    return;
+                }
+            }
+
+            var activeSection = getActiveSection();
+            if (!activeSection) return;
+            var cards = Array.from(activeSection.querySelectorAll('.ach-container'));
+
+            // Parse keyword type
+            var keywordType = 'generic';
+            var searchVal = term;
+
+            if (lowerTerm.indexOf('/designation:') === 0) {
+                keywordType = 'designation';
+                searchVal = term.substring(13).trim();
+            } else if (lowerTerm.indexOf('/year:') === 0) {
+                keywordType = 'year';
+                searchVal = term.substring(6).trim();
+            } else if (lowerTerm.indexOf('/title:') === 0) {
+                keywordType = 'title';
+                searchVal = term.substring(7).trim();
+            } else if (lowerTerm.indexOf('/city:') === 0) {
+                keywordType = 'city';
+                searchVal = term.substring(6).trim();
+            } else if (lowerTerm.indexOf('/rating:') === 0) {
+                keywordType = 'rating';
+                searchVal = term.substring(8).trim();
+            } else if (lowerTerm.indexOf('/name:') === 0) {
+                keywordType = 'name';
+                searchVal = term.substring(6).trim();
+            }
+
+            // If keyword chosen but no value typed yet, show all and exit
+            if (keywordType !== 'generic' && searchVal === '') {
+                cards.forEach(function (c) { c.style.display = ''; });
+                if (typeof updateDesktopNavUI === 'function') updateDesktopNavUI();
+                if (typeof updateMobileNavUI === 'function') updateMobileNavUI();
+                return;
+            }
+
+            // No query at all — reset everything
+            if (!term) {
+                cards.forEach(function (c) { c.style.display = ''; });
+                if (typeof updateDesktopNavUI === 'function') updateDesktopNavUI();
+                if (typeof updateMobileNavUI === 'function') updateMobileNavUI();
+                return;
+            }
+
+            var lowerSearch = searchVal.toLowerCase();
+            var visibleCount = 0;
+
+            if (keywordType !== 'generic') {
+                // KEYWORD-BASED FILTER: show/hide cards
+                cards.forEach(function (card) {
+                    var match = false;
+                    switch (keywordType) {
+                        case 'designation':
+                            match = (card.dataset.designation || '').toLowerCase().indexOf(lowerSearch) !== -1;
+                            break;
+                        case 'year':
+                            match = (card.dataset.year || '').indexOf(searchVal) !== -1;
+                            break;
+                        case 'title':
+                            match = (card.dataset.designation || '').toLowerCase().indexOf(lowerSearch) !== -1;
+                            break;
+                        case 'city':
+                            match = (card.dataset.city || '').toLowerCase().indexOf(lowerSearch) !== -1;
+                            break;
+                        case 'rating':
+                            var ratingVal = parseRatingQuery(searchVal);
+                            if (ratingVal !== null) {
+                                match = parseInt(card.dataset.rating || '0', 10) === ratingVal;
+                            } else {
+                                match = true; // Can't parse → show all
+                            }
+                            break;
+                        case 'name':
+                            match = (card.dataset.name || '').toLowerCase().indexOf(lowerSearch) !== -1;
+                            break;
+                    }
+
+                    if (match) {
+                        card.style.display = '';
+                        visibleCount++;
+                        // Also highlight the matching text inside the card
+                        walkTextNodes(card, searchVal);
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            } else {
+                // GENERIC TEXT SEARCH: don't hide cards, just highlight across all visible
+                cards.forEach(function (card) {
+                    card.style.display = '';
+                });
+                cards.forEach(function (card) {
+                    walkTextNodes(card, searchVal);
+                });
+                visibleCount = cards.length; // All visible for generic
+            }
+
+            // Update global match array for arrow navigation
+            var allHighlights = Array.from(document.querySelectorAll('.search-highlight'));
+            if (typeof _globalMatchedEls !== 'undefined') {
+                _globalMatchedEls = allHighlights;
+            }
+
+            // Scroll to first match
+            if (allHighlights.length > 0) {
+                if (typeof _globalCurrentIdx !== 'undefined') _globalCurrentIdx = 0;
+                if (typeof scrollToGlobalMatch === 'function') {
+                    scrollToGlobalMatch(0);
+                } else {
+                    allHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            // Show/hide "No results" empty state for keyword filters
+            var noResEl = getNoResultsEl(activeSection);
+            if (keywordType !== 'generic' && visibleCount === 0 && noResEl) {
+                noResEl.style.display = 'block';
+            } else if (noResEl) {
+                noResEl.style.display = 'none';
+            }
+
+            // For generic search with 0 highlights, also show no results
+            if (keywordType === 'generic' && allHighlights.length === 0 && noResEl) {
+                noResEl.style.display = 'block';
+                // Set visibleCount to 0 so nav shows "No results"
+                if (typeof _globalMatchedEls !== 'undefined') _globalMatchedEls = [];
+            }
+
+            // Update the nav count/arrows UI from base template
+            if (typeof updateDesktopNavUI === 'function') updateDesktopNavUI();
+            if (typeof updateMobileNavUI === 'function') updateMobileNavUI();
+        };
+    })();
+</script>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

@@ -1,0 +1,99 @@
+/* ================================================== */
+/* ENHANCED SHIFT SEAT PATTERNS - PENDING VISUALS */
+/* ================================================== */
+
+/* --- Case A: Morning Pending, Evening Available (or Occupied) --- */
+.seat.shift-pending-morning {
+    border: 2px solid #3498db !important;
+    background: #fff;
+    /* Ensure base is white */
+}
+
+.seat.shift-pending-morning .seat-morning {
+    background-color: #3498db !important;
+    /* Blue Top */
+    opacity: 1;
+}
+
+.seat.shift-pending-morning .seat-evening {
+    background-color: transparent;
+    /* Show white base (Available) */
+}
+
+/* If evening is occupied/hold, override the evening half only */
+.seat.shift-pending-morning.occupied-evening .seat-evening {
+    background-color: #7c3aed !important;
+    /* Purple */
+}
+
+.seat.shift-pending-morning.hold-evening .seat-evening {
+    background-color: #f59e0b !important;
+    /* Orange */
+}
+
+
+/* --- Case B: Evening Pending, Morning Available (or Occupied) --- */
+.seat.shift-pending-evening {
+    border: 2px solid #3498db !important;
+    background: #fff;
+}
+
+.seat.shift-pending-evening .seat-evening {
+    background-color: #3498db !important;
+    /* Blue Bottom */
+    opacity: 1;
+}
+
+.seat.shift-pending-evening .seat-morning {
+    background-color: transparent;
+    /* Show white base */
+}
+
+/* If morning is occupied/hold */
+.seat.shift-pending-evening.occupied-morning .seat-morning {
+    background-color: #7c3aed !important;
+    /* Purple */
+}
+
+.seat.shift-pending-evening.hold-morning .seat-morning {
+    background-color: #f59e0b !important;
+    /* Orange */
+}
+
+
+/* --- Case C: Full Day Pending (or Both Shifts Pending) --- */
+.seat.shift-pending-full {
+    border: 2px solid #3498db !important;
+    background: #3498db !important;
+}
+
+.seat.shift-pending-full .seat-morning,
+.seat.shift-pending-full .seat-evening {
+    background-color: #3498db !important;
+}
+
+/* Ensure white icons on blue background for full pending */
+.seat.shift-pending-full .seat-icon-group,
+.seat.shift-pending-full .lamp-icon {
+    color: white;
+}
+
+/* --- Text Colors --- */
+/* Ensure white text on blue backgrounds */
+.seat.shift-pending-full .seat-number,
+.seat.shift-pending-morning .seat-number,
+.seat.shift-pending-evening .seat-number {
+    background: #3498db;
+    border-color: #2980b9;
+    color: white;
+}
+
+.seat.shift-pending-full .seat-label,
+.seat.shift-pending-morning .seat-label,
+.seat.shift-pending-evening .seat-label {
+    background: #3498db;
+    border-color: #2980b9;
+    color: white;
+    font-size: 0.65rem;
+    /* Smaller text to fit specific labels */
+}

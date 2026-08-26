@@ -1,0 +1,87 @@
+{% load static %}
+<script>
+    (function() {
+        const path = window.location.pathname;
+        const isHomeBase = path === '/' || 
+                           path === '/guest-home/' || 
+                           path === '/guest-home' ||
+                           path === '/dashboard/' || 
+                           path === '/dashboard' ||
+                           path === '/alumni/dashboard/' || 
+                           path === '/alumni/dashboard' ||
+                           path === '/teacher/' ||
+                           path === '/teacher';
+
+        if (!isHomeBase) return;
+
+        // 1. Push a state immediately to create the wall
+        window.history.pushState('home_trap', document.title, window.location.href);
+        
+        // 2. The Invisible Wall: If they press back, just push the wall back up. Do nothing else.
+        window.addEventListener('popstate', function(event) {
+            window.history.pushState('home_trap', document.title, window.location.href);
+        });
+    })();
+
+    // Bottom Navigation Bar Zoom Preventer (Pinch-to-zoom on Mobile/Touchpad & Page zoom on PC)
+    (function() {
+        if (window.__bottomNavZoomPreventerAttached) return;
+        window.__bottomNavZoomPreventerAttached = true;
+
+        const initialDPR = window.devicePixelRatio || 1;
+        let cachedBars = null;
+
+        function updateBottomBarZoom() {
+            if (!cachedBars || cachedBars.length === 0) {
+                cachedBars = document.querySelectorAll('.bottom-nav-menu, .guest-bottom-nav');
+            }
+            if (!cachedBars || cachedBars.length === 0) return;
+
+            const vv = window.visualViewport;
+            const scale = vv ? vv.scale : 1;
+            const currentDPR = window.devicePixelRatio || 1;
+            const pageZoom = currentDPR / initialDPR;
+            const totalZoom = scale * pageZoom;
+
+            cachedBars.forEach(bar => {
+                // If zoom is extremely close to 1, reset to default stylesheet values to avoid minor rounding layout shifts
+                if (totalZoom <= 1.001 && totalZoom >= 0.999) {
+                    bar.style.transform = '';
+                    bar.style.transformOrigin = '';
+                    bar.style.width = '';
+                    bar.style.bottom = '';
+                    bar.style.left = '';
+                    return;
+                }
+
+                bar.style.transform = `scale(${1 / totalZoom})`;
+                bar.style.transformOrigin = 'bottom left';
+
+                if (vv) {
+                    bar.style.width = `${vv.width * totalZoom}px`;
+                    const offsetBottom = window.innerHeight - (vv.offsetTop + vv.height);
+                    bar.style.bottom = `${Math.max(0, offsetBottom)}px`;
+                    bar.style.left = `${vv.offsetLeft}px`;
+                } else {
+                    bar.style.width = `${window.innerWidth * pageZoom}px`;
+                    bar.style.bottom = '0px';
+                    bar.style.left = '0px';
+                }
+            });
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateBottomBarZoom);
+            window.visualViewport.addEventListener('scroll', updateBottomBarZoom);
+        }
+        window.addEventListener('resize', updateBottomBarZoom);
+        window.addEventListener('scroll', updateBottomBarZoom);
+
+        // Run immediately and on page load events
+        updateBottomBarZoom();
+        document.addEventListener('DOMContentLoaded', updateBottomBarZoom);
+        window.addEventListener('load', updateBottomBarZoom);
+    })();
+</script>
+<link rel="stylesheet" href="/static/css/site-tour.css?v=37">
+<script src="/static/js/site-tour.js?v=37"></script>

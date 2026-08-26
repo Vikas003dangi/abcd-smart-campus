@@ -1,0 +1,121 @@
+<script>
+    (function() {
+        const rawPath = window.location.pathname.toLowerCase();
+        const cleanPath = rawPath.replace(/\/$/, '') || '/';
+        
+        // Home Base URLs where back navigation operates normally
+        const isHomeBase = cleanPath === '' || 
+                           cleanPath === '/' || 
+                           cleanPath === '/home' || 
+                           cleanPath === '/guest-home' ||
+                           cleanPath === '/dashboard' || 
+                           cleanPath === '/alumni/dashboard' || 
+                           cleanPath === '/teacher' ||
+                           cleanPath === '/profile/guest';
+
+        if (!isHomeBase) {
+            // Push history trap state immediately so browser back button triggers popstate
+            try {
+                window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
+            } catch(e) {}
+            
+            window.addEventListener('popstate', async function(event) {
+                if (window.customBackConfirm) {
+                    const ok = await window.customBackConfirm();
+                    if (!ok) {
+                        try {
+                            window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
+                        } catch(e) {}
+                        return;
+                    }
+                    window.allowPageUnload = true;
+                }
+
+                // If template passed explicit override paths
+                const targetBackUrlPath = "{{ back_url_path|default:'' }}";
+                const rawBackUrl = "{{ back_url|default:'' }}";
+
+                if (targetBackUrlPath) {
+                    window.location.replace(targetBackUrlPath);
+                    return;
+                }
+                
+                if (rawBackUrl && (rawBackUrl.startsWith('/') || rawBackUrl.startsWith('http'))) {
+                    window.location.replace(rawBackUrl);
+                    return;
+                }
+
+                // Default behavior for all sub-pages: Redirect directly to user's Home Base!
+                window.location.replace("{% url 'users:smart_back_router' %}");
+            });
+
+            // Re-push history trap state on page visibility / focus / user interaction
+            window.addEventListener('pageshow', function() {
+                try {
+                    window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
+                } catch(e) {}
+            });
+        }
+    })();
+
+    // Global helper for back buttons in UI headers/navbars
+    window.goBackOrHomeBase = function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        window.location.replace("{% url 'users:smart_back_router' %}");
+    };
+
+    // Bottom Navigation Bar Zoom Preventer (Pinch-to-zoom on Mobile/Touchpad & Page zoom on PC)
+    (function() {
+        if (window.__bottomNavZoomPreventerAttached) return;
+        window.__bottomNavZoomPreventerAttached = true;
+
+        const initialDPR = window.devicePixelRatio || 1;
+
+        function updateBottomBarZoom() {
+            const bars = document.querySelectorAll('.bottom-nav-menu, .guest-bottom-nav');
+            if (!bars || bars.length === 0) return;
+
+            const vv = window.visualViewport;
+            const scale = vv ? vv.scale : 1;
+            const currentDPR = window.devicePixelRatio || 1;
+            const pageZoom = currentDPR / initialDPR;
+            const totalZoom = scale * pageZoom;
+
+            bars.forEach(bar => {
+                if (totalZoom <= 1.001 && totalZoom >= 0.999) {
+                    bar.style.transform = '';
+                    bar.style.transformOrigin = '';
+                    bar.style.width = '';
+                    bar.style.bottom = '';
+                    bar.style.left = '';
+                    return;
+                }
+
+                bar.style.transform = `scale(${1 / totalZoom})`;
+                bar.style.transformOrigin = 'bottom left';
+
+                if (vv) {
+                    bar.style.width = `${vv.width * totalZoom}px`;
+                    const offsetBottom = window.innerHeight - (vv.offsetTop + vv.height);
+                    bar.style.bottom = `${Math.max(0, offsetBottom)}px`;
+                    bar.style.left = `${vv.offsetLeft}px`;
+                } else {
+                    bar.style.width = `${window.innerWidth * pageZoom}px`;
+                    bar.style.bottom = '0px';
+                    bar.style.left = '0px';
+                }
+            });
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateBottomBarZoom);
+            window.visualViewport.addEventListener('scroll', updateBottomBarZoom);
+        }
+        window.addEventListener('resize', updateBottomBarZoom);
+        window.addEventListener('scroll', updateBottomBarZoom);
+
+        updateBottomBarZoom();
+        document.addEventListener('DOMContentLoaded', updateBottomBarZoom);
+        window.addEventListener('load', updateBottomBarZoom);
+    })();
+</script>

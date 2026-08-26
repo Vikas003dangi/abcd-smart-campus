@@ -1,0 +1,916 @@
+{% extends base_template %}
+{% load static %}
+{% load dict_extras %}
+
+{% block title %}{{ achievement.first_name }} {{ achievement.last_name }}'s Success Story - ABCD{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .hall-of-fame-wrapper {
+        padding: 40px 20px;
+        background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.05), transparent);
+        min-height: 100vh;
+    }
+
+    .cv-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 30px;
+        overflow: hidden;
+        box-shadow: 0 40px 100px -20px rgba(0,0,0,0.12);
+        display: flex;
+        flex-direction: column;
+        border: 1px solid rgba(0,0,0,0.05);
+        position: relative;
+    }
+    
+    .dark-theme .cv-container { 
+        background: #0f172a; 
+        color: #f1f5f9; 
+        box-shadow: 0 40px 100px -20px rgba(0,0,0,0.4);
+        border-color: rgba(255,255,255,0.05);
+    }
+
+    /* --- BACK BUTTON CONTAINER & ACCENT --- */
+    .back-btn-container {
+        max-width: 1000px;
+        margin: 0 auto 25px auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .cv-accent-line {
+        height: 6px;
+        background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
+        width: 100%;
+    }
+
+    .hall-back-btn {
+        background: white;
+        color: #6366f1;
+        border: 2px solid #e0e7ff;
+        padding: 10px 25px;
+        border-radius: 50px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .hall-back-btn:hover {
+        background: #f8faff;
+        transform: translateX(-5px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.15);
+    }
+    .dark-theme .hall-back-btn {
+        background: #1e293b;
+        border-color: #334155;
+        color: #818cf8;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    }
+    .dark-theme .hall-back-btn:hover {
+        background: #273549;
+        box-shadow: 0 6px 20px rgba(129, 140, 248, 0.2);
+    }
+
+    /* --- EDIT ACTION BAR --- */
+    .edit-btn-action {
+        background: #6366f1;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        transition: 0.3s;
+    }
+    .edit-btn-action:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4); }
+    
+    .dark-theme .edit-btn-action {
+        background: #4f46e5;
+        box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+    }
+    .dark-theme .edit-btn-action:hover {
+        background: #6366f1;
+        box-shadow: 0 15px 30px rgba(99, 102, 241, 0.5);
+    }
+
+    /* --- TOP HEADER SECTION --- */
+    .cv-header {
+        display: flex;
+        gap: 50px;
+        padding: 60px;
+        background: linear-gradient(to bottom, #f8fafc, white);
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .dark-theme .cv-header { background: linear-gradient(to bottom, #1e293b, #0f172a); border-bottom-color: #334155; }
+
+    .cv-photo-wrapper {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .cv-photo {
+        width: 280px;
+        height: 350px;
+        border-radius: 20px;
+        object-fit: cover;
+        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);
+        border: 5px solid white;
+        transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .dark-theme .cv-photo { border-color: #334155; }
+
+    .cv-info-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .cv-name {
+        font-weight: 800;
+        font-size: 3rem;
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 5px;
+        line-height: 1.1;
+        letter-spacing: -1.5px;
+    }
+
+    .cv-post {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #475569;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .dark-theme .cv-post { color: #94a3b8; }
+
+    .cv-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .dark-theme .cv-badge { background: rgba(99, 102, 241, 0.1); color: #818cf8; }
+
+    /* --- GRID CONTENT --- */
+    .cv-content {
+        padding: 60px;
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 60px;
+    }
+
+    .section-title {
+        font-weight: 800;
+        font-size: 1.2rem;
+        text-transform: uppercase;
+        color: #6366f1;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        letter-spacing: 1.5px;
+    }
+    .section-title i { font-size: 1.6rem; }
+
+    .about-text {
+        font-size: 1.15rem;
+        line-height: 1.7;
+        color: #475569;
+        margin-bottom: 30px;
+        font-weight: 500;
+    }
+    .dark-theme .about-text { color: #cbd5e1; }
+
+    .cv-info-card {
+        background: #f8fafc;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 1px solid #f1f5f9;
+    }
+    body.dark-theme .cv-info-card,
+    .dark-theme .cv-info-card {
+        background: linear-gradient(135deg, #2c3240 0%, #1a1e29 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .cv-rating-card {
+        background: linear-gradient(135deg, #6366f1, #a855f7) !important;
+        color: white !important;
+        text-align: center;
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        border: none !important;
+    }
+    .cv-rating-card p {
+        color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .info-item {
+        margin-bottom: 20px;
+    }
+    .info-item label {
+        display: block;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #94a3b8;
+        font-weight: 800;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+    }
+    .info-item span {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    .dark-theme .info-item span { color: #f1f5f9; }
+
+    /* --- PRIVATE DATA SECTION --- */
+    .private-data-box {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border: 2px dashed #fbbf24;
+        border-radius: 20px;
+        padding: 25px;
+        margin-top: 30px;
+    }
+    .dark-theme .private-data-box { background: rgba(251, 191, 36, 0.05); border-color: rgba(251, 191, 36, 0.3); }
+
+    .private-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 12px;
+        color: #92400e;
+        font-weight: 700;
+        word-break: break-all;
+    }
+    .dark-theme .private-item { color: #fbbf24; }
+    .private-item i { font-size: 1.3rem; }
+
+    .private-title {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #b45309;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .dark-theme .private-title {
+        color: #fcd34d;
+    }
+    .dark-theme .ach-item-year {
+        color: #818cf8;
+    }
+
+    .ach-list { list-style: none; padding: 0; }
+    .ach-list li {
+        padding: 15px 0;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .dark-theme .ach-list li { border-bottom-color: #334155; }
+    .ach-list li:last-child { border-bottom: none; }
+
+    .ach-item-title { font-weight: 700; font-size: 1.1rem; }
+    .ach-item-year { font-weight: 800; color: #6366f1; }
+
+    .dark-theme .hall-of-fame-wrapper {
+        background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent);
+    }
+
+    .experience-box {
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 24px;
+        border-left: 5px solid #6366f1;
+        color: #475569;
+        font-size: 1.1rem;
+        line-height: 1.7;
+    }
+    .dark-theme .experience-box {
+        background: #1e293b;
+        color: #cbd5e1;
+        border-left-color: #818cf8;
+    }
+
+    .back-link {
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: color 0.3s;
+    }
+    .back-link:hover {
+        color: #6366f1;
+    }
+    .dark-theme .back-link {
+        color: #94a3b8;
+    }
+    .dark-theme .back-link:hover {
+        color: #818cf8;
+    }
+
+    .cv-photo-placeholder {
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .dark-theme .cv-photo-placeholder {
+        background: #1e293b;
+    }
+    .cv-photo-placeholder i {
+        color: #cbd5e1;
+        font-size: 5rem;
+    }
+    .dark-theme .cv-photo-placeholder i {
+        color: #475569;
+    }
+
+    @keyframes guidyPop {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .guidy-modal-content {
+        background: white;
+        border-radius: 24px;
+        padding: 36px;
+        max-width: 420px;
+        width: 90%;
+        box-shadow: 0 30px 70px rgba(0,0,0,0.3);
+        animation: guidyPop 0.3s ease;
+    }
+    .dark-theme .guidy-modal-content {
+        background: #1e293b;
+        color: #f1f5f9;
+    }
+    .guidy-modal-content h3 {
+        color: #1e293b;
+    }
+    .dark-theme .guidy-modal-content h3 {
+        color: #f1f5f9;
+    }
+    .guidy-modal-content textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        resize: none;
+        height: 80px;
+        font-size: 0.9rem;
+        font-family: inherit;
+        outline: none;
+        margin-bottom: 18px;
+        box-sizing: border-box;
+        background: white;
+        color: #1e293b;
+    }
+    .dark-theme .guidy-modal-content textarea {
+        background: #0f172a;
+        color: #f1f5f9;
+        border-color: #334155;
+    }
+    .guidy-modal-content .cancel-btn {
+        flex: 1;
+        padding: 12px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        background: white;
+        color: #1e293b;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+    }
+    .dark-theme .guidy-modal-content .cancel-btn {
+        border-color: #334155;
+        background: #334155;
+        color: #cbd5e1;
+    }
+    .guidy-modal-content .cancel-btn:hover {
+        background: #f1f5f9;
+    }
+    .dark-theme .guidy-modal-content .cancel-btn:hover {
+        background: #475569;
+        color: white;
+    }
+
+    /* --- RESPONSIVE MEDIA QUERIES --- */
+    @media (max-width: 992px) {
+        .back-btn-container {
+            padding: 0 10px;
+        }
+        .cv-header { 
+            flex-direction: column; 
+            align-items: center; 
+            text-align: center; 
+            gap: 30px; 
+            padding: 40px 20px; 
+        }
+        .cv-content { 
+            grid-template-columns: 1fr; 
+            padding: 40px 20px; 
+            gap: 40px; 
+        }
+        .cv-name { font-size: 2.8rem; }
+        .cv-photo { width: 220px; height: 280px; }
+        .cv-post { font-size: 1.4rem; justify-content: center; }
+        .cv-photo-wrapper {
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .cv-photo {
+            display: block;
+            margin: 0 auto;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .hall-of-fame-wrapper {
+            padding: 30px 15px;
+        }
+        .cv-name {
+            font-size: 2.2rem;
+            letter-spacing: -1px;
+        }
+        .cv-post {
+            font-size: 1.2rem;
+            margin-bottom: 18px;
+        }
+        .about-text {
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+        .cv-photo {
+            width: 180px;
+            height: 230px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .hall-of-fame-wrapper {
+            padding: 20px 10px;
+        }
+        .back-btn-container {
+            margin-bottom: 15px;
+        }
+        .hall-back-btn {
+            padding: 8px 18px;
+            font-size: 0.9rem;
+        }
+        .edit-btn-action {
+            padding: 8px 18px;
+            font-size: 0.9rem;
+        }
+        .edit-btn-text {
+            display: none;
+        }
+        .cv-header {
+            padding: 30px 15px;
+            gap: 20px;
+        }
+        .cv-photo {
+            width: 150px;
+            height: 190px;
+        }
+        .cv-name {
+            font-size: 1.8rem;
+        }
+        .cv-post {
+            font-size: 1.1rem;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cv-content {
+            padding: 30px 15px;
+            gap: 30px;
+        }
+        .private-data-box {
+            padding: 15px;
+        }
+        .experience-box {
+            padding: 20px;
+            font-size: 1rem;
+        }
+        .cv-info-card, .cv-rating-card {
+            padding: 20px;
+        }
+        .ach-list li {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+            padding: 12px 0;
+        }
+        .info-item span {
+            font-size: 1.05rem;
+        }
+        #guidy-seek-btn {
+            font-size: 0.9rem !important;
+            padding: 10px 16px !important;
+        }
+    }
+
+    @media (max-width: 350px) {
+        .hall-of-fame-wrapper {
+            padding: 15px 5px;
+        }
+        .cv-header {
+            padding: 20px 10px;
+        }
+        .cv-photo {
+            width: 130px;
+            height: 165px;
+        }
+        .cv-name {
+            font-size: 1.5rem;
+        }
+        .cv-post {
+            font-size: 0.95rem;
+        }
+        .cv-content {
+            padding: 20px 10px;
+        }
+        .private-data-box {
+            padding: 12px;
+        }
+        .private-item {
+            font-size: 0.9rem;
+            gap: 8px;
+        }
+        .experience-box {
+            padding: 15px;
+            font-size: 0.95rem;
+        }
+        .cv-info-card, .cv-rating-card {
+            padding: 15px;
+        }
+        .info-item span {
+            font-size: 0.95rem;
+        }
+        #guidy-seek-btn {
+            font-size: 0.8rem !important;
+            padding: 8px 12px !important;
+        }
+    }
+
+    @media (max-width: 280px) {
+        .hall-back-btn {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .edit-btn-action {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .cv-photo {
+            width: 110px;
+            height: 140px;
+        }
+        .cv-name {
+            font-size: 1.3rem;
+        }
+    }
+
+    @media (max-width: 450px) {
+        .guidy-modal-content {
+            padding: 20px !important;
+            border-radius: 16px !important;
+        }
+        .guidy-modal-content textarea {
+            padding: 8px !important;
+            font-size: 0.85rem !important;
+            margin-bottom: 12px !important;
+        }
+        .guidy-modal-content .cancel-btn,
+        #guidy-confirm-btn {
+            padding: 10px !important;
+            font-size: 0.85rem !important;
+            border-radius: 8px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<script>
+function goBackOrHomeBase(event) {
+    let ref = document.referrer;
+    if (ref && (ref.includes('/hall-of-fame') || ref.includes('/hall-of-fame/'))) {
+        event.preventDefault();
+        window.location.href = "{% url 'users:hall_of_fame' %}";
+    }
+}
+</script>
+
+<div class="hall-of-fame-wrapper">
+    <div class="back-btn-container">
+        <a href="{% url 'users:smart_back_router' %}" class="hall-back-btn" onclick="goBackOrHomeBase(event)">
+            <i class='bx bx-arrow-back'></i> Back
+        </a>
+
+        {% if can_edit %}
+            <a href="{% url 'users:edit_alumni' %}" class="edit-btn-action">
+                <i class='bx bx-edit-alt'></i> <span class="edit-btn-text">Edit Profile</span>
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="cv-container">
+        <div class="cv-accent-line"></div>
+        
+        <!-- TOP RESUME HEADER -->
+        <div class="cv-header">
+            <div class="cv-photo-wrapper">
+                    <img src="{{ achievement.user|user_photo }}" class="cv-photo" alt="{{ achievement.first_name }}">
+
+                {% if not user.is_staff and not can_edit %}
+                <!-- GUIDY: Seek Guidance Button -->
+                <div id="guidy-btn-wrap" style="margin-top: 18px; text-align: center;">
+                    <button id="guidy-seek-btn"
+                        data-alumni-id="{{ achievement.pk }}"
+                        data-seek-url="{% url 'users:guidy_seek' achievement.pk %}"
+                        data-status-url="{% url 'users:guidy_check_status' achievement.pk %}"
+                        data-guidy-url="{% url 'users:guidy_home' %}"
+                        style="
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            border: none;
+                            padding: 12px 28px;
+                            border-radius: 50px;
+                            font-size: 1rem;
+                            font-weight: 700;
+                            cursor: pointer;
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 8px;
+                            box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+                            transition: all 0.3s ease;
+                            width: 100%;
+                            justify-content: center;
+                        "
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 28px rgba(102,126,234,0.5)'"
+                        onmouseout="this.style.transform=''; this.style.boxShadow='0 8px 20px rgba(102,126,234,0.4)'"
+                    >
+                        <i class='bx bxs-chat'></i>
+                        <span id="guidy-btn-text">Seek Guidance</span>
+                    </button>
+                </div>
+
+                <!-- Seek Guidance Confirmation Modal -->
+                <div id="guidy-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); backdrop-filter:blur(6px); z-index:3000; align-items:center; justify-content:center;">
+                    <div class="guidy-modal-content">
+                        <div style="text-align:center; margin-bottom:20px;">
+                            <div style="width:64px; height:64px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:1.8rem; color:white; margin-bottom:14px;">
+                                <i class='bx bxs-graduation'></i>
+                            </div>
+                            <h3 style="font-size:1.4rem; font-weight:800; margin:0 0 8px;">Connect with {{ achievement.first_name }}?</h3>
+                            <p style="color:#64748b; font-size:0.95rem; line-height:1.6;">Send a mentorship request to <strong>{{ achievement.full_name }}</strong>. They will review and accept or decline.</p>
+                        </div>
+                        <textarea id="guidy-msg-input" placeholder="Optional: Write a brief introduction..."></textarea>
+                        <div style="display:flex; gap:10px;">
+                            <button onclick="document.getElementById('guidy-modal-overlay').style.display='none';" class="cancel-btn">Cancel</button>
+                            <button id="guidy-confirm-btn" style="flex:1; padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg, #667eea, #764ba2); color:white; font-weight:700; cursor:pointer; font-size:0.95rem;">Send Request ✈️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                (function() {
+                    const btn = document.getElementById('guidy-seek-btn');
+                    if (!btn) return;
+                    const btnText = document.getElementById('guidy-btn-text');
+                    const overlay = document.getElementById('guidy-modal-overlay');
+                    const confirmBtn = document.getElementById('guidy-confirm-btn');
+                    const msgInput = document.getElementById('guidy-msg-input');
+                    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                    const CSRF = csrfMeta ? csrfMeta.getAttribute('content') : '';
+                    let currentState = 'loading';
+                    let sessionId = null;
+
+                    fetch(btn.dataset.statusUrl)
+                        .then(r => r.json())
+                        .then(data => {
+                            currentState = data.state;
+                            sessionId = data.session_id || null;
+                            updateBtn(currentState);
+                        });
+
+                    function updateBtn(state) {
+                        btn.disabled = false;
+                        if (state === 'none' || state === 'unauthenticated') {
+                            btnText.textContent = 'Seek Guidance';
+                            btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                            btn.style.cursor = 'pointer';
+                        } else if (state === 'pending') {
+                            btnText.textContent = '⏳ Request Sent';
+                            btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                            btn.disabled = true;
+                            btn.style.cursor = 'default';
+                        } else if (state === 'chat_open') {
+                            btnText.textContent = '💬 Open Guidy';
+                            btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                            btn.style.cursor = 'pointer';
+                        } else if (state === 'blocked') {
+                            btnText.textContent = 'Guidance Unavailable';
+                            btn.style.background = '#94a3b8';
+                            btn.disabled = true;
+                            btn.style.cursor = 'default';
+                        }
+                    }
+
+                    btn.addEventListener('click', function() {
+                        if (currentState === 'chat_open' && sessionId) {
+                            window.location.href = btn.dataset.guidyUrl + '?session=' + sessionId;
+                            return;
+                        }
+                        if (currentState === 'none') {
+                            overlay.style.display = 'flex';
+                            return;
+                        }
+                        if (currentState === 'unauthenticated') {
+                            if (typeof showFeatureAuthPopup === 'function') {
+                                showFeatureAuthPopup("Guidance Features");
+                            } else {
+                                const popup = document.getElementById('featureAuthPopup');
+                                if (popup) {
+                                    const msg = document.getElementById('featureAuthMessage');
+                                    if (msg) msg.innerHTML = 'You have to register or log in to use <strong>Guidance Features</strong>.';
+                                    popup.classList.add('visible');
+                                }
+                            }
+                            return;
+                        }
+                    });
+
+                    confirmBtn.addEventListener('click', function() {
+                        confirmBtn.disabled = true;
+                        confirmBtn.textContent = 'Sending...';
+                        const fd = new FormData();
+                        fd.append('csrfmiddlewaretoken', CSRF);
+                        fd.append('message', msgInput.value.trim());
+
+                        fetch(btn.dataset.seekUrl, { method: 'POST', body: fd })
+                            .then(r => r.json())
+                            .then(data => {
+                                overlay.style.display = 'none';
+                                if (data.success) { currentState = 'pending'; updateBtn('pending'); }
+                            })
+                            .catch(() => {
+                                overlay.style.display = 'none';
+                                confirmBtn.disabled = false;
+                                confirmBtn.textContent = 'Send Request ✈️';
+                            });
+                    });
+                })();
+                </script>
+                {% endif %}
+            </div>
+
+            <div class="cv-info-main">
+                <div class="cv-badge">
+                    <i class='bx bxs-medal'></i> ABCD Achiever {{ achievement.selection_year }}
+                </div>
+                <h1 class="cv-name">{{ achievement.first_name }} {{ achievement.last_name }}</h1>
+                <div class="cv-post">
+                    <i class='bx bx-briefcase-alt-2'></i> {{ achievement.short_achievement }}
+                </div>
+
+                {% if can_see_private %}
+                <div class="private-data-box">
+                    <div class="private-title">
+                        <i class='bx bxs-lock-alt'></i> Administrative View (Confidential)
+                    </div>
+                    <div class="private-item">
+                        <i class='bx bx-phone'></i> {{ achievement.mobile_number|default:"N/A" }}
+                    </div>
+                    <div class="private-item">
+                        <i class='bx bxl-whatsapp'></i> {{ achievement.whatsapp_number|default:"N/A" }}
+                    </div>
+                    <div class="private-item">
+                        <i class='bx bx-envelope'></i> {{ achievement.email|default:"N/A" }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- MAIN CONTENT AREA -->
+        <div class="cv-content">
+            <div class="main-column">
+                <div class="section-title">
+                    <i class='bx bx-user-voice'></i> The Success Story
+                </div>
+                <div class="about-text">
+                    "{{ achievement.about_yourself }}"
+                </div>
+
+                <div style="margin-top: 50px;">
+                    <div class="section-title">
+                        <i class='bx bx-medal'></i> Honors & Recognitions
+                    </div>
+                    <ul class="ach-list">
+                        <li>
+                            <span class="ach-item-title">{{ achievement.current_post }}</span>
+                            <span class="ach-item-year">{{ achievement.selection_year }}</span>
+                        </li>
+                        {% for item in achievement.other_achievements %}
+                        <li>
+                            <span class="ach-item-title">{{ item.title }}</span>
+                            <span class="ach-item-year">{{ item.year }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div style="margin-top: 50px;">
+                    <div class="section-title">
+                        <i class='bx bx-heart'></i> Experience at ABCD
+                    </div>
+                    <div class="experience-box">
+                        {{ achievement.experience_feedback }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-column">
+                <div class="section-title">
+                    <i class='bx bx-info-circle'></i> Profile Facts
+                </div>
+                
+                <div class="cv-info-card">
+                    <div class="info-item">
+                        <label>Stationed At</label>
+                        <span>{{ achievement.working_city }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Service Used</label>
+                        <span>{{ achievement.get_services_used_display }}</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Duration at ABCD</label>
+                        <span>{{ achievement.duration_years }}Y, {{ achievement.duration_days }}D</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Gender</label>
+                        <span>{{ achievement.gender }}</span>
+                    </div>
+                </div>
+
+                <div class="cv-rating-card">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: 800; margin-bottom: 10px; opacity: 0.9;">Alumni Rating</div>
+                    <div style="font-size: 2.5rem; font-weight: 800;">{{ achievement.rating }}/5</div>
+                    <div style="margin-top: 10px; display: flex; justify-content: center; gap: 4px;">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= achievement.rating %}
+                                <i class='bx bxs-star' style="color: #fbbf24; font-size: 1.2rem;"></i>
+                            {% else %}
+                                <i class='bx bx-star' style="color: rgba(255,255,255,0.4); font-size: 1.2rem;"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <p style="margin-top: 15px; font-size: 0.9rem; font-style: italic; opacity: 0.9;">
+                        "{{ achievement.abcd_feedback|truncatechars:100 }}"
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'partials/_smart_back_redirect.html' with context_aware=True %}
+{% endblock %}

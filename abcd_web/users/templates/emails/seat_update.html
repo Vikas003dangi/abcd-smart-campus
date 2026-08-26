@@ -1,0 +1,94 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<tr>
+  <td style="padding: 32px;">
+
+    <h2 style="margin-top:0; color:#2c3e50;">
+      {{ title|default:"Seat & Allotment Update" }}
+    </h2>
+
+    <p style="font-size:16px; line-height:1.6; color:#444;">
+      Hello <strong>{{ student.full_name }}</strong>,
+    </p>
+
+    <p style="font-size:16px; line-height:1.6; color:#444;">
+      {% if custom_text %}
+        {{ custom_text }}
+      {% elif update_type == "seat_change_approved" or update_type == "switch_approved" %}
+        Your request to switch your seat / shift has been approved. Your updated details are below.
+      {% elif update_type == "seat_reassigned" or update_type == "shift_reassigned" %}
+        Your seat / shift allotment has been updated by your teacher. Your new details are below.
+      {% elif update_type == "switch_rejected" or update_type == "seat_rejected" %}
+        Your request for seat / shift switch could not be approved at this time.
+      {% elif update_type == "seat_cancelled" or update_type == "deallocated" %}
+        Your seat reservation / allotment has been de-allocated / cancelled. Please contact management for assistance.
+      {% elif update_type == "admission_rejected" %}
+        Your admission request for ABCD Coaching & Library has been reviewed and could not be approved at this time.
+      {% elif update_type == "hold_approved" %}
+        Your request to put your seat on hold has been approved.
+      {% elif update_type == "hold_denied" %}
+        Unfortunately, your seat hold request could not be approved at this time. Please contact the admin for more details.
+      {% else %}
+        There has been an update regarding your seat and allotment status.
+      {% endif %}
+    </p>
+
+    {% if seat or shift %}
+    <div style="
+        margin:20px 0;
+        padding:16px;
+        background:#f6f9fc;
+        border-left:4px solid #6c63ff;
+        border-radius:6px;
+        font-size:15px;
+        color:#333;
+    ">
+      <strong>Allotment Details</strong><br>
+      {% if seat %}
+      Seat Number: <strong>Seat {{ seat.seat_number|default:"N/A" }}</strong> ({{ seat.get_floor_display|default:seat.floor|default:"Library Floor" }})<br>
+      {% endif %}
+      {% if shift %}
+      Shift: <strong>{{ shift|capfirst }}</strong>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if hold_period %}
+    <div style="
+        margin:20px 0;
+        padding:16px;
+        background:#fff7e6;
+        border-left:4px solid #f39c12;
+        border-radius:6px;
+        font-size:15px;
+        color:#333;
+    ">
+      <strong>Hold Period</strong><br>
+      {{ hold_period }}
+    </div>
+    {% endif %}
+
+    <div style="margin-top:32px; text-align:center;">
+      <a href="{% if dashboard_url %}{{ dashboard_url }}{% elif site_url %}{{ site_url }}{% url 'users:student_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}"
+         style="
+           background:#6c63ff;
+           color:#ffffff;
+           padding:12px 24px;
+           text-decoration:none;
+           border-radius:6px;
+           font-weight:600;
+           display:inline-block;
+         ">
+        Open Student Dashboard
+      </a>
+    </div>
+
+    <p style="margin-top:32px; font-size:14px; color:#777;">
+      If you have any questions, feel free to contact us.<br>
+      — ABCD Coaching & Library
+    </p>
+
+  </td>
+</tr>
+{% endblock %}

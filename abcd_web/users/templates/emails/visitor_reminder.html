@@ -1,0 +1,79 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif;">
+  <tr>
+    <td style="padding: 10px 0;">
+      <h2 style="color:#1f2937; margin-bottom:12px;">
+        {% if intent.intent_type == "viewed_coaching" %}
+          Improve Your English with ABCD
+        {% elif intent.intent_type == "viewed_library" %}
+          Library Seats Are Available
+        {% elif intent.intent_type == "opened_admission" %}
+          Complete Your Admission at ABCD
+        {% elif intent.intent_type == "selected_coaching" %}
+          ABCD Coaching Is Waiting for You
+        {% elif intent.intent_type == "selected_library" %}
+          ABCD Library Seats Are Filling Fast
+        {% elif intent.intent_type == "selected_library_seat" %}
+          Your preferred library seat is now available
+        {% else %}
+          ABCD Coaching & Library Update
+        {% endif %}
+      </h2>
+
+      <p style="font-size:15px; color:#374151; line-height:1.6;">
+        {% if intent.intent_type == "viewed_coaching" %}
+          You recently visited our website to check out ABCD Coaching.<br><br>
+          Join our Spoken English, Basic Computer, and Personality Development batches today.<br><br>
+          Visit: <a href="{% if site_url %}{{ site_url }}{% endif %}{% url 'users:courses' %}">Explore Coaching</a>
+        {% elif intent.intent_type == "viewed_library" %}
+          You recently checked seat availability at ABCD Library.<br><br>
+          Seats are available now. Secure your preferred seat before it gets booked.<br><br>
+          Visit: <a href="{% if site_url %}{{ site_url }}{% endif %}{% url 'users:library_availability' %}">Explore Library</a>
+        {% elif intent.intent_type == "opened_admission" %}
+          You started filling the admission form at ABCD but didn’t complete it.<br><br>
+          Complete your admission and begin your learning journey today.<br><br>
+          Visit: <a href="{% if site_url %}{{ site_url }}{% endif %}{% url 'users:admission_form' %}">Complete Admission</a>
+        {% elif intent.intent_type == "selected_coaching" %}
+          You showed interest in ABCD Coaching programs.<br><br>
+          Improve your English, personality, and confidence with expert guidance.<br><br>
+          Complete your admission today.
+        {% elif intent.intent_type == "selected_library" %}
+          You showed interest in joining ABCD Library.<br><br>
+          Our AC, High-Speed Wi-Fi library provides the perfect study environment.<br><br>
+          Seats fill up fast, so reserve yours today.
+        {% elif intent.intent_type == "selected_library_seat" %}
+          You previously showed interest in Seat {{ seat.seat_number|default:"selected" }} 
+          on {{ seat.get_floor_display|default:"your preferred" }} floor at ABCD Library.<br><br>
+          This seat is now available.<br><br>
+          Visit the website and complete your admission to confirm it before it gets booked.
+        {% else %}
+          Thank you for exploring ABCD Coaching & Library. Log in to your dashboard to see more!
+        {% endif %}
+      </p>
+
+      {% if action_url %}
+      <div style="margin:30px 0; text-align:center;">
+        <a href="{% if action_url %}{{ action_url }}{% elif site_url %}{{ site_url }}{% url 'users:admission_form' %}{% else %}{% url 'users:admission_form' %}{% endif %}"
+           style="
+             background:#2563eb;
+             color:#ffffff;
+             padding:12px 26px;
+             text-decoration:none;
+             border-radius:6px;
+             font-weight:600;
+             display:inline-block;
+           ">
+          {{ action_text|default:"Visit ABCD" }}
+        </a>
+      </div>
+      {% endif %}
+
+      <p style="font-size:13px; color:#6b7280; margin-top:30px;">
+        If you have already completed this action, you may safely ignore this email.
+      </p>
+    </td>
+  </tr>
+</table>
+{% endblock %}

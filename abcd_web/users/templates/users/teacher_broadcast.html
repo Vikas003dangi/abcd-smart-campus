@@ -1,0 +1,892 @@
+{% load static %}
+<div class="broadcast-panel">
+    <!-- ================= Broadcast Header ================= -->
+    <div class="broadcast-header">
+      <h3 id="broadcastTitle">📢 Broadcast Message</h3>
+      <button type="button"
+              class="broadcast-close-btn"
+              onclick="closeBroadcastPanel()"
+              aria-label="Close broadcast panel">
+        ✖
+      </button>
+    </div>
+
+    <!-- ================= Broadcast Body ================= -->
+    <div class="broadcast-body">
+
+      <div id="broadcastFormSection">
+        <form method="POST"
+            id="broadcastForm"
+            action="{% url 'users:teacher_broadcast' %}"
+            enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <!-- TOP TAB SWITCHER: BROADCAST | ADS BANNER -->
+          <div class="broadcast-tab-wrapper" style="margin-bottom: 20px;">
+              <div class="broadcast-tabs">
+                  <button type="button" 
+                          id="tabBtnBroadcast" 
+                          class="tab-btn active" 
+                          onclick="switchBroadcastTab('broadcast')">
+                      <i class='bx bx-broadcast'></i> Broadcast
+                  </button>
+                  <button type="button" 
+                          id="tabBtnBanner" 
+                          class="tab-btn" 
+                          onclick="switchBroadcastTab('banner')">
+                      <i class='bx bx-image-alt'></i> Ads Banner
+                  </button>
+              </div>
+              <input type="hidden" name="message_type" id="message_type_input" value="broadcast">
+          </div>
+          
+          <!-- DRAFT SELECTOR -->
+          <div id="draftSelector" class="draft-selector-container" style="margin-bottom: 24px; display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 12px;">
+              <select id="loadDraftSelect" class="form-input" style="flex: 1; height: 38px; font-size: 0.85rem; margin-bottom: 0;">
+                  <option value="">-- Load a saved draft --</option>
+              </select>
+              <button type="button" class="btn-secondary" onclick="loadSelectedDraft()" style="height: 38px; padding: 0 12px; white-space: nowrap; margin-bottom: 0;">
+                  <i class='bx bx-download'></i> Load
+              </button>
+          </div>
+
+          <!-- SECTION 1: BROADCAST MESSAGE DETAILS -->
+          <div id="broadcastDetailsGroup" class="section-group">
+              <h4 class="section-title">📝 Message Details</h4>
+              
+              <div class="form-group">
+                <label for="broadcast-subject">Subject</label>
+                <input id="broadcast-subject"
+                       list="subjectList"
+                       name="subject"
+                       class="form-input"
+                       placeholder="What is this about?">
+                <datalist id="subjectList">
+                  {% for s in subject_suggestions %}
+                    <option value="{{ s }}">
+                  {% endfor %}
+                </datalist>
+              </div>
+
+              <div class="form-group">
+                <label for="broadcast-message">Message 💬</label>
+                <textarea id="broadcast-message"
+                          name="message"
+                          rows="5"
+                          class="form-textarea"
+                          placeholder="Type your announcement here..."></textarea>
+              </div>
+
+              <div class="form-group">
+                  <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; margin-bottom: 8px;">
+                      <i class='bx bx-paperclip'></i> Media & Documents <small style="color: #94a3b8; font-weight: 400;">(Images, Video, PDF, Doc • Max 10MB each)</small>
+                  </label>
+                  
+                  <input type="file" 
+                         id="fileInput" 
+                         name="attachments" 
+                         multiple 
+                         accept="image/*,video/*,.pdf,.doc,.docx" 
+                         hidden>
+                  
+                  <div id="uploadBox" class="upload-box">
+                      <i class="bx bx-cloud-upload"></i>
+                      <p>Click or drag files here (Max 10)</p>
+                  </div>
+
+                  <div id="filePreviewContainer" class="file-preview-container"></div>
+              </div>
+          </div>
+
+          <!-- SECTION 1 (ALT): ADS BANNER CONFIGURATION -->
+          <div id="bannerDetailsGroup" class="section-group" style="display: none;">
+              <h4 class="section-title">🎨 Banner Details</h4>
+              
+              <!-- Banner Mode Sub-Selector -->
+              <div style="margin-bottom: 16px;">
+                  <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 8px;">Banner Type</label>
+                  <div class="banner-type-tabs">
+                      <button type="button" 
+                              id="bannerTypeImgBtn" 
+                              class="tab-btn active"
+                              onclick="switchBannerType('image')">
+                          <i class='bx bx-image-add'></i> Image to Banner
+                      </button>
+                      <button type="button" 
+                              id="bannerTypeTextBtn" 
+                              class="tab-btn"
+                              onclick="switchBannerType('text')">
+                          <i class='bx bx-text'></i> Write to Banner
+                      </button>
+                  </div>
+                  <input type="hidden" name="banner_type" id="banner_type_input" value="image">
+              </div>
+
+              <!-- Image to Banner Section -->
+              <div id="bannerImageSection" class="form-group">
+                  <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; margin-bottom: 8px;">
+                      <i class='bx bx-image'></i> Banner Image <small style="color: #94a3b8;">(Auto-fits screen width dynamically)</small>
+                  </label>
+                  <input type="file" id="bannerFileInput" name="banner_image" accept="image/*" hidden onchange="handleBannerImageSelect(this)">
+                  <div id="bannerUploadBox" class="banner-upload-box" onclick="document.getElementById('bannerFileInput').click()">
+                      <i class="bx bx-image-add" style="font-size: 2.2rem; color: #9333ea;"></i>
+                      <p style="font-weight: 600; margin-top: 6px;">Click or drag banner image here</p>
+                  </div>
+                  <div id="bannerImagePreview" style="margin-top: 12px; display: none; text-align: center; position: relative;">
+                      <img id="bannerImgPreviewTag" src="" alt="Banner Preview" style="max-width: 100%; max-height: 180px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 2px solid #e2e8f0; object-fit: contain;">
+                      <button type="button" onclick="clearBannerImage()" style="position: absolute; top: 6px; right: 6px; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">✖</button>
+                  </div>
+              </div>
+
+              <!-- Write to Banner Section -->
+              <div id="bannerTextSection" class="form-group" style="display: none;">
+                  <div class="form-group" style="margin-bottom: 12px;">
+                      <label for="banner-subject">Banner Subject / Title</label>
+                      <input id="banner-subject"
+                             name="banner_subject_text"
+                             class="form-input"
+                             placeholder="Headline / Subject for banner..."
+                             oninput="syncBannerTextInputs()">
+                  </div>
+                  <div class="form-group">
+                      <label for="banner-message">Banner Message Text 💬</label>
+                      <textarea id="banner-message"
+                                name="banner_message_text"
+                                rows="4"
+                                class="form-textarea"
+                                placeholder="Write announcement text..."
+                                oninput="syncBannerTextInputs()"></textarea>
+                  </div>
+              </div>
+
+              <!-- CTA Buttons Builder -->
+              <div class="form-group cta-builder-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                      <label style="font-size: 0.85rem; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 6px;">
+                          <i class='bx bx-link-external' style="color: #7b61ff;"></i> Add Action Buttons <small style="color: #94a3b8; font-weight: 400;">(Max 3)</small>
+                      </label>
+                      <button type="button" id="addCtaBtn" onclick="addCtaButtonRow()" class="btn-secondary" style="font-size: 0.75rem; padding: 4px 10px; height: 30px;">
+                          <i class='bx bx-plus'></i> Add Button
+                      </button>
+                  </div>
+
+                  <div id="ctaButtonsContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                  <input type="hidden" name="banner_buttons" id="bannerButtonsJson" value="[]">
+              </div>
+          </div>
+
+          <!-- SECTION 2: TARGET AUDIENCE -->
+          <div class="section-group">
+              <h4 class="section-title">🎯 Target Audience</h4>
+              
+              <div class="form-group">
+                <label for="target-group">Select Group</label>
+                <select id="target-group"
+                        name="target_group"
+                        class="form-input"
+                        required>
+                  <option value="everyone">Everyone (Students + Alumni)</option>
+                  <option value="all_students">All Students</option>
+                  <option value="admitted">Admitted Students Only</option>
+                  <option value="library">Library Students</option>
+                  <option value="coaching">Coaching Students</option>
+                  <option value="alumni">Alumni Only</option>
+                  <option value="individuals">Individuals (Select Manually)</option>
+                </select>
+              </div>
+
+              <!-- Library Filters -->
+              <div id="libraryFilters" class="form-group hidden">
+                  <label for="library-floor">Library Floor</label>
+                  <select id="library-floor" name="floors" class="form-input">
+                      <option value="">Both Floors</option>
+                      {% for floor in floors %}
+                          <option value="{{ floor }}">{{ floor }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+
+              <!-- Coaching Filters -->
+              <div id="coachingFilters" class="form-group hidden">
+                  <label for="coaching-batch">Coaching Batch</label>
+                  <select id="coaching-batch" name="batches" class="form-input">
+                      <option value="">All Batches</option>
+                      {% for batch in batches %}
+                          <option value="{{ batch }}">{{ batch }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+
+              <!-- Individuals Selection -->
+              <div id="individualsFilters" class="form-group hidden">
+                  <label>Select Individuals</label>
+                  <div class="individuals-container">
+                      <div class="individuals-search-wrapper" style="display: flex; gap: 8px; margin-bottom: 10px;">
+                          <input type="text" 
+                                 id="individualsSearch" 
+                                 class="individuals-search" 
+                                 style="flex: 1;"
+                                 placeholder="Search by name or username..."
+                                 aria-label="Search individuals by name or username"
+                                 aria-controls="individualsList"
+                                 oninput="debouncedFilterIndividuals()"
+                                 onkeyup="debouncedFilterIndividuals()">
+                          <button type="button" onclick="clearIndividualsSelection()" style="padding: 0 12px; font-size: 0.75rem; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; color: #64748b; transition: all 0.2s;">Clear</button>
+                      </div>
+
+                      <div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                          <label style="font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; user-select: none;">
+                              <input type="checkbox" id="globalSelectAll" onclick="toggleGlobalSelection(this.checked)" style="accent-color: #61358d;">
+                              Select All Across Groups
+                          </label>
+                      </div>
+                      
+                      <div class="individuals-list" id="individualsList" aria-live="polite">
+                          {% if library_students %}
+                          <div class="individuals-group" data-group="library">
+                              <div class="group-header">
+                                  <span>LIBRARY STUDENTS ({{ library_students.count }})</span>
+                                  <span class="group-select-all" onclick="toggleGroupSelection('library')">Select All</span>
+                              </div>
+                              {% for student in library_students %}
+                              <label class="user-item" data-name="{{ student.full_name|lower }} {{ student.user.username|lower }}">
+                                  <input type="checkbox" name="selected_user_ids[]" value="{{ student.user.id }}" style="accent-color: #61358d;">
+                                  <div class="user-avatar-wrapper">
+                                      {% if student.photo %}
+                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <div class="user-avatar-initial" style="display: none;">{{ student.full_name|slice:":1"|upper }}</div>
+                                      {% else %}
+                                          <div class="user-avatar-initial">{{ student.full_name|slice:":1"|upper }}</div>
+                                      {% endif %}
+                                  </div>
+                                  <div class="user-info">
+                                      <span class="user-name">{{ student.full_name }}</span>
+                                      <span class="user-meta">
+                                          @{{ student.user.username }} • Library 
+                                          ({% if student.status == 'on_hold' %}Hold{% elif student.seat %}{{ student.seat.seat_number }}{% else %}No Seat{% endif %})
+                                      </span>
+                                  </div>
+                              </label>
+                              {% endfor %}
+                          </div>
+                          {% endif %}
+
+                          {% if coaching_students %}
+                          <div class="individuals-group" data-group="coaching">
+                              <div class="group-header">
+                                  <span>COACHING STUDENTS ({{ coaching_students.count }})</span>
+                                  <span class="group-select-all" onclick="toggleGroupSelection('coaching')">Select All</span>
+                              </div>
+                              {% for student in coaching_students %}
+                              <label class="user-item" data-name="{{ student.full_name|lower }} {{ student.user.username|lower }}">
+                                  <input type="checkbox" name="selected_user_ids[]" value="{{ student.user.id }}" style="accent-color: #61358d;">
+                                  <div class="user-avatar-wrapper">
+                                      {% if student.photo %}
+                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <div class="user-avatar-initial" style="display: none;">{{ student.full_name|slice:":1"|upper }}</div>
+                                      {% else %}
+                                          <div class="user-avatar-initial">{{ student.full_name|slice:":1"|upper }}</div>
+                                      {% endif %}
+                                  </div>
+                                  <div class="user-info">
+                                      <span class="user-name">{{ student.full_name }}</span>
+                                      <span class="user-meta">
+                                          @{{ student.user.username }} • Coaching
+                                          {% if student.status == 'on_hold' %}(Hold){% elif student.batch %}({{ student.batch }}){% endif %}
+                                      </span>
+                                  </div>
+                              </label>
+                              {% endfor %}
+                          </div>
+                          {% endif %}
+
+                          {% if pending_students %}
+                          <div class="individuals-group" data-group="pending">
+                              <div class="group-header">
+                                  <span>PENDING / NEW ({{ pending_students.count }})</span>
+                                  <span class="group-select-all" onclick="toggleGroupSelection('pending')">Select All</span>
+                              </div>
+                              {% for student in pending_students %}
+                              <label class="user-item" data-name="{{ student.full_name|lower }} {{ student.user.username|lower }}">
+                                  <input type="checkbox" name="selected_user_ids[]" value="{{ student.user.id }}" style="accent-color: #61358d;">
+                                  <div class="user-avatar-wrapper">
+                                      {% if student.photo %}
+                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <div class="user-avatar-initial" style="display: none;">{{ student.full_name|slice:":1"|upper }}</div>
+                                      {% else %}
+                                          <div class="user-avatar-initial">{{ student.full_name|slice:":1"|upper }}</div>
+                                      {% endif %}
+                                  </div>
+                                  <div class="user-info">
+                                      <span class="user-name">{{ student.full_name }}</span>
+                                      <span class="user-meta">@{{ student.user.username }} • {{ student.status|title }}</span>
+                                  </div>
+                              </label>
+                              {% endfor %}
+                          </div>
+                          {% endif %}
+
+                          {% if alumni_list %}
+                          <div class="individuals-group" data-group="alumni">
+                              <div class="group-header">
+                                  <span>ALUMNI ({{ alumni_list.count }})</span>
+                                  <span class="group-select-all" onclick="toggleGroupSelection('alumni')">Select All</span>
+                              </div>
+                              {% for al in alumni_list %}
+                              <label class="user-item" data-name="{{ al.full_name|lower }} {{ al.user.username|lower }}">
+                                  <input type="checkbox" name="selected_user_ids[]" value="{{ al.user.id }}" style="accent-color: #61358d;">
+                                  <div class="user-avatar-wrapper">
+                                      {% if al.photo %}
+                                          <img src="{{ al.photo.url }}" class="user-avatar-img" alt="{{ al.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <div class="user-avatar-initial" style="display: none;">{{ al.full_name|slice:":1"|upper }}</div>
+                                      {% else %}
+                                          <div class="user-avatar-initial">{{ al.full_name|slice:":1"|upper }}</div>
+                                      {% endif %}
+                                  </div>
+                                  <div class="user-info">
+                                      <span class="user-name">{{ al.full_name }}</span>
+                                      <span class="user-meta">@{{ al.user.username }} • Alumni</span>
+                                  </div>
+                              </label>
+                              {% endfor %}
+                          </div>
+                          {% endif %}
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <!-- SECTION 3: DELIVERY OPTIONS -->
+          <div class="section-group">
+              <h4 class="section-title">
+                  <i class='bx bx-send' style="font-size: 1.15rem; color: #7b61ff; vertical-align: middle;"></i>
+                  DELIVERY OPTIONS
+              </h4>
+              
+              <div class="form-group" style="margin-bottom: 0;">
+                  <label style="font-size: 0.8rem; font-weight: 500; margin-bottom: 8px; display: block;">Also send notifications via:</label>
+                  <div class="delivery-options" style="display: flex; gap: 12px; margin-top: 6px;">
+                    <label class="delivery-card whatsapp-card">
+                      <input type="checkbox" name="send_whatsapp" class="delivery-checkbox" style="accent-color: #25D366;">
+                      <i class='bx bxl-whatsapp delivery-icon' style="color: #25D366;"></i>
+                      <span>WhatsApp</span>
+                    </label>
+                    <label class="delivery-card email-card">
+                      <input type="checkbox" name="send_email" class="delivery-checkbox" style="accent-color: #7b61ff;">
+                      <i class='bx bx-envelope delivery-icon' style="color: #7b61ff;"></i>
+                      <span>Email</span>
+                    </label>
+                  </div>
+              </div>
+          </div>
+
+          <!-- SECTION 4: SCHEDULE -->
+          <div class="section-group">
+              <h4 class="section-title">
+                  <i class='bx bx-time-five' style="font-size: 1.15rem; color: #7b61ff; vertical-align: middle;"></i>
+                  SCHEDULE
+              </h4>
+
+              <div class="schedule-wrapper" style="margin-top: 0;">
+                  <label class="schedule-toggle-card">
+                      <input type="checkbox" id="scheduleToggle" onchange="toggleScheduleFields(this.checked)" style="accent-color: #7b61ff; width: 17px; height: 17px; cursor: pointer;">
+                      <i class='bx bx-calendar-alt' style="font-size: 1.15rem; color: #7b61ff;"></i>
+                      <span style="font-weight: 600; font-size: 0.85rem;">Schedule for later</span>
+                  </label>
+
+                  <div id="scheduleFields" class="schedule-fields">
+                      <div class="schedule-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
+                          <div class="schedule-col">
+                              <label for="scheduleDate" style="font-size: 0.75rem; margin-bottom: 4px; display: block;">Date</label>
+                              <input type="text"
+                                  id="scheduleDate"
+                                  name="schedule_date"
+                                  readonly
+                                  class="form-input schedule-input-styled"
+                                  placeholder="Select Date"
+                                  onclick="openDateModal()"
+                                  disabled>
+                          </div>
+
+                          <div class="schedule-col">
+                              <label for="scheduleTime" style="font-size: 0.75rem; margin-bottom: 4px; display: block;">Time</label>
+                              <input type="text"
+                                  id="scheduleTime"
+                                  name="schedule_time"
+                                  readonly
+                                  class="form-input schedule-input-styled"
+                                  placeholder="Select Time"
+                                  onclick="openTimeModal()"
+                                  disabled>
+                          </div>
+                      </div>
+
+                      <small class="schedule-hint" style="display: block; margin-top: 8px; font-size: 0.7rem; color: #94a3b8;">
+                          ⏱ Minimum 20 minutes from now
+                      </small>
+                      <div id="scheduleError" style="color: #ef4444; font-size: 0.7rem; margin-top: 4px; display: none; font-weight: 500;">
+                          <i class='bx bx-error-circle'></i> <span>Scheduled time must be at least 20 minutes from now.</span>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Date Selection Modal -->
+          <div id="dateModal" class="broadcast-modal-overlay">
+              <div class="broadcast-modal-container">
+                  <div class="broadcast-modal-header">
+                      <h3>📅 SELECT DATE</h3>
+                      <button type="button" onclick="closeDateModal()" style="background:none; border:none; font-size:1.2rem; color:#94a3b8; cursor:pointer;">&times;</button>
+                  </div>
+                  <div class="broadcast-modal-body">
+                      <div class="wheel-picker-container">
+                          <div class="wheel-col" id="wheel-date-day"></div>
+                          <div class="wheel-col" id="wheel-date-month"></div>
+                          <div class="wheel-col" id="wheel-date-year"></div>
+                          <div class="wheel-highlight"></div>
+                      </div>
+                      <button type="button" onclick="confirmDateSelection()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px; border-radius:12px;">Confirm Date</button>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Time Selection Modal -->
+          <div id="timeModal" class="broadcast-modal-overlay">
+              <div class="broadcast-modal-container">
+                  <div class="broadcast-modal-header">
+                      <h3>⏰ SELECT TIME</h3>
+                      <button type="button" onclick="closeTimeModal()" style="background:none; border:none; font-size:1.2rem; color:#94a3b8; cursor:pointer;">&times;</button>
+                  </div>
+                  <div class="broadcast-modal-body">
+                      <div class="wheel-picker-container">
+                          <div class="wheel-col" id="wheel-time-hour"></div>
+                          <div class="wheel-col" id="wheel-time-minute"></div>
+                          <div class="wheel-col" id="wheel-time-ampm"></div>
+                          <div class="wheel-highlight"></div>
+                      </div>
+                      <button type="button" onclick="confirmTimeSelection()" class="btn-primary" style="width:100%; margin-top:20px; padding:12px; border-radius:12px;">Confirm Time</button>
+                  </div>
+              </div>
+          </div>
+
+          <!-- ACTION BUTTONS -->
+          <div class="form-actions" style="margin-top: 32px;">
+            <button type="button"
+                    class="btn-secondary"
+                    onclick="previewBroadcast()">
+              <i class='bx bx-show'></i> Preview
+            </button>
+
+            <button type="button"
+                    id="saveDraftBtn"
+                    class="btn-secondary"
+                    onclick="saveAsDraft()">
+              <i class='bx bx-save'></i> Save Draft
+            </button>
+
+            <button type="submit"
+                    class="btn-primary"
+                    id="sendBroadcastBtn">
+              <i class='bx bx-paper-plane'></i> Send Broadcast
+            </button>
+          </div>
+        </form>
+        
+        <!-- ================= Broadcast History ================= -->
+        <div class="history-section" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee;">
+          <button type="button"
+                  id="toggleHistoryBtn"
+                  class="btn-secondary"
+                  onclick="toggleBroadcastHistory()"
+                  style="display: block; margin: 0 auto; width: 100%;">
+          📜 See Broadcast & Banner History
+          </button>
+
+          <div id="broadcastHistory"
+              class="hidden"
+              style="margin-top:16px;">
+          </div>
+
+          <button type="button"
+                  id="loadMoreHistoryBtn"
+                  class="btn-secondary hidden"
+                  onclick="loadMoreBroadcastHistory()"
+                  style="margin-top: 12px; width: 100%;">
+          See More
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= Preview Section (Sidebar Integrated) ================= -->
+      <div id="broadcastPreviewSection" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 4px 0;">
+              <button type="button" onclick="backToForm()" class="preview-back-btn" style="margin-bottom: 0;">
+                  <i class='bx bx-left-arrow-alt'></i> Back
+              </button>
+              <button type="button" 
+                      onclick="closeBroadcastPanel()" 
+                      style="background: none; border: none; font-size: 1.1rem; color: #94a3b8; cursor: pointer;">
+                  ✖
+              </button>
+          </div>
+          
+          <div class="preview-content">
+              <!-- Banner Logo for Preview -->
+              <div id="p_banner_logo" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+                  <img src="{% static 'data/light-logo.png' %}" alt="Brand Logo" style="height: 28px; width: auto;" onerror="this.onerror=null; this.src='https://files.catbox.moe/7qd1rr.png';">
+                  <span style="font-size: 0.7rem; font-weight: 700; color: #61358d; background: rgba(97, 53, 141, 0.1); padding: 3px 8px; border-radius: 12px; text-transform: uppercase;">Ads Banner Preview</span>
+              </div>
+
+              <h4 id="p_subject" class="preview-title" style="margin-top: 0; font-weight: 700;"></h4>
+              <div id="p_message" class="preview-text" style="margin-bottom: 14px; white-space: pre-wrap;"></div>
+              
+              <!-- Banner Image Preview in Side Preview -->
+              <div id="p_banner_img_wrapper" style="display: none; margin-bottom: 14px;">
+                  <img id="p_banner_img_tag" src="" alt="Banner Image" style="width: 100%; height: auto; max-height: 220px; object-fit: contain; border-radius: 8px;">
+              </div>
+
+              <!-- CTA Buttons Preview -->
+              <div id="p_banner_buttons_wrapper" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 16px;"></div>
+
+              <div class="preview-footer-info" style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e2e8f0; font-size: 0.8rem;">
+                  <div class="preview-target-text">🎯 Target: <span id="p_target_group"></span></div>
+                  <div class="preview-delivery-text">📱 Via: <span id="p_delivery"></span></div>
+              </div>
+              
+              <!-- Attachment Preview -->
+              <div id="p_attachment_preview" class="preview-attachments hidden"></div>
+          </div>
+      </div>
+
+      <!-- STATUS MESSAGE -->
+      <div id="broadcastStatus" class="broadcast-status"></div>
+
+    </div>
+</div>
+
+<script>
+    var PRESET_BUTTON_URLS = {
+        'contact': '{% url "users:contact" %}',
+        'admission': '{% url "users:admission_form" %}',
+        'achievements': '{% url "users:alumni_dashboard" %}',
+        'courses': '{% url "users:courses" %}',
+        'library': '{% url "users:library_availability" %}',
+        'custom': ''
+    };
+
+    var ctaButtons = window.ctaButtons || [];
+
+    // Switch Broadcast vs Banner Tabs
+    window.switchBroadcastTab = function(mode) {
+        const msgTypeInput = document.getElementById('message_type_input');
+        const btnBroadcast = document.getElementById('tabBtnBroadcast');
+        const btnBanner = document.getElementById('tabBtnBanner');
+        const broadcastGroup = document.getElementById('broadcastDetailsGroup');
+        const bannerGroup = document.getElementById('bannerDetailsGroup');
+        const title = document.getElementById('broadcastTitle');
+        const sendBtn = document.getElementById('sendBroadcastBtn');
+
+        if (!msgTypeInput) return;
+        msgTypeInput.value = mode;
+
+        if (mode === 'banner') {
+            if (btnBanner) btnBanner.classList.add('active');
+            if (btnBroadcast) btnBroadcast.classList.remove('active');
+
+            if (broadcastGroup) broadcastGroup.style.display = 'none';
+            if (bannerGroup) bannerGroup.style.display = 'block';
+            if (title) title.innerHTML = '🎨 Create Ads Banner';
+            if (sendBtn) sendBtn.innerHTML = '<i class="bx bx-paper-plane"></i> Post Banner';
+        } else {
+            if (btnBroadcast) btnBroadcast.classList.add('active');
+            if (btnBanner) btnBanner.classList.remove('active');
+
+            if (bannerGroup) bannerGroup.style.display = 'none';
+            if (broadcastGroup) broadcastGroup.style.display = 'block';
+            if (title) title.innerHTML = '📢 Broadcasts & Ads';
+            if (sendBtn) sendBtn.innerHTML = '<i class="bx bx-paper-plane"></i> Send Broadcast';
+        }
+    };
+
+    // Switch Banner Creation Type (Image vs Write)
+    window.switchBannerType = function(type) {
+        const bannerTypeInput = document.getElementById('banner_type_input');
+        const imgBtn = document.getElementById('bannerTypeImgBtn');
+        const textBtn = document.getElementById('bannerTypeTextBtn');
+        const imgSection = document.getElementById('bannerImageSection');
+        const textSection = document.getElementById('bannerTextSection');
+
+        if (!bannerTypeInput) return;
+        bannerTypeInput.value = type;
+
+        if (type === 'text') {
+            if (textBtn) textBtn.classList.add('active');
+            if (imgBtn) imgBtn.classList.remove('active');
+
+            if (imgSection) imgSection.style.display = 'none';
+            if (textSection) textSection.style.display = 'block';
+        } else {
+            if (imgBtn) imgBtn.classList.add('active');
+            if (textBtn) textBtn.classList.remove('active');
+
+            if (textSection) textSection.style.display = 'none';
+            if (imgSection) imgSection.style.display = 'block';
+        }
+        if (window.syncBannerTextInputs) window.syncBannerTextInputs();
+    };
+
+    // Handle Banner Image Selection
+    window.handleBannerImageSelect = function(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('bannerImgPreviewTag');
+                const box = document.getElementById('bannerImagePreview');
+                const upload = document.getElementById('bannerUploadBox');
+                if (img) img.src = e.target.result;
+                if (box) box.style.display = 'block';
+                if (upload) upload.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    window.clearBannerImage = function() {
+        const input = document.getElementById('bannerFileInput');
+        if (input) input.value = '';
+        const box = document.getElementById('bannerImagePreview');
+        const upload = document.getElementById('bannerUploadBox');
+        if (box) box.style.display = 'none';
+        if (upload) upload.style.display = 'block';
+    };
+
+    window.syncBannerTextInputs = function() {
+        const modeInput = document.getElementById('message_type_input');
+        const bannerTypeInput = document.getElementById('banner_type_input');
+        const mainSubj = document.getElementById('broadcast-subject');
+        const mainMsg = document.getElementById('broadcast-message');
+
+        if (!modeInput || !bannerTypeInput || !mainSubj || !mainMsg) return;
+
+        const mode = modeInput.value;
+        const bannerType = bannerTypeInput.value;
+
+        if (mode === 'banner') {
+            if (bannerType === 'text') {
+                const bannerSubj = document.getElementById('banner-subject')?.value || '';
+                const bannerMsg = document.getElementById('banner-message')?.value || '';
+                mainSubj.value = bannerSubj;
+                mainMsg.value = bannerMsg;
+            } else {
+                if (!mainSubj.value) mainSubj.value = 'Ad Banner';
+                if (!mainMsg.value) mainMsg.value = mainSubj.value;
+            }
+        }
+    };
+
+    // CTA Button Builder Logic
+    window.addCtaButtonRow = function(presetType = 'contact', presetLabel = '', presetUrl = '') {
+        if (ctaButtons.length >= 3) {
+            if (window.showBroadcastStatus) window.showBroadcastStatus('Maximum 3 buttons allowed per banner', 'error');
+            return;
+        }
+
+        const defaultLabels = {
+            'contact': 'Contact Us',
+            'admission': 'Admission Form',
+            'achievements': 'Achievements',
+            'courses': 'Explore Courses',
+            'library': 'Library Status',
+            'custom': 'Learn More'
+        };
+
+        const buttonObj = {
+            type: presetType,
+            label: presetLabel || defaultLabels[presetType] || 'Action',
+            url: presetUrl || PRESET_BUTTON_URLS[presetType] || ''
+        };
+
+        ctaButtons.push(buttonObj);
+        window.renderCtaButtons();
+    };
+
+    window.removeCtaButton = function(index) {
+        ctaButtons.splice(index, 1);
+        window.renderCtaButtons();
+    };
+
+    window.updateCtaButton = function(index, field, value) {
+        if (!ctaButtons[index]) return;
+
+        if (field === 'type') {
+            ctaButtons[index].type = value;
+            const defaultLabels = {
+                'contact': 'Contact Us',
+                'admission': 'Admission Form',
+                'achievements': 'Achievements',
+                'courses': 'Explore Courses',
+                'library': 'Library Status',
+                'custom': 'Learn More'
+            };
+            ctaButtons[index].label = defaultLabels[value] || 'Action';
+            ctaButtons[index].url = PRESET_BUTTON_URLS[value] || '';
+        } else if (field === 'label') {
+            ctaButtons[index].label = value;
+        } else if (field === 'url') {
+            ctaButtons[index].url = value;
+        }
+
+        window.renderCtaButtons();
+    };
+
+    window.renderCtaButtons = function() {
+        const container = document.getElementById('ctaButtonsContainer');
+        const jsonInput = document.getElementById('bannerButtonsJson');
+        const addBtn = document.getElementById('addCtaBtn');
+
+        if (!container) return;
+
+        container.innerHTML = '';
+        ctaButtons.forEach((btn, idx) => {
+            const div = document.createElement('div');
+            div.className = 'cta-button-row';
+
+            div.innerHTML = `
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select class="form-input" style="flex: 1.2; height: 34px; font-size: 0.8rem; padding: 0 8px;" onchange="updateCtaButton(${idx}, 'type', this.value)">
+                        <option value="contact" ${btn.type === 'contact' ? 'selected' : ''}>Phone / Email Contact</option>
+                        <option value="admission" ${btn.type === 'admission' ? 'selected' : ''}>Admission Form</option>
+                        <option value="achievements" ${btn.type === 'achievements' ? 'selected' : ''}>Achievements Form</option>
+                        <option value="courses" ${btn.type === 'courses' ? 'selected' : ''}>Courses Catalog</option>
+                        <option value="library" ${btn.type === 'library' ? 'selected' : ''}>Library Availability</option>
+                        <option value="custom" ${btn.type === 'custom' ? 'selected' : ''}>Custom URL Link</option>
+                    </select>
+                    <input type="text" class="form-input" placeholder="Button Text" value="${btn.label}" style="flex: 1.2; height: 34px; font-size: 0.8rem;" oninput="updateCtaButton(${idx}, 'label', this.value)">
+                    <button type="button" onclick="removeCtaButton(${idx})" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">✖</button>
+                </div>
+                ${btn.type === 'custom' ? `<input type="text" class="form-input" placeholder="https://example.com" value="${btn.url}" style="height: 32px; font-size: 0.78rem;" oninput="updateCtaButton(${idx}, 'url', this.value)">` : ''}
+            `;
+            container.appendChild(div);
+        });
+
+        if (jsonInput) jsonInput.value = JSON.stringify(ctaButtons);
+        if (addBtn) addBtn.style.display = ctaButtons.length >= 3 ? 'none' : 'inline-flex';
+    };
+
+    // Draft System Logic
+    window.refreshDrafts = async function() {
+        const select = document.getElementById('loadDraftSelect');
+        if (!select) return;
+        
+        try {
+            const response = await fetch('{% url "users:get_drafts_api" %}');
+            const result = await response.json();
+            const drafts = result.drafts || [];
+            
+            select.innerHTML = '<option value="">-- Load a saved draft --</option>';
+            
+            drafts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                const typeTag = d.message_type === 'banner' ? '[BANNER] ' : '';
+                opt.textContent = typeTag + (d.subject || '(No Subject)');
+                opt.dataset.draft = JSON.stringify(d);
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error('Failed to load drafts', err);
+        }
+    };
+
+    window.saveAsDraft = async function() {
+        if (window.syncBannerTextInputs) window.syncBannerTextInputs();
+        const form = document.getElementById('broadcastForm');
+        if (!form) return;
+
+        const formData = new FormData(form);
+        formData.append('save_draft', 'true');
+
+        const btn = document.getElementById('saveDraftBtn');
+        const originalContent = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Saving...';
+            btn.disabled = true;
+        }
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const result = await response.json();
+            
+            if (result.success === true) {
+                if (window.showBroadcastStatus) window.showBroadcastStatus('Draft saved successfully', 'success');
+                if (window.refreshDrafts) window.refreshDrafts();
+            } else {
+                if (window.showBroadcastStatus) window.showBroadcastStatus(result.message || 'Error saving draft', 'error');
+            }
+        } catch (err) {
+            if (window.showBroadcastStatus) window.showBroadcastStatus('Failed to connect to server', 'error');
+        } finally {
+            if (btn) {
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        }
+    };
+
+    window.loadSelectedDraft = function() {
+        const select = document.getElementById('loadDraftSelect');
+        if (!select) return;
+        const option = select.selectedOptions[0];
+        if (!option || !option.value) return;
+
+        const draft = JSON.parse(option.dataset.draft);
+        
+        const mode = draft.message_type || 'broadcast';
+        if (window.switchBroadcastTab) window.switchBroadcastTab(mode);
+
+        if (mode === 'banner') {
+            const bannerType = draft.banner_type || 'text';
+            if (window.switchBannerType) window.switchBannerType(bannerType);
+            if (bannerType === 'text') {
+                const bSubj = document.getElementById('banner-subject');
+                const bMsg = document.getElementById('banner-message');
+                if (bSubj) bSubj.value = draft.subject || '';
+                if (bMsg) bMsg.value = draft.message || '';
+            }
+            if (draft.banner_buttons && Array.isArray(draft.banner_buttons)) {
+                ctaButtons = draft.banner_buttons;
+                if (window.renderCtaButtons) window.renderCtaButtons();
+            }
+        }
+
+        const bMainSubj = document.getElementById('broadcast-subject');
+        const bMainMsg = document.getElementById('broadcast-message');
+        const targetGrp = document.getElementById('target-group');
+
+        if (bMainSubj) bMainSubj.value = draft.subject || '';
+        if (bMainMsg) bMainMsg.value = draft.message || '';
+        if (targetGrp) {
+            targetGrp.value = draft.target_group || 'everyone';
+            targetGrp.dispatchEvent(new Event('change'));
+        }
+
+        if (draft.floor) {
+            const floorSelect = document.getElementById('library-floor');
+            if (floorSelect) floorSelect.value = draft.floor;
+        }
+        if (draft.batch) {
+            const batchSelect = document.getElementById('coaching-batch');
+            if (batchSelect) batchSelect.value = draft.batch;
+        }
+
+        if (window.showBroadcastStatus) window.showBroadcastStatus('Draft loaded', 'success');
+    };
+
+    if (typeof refreshDrafts === 'function') refreshDrafts();
+</script>
+{% include 'partials/_smart_back_redirect.html' %}

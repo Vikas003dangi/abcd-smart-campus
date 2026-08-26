@@ -1,0 +1,2130 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Seat Availability</title>
+
+    <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+
+    <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+    <link href='https://cdn.boxicons.com/fonts/brands/boxicons-brands.min.css' rel='stylesheet'>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <link rel="stylesheet" href="{% static 'css/seat-layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/seat-patterns-enhanced.css' %}">
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(to top, #112a3b, #5683a1a6, #fff2de);
+            min-height: 100vh;
+            padding: 20px 20px 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 45px auto 30px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.18);
+            overflow: visible;
+        }
+
+        /* --- HUB NAVIGATION (NAVBAR) --- */
+        .hub-navbar {
+            position: sticky;
+            top: 15px;
+            margin: 15px auto;
+            max-width: 1200px;
+            width: calc(100% - 40px);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 1001;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        body.dark-theme .hub-navbar {
+            background: rgba(30, 20, 50, 0.7);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .hub-nav-left, .hub-nav-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .hub-nav-right {
+            justify-content: flex-end;
+        }
+
+        .hub-nav-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        body.dark-theme .back-btn {
+            background: linear-gradient(135deg, #8e5196 0%, #4c4d9b 100%);
+            box-shadow: 0 4px 15px rgba(142, 81, 150, 0.3);
+        }
+
+        .hub-title {
+            font-family: 'Playball', cursive;
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        body.dark-theme .hub-title {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .content-body {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        .library-section h2 {
+            margin: 0 0 20px;
+            font-size: 2rem;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* Make layouts read-only */
+        .seat-layout .seat {
+            cursor: default !important;
+        }
+
+        .seat-layout .seat.available:hover {
+            background: #fff;
+            border-color: #000;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #000;
+            border-radius: 4px;
+        }
+
+        .legend-box.available {
+            background: #2ecc71;
+            border-color: #2ecc71;
+        }
+
+        .legend-box.occupied {
+            background: #7c3aed;
+            border-color: #7c3aed;
+        }
+
+        .legend-box.on-hold {
+            background: #f39c12;
+            border-color: #f39c12;
+        }
+
+        .legend-box.shift_occupied {
+            background: #a855f7;
+            border-color: #a855f7;
+        }
+
+        .legend-box.temporary {
+            background: #ec4899;
+            border-color: #ec4899;
+        }
+
+        .layout-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            /* Stacked by default */
+            gap: 20px;
+        }
+
+        /* --- to 1100px --- */
+        @media (min-width: 1101px) {
+            .layout-container {
+                /* Go side-by-side only on large screens */
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        /* --- Accordion Styles --- */
+        .library-section {
+            background: #f9f9f9;
+            border-radius: 15px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .layout-toggle {
+            margin: 0;
+            font-size: 2rem;
+            color: #333;
+            padding: 20px 25px;
+            cursor: pointer;
+            border-bottom: 2px solid #667eea;
+            position: relative;
+        }
+
+        .layout-toggle::after {
+            content: '▼';
+            /* Down arrow */
+            font-size: 1rem;
+            position: absolute;
+            right: 25px;
+            top: 50%;
+            transform: translateY(-50%) rotate(0deg);
+            transition: transform 0.3s ease;
+        }
+
+        .library-section.active .layout-toggle::after {
+            transform: translateY(-50%) rotate(180deg);
+            /* Up arrow */
+        }
+
+        .layout-content {
+            display: none;
+            /* Collapsed by default */
+            padding: 20px;
+            background: #fff;
+        }
+
+        .library-section.active .layout-content {
+            display: block;
+            /* Show when active */
+        }
+
+        /* for layout wrappers inside content */
+        .layout-content .seat-layout-wrapper {
+            display: block !important;
+        }
+
+        /*
+        =================================================
+        CSS FOR PAGE SCROLL INDICATORS
+        =================================================
+        */
+        .scroll-indicator {
+            position: fixed;
+            /* <-- FIX: Sticks to the window */
+            right: 20px;
+            /* Position on the right side */
+            transform: translateX(0) translateY(0);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            /* Bigger icon */
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 200ms ease, transform 200ms ease;
+            z-index: 9999;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .scroll-indicator.up {
+            top: 95px;
+            /* Positioned below the desktop navbar */
+            transform: translateY(-20px);
+            /* Start hidden */
+        }
+
+        .scroll-indicator.down {
+            bottom: 20px;
+            /* 20px from the bottom */
+            transform: translateY(20px);
+            /* Start hidden */
+        }
+
+        .scroll-indicator.visible {
+            opacity: 1;
+            transform: translateY(0);
+            /* Animate in */
+        }
+
+        .scroll-indicator.interactive {
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .scroll-indicator i {
+            color: #ffffff !important;
+            pointer-events: none;
+        }
+
+        .hub-mobile-header {
+            display: none;
+        }
+        
+        /* --- DARK THEME OVERRIDES --- */
+        
+        body.dark-theme {
+            background: linear-gradient(to top, #140570, #300448da, #17022c);
+            color: #f8fafc;
+        }
+
+        body.dark-theme .container {
+            background: rgba(30, 20, 50, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+        }
+
+        body.dark-theme .library-section {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-theme .layout-toggle {
+            color: #f8fafc;
+        }
+
+        body.dark-theme .layout-content {
+            background: transparent;
+        }
+
+        body.dark-theme .legend {
+            background: rgba(255, 255, 255, 0.05);
+            color: #f8fafc;
+        }
+
+        body.dark-theme .legend-item {
+            color: #f8fafc;
+        }
+
+        body.dark-theme .legend-box.available {
+            background: #2ecc71;
+            border-color: #2ecc71;
+        }
+
+
+        /* Theme Toggle Fixed */
+        .theme-toggle-fixed {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            cursor: pointer;
+            z-index: 1002;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .theme-toggle-fixed:hover {
+            transform: scale(1.1) rotate(15deg);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        }
+
+
+        /* --- SEAT BORDER BOX OPTIMIZATION --- */
+        .seat {
+            min-width: 92px !important;
+            min-height: 72px !important;
+            padding: 8px 4px 4px !important;
+            box-sizing: border-box !important;
+        }
+        .seat:has(.vertical) {
+            min-width: 52px !important;
+            min-height: 106px !important;
+        }
+
+
+        /* --- Responsiveness --- */
+
+        @media (max-width: 1150px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            /* Align Column 2 and Column 3 closer on First Floor Layout */
+            #first-floor-layout .seat:nth-child(4n+2) {
+                position: relative;
+                left: clamp(5px, 2.5vw, 25px);
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                position: relative;
+                left: clamp(-25px, -2.5vw, -5px);
+            }
+        }
+
+        @media (max-width: 1050px) {
+            .hub-navbar .hub-nav-center {
+                display: none !important;
+            }
+            .hub-mobile-header {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 15px auto 10px;
+                width: 100%;
+                text-align: center;
+            }
+            .hub-mobile-title {
+                font-family: 'Playball', cursive;
+                font-size: 1.8rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                margin: 0;
+            }
+            body.dark-theme .hub-mobile-title {
+                background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .seat-icon-group {
+                font-size: 2.2rem !important;
+            }
+            .seat-icon-group.vertical {
+                font-size: 2.2rem !important;
+            }
+            .seat-icon-group.vertical .desk-lamp-wrapper {
+                font-size: 2.2rem !important;
+            }
+            .seat-icon-group.vertical.chair-above .bxs-chair,
+            .seat-icon-group.vertical.chair-below .bxs-chair {
+                font-size: 2.5rem !important;
+            }
+            .seat-icon-group .lamp-icon,
+            .seat-icon-group.vertical .lamp-icon {
+                font-size: 0.95rem !important;
+            }
+            .seat {
+                min-width: 68px !important;
+                min-height: 85px !important;
+                padding: 6px 3px 3px !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 44px !important;
+                min-height: 88px !important;
+            }
+
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.75rem !important;
+            }
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 15px 15px 30px !important;
+            }
+
+            .hub-navbar {
+                margin: 0 0 15px 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+            }
+
+            .container {
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+                border-radius: 16px;
+            }
+
+            .theme-toggle-fixed {
+                width: 50px;
+                height: 50px;
+            }
+
+            .back-btn span {
+                display: none;
+            }
+
+            .back-btn {
+                padding: 0;
+                border-radius: 12px;
+                width: 45px;
+                height: 35px;
+                justify-content: center;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .content-body {
+                padding: 15px;
+            }
+            .layout-content {
+                padding: 10px;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(65px, 1fr));
+                gap: 10px;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(75px, 1fr));
+                gap: 12px;
+            }
+            .seat-icon-group {
+                font-size: 1.7rem !important;
+            }
+            .seat-icon-group .lamp-icon {
+                font-size: 0.9rem !important;
+                top: -8px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 12px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -12px !important;
+            }
+            .seat {
+                min-width: 54px !important;
+                max-width: 76px !important;
+                margin: 0 auto !important;
+                min-height: 85px !important;
+                padding: 5px 2px 2px !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 36px !important;
+                min-height: 70px !important;
+            }
+            /* DO NOT HIDE SEAT LABELS: Override display:none !important from base system */
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.7rem !important;
+                padding: 1px 4px !important;
+                max-width: 90% !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+            }
+            .seat-number {
+                width: 22px !important;
+                height: 22px !important;
+                font-size: 0.8rem !important;
+                top: -10px !important;
+                line-height: 22px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.35rem !important;
+            }
+            .hub-mobile-title {
+                font-size: 1.4rem;
+            }
+            
+            .library-section {
+                border-radius: 10px;
+            }
+
+            .layout-toggle {
+                padding: 15px 20px;
+                font-size: 1.5rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+            .header {
+                padding: 20px;
+            }
+
+            .theme-toggle-fixed {
+                width: 40px;
+                height: 40px;
+                font-size: 1.4rem;
+            }
+
+            body {
+                padding: 10px 10px 20px !important;
+            }
+
+            .hub-navbar {
+                padding: 0 15px !important;
+                margin: 0 0 15px 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+                height: 60px !important;
+                top: 10px !important;
+            }
+            .hub-search-wrapper.expanded {
+                width: 250px !important;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .content-body {
+                padding: 0px !important;
+            }
+            .layout-content {
+                padding: 0px !important;
+            }
+        }
+        @media (max-width: 450px) {
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 8px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -8px !important;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(46px, 1fr)) !important;
+                gap: 8px !important;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(56px, 1fr)) !important;
+                gap: 10px !important;
+            }
+            .seat-icon-group {
+                font-size: 1.25rem !important;
+            }
+            .seat-icon-group .lamp-icon,
+            .seat-icon-group.vertical .lamp-icon {
+                font-size: 0.6rem !important;
+                top: -6px !important;
+            }
+            .seat {
+                min-width: 42px !important;
+                max-width: 66px !important;
+                margin: 0 auto !important;
+                min-height: 75px !important;
+                padding: 4px 1px 1px !important;
+                box-sizing: border-box !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 30px !important;
+                min-height: 75px !important;
+            }
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                display: inline-block !important;
+                font-size: 0.6rem !important;
+                padding: 1px 2px !important;
+            }
+            .seat-number {
+                width: 22px !important;
+                height: 22px !important;
+                font-size: 0.8rem !important;
+                top: -10px !important;
+                line-height: 22px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.28rem !important;
+            }
+            .scroll-indicator {
+                width: 40px;
+                height: 40px;
+                font-size: 2.2rem;
+                right: 10px;
+            }
+            .scroll-indicator.up {
+                top: 85px !important;
+            }
+            .scroll-indicator.down {
+                bottom: 10px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .theme-toggle-fixed {
+                width: 35px;
+                height: 35px;
+                font-size: 1.2rem;
+            }
+            .library-section {
+                border-radius: 5px;
+            }
+            .layout-toggle {
+                padding: 10px 10px;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .hub-search-wrapper.expanded {
+                width: 200px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+2) {
+                left: 5px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                left: -5px !important;
+            }
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(40px, 1fr)) !important;
+            }
+            #ground-floor-layout {
+                grid-template-columns: repeat(3, minmax(48px, 1fr)) !important;
+            }
+            .seat-icon-group {
+                font-size: 1.1rem !important;
+            }
+            .seat {
+                min-width: 38px !important;
+                max-width: 56px !important;
+                margin: 0 auto !important;
+                min-height: 60px !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 26px !important;
+                min-height: 50px !important;
+            }
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                font-size: 0.46rem !important;
+                padding: 1px 1px !important;
+                display: inline-block !important;
+            }
+            .seat-number {
+                width: 17px !important;
+                height: 17px !important;
+                font-size: 0.65rem !important;
+                top: -8px !important;
+                line-height: 17px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.22rem !important;
+            }
+            .hub-mobile-title {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 340px) {
+            #first-floor-layout {
+                gap: 8px !important;
+            }
+            #ground-floor-layout {
+                gap: 10px !important;
+            }
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                font-size: 0.44rem !important;
+                padding: 1px 2px !important;
+            }
+            .seat-morning-label, .seat-evening-label {
+                font-size: 0.2rem !important;
+            }
+        }
+
+        @media (max-width: 330px) {
+            #first-floor-layout {
+                gap: 8px !important;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .content-body {
+                padding: 10px 4px !important;
+            }
+        }
+
+        /* Responsive side-by-side seat sizing between 1101px and 1257px to prevent overlap */
+        @media (min-width: 1101px) and (max-width: 1257px) {
+            #first-floor-layout {
+                grid-template-columns: repeat(4, minmax(68px, 1fr)) !important;
+                gap: 8px !important;
+            }
+            .seat {
+                min-width: 68px !important;
+                max-width: 76px !important;
+                min-height: 84px !important;
+                padding: 6px 3px 3px !important;
+            }
+            .seat:has(.vertical) {
+                min-width: 44px !important;
+                min-height: 85px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+2) {
+                position: relative;
+                left: 10px !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                position: relative;
+                left: -10px !important;
+            }
+            .seat-icon-group {
+                font-size: 1.68rem !important;
+            }
+            .seat-icon-group .lamp-icon {
+                font-size: 0.9rem !important;
+                top: -4px !important;
+            }
+            .seat .seat-label,
+            .seat .seat-morning-label,
+            .seat .seat-evening-label {
+                font-size: 0.72rem !important;
+            }
+            .seat .seat-number {
+                font-size: 0.72rem !important;
+                width: 18px !important;
+                height: 18px !important;
+                line-height: 18px !important;
+                top: -8px !important;
+            }
+        }
+
+        /* Large screens above 1258px: scale up layout and icons dynamically */
+        @media (min-width: 1258px) {
+            .container,
+            .hub-navbar {
+                max-width: 95% !important;
+            }
+            .seat-icon-group {
+                font-size: calc(1.8rem + 0.3vw) !important;
+            }
+            .seat-icon-group .lamp-icon {
+                font-size: calc(0.9rem + 0.15vw) !important;
+            }
+            .seat {
+                min-height: calc(85px + 0.8vw) !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+2) {
+                position: relative;
+                left: clamp(10px, 1.5vw, 25px) !important;
+            }
+            #first-floor-layout .seat:nth-child(4n+3) {
+                position: relative;
+                left: clamp(-25px, -1.5vw, -10px) !important;
+            }
+        }
+
+        /* --- SEARCH BAR AND PULSE HIGH-LIGHT --- */
+        .hub-search-wrapper {
+            background: #fff;
+            border: 1.5px solid #eee;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            width: 45px;
+            height: 45px;
+            overflow: hidden;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .hub-search-wrapper.expanded {
+            width: 300px;
+            border-color: #764ba2;
+        }
+
+        .hub-search-wrapper input {
+            border: none;
+            outline: none;
+            width: 100%;
+            height: 100%;
+            padding-left: 20px;
+            padding-right: 45px;
+            font-size: 0.95rem;
+            background: transparent;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-weight: 500;
+        }
+
+        .hub-search-wrapper.expanded input {
+            opacity: 1;
+            transition: opacity 0.4s 0.1s;
+        }
+
+        body.dark-theme .hub-search-wrapper {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-theme .hub-search-wrapper input {
+            color: #fff;
+        }
+
+        .hub-search-btn {
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.4rem;
+            width: 45px;
+            height: 45px;
+            position: absolute;
+            right: 0;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s;
+        }
+
+        .hub-search-wrapper.expanded .hub-search-btn {
+            color: #764ba2;
+        }
+
+        body.dark-theme .hub-search-btn {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .hub-search-wrapper.expanded .hub-search-btn {
+            color: #f5deb3;
+        }
+
+        .hub-mobile-header.search-active .hub-mobile-title {
+            display: none !important;
+        }
+        .hub-mobile-header.search-active .hub-search-container-mobile {
+            flex: 1;
+            width: 100%;
+        }
+        .hub-mobile-header.search-active .hub-search-wrapper {
+            width: 100%;
+        }
+        .hub-mobile-header.search-active {
+            gap: 10px;
+        }
+
+        .seat.search-match {
+            animation: pulse-highlight 1.5s infinite;
+            z-index: 10;
+        }
+
+        .seat.active-match {
+            outline: 3px solid #f97316 !important;
+            outline-offset: 2px !important;
+            z-index: 12 !important;
+        }
+
+        @keyframes pulse-highlight {
+            0% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0.7); transform: scale(1); }
+            50% { box-shadow: 0 0 0 15px rgba(118, 75, 162, 0); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0); transform: scale(1); }
+        }
+
+        /* --- SEAT STATUS OVERRIDES (Available is Green, Occupied is Violet) --- */
+        /* Available Seats -> Green */
+        .seat.available {
+            border: 1px solid rgba(46, 204, 113, 0.3) !important;
+            background-color: transparent !important;
+        }
+        .seat.available .seat-icon-group {
+            color: #2ecc71 !important;
+        }
+        .seat.available .lamp-icon {
+            color: #2ecc71 !important;
+        }
+        .seat.available .seat-number {
+            background: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            color: white !important;
+        }
+        .seat.available .seat-label {
+            background: #2ecc71 !important;
+            border-color: #27ae60 !important;
+            color: white !important;
+        }
+
+        /* Occupied Seats -> Distinct Violet (#7c3aed) */
+        .seat.occupied {
+            border-color: #7c3aed !important;
+            background-color: #ede9fe !important;
+        }
+        .seat.occupied:not(.on_hold):not(.hold-full) .seat-icon-group {
+            color: #7c3aed !important;
+        }
+        .seat.occupied:not(.on_hold):not(.hold-full) .lamp-icon {
+            color: #7c3aed !important;
+        }
+        .seat.occupied .seat-number {
+            background: #7c3aed !important;
+            border: 2px solid #6d28d9 !important;
+            color: white !important;
+        }
+        .seat.occupied .seat-label {
+            background: #7c3aed !important;
+            color: white !important;
+            border-color: #6d28d9 !important;
+        }
+
+        .search-nav-popup {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 6px 12px;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            border: 1px solid #e2e8f0;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+
+        body.dark-theme .search-nav-popup {
+            background: #1e1b4b !important;
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .search-nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 0 2px;
+            display: none;
+            align-items: center;
+            color: #6366f1;
+            transition: transform 0.2s;
+        }
+        .search-nav-btn:hover {
+            transform: scale(1.15);
+        }
+        body.dark-theme .search-nav-btn {
+            color: #a78bfa;
+        }
+
+        /* --- SEARCH AUTOCOMPLETE DROPDOWN --- */
+        .search-autocomplete {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 1002;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        body.dark-theme .search-autocomplete {
+            background: #1e1b4b;
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #334155;
+            transition: background 0.2s, color 0.2s;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        body.dark-theme .autocomplete-item {
+            color: #cbd5e1;
+        }
+
+        .autocomplete-item:hover, .autocomplete-item.active {
+            background: #f1f5f9;
+            color: #6366f1;
+        }
+
+        body.dark-theme .autocomplete-item:hover, body.dark-theme .autocomplete-item.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: #a78bfa;
+        }
+
+        /* Prevent duplicate label displaying on shift-seats in split shift states */
+        .seat.occupied-morning .seat-label,
+        .seat.occupied-evening .seat-label,
+        .seat.hold-morning .seat-label,
+        .seat.hold-evening .seat-label,
+        .seat.hold-partial .seat-label,
+        .seat.hold-morning-temp-morning .seat-label,
+        .seat.hold-evening-temp-evening .seat-label {
+            display: none !important;
+        }
+
+        /* Allow Ground Floor seats 47 and 20 labels to write complete text without truncation */
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-label,
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-morning-label,
+        #ground-floor-layout .seat[data-seat-id="47"] .seat-evening-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-morning-label,
+        #ground-floor-layout .seat[data-seat-id="20"] .seat-evening-label {
+            max-width: none !important;
+            width: auto !important;
+            white-space: nowrap !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+
+        /* Shift-half background colors based on status (applied only on partially occupied/held/temporary seats) */
+        .seat.occupied:not(.occupied-full) .seat-half.seat-morning.shift-available,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-morning.shift-available {
+            background-color: #d1fae5 !important; /* Soft light green */
+        }
+        .seat.occupied:not(.occupied-full) .seat-half.seat-evening.shift-available,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-evening.shift-available {
+            background-color: #a7f3d0 !important; /* Soft slightly darker green */
+        }
+        
+        .seat.occupied:not(.occupied-full) .seat-half.seat-morning.shift-occupied,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-morning.shift-occupied {
+            background-color: #c4b5fd !important; /* Light purple */
+        }
+        .seat.occupied:not(.occupied-full) .seat-half.seat-evening.shift-occupied,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-evening.shift-occupied {
+            background-color: #8b5cf6 !important; /* Darker purple */
+        }
+        
+        .seat.occupied:not(.occupied-full) .seat-half.seat-morning.shift-hold,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-morning.shift-hold {
+            background-color: #fcd34d !important; /* Light orange */
+        }
+        .seat.occupied:not(.occupied-full) .seat-half.seat-evening.shift-hold,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-evening.shift-hold {
+            background-color: #f6ad55 !important; /* Darker orange */
+        }
+        
+        .seat.occupied:not(.occupied-full) .seat-half.seat-morning.shift-temporary,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-morning.shift-temporary {
+            background-color: #fce7f3 !important; /* Light pink */
+        }
+        .seat.occupied:not(.occupied-full) .seat-half.seat-evening.shift-temporary,
+        .seat.on_hold:not(.hold-full) .seat-half.seat-evening.shift-temporary {
+            background-color: #fbcfe8 !important; /* Darker pink */
+        }
+
+        /* Shift label text & border colors based on status */
+        .seat-morning-label.status-available,
+        .seat-evening-label.status-available {
+            color: #27ae60 !important;
+            border-color: #2ecc71 !important;
+        }
+        .seat-morning-label.status-occupied,
+        .seat-evening-label.status-occupied {
+            color: #7c3aed !important;
+            border-color: #7c3aed !important;
+        }
+        .seat-morning-label.status-hold,
+        .seat-evening-label.status-hold {
+            color: #d97706 !important;
+            border-color: #f59e0b !important;
+        }
+        .seat-morning-label.status-temporary,
+        .seat-evening-label.status-temporary {
+            color: #db2777 !important;
+            border-color: #ec4899 !important;
+        }
+    </style>
+</head>
+
+<body>
+    {% include 'partials/_master_loader.html' %}
+
+
+
+    <!-- Unified Premium Header -->
+    <nav class="hub-navbar">
+        <div class="hub-nav-left">
+            <a href="{% url 'users:student_dashboard' %}" class="back-btn">
+                <i class='bx bx-left-arrow-alt'></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="hub-nav-center">
+            <div class="hub-title">Library Seat Availability</div>
+        </div>
+
+        <div class="hub-nav-right" style="position: relative;">
+            <div class="hub-search-wrapper" id="hubSearchWrapper">
+                <input type="text" id="seatSearchInput" placeholder="Search seat...">
+                <button class="hub-search-btn" id="hubSearchBtn">
+                    <i class='bx bx-search'></i>
+                </button>
+            </div>
+            <!-- Autocomplete list dropdown -->
+            <div id="searchAutocomplete" class="search-autocomplete"></div>
+            <!-- Floating Search Nav Popup -->
+            <div id="seatSearchNav" class="search-nav-popup">
+                <span id="seatSearchCount" style="font-weight: 600;">0 / 0</span>
+                <button id="seatSearchPrev" class="search-nav-btn" type="button" aria-label="Previous result"><i class='bx bx-chevron-up'></i></button>
+                <button id="seatSearchNext" class="search-nav-btn" type="button" aria-label="Next result"><i class='bx bx-chevron-down'></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Secondary Header for smaller screens -->
+    <div class="hub-mobile-header">
+        <h1 class="hub-mobile-title">Library Seat Availability</h1>
+    </div>
+
+    <div class="container">
+
+        <div class="content-body">
+
+            <div class="legend">
+                <div class="legend-item"><span class="legend-box available"></span> Available</div>
+                <div class="legend-item"><span class="legend-box occupied"></span> Occupied</div>
+                <div class="legend-item"><span class="legend-box shift_occupied"></span> Shift Occupied</div>
+                <div class="legend-item"><span class="legend-box on-hold"></span> On Hold</div>
+                <div class="legend-item"><span class="legend-box temporary"></span> Temporary Allotted</div>
+            </div>
+
+            <div class="layout-container">
+                <div class="library-section active" id="ground-floor-section">
+                    <h2 class="layout-toggle">Ground Floor</h2>
+                    <div class="layout-content">
+                    </div>
+                </div>
+
+                <div class="library-section active" id="first-floor-section">
+                    <h2 class="layout-toggle">1st Floor</h2>
+                    <div class="layout-content">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div style="display: none;">
+        {% include 'users/_seat_grids.html' %}
+    </div>
+
+    <!-- 
+    =================================================
+                FOR PAGE SCROLL INDICATORS
+    =================================================
+    -->
+    <div class="scroll-indicator up" id="pageScrollUp" role="button" tabindex="0" aria-label="Scroll to top"
+        title="Scroll to top">
+        <i class='bx bx-chevron-up-circle'></i>
+    </div>
+    <div class="scroll-indicator down" id="pageScrollDown" role="button" tabindex="0" aria-label="Scroll to bottom"
+        title="Scroll to bottom">
+        <i class='bx bx-chevron-down-circle'></i>
+    </div>
+    <!-- End of Scroll Indicators -->
+
+
+    <script>
+        // API URL for public data
+        const PUBLIC_API_URL = "{% url 'users:api_get_public_seat_status' %}";
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- MOVE GRIDS TO FIX REPETITION ---
+            const groundGrid = document.getElementById('ground-floor-wrapper');
+            const firstGrid = document.getElementById('first-floor-wrapper');
+
+            const groundContent = document.querySelector('#ground-floor-section .layout-content');
+            const firstContent = document.querySelector('#first-floor-section .layout-content');
+
+            if (groundGrid && groundContent) {
+                groundContent.appendChild(groundGrid);
+                groundGrid.style.display = 'block';
+            }
+            if (firstGrid && firstContent) {
+                firstContent.appendChild(firstGrid);
+                firstGrid.style.display = 'block';
+            }
+
+            // ---  ACCORDION JAVASCRIPT ---
+            document.querySelectorAll('.layout-toggle').forEach(header => {
+                header.addEventListener('click', () => {
+                    header.parentElement.classList.toggle('active');
+                    // Re-run search if a query exists, to update matched highlights
+                    const searchInput = document.getElementById('seatSearchInput');
+                    if (searchInput && searchInput.value.trim().length > 0) {
+                        window._triggerActiveSearch?.(searchInput.value);
+                    }
+                });
+            });
+            // --- END ACCORDION JAVASCRIPT ---
+
+
+            // Function to load a layout
+            async function loadLayout(floor, wrapperId) {
+                const wrapper = document.getElementById(wrapperId);
+                if (!wrapper) return;
+
+                try {
+                    const response = await fetch(`${PUBLIC_API_URL}?floor=${encodeURIComponent(floor)}`);
+                    if (!response.ok) throw new Error(`Failed to load ${floor} data.`);
+
+                    const seatData = await response.json();
+                    updateLayout(wrapper, seatData.seats);
+                } catch (error) {
+                    console.error(error);
+                    wrapper.innerHTML = `<p>Error loading layout.</p>`;
+                }
+            }
+
+            // Function to update the layout (read-only)
+            function updateLayout(wrapper, seats) {
+                // Reset all seats to available
+                wrapper.querySelectorAll('.seat').forEach(seatEl => {
+                    if (seatEl.classList.contains('special') || seatEl.classList.contains('empty-space')) return;
+
+                    // Preserve shift-seat class
+                    const isShiftSeat = seatEl.classList.contains('shift-seat');
+                    seatEl.className = 'seat available';
+                    if (isShiftSeat) {
+                        seatEl.classList.add('shift-seat');
+                    }
+
+                    seatEl.querySelector('.seat-label').textContent = 'Available';
+                    seatEl.dataset.status = 'available';
+
+                    // Remove dynamically added shift halves
+                    seatEl.querySelectorAll('.seat-half').forEach(h => h.remove());
+                });
+
+                // Apply new statuses
+                for (const seat of seats) {
+                    const seatEl = wrapper.querySelector(`.seat[data-seat-id="${seat.seat_number}"]`);
+                    if (!seatEl) continue;
+
+                    const status = seat.status;
+                    const labelEl = seatEl.querySelector('.seat-label');
+
+                    // Cleanup dynamic labels
+                    seatEl.querySelectorAll('.seat-morning-label, .seat-evening-label').forEach(el => el.remove());
+                    if (labelEl) labelEl.style.display = '';
+
+                    // Handle shift-enabled seats
+                    if (seat.is_shift_enabled) {
+                        seatEl.classList.add('shift-seat');
+                        seatEl.classList.remove('available');
+
+                        // Create shift halves if they don't exist
+                        let topHalf = seatEl.querySelector('.seat-morning');
+                        let bottomHalf = seatEl.querySelector('.seat-evening');
+                        if (!topHalf) {
+                            topHalf = document.createElement('div');
+                            topHalf.className = 'seat-half seat-morning';
+                            seatEl.prepend(topHalf);
+                        }
+                        if (!bottomHalf) {
+                            bottomHalf = document.createElement('div');
+                            bottomHalf.className = 'seat-half seat-evening';
+                            seatEl.insertBefore(bottomHalf, topHalf.nextSibling);
+                        }
+
+                        // Helper function to get text for shift labels
+                        function getShiftLabelText(shiftName, isTaken, isHold, isTemp, holdRemainingDays) {
+                            const shiftLetter = shiftName === 'morning' ? 'M' : 'E';
+                            if (isTaken) {
+                                if (isTemp) {
+                                    return `Temp(${shiftLetter})`;
+                                } else if (isHold) {
+                                    const days = holdRemainingDays || 0;
+                                    return days > 0 ? `Hold ${shiftLetter}(${days})` : `Hold(${shiftLetter})`;
+                                } else {
+                                    return `Occupied(${shiftLetter})`;
+                                }
+                            } else if (isHold) {
+                                const days = holdRemainingDays || 0;
+                                return days > 0 ? `Hold ${shiftLetter}(${days})` : `Hold(${shiftLetter})`;
+                            } else if (isTemp) {
+                                return `Temp(${shiftLetter})`;
+                            } else {
+                                return 'Available';
+                            }
+                        }
+
+                        // Determine occupation state
+                        if (seat.full_day_taken) {
+                            seatEl.classList.add('occupied-full', 'occupied');
+                            seatEl.dataset.status = 'occupied';
+                            labelEl.textContent = 'Occupied(F)';
+                        } else if (seat.full_day_hold) {
+                            seatEl.classList.add('hold-full', 'on_hold');
+                            seatEl.dataset.status = 'on_hold';
+                            let days = (typeof seat.remaining_days === 'number' && !isNaN(seat.remaining_days))
+                                ? seat.remaining_days
+                                : ((seat.hold_days > 0) ? seat.hold_days : '');
+                            labelEl.textContent = days ? `Hold(${days})` : 'On Hold';
+                        } else if (seat.morning_taken || seat.evening_taken || seat.morning_hold || seat.evening_hold || seat.morning_temp_allotted || seat.evening_temp_allotted) {
+                            // Split / Partial State
+                            if (seat.morning_taken && seat.evening_taken) {
+                                seatEl.classList.add('occupied-full', 'occupied');
+                                seatEl.classList.add('occupied-morning', 'occupied-evening');
+                                seatEl.dataset.status = 'occupied';
+                            } else if (seat.morning_taken) {
+                                seatEl.classList.add('occupied-morning', 'occupied');
+                                seatEl.dataset.status = 'partial';
+                            } else if (seat.evening_taken) {
+                                seatEl.classList.add('occupied-evening', 'occupied');
+                                seatEl.dataset.status = 'partial';
+                            } else if (seat.morning_hold || seat.evening_hold) {
+                                seatEl.dataset.status = 'on_hold';
+                                if (seat.morning_hold && seat.evening_hold) {
+                                    seatEl.classList.add('hold-full', 'on_hold');
+                                } else if (seat.morning_hold) {
+                                    seatEl.classList.add('hold-morning', 'on_hold');
+                                } else {
+                                    seatEl.classList.add('hold-evening', 'on_hold');
+                                }
+                            }
+
+                            labelEl.style.display = 'none';
+
+                            const mDays = seat.morning_hold_remaining_days || seat.remaining_days || 0;
+                            const eDays = seat.evening_hold_remaining_days || seat.remaining_days || 0;
+
+                            const mLabel = document.createElement('span');
+                            mLabel.className = 'seat-morning-label';
+                            mLabel.textContent = getShiftLabelText('morning', seat.morning_taken, seat.morning_hold, seat.morning_temp_allotted, mDays);
+                            seatEl.appendChild(mLabel);
+
+                            const eLabel = document.createElement('span');
+                            eLabel.className = 'seat-evening-label';
+                            eLabel.textContent = getShiftLabelText('evening', seat.evening_taken, seat.evening_hold, seat.evening_temp_allotted, eDays);
+                            seatEl.appendChild(eLabel);
+                        } else {
+                            // Available
+                            seatEl.classList.add('available');
+                            seatEl.dataset.status = 'available';
+                            labelEl.textContent = 'Available';
+                        }
+
+                        // Determine status of morning and evening shifts for background coloring
+                        let morningStatus = 'available';
+                        if (seat.full_day_taken || seat.morning_taken) {
+                            if (seat.morning_temp_allotted) {
+                                morningStatus = 'temporary';
+                            } else {
+                                morningStatus = 'occupied';
+                            }
+                        } else if (seat.morning_temp_allotted) {
+                            morningStatus = 'temporary';
+                        } else if (seat.full_day_hold || seat.morning_hold) {
+                            morningStatus = 'hold';
+                        }
+
+                        let eveningStatus = 'available';
+                        if (seat.full_day_taken || seat.evening_taken) {
+                            if (seat.evening_temp_allotted) {
+                                eveningStatus = 'temporary';
+                            } else {
+                                eveningStatus = 'occupied';
+                            }
+                        } else if (seat.evening_temp_allotted) {
+                            eveningStatus = 'temporary';
+                        } else if (seat.full_day_hold || seat.evening_hold) {
+                            eveningStatus = 'hold';
+                        }
+
+                        // Apply classes to halves
+                        if (topHalf) {
+                            topHalf.className = 'seat-half seat-morning shift-' + morningStatus;
+                        }
+                        if (bottomHalf) {
+                            bottomHalf.className = 'seat-half seat-evening shift-' + eveningStatus;
+                        }
+
+                        // Apply status classes to the split labels
+                        const mLabel = seatEl.querySelector('.seat-morning-label');
+                        if (mLabel) {
+                            mLabel.className = 'seat-morning-label status-' + morningStatus;
+                        }
+                        const eLabel = seatEl.querySelector('.seat-evening-label');
+                        if (eLabel) {
+                            eLabel.className = 'seat-evening-label status-' + eveningStatus;
+                        }
+                    } else {
+                        // Non-shift seats
+                        const hasHold = seat.is_on_hold || seat.full_day_hold || seat.morning_hold;
+                        const hasTemp = seat.morning_temp_allotted || seat.evening_temp_allotted;
+
+                        if (hasHold && hasTemp) {
+                            // Hold + Temp Tenant → Diagonal orange/pink split
+                            seatEl.classList.remove('available');
+                            seatEl.classList.add('hold-partial');
+                            seatEl.dataset.status = 'hold_partial';
+
+                            labelEl.style.display = 'none';
+
+                            const days = seat.remaining_days || seat.full_day_hold_remaining_days || seat.morning_hold_remaining_days || 0;
+                            const mLabel = document.createElement('span');
+                            mLabel.className = 'seat-morning-label';
+                            mLabel.textContent = (days && days > 0) ? `Hold(${days})` : 'Hold';
+                            seatEl.appendChild(mLabel);
+
+                            const eLabel = document.createElement('span');
+                            eLabel.className = 'seat-evening-label';
+                            eLabel.textContent = 'Temp.';
+                            seatEl.appendChild(eLabel);
+
+                        } else if (status === 'occupied' || status === 'partial') {
+                            seatEl.classList.add('occupied');
+                            seatEl.dataset.status = 'occupied';
+                            labelEl.textContent = 'Occupied';
+                        } else if (status === 'on_hold') {
+                            // orange color – support both class names just in case
+                            seatEl.classList.add('on_hold', 'on-hold');
+                            seatEl.dataset.status = 'on_hold';
+
+                            let days = (typeof seat.remaining_days === 'number' && !isNaN(seat.remaining_days))
+                                ? seat.remaining_days
+                                : null;
+
+                            // Per SKILL.md: Show "Hold(X)" format
+                            if (days !== null && days > 0) {
+                                labelEl.textContent = `Hold(${days})`;
+                            } else {
+                                // hold effectively over -> visually show as available
+                                seatEl.className = 'seat available';
+                                seatEl.dataset.status = 'available';
+                                labelEl.textContent = 'Available';
+                            }
+                        } else {
+                            // Explicit fallback for non-shift available seats
+                            seatEl.classList.add('available');
+                            seatEl.dataset.status = 'available';
+                            labelEl.textContent = 'Available';
+                        }
+                    }
+                }
+            }
+
+            // Load both layouts on page load
+            loadLayout('Ground Floor', 'ground-floor-wrapper');
+            loadLayout('1st Floor', 'first-floor-wrapper');
+
+            // Refresh seat data every 10 seconds for live updates (paused if tab is hidden)
+            setInterval(() => {
+                if (!document.hidden) {
+                    loadLayout('Ground Floor', 'ground-floor-wrapper');
+                    loadLayout('1st Floor', 'first-floor-wrapper');
+                }
+            }, 10000);
+
+
+            /*
+            =================================================
+                    PAGE SCROLL INDICATOR JAVASCRIPT
+            =================================================
+            */
+
+            // --- FIX: Target the window, not a modal ---
+            const scrollUp = document.getElementById('pageScrollUp');
+            const scrollDown = document.getElementById('pageScrollDown');
+            const scrollableElement = document.documentElement; // This is the <html> tag
+
+            function safeSmoothScrollTo(y) {
+                try {
+                    // Modern API
+                    window.scrollTo({ top: Math.max(0, Math.floor(y)), behavior: 'smooth' });
+                } catch (e) {
+                    // Fallback
+                    scrollableElement.scrollTop = Math.max(0, Math.floor(y));
+                }
+            }
+
+            function scrollToTop() {
+                safeSmoothScrollTo(0);
+            }
+
+            function scrollToBottom() {
+                const bottom = scrollableElement.scrollHeight - scrollableElement.clientHeight;
+                safeSmoothScrollTo(bottom);
+            }
+
+            function addIndicatorInteractivity(indicatorEl, onActivate) {
+                if (!indicatorEl) return;
+                indicatorEl.setAttribute('role', 'button');
+                indicatorEl.setAttribute('tabindex', '0');
+                indicatorEl.setAttribute('aria-hidden', 'false');
+
+                indicatorEl.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    onActivate();
+                }, { passive: false });
+                indicatorEl.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    onActivate();
+                }, { passive: false });
+                indicatorEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onActivate();
+                    }
+                });
+            }
+
+            function handlePageScroll() {
+                if (!scrollUp || !scrollDown) return;
+
+                const scrollableDistance = Math.max(0, scrollableElement.scrollHeight - scrollableElement.clientHeight);
+                if (scrollableDistance === 0) {
+                    scrollUp.classList.remove('visible', 'interactive');
+                    scrollDown.classList.remove('visible', 'interactive');
+                    return;
+                }
+
+                // --- FIX: Use window.scrollY for page scroll ---
+                const current = window.scrollY;
+                const TOP_MARGIN = 0.05;
+                const BOTTOM_MARGIN = 0.05;
+
+                const topHideThreshold = scrollableDistance * TOP_MARGIN;
+                const bottomHideThreshold = scrollableDistance * (1 - BOTTOM_MARGIN);
+
+                const showUp = current > topHideThreshold;
+                const showDown = current < bottomHideThreshold;
+
+                scrollUp.classList.toggle('visible', showUp);
+                scrollDown.classList.toggle('visible', showDown);
+                scrollUp.classList.toggle('interactive', showUp);
+                scrollDown.classList.toggle('interactive', showDown);
+            }
+
+            // --- FIX: Listen to the 'window' for scroll events ---
+            window.addEventListener('scroll', handlePageScroll, { passive: true });
+            window.addEventListener('resize', handlePageScroll);
+
+            // Observe the body for content changes (like accordions opening)
+            if (window._pageMutationObserver) window._pageMutationObserver.disconnect();
+            window._pageMutationObserver = new MutationObserver(() => setTimeout(handlePageScroll, 70));
+            window._pageMutationObserver.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+            // --- SEARCH BAR IMPLEMENTATION ---
+            function initSearch() {
+                const input = document.getElementById('seatSearchInput');
+                const wrapper = document.getElementById('hubSearchWrapper');
+                const btn = document.getElementById('hubSearchBtn');
+                const nav = document.getElementById('seatSearchNav');
+                const autocompleteDiv = document.getElementById('searchAutocomplete');
+
+                let matchedSeats = [];
+                let matchedIndex = 0;
+                let searchTimer = null;
+
+                function wordsToNumber(str) {
+                    const cleanStr = str.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+                    if (!cleanStr) return null;
+
+                    const ones = {
+                        'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 
+                        'six': 6, 'seven': 7, 'eight': 8, 'nine': 9
+                    };
+                    const teens = {
+                        'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+                        'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19
+                    };
+                    const tens = {
+                        'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 
+                        'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90
+                    };
+
+                    if (ones[cleanStr] !== undefined) return ones[cleanStr];
+                    if (teens[cleanStr] !== undefined) return teens[cleanStr];
+                    if (tens[cleanStr] !== undefined) return tens[cleanStr];
+
+                    for (const [tenWord, tenVal] of Object.entries(tens)) {
+                        if (cleanStr.startsWith(tenWord)) {
+                            const remainder = cleanStr.substring(tenWord.length).trim();
+                            if (remainder === '') return tenVal;
+                            if (ones[remainder] !== undefined) return tenVal + ones[remainder];
+                        }
+                    }
+
+                    const parts = cleanStr.split(/\s+/);
+                    let total = 0;
+                    let currentVal = 0;
+
+                    for (let i = 0; i < parts.length; i++) {
+                        const p = parts[i];
+                        if (p === 'and') continue;
+
+                        if (ones[p] !== undefined) {
+                            currentVal += ones[p];
+                        } else if (teens[p] !== undefined) {
+                            currentVal += teens[p];
+                        } else if (tens[p] !== undefined) {
+                            currentVal += tens[p];
+                        } else {
+                            return null;
+                        }
+                    }
+
+                    total += currentVal;
+                    return total > 0 ? total : null;
+                }
+
+                function clearSeatSearchHighlights() {
+                    document.querySelectorAll('.seat').forEach(seat => {
+                        seat.classList.remove('search-match', 'active-match');
+                    });
+                    
+                    if (nav) {
+                        nav.style.display = 'none';
+                        const countSpan = nav.querySelector('span');
+                        if (countSpan) {
+                            countSpan.textContent = '';
+                            countSpan.style.color = '';
+                        }
+                        const chevronBtns = nav.querySelectorAll('.search-nav-btn');
+                        chevronBtns.forEach(btn => btn.style.display = 'none');
+                    }
+                    matchedSeats = [];
+                    matchedIndex = 0;
+                }
+
+                function switchFloor(floorName) {
+                    const groundSection = document.getElementById('ground-floor-section');
+                    const firstSection = document.getElementById('first-floor-section');
+                    if (floorName === 'Ground Floor') {
+                        if (groundSection) groundSection.classList.add('active');
+                        if (firstSection) firstSection.classList.remove('active');
+                        setTimeout(() => {
+                            groundSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 50);
+                    } else if (floorName === '1st Floor') {
+                        if (firstSection) {
+                            firstSection.classList.add('active');
+                            if (groundSection) groundSection.classList.remove('active');
+                            setTimeout(() => {
+                                firstSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 50);
+                        }
+                    }
+                }
+
+                function updateSearchCountText() {
+                    if (!nav) return;
+                    const countSpan = nav.querySelector('span');
+                    const prevBtn = nav.querySelector('.search-nav-btn[id*="Prev"]');
+                    const nextBtn = nav.querySelector('.search-nav-btn[id*="Next"]');
+
+                    if (matchedSeats.length === 0) {
+                        if (countSpan) {
+                            countSpan.textContent = 'No results';
+                            countSpan.style.color = '#ef4444';
+                        }
+                        if (prevBtn) prevBtn.style.display = 'none';
+                        if (nextBtn) nextBtn.style.display = 'none';
+                    } else {
+                        if (countSpan) {
+                            countSpan.textContent = (matchedIndex + 1) + ' / ' + matchedSeats.length;
+                            countSpan.style.color = '';
+                        }
+                        if (matchedSeats.length > 1) {
+                            if (prevBtn) prevBtn.style.display = 'flex';
+                            if (nextBtn) nextBtn.style.display = 'flex';
+                        } else {
+                            if (prevBtn) prevBtn.style.display = 'none';
+                            if (nextBtn) nextBtn.style.display = 'none';
+                        }
+                    }
+                }
+
+                function navigateMatch(direction) {
+                    if (matchedSeats.length === 0) return;
+
+                    matchedSeats.forEach(seat => {
+                        seat.classList.remove('active-match');
+                    });
+
+                    if (direction === 'next') {
+                        matchedIndex = (matchedIndex + 1) % matchedSeats.length;
+                    } else {
+                        matchedIndex = (matchedIndex - 1 + matchedSeats.length) % matchedSeats.length;
+                    }
+
+                    const activeSeat = matchedSeats[matchedIndex];
+                    if (activeSeat) {
+                        activeSeat.classList.add('active-match');
+                        const section = activeSeat.closest('.library-section');
+                        if (section && !section.classList.contains('active')) {
+                            section.classList.add('active');
+                        }
+                        setTimeout(() => {
+                            activeSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                        }, 50);
+                    }
+
+                    updateSearchCountText();
+                }
+
+                // Bind chevron events
+                document.getElementById('seatSearchPrev')?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navigateMatch('prev');
+                });
+                document.getElementById('seatSearchNext')?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    navigateMatch('next');
+                });
+
+                if (btn && wrapper && input) {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const wasExpanded = wrapper.classList.contains('expanded');
+                        
+                        wrapper.classList.remove('expanded');
+                        const icon = btn.querySelector('i');
+                        if (icon) icon.className = 'bx bx-search';
+                        
+                        if (!wasExpanded) {
+                            wrapper.classList.add('expanded');
+                            if (icon) icon.className = 'bx bx-x';
+                            setTimeout(() => input.focus(), 100);
+                            
+                            if (input.value.trim().length > 0) {
+                                if (nav) nav.style.display = 'flex';
+                            }
+                        } else {
+                            input.value = '';
+                            clearSeatSearchHighlights();
+                            if (autocompleteDiv) autocompleteDiv.style.display = 'none';
+                        }
+                    });
+                }
+
+                // Focus listener to show nav
+                input?.addEventListener('focus', () => {
+                    if (matchedSeats.length > 0 && nav) {
+                        nav.style.display = 'flex';
+                    }
+                });
+
+                // Close on click outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.hub-search-wrapper') && !e.target.closest('.search-nav-popup') && !e.target.closest('.search-autocomplete')) {
+                        wrapper?.classList.remove('expanded');
+                        const icon = btn?.querySelector('i');
+                        if (icon) icon.className = 'bx bx-search';
+                        if (nav) nav.style.display = 'none';
+                        if (autocompleteDiv) autocompleteDiv.style.display = 'none';
+                    }
+                });
+
+                function handleSearch(term, isAccordionTrigger = false) {
+                    const clean = term.toLowerCase().trim();
+
+                    if (clean.length === 0) {
+                        clearTimeout(searchTimer);
+                        clearSeatSearchHighlights();
+                        return;
+                    }
+
+                    // Immediate floor layout checks (skip if triggered from accordion toggling)
+                    if (!isAccordionTrigger) {
+                        if (clean === 'first floor' || clean === 'frist floor' || clean === '1st floor' || clean === 'first' || clean === '1st') {
+                            clearTimeout(searchTimer);
+                            switchFloor('1st Floor');
+                            if (input) input.value = '';
+                            clearSeatSearchHighlights();
+                            return;
+                        }
+                        if (clean === 'ground floor' || clean === 'ground') {
+                            clearTimeout(searchTimer);
+                            switchFloor('Ground Floor');
+                            if (input) input.value = '';
+                            clearSeatSearchHighlights();
+                            return;
+                        }
+                    }
+
+                    // Debounce search by 300ms
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => {
+                        document.querySelectorAll('.seat').forEach(seat => {
+                            seat.classList.remove('search-match', 'active-match');
+                        });
+
+                        // Select ONLY seats inside active/opened sections
+                        const activeSections = document.querySelectorAll('.library-section.active');
+                        const allSeats = [];
+                        activeSections.forEach(sec => {
+                            allSeats.push(...sec.querySelectorAll('.seat'));
+                        });
+
+                        matchedSeats = [];
+                        matchedIndex = 0;
+
+                        // Check status query mapping
+                        let isStatusQuery = false;
+                        let matchesStatus = (seat) => false;
+                        
+                        const queryMap = {
+                            'available': 'available',
+                            'avail': 'available',
+                            'occupied': 'occupied',
+                            'shift occupied': 'shift_occupied',
+                            'shift_occupied': 'shift_occupied',
+                            'shift': 'shift_occupied',
+                            'on hold': 'on_hold',
+                            'on_hold': 'on_hold',
+                            'hold': 'on_hold',
+                            'temporary': 'temporary',
+                            'temp': 'temporary',
+                            'temporary allotted': 'temporary'
+                        };
+
+                        let matchedTarget = null;
+                        for (const [key, target] of Object.entries(queryMap)) {
+                            if (key.startsWith(clean) || clean.startsWith(key)) {
+                                matchedTarget = target;
+                                break;
+                            }
+                        }
+
+                        if (matchedTarget) {
+                            isStatusQuery = true;
+                            const target = matchedTarget;
+                            matchesStatus = (seat) => {
+                                const hasClass = (cls) => seat.classList.contains(cls);
+                                const labelsText = Array.from(seat.querySelectorAll('.seat-label, .seat-morning-label, .seat-evening-label'))
+                                    .map(el => el.textContent.toLowerCase());
+                                const hasLabel = (text) => labelsText.some(t => t.includes(text));
+
+                                if (target === 'available') {
+                                    return hasClass('available') || hasLabel('available');
+                                } else if (target === 'occupied') {
+                                    return hasClass('occupied') || hasClass('occupied-full') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied') || hasLabel('you');
+                                } else if (target === 'shift_occupied') {
+                                    return hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'));
+                                } else if (target === 'on_hold') {
+                                    return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold');
+                                } else if (target === 'temporary') {
+                                    return hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp');
+                                }
+                                return false;
+                            };
+                        }
+
+                        let exactSeatNum = null;
+                        const isDigitPattern = /^[0-9]+$/;
+                        if (isDigitPattern.test(clean)) {
+                            const numVal = parseInt(clean, 10);
+                            if (numVal >= 1 && numVal <= 9) {
+                                exactSeatNum = String(numVal);
+                            }
+                        } else {
+                            const numVal = wordsToNumber(clean);
+                            if (numVal !== null) {
+                                exactSeatNum = String(numVal);
+                            }
+                        }
+
+                        allSeats.forEach(seat => {
+                            if (seat.classList.contains('special') || seat.classList.contains('empty-space')) return;
+
+                            let match = false;
+                            if (isStatusQuery) {
+                                match = matchesStatus(seat);
+                            } else if (exactSeatNum) {
+                                const seatId = (seat.getAttribute('data-seat-id') || '').trim();
+                                const seatText = (seat.querySelector('.seat-number')?.innerText || seat.innerText || '').trim();
+                                if (seatId === exactSeatNum || seatText === exactSeatNum) {
+                                    match = true;
+                                }
+                            } else {
+                                const seatId = (seat.getAttribute('data-seat-id') || '').trim();
+                                const seatText = (seat.querySelector('.seat-number')?.innerText || seat.innerText || '').trim();
+                                const studentName = (seat.getAttribute('data-student-name') || '').trim();
+                                if (studentName.toLowerCase().includes(clean) ||
+                                    seatId.toLowerCase() === clean ||
+                                    seatId.toLowerCase().includes(clean) ||
+                                    seatText.toLowerCase().includes(clean)) {
+                                    match = true;
+                                }
+                            }
+
+                            if (match) {
+                                seat.classList.add('search-match');
+                                matchedSeats.push(seat);
+                            }
+                        });
+
+                        if (nav) nav.style.display = 'flex';
+                        updateSearchCountText();
+
+                        const firstSeat = matchedSeats[0];
+                        if (firstSeat) {
+                            firstSeat.classList.add('active-match');
+                            setTimeout(() => {
+                                firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                            }, 50);
+                        }
+                    }, isAccordionTrigger ? 0 : 300); // Trigger immediately if called from accordion click
+                }
+
+                input?.addEventListener('input', (e) => {
+                    const val = e.target.value;
+
+                    // Handle Autocomplete menu on '/' character
+                    if (val.startsWith('/')) {
+                        if (autocompleteDiv) {
+                            autocompleteDiv.style.display = 'block';
+                            const filterText = val.toLowerCase();
+                            const options = ['/Ground Floor', '/First Floor'];
+                            const filtered = options.filter(opt => opt.toLowerCase().includes(filterText));
+                            
+                            autocompleteDiv.innerHTML = '';
+                            if (filtered.length > 0) {
+                                filtered.forEach(opt => {
+                                    const item = document.createElement('div');
+                                    item.className = 'autocomplete-item';
+                                    item.textContent = opt;
+                                    item.addEventListener('click', () => {
+                                        const floorName = opt.replace('/', '');
+                                        switchFloor(floorName === 'First Floor' ? '1st Floor' : floorName);
+                                        input.value = '';
+                                        autocompleteDiv.style.display = 'none';
+                                        clearSeatSearchHighlights();
+                                    });
+                                    autocompleteDiv.appendChild(item);
+                                });
+                            } else {
+                                autocompleteDiv.style.display = 'none';
+                            }
+                        }
+                        if (nav) nav.style.display = 'none';
+                    } else {
+                        if (autocompleteDiv) autocompleteDiv.style.display = 'none';
+                        handleSearch(val);
+                    }
+                });
+
+                // Expose handleSearch to window so accordion toggler can re-trigger search
+                window._triggerActiveSearch = (val) => {
+                    handleSearch(val, true);
+                };
+            }
+
+            addIndicatorInteractivity(scrollUp, scrollToTop);
+            addIndicatorInteractivity(scrollDown, scrollToBottom);
+
+            initSearch();
+
+            // Initial run
+            setTimeout(handlePageScroll, 80);
+        });
+
+    </script>
+
+    <!-- THEME TOGGLE -->
+    <div class="theme-toggle-fixed" id="themeToggle" onclick="toggleTheme()">
+        <i class='bx bx-moon' id="themeIcon"></i>
+    </div>
+
+    <script>
+        // --- Theme Persistence ---
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            const isDark = document.body.classList.contains('dark-theme');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeIcon').className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+        }
+        
+        // Initial theme load
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || savedTheme === 'dark-theme') {
+                document.body.classList.add('dark-theme');
+                document.getElementById('themeIcon').className = 'bx bx-sun';
+            }
+        })();
+    </script>
+
+{% if user.is_authenticated %}
+<script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
+<script src="{% static 'js/push-permission.js' %}"></script>
+{% endif %}
+{% include 'partials/_smart_back_redirect.html' %}
+</body>
+</html>

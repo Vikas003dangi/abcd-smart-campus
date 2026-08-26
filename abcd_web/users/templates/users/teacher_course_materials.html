@@ -1,0 +1,1082 @@
+{% extends 'users/teacher_courses.html' %}
+{% load static %}
+
+{% block title %}Content Management – {{ course.title }} | ABCD{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  /* ======================================================
+     YOUTUBE STUDIO STYLE CONTENT MANAGEMENT
+     ====================================================== */
+  /* --- LAYOUT WRAPPER --- */
+  .tcm-wrapper {
+    max-width: 1400px;
+    margin: 80px auto 100px;
+    padding: 0 40px;
+  }
+
+  /* --- PAGE HERO / HEADER --- */
+  .tcm-hero {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    border-radius: 32px;
+    padding: 35px 45px;
+    margin-bottom: 35px;
+    color: white;
+    box-shadow: 0 20px 50px rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  body.dark-theme .tcm-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  }
+
+  .tcm-hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+  }
+
+  .tcm-hero-content h2 {
+    font-weight: 800;
+    font-size: 2rem;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+  .tcm-hero-content p {
+    opacity: 0.85;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .tcm-breadcrumb {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.9;
+  }
+  .tcm-breadcrumb a { color: white; text-decoration: none; }
+  .tcm-breadcrumb a:hover { text-decoration: underline; }
+
+  /* --- STUDIO LAYOUT REFINEMENT --- */
+  .studio-layout {
+    background: white;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  body.dark-theme .studio-layout {
+    background: #1e1b4b;
+    border-color: rgba(255,255,255,0.05);
+  }
+
+  .studio-toolbar {
+    padding: 20px 30px;
+    background: #f8fafc;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  body.dark-theme .studio-toolbar {
+    background: rgba(255,255,255,0.02);
+    border-color: rgba(255,255,255,0.05);
+  }
+
+  /* --- MODERN LIST ROWS --- */
+  .studio-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .studio-table th {
+    background: #f8fafc;
+    padding: 15px 25px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+  }
+  body.dark-theme .studio-table th {
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,242,222,0.6);
+  }
+
+  .studio-table td {
+    padding: 15px 25px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+  }
+  body.dark-theme .studio-table td {
+    border-color: rgba(255,255,255,0.05);
+  }
+
+  .studio-table tr:hover td {
+    background: #f1f5f9;
+  }
+  body.dark-theme .studio-table tr:hover td {
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* --- CONTENT CELL --- */
+  .content-cell { display: flex; gap: 20px; align-items: center; }
+  .content-thumb {
+    width: 120px;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #e2e8f0;
+  }
+  .content-info h4 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 4px;
+  }
+  body.dark-theme .content-info h4 { color: #fff2de; }
+  .content-info p { font-size: 0.8rem; font-weight: 500; color: #64748b; }
+
+  /* --- BUTTONS --- */
+  .studio-btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .btn-primary { background: #6366f1; color: white; }
+  .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); }
+  body.dark-theme .btn-primary { background: #818cf8; color: #1e1b4b; }
+  body.dark-theme .btn-primary:hover { background: #a5b4fc; transform: translateY(-2px); }
+  
+  .btn-outline { background: #f1f5f9; color: #475569; border: 1px solid rgba(0,0,0,0.05); }
+  .btn-outline:hover { background: #e2e8f0; color: #1e293b; }
+  body.dark-theme .btn-outline { background: rgba(255,255,255,0.05); color: white; border-color: rgba(255,255,255,0.1); }
+  body.dark-theme .btn-outline:hover { background: rgba(255,255,255,0.1); }
+
+  /* Hero-specific Button overrides (Glassmorphism) */
+  .tcm-hero .studio-btn {
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(10px);
+    color: white !important;
+  }
+  .tcm-hero .studio-btn:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  }
+  .tcm-hero .btn-primary {
+    background: white !important;
+    color: #6366f1 !important;
+    border-color: white !important;
+  }
+  .tcm-hero .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #4f46e5 !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  }
+  body.dark-theme .tcm-hero .btn-primary {
+    background: white !important;
+    color: #1e1b4b !important;
+    border-color: white !important;
+  }
+  body.dark-theme .tcm-hero .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  /* Table actions */
+  .btn-action {
+    width: 38px; height: 38px; padding: 0; justify-content: center;
+    background: #f8fafc; color: #64748b; border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  .btn-action:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border-color: rgba(99, 102, 241, 0.2);
+    transform: scale(1.1);
+  }
+  body.dark-theme .btn-action {
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 242, 222, 0.6);
+    border-color: rgba(255,255,255,0.05);
+  }
+  body.dark-theme .btn-action:hover {
+    background: rgba(129, 140, 248, 0.15);
+    color: #818cf8;
+    border-color: rgba(129, 140, 248, 0.3);
+    transform: scale(1.1);
+  }
+
+  .btn-danger-alt {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.1);
+  }
+  .btn-danger-alt:hover {
+    background: #ef4444 !important;
+    color: white !important;
+    border-color: #ef4444 !important;
+  }
+  body.dark-theme .btn-danger-alt {
+    background: rgba(248, 113, 113, 0.1);
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.2);
+  }
+  body.dark-theme .btn-danger-alt:hover {
+    background: #ef4444 !important;
+    color: white !important;
+    border-color: #ef4444 !important;
+  }
+
+  /* --- BADGES --- */
+  .privacy-badge {
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .badge-public { background: rgba(34,197,94,0.1); color: #166534; }
+  .badge-private { background: rgba(245,158,11,0.1); color: #92400e; }
+  body.dark-theme .badge-public { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+  body.dark-theme .badge-private { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  body.dark-theme .bulk-actions { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important; }
+  .privacy-badge:hover { transform: scale(1.05); }
+
+  /* --- DRAG HANDLE --- */
+  .drag-handle {
+    color: #94a3b8;
+    font-size: 1.4rem;
+    cursor: grab;
+    transition: color 0.3s;
+  }
+  .drag-handle:hover { color: #6366f1; }
+
+  /* --- EMPTY STATE ILLUSTRATION --- */
+  .tcm-empty {
+    padding: 80px 40px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .tcm-empty-illustration {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tcm-illust-glow {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
+    border-radius: 50%;
+    animation: pulseGlow 4s infinite alternate;
+  }
+  body.dark-theme .tcm-illust-glow {
+    background: radial-gradient(circle, rgba(129, 140, 248, 0.2) 0%, rgba(168, 85, 247, 0) 70%);
+  }
+
+  .tcm-empty-icon {
+    font-size: 4.5rem !important;
+    color: #cbd5e1 !important;
+    z-index: 2;
+    animation: floatFolder 4s ease-in-out infinite;
+    transition: color 0.3s;
+    display: block !important;
+    margin-bottom: 0 !important;
+  }
+  body.dark-theme .tcm-empty-icon {
+    color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  /* Floating decorative icons */
+  .tcm-float-item {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #6366f1;
+    z-index: 3;
+    border: 1px solid rgba(0,0,0,0.03);
+  }
+  body.dark-theme .tcm-float-item {
+    background: #2d265a;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    border-color: rgba(255,255,255,0.05);
+    color: #818cf8;
+  }
+
+  .fi-1 {
+    top: 20px;
+    left: 10px;
+    animation: floatItem 3.5s ease-in-out infinite alternate;
+  }
+  .fi-2 {
+    bottom: 25px;
+    right: 15px;
+    animation: floatItem 4.5s ease-in-out infinite alternate-reverse;
+  }
+  .fi-3 {
+    top: 30px;
+    right: 10px;
+    animation: floatItem 4s ease-in-out infinite alternate;
+  }
+
+  /* Animations */
+  @keyframes floatFolder {
+    0% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+    100% { transform: translateY(0px) rotate(0deg); }
+  }
+  @keyframes floatItem {
+    0% { transform: translateY(0px) scale(1); }
+    100% { transform: translateY(-8px) scale(1.05); }
+  }
+  @keyframes pulseGlow {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    100% { transform: scale(1.2); opacity: 1; }
+  }
+
+  .tcm-empty h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 8px;
+  }
+  body.dark-theme .tcm-empty h3 { color: #fff2de; }
+  .tcm-empty p {
+    color: #64748b;
+    font-size: 0.95rem;
+    max-width: 320px;
+    line-height: 1.5;
+    margin-bottom: 25px;
+  }
+  body.dark-theme .tcm-empty p { color: rgba(255,242,222,0.6); }
+
+  /* Premium Glowing Button */
+  .tcm-empty-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: auto !important;
+    white-space: nowrap !important;
+    padding: 12px 28px !important;
+    font-size: 0.9rem !important;
+    border-radius: 14px !important;
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: 0 8px 25px rgba(99, 102, 241, 0.25) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    margin: 0 !important;
+  }
+  .tcm-empty-btn i {
+    font-size: 1.1rem !important;
+    margin-right: 8px;
+    display: inline-block !important;
+  }
+  .tcm-empty-btn:hover {
+    transform: translateY(-3px) scale(1.02) !important;
+    box-shadow: 0 12px 30px rgba(99, 102, 241, 0.4) !important;
+  }
+  .tcm-empty-btn:active {
+    transform: translateY(-1px) scale(0.98) !important;
+  }
+  body.dark-theme .tcm-empty-btn {
+    background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%) !important;
+    color: #1e1b4b !important;
+    box-shadow: 0 8px 25px rgba(129, 140, 248, 0.2) !important;
+  }
+  body.dark-theme .tcm-empty-btn:hover {
+    box-shadow: 0 12px 30px rgba(129, 140, 248, 0.35) !important;
+  }
+
+  /* --- TYPE PICKER --- */
+  .tm-type-picker { display: flex; gap: 15px; margin-top: 15px; }
+  .tm-type-option {
+    flex: 1; padding: 15px; border-radius: 16px; border: 2px solid #f1f5f9;
+    text-align: center; cursor: pointer; font-weight: 700; transition: all 0.3s;
+  }
+  .tm-type-option i { display: block; font-size: 1.5rem; margin-bottom: 8px; }
+  .tm-type-option.active { border-color: #6366f1; background: rgba(99, 102, 241, 0.05); color: #6366f1; }
+
+  /* --- RESPONSIVE MEDIA QUERIES --- */
+  @media (max-width: 992px) {
+    .tcm-wrapper {
+      padding: 0 20px;
+      margin: 40px auto 60px;
+    }
+    .tcm-hero {
+      padding: 30px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .tcm-hero {
+      padding: 25px 20px;
+      border-radius: 24px;
+      margin-bottom: 25px;
+    }
+    .tcm-hero-header {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 20px;
+    }
+    .tcm-hero-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .tcm-hero-content h2 {
+      font-size: 1.6rem;
+      white-space: nowrap;
+    }
+    .tcm-hero-content p {
+      font-size: 0.9rem;
+    }
+    .tc-action-bar {
+      justify-content: center;
+      width: 100%;
+    }
+    .studio-btn {
+      flex: 1;
+      justify-content: center;
+      font-size: 0.8rem;
+      padding: 10px 16px;
+    }
+    .studio-layout {
+      border-radius: 20px;
+    }
+    .studio-toolbar {
+      padding: 15px 20px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+    .bulk-actions {
+      justify-content: center;
+      width: 100%;
+      padding: 8px 15px;
+    }
+    
+    /* Transform table elements to card/flex list layout */
+    .studio-table thead {
+      display: none;
+    }
+    .studio-table, 
+    .studio-table tbody, 
+    .studio-table tr, 
+    .studio-table td {
+      display: block;
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+    .studio-table tr {
+      border-bottom: 8px solid rgba(0,0,0,0.05);
+      position: relative;
+      padding: 15px 15px 15px 45px;
+    }
+    body.dark-theme .studio-table tr {
+      border-bottom-color: rgba(255,255,255,0.05);
+    }
+    .studio-table td {
+      padding: 6px 0 !important;
+      border: none !important;
+    }
+    /* Drag handle */
+    .studio-table tr td:nth-child(1) {
+      position: absolute;
+      left: 10px;
+      top: 15px;
+      width: auto !important;
+    }
+    /* Checkbox */
+    .studio-table tr td:nth-child(2) {
+      position: absolute;
+      left: 10px;
+      top: 50px;
+      width: auto !important;
+    }
+    /* Content column */
+    .studio-table tr td:nth-child(3) {
+      margin-bottom: 8px;
+    }
+    /* Type and Visibility side-by-side */
+    .studio-table tr td:nth-child(4),
+    .studio-table tr td:nth-child(5) {
+      display: inline-flex;
+      width: auto !important;
+      margin-right: 15px;
+      vertical-align: middle;
+    }
+    .studio-table tr td:nth-child(4)::before {
+      content: "Type: ";
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-right: 6px;
+      text-transform: uppercase;
+      align-self: center;
+    }
+    body.dark-theme .studio-table tr td:nth-child(4)::before {
+      color: rgba(255,242,222,0.6);
+    }
+    /* Actions column */
+    .studio-table tr td:nth-child(6) {
+      margin-top: 12px;
+      padding-top: 12px !important;
+      border-top: 1px solid rgba(0,0,0,0.05) !important;
+      display: flex;
+      justify-content: flex-end;
+    }
+    body.dark-theme .studio-table tr td:nth-child(6) {
+      border-top-color: rgba(255,255,255,0.05) !important;
+    }
+    .tcm-empty {
+      padding: 50px 20px;
+    }
+    .tcm-empty-illustration {
+      width: 120px;
+      height: 120px;
+    }
+    .tcm-empty-icon {
+      font-size: 3.8rem !important;
+    }
+    .tcm-float-item {
+      width: 26px;
+      height: 26px;
+      font-size: 0.9rem;
+    }
+    .tcm-empty h3 {
+      font-size: 1.25rem;
+    }
+    .tcm-empty p {
+      font-size: 0.88rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .tcm-wrapper {
+      padding: 0 12px;
+      margin: 20px auto 40px;
+    }
+    .tcm-hero {
+      padding: 20px 15px;
+      gap: 15px;
+    }
+    .tcm-hero-content h2 {
+      font-size: 1.35rem;
+      white-space: nowrap;
+    }
+    .tc-action-bar {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .studio-btn {
+      width: 100%;
+      flex: none;
+    }
+    .content-cell {
+      gap: 12px;
+    }
+    .content-thumb {
+      width: 80px;
+    }
+    .content-info h4 {
+      font-size: 0.9rem;
+    }
+    .content-info p {
+      font-size: 0.75rem;
+    }
+    .bulk-actions {
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 15px !important;
+    }
+    .bulk-actions span {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .bulk-actions .studio-btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+    }
+    .tm-type-picker {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tm-type-option {
+      padding: 10px;
+    }
+    .tm-type-option i {
+      display: inline-block;
+      font-size: 1.2rem;
+      margin-bottom: 0;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .tcm-empty {
+      padding: 40px 15px;
+    }
+    .tcm-empty-illustration {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 15px;
+    }
+    .tcm-empty-icon {
+      font-size: 3.2rem !important;
+    }
+    .tcm-float-item {
+      width: 22px;
+      height: 22px;
+      font-size: 0.75rem;
+    }
+    .tcm-empty h3 {
+      font-size: 1.15rem;
+    }
+    .tcm-empty p {
+      font-size: 0.82rem;
+      margin-bottom: 20px;
+    }
+    .tcm-empty-btn {
+      padding: 10px 20px !important;
+      font-size: 0.8rem !important;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .tcm-hero-content h2 {
+      font-size: 1.12rem;
+      white-space: nowrap;
+    }
+    .tc-back-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 1.3rem;
+    }
+    .tcm-empty {
+      padding: 30px 10px;
+    }
+    .tcm-empty-illustration {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 12px;
+    }
+    .tcm-empty-icon {
+      font-size: 2.6rem !important;
+    }
+    .tcm-float-item {
+      display: none;
+    }
+    .tcm-empty h3 {
+      font-size: 1.05rem;
+    }
+    .tcm-empty p {
+      font-size: 0.8rem;
+    }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<main class="tcm-wrapper">
+    <!-- Page Hero -->
+    <section class="tcm-hero" data-tour="material-hero">
+      <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 18px;">
+        <a href="{% url 'users:teacher_courses' %}" class="tc-back-btn" title="Back to Courses">
+          <i class='bx bx-left-arrow-alt'></i>
+        </a>
+        <div class="tcm-breadcrumb" style="margin-bottom: 0;">
+          <a href="{% url 'users:teacher_courses' %}">Courses</a>
+          <i class='bx bx-chevron-right'></i>
+          <span>{{ course.title }}</span>
+        </div>
+      </div>
+      <div class="tcm-hero-header">
+        <div class="tcm-hero-content">
+          <h2>🎬 Content Manager</h2>
+          <p>Organize, reorder, and manage your course curriculum from this hub.</p>
+        </div>
+        <div class="tc-action-bar" data-tour="material-upload-card">
+          <button class="studio-btn btn-primary" onclick="openMaterialModal()" data-tour="material-add-btn">
+            <i class='bx bx-plus-circle'></i> Add Content
+          </button>
+          <button class="studio-btn btn-outline" onclick="saveNewOrdering()" data-tour="material-save-order-btn">
+            <i class='bx bx-save'></i> Save Ordering
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Content Area -->
+    <div class="studio-layout">
+      {% if materials %}
+      <div class="studio-toolbar">
+        <div id="selectionInfo" style="display: flex; align-items: center;">
+          <input type="checkbox" id="selectAll" onclick="toggleAllSelections(this)" style="width: 20px; height: 20px; cursor: pointer;">
+          <span style="margin-left: 15px; font-weight: 700; color: #64748b;">{{ materials|length }} Items in Curriculum</span>
+        </div>
+        
+        <div class="bulk-actions" id="bulkToolbar" style="display: none; background: #6366f1; padding: 10px 25px; border-radius: 16px; color: white; align-items: center; gap: 15px;">
+          <span id="selectedCount" style="font-weight: 700;">0 selected</span>
+          <button class="studio-btn" style="background: white; color: #ef4444;" onclick="bulkDelete()">
+            <i class='bx bx-trash'></i> Delete Selected
+          </button>
+          <button class="studio-btn" style="background: rgba(255,255,255,0.2); color: white;" onclick="cancelSelection()">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <table class="studio-table">
+        <thead>
+          <tr>
+            <th width="60"></th>
+            <th width="40"></th>
+            <th>Content</th>
+            <th width="120">Type</th>
+            <th width="150">Visibility</th>
+            <th width="180">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="materialBody">
+          {% for m in materials %}
+          <tr data-id="{{ m.id }}">
+            <td align="center">
+              <div class="drag-handle"><i class='bx bx-grid-vertical'></i></div>
+            </td>
+            <td>
+              <input type="checkbox" class="item-checkbox" value="{{ m.id }}" onclick="updateBulkToolbar()" style="width: 18px; height: 18px; cursor: pointer;">
+            </td>
+            <td>
+              <div class="content-cell">
+                <div class="content-thumb">
+                  {% if m.material_type == 'video' %}
+                    {% if m.youtube_id %}
+                      <img src="https://img.youtube.com/vi/{{ m.youtube_id }}/mqdefault.jpg" alt="thumb">
+                    {% else %}
+                      <div class="icon-overlay" style="background: #e2e8f0; color: #64748b; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;"><i class='bx bx-play'></i></div>
+                    {% endif %}
+                  {% elif m.material_type == 'image' %}
+                    <img src="{{ m.file.url }}" alt="thumb">
+                  {% else %}
+                    <div class="icon-overlay" style="background: #e2e8f0; color: #64748b; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                      {% if m.material_type == 'document' %}<i class='bx bx-file'></i>{% else %}<i class='bx bx-link'></i>{% endif %}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="content-info">
+                  <h4 id="title-{{ m.id }}">{{ m.title }}</h4>
+                  <p><i class='bx bx-calendar'></i> Added {{ m.created_at|date:"M d, Y" }}</p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span style="font-weight: 700; color: #64748b; text-transform: capitalize;">{{ m.material_type }}</span>
+            </td>
+            <td>
+              <button class="privacy-badge {% if m.is_public %}badge-public{% else %}badge-private{% endif %}" 
+                      data-id="{{ m.id }}"
+                      onclick="togglePrivacy(this)">
+                {% if m.is_public %}
+                  <i class='bx bx-globe'></i> Public
+                {% else %}
+                  <i class='bx bx-lock'></i> Private
+                {% endif %}
+              </button>
+            </td>
+            <td>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-action" title="Edit Details" data-id="{{ m.id }}" onclick="openEditModal(this)"><i class='bx bx-edit-alt'></i></button>
+                {% if m.file %}
+                  <a href="{{ m.file.url }}" target="_blank" class="btn-action" title="View Material"><i class='bx bx-show'></i></a>
+                {% else %}
+                  <a href="{{ m.external_url }}" target="_blank" class="btn-action" title="Open Link"><i class='bx bx-link-external'></i></a>
+                {% endif %}
+                <a href="{% url 'users:delete_study_material' m.id %}" class="btn-action btn-danger-alt delete-material-btn" title="Delete Material"><i class='bx bx-trash'></i></a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="tcm-empty">
+        <div class="tcm-empty-illustration">
+          <div class="tcm-illust-glow"></div>
+          <i class='bx bx-folder-open tcm-empty-icon'></i>
+          <div class="tcm-float-item fi-1"><i class='bx bx-play'></i></div>
+          <div class="tcm-float-item fi-2"><i class='bx bx-file'></i></div>
+          <div class="tcm-float-item fi-3"><i class='bx bx-link'></i></div>
+        </div>
+        <h3>Curriculum is empty</h3>
+        <p>Start adding videos, documents, or links to build your course content.</p>
+        <button class="studio-btn btn-primary tcm-empty-btn" onclick="openMaterialModal()">
+          <i class='bx bx-plus'></i> Add First Content
+        </button>
+      </div>
+      {% endif %}
+    </div>
+  </main>
+
+<!-- Modals & Forms remain similar to before but styled for studio -->
+<div id="materialModal" class="tc-modal-bg">
+    <div class="tc-modal-box">
+        <button class="tc-modal-close" onclick="closeMaterialModal()">&times;</button>
+        <h2 style="font-weight: 800; margin-bottom: 25px;">Add to Curriculum</h2>
+        <form method="post" action="{% url 'users:add_material' course.id %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="tc-form-group">
+                <label class="tc-form-label">Title (Leave blank for auto-name)</label>
+                <input type="text" name="title" class="tc-form-input" placeholder="e.g. Introduction Video">
+            </div>
+            <div class="tc-form-group">
+                <label class="tc-form-label">Description (Optional)</label>
+                <textarea name="description" class="tc-form-input" placeholder="Notes for students..." style="height: 80px;"></textarea>
+            </div>
+            <div class="tc-form-group">
+                <label class="tc-form-label">Type</label>
+                <div class="tm-type-picker">
+                    <div class="tm-type-option active" id="typeFile" onclick="pickType('file')"><i class='bx bx-file'></i> File</div>
+                    <div class="tm-type-option" id="typeVideo" onclick="pickType('video')"><i class='bx bxl-youtube'></i> YouTube</div>
+                    <div class="tm-type-option" id="typeLink" onclick="pickType('link')"><i class='bx bx-link'></i> Link</div>
+                </div>
+                <input type="hidden" name="material_type" id="matTypeInput" value="file">
+            </div>
+            <div id="zoneFile" class="tc-form-group">
+                <input type="file" name="file" class="tc-form-input">
+            </div>
+            <div id="zoneVideo" class="tc-form-group" style="display:none;">
+                <input type="url" name="video_url" class="tc-form-input" placeholder="YouTube URL">
+            </div>
+            <div id="zoneLink" class="tc-form-group" style="display:none;">
+                <input type="url" name="external_url" class="tc-form-input" placeholder="External URL">
+            </div>
+            <button type="submit" class="studio-btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Add to Course</button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Material Modal -->
+<div id="editMaterialModal" class="tc-modal-bg">
+    <div class="tc-modal-box">
+        <button class="tc-modal-close" onclick="closeEditModal()">&times;</button>
+        <h2 style="font-weight: 800; margin-bottom: 25px;">Edit Details</h2>
+        <form id="editMaterialForm">
+            <input type="hidden" name="material_id" id="editMaterialId">
+            <div class="tc-form-group">
+                <label class="tc-form-label">Title</label>
+                <input type="text" name="title" id="editTitle" class="tc-form-input" required>
+            </div>
+            <div class="tc-form-group">
+                <label class="tc-form-label">Description (Optional)</label>
+                <textarea name="description" id="editDescription" class="tc-form-input" style="height: 100px;"></textarea>
+            </div>
+            <button type="submit" class="studio-btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    function updateBulkToolbar() {
+        const checked = document.querySelectorAll('.item-checkbox:checked');
+        const toolbar = document.getElementById('bulkToolbar');
+        const countSpan = document.getElementById('selectedCount');
+        
+        if (!toolbar) return;
+        
+        if (checked.length > 0) {
+            toolbar.style.display = 'flex';
+            countSpan.innerText = checked.length + ' selected';
+        } else {
+            toolbar.style.display = 'none';
+        }
+    }
+
+    function toggleAllSelections(master) {
+        document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = master.checked);
+        updateBulkToolbar();
+    }
+
+    function cancelSelection() {
+        const selectAllCb = document.getElementById('selectAll');
+        if (selectAllCb) selectAllCb.checked = false;
+        toggleAllSelections({checked: false});
+    }
+
+    async function bulkDelete() {
+        const confirmed = await window.showStyledConfirm('Bulk Delete', 'Are you sure you want to delete the selected items?');
+        if (!confirmed) return;
+        
+        const ids = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+        const response = await fetch('{% url "users:bulk_update_materials" course.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'delete', item_ids: ids })
+        });
+        
+        if (response.ok) location.reload();
+    }
+
+    // Initialize Drag and Drop
+    const sortableEl = document.getElementById('materialBody');
+    if (sortableEl && typeof Sortable !== 'undefined') {
+        Sortable.create(sortableEl, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost'
+        });
+    }
+
+    async function saveNewOrdering() {
+        const rows = document.querySelectorAll('#materialBody tr');
+        const orders = {};
+        rows.forEach((row, index) => {
+            if (row.dataset.id) {
+                orders[row.dataset.id] = index + 1;
+            }
+        });
+
+        const response = await fetch('{% url "users:bulk_update_materials" course.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'reorder', orders: orders })
+        });
+        
+        if (response.ok) {
+            await window.showStyledAlert('Ordering Saved', 'The new curriculum ordering has been saved successfully!');
+            location.reload();
+        }
+    }
+
+    // Modal Helpers
+    function openMaterialModal() { document.getElementById('materialModal').classList.add('open'); }
+    function closeMaterialModal() { document.getElementById('materialModal').classList.remove('open'); }
+    
+    function pickType(type) {
+        document.getElementById('matTypeInput').value = type;
+        document.querySelectorAll('.tm-type-option').forEach(o => o.classList.remove('active'));
+        document.getElementById('type' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+        document.getElementById('zoneFile').style.display = (type === 'file') ? 'block' : 'none';
+        document.getElementById('zoneVideo').style.display = (type === 'video') ? 'block' : 'none';
+        document.getElementById('zoneLink').style.display = (type === 'link') ? 'block' : 'none';
+    }
+
+    // Edit Modal Logic
+    function openEditModal(btn) {
+        const id = btn.getAttribute('data-id');
+        fetch(`/teacher/materials/${id}/edit/`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('editMaterialId').value = data.id;
+            document.getElementById('editTitle').value = data.title;
+            document.getElementById('editDescription').value = data.description;
+            document.getElementById('editMaterialModal').classList.add('open');
+        });
+    }
+
+    function closeEditModal() { document.getElementById('editMaterialModal').classList.remove('open'); }
+
+    document.getElementById('editMaterialForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const id = document.getElementById('editMaterialId').value;
+        const formData = new FormData(this);
+        
+        const response = await fetch(`/teacher/materials/${id}/edit/`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        });
+
+        if (response.ok) {
+            const titleEl = document.getElementById(`title-${id}`);
+            if (titleEl) titleEl.innerText = document.getElementById('editTitle').value;
+            closeEditModal();
+        }
+    });
+
+    function togglePrivacy(btn) {
+        const id = btn.getAttribute('data-id');
+        fetch(`/api/toggle-material-privacy/${id}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                window.showStyledAlert('Privacy Error', 'Error toggling privacy: ' + (data.error || 'Unknown error'));
+            }
+        });
+    }
+    document.addEventListener('click', async function(e) {
+        const btn = e.target.closest('.delete-material-btn');
+        if (!btn) return;
+        
+        e.preventDefault();
+        const confirmed = await window.showStyledConfirm(
+            'Delete Material',
+            'Are you sure you want to <b>delete</b> this material permanently?'
+        );
+        
+        if (confirmed) {
+            window.location.href = btn.href;
+        }
+    });
+</script>
+{% include 'partials/_smart_back_redirect.html' with back_url='users:teacher_courses' %}
+{% endblock %}

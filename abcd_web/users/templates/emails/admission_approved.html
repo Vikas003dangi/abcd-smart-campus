@@ -1,0 +1,75 @@
+{% extends "emails/base_email.html" %}
+
+{% block content %}
+<table width="100%" cellpadding="0" cellspacing="0" style="padding: 20px;">
+  <tr>
+    <td align="center">
+      <table width="100%" max-width="600px" cellpadding="0" cellspacing="0"
+             style="background:#ffffff;border-radius:14px;padding:30px;
+                    box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr>
+          <td align="center" style="padding-bottom:20px;">
+            <h1 style="margin:0;color:#4b2aad;font-size:26px;">
+              🎉 Admission Approved!
+            </h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="font-size:15px;color:#333;line-height:1.6;">
+            <p>Dear <strong>{{ student.full_name }}</strong>,</p>
+
+            <p>
+              We are delighted to inform you that your admission at
+              <strong>ABCD Coaching & Library</strong> has been
+              <strong style="color:#28a745;">successfully approved</strong>.
+            </p>
+
+            <p>
+              <strong>Service:</strong> {{ student.get_service_type_display }}<br>
+              {% if seat %}
+                <strong>Seat Details:</strong> Seat {{ seat.seat_number|default:"N/A" }}, {{ seat.get_floor_display|default:"N/A" }}<br>
+              {% endif %}
+            </p>
+
+            <p>
+              You can now log in to your dashboard to start your journey with us.
+            </p>
+          </td>
+        </tr>
+
+        <!-- CTA Button -->
+        <tr>
+          <td align="center" style="padding:30px 0;">
+            <a href="{% if dashboard_url %}{{ dashboard_url }}{% elif site_url %}{{ site_url }}{% url 'users:student_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}"
+               style="background:#6c4cff;color:#ffffff;
+                      text-decoration:none;padding:14px 26px;
+                      border-radius:30px;font-size:15px;
+                      display:inline-block;">
+              👉 Open Student Dashboard
+            </a>
+          </td>
+        </tr>
+
+        <!-- Footer note -->
+        <tr>
+          <td style="font-size:13px;color:#777;">
+            <p>
+              If you have any questions, feel free to visit the center or
+              contact us anytime.
+            </p>
+            <p style="margin-top:10px;">
+              Warm regards,<br>
+              <strong>~ Team ABCD Coaching & Library</strong>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+{% endblock %}

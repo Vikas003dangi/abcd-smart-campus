@@ -1,0 +1,420 @@
+{% load static %}
+<!-- =====================================================
+     STUDENT ADS BANNER POPUP MODAL (SHOW ONCE PER BANNER)
+     ===================================================== -->
+<div id="studentBannerModal" class="student-banner-overlay" style="display: none;">
+    <div id="studentBannerContainer" class="student-banner-card">
+        <!-- Close Button (Right Bottom / Top Right) -->
+        <button type="button" class="student-banner-close-btn" onclick="dismissStudentBanner()" aria-label="Close banner">
+            <i class='bx bx-x'></i>
+        </button>
+
+        <!-- Top Brand Header (Shown for Text Banners or Brand Accent) -->
+        <div id="bannerBrandHeader" class="banner-brand-header">
+            <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="banner-brand-logo" onerror="this.onerror=null; this.src='https://files.catbox.moe/7qd1rr.png';">
+            <span class="banner-brand-tag">Announcement</span>
+        </div>
+
+        <!-- Banner Content Body -->
+        <div id="bannerBodyContainer" class="banner-body-content">
+            <!-- Image Banner View -->
+            <div id="bannerImageContainer" class="banner-image-wrapper" style="display: none;">
+                <img id="bannerDisplayImage" src="" alt="Announcement Banner" class="banner-responsive-img">
+            </div>
+
+            <!-- Text Banner View -->
+            <div id="bannerTextContainer" class="banner-text-wrapper" style="display: none;">
+                <h3 id="bannerDisplaySubject" class="banner-subject-title"></h3>
+                <div id="bannerDisplayMessage" class="banner-message-body"></div>
+            </div>
+        </div>
+
+        <!-- Action Buttons Footer -->
+        <div id="bannerButtonsContainer" class="banner-buttons-footer" style="display: none;"></div>
+    </div>
+</div>
+
+<style>
+/* Modern Glassmorphism & Responsive Popup Styles */
+.student-banner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000000 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.student-banner-overlay.banner-show {
+    opacity: 1;
+}
+
+.student-banner-card {
+    position: relative;
+    z-index: 1000001 !important;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px -15px rgba(97, 53, 141, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.85) translateY(20px);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    scrollbar-width: thin;
+}
+
+body.dark-theme .student-banner-card {
+    background: #1e1b4b;
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.student-banner-overlay.banner-show .student-banner-card {
+    transform: scale(1) translateY(0);
+}
+
+/* Close Button Positioned Top Right */
+.student-banner-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.6);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    z-index: 10;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.student-banner-close-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+    transform: rotate(90deg) scale(1.1);
+}
+
+/* Brand Header */
+.banner-brand-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: linear-gradient(135deg, rgba(97, 53, 141, 0.05) 0%, rgba(147, 51, 234, 0.08) 100%);
+}
+
+body.dark-theme .banner-brand-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.banner-brand-logo {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+}
+
+.banner-brand-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #61358d;
+    background: rgba(97, 53, 141, 0.12);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+body.dark-theme .banner-brand-tag {
+    color: #c084fc;
+    background: rgba(192, 132, 252, 0.15);
+}
+
+/* Content Area */
+.banner-body-content {
+    padding: 20px;
+    flex: 1;
+}
+
+.banner-responsive-img {
+    width: 100%;
+    height: auto;
+    max-height: 60vh;
+    object-fit: contain;
+    border-radius: 12px;
+    display: block;
+    margin: 0 auto;
+}
+
+.banner-text-wrapper {
+    padding: 4px 0;
+}
+
+.banner-subject-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 10px;
+    line-height: 1.35;
+    background: linear-gradient(135deg, #61358d 0%, #9333ea 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.dark-theme .banner-subject-title {
+    background: linear-gradient(135deg, #c084fc 0%, #e879f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.banner-message-body {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #334155;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+body.dark-theme .banner-message-body {
+    color: #cbd5e1;
+}
+
+/* Action Buttons Footer */
+.banner-buttons-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 16px 20px 20px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+
+body.dark-theme .banner-buttons-footer {
+    background: rgba(15, 23, 42, 0.4);
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.banner-btn-item {
+    flex: 1;
+    min-width: 130px;
+    padding: 11px 16px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(97, 53, 141, 0.15);
+    background: linear-gradient(135deg, #61358d 0%, #7e22ce 100%);
+    color: #ffffff !important;
+}
+
+.banner-btn-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(97, 53, 141, 0.3);
+    color: #ffffff !important;
+}
+
+.banner-btn-item:nth-child(2) {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+}
+
+.banner-btn-item:nth-child(2):hover {
+    box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3);
+}
+
+.banner-btn-item:nth-child(3) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+}
+
+.banner-btn-item:nth-child(3):hover {
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3);
+}
+
+@media (max-width: 576px) {
+    .student-banner-card {
+        max-width: 96vw;
+        border-radius: 16px;
+    }
+    .banner-buttons-footer {
+        flex-direction: column;
+    }
+    .banner-btn-item {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+let currentActiveBannerId = null;
+
+async function checkAndDisplayStudentBanner() {
+    try {
+        const response = await fetch("{% url 'users:get_active_student_banner_api' %}");
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.has_banner && data.banner) {
+            const b = data.banner;
+            if (localStorage.getItem('dismissed_banner_' + b.id) === 'true') {
+                return;
+            }
+
+            currentActiveBannerId = b.id;
+            
+            const modal = document.getElementById('studentBannerModal');
+            const imgContainer = document.getElementById('bannerImageContainer');
+            const textContainer = document.getElementById('bannerTextContainer');
+            const buttonsContainer = document.getElementById('bannerButtonsContainer');
+            
+            if (b.banner_type === 'image' && b.image_url) {
+                document.getElementById('bannerDisplayImage').src = b.image_url;
+                imgContainer.style.display = 'block';
+                textContainer.style.display = 'none';
+            } else {
+                document.getElementById('bannerDisplaySubject').innerText = b.subject || 'Announcement';
+                document.getElementById('bannerDisplayMessage').innerText = b.message || '';
+                textContainer.style.display = 'block';
+                imgContainer.style.display = 'none';
+            }
+            
+            // Buttons rendering
+            if (b.buttons && Array.isArray(b.buttons) && b.buttons.length > 0) {
+                buttonsContainer.innerHTML = '';
+                b.buttons.forEach(btn => {
+                    const a = document.createElement('a');
+                    a.className = 'banner-btn-item';
+                    a.href = btn.url || '#';
+                    if (btn.url && btn.url.startsWith('http')) {
+                        a.target = '_blank';
+                    }
+                    
+                    let iconClass = 'bx-link-external';
+                    if (btn.type === 'contact') iconClass = 'bx-phone-call';
+                    else if (btn.type === 'admission') iconClass = 'bx-id-card';
+                    else if (btn.type === 'achievements') iconClass = 'bx-trophy';
+                    else if (btn.type === 'courses') iconClass = 'bx-book-open';
+                    else if (btn.type === 'library') iconClass = 'bx-building-house';
+
+                    a.innerHTML = `<i class='bx ${iconClass}'></i> ${btn.label || 'View More'}`;
+                    a.onclick = function() {
+                        dismissStudentBanner();
+                    };
+                    buttonsContainer.appendChild(a);
+                });
+                buttonsContainer.style.display = 'flex';
+            } else {
+                buttonsContainer.style.display = 'none';
+            }
+            
+            // Display modal
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('banner-show'), 20);
+        }
+    } catch (err) {
+        console.error('Failed to load active student banner:', err);
+    }
+}
+
+async function dismissStudentBanner() {
+    const modal = document.getElementById('studentBannerModal');
+    if (modal) {
+        modal.classList.remove('banner-show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 350);
+    }
+
+    if (currentActiveBannerId) {
+        try {
+            localStorage.setItem('dismissed_banner_' + currentActiveBannerId, 'true');
+            sessionStorage.setItem('dismissed_banner_' + currentActiveBannerId, 'true');
+            await fetch(`/api/student/banner/dismiss/${currentActiveBannerId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            });
+        } catch (err) {
+            console.error('Failed to register banner dismissal:', err);
+        }
+    }
+}
+
+// Show banner only after 10-second gap on base page
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(checkAndDisplayStudentBanner, 10000);
+});
+
+// ── Global Real-Time Notification & Broadcast WebSocket Client ──
+(function initGlobalNotificationSocket() {
+    const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
+    let notifSocket = null;
+
+    function connect() {
+        try {
+            notifSocket = new WebSocket(wsUrl);
+            notifSocket.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'notification' && data.notification) {
+                        const n = data.notification;
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(`${n.title}: ${n.message}`, 'info');
+                        } else {
+                            console.log("🔔 Real-Time Notification:", n);
+                        }
+                        if (typeof checkAndDisplayStudentBanner === 'function' && n.category === 'broadcast') {
+                            checkAndDisplayStudentBanner();
+                        }
+                    } else if (data.type === 'broadcast') {
+                        if (typeof checkAndDisplayStudentBanner === 'function') {
+                            checkAndDisplayStudentBanner();
+                        }
+                    }
+                } catch(err) {}
+            };
+            notifSocket.onclose = function() {
+                setTimeout(connect, 5000);
+            };
+        } catch(e) {}
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', connect);
+    } else {
+        connect();
+    }
+})();
+</script>
+
