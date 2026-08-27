@@ -239,24 +239,39 @@ def contact_view(request):
 # --- YOUTUBE VIDEOS FETCHER ---
 def get_latest_youtube_videos(limit=6):
     channel_url = "https://www.youtube.com/@englishekkhoz8279"
+    api_key = getattr(settings, 'YOUTUBE_API_KEY', None) or "AIzaSyB0U1rT25bwrtQQhuiycIDEiCFxrTohzNs"
+    channel_id = getattr(settings, 'YOUTUBE_CHANNEL_ID', None) or "UCA2H6hQBD3h4Oi2vhnWWi5Q"
+
     fallback_videos = [
         {
-            "video_id": "englishekkhoz_grammar",
-            "title": "English Ek Khoz - Complete Grammar & Spoken English Playlist",
-            "thumbnail": "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
-            "custom_url": f"{channel_url}/videos"
+            "video_id": "PESBR2XSGuE",
+            "title": "Prepositions By, till, Until .. | English Ek Khoz",
+            "thumbnail": "https://img.youtube.com/vi/PESBR2XSGuE/mqdefault.jpg",
         },
         {
-            "video_id": "englishekkhoz_spoken",
-            "title": "English Ek Khoz - Daily Vocabulary & Sentence Formation Practice",
-            "thumbnail": "https://img.youtube.com/vi/jNQXAC9IVRw/mqdefault.jpg",
-            "custom_url": f"{channel_url}/videos"
+            "video_id": "ajyB8JR0kfQ",
+            "title": "Class Room Teaching & Spoken English Practice",
+            "thumbnail": "https://img.youtube.com/vi/ajyB8JR0kfQ/mqdefault.jpg",
         },
         {
-            "video_id": "englishekkhoz_library",
-            "title": "ABCD Smart Library - Self Study Environment & Exam Preparation",
-            "thumbnail": "https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg",
-            "custom_url": f"{channel_url}/videos"
+            "video_id": "dDHEd_EXiaI",
+            "title": "English Learning & Grammar Mastery Part-2",
+            "thumbnail": "https://img.youtube.com/vi/dDHEd_EXiaI/mqdefault.jpg",
+        },
+        {
+            "video_id": "K0H13vImmOE",
+            "title": "A Movie Scene Recreation & Fluency Practice",
+            "thumbnail": "https://img.youtube.com/vi/K0H13vImmOE/mqdefault.jpg",
+        },
+        {
+            "video_id": "P_BDvohvONM",
+            "title": "English Grammar & Conversation Mastery Part-3",
+            "thumbnail": "https://img.youtube.com/vi/P_BDvohvONM/mqdefault.jpg",
+        },
+        {
+            "video_id": "hJtIK8J4gFg",
+            "title": "A Discussion on Youth Potential & Guidance",
+            "thumbnail": "https://img.youtube.com/vi/hJtIK8J4gFg/mqdefault.jpg",
         }
     ]
 
@@ -269,36 +284,33 @@ def get_latest_youtube_videos(limit=6):
         videos = None
 
     try:
-        if not getattr(settings, 'YOUTUBE_API_KEY', None) or not getattr(settings, 'YOUTUBE_CHANNEL_ID', None):
-            return fallback_videos[:limit]
-
         url = "https://www.googleapis.com/youtube/v3/search"
         params = {
             "part": "snippet",
-            "channelId": settings.YOUTUBE_CHANNEL_ID,
+            "channelId": channel_id,
             "maxResults": limit,
             "order": "date",
             "type": "video",
-            "key": settings.YOUTUBE_API_KEY,
+            "key": api_key,
         }
         res = requests.get(url, params=params, timeout=4)
         if res.status_code == 200:
             data = res.json()
-            videos = []
+            fetched_videos = []
             for item in data.get("items", []):
                 vid_id = item.get("id", {}).get("videoId")
                 if vid_id:
-                    videos.append({
+                    fetched_videos.append({
                         "video_id": vid_id,
-                        "title": item.get("snippet", {}).get("title", "ABCD Video"),
+                        "title": item.get("snippet", {}).get("title", "English Ek Khoz Video"),
                         "thumbnail": item.get("snippet", {}).get("thumbnails", {}).get("medium", {}).get("url", f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg"),
                     })
-            if videos:
+            if fetched_videos:
                 try:
-                    cache.set(cache_key, videos, 60 * 60 * 6)
+                    cache.set(cache_key, fetched_videos, 60 * 60 * 6)
                 except Exception:
                     pass
-                return videos
+                return fetched_videos
         return fallback_videos[:limit]
     except Exception:
         return fallback_videos[:limit]
