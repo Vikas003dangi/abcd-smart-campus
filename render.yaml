@@ -5,7 +5,7 @@ services:
     rootDir: abcd_web
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
     startCommand: daphne -b 0.0.0.0 -p $PORT abcd_web.asgi:application
-    plan: standard
+    plan: free
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
