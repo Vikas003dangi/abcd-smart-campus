@@ -2825,9 +2825,10 @@ def post_login_router(request):
 
     profile = StudentProfile.objects.filter(user=request.user).first()
     achievement = StudentAchievement.objects.filter(user=request.user).first()
+    has_valid_profile = profile and (profile.is_admitted or profile.dob or profile.father_name)
 
     # Priority 1: Dual Identity users (Admitted Student + Alumni)
-    if profile and achievement:
+    if has_valid_profile and achievement:
         if profile.is_admitted or profile.dob:
             request.session['active_dashboard'] = 'student'
             return redirect('users:student_dashboard')
@@ -2840,7 +2841,7 @@ def post_login_router(request):
         return redirect('users:alumni_dashboard')
 
     # Priority 3: Student only (Pending or Admitted)
-    if profile:
+    if has_valid_profile:
         request.session['active_dashboard'] = 'student'
         return redirect('users:student_dashboard')
 
@@ -2867,9 +2868,10 @@ def smart_back_router(request):
 
     profile = StudentProfile.objects.filter(user=request.user).first()
     achievement = StudentAchievement.objects.filter(user=request.user).first()
+    has_valid_profile = profile and (profile.is_admitted or profile.dob or profile.father_name)
 
     # Dual Identity users
-    if profile and achievement:
+    if has_valid_profile and achievement:
         if profile.is_admitted or profile.dob:
             return redirect('users:student_dashboard')
         return redirect('users:alumni_dashboard')
@@ -2877,7 +2879,7 @@ def smart_back_router(request):
     if achievement:
         return redirect('users:alumni_dashboard')
 
-    if profile:
+    if has_valid_profile:
         return redirect('users:student_dashboard')
 
     return redirect('users:guest_page')
@@ -3578,6 +3580,13 @@ def student_dashboard_view(request):
         cache.set('holds_synced', True, 60 * 5)
     try:
         profile = StudentProfile.objects.select_related('seat').get(user=request.user)
+        # If student profile is just an empty skeleton (no DOB and not admitted), send to guest page or alumni
+        if not profile.is_admitted and not profile.dob and not profile.father_name:
+            achievement = StudentAchievement.objects.filter(user=request.user).first()
+            if achievement:
+                return redirect('users:alumni_dashboard')
+            return redirect('users:guest_page')
+
         # If Alumni and the student profile is just a skeleton (no DOB), send back to alumni dashboard
         achievement = StudentAchievement.objects.filter(user=request.user).first()
         if achievement and not profile.is_admitted and not profile.dob:
@@ -3587,7 +3596,6 @@ def student_dashboard_view(request):
         achievement = StudentAchievement.objects.filter(user=request.user).first()
         if achievement:
             return redirect('users:alumni_dashboard')
-        messages.warning(request, "Please complete your admission form.")
         return redirect('users:guest_page')
 
     # -------------------------------
@@ -14323,10 +14331,10 @@ def link_existing_account_by_email(backend, details, user=None, *args, **kwargs)
 
 def set_new_user_flag(backend, user, response, is_new=False, *args, **kwargs):
     """
-    Pipeline step to set up student profile for new Google registrations.
+    Pipeline step for new Google registrations.
+    New users start as guests until they fill out the Admission or Achievement form.
     """
     if is_new and user:
-        StudentProfile.objects.get_or_create(user=user)
         user.is_active = True
         user.save()
     return None
