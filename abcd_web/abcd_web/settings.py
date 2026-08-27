@@ -232,13 +232,12 @@ AUTHENTICATION_BACKENDS = (
     'social_core.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY', default='')
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET', default='')
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = config('SOCIAL_AUTH_GOOGLE_OAUTH2_KEY', default='').strip().strip("'").strip('"')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET', default='').strip().strip("'").strip('"')
 
 LOGIN_URL = 'users:login'
 LOGIN_REDIRECT_URL = '/post-login/'               # for normal login
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/post-login/'  # for Google social-auth (optional but nice)
-
 
 # PIPELINE: try existing user by email first, then create if needed
 SOCIAL_AUTH_PIPELINE = (
@@ -247,22 +246,12 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.auth_allowed',
     'social_core.pipeline.social_auth.social_user',
     'social_core.pipeline.user.get_username',
-
-    # if Google email matches an existing User.email, link it automatically
     'users.views.link_existing_account_by_email',
-
-    # if Google email matches an existing User.email, reuse that user
     'social_core.pipeline.social_auth.associate_by_email',
-
-    # if still no user, create a new one
     'social_core.pipeline.user.create_user',
-
-    # link the social account to the user
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
-
-    # set animation flag for new registrations
     'users.views.set_new_user_flag',
 )
 
@@ -276,8 +265,8 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': 'INFO'},
 }
 
-YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='')
-YOUTUBE_CHANNEL_ID = config('YOUTUBE_CHANNEL_ID', default='')
+YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='AIzaSyB0U1rT25bwrtQQhuiycIDEiCFxrTohzNs').strip().strip("'").strip('"')
+YOUTUBE_CHANNEL_ID = config('YOUTUBE_CHANNEL_ID', default='UCA2H6hQBD3h4Oi2vhnWWi5Q').strip().strip("'").strip('"')
 
 # --------------------------------------------------------------------------------------------------------------
 # WEB PUSH NOTIFICATION SETTINGS
