@@ -14,7 +14,7 @@
       z-index: 9999999;
       opacity: 1;
       visibility: visible;
-      transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
   /* --- LIGHT THEME STYLE OVERRIDES --- */
@@ -57,9 +57,9 @@
   }
 
   .master-loader-overlay.fade-out {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
   }
 
   .loader-content {
@@ -573,11 +573,12 @@
       // Hide loader on window fully loaded
       function hideLoader() {
           clearTimeout(watchdogTimer);
+          clearTimeout(showDebounceTimer);
           loader.classList.add('fade-out');
           setTimeout(() => {
               loader.style.display = 'none';
               resetErrorUI();
-          }, 450);
+          }, 200);
       }
 
       // Restore Normal Spinner state
@@ -647,23 +648,32 @@
           startWatchdog();
       });
 
+      // Handle back/forward cache restore (e.g. safari)
+      window.addEventListener('pageshow', function(event) {
+          hideLoader();
+      });
+
+      let showDebounceTimer;
+      function triggerLoader() {
+          clearTimeout(showDebounceTimer);
+          showDebounceTimer = setTimeout(() => {
+              resetErrorUI();
+              loader.style.display = 'flex';
+              loader.classList.remove('fade-out');
+              startWatchdog();
+              if (!navigator.onLine) {
+                  showOfflineUI();
+              }
+          }, 180); // only show if page load takes > 180ms
+      }
+
       // Show loader on page transition / unload
       window.addEventListener('beforeunload', function() {
           if (window.isDownloadingFile) {
               window.isDownloadingFile = false;
               return;
           }
-          resetErrorUI();
-          loader.style.display = 'flex';
-          loader.classList.remove('fade-out');
-          startWatchdog();
-      });
-
-      // Handle back/forward cache restore (e.g. safari)
-      window.addEventListener('pageshow', function(event) {
-          if (event.persisted) {
-              hideLoader();
-          }
+          triggerLoader();
       });
 
       // Intercept any link click or form submission to show the loader instantly
@@ -684,14 +694,7 @@
                   !link.hasAttribute('onclick') &&
                   !e.defaultPrevented) {
 
-                  
-                  resetErrorUI();
-                  loader.style.display = 'flex';
-                  loader.classList.remove('fade-out');
-                  startWatchdog();
-                  if (!navigator.onLine) {
-                      showOfflineUI();
-                  }
+                  triggerLoader();
               }
           }
       });
@@ -701,13 +704,7 @@
           if (form && form.getAttribute('target') === '_blank') return;
           
           if (!e.defaultPrevented) {
-              resetErrorUI();
-              loader.style.display = 'flex';
-              loader.classList.remove('fade-out');
-              startWatchdog();
-              if (!navigator.onLine) {
-                  showOfflineUI();
-              }
+              triggerLoader();
           }
       });
   })();

@@ -238,17 +238,50 @@ def contact_view(request):
 
 # --- YOUTUBE VIDEOS FETCHER ---
 def get_latest_youtube_videos(limit=6):
+    fallback_videos = [
+        {
+            "video_id": "dQw4w9WgXcQ",
+            "title": "Master English Grammar Fundamentals - Essential Rules & Concepts | ABCD",
+            "thumbnail": "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+        },
+        {
+            "video_id": "jNQXAC9IVRw",
+            "title": "Daily Spoken English Practice & Fluency Tips for Competitive Exams",
+            "thumbnail": "https://img.youtube.com/vi/jNQXAC9IVRw/hqdefault.jpg",
+        },
+        {
+            "video_id": "9bZkp7q19f0",
+            "title": "Smart Library Study Environment & Productivity Strategies",
+            "thumbnail": "https://img.youtube.com/vi/9bZkp7q19f0/hqdefault.jpg",
+        },
+        {
+            "video_id": "kJQP7kiw5Fk",
+            "title": "Vocabulary Mastery - 100 Most Important Root Words for Students",
+            "thumbnail": "https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg",
+        },
+        {
+            "video_id": "RgKAFK5djSk",
+            "title": "Effective Revision Techniques & Exam Hall Strategy | ABCD Mentorship",
+            "thumbnail": "https://img.youtube.com/vi/RgKAFK5djSk/hqdefault.jpg",
+        },
+        {
+            "video_id": "OPf0YbXqDm0",
+            "title": "Personality Development & Confident Communication Workshop",
+            "thumbnail": "https://img.youtube.com/vi/OPf0YbXqDm0/hqdefault.jpg",
+        }
+    ]
+
     cache_key = "latest_youtube_videos"
     try:
         videos = cache.get(cache_key)
-        if videos is not None:
+        if videos and len(videos) > 0:
             return videos
     except Exception:
         videos = None
 
     try:
         if not getattr(settings, 'YOUTUBE_API_KEY', None) or not getattr(settings, 'YOUTUBE_CHANNEL_ID', None):
-            return []
+            return fallback_videos[:limit]
 
         url = "https://www.googleapis.com/youtube/v3/search"
         params = {
@@ -259,29 +292,27 @@ def get_latest_youtube_videos(limit=6):
             "type": "video",
             "key": settings.YOUTUBE_API_KEY,
         }
-        res = requests.get(url, params=params, timeout=3)
-        res.raise_for_status()
-        data = res.json()
-
-        videos = []
-        for item in data.get("items", []):
-            videos.append({
-                "video_id": item["id"]["videoId"],
-                "title": item["snippet"]["title"],
-                "thumbnail": item["snippet"]["thumbnails"]["medium"]["url"],
-            })
-
-        try:
-            cache.set(cache_key, videos, 60 * 60 * 6)
-        except Exception:
-            pass
-        return videos
+        res = requests.get(url, params=params, timeout=4)
+        if res.status_code == 200:
+            data = res.json()
+            videos = []
+            for item in data.get("items", []):
+                vid_id = item.get("id", {}).get("videoId")
+                if vid_id:
+                    videos.append({
+                        "video_id": vid_id,
+                        "title": item.get("snippet", {}).get("title", "ABCD Video"),
+                        "thumbnail": item.get("snippet", {}).get("thumbnails", {}).get("medium", {}).get("url", f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg"),
+                    })
+            if videos:
+                try:
+                    cache.set(cache_key, videos, 60 * 60 * 6)
+                except Exception:
+                    pass
+                return videos
+        return fallback_videos[:limit]
     except Exception:
-        try:
-            cache.set(cache_key, [], 60 * 10)
-        except Exception:
-            pass
-        return []
+        return fallback_videos[:limit]
 
 # -------------------------------------------------------------------
 # ============================

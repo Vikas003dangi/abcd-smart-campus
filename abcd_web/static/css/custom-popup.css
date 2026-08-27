@@ -1010,6 +1010,56 @@ body.dark-theme .tc-modal-cancel-btn:hover {
     box-shadow: 0 10px 25px rgba(99, 102, 241, 0.5) !important;
 }
 
+/* ==========================================================================
+   MOBILE MODAL CLOSE ('X') BUTTONS - HIGH-COMFORT TOUCH TARGETS & ACCESSIBILITY
+   ========================================================================== */
+.custom-popup-close,
+.modal-close,
+.modal-close-btn,
+.tc-modal-close,
+.todo-modal-close,
+.seat-modal-close-btn,
+.welcome-modal-close,
+.btn-close,
+.alert-modal-close,
+.banner-close-btn {
+    min-width: 38px !important;
+    min-height: 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1.5rem !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent !important;
+    transition: transform 0.2s ease, background-color 0.2s ease !important;
+}
+
+@media (max-width: 768px) {
+    .custom-popup-close,
+    .modal-close,
+    .modal-close-btn,
+    .tc-modal-close,
+    .todo-modal-close,
+    .seat-modal-close-btn,
+    .welcome-modal-close,
+    .btn-close,
+    .alert-modal-close,
+    .banner-close-btn {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.65rem !important;
+        padding: 6px !important;
+    }
+}
+
+
 
 
 

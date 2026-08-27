@@ -177,21 +177,47 @@
             color: #5c3287ed;
         }
 
-        /* Logo theme switching - matches teacher/student dashboards */
-        .light-logo {
-            display: block;
+        /* Logo theme switching & consistent sizing */
+        .logoImage .light-logo {
+            display: block !important;
+            height: 38px;
+            width: auto;
+            max-height: 42px;
+            object-fit: contain;
         }
 
-        .dark-logo {
-            display: none;
+        .logoImage .dark-logo {
+            display: none !important;
+            height: 38px;
+            width: auto;
+            max-height: 42px;
+            object-fit: contain;
         }
 
-        body.dark-theme .light-logo {
-            display: none;
+        body.dark-theme .logoImage .light-logo {
+            display: none !important;
         }
 
-        body.dark-theme .dark-logo {
-            display: block;
+        body.dark-theme .logoImage .dark-logo {
+            display: block !important;
+            height: 38px;
+            width: auto;
+            max-height: 42px;
+            object-fit: contain;
+        }
+
+        @media (max-width: 600px) {
+            .logoImage, .logoImage a {
+                height: 36px;
+            }
+            .logoImage img,
+            .logoImage .light-logo,
+            .logoImage .dark-logo,
+            body.dark-theme .logoImage .dark-logo {
+                height: 34px !important;
+                max-height: 34px !important;
+                width: auto !important;
+            }
         }
 
 
@@ -5102,23 +5128,6 @@
                 observer.observe(card);
             });
         });
-
-        // --- LOGO RESIZING ---
-        function handleResize() {
-            const logo = document.querySelector('.logoImage img');
-            if (!logo) return;
-            const w = window.innerWidth;
-            if (w <= 320) { logo.style.height = '20px'; logo.style.maxWidth = '70px'; }
-            else if (w <= 450) { logo.style.height = '22px'; logo.style.maxWidth = '80px'; }
-            else if (w <= 600) { logo.style.height = '25px'; logo.style.maxWidth = '90px'; }
-            else if (w <= 700) { logo.style.height = '28px'; logo.style.maxWidth = '100px'; }
-            else if (w <= 875) { logo.style.height = '30px'; logo.style.maxWidth = '110px'; }
-            else if (w <= 1000) { logo.style.height = '32px'; logo.style.maxWidth = '120px'; }
-            else if (w <= 1200) { logo.style.height = '35px'; logo.style.maxWidth = '130px'; }
-            else { logo.style.height = '40px'; logo.style.maxWidth = '150px'; }
-        }
-        window.addEventListener('load', handleResize);
-        window.addEventListener('resize', handleResize);
 
         // --- SCROLL TO TOP ---
         const scrollBtn = document.createElement('button');
