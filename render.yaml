@@ -17,6 +17,10 @@ services:
         value: "abcd2013.online,www.abcd2013.online,abcdcampus.in,www.abcdcampus.in,.onrender.com,abcd-web-platform.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://abcd2013.online,https://www.abcd2013.online,https://abcdcampus.in,https://www.abcdcampus.in,https://abcd-web-platform.onrender.com"
+      - key: SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
+        value: "729497897582-ln9h8cai5ighe13pf624goue4mmp2b1u.apps.googleusercontent.com"
+      - key: YOUTUBE_CHANNEL_ID
+        value: "UCA2H6hQBD3h4Oi2vhnWWi5Q"
       - key: DATABASE_URL
         fromDatabase:
           name: abcd-postgres-db
