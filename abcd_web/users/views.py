@@ -14288,8 +14288,42 @@ def sitemap_xml_view(request):
         xml_lines.append('  </url>')
 
     xml_lines.append('</urlset>')
+    xml_content = "\n".join(xml_lines)
 
-    return HttpResponse('\n'.join(xml_lines), content_type="application/xml")
+    return HttpResponse(xml_content, content_type="application/xml")
+
+
+# -------------------------------------------------------------------
+# GOOGLE OAUTH PIPELINE HELPERS
+# -------------------------------------------------------------------
+def link_existing_account_by_email(backend, details, user=None, *args, **kwargs):
+    """
+    If a user with the same email already exists, link the social account
+    to that existing user instead of failing or creating a duplicate user.
+    """
+    if user:
+        return {'user': user}
+
+    email = details.get('email')
+    if not email:
+        return None
+
+    existing_user = User.objects.filter(email__iexact=email).first()
+    if existing_user:
+        return {'user': existing_user, 'is_new': False}
+    
+    return None
+
+
+def set_new_user_flag(backend, user, response, is_new=False, *args, **kwargs):
+    """
+    Pipeline step to set up student profile for new Google registrations.
+    """
+    if is_new and user:
+        StudentProfile.objects.get_or_create(user=user)
+        user.is_active = True
+        user.save()
+    return None
 
 
 
