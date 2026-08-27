@@ -14156,7 +14156,11 @@ def robots_txt_view(request):
     while protecting authenticated and administrative routes.
     """
     from django.http import HttpResponse
-    site_url = getattr(settings, 'SITE_URL', 'https://abcd2013.online').rstrip('/')
+    try:
+        site_url = f"{request.scheme}://{request.get_host()}".rstrip('/')
+    except Exception:
+        site_url = getattr(settings, 'SITE_URL', 'https://abcd2013.online').rstrip('/')
+
     lines = [
         "User-agent: *",
         "Allow: /",
@@ -14193,7 +14197,11 @@ def sitemap_xml_view(request):
     from django.utils import timezone
     from users.models import Course
 
-    site_url = getattr(settings, 'SITE_URL', 'https://abcd2013.online').rstrip('/')
+    try:
+        site_url = f"{request.scheme}://{request.get_host()}".rstrip('/')
+    except Exception:
+        site_url = getattr(settings, 'SITE_URL', 'https://abcd2013.online').rstrip('/')
+
     now_str = timezone.now().strftime('%Y-%m-%d')
 
     # Static public routes
