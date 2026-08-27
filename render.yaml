@@ -4,7 +4,7 @@ services:
     env: python
     rootDir: abcd_web
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: python manage.py migrate && python manage.py createcachetable && python manage.py init_production && daphne -b 0.0.0.0 -p $PORT abcd_web.asgi:application
+    startCommand: python manage.py migrate --noinput; python manage.py createcachetable; python manage.py init_production; daphne -b 0.0.0.0 -p $PORT abcd_web.asgi:application
     plan: free
     envVars:
       - key: PYTHON_VERSION

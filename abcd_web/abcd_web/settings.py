@@ -265,8 +265,8 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': 'INFO'},
 }
 
-YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='AIzaSyB0U1rT25bwrtQQhuiycIDEiCFxrTohzNs').strip().strip("'").strip('"')
-YOUTUBE_CHANNEL_ID = config('YOUTUBE_CHANNEL_ID', default='UCA2H6hQBD3h4Oi2vhnWWi5Q').strip().strip("'").strip('"')
+YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='').strip().strip("'").strip('"')
+YOUTUBE_CHANNEL_ID = config('YOUTUBE_CHANNEL_ID', default='').strip().strip("'").strip('"')
 
 # --------------------------------------------------------------------------------------------------------------
 # WEB PUSH NOTIFICATION SETTINGS
