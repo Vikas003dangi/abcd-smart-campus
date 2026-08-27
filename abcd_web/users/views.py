@@ -307,7 +307,7 @@ def get_latest_youtube_videos(limit=6):
                     })
             if fetched_videos:
                 try:
-                    cache.set(cache_key, fetched_videos, 60 * 60 * 6)
+                    cache.set(cache_key, fetched_videos, 15 * 60)
                 except Exception:
                     pass
                 return fetched_videos
