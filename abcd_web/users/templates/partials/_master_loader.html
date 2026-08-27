@@ -591,19 +591,20 @@
           if (spinner) spinner.style.display = 'flex';
       }
 
-      if (document.readyState === 'complete') {
+      if (document.readyState === 'interactive' || document.readyState === 'complete') {
           hideLoader();
       } else {
+          document.addEventListener('DOMContentLoaded', hideLoader);
           window.addEventListener('load', hideLoader);
       }
 
-      // Watchdog / Timeout state timer
+      // Watchdog / Timeout state timer (25s for cold start cloud servers)
       let watchdogTimer;
       function startWatchdog() {
           clearTimeout(watchdogTimer);
           watchdogTimer = setTimeout(() => {
               showErrorUI("Could Not Load Page", "The page is taking longer than usual to load. It might be due to a server delay or slow connection.");
-          }, 8000); // 8 seconds watchdog
+          }, 25000); // 25 seconds watchdog
       }
 
       // Start watchdog if loader is active initially
