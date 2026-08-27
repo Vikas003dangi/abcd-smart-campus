@@ -4624,7 +4624,7 @@
 
             <div class="yt-scroll" id="ytScroll">
                 {% for v in youtube_videos %}
-                <a href="https://www.youtube.com/watch?v={{ v.video_id }}" target="_blank" class="yt-card">
+                <a href="{% if v.custom_url %}{{ v.custom_url }}{% else %}https://www.youtube.com/watch?v={{ v.video_id }}{% endif %}" target="_blank" class="yt-card">
 
                     <div class="yt-thumb">
                         <img src="{{ v.thumbnail }}" alt="{{ v.title }}">

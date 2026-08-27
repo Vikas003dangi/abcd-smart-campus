@@ -238,36 +238,25 @@ def contact_view(request):
 
 # --- YOUTUBE VIDEOS FETCHER ---
 def get_latest_youtube_videos(limit=6):
+    channel_url = "https://www.youtube.com/@englishekkhoz8279"
     fallback_videos = [
         {
-            "video_id": "dQw4w9WgXcQ",
-            "title": "Master English Grammar Fundamentals - Essential Rules & Concepts | ABCD",
-            "thumbnail": "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+            "video_id": "englishekkhoz_grammar",
+            "title": "English Ek Khoz - Complete Grammar & Spoken English Playlist",
+            "thumbnail": "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+            "custom_url": f"{channel_url}/videos"
         },
         {
-            "video_id": "jNQXAC9IVRw",
-            "title": "Daily Spoken English Practice & Fluency Tips for Competitive Exams",
-            "thumbnail": "https://img.youtube.com/vi/jNQXAC9IVRw/hqdefault.jpg",
+            "video_id": "englishekkhoz_spoken",
+            "title": "English Ek Khoz - Daily Vocabulary & Sentence Formation Practice",
+            "thumbnail": "https://img.youtube.com/vi/jNQXAC9IVRw/mqdefault.jpg",
+            "custom_url": f"{channel_url}/videos"
         },
         {
-            "video_id": "9bZkp7q19f0",
-            "title": "Smart Library Study Environment & Productivity Strategies",
-            "thumbnail": "https://img.youtube.com/vi/9bZkp7q19f0/hqdefault.jpg",
-        },
-        {
-            "video_id": "kJQP7kiw5Fk",
-            "title": "Vocabulary Mastery - 100 Most Important Root Words for Students",
-            "thumbnail": "https://img.youtube.com/vi/kJQP7kiw5Fk/hqdefault.jpg",
-        },
-        {
-            "video_id": "RgKAFK5djSk",
-            "title": "Effective Revision Techniques & Exam Hall Strategy | ABCD Mentorship",
-            "thumbnail": "https://img.youtube.com/vi/RgKAFK5djSk/hqdefault.jpg",
-        },
-        {
-            "video_id": "OPf0YbXqDm0",
-            "title": "Personality Development & Confident Communication Workshop",
-            "thumbnail": "https://img.youtube.com/vi/OPf0YbXqDm0/hqdefault.jpg",
+            "video_id": "englishekkhoz_library",
+            "title": "ABCD Smart Library - Self Study Environment & Exam Preparation",
+            "thumbnail": "https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg",
+            "custom_url": f"{channel_url}/videos"
         }
     ]
 
