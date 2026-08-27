@@ -239,11 +239,17 @@ def contact_view(request):
 # --- YOUTUBE VIDEOS FETCHER ---
 def get_latest_youtube_videos(limit=6):
     cache_key = "latest_youtube_videos"
-    videos = cache.get(cache_key)
-    if videos is not None:
-        return videos
+    try:
+        videos = cache.get(cache_key)
+        if videos is not None:
+            return videos
+    except Exception:
+        videos = None
 
     try:
+        if not getattr(settings, 'YOUTUBE_API_KEY', None) or not getattr(settings, 'YOUTUBE_CHANNEL_ID', None):
+            return []
+
         url = "https://www.googleapis.com/youtube/v3/search"
         params = {
             "part": "snippet",
@@ -265,10 +271,16 @@ def get_latest_youtube_videos(limit=6):
                 "thumbnail": item["snippet"]["thumbnails"]["medium"]["url"],
             })
 
-        cache.set(cache_key, videos, 60 * 60 * 6)
+        try:
+            cache.set(cache_key, videos, 60 * 60 * 6)
+        except Exception:
+            pass
         return videos
     except Exception:
-        cache.set(cache_key, [], 60 * 10)
+        try:
+            cache.set(cache_key, [], 60 * 10)
+        except Exception:
+            pass
         return []
 
 # -------------------------------------------------------------------
