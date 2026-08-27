@@ -100,6 +100,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -238,6 +239,8 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET', de
 LOGIN_URL = 'users:login'
 LOGIN_REDIRECT_URL = '/post-login/'               # for normal login
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/post-login/'  # for Google social-auth (optional but nice)
+LOGIN_ERROR_URL = 'users:login'
+SOCIAL_AUTH_LOGIN_ERROR_URL = 'users:login'
 
 # PIPELINE: try existing user by email first, then create if needed
 SOCIAL_AUTH_PIPELINE = (
