@@ -5,7 +5,9 @@ from googleapiclient.discovery import build
 
 
 def get_youtube_client():
-    api_key = getattr(settings, "YOUTUBE_API_KEY", None) or "AIzaSyB0U1rT25bwrtQQhuiycIDEiCFxrTohzNs"
+    api_key = getattr(settings, "YOUTUBE_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("YOUTUBE_API_KEY is not configured in .env or environment variables.")
     return build(
         "youtube",
         "v3",

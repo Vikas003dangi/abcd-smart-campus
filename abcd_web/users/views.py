@@ -239,8 +239,8 @@ def contact_view(request):
 # --- YOUTUBE VIDEOS FETCHER ---
 def get_latest_youtube_videos(limit=6):
     channel_url = "https://www.youtube.com/@englishekkhoz8279"
-    api_key = getattr(settings, 'YOUTUBE_API_KEY', None) or "AIzaSyB0U1rT25bwrtQQhuiycIDEiCFxrTohzNs"
-    channel_id = getattr(settings, 'YOUTUBE_CHANNEL_ID', None) or "UCA2H6hQBD3h4Oi2vhnWWi5Q"
+    api_key = getattr(settings, 'YOUTUBE_API_KEY', '').strip()
+    channel_id = getattr(settings, 'YOUTUBE_CHANNEL_ID', '').strip()
 
     fallback_videos = [
         {
@@ -1335,7 +1335,9 @@ def yt_fetch_playlists_api(request):
     if not request.user.is_staff:
         return JsonResponse({"error": "Permission denied"}, status=403)
 
-    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None) or "UCA2H6hQBD3h4Oi2vhnWWi5Q"
+    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", "").strip()
+    if not channel_id:
+        return JsonResponse({"error": "YOUTUBE_CHANNEL_ID is not configured in environment variables or .env"}, status=400)
 
     try:
         playlists = fetch_playlists(channel_id)
@@ -1363,7 +1365,9 @@ def yt_fetch_videos_api(request):
     if not request.user.is_staff:
         return JsonResponse({"error": "Permission denied"}, status=403)
 
-    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None) or "UCA2H6hQBD3h4Oi2vhnWWi5Q"
+    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", "").strip()
+    if not channel_id:
+        return JsonResponse({"error": "YOUTUBE_CHANNEL_ID is not configured in environment variables or .env"}, status=400)
 
     try:
         videos = fetch_channel_videos(channel_id, max_results=100)
