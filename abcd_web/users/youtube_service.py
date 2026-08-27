@@ -16,6 +16,8 @@ def get_youtube_client():
 
 
 def fetch_playlists(channel_id):
+    if not channel_id:
+        raise ValueError("YOUTUBE_CHANNEL_ID is missing or not configured.")
     yt = get_youtube_client()
     response = yt.playlists().list(
         part="snippet",
@@ -27,6 +29,8 @@ def fetch_playlists(channel_id):
 
 
 def fetch_playlist_videos(playlist_id, max_results=50):
+    if not playlist_id:
+        raise ValueError("playlist_id is required.")
     yt = get_youtube_client()
     response = yt.playlistItems().list(
         part="snippet",
@@ -42,6 +46,8 @@ def fetch_channel_videos(channel_id, max_results=50):
     Fetch all uploaded videos from a YouTube channel.
     Uses the 'search' endpoint to list videos by date.
     """
+    if not channel_id:
+        raise ValueError("YOUTUBE_CHANNEL_ID is missing or not configured.")
     yt = get_youtube_client()
     all_videos = []
     next_page = None

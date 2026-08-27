@@ -1417,7 +1417,9 @@ def yt_import_playlist_api(request):
     custom_thumb_data = body.get("custom_thumbnail_data")
 
     try:
-        channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None)
+        channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", "").strip()
+        if not channel_id:
+            return JsonResponse({"error": "YOUTUBE_CHANNEL_ID is not configured in environment variables or .env"}, status=400)
         playlists = fetch_playlists(channel_id)
         pl_data = next((p for p in playlists if p["id"] == playlist_id), None)
         if not pl_data:
