@@ -51,14 +51,14 @@ class Command(BaseCommand):
         # 3. Initialize Seats (if none exist)
         total_seats = Seat.objects.count()
         if total_seats == 0:
-            seats_to_create = []
-            for i in range(1, 101):
-                seats_to_create.append(Seat(
-                    seat_number=f"S-{i:02d}",
-                    status='available',
-                    shift_type='full_day'
-                ))
-            Seat.objects.bulk_create(seats_to_create)
-            self.stdout.write(self.style.SUCCESS('Initialized 100 Smart Library Seats (S-01 to S-100).'))
+            ground_seats = [str(i) for i in range(1, 54)]
+            first_seats = [str(i) for i in range(1, 54)]
+            
+            for s in ground_seats:
+                Seat.objects.get_or_create(seat_number=s, floor='Ground Floor', defaults={'status': 'available'})
+            for s in first_seats:
+                Seat.objects.get_or_create(seat_number=s, floor='1st Floor', defaults={'status': 'available'})
+            
+            self.stdout.write(self.style.SUCCESS('Initialized Ground Floor & 1st Floor Smart Library Seats.'))
         else:
             self.stdout.write(self.style.SUCCESS(f'Seats already present ({total_seats} seats).'))
