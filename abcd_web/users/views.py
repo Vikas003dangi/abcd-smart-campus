@@ -1323,9 +1323,7 @@ def yt_fetch_playlists_api(request):
     if not request.user.is_staff:
         return JsonResponse({"error": "Permission denied"}, status=403)
 
-    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None)
-    if not channel_id or channel_id == "YOUR_CHANNEL_ID_HERE":
-        return JsonResponse({"error": "YOUTUBE_CHANNEL_ID not configured correctly in .env"}, status=500)
+    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None) or "UCA2H6hQBD3h4Oi2vhnWWi5Q"
 
     try:
         playlists = fetch_playlists(channel_id)
@@ -1353,9 +1351,7 @@ def yt_fetch_videos_api(request):
     if not request.user.is_staff:
         return JsonResponse({"error": "Permission denied"}, status=403)
 
-    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None)
-    if not channel_id or channel_id == "YOUR_CHANNEL_ID_HERE":
-        return JsonResponse({"error": "YOUTUBE_CHANNEL_ID not configured correctly in .env"}, status=500)
+    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None) or "UCA2H6hQBD3h4Oi2vhnWWi5Q"
 
     try:
         videos = fetch_channel_videos(channel_id, max_results=100)

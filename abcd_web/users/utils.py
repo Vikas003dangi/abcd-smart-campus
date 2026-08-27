@@ -212,9 +212,7 @@ def process_scheduled_broadcasts():
 # YOUTUBE COURSE SYNCING
 
 def sync_courses_from_youtube():
-    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None)
-    if not channel_id or channel_id == "YOUR_CHANNEL_ID_HERE":
-        raise RuntimeError("YOUTUBE_CHANNEL_ID not configured correctly in .env")
+    channel_id = getattr(settings, "YOUTUBE_CHANNEL_ID", None) or "UCA2H6hQBD3h4Oi2vhnWWi5Q"
 
     playlists = fetch_playlists(channel_id)
 
