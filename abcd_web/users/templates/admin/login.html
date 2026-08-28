@@ -1,0 +1,396 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<style>
+  /* Login Page Specific Ambient Background & Container Overrides */
+  body.login {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #060b14 !important;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Ambient glowing orbs */
+  body.login::before {
+    content: '';
+    position: fixed;
+    top: 15%;
+    left: 20%;
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.18) 0%, rgba(14, 165, 233, 0.05) 50%, transparent 70%);
+    filter: blur(60px);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    animation: floatGlow 10s ease-in-out infinite alternate;
+  }
+
+  body.login::after {
+    content: '';
+    position: fixed;
+    bottom: 10%;
+    right: 20%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(79, 70, 229, 0.04) 50%, transparent 70%);
+    filter: blur(70px);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    animation: floatGlow 12s ease-in-out infinite alternate-reverse;
+  }
+
+  @keyframes floatGlow {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(30px, -40px) scale(1.1); }
+  }
+
+  #header, #user-tools, .breadcrumbs {
+    display: none !important;
+  }
+
+  #container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    position: relative !important;
+    z-index: 1 !important;
+    box-sizing: border-box !important;
+  }
+
+  #content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 460px !important;
+  }
+
+  .login-card {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px 36px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.08);
+    position: relative;
+    overflow: hidden;
+    animation: cardFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #38bdf8, #818cf8, #f59e0b);
+  }
+
+  .login-header-box {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .login-logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 22px;
+    padding: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.2);
+    transition: transform 0.3s ease;
+  }
+
+  .login-logo-wrap:hover {
+    transform: scale(1.06) rotate(2deg);
+  }
+
+  .login-logo-wrap img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+  }
+
+  .login-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.03em;
+    margin: 0 0 8px 0;
+    background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .login-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(217, 119, 6, 0.1));
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #fbbf24;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 12px;
+    border-radius: 999px;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+    margin-bottom: 8px;
+  }
+
+  .login-subtitle {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .form-row {
+    margin-bottom: 20px !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .form-row label {
+    display: block !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    color: #cbd5e1 !important;
+    margin-bottom: 8px !important;
+    text-align: left !important;
+    letter-spacing: 0.02em;
+  }
+
+  .input-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-icon-wrapper i {
+    position: absolute;
+    left: 14px;
+    color: #64748b;
+    font-size: 1.15rem;
+    pointer-events: none;
+    transition: color 0.2s ease;
+  }
+
+  .form-row input[type="text"],
+  .form-row input[type="password"] {
+    width: 100% !important;
+    background: rgba(15, 23, 42, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 12px !important;
+    padding: 12px 14px 12px 42px !important;
+    color: #ffffff !important;
+    font-size: 0.95rem !important;
+    font-family: inherit !important;
+    box-sizing: border-box !important;
+    transition: all 0.25s ease !important;
+    outline: none !important;
+  }
+
+  .form-row input[type="text"]:focus,
+  .form-row input[type="password"]:focus {
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2), 0 0 20px rgba(56, 189, 248, 0.15) !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+  }
+
+  .form-row input:focus + i,
+  .input-icon-wrapper:focus-within i {
+    color: #38bdf8 !important;
+  }
+
+  .submit-row {
+    margin-top: 26px !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    text-align: center !important;
+  }
+
+  .submit-row input[type="submit"] {
+    width: 100% !important;
+    padding: 14px 20px !important;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%) !important;
+    color: #ffffff !important;
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    border: 1px solid rgba(56, 189, 248, 0.5) !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45) !important;
+    transition: all 0.25s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+
+  .submit-row input[type="submit"]:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.65) !important;
+    transform: translateY(-2px) !important;
+  }
+
+  .submit-row input[type="submit"]:active {
+    transform: translateY(0) !important;
+  }
+
+  /* Error messages */
+  .errornote {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    border-radius: 12px !important;
+    color: #fca5a5 !important;
+    padding: 12px 16px !important;
+    font-size: 0.88rem !important;
+    margin-bottom: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2) !important;
+  }
+
+  /* Bottom quick exit links */
+  .login-footer-links {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+  }
+
+  .login-footer-links a {
+    color: #94a3b8;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .login-footer-links a:hover {
+    color: #38bdf8;
+    transform: translateY(-1px);
+  }
+
+  .login-page-copyright {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.78rem;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  .login-page-copyright strong {
+    color: #94a3b8;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-card">
+  <div class="login-header-box">
+    <div class="login-logo-wrap">
+      <img src="{% static 'data/light-logo.png' %}" alt="ABCD Smart Campus Logo">
+    </div>
+    <h1 class="login-title">ABCD Smart Campus</h1>
+    <div>
+      <span class="login-badge">
+        <i class='bx bxs-crown'></i> Master Admin Architecture
+      </span>
+    </div>
+    <p class="login-subtitle">System & Database Control Center</p>
+  </div>
+
+  {% if form.errors and not form.non_field_errors %}
+  <p class="errornote">
+    <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
+    {% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
+  </p>
+  {% endif %}
+
+  {% if form.non_field_errors %}
+  {% for error in form.non_field_errors %}
+  <p class="errornote">
+    <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
+    {{ error }}
+  </p>
+  {% endfor %}
+  {% endif %}
+
+  <form action="{{ app_path }}" method="post" id="login-form">
+    {% csrf_token %}
+    
+    <div class="form-row">
+      <label for="id_username"><i class='bx bx-user'></i> Master Username / Email:</label>
+      <div class="input-icon-wrapper">
+        <i class='bx bx-user-circle'></i>
+        <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" placeholder="e.g. vd19055@gmail.com">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label for="id_password"><i class='bx bx-lock-alt'></i> Secure Password:</label>
+      <div class="input-icon-wrapper">
+        <i class='bx bx-key'></i>
+        <input type="password" name="password" autocomplete="current-password" required id="id_password" placeholder="Enter master password">
+      </div>
+    </div>
+
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <div class="submit-row">
+      <input type="submit" value="🚀 Authenticate & Enter Master Admin">
+    </div>
+
+    <div class="login-footer-links">
+      <a href="/" target="_blank"><i class='bx bx-arrow-back'></i> Public Website</a>
+      <a href="{% url 'users:teacher_dashboard' %}"><i class='bx bxs-dashboard'></i> Teacher Dashboard</a>
+    </div>
+  </form>
+</div>
+
+<div class="login-page-copyright">
+  <p>&copy; 2026 <strong>ABCD Coaching & Library</strong> • Master Architecture</p>
+  <p>Engineered & Managed by Vikas Dangi (<span style="color: #38bdf8;">vd19055@gmail.com</span>)</p>
+</div>
+{% endblock %}

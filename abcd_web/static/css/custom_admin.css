@@ -3,25 +3,25 @@
    Ultra-Premium Glassmorphic Dark UI & Modern Dashboard Polish
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --admin-bg: #0b1120;
-  --admin-card-bg: rgba(17, 24, 39, 0.85);
+  --admin-bg: #060b14;
+  --admin-card-bg: rgba(15, 23, 42, 0.82);
   --admin-card-border: rgba(255, 255, 255, 0.08);
-  --admin-header-bg: linear-gradient(135deg, #070c18 0%, #0f172a 60%, #1e293b 100%);
+  --admin-header-bg: linear-gradient(135deg, #050811 0%, #0d1527 50%, #17233f 100%);
   --admin-accent: #38bdf8;
   --admin-accent-glow: rgba(56, 189, 248, 0.35);
   --admin-gold: #f59e0b;
   --admin-gold-glow: rgba(245, 158, 11, 0.3);
   --admin-success: #10b981;
   --admin-danger: #ef4444;
-  --admin-text-main: #f1f5f9;
+  --admin-text-main: #f8fafc;
   --admin-text-muted: #94a3b8;
-  --admin-border-radius: 14px;
+  --admin-border-radius: 16px;
 }
 
-/* Global Font & Smoothness */
+/* Global Font & Canvas */
 html, body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
   background: var(--admin-bg) !important;
@@ -29,15 +29,15 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Background Canvas Glow */
-body::before {
+/* Ambient Radial Glow on main pages */
+body:not(.login)::before {
   content: '';
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 500px;
-  background: radial-gradient(circle at 50% -100px, rgba(56, 189, 248, 0.15), transparent 70%);
+  height: 600px;
+  background: radial-gradient(circle at 50% -120px, rgba(56, 189, 248, 0.12) 0%, rgba(99, 102, 241, 0.06) 50%, transparent 75%);
   pointer-events: none;
   z-index: 0;
 }
@@ -48,26 +48,26 @@ body::before {
 #header {
   background: var(--admin-header-bg) !important;
   border-bottom: 1px solid rgba(56, 189, 248, 0.25) !important;
-  padding: 14px 28px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+  padding: 14px 32px !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   position: relative !important;
-  z-index: 10 !important;
+  z-index: 100 !important;
+  backdrop-filter: blur(20px);
 }
 
 #branding {
   display: flex !important;
   align-items: center !important;
-  gap: 14px !important;
 }
 
 #branding h1 {
   margin: 0 !important;
   padding: 0 !important;
-  font-size: 1.25rem !important;
-  font-weight: 700 !important;
+  font-size: 1.3rem !important;
+  font-weight: 800 !important;
 }
 
 #branding h1 a {
@@ -75,12 +75,19 @@ body::before {
   text-decoration: none !important;
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 14px !important;
   letter-spacing: -0.02em !important;
 }
 
-#branding h1 a:hover {
-  text-decoration: none !important;
+.admin-logo-img {
+  height: 42px;
+  width: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.admin-logo-img:hover {
+  transform: scale(1.08);
 }
 
 .admin-brand-badge {
@@ -88,58 +95,56 @@ body::before {
   align-items: center;
   gap: 6px;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1));
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  border: 1px solid rgba(245, 158, 11, 0.45);
   color: #fbbf24 !important;
-  font-size: 0.72rem !important;
+  font-size: 0.74rem !important;
   font-weight: 800 !important;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 3px 9px;
+  padding: 3px 11px;
   border-radius: 999px;
-  box-shadow: 0 0 12px var(--admin-gold-glow);
+  box-shadow: 0 0 14px var(--admin-gold-glow);
 }
 
-.admin-logo-img {
-  height: 38px;
-  width: auto;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
-  transition: transform 0.3s ease;
-}
-
-.admin-logo-img:hover {
-  transform: scale(1.05);
-}
-
-/* User Tools & Header Quick Links */
+/* Header User Tools */
 #user-tools {
   font-size: 0.88rem !important;
   color: var(--admin-text-muted) !important;
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 10px !important;
   font-weight: 500 !important;
 }
 
 #user-tools strong {
-  color: var(--admin-accent) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  background: rgba(56, 189, 248, 0.1);
-  padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  background: rgba(56, 189, 248, 0.12);
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#user-tools strong::before {
+  content: '👤';
+  font-size: 0.9rem;
 }
 
 #user-tools a {
-  color: #e2e8f0 !important;
+  color: #cbd5e1 !important;
   text-decoration: none !important;
-  padding: 6px 14px !important;
+  padding: 7px 14px !important;
   border-radius: 999px !important;
   background: rgba(255, 255, 255, 0.06) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
+  font-weight: 600 !important;
 }
 
 #user-tools a:hover {
@@ -147,39 +152,43 @@ body::before {
   color: #38bdf8 !important;
   border-color: rgba(56, 189, 248, 0.4) !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2) !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25) !important;
 }
 
 .admin-quick-dashboard-btn {
-  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   border-color: #38bdf8 !important;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45) !important;
 }
 
 .admin-quick-dashboard-btn:hover {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6) !important;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.65) !important;
 }
 
 /* ==========================================================================
-   BREADCRUMBS & NAVIGATION
+   BREADCRUMBS & TOP NAV
    ========================================================================== */
 div.breadcrumbs {
-  background: rgba(15, 23, 42, 0.9) !important;
+  background: rgba(13, 20, 36, 0.95) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  padding: 12px 28px !important;
+  padding: 14px 32px !important;
   color: var(--admin-text-muted) !important;
   font-size: 0.85rem !important;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
 div.breadcrumbs a {
   color: var(--admin-accent) !important;
   font-weight: 600 !important;
   text-decoration: none !important;
+  transition: color 0.2s ease;
 }
 
 div.breadcrumbs a:hover {
@@ -188,10 +197,183 @@ div.breadcrumbs a:hover {
 }
 
 /* ==========================================================================
-   CONTENT CONTAINERS & CARDS
+   DASHBOARD HERO & KPI BANNER
+   ========================================================================== */
+.admin-dashboard-hero {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: var(--admin-border-radius);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(56, 189, 248, 0.08);
+  backdrop-filter: blur(16px);
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-dashboard-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8, #f59e0b);
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #34d399;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #10b981;
+  animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.hero-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.hero-btn-primary {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.4);
+}
+
+.hero-btn-primary:hover {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  box-shadow: 0 6px 22px rgba(14, 165, 233, 0.6);
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
+.hero-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hero-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  transform: translateY(-2px);
+}
+
+/* KPI Grid */
+.admin-quick-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-card-border);
+  border-radius: var(--admin-border-radius);
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(14px);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.kpi-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.kpi-data {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-title {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   MAIN CONTENT AREA & CARDS (MODULES)
    ========================================================================== */
 #content {
-  padding: 30px 28px !important;
+  padding: 32px !important;
   max-width: 1440px !important;
   margin: 0 auto !important;
   position: relative;
@@ -199,38 +381,38 @@ div.breadcrumbs a:hover {
 }
 
 #content h1 {
-  font-size: 1.6rem !important;
+  font-size: 1.7rem !important;
   font-weight: 800 !important;
   color: #ffffff !important;
   letter-spacing: -0.03em !important;
   margin-bottom: 24px !important;
 }
 
-/* Model Group Modules (Cards) */
+/* Modules (Model Groups) */
 .module {
   background: var(--admin-card-bg) !important;
   border: 1px solid var(--admin-card-border) !important;
   border-radius: var(--admin-border-radius) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
-  margin-bottom: 24px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3) !important;
+  margin-bottom: 26px !important;
   overflow: hidden !important;
-  backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(16px) !important;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .module:hover {
-  border-color: rgba(56, 189, 248, 0.3) !important;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4) !important;
 }
 
 .module caption, .module h2 {
-  background: linear-gradient(90deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95)) !important;
+  background: linear-gradient(90deg, #111a2e, #0c1424) !important;
   color: #38bdf8 !important;
   font-size: 0.95rem !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.06em !important;
-  padding: 14px 20px !important;
+  letter-spacing: 0.08em !important;
+  padding: 16px 24px !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -240,62 +422,67 @@ div.breadcrumbs a:hover {
 }
 
 .module th, .module td {
-  padding: 12px 20px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
-  font-size: 0.9rem !important;
+  padding: 14px 24px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  font-size: 0.92rem !important;
 }
 
-.module tr:last-child td {
+.module tr:last-child td, .module tr:last-child th {
   border-bottom: none !important;
 }
 
-.module tr:hover td {
-  background: rgba(56, 189, 248, 0.04) !important;
+.module tr:hover td, .module tr:hover th {
+  background: rgba(56, 189, 248, 0.05) !important;
 }
 
 .module th a {
-  color: #f8fafc !important;
+  color: #f1f5f9 !important;
   font-weight: 600 !important;
   text-decoration: none !important;
+  transition: color 0.2s ease;
 }
 
 .module th a:hover {
   color: var(--admin-accent) !important;
 }
 
-/* Add / Change Buttons on Model Rows */
+/* Action Links on Rows (+ Add, Change) */
 .addlink, .changelink {
-  padding: 4px 12px !important;
-  border-radius: 6px !important;
+  padding: 5px 14px !important;
+  border-radius: 8px !important;
   font-size: 0.8rem !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   text-decoration: none !important;
-  transition: all 0.2s ease !important;
-  display: inline-block !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 
 .addlink {
   color: #34d399 !important;
-  background: rgba(16, 185, 129, 0.1) !important;
-  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
 }
 
 .addlink:hover {
   background: rgba(16, 185, 129, 0.25) !important;
   color: #6ee7b7 !important;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
 .changelink {
   color: #93c5fd !important;
-  background: rgba(59, 130, 246, 0.1) !important;
-  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  background: rgba(59, 130, 246, 0.12) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
 }
 
 .changelink:hover {
   background: rgba(59, 130, 246, 0.25) !important;
   color: #bfdbfe !important;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
 /* ==========================================================================
@@ -310,53 +497,57 @@ div.breadcrumbs a:hover {
   border-radius: var(--admin-border-radius) !important;
   border: 1px solid var(--admin-card-border) !important;
   overflow: hidden !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3) !important;
+  width: 100% !important;
 }
 
 #changelist table thead th {
-  background: #111827 !important;
+  background: #0d1527 !important;
   color: #94a3b8 !important;
-  font-weight: 700 !important;
-  font-size: 0.8rem !important;
+  font-weight: 800 !important;
+  font-size: 0.82rem !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
-  padding: 14px 16px !important;
+  letter-spacing: 0.06em !important;
+  padding: 16px 18px !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 #changelist table thead th a {
   color: #e2e8f0 !important;
+  text-decoration: none !important;
 }
 
-#changelist table tbody td {
-  padding: 12px 16px !important;
+#changelist table tbody td, #changelist table tbody th {
+  padding: 14px 18px !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
   color: #cbd5e1 !important;
-  font-size: 0.88rem !important;
+  font-size: 0.9rem !important;
 }
 
-#changelist table tbody tr:hover td {
+#changelist table tbody tr:hover td, #changelist table tbody tr:hover th {
   background: rgba(56, 189, 248, 0.06) !important;
 }
 
-/* Search Bar & Actions Toolbar */
+/* Search Toolbar */
 #toolbar {
   background: var(--admin-card-bg) !important;
   border: 1px solid var(--admin-card-border) !important;
-  border-radius: 12px !important;
-  padding: 12px 18px !important;
-  margin-bottom: 18px !important;
+  border-radius: 14px !important;
+  padding: 14px 20px !important;
+  margin-bottom: 20px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
 }
 
 #searchbar {
-  background: #0f172a !important;
+  background: #090e1a !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: #ffffff !important;
-  padding: 8px 14px !important;
-  border-radius: 8px !important;
-  font-size: 0.9rem !important;
+  padding: 10px 16px !important;
+  border-radius: 10px !important;
+  font-size: 0.92rem !important;
   outline: none !important;
   transition: all 0.2s ease !important;
+  min-width: 280px !important;
 }
 
 #searchbar:focus {
@@ -364,77 +555,152 @@ div.breadcrumbs a:hover {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
 }
 
-/* Buttons */
+/* Filter Sidebar */
+#changelist-filter {
+  background: var(--admin-card-bg) !important;
+  border-left: 1px solid var(--admin-card-border) !important;
+  border-radius: 0 var(--admin-border-radius) var(--admin-border-radius) 0 !important;
+  box-shadow: -6px 0 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+#changelist-filter h2 {
+  background: #0d1527 !important;
+  color: var(--admin-accent) !important;
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+#changelist-filter h3 {
+  color: #e2e8f0 !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  padding: 10px 18px 4px 18px !important;
+}
+
+#changelist-filter ul {
+  padding: 0 18px 14px 18px !important;
+}
+
+#changelist-filter li {
+  padding: 4px 0 !important;
+}
+
+#changelist-filter a {
+  color: #94a3b8 !important;
+  text-decoration: none !important;
+  font-size: 0.85rem !important;
+  transition: color 0.2s ease;
+}
+
+#changelist-filter a:hover {
+  color: var(--admin-accent) !important;
+}
+
+#changelist-filter li.selected a {
+  color: #38bdf8 !important;
+  font-weight: 800 !important;
+}
+
+/* ==========================================================================
+   BUTTONS & ACTIONS
+   ========================================================================== */
 .button, input[type=submit], input[type=button], .submit-row input {
-  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
   border: 1px solid #38bdf8 !important;
-  border-radius: 8px !important;
-  padding: 9px 18px !important;
+  border-radius: 10px !important;
+  padding: 10px 20px !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
 }
 
 .button:hover, input[type=submit]:hover, input[type=button]:hover, .submit-row input:hover {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
-  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5) !important;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+  box-shadow: 0 8px 22px rgba(14, 165, 233, 0.55) !important;
   transform: translateY(-1px);
 }
 
 .button.default, input[type=submit].default {
-  background: linear-gradient(135deg, #10b981, #059669) !important;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   border-color: #34d399 !important;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important;
 }
 
 .button.default:hover, input[type=submit].default:hover {
-  background: linear-gradient(135deg, #34d399, #10b981) !important;
-  box-shadow: 0 6px 18px rgba(52, 211, 153, 0.5) !important;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+  box-shadow: 0 8px 22px rgba(52, 211, 153, 0.6) !important;
 }
 
 .deletelink {
   background: rgba(239, 68, 68, 0.15) !important;
   color: #f87171 !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
-  padding: 8px 16px !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  padding: 9px 18px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  transition: all 0.2s ease !important;
 }
 
 .deletelink:hover {
   background: rgba(239, 68, 68, 0.3) !important;
   color: #fca5a5 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
 }
 
-/* Forms & Inputs */
+/* Object Tools (Top Action Buttons) */
+.object-tools a {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  padding: 9px 18px !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+  transition: all 0.2s ease !important;
+}
+
+.object-tools a:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+  box-shadow: 0 8px 22px rgba(14, 165, 233, 0.55) !important;
+  transform: translateY(-1px);
+}
+
+/* Forms & Fieldsets */
 fieldset {
   background: var(--admin-card-bg) !important;
   border: 1px solid var(--admin-card-border) !important;
   border-radius: var(--admin-border-radius) !important;
-  padding: 20px !important;
-  margin-bottom: 24px !important;
+  padding: 24px !important;
+  margin-bottom: 28px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
 }
 
 fieldset h2 {
   background: transparent !important;
   color: var(--admin-accent) !important;
-  font-size: 1.1rem !important;
-  font-weight: 700 !important;
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  padding-bottom: 10px !important;
-  margin-bottom: 16px !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 20px !important;
+  letter-spacing: -0.01em;
 }
 
 input[type=text], input[type=password], input[type=email], input[type=url], 
 input[type=number], textarea, select {
-  background: #0f172a !important;
+  background: #090e1a !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   color: #f8fafc !important;
-  border-radius: 8px !important;
-  padding: 8px 12px !important;
-  font-size: 0.9rem !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  font-size: 0.92rem !important;
+  transition: all 0.2s ease;
 }
 
 input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, 
@@ -444,58 +710,40 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   outline: none !important;
 }
 
-/* Sidebar / Filters */
-#changelist-filter {
+/* Recent Actions Sidebar */
+#recent-actions-module {
   background: var(--admin-card-bg) !important;
-  border-left: 1px solid var(--admin-card-border) !important;
-  border-radius: 0 var(--admin-border-radius) var(--admin-border-radius) 0 !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  padding: 20px !important;
 }
 
-#changelist-filter h2 {
-  background: #111827 !important;
+#recent-actions-module h2 {
   color: var(--admin-accent) !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding-bottom: 8px !important;
+}
+
+#recent-actions-module li {
   font-size: 0.85rem !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.06em !important;
-  padding: 12px 16px !important;
+  padding: 8px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
 }
 
-#changelist-filter a {
-  color: #cbd5e1 !important;
-}
-
-#changelist-filter a:hover {
-  color: var(--admin-accent) !important;
-}
-
-#changelist-filter li.selected a {
-  color: #38bdf8 !important;
-  font-weight: 700 !important;
-}
-
-/* Object Tools (History, Add Button) */
-.object-tools a {
-  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
-  color: #ffffff !important;
-  border: 1px solid #38bdf8 !important;
-  border-radius: 8px !important;
-  font-weight: 700 !important;
-  padding: 8px 16px !important;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
-}
-
-.object-tools a:hover {
-  background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
-  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5) !important;
+#recent-actions-module li a {
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
 }
 
 /* Footer in Admin */
 #footer {
   text-align: center;
-  padding: 24px;
+  padding: 28px;
   color: var(--admin-text-muted);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   margin-top: 40px;
 }
