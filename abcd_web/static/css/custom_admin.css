@@ -29,13 +29,14 @@
   --admin-breadcrumbs-bg: rgba(13, 20, 36, 0.95);
   --admin-shadow: rgba(0, 0, 0, 0.5);
   --admin-hero-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
+  --admin-filter-bg: rgba(13, 20, 36, 0.9);
 }
 
-/* Light Mode Variables */
+/* Light Mode Variables - High Contrast Precision */
 :root[data-theme="light"] {
-  --admin-bg: #f1f5f9;
-  --admin-card-bg: rgba(255, 255, 255, 0.92);
-  --admin-card-border: rgba(203, 213, 225, 0.8);
+  --admin-bg: #f8fafc;
+  --admin-card-bg: #ffffff;
+  --admin-card-border: rgba(203, 213, 225, 0.9);
   --admin-header-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
   --admin-header-border: rgba(2, 132, 199, 0.25);
   --admin-accent: #0284c7;
@@ -45,16 +46,17 @@
   --admin-success: #059669;
   --admin-danger: #dc2626;
   --admin-text-main: #0f172a;
-  --admin-text-muted: #64748b;
+  --admin-text-muted: #475569;
   --admin-border-radius: 16px;
   --admin-input-bg: #ffffff;
-  --admin-input-border: rgba(148, 163, 184, 0.8);
-  --admin-module-caption-bg: linear-gradient(90deg, #f1f5f9, #f8fafc);
+  --admin-input-border: rgba(148, 163, 184, 0.9);
+  --admin-module-caption-bg: linear-gradient(90deg, #f1f5f9, #ffffff);
   --admin-table-hover: rgba(2, 132, 199, 0.06);
   --admin-table-border: rgba(226, 232, 240, 0.9);
-  --admin-breadcrumbs-bg: rgba(255, 255, 255, 0.95);
+  --admin-breadcrumbs-bg: #ffffff;
   --admin-shadow: rgba(15, 23, 42, 0.08);
   --admin-hero-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  --admin-filter-bg: #ffffff;
 }
 
 /* Global Font & Canvas */
@@ -67,31 +69,7 @@ html, body {
   padding: 0 !important;
   width: 100% !important;
   min-height: 100vh !important;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Login Page Global Resets */
-body.login #nav-sidebar,
-body.login #toggle-nav-sidebar,
-body.login .sticky,
-body.login > h1,
-body.login #content > h1:first-child,
-body.login #content-title,
-body.login .content-title {
-  display: none !important;
-  visibility: hidden !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-body.login #container {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: 100vh !important;
-  margin: 0 auto !important;
-  width: 100% !important;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Ambient Glow */
@@ -132,7 +110,7 @@ body:not(.login)::before {
 }
 
 /* ==========================================================================
-   HEADER & MASTER BRANDING BAR
+   HEADER & MASTER BRANDING BAR (ALL PAGES)
    ========================================================================== */
 #header {
   background: var(--admin-header-bg) !important;
@@ -150,6 +128,12 @@ body:not(.login)::before {
   width: 100% !important;
   box-sizing: border-box !important;
   transition: background 0.3s ease;
+}
+
+#branding {
+  float: none !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .admin-brand-header {
@@ -201,6 +185,8 @@ body:not(.login)::before {
 
 /* Header User Tools Buttons */
 #user-tools {
+  float: none !important;
+  text-align: right !important;
   font-size: 0.86rem !important;
   color: var(--admin-text-muted) !important;
   display: flex !important;
@@ -322,7 +308,7 @@ div.breadcrumbs a {
 }
 
 div.breadcrumbs a:hover {
-  color: #0284c7 !important;
+  color: var(--admin-accent) !important;
   text-decoration: underline !important;
 }
 
@@ -600,31 +586,31 @@ div.breadcrumbs a:hover {
 
 .sub-badge.blue {
   background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
+  color: #0284c7;
   border: 1px solid rgba(56, 189, 248, 0.25);
 }
 
 .sub-badge.green {
   background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
+  color: #059669;
   border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
 .sub-badge.amber {
   background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
+  color: #d97706;
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
 .sub-badge.red {
   background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
+  color: #dc2626;
   border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .sub-badge.purple {
   background: rgba(168, 85, 247, 0.12);
-  color: #c084fc;
+  color: #9333ea;
   border: 1px solid rgba(168, 85, 247, 0.25);
 }
 
@@ -694,7 +680,7 @@ div.breadcrumbs a:hover {
 
 .crud-btn-alert {
   background: rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
+  color: var(--admin-danger);
   border: 1px solid rgba(239, 68, 68, 0.4);
   margin-left: auto;
 }
@@ -705,7 +691,7 @@ div.breadcrumbs a:hover {
 }
 
 /* ==========================================================================
-   MODULES & TABLES
+   MODULES & TABLES (DASHBOARD & LIST VIEWS)
    ========================================================================== */
 .module {
   background: var(--admin-card-bg) !important;
@@ -780,6 +766,239 @@ div.breadcrumbs a:hover {
   color: #ffffff !important;
 }
 
+/* ==========================================================================
+   CHANGELIST VIEWS & FILTERS SIDEBAR
+   ========================================================================== */
+#changelist {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 24px !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+#changelist #changelist-form {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+}
+
+#changelist #changelist-filter {
+  width: 260px !important;
+  flex-shrink: 0 !important;
+  background: var(--admin-filter-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  box-shadow: 0 10px 30px var(--admin-shadow) !important;
+  padding: 16px !important;
+  margin: 0 !important;
+  position: sticky !important;
+  top: 20px !important;
+  box-sizing: border-box !important;
+}
+
+#changelist #changelist-filter h2 {
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  color: var(--admin-accent) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 0 0 10px 0 !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
+  margin-bottom: 14px !important;
+}
+
+#changelist #changelist-filter h3 {
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  color: var(--admin-text-main) !important;
+  margin: 14px 0 6px 0 !important;
+}
+
+#changelist #changelist-filter ul {
+  padding: 0 !important;
+  margin: 0 0 12px 0 !important;
+  list-style: none !important;
+}
+
+#changelist #changelist-filter li {
+  padding: 4px 0 !important;
+  font-size: 0.82rem !important;
+}
+
+#changelist #changelist-filter li a {
+  color: var(--admin-text-muted) !important;
+  text-decoration: none !important;
+  transition: color 0.2s ease;
+}
+
+#changelist #changelist-filter li a:hover {
+  color: var(--admin-accent) !important;
+}
+
+#changelist #changelist-filter li.selected a {
+  color: var(--admin-accent) !important;
+  font-weight: 800 !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+}
+
+/* Changelist Results Table */
+#result_list {
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px var(--admin-shadow) !important;
+}
+
+#result_list thead th {
+  background: var(--admin-module-caption-bg) !important;
+  color: var(--admin-text-muted) !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
+}
+
+#result_list tbody td, #result_list tbody th {
+  padding: 12px 16px !important;
+  color: var(--admin-text-main) !important;
+  border-bottom: 1px solid var(--admin-table-border) !important;
+  font-size: 0.88rem !important;
+}
+
+#result_list tbody tr:hover {
+  background: var(--admin-table-hover) !important;
+}
+
+/* Action Bar & Paginator */
+.actions {
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 18px !important;
+  color: var(--admin-text-main) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.paginator {
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: 12px !important;
+  padding: 12px 18px !important;
+  margin-top: 18px !important;
+  color: var(--admin-text-muted) !important;
+  font-size: 0.85rem !important;
+}
+
+.paginator a {
+  color: var(--admin-accent) !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   FORMS, PASSWORD CHANGE, AND FIELDSETS
+   ========================================================================== */
+fieldset {
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  padding: 24px !important;
+  margin-bottom: 24px !important;
+  box-shadow: 0 10px 30px var(--admin-shadow) !important;
+}
+
+fieldset h2 {
+  background: transparent !important;
+  color: var(--admin-accent) !important;
+  font-size: 1.12rem !important;
+  font-weight: 800 !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 20px !important;
+}
+
+.form-row {
+  border-bottom: 1px solid var(--admin-table-border) !important;
+  padding: 14px 0 !important;
+}
+
+.form-row label {
+  color: var(--admin-text-main) !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+}
+
+.help, .help-tooltip {
+  color: var(--admin-text-muted) !important;
+  font-size: 0.8rem !important;
+  margin-top: 4px !important;
+}
+
+input[type=text], input[type=password], input[type=email], input[type=url], 
+input[type=number], textarea, select {
+  background: var(--admin-input-bg) !important;
+  border: 1px solid var(--admin-input-border) !important;
+  color: var(--admin-text-main) !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  font-size: 0.92rem !important;
+  transition: all 0.2s ease;
+}
+
+input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, 
+input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
+  border-color: var(--admin-accent) !important;
+  box-shadow: 0 0 0 3px var(--admin-accent-glow) !important;
+  outline: none !important;
+}
+
+/* Submit Row Buttons */
+.submit-row {
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  padding: 16px 24px !important;
+  box-shadow: 0 10px 30px var(--admin-shadow) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.submit-row input[type=submit], .submit-row .button, .button.default, input[type=submit].default {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  padding: 10px 20px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+
+.submit-row input[type=submit]:hover, .submit-row .button:hover, .button.default:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.6) !important;
+  transform: translateY(-1px);
+}
+
+.submit-row .deletelink {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: var(--admin-danger) !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  padding: 10px 18px !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+
 /* Recent Actions Sidebar */
 #recent-actions-module {
   background: var(--admin-card-bg) !important;
@@ -806,44 +1025,6 @@ div.breadcrumbs a:hover {
 #recent-actions-module li a {
   color: var(--admin-text-main) !important;
   font-weight: 600 !important;
-}
-
-/* Forms & Fieldsets */
-fieldset {
-  background: var(--admin-card-bg) !important;
-  border: 1px solid var(--admin-card-border) !important;
-  border-radius: var(--admin-border-radius) !important;
-  padding: 24px !important;
-  margin-bottom: 28px !important;
-  box-shadow: 0 10px 30px var(--admin-shadow) !important;
-}
-
-fieldset h2 {
-  background: transparent !important;
-  color: var(--admin-accent) !important;
-  font-size: 1.15rem !important;
-  font-weight: 800 !important;
-  border-bottom: 1px solid var(--admin-card-border) !important;
-  padding-bottom: 12px !important;
-  margin-bottom: 20px !important;
-}
-
-input[type=text], input[type=password], input[type=email], input[type=url], 
-input[type=number], textarea, select {
-  background: var(--admin-input-bg) !important;
-  border: 1px solid var(--admin-input-border) !important;
-  color: var(--admin-text-main) !important;
-  border-radius: 10px !important;
-  padding: 10px 14px !important;
-  font-size: 0.92rem !important;
-  transition: all 0.2s ease;
-}
-
-input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, 
-input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
-  border-color: var(--admin-accent) !important;
-  box-shadow: 0 0 0 3px var(--admin-accent-glow) !important;
-  outline: none !important;
 }
 
 /* Footer in Admin */
@@ -876,6 +1057,15 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     margin-top: 16px !important;
   }
 
+  #changelist {
+    flex-direction: column !important;
+  }
+
+  #changelist #changelist-filter {
+    width: 100% !important;
+    position: static !important;
+  }
+
   .admin-dashboard-hero {
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -894,6 +1084,10 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     align-items: stretch !important;
     padding: 12px 16px !important;
     gap: 10px !important;
+  }
+
+  #branding {
+    justify-content: center !important;
   }
 
   .admin-brand-header {

@@ -1,2 +1,93 @@
-{% extends "admin/base_site.html" %}
-{# Delegated to top-level templates/admin/base_site.html to prevent duplicate buttons and headers #}
+{% extends "admin/base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ title }} | ABCD Smart Campus Master Admin{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
+<link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
+<script>
+  (function() {
+    const savedTheme = localStorage.getItem('admin_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  })();
+</script>
+{% endblock %}
+
+{% block branding %}
+<div class="admin-brand-header">
+  <a href="{% url 'admin:index' %}" class="admin-brand-link">
+    <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="admin-logo-img">
+    <span class="admin-brand-title">ABCD Smart Campus</span>
+    <span class="admin-brand-badge">⚙️ Master Admin</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block welcome-msg %}
+  <span class="admin-welcome-label">WELCOME,</span>
+  <span class="admin-user-pill">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    {{ user.first_name|default:user.username|upper }}
+  </span>
+{% endblock %}
+
+{% block userlinks %}
+  {% if user.has_usable_password %}
+  <a href="{% url 'admin:password_change' %}" class="admin-btn-header" title="Change Password">
+    🔑 Change Password
+  </a>
+  {% endif %}
+
+  <!-- Dark / Light Theme Toggle Button -->
+  <button type="button" class="admin-btn-theme" id="masterThemeToggleBtn" title="Toggle Dark / Light Mode">
+    <span id="masterThemeIcon">🌙</span>
+    <span id="masterThemeLabel">Dark</span>
+  </button>
+
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}" style="display:inline-flex;margin:0;padding:0;">
+    {% csrf_token %}
+    <button type="submit" class="admin-btn-logout" title="Log out">
+      🚪 Log Out
+    </button>
+  </form>
+{% endblock %}
+
+{% block footer %}
+<div id="footer">
+  <p>&copy; 2026 <strong>ABCD Coaching & Library</strong> • Master Database Control Architecture</p>
+  <p style="margin-top: 4px; opacity: 0.7;">Secure System Infrastructure & Operations</p>
+</div>
+
+<script>
+  (function() {
+    const themeBtn = document.getElementById('masterThemeToggleBtn');
+    const themeIcon = document.getElementById('masterThemeIcon');
+    const themeLabel = document.getElementById('masterThemeLabel');
+
+    function syncMasterThemeUI(theme) {
+      if (themeIcon) themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      if (themeLabel) themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
+    }
+
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    syncMasterThemeUI(currentTheme);
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function() {
+        const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('admin_theme', next);
+        syncMasterThemeUI(next);
+      });
+    }
+  })();
+</script>
+{% endblock %}
