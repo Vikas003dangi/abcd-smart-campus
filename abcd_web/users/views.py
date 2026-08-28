@@ -2464,7 +2464,7 @@ def forgot_password_request(request):
     cache.set(cache_key, otp, timeout=300)  # 5 minutes
 
     try:
-        send_html_email(
+        success = send_html_email(
             subject="Your ABCD password reset OTP",
             to_email=user.email,
             template="emails/otp_security.html",
@@ -2477,9 +2477,15 @@ def forgot_password_request(request):
             },
             fail_silently=False
         )
+        if not success:
+            return JsonResponse(
+                {"status": "error", "message": "Unable to deliver OTP email at this moment. Please try again in a few moments."},
+                status=500
+            )
     except Exception as e:
+        logger.error(f"OTP email send exception for user {user.email}: {e}")
         return JsonResponse(
-            {"status": "error", "message": f"Error sending mail: {e}"},
+            {"status": "error", "message": "Unable to deliver OTP email at this moment. Please try again in a few moments."},
             status=500
         )
 
