@@ -161,8 +161,8 @@ class StudyMaterialInline(admin.TabularInline):
 
 @admin.register(StudyMaterial)
 class StudyMaterialAdmin(admin.ModelAdmin):
-    list_display = ('title', 'course', 'material_type', 'is_active', 'created_at')
-    list_filter = ('material_type', 'is_active', 'course')
+    list_display = ('title', 'course', 'material_type', 'is_public', 'created_at')
+    list_filter = ('material_type', 'is_public', 'course')
     search_fields = ('title', 'course__title')
 
 @admin.register(Course)

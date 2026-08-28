@@ -168,13 +168,31 @@ class Command(BaseCommand):
                 first_seats = [str(i) for i in range(1, 54)]
                 
                 for s in ground_seats:
-                    Seat.objects.get_or_create(seat_number=s, floor='Ground Floor', defaults={'status': 'available'})
+                    shift_allowed = (40 <= int(s) <= 53)
+                    Seat.objects.get_or_create(
+                        seat_number=s, 
+                        floor='Ground Floor', 
+                        defaults={'status': 'available', 'is_shift_enabled': shift_allowed}
+                    )
                 for s in first_seats:
-                    Seat.objects.get_or_create(seat_number=s, floor='1st Floor', defaults={'status': 'available'})
+                    Seat.objects.get_or_create(
+                        seat_number=s, 
+                        floor='1st Floor', 
+                        defaults={'status': 'available', 'is_shift_enabled': False}
+                    )
                 
-                self.stdout.write(self.style.SUCCESS('Created and initialized all Ground Floor & 1st Floor Seats.'))
+                # Also ensure existing ground floor seats 40-53 have is_shift_enabled=True
+                Seat.objects.filter(floor='Ground Floor', seat_number__in=[str(i) for i in range(40, 54)]).update(is_shift_enabled=True)
+                Seat.objects.filter(floor='Ground Floor').exclude(seat_number__in=[str(i) for i in range(40, 54)]).update(is_shift_enabled=False)
+                Seat.objects.filter(floor='1st Floor').update(is_shift_enabled=False)
+
+                self.stdout.write(self.style.SUCCESS('Created and initialized all Ground Floor & 1st Floor Seats (Ground Floor 40-53 marked as Shift-Enabled).'))
             else:
-                self.stdout.write(self.style.SUCCESS(f'All {total_seats} seats have been reset to Available.'))
+                # Ensure shift configuration is always accurate even if seats exist
+                Seat.objects.filter(floor='Ground Floor', seat_number__in=[str(i) for i in range(40, 54)]).update(is_shift_enabled=True)
+                Seat.objects.filter(floor='Ground Floor').exclude(seat_number__in=[str(i) for i in range(40, 54)]).update(is_shift_enabled=False)
+                Seat.objects.filter(floor='1st Floor').update(is_shift_enabled=False)
+                self.stdout.write(self.style.SUCCESS(f'All {total_seats} seats have been verified (Ground Floor 40-53 configured as Shift-Enabled).'))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f'Seat reset error: {e}'))
 
