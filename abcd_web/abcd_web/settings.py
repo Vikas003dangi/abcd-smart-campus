@@ -234,9 +234,10 @@ ADMIN_SUPERUSER_NAME = 'Sandeepananda' # For the message template
 
 
 # -------------------------------
-# SIGN IN WITH GOOGLE SETTINGS
+# SIGN IN WITH GOOGLE & AUTH BACKENDS
 # -------------------------------
 AUTHENTICATION_BACKENDS = (
+    'users.auth_backends.EmailOrUsernameModelBackend',
     'social_core.backends.google.GoogleOAuth2',
     'django.contrib.auth.backends.ModelBackend',
 )
