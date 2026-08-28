@@ -10924,15 +10924,19 @@ def get_guidy_badge_count(user):
 
     # 3. Pending guidance requests for approved alumni
     try:
-        alumni_ach = StudentAchievement.objects.get(user=user, status='approved')
-        pending_reqs = GuidanceRequest.objects.filter(
-            alumni=alumni_ach, status='pending'
-        ).count()
-        total_badge_count += pending_reqs
-    except StudentAchievement.DoesNotExist:
+        alumni_ach = StudentAchievement.objects.filter(user=user, status='approved').first()
+        if alumni_ach:
+            pending_reqs = GuidanceRequest.objects.filter(
+                alumni=alumni_ach, status='pending'
+            ).count()
+            total_badge_count += pending_reqs
+    except Exception:
         pass
 
-    cache.set(cache_key, total_badge_count, 5)  # Cache for 5 seconds
+    try:
+        cache.set(cache_key, total_badge_count, 5)  # Cache for 5 seconds
+    except Exception:
+        pass
     return total_badge_count
 
 

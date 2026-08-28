@@ -170,9 +170,10 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
+WHITENOISE_MANIFEST_STRICT = False
 
 # -------------------------------
 # MEDIA FILES (IMPORTANT FOR COMPLAINT IMAGES)
@@ -270,8 +271,31 @@ SOCIAL_AUTH_PIPELINE = (
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
     'root': {'handlers': ['console'], 'level': 'INFO'},
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'django.security': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
 }
 
 YOUTUBE_API_KEY = config('YOUTUBE_API_KEY', default='').strip().strip("'").strip('"')
