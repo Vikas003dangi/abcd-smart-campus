@@ -11,7 +11,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
   <style>
     *, *::before, *::after {
@@ -98,12 +97,12 @@
     /* Glassmorphic Card */
     .login-card {
       width: 100%;
-      background: rgba(13, 20, 36, 0.85);
+      background: rgba(13, 20, 36, 0.88);
       backdrop-filter: blur(28px);
       -webkit-backdrop-filter: blur(28px);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 24px;
-      padding: 38px 32px;
+      padding: 36px 32px;
       box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 45px rgba(56, 189, 248, 0.1);
       position: relative;
       overflow: hidden;
@@ -125,36 +124,25 @@
       background: linear-gradient(90deg, #38bdf8, #818cf8, #f59e0b);
     }
 
-    /* Header & Branding */
+    /* Header & Branding - Free-standing Logo */
     .login-header {
       text-align: center;
-      margin-bottom: 26px;
+      margin-bottom: 24px;
     }
 
-    .login-logo-wrap {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 76px;
-      height: 76px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 20px;
-      padding: 8px;
-      margin-bottom: 14px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.2);
+    .admin-standalone-logo {
+      display: block;
+      margin: 0 auto 14px auto;
+      height: 52px;
+      width: auto;
+      max-width: 200px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 14px rgba(56, 189, 248, 0.3));
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .login-logo-wrap:hover {
-      transform: scale(1.06) rotate(2deg);
-    }
-
-    .login-logo-wrap img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
+    .admin-standalone-logo:hover {
+      transform: scale(1.06);
     }
 
     .login-title {
@@ -183,6 +171,10 @@
       margin-bottom: 6px;
     }
 
+    .login-badge svg {
+      color: #fbbf24;
+    }
+
     .login-subtitle {
       font-size: 0.84rem;
       color: #94a3b8;
@@ -207,7 +199,7 @@
 
     /* Form Fields */
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
 
     .form-group label {
@@ -222,7 +214,11 @@
       letter-spacing: 0.02em;
     }
 
-    /* Isolated Icon + Input Flex Group (NO OVERLAPPING POSSIBLE) */
+    .form-group label svg {
+      color: #38bdf8;
+    }
+
+    /* Isolated Icon + Input Flex Group */
     .input-box-group {
       display: flex;
       align-items: center;
@@ -244,10 +240,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding-left: 15px;
+      padding-left: 14px;
       padding-right: 10px;
       color: #64748b;
-      font-size: 1.25rem;
       flex-shrink: 0;
       transition: color 0.25s ease;
     }
@@ -263,9 +258,9 @@
       background: transparent !important;
       border: none !important;
       outline: none !important;
-      padding: 14px 14px 14px 0 !important;
+      padding: 13px 14px 13px 0 !important;
       color: #ffffff !important;
-      font-size: 16px !important; /* Prevents iOS auto-zoom */
+      font-size: 16px !important;
       font-family: inherit;
     }
 
@@ -274,7 +269,7 @@
       font-size: 0.88rem;
     }
 
-    /* Dark Mode Autofill Overrides (prevents white boxes in Chrome/Edge) */
+    /* Dark Mode Autofill Overrides */
     .input-box-group input:-webkit-autofill,
     .input-box-group input:-webkit-autofill:hover, 
     .input-box-group input:-webkit-autofill:focus, 
@@ -292,7 +287,6 @@
       padding-right: 14px;
       padding-left: 8px;
       cursor: pointer;
-      font-size: 1.2rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -320,7 +314,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 8px;
     }
 
     .submit-btn:hover {
@@ -335,8 +330,8 @@
 
     /* Navigation links inside card */
     .card-footer-links {
-      margin-top: 22px;
-      padding-top: 18px;
+      margin-top: 20px;
+      padding-top: 16px;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       align-items: center;
@@ -361,7 +356,7 @@
     /* Single footer note */
     .login-footer-note {
       text-align: center;
-      margin-top: 24px;
+      margin-top: 22px;
       font-size: 0.82rem;
       color: #64748b;
       line-height: 1.5;
@@ -384,14 +379,13 @@
       }
 
       .login-card {
-        padding: 28px 20px;
+        padding: 26px 18px;
         border-radius: 20px;
       }
 
-      .login-logo-wrap {
-        width: 68px;
-        height: 68px;
-        border-radius: 16px;
+      .admin-standalone-logo {
+        height: 44px;
+        margin-bottom: 10px;
       }
 
       .login-title {
@@ -416,19 +410,20 @@
 
     @media (max-height: 700px) {
       body {
-        padding: 16px 12px;
+        padding: 14px 12px;
       }
 
       .login-header {
-        margin-bottom: 18px;
+        margin-bottom: 16px;
       }
 
-      .login-logo-wrap {
+      .admin-standalone-logo {
+        height: 42px;
         margin-bottom: 8px;
       }
 
       .form-group {
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
     }
   </style>
@@ -440,13 +435,13 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <div class="login-logo-wrap">
-          <img src="{% static 'data/light-logo.png' %}" alt="ABCD Smart Campus Logo">
-        </div>
+        <!-- Standalone Clean Logo Without Border Wrap -->
+        <img src="{% static 'data/light-logo.png' %}" alt="ABCD Smart Campus Logo" class="admin-standalone-logo">
         <h1 class="login-title">ABCD Smart Campus</h1>
         <div>
           <span class="login-badge">
-            <i class='bx bxs-crown'></i> Master Admin Architecture
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path></svg>
+            Master Admin Architecture
           </span>
         </div>
         <p class="login-subtitle">System & Database Control Center</p>
@@ -454,7 +449,7 @@
 
       {% if form.errors and not form.non_field_errors %}
       <div class="error-box">
-        <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
         <span>{% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}</span>
       </div>
       {% endif %}
@@ -462,7 +457,7 @@
       {% if form.non_field_errors %}
       {% for error in form.non_field_errors %}
       <div class="error-box">
-        <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
         <span>{{ error }}</span>
       </div>
       {% endfor %}
@@ -472,24 +467,31 @@
         {% csrf_token %}
         
         <div class="form-group">
-          <label for="id_username"><i class='bx bx-user'></i> Master Username / Email:</label>
+          <label for="id_username">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            Master Username / Email:
+          </label>
           <div class="input-box-group">
             <div class="input-icon-prefix">
-              <i class='bx bx-user-circle'></i>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
             <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" placeholder="Enter master username or email">
           </div>
         </div>
 
         <div class="form-group">
-          <label for="id_password"><i class='bx bx-lock-alt'></i> Secure Password:</label>
+          <label for="id_password">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Secure Password:
+          </label>
           <div class="input-box-group">
             <div class="input-icon-prefix">
-              <i class='bx bx-key'></i>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9l-2-2a5 5 0 1 0-4 4l9.5 9.5a2.12 2.12 0 0 0 3 0l5.5-5.5a2.12 2.12 0 0 0 0-3L21 2z"></path></svg>
             </div>
             <input type="password" name="password" autocomplete="current-password" required id="id_password" placeholder="Enter master password">
             <button type="button" class="toggle-password-btn" id="togglePasswordBtn" title="Show/Hide Password" aria-label="Toggle password visibility">
-              <i class='bx bx-show' id="togglePasswordIcon"></i>
+              <svg id="eyeIconShow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <svg id="eyeIconHide" style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
             </button>
           </div>
         </div>
@@ -497,12 +499,18 @@
         <input type="hidden" name="next" value="{{ next }}">
 
         <button type="submit" class="submit-btn">
-          🚀 Authenticate & Enter Master Admin
+          <span>🚀</span> Authenticate & Enter Master Admin
         </button>
 
         <div class="card-footer-links">
-          <a href="/" target="_blank"><i class='bx bx-arrow-back'></i> Public Website</a>
-          <a href="{% url 'users:teacher_dashboard' %}"><i class='bx bxs-dashboard'></i> Teacher Dashboard</a>
+          <a href="/" target="_blank">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Public Website
+          </a>
+          <a href="{% url 'users:teacher_dashboard' %}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+            Teacher Dashboard
+          </a>
         </div>
       </form>
     </div>
@@ -514,21 +522,22 @@
   </div>
 
   <script>
-    // Password visibility toggle handler
+    // Pure SVG password visibility toggle handler
     const toggleBtn = document.getElementById('togglePasswordBtn');
     const passwordInput = document.getElementById('id_password');
-    const toggleIcon = document.getElementById('togglePasswordIcon');
+    const eyeShow = document.getElementById('eyeIconShow');
+    const eyeHide = document.getElementById('eyeIconHide');
 
-    if (toggleBtn && passwordInput && toggleIcon) {
+    if (toggleBtn && passwordInput && eyeShow && eyeHide) {
       toggleBtn.addEventListener('click', function() {
         if (passwordInput.type === 'password') {
           passwordInput.type = 'text';
-          toggleIcon.classList.remove('bx-show');
-          toggleIcon.classList.add('bx-hide');
+          eyeShow.style.display = 'none';
+          eyeHide.style.display = 'block';
         } else {
           passwordInput.type = 'password';
-          toggleIcon.classList.remove('bx-hide');
-          toggleIcon.classList.add('bx-show');
+          eyeShow.style.display = 'block';
+          eyeHide.style.display = 'none';
         }
       });
     }
