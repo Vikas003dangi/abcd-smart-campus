@@ -1,0 +1,66 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div class="admin-dashboard-hero">
+  <div class="hero-left">
+    <div class="hero-tag">
+      <span class="pulse-dot"></span> 🟢 PRODUCTION DATABASE CONNECTED
+    </div>
+    <h2 class="hero-title">Master Control Center</h2>
+    <p class="hero-subtitle">Direct architectural access to users, admissions, smart library seats, billing, and system models.</p>
+  </div>
+  <div class="hero-actions">
+    <a href="{% url 'users:teacher_dashboard' %}" class="hero-btn hero-btn-primary">
+      <i class='bx bxs-dashboard'></i> Open Teacher Dashboard
+    </a>
+    <a href="/" target="_blank" class="hero-btn hero-btn-secondary">
+      <i class='bx bx-globe'></i> View Live Site
+    </a>
+  </div>
+</div>
+
+<div class="admin-quick-kpi-grid">
+  <div class="kpi-card">
+    <div class="kpi-icon-wrap" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+      <i class='bx bxs-user-detail'></i>
+    </div>
+    <div class="kpi-data">
+      <span class="kpi-title">User Accounts & Profiles</span>
+      <span class="kpi-value">Students & Staff</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+      <i class='bx bxs-buildings'></i>
+    </div>
+    <div class="kpi-data">
+      <span class="kpi-title">Smart Library System</span>
+      <span class="kpi-value">106 Active Seats</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+      <i class='bx bxs-book-bookmark'></i>
+    </div>
+    <div class="kpi-data">
+      <span class="kpi-title">Courses & Materials</span>
+      <span class="kpi-value">Academy Hub</span>
+    </div>
+  </div>
+
+  <div class="kpi-card">
+    <div class="kpi-icon-wrap" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+      <i class='bx bxs-chat'></i>
+    </div>
+    <div class="kpi-data">
+      <span class="kpi-title">Guidy Support Hub</span>
+      <span class="kpi-value">Direct & Group Chat</span>
+    </div>
+  </div>
+</div>
+
+{{ block.super }}
+{% endblock %}
