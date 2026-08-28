@@ -8,8 +8,8 @@
 /* Default & Dark Mode Variables */
 :root, :root[data-theme="dark"] {
   --admin-bg: #060b14;
-  --admin-card-bg: rgba(13, 20, 36, 0.92);
-  --admin-card-border: rgba(255, 255, 255, 0.09);
+  --admin-card-bg: rgba(13, 20, 36, 0.94);
+  --admin-card-border: rgba(255, 255, 255, 0.10);
   --admin-header-bg: linear-gradient(135deg, #050811 0%, #0d1527 50%, #15223c 100%);
   --admin-header-border: rgba(56, 189, 248, 0.25);
   --admin-accent: #38bdf8;
@@ -24,8 +24,8 @@
   --admin-input-bg: rgba(8, 14, 26, 0.95);
   --admin-input-border: rgba(255, 255, 255, 0.15);
   --admin-module-caption-bg: linear-gradient(90deg, #111a2e, #0c1424);
-  --admin-table-hover: rgba(56, 189, 248, 0.05);
-  --admin-table-border: rgba(255, 255, 255, 0.05);
+  --admin-table-hover: rgba(56, 189, 248, 0.06);
+  --admin-table-border: rgba(255, 255, 255, 0.06);
   --admin-breadcrumbs-bg: rgba(13, 20, 36, 0.95);
   --admin-shadow: rgba(0, 0, 0, 0.5);
   --admin-hero-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
@@ -67,6 +67,7 @@ html {
   font-size: 16px;
   overflow-x: hidden;
   width: 100%;
+  max-width: 100%;
 }
 
 *, *:before, *:after {
@@ -81,9 +82,10 @@ body {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
-  max-width: 100vw !important;
+  max-width: 100% !important;
   min-height: 100vh !important;
   overflow-x: hidden !important;
+  position: relative !important;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
@@ -100,10 +102,11 @@ body:not(.login)::before {
   z-index: 0;
 }
 
-/* Layout Containers */
+/* Layout Containers with ZERO flex blowout */
 #container {
   width: 100% !important;
-  max-width: 100vw !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   background: transparent !important;
@@ -111,18 +114,21 @@ body:not(.login)::before {
   flex-direction: column !important;
   min-height: 100vh !important;
   overflow-x: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .main {
   width: 100% !important;
   max-width: 100% !important;
+  min-width: 0 !important;
   padding: 0 !important;
   margin: 0 !important;
   flex: 1 0 auto !important;
+  box-sizing: border-box !important;
 }
 
 /* ==========================================================================
-   HEADER & MASTER BRANDING BAR (ALL RESOLUTIONS)
+   HEADER & MASTER BRANDING BAR (CLEAN, NO BACK BUTTON IN HEADER)
    ========================================================================== */
 #header {
   background: var(--admin-header-bg) !important;
@@ -137,7 +143,7 @@ body:not(.login)::before {
   z-index: 1000 !important;
   backdrop-filter: blur(20px);
   width: 100% !important;
-  max-width: 100vw !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
   transition: background 0.3s ease;
 }
@@ -152,33 +158,7 @@ body:not(.login)::before {
 .admin-brand-header {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
   min-width: 0 !important;
-}
-
-/* Universal Back Button */
-.admin-global-back-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--admin-card-bg);
-  border: 1px solid var(--admin-card-border);
-  color: var(--admin-text-main);
-  padding: 6px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 700;
-  font-family: inherit;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.admin-global-back-btn:hover {
-  background: var(--admin-accent);
-  border-color: var(--admin-accent);
-  color: #ffffff;
-  transform: translateX(-2px);
 }
 
 .admin-brand-link {
@@ -510,7 +490,7 @@ body:not(.login)::before {
 }
 
 /* ==========================================================================
-   BREADCRUMBS & NAVIGATION TRAIL
+   BREADCRUMBS & TOP-OF-CONTENT BACK BUTTON
    ========================================================================== */
 div.breadcrumbs {
   background: var(--admin-breadcrumbs-bg) !important;
@@ -521,10 +501,10 @@ div.breadcrumbs {
   backdrop-filter: blur(12px);
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
   flex-wrap: wrap !important;
   width: 100% !important;
-  max-width: 100vw !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
@@ -540,18 +520,44 @@ div.breadcrumbs a:hover {
   text-decoration: underline !important;
 }
 
+/* Dedicated Back Button Above Content Display */
+.admin-content-back-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  color: var(--admin-text-main) !important;
+  font-weight: 800 !important;
+  font-size: 0.82rem !important;
+  padding: 5px 12px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 6px var(--admin-shadow) !important;
+  margin-right: 4px !important;
+}
+
+.admin-content-back-btn:hover {
+  background: var(--admin-accent) !important;
+  border-color: var(--admin-accent) !important;
+  color: #ffffff !important;
+  transform: translateX(-2px) !important;
+}
+
 /* ==========================================================================
    MAIN DASHBOARD GRID LAYOUT (FULL LAPTOP / DESKTOP SCALING)
    ========================================================================== */
 #content {
   padding: 24px 32px !important;
   width: 100% !important;
-  max-width: 100vw !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   margin: 0 auto !important;
   position: relative;
   z-index: 1;
   box-sizing: border-box !important;
-  overflow-x: hidden !important;
 }
 
 #content h1 {
@@ -582,7 +588,7 @@ div.breadcrumbs a:hover {
 
 .dashboard #content-main {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
   gap: 24px !important;
   align-items: start !important;
   width: 100% !important;
@@ -678,6 +684,7 @@ div.breadcrumbs a:hover {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .hero-btn {
@@ -932,7 +939,7 @@ div.breadcrumbs a:hover {
 
 /* ==========================================================================
    MODULES & TABLES (DASHBOARD & LIST VIEWS)
-   ========================================================================= */
+   ========================================================================== */
 .module {
   background: var(--admin-card-bg) !important;
   border: 1px solid var(--admin-card-border) !important;
@@ -1011,43 +1018,48 @@ div.breadcrumbs a:hover {
 }
 
 /* ==========================================================================
-   CHANGELIST VIEWS & FILTERS SIDEBAR (320px RESPONSIVE OVERFLOW SHIELD)
+   CHANGELIST VIEWS & FILTERS (ZERO HORIZONTAL BLOWOUT ARCHITECTURE)
    ========================================================================== */
 #changelist {
   display: flex !important;
-  flex-direction: row !important;
-  gap: 24px !important;
-  align-items: flex-start !important;
+  flex-direction: column !important;
   width: 100% !important;
   max-width: 100% !important;
+  min-width: 0 !important;
   box-sizing: border-box !important;
+  gap: 20px !important;
 }
 
 #changelist #changelist-form {
-  flex: 1 1 0% !important;
-  min-width: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
-/* Table Horizontal Overflow Shield */
+/* Results Table Scroll Container */
 .results, #changelist .results {
   width: 100% !important;
   max-width: 100% !important;
+  min-width: 0 !important;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  border-radius: var(--admin-border-radius);
-  margin-bottom: 20px;
+  box-sizing: border-box !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  background: var(--admin-card-bg) !important;
+  box-shadow: 0 10px 30px var(--admin-shadow) !important;
+  margin-bottom: 20px !important;
 }
 
 #result_list {
-  background: var(--admin-card-bg) !important;
-  border: 1px solid var(--admin-card-border) !important;
-  border-radius: var(--admin-border-radius) !important;
-  overflow: hidden !important;
-  box-shadow: 0 10px 30px var(--admin-shadow) !important;
   width: 100% !important;
-  min-width: 600px !important; /* Forces clean horizontal scroll on small screens instead of crushing content */
+  max-width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 #result_list thead th {
@@ -1059,6 +1071,7 @@ div.breadcrumbs a:hover {
   letter-spacing: 0.06em !important;
   padding: 12px 16px !important;
   border-bottom: 1px solid var(--admin-card-border) !important;
+  white-space: nowrap !important;
 }
 
 #result_list tbody td, #result_list tbody th {
@@ -1074,11 +1087,11 @@ div.breadcrumbs a:hover {
 
 /* Search Bar Wrapper */
 #changelist-search {
-  background: var(--admin-card-bg);
-  border: 1px solid var(--admin-card-border);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 16px !important;
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
@@ -1089,11 +1102,24 @@ div.breadcrumbs a:hover {
   flex-wrap: wrap !important;
   align-items: center !important;
   gap: 10px !important;
+  width: 100% !important;
 }
 
 #changelist-search input[type="text"] {
   flex: 1 1 200px !important;
-  min-width: 160px !important;
+  min-width: 140px !important;
+  width: auto !important;
+}
+
+#changelist-search input[type="submit"] {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
 }
 
 /* Action Bar & Paginator */
@@ -1102,22 +1128,31 @@ div.breadcrumbs a:hover {
   border: 1px solid var(--admin-card-border) !important;
   border-radius: 12px !important;
   padding: 12px 16px !important;
-  margin-bottom: 18px !important;
-  color: var(--admin-text-main) !important;
+  margin-bottom: 16px !important;
   display: flex !important;
   flex-wrap: wrap !important;
   align-items: center !important;
   gap: 10px !important;
   width: 100% !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
-.actions label {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  font-size: 0.85rem !important;
+.actions select {
+  flex: 1 1 180px !important;
+  min-width: 140px !important;
+  max-width: 100% !important;
+}
+
+.actions button.button {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
   font-weight: 700 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
 }
 
 .paginator {
@@ -1125,7 +1160,7 @@ div.breadcrumbs a:hover {
   border: 1px solid var(--admin-card-border) !important;
   border-radius: 12px !important;
   padding: 12px 18px !important;
-  margin-top: 18px !important;
+  margin-top: 16px !important;
   color: var(--admin-text-muted) !important;
   font-size: 0.85rem !important;
   width: 100% !important;
@@ -1140,16 +1175,14 @@ div.breadcrumbs a:hover {
 
 /* Changelist Filters */
 #changelist #changelist-filter {
-  width: 260px !important;
-  flex-shrink: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
   background: var(--admin-filter-bg) !important;
   border: 1px solid var(--admin-card-border) !important;
   border-radius: var(--admin-border-radius) !important;
   box-shadow: 0 10px 30px var(--admin-shadow) !important;
-  padding: 16px !important;
+  padding: 18px !important;
   margin: 0 !important;
-  position: sticky !important;
-  top: 80px !important;
   box-sizing: border-box !important;
 }
 
@@ -1224,6 +1257,21 @@ div.breadcrumbs a:hover {
   align-items: center !important;
   gap: 6px !important;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4) !important;
+}
+
+/* Desktop Grid for Changelist (> 1024px) */
+@media (min-width: 1025px) {
+  #changelist {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 260px !important;
+    gap: 24px !important;
+    align-items: start !important;
+  }
+
+  #changelist #changelist-filter {
+    position: sticky !important;
+    top: 80px !important;
+  }
 }
 
 /* ==========================================================================
@@ -1401,16 +1449,6 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     position: static !important;
     margin-top: 20px !important;
   }
-
-  #changelist {
-    flex-direction: column !important;
-  }
-
-  #changelist #changelist-filter {
-    width: 100% !important;
-    position: static !important;
-    margin-top: 20px !important;
-  }
 }
 
 /* Mobile & Small Screens (< 700px) */
@@ -1522,14 +1560,6 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 /* Extra Small Phones (Down to 320px) */
 @media (max-width: 380px) {
   #header {
-    padding: 6px 8px !important;
-  }
-
-  .admin-global-back-btn .back-text {
-    display: none !important;
-  }
-
-  .admin-global-back-btn {
     padding: 6px 8px !important;
   }
 

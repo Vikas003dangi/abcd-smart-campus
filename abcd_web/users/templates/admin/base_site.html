@@ -23,11 +23,6 @@
 
 {% block branding %}
 <div class="admin-brand-header">
-  <button type="button" class="admin-global-back-btn" id="globalBackBtn" onclick="smartAdminBack()" title="Back to Previous Page">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-    <span class="back-text">Back</span>
-  </button>
-
   <a href="{% url 'admin:index' %}" class="admin-brand-link">
     <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="admin-logo-img">
     <div class="admin-brand-titles">
@@ -145,11 +140,21 @@
   }
 
   (function() {
-    // Hide back button only if we are directly on the main admin index
+    // Automatically inject the prominent Back button inside the Breadcrumbs / Content Bar on all sub-pages!
     const isMainIndex = window.location.pathname === "{% url 'admin:index' %}" || window.location.pathname === "/admin/";
-    const backBtn = document.getElementById('globalBackBtn');
-    if (backBtn && isMainIndex) {
-      backBtn.style.display = 'none';
+    
+    if (!isMainIndex) {
+      const breadcrumbEl = document.querySelector('.breadcrumbs');
+      if (breadcrumbEl && !document.getElementById('contentBackBtn')) {
+        const backBtn = document.createElement('button');
+        backBtn.type = 'button';
+        backBtn.id = 'contentBackBtn';
+        backBtn.className = 'admin-content-back-btn';
+        backBtn.title = 'Go back to previous page';
+        backBtn.onclick = smartAdminBack;
+        backBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg><span>Back</span>';
+        breadcrumbEl.insertBefore(backBtn, breadcrumbEl.firstChild);
+      }
     }
 
     // Theme Switcher Sync for all instances (Header & Drawer)
