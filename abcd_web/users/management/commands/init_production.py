@@ -9,8 +9,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # 1. Superuser 1: Vaku (Vikas Dangi)
-        vaku_user = User.objects.filter(username__iexact='Vaku').first() or User.objects.filter(email__iexact='vd19055@gmail.com').first()
-        vaku_pass = config('VAKU_PASSWORD', default='Vaku@2026Admin!')
+        vaku_pass = config('VAKU_PASSWORD', default='VIK003@dan')
+        vaku_user = User.objects.filter(email__iexact='vd19055@gmail.com').first()
+        if not vaku_user:
+            vaku_user = User.objects.filter(username__iexact='Vaku').first()
+
         if not vaku_user:
             vaku_user = User.objects.create_superuser(
                 username='Vaku',
@@ -21,16 +24,22 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS('Created Superuser: Vaku (vd19055@gmail.com)'))
         else:
+            vaku_user.username = 'Vaku'
+            vaku_user.email = 'vd19055@gmail.com'
             vaku_user.is_superuser = True
             vaku_user.is_staff = True
             vaku_user.first_name = 'Vikas'
             vaku_user.last_name = 'Dangi'
+            vaku_user.set_password(vaku_pass)
             vaku_user.save()
-            self.stdout.write(self.style.SUCCESS('Updated Superuser: Vaku'))
+            self.stdout.write(self.style.SUCCESS('Updated Superuser: Vaku (password synced)'))
 
         # 2. Superuser 2: Sandy (ABCD Coaching & Library)
-        sandy_user = User.objects.filter(username__iexact='Sandy').first() or User.objects.filter(email__iexact='abcd2013baq@gmail.com').first()
-        sandy_pass = config('SANDY_PASSWORD', default='Sandy@2026Admin!')
+        sandy_pass = config('SANDY_PASSWORD', default='Sandeepanandajimaharaj')
+        sandy_user = User.objects.filter(email__iexact='abcd2013baq@gmail.com').first()
+        if not sandy_user:
+            sandy_user = User.objects.filter(username__iexact='Sandy').first()
+
         if not sandy_user:
             sandy_user = User.objects.create_superuser(
                 username='Sandy',
@@ -41,14 +50,27 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS('Created Superuser: Sandy (abcd2013baq@gmail.com)'))
         else:
+            sandy_user.username = 'Sandy'
+            sandy_user.email = 'abcd2013baq@gmail.com'
             sandy_user.is_superuser = True
             sandy_user.is_staff = True
             sandy_user.first_name = 'ABCD'
             sandy_user.last_name = 'Coaching & Library'
+            sandy_user.set_password(sandy_pass)
             sandy_user.save()
-            self.stdout.write(self.style.SUCCESS('Updated Superuser: Sandy'))
+            self.stdout.write(self.style.SUCCESS('Updated Superuser: Sandy (password synced)'))
 
-        # 3. Initialize Seats (if none exist)
+        # 3. Cleanup: Remove any other accidental superusers/staff
+        legit_emails = ['vd19055@gmail.com', 'abcd2013baq@gmail.com']
+        rogue_staff = User.objects.filter(is_staff=True).exclude(email__in=legit_emails)
+        if rogue_staff.exists():
+            for u in rogue_staff:
+                u.is_staff = False
+                u.is_superuser = False
+                u.save()
+                self.stdout.write(self.style.WARNING(f'Removed accidental staff status from: {u.username} ({u.email})'))
+
+        # 4. Initialize Seats (if none exist)
         total_seats = Seat.objects.count()
         if total_seats == 0:
             ground_seats = [str(i) for i in range(1, 54)]
