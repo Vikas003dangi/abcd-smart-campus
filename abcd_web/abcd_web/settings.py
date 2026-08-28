@@ -38,6 +38,12 @@ CSRF_TRUSTED_ORIGINS = [
     ).split(',') if o.strip()
 ]
 
+# Tell Django to trust the X-Forwarded-Proto header from Render's HTTPS reverse proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+if not DEBUG:
+    SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+
 # -------------------------------
 # SITE / DOMAIN SETTINGS
 # -------------------------------
