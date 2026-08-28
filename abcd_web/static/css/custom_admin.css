@@ -29,6 +29,30 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Login Page Global Resets */
+body.login #nav-sidebar,
+body.login #toggle-nav-sidebar,
+body.login .sticky,
+body.login > h1,
+body.login #content > h1:first-child,
+body.login #content-title,
+body.login .content-title {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+body.login #container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100vh !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+
 /* Ambient Radial Glow on main pages */
 body:not(.login)::before {
   content: '';
