@@ -83,7 +83,7 @@
       100% { transform: translate(-30px, 30px) scale(1.08); }
     }
 
-    /* Outer Wrapper */
+    /* Outer Container */
     .login-container {
       width: 100%;
       max-width: 440px;
@@ -98,7 +98,7 @@
     /* Glassmorphic Card */
     .login-card {
       width: 100%;
-      background: rgba(13, 20, 36, 0.85);
+      background: rgba(13, 20, 36, 0.88);
       backdrop-filter: blur(28px);
       -webkit-backdrop-filter: blur(28px);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -222,48 +222,84 @@
       letter-spacing: 0.02em;
     }
 
-    .input-wrapper {
-      position: relative;
+    /* Isolated Icon + Input Flex Group (NO OVERLAPPING POSSIBLE) */
+    .input-box-group {
       display: flex;
       align-items: center;
       width: 100%;
+      background: rgba(8, 14, 26, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      transition: all 0.25s ease;
+      overflow: hidden;
     }
 
-    .input-wrapper i {
-      position: absolute;
-      left: 14px;
+    .input-box-group:focus-within {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.15);
+      background: #0b1324;
+    }
+
+    .input-icon-prefix {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-left: 15px;
+      padding-right: 10px;
       color: #64748b;
-      font-size: 1.2rem;
-      pointer-events: none;
+      font-size: 1.25rem;
+      flex-shrink: 0;
       transition: color 0.25s ease;
     }
 
-    .input-wrapper input {
-      width: 100%;
-      background: rgba(8, 14, 26, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 12px;
-      padding: 13px 14px 13px 44px;
-      color: #ffffff;
-      font-size: 16px; /* Prevents auto-zoom on mobile safari */
-      font-family: inherit;
-      box-sizing: border-box;
-      transition: all 0.25s ease;
-      outline: none;
+    .input-box-group:focus-within .input-icon-prefix {
+      color: #38bdf8;
     }
 
-    .input-wrapper input::placeholder {
-      color: #64748b;
+    .input-box-group input {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      padding: 14px 14px 14px 0 !important;
+      color: #ffffff !important;
+      font-size: 16px !important; /* Prevents iOS auto-zoom */
+      font-family: inherit;
+    }
+
+    .input-box-group input::placeholder {
+      color: #64748b !important;
       font-size: 0.88rem;
     }
 
-    .input-wrapper input:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.15);
-      background: #0d1527;
+    /* Dark Mode Autofill Overrides (prevents white boxes in Chrome/Edge) */
+    .input-box-group input:-webkit-autofill,
+    .input-box-group input:-webkit-autofill:hover, 
+    .input-box-group input:-webkit-autofill:focus, 
+    .input-box-group input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px #080e1a inset !important;
+      -webkit-text-fill-color: #ffffff !important;
+      caret-color: #ffffff !important;
+      transition: background-color 5000s ease-in-out 0s;
     }
 
-    .input-wrapper:focus-within i {
+    .toggle-password-btn {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      padding-right: 14px;
+      padding-left: 8px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+    }
+
+    .toggle-password-btn:hover {
       color: #38bdf8;
     }
 
@@ -289,7 +325,7 @@
 
     .submit-btn:hover {
       background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-      box-shadow: 0 10px 32px rgba(14, 165, 233, 0.65);
+      box-shadow: 0 10px 30px rgba(14, 165, 233, 0.65);
       transform: translateY(-2px);
     }
 
@@ -437,17 +473,24 @@
         
         <div class="form-group">
           <label for="id_username"><i class='bx bx-user'></i> Master Username / Email:</label>
-          <div class="input-wrapper">
-            <i class='bx bx-user-circle'></i>
+          <div class="input-box-group">
+            <div class="input-icon-prefix">
+              <i class='bx bx-user-circle'></i>
+            </div>
             <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" placeholder="Enter master username or email">
           </div>
         </div>
 
         <div class="form-group">
           <label for="id_password"><i class='bx bx-lock-alt'></i> Secure Password:</label>
-          <div class="input-wrapper">
-            <i class='bx bx-key'></i>
+          <div class="input-box-group">
+            <div class="input-icon-prefix">
+              <i class='bx bx-key'></i>
+            </div>
             <input type="password" name="password" autocomplete="current-password" required id="id_password" placeholder="Enter master password">
+            <button type="button" class="toggle-password-btn" id="togglePasswordBtn" title="Show/Hide Password" aria-label="Toggle password visibility">
+              <i class='bx bx-show' id="togglePasswordIcon"></i>
+            </button>
           </div>
         </div>
 
@@ -469,5 +512,26 @@
       <p style="margin-top: 3px;">Secure System Infrastructure & Operations</p>
     </div>
   </div>
+
+  <script>
+    // Password visibility toggle handler
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const passwordInput = document.getElementById('id_password');
+    const toggleIcon = document.getElementById('togglePasswordIcon');
+
+    if (toggleBtn && passwordInput && toggleIcon) {
+      toggleBtn.addEventListener('click', function() {
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          toggleIcon.classList.remove('bx-show');
+          toggleIcon.classList.add('bx-hide');
+        } else {
+          passwordInput.type = 'password';
+          toggleIcon.classList.remove('bx-hide');
+          toggleIcon.classList.add('bx-show');
+        }
+      });
+    }
+  </script>
 </body>
 </html>
