@@ -9,6 +9,10 @@ from .models import (
 )
 
 
+admin.site.site_header = "ABCD Smart Campus • Master Administration"
+admin.site.site_title = "ABCD Master Admin"
+admin.site.index_title = "Master Database Control & System Architecture"
+
 # -------------------------------------------------------------------
 # LEARNING REMINDER ADMIN
 # -------------------------------------------------------------------

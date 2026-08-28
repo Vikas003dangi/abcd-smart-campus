@@ -5869,6 +5869,15 @@
         </a>
       </li>
 
+      {% if request.user.is_authenticated and request.user.email == 'vd19055@gmail.com' %}
+      <li class="sidebar-admin-item" style="margin-top: 10px; margin-bottom: 6px;">
+        <a href="/admin/" class="sidebar-admin-btn" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9));color:#38bdf8;border:1px solid rgba(56,189,248,0.4);border-radius:12px;font-weight:700;font-size:0.9rem;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.25);transition:all 0.2s ease;">
+          <i class='bx bx-cog' style="font-size:20px;color:#38bdf8;"></i>
+          <span>⚙️ Master Admin Panel</span>
+        </a>
+      </li>
+      {% endif %}
+
       <li class="sidebar-logout-item">
         <a href="{% url 'users:logout' %}" class="sidebar-logout-btn"><i class='bx bx-log-out'></i> Logout</a>
       </li>
@@ -7870,6 +7879,13 @@
       <div class="footer-section">
         <h4>Admin Tools</h4>
         <ul>
+          {% if request.user.is_authenticated and request.user.email == 'vd19055@gmail.com' %}
+          <li style="margin-bottom: 8px;">
+            <a href="/admin/" style="color: #38bdf8; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <i class='bx bx-cog' style="color: #38bdf8; font-size: 1.1rem;"></i>⚙️ Master Admin Panel
+            </a>
+          </li>
+          {% endif %}
           <li><a href="{% url 'users:teacher_seat_status' %}"><i class='bx bx-chevron-right'></i>Manage Library Seats</a></li>
           <li><a href="{% url 'users:teacher_courses' %}"><i class='bx bx-chevron-right'></i>Manage Courses</a></li>
           <li><a href="{% url 'users:student_progress' %}"><i class='bx bx-chevron-right'></i>Student Progress</a></li>

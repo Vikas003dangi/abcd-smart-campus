@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | ABCD Smart Campus Master Admin{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
+<link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+  <a href="{% url 'admin:index' %}">
+    <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="admin-logo-img">
+    <span>ABCD Smart Campus</span>
+    <span class="admin-brand-badge">⚙️ Master Admin</span>
+  </a>
+</h1>
+{% endblock %}
+
+{% block userlinks %}
+  <a href="{% url 'users:teacher_dashboard' %}" class="admin-quick-dashboard-btn" title="Open Teacher Dashboard">
+    <i class='bx bxs-dashboard'></i> 🎓 Teacher Dashboard
+  </a>
+  <a href="/" target="_blank" title="View Public Website">
+    <i class='bx bx-globe'></i> 🌐 Live Site
+  </a>
+  {{ block.super }}
+{% endblock %}
+
+{% block footer %}
+<div id="footer">
+  <p>&copy; 2026 <strong>ABCD Coaching & Library</strong> • Master Database Control Architecture</p>
+  <p style="margin-top: 4px; opacity: 0.7;">Developed & Maintained by Vikas Dangi (<a href="mailto:vd19055@gmail.com" style="color: #38bdf8; text-decoration: none;">vd19055@gmail.com</a>)</p>
+</div>
+{% endblock %}
