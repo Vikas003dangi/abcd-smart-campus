@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% load static %}
+{% load static i18n %}
 
 {% block title %}{{ title }} | ABCD Smart Campus Master Admin{% endblock %}
 
@@ -8,28 +8,46 @@
 <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
 <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
 <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
 {% endblock %}
 
 {% block branding %}
-<h1 id="site-name">
-  <a href="{% url 'admin:index' %}">
+<div class="admin-brand-header">
+  <a href="{% url 'admin:index' %}" class="admin-brand-link">
     <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="admin-logo-img">
-    <span>ABCD Smart Campus</span>
+    <span class="admin-brand-title">ABCD Smart Campus</span>
     <span class="admin-brand-badge">⚙️ Master Admin</span>
   </a>
-</h1>
+</div>
 {% endblock %}
 
 {% block userlinks %}
-  <a href="{% url 'users:teacher_dashboard' %}" class="admin-quick-dashboard-btn" title="Open Teacher Dashboard">
-    <i class='bx bxs-dashboard'></i> 🎓 Teacher Dashboard
-  </a>
-  <a href="/" target="_blank" title="View Public Website">
-    <i class='bx bx-globe'></i> 🌐 Live Site
-  </a>
-  {{ block.super }}
+  {% if user.is_authenticated %}
+    <span class="admin-user-tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <strong>{{ user.first_name|default:user.username|upper }}</strong>
+    </span>
+    <a href="{% url 'users:teacher_dashboard' %}" class="admin-btn-dashboard" title="Open Teacher Dashboard">
+      🎓 Teacher Dashboard
+    </a>
+    <a href="/" target="_blank" class="admin-btn-site" title="View Public Live Website">
+      🌐 Live Site
+    </a>
+    {% if user.has_usable_password %}
+    <a href="{% url 'admin:password_change' %}" class="admin-btn-subtle" title="Change Password">
+      🔑 Change Password
+    </a>
+    {% endif %}
+    <form id="logout-form" method="post" action="{% url 'admin:logout' %}" style="display:inline-flex;margin:0;padding:0;">
+      {% csrf_token %}
+      <button type="submit" class="admin-btn-logout" title="Log out">
+        🚪 Log Out
+      </button>
+    </form>
+  {% endif %}
 {% endblock %}
 
 {% block footer %}
