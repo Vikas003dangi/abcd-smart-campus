@@ -18,10 +18,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
 from django.views.generic import RedirectView
 from users.views import robots_txt_view, sitemap_xml_view
 
+def ping_view(request):
+    """Ultra-lightweight keep-alive endpoint for cron-job.org and UptimeRobot."""
+    return JsonResponse({"status": "ok", "service": "ABCD Smart Campus", "uptime": "active"})
+
 urlpatterns = [
+    # 24/7 Keep-Alive & Health Check Endpoints (Lightweight ~30 bytes)
+    path('ping/', ping_view, name='ping'),
+    path('healthz/', ping_view, name='healthz'),
+
     path('admin/', admin.site.urls),
 
     # Browser default favicon & SEO
