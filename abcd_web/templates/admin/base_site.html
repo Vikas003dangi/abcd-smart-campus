@@ -12,6 +12,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
+<script>
+  (function() {
+    const savedTheme = localStorage.getItem('admin_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  })();
+</script>
 {% endblock %}
 
 {% block branding %}
@@ -30,6 +36,13 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
       <strong>{{ user.first_name|default:user.username|upper }}</strong>
     </span>
+
+    <!-- Master Theme Switcher Button -->
+    <button type="button" class="admin-btn-theme" id="masterThemeToggleBtn" title="Toggle Dark / Light Mode">
+      <span id="masterThemeIcon">🌙</span>
+      <span id="masterThemeLabel">Dark</span>
+    </button>
+
     <a href="{% url 'users:teacher_dashboard' %}" class="admin-btn-dashboard" title="Open Teacher Dashboard">
       🎓 Teacher Dashboard
     </a>
@@ -55,4 +68,30 @@
   <p>&copy; 2026 <strong>ABCD Coaching & Library</strong> • Master Database Control Architecture</p>
   <p style="margin-top: 4px; opacity: 0.7;">Secure System Infrastructure & Operations</p>
 </div>
+
+<script>
+  (function() {
+    const themeBtn = document.getElementById('masterThemeToggleBtn');
+    const themeIcon = document.getElementById('masterThemeIcon');
+    const themeLabel = document.getElementById('masterThemeLabel');
+
+    function syncMasterThemeUI(theme) {
+      if (themeIcon) themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      if (themeLabel) themeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
+    }
+
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    syncMasterThemeUI(currentTheme);
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function() {
+        const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('admin_theme', next);
+        syncMasterThemeUI(next);
+      });
+    }
+  })();
+</script>
 {% endblock %}

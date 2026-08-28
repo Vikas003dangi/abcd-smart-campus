@@ -12,6 +12,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('admin_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
   <style>
     *, *::before, *::after {
       margin: 0;
@@ -28,7 +34,7 @@
       min-height: 100vh;
       min-height: 100dvh;
       width: 100%;
-      background-color: #060b14;
+      background-color: var(--admin-bg);
       background-image: 
         radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.14) 0px, transparent 50%),
         radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.14) 0px, transparent 50%),
@@ -38,9 +44,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #f8fafc;
+      color: var(--admin-text-main);
       overflow-x: hidden;
       padding: 24px 16px;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     /* Ambient background orbs */
@@ -94,19 +101,46 @@
       margin: auto 0;
     }
 
+    /* Top Right Theme Toggle Pill on Login Page */
+    .login-theme-pill {
+      position: absolute;
+      top: -48px;
+      right: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--admin-card-bg);
+      border: 1px solid var(--admin-card-border);
+      color: var(--admin-text-main);
+      padding: 5px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+      transition: all 0.2s ease;
+    }
+
+    .login-theme-pill:hover {
+      border-color: var(--admin-accent);
+      color: var(--admin-accent);
+      transform: translateY(-1px);
+    }
+
     /* Glassmorphic Card */
     .login-card {
       width: 100%;
-      background: rgba(13, 20, 36, 0.88);
+      background: var(--admin-card-bg);
       backdrop-filter: blur(28px);
       -webkit-backdrop-filter: blur(28px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--admin-card-border);
       border-radius: 24px;
       padding: 36px 32px;
-      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 45px rgba(56, 189, 248, 0.1);
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 45px rgba(56, 189, 248, 0.1);
       position: relative;
       overflow: hidden;
       animation: cardAppear 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
     }
 
     @keyframes cardAppear {
@@ -148,10 +182,10 @@
     .login-title {
       font-size: 1.55rem;
       font-weight: 800;
-      color: #ffffff;
+      color: var(--admin-text-main);
       letter-spacing: -0.02em;
       margin: 0 0 8px 0;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     }
 
     .login-badge {
@@ -177,7 +211,7 @@
 
     .login-subtitle {
       font-size: 0.84rem;
-      color: #94a3b8;
+      color: var(--admin-text-muted);
       margin: 0;
       line-height: 1.4;
     }
@@ -208,14 +242,14 @@
       gap: 6px;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #cbd5e1;
+      color: var(--admin-text-main);
       margin-bottom: 8px;
       text-align: left;
       letter-spacing: 0.02em;
     }
 
     .form-group label svg {
-      color: #38bdf8;
+      color: var(--admin-accent);
     }
 
     /* Isolated Icon + Input Flex Group */
@@ -223,17 +257,16 @@
       display: flex;
       align-items: center;
       width: 100%;
-      background: rgba(8, 14, 26, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: var(--admin-input-bg);
+      border: 1px solid var(--admin-input-border);
       border-radius: 14px;
       transition: all 0.25s ease;
       overflow: hidden;
     }
 
     .input-box-group:focus-within {
-      border-color: #38bdf8;
+      border-color: var(--admin-accent);
       box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.15);
-      background: #0b1324;
     }
 
     .input-icon-prefix {
@@ -242,13 +275,13 @@
       justify-content: center;
       padding-left: 14px;
       padding-right: 10px;
-      color: #64748b;
+      color: var(--admin-text-muted);
       flex-shrink: 0;
       transition: color 0.25s ease;
     }
 
     .input-box-group:focus-within .input-icon-prefix {
-      color: #38bdf8;
+      color: var(--admin-accent);
     }
 
     .input-box-group input {
@@ -259,31 +292,20 @@
       border: none !important;
       outline: none !important;
       padding: 13px 14px 13px 0 !important;
-      color: #ffffff !important;
+      color: var(--admin-text-main) !important;
       font-size: 16px !important;
       font-family: inherit;
     }
 
     .input-box-group input::placeholder {
-      color: #64748b !important;
+      color: var(--admin-text-muted) !important;
       font-size: 0.88rem;
-    }
-
-    /* Dark Mode Autofill Overrides */
-    .input-box-group input:-webkit-autofill,
-    .input-box-group input:-webkit-autofill:hover, 
-    .input-box-group input:-webkit-autofill:focus, 
-    .input-box-group input:-webkit-autofill:active {
-      -webkit-box-shadow: 0 0 0 1000px #080e1a inset !important;
-      -webkit-text-fill-color: #ffffff !important;
-      caret-color: #ffffff !important;
-      transition: background-color 5000s ease-in-out 0s;
     }
 
     .toggle-password-btn {
       background: transparent;
       border: none;
-      color: #64748b;
+      color: var(--admin-text-muted);
       padding-right: 14px;
       padding-left: 8px;
       cursor: pointer;
@@ -294,7 +316,7 @@
     }
 
     .toggle-password-btn:hover {
-      color: #38bdf8;
+      color: var(--admin-accent);
     }
 
     /* Submit Button */
@@ -332,7 +354,7 @@
     .card-footer-links {
       margin-top: 20px;
       padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--admin-card-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -340,7 +362,7 @@
     }
 
     .card-footer-links a {
-      color: #94a3b8;
+      color: var(--admin-text-muted);
       text-decoration: none;
       display: inline-flex;
       align-items: center;
@@ -349,7 +371,7 @@
     }
 
     .card-footer-links a:hover {
-      color: #38bdf8;
+      color: var(--admin-accent);
       transform: translateY(-1px);
     }
 
@@ -358,17 +380,15 @@
       text-align: center;
       margin-top: 22px;
       font-size: 0.82rem;
-      color: #64748b;
+      color: var(--admin-text-muted);
       line-height: 1.5;
     }
 
     .login-footer-note strong {
-      color: #94a3b8;
+      color: var(--admin-text-main);
     }
 
-    /* ==========================================================================
-       RESPONSIVE BREAKPOINTS (Mobile, Tab, Small screens)
-       ========================================================================== */
+    /* Responsive Breakpoints */
     @media (max-width: 480px) {
       body {
         padding: 16px 12px;
@@ -407,25 +427,6 @@
         font-size: 0.8rem;
       }
     }
-
-    @media (max-height: 700px) {
-      body {
-        padding: 14px 12px;
-      }
-
-      .login-header {
-        margin-bottom: 16px;
-      }
-
-      .admin-standalone-logo {
-        height: 42px;
-        margin-bottom: 8px;
-      }
-
-      .form-group {
-        margin-bottom: 12px;
-      }
-    }
   </style>
 </head>
 <body>
@@ -433,9 +434,14 @@
   <div class="ambient-orb-2"></div>
 
   <div class="login-container">
+    <!-- Theme Toggle Pill on Login -->
+    <button type="button" class="login-theme-pill" id="loginThemeToggleBtn" title="Switch Theme">
+      <span id="loginThemeIcon">🌙</span>
+      <span id="loginThemeLabel">Theme</span>
+    </button>
+
     <div class="login-card">
       <div class="login-header">
-        <!-- Standalone Clean Logo Without Border Wrap -->
         <img src="{% static 'data/light-logo.png' %}" alt="ABCD Smart Campus Logo" class="admin-standalone-logo">
         <h1 class="login-title">ABCD Smart Campus</h1>
         <div>
@@ -463,7 +469,7 @@
       {% endfor %}
       {% endif %}
 
-      <form action="{{ app_path }}" method="post" id="login-form">
+      <form action="{{ app_path }}" method="post" id="login-form" autocomplete="off">
         {% csrf_token %}
         
         <div class="form-group">
@@ -488,7 +494,7 @@
             <div class="input-icon-prefix">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5L11 9l-1.5-1.5L8 9l-2-2a5 5 0 1 0-4 4l9.5 9.5a2.12 2.12 0 0 0 3 0l5.5-5.5a2.12 2.12 0 0 0 0-3L21 2z"></path></svg>
             </div>
-            <input type="password" name="password" autocomplete="current-password" required id="id_password" placeholder="Enter master password">
+            <input type="password" name="password" autocomplete="new-password" required id="id_password" placeholder="Enter master password" value="">
             <button type="button" class="toggle-password-btn" id="togglePasswordBtn" title="Show/Hide Password" aria-label="Toggle password visibility">
               <svg id="eyeIconShow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
               <svg id="eyeIconHide" style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
@@ -522,6 +528,40 @@
   </div>
 
   <script>
+    // Force clear any cached/auto-filled password on initial render
+    function clearAutoPassword() {
+      const pwd = document.getElementById('id_password');
+      if (pwd && pwd.value === 'Vaku@2026Admin!') {
+        pwd.value = '';
+      }
+    }
+    window.addEventListener('DOMContentLoaded', clearAutoPassword);
+    setTimeout(clearAutoPassword, 150);
+    setTimeout(clearAutoPassword, 400);
+
+    // Theme toggle handling
+    const loginThemeBtn = document.getElementById('loginThemeToggleBtn');
+    const loginThemeIcon = document.getElementById('loginThemeIcon');
+    const loginThemeLabel = document.getElementById('loginThemeLabel');
+
+    function syncThemeUI(theme) {
+      if (loginThemeIcon) loginThemeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
+      if (loginThemeLabel) loginThemeLabel.textContent = theme === 'dark' ? 'Dark' : 'Light';
+    }
+
+    const initialTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    syncThemeUI(initialTheme);
+
+    if (loginThemeBtn) {
+      loginThemeBtn.addEventListener('click', function() {
+        const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('admin_theme', next);
+        syncThemeUI(next);
+      });
+    }
+
     // Pure SVG password visibility toggle handler
     const toggleBtn = document.getElementById('togglePasswordBtn');
     const passwordInput = document.getElementById('id_password');

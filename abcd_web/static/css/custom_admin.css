@@ -1,15 +1,17 @@
 /* ==========================================================================
    ABCD SMART CAMPUS — MASTER ADMIN PANEL STYLESHEET
-   Ultra-Premium Glassmorphic Dark UI & Modern Responsive Dashboard
+   Ultra-Premium Glassmorphic Light & Dark Theme Design System
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
-:root {
+/* Default & Dark Mode Variables */
+:root, :root[data-theme="dark"] {
   --admin-bg: #060b14;
-  --admin-card-bg: rgba(15, 23, 42, 0.85);
-  --admin-card-border: rgba(255, 255, 255, 0.08);
-  --admin-header-bg: linear-gradient(135deg, #050811 0%, #0d1527 50%, #17233f 100%);
+  --admin-card-bg: rgba(13, 20, 36, 0.88);
+  --admin-card-border: rgba(255, 255, 255, 0.09);
+  --admin-header-bg: linear-gradient(135deg, #050811 0%, #0d1527 50%, #15223c 100%);
+  --admin-header-border: rgba(56, 189, 248, 0.25);
   --admin-accent: #38bdf8;
   --admin-accent-glow: rgba(56, 189, 248, 0.35);
   --admin-gold: #f59e0b;
@@ -19,6 +21,40 @@
   --admin-text-main: #f8fafc;
   --admin-text-muted: #94a3b8;
   --admin-border-radius: 16px;
+  --admin-input-bg: rgba(8, 14, 26, 0.95);
+  --admin-input-border: rgba(255, 255, 255, 0.15);
+  --admin-module-caption-bg: linear-gradient(90deg, #111a2e, #0c1424);
+  --admin-table-hover: rgba(56, 189, 248, 0.05);
+  --admin-table-border: rgba(255, 255, 255, 0.05);
+  --admin-breadcrumbs-bg: rgba(13, 20, 36, 0.95);
+  --admin-shadow: rgba(0, 0, 0, 0.5);
+  --admin-hero-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
+}
+
+/* Light Mode Variables */
+:root[data-theme="light"] {
+  --admin-bg: #f1f5f9;
+  --admin-card-bg: rgba(255, 255, 255, 0.92);
+  --admin-card-border: rgba(203, 213, 225, 0.8);
+  --admin-header-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+  --admin-header-border: rgba(2, 132, 199, 0.25);
+  --admin-accent: #0284c7;
+  --admin-accent-glow: rgba(2, 132, 199, 0.2);
+  --admin-gold: #d97706;
+  --admin-gold-glow: rgba(217, 119, 6, 0.2);
+  --admin-success: #059669;
+  --admin-danger: #dc2626;
+  --admin-text-main: #0f172a;
+  --admin-text-muted: #64748b;
+  --admin-border-radius: 16px;
+  --admin-input-bg: #ffffff;
+  --admin-input-border: rgba(148, 163, 184, 0.8);
+  --admin-module-caption-bg: linear-gradient(90deg, #f1f5f9, #f8fafc);
+  --admin-table-hover: rgba(2, 132, 199, 0.06);
+  --admin-table-border: rgba(226, 232, 240, 0.9);
+  --admin-breadcrumbs-bg: rgba(255, 255, 255, 0.95);
+  --admin-shadow: rgba(15, 23, 42, 0.1);
+  --admin-hero-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 /* Global Font & Canvas */
@@ -30,6 +66,8 @@ html, body {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
+  min-height: 100vh !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Login Page Global Resets */
@@ -56,7 +94,7 @@ body.login #container {
   width: 100% !important;
 }
 
-/* Ambient Radial Glow on main pages */
+/* Ambient Glow */
 body:not(.login)::before {
   content: '';
   position: fixed;
@@ -64,7 +102,7 @@ body:not(.login)::before {
   left: 0;
   right: 0;
   height: 600px;
-  background: radial-gradient(circle at 50% -120px, rgba(56, 189, 248, 0.12) 0%, rgba(99, 102, 241, 0.06) 50%, transparent 75%);
+  background: radial-gradient(circle at 50% -120px, var(--admin-accent-glow) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -98,9 +136,9 @@ body:not(.login)::before {
    ========================================================================== */
 #header {
   background: var(--admin-header-bg) !important;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.25) !important;
-  padding: 12px 36px !important;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5) !important;
+  border-bottom: 1px solid var(--admin-header-border) !important;
+  padding: 12px 32px !important;
+  box-shadow: 0 10px 35px var(--admin-shadow) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -109,6 +147,9 @@ body:not(.login)::before {
   backdrop-filter: blur(20px);
   flex-wrap: wrap !important;
   gap: 14px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  transition: background 0.3s ease;
 }
 
 .admin-brand-header {
@@ -117,7 +158,7 @@ body:not(.login)::before {
 }
 
 .admin-brand-link {
-  color: #ffffff !important;
+  color: var(--admin-text-main) !important;
   text-decoration: none !important;
   display: flex !important;
   align-items: center !important;
@@ -125,9 +166,9 @@ body:not(.login)::before {
 }
 
 .admin-logo-img {
-  height: 40px;
+  height: 38px;
   width: auto;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 4px 12px var(--admin-shadow));
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -139,7 +180,7 @@ body:not(.login)::before {
   font-size: 1.25rem !important;
   font-weight: 800 !important;
   letter-spacing: -0.02em !important;
-  color: #ffffff !important;
+  color: var(--admin-text-main) !important;
 }
 
 .admin-brand-badge {
@@ -147,8 +188,8 @@ body:not(.login)::before {
   align-items: center;
   gap: 6px;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1));
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  color: #fbbf24 !important;
+  border: 1px solid var(--admin-gold);
+  color: var(--admin-gold) !important;
   font-size: 0.72rem !important;
   font-weight: 800 !important;
   text-transform: uppercase;
@@ -174,8 +215,8 @@ body:not(.login)::before {
   align-items: center;
   gap: 6px;
   background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  color: #38bdf8;
+  border: 1px solid var(--admin-accent);
+  color: var(--admin-accent);
   font-weight: 700;
   padding: 6px 14px;
   border-radius: 999px;
@@ -183,7 +224,30 @@ body:not(.login)::before {
 }
 
 .admin-user-tag strong {
-  color: #ffffff;
+  color: var(--admin-text-main);
+}
+
+/* Theme Toggle Button in Header */
+.admin-btn-theme {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-card-border);
+  color: var(--admin-text-main);
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px var(--admin-shadow);
+  transition: all 0.2s ease;
+}
+
+.admin-btn-theme:hover {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent);
+  transform: translateY(-1px);
 }
 
 .admin-btn-dashboard {
@@ -197,7 +261,7 @@ body:not(.login)::before {
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
   transition: all 0.2s ease !important;
   display: inline-flex !important;
-  align-items: center !important;
+  align-items: center;
   gap: 6px !important;
 }
 
@@ -205,34 +269,34 @@ body:not(.login)::before {
   background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 6px 18px rgba(14, 165, 233, 0.5) !important;
+  color: #ffffff !important;
 }
 
 .admin-btn-site {
-  background: rgba(255, 255, 255, 0.08) !important;
-  color: #f1f5f9 !important;
+  background: var(--admin-card-bg) !important;
+  color: var(--admin-text-main) !important;
   font-weight: 600 !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid var(--admin-card-border) !important;
   padding: 6px 14px !important;
   border-radius: 999px !important;
   text-decoration: none !important;
   transition: all 0.2s ease !important;
   display: inline-flex !important;
-  align-items: center !important;
+  align-items: center;
   gap: 6px !important;
 }
 
 .admin-btn-site:hover {
-  background: rgba(56, 189, 248, 0.18) !important;
-  border-color: #38bdf8 !important;
-  color: #38bdf8 !important;
+  border-color: var(--admin-accent) !important;
+  color: var(--admin-accent) !important;
   transform: translateY(-1px) !important;
 }
 
 .admin-btn-subtle {
   background: transparent !important;
-  color: #94a3b8 !important;
+  color: var(--admin-text-muted) !important;
   font-weight: 600 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid var(--admin-card-border) !important;
   padding: 6px 12px !important;
   border-radius: 999px !important;
   text-decoration: none !important;
@@ -240,13 +304,13 @@ body:not(.login)::before {
 }
 
 .admin-btn-subtle:hover {
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: var(--admin-text-main) !important;
+  border-color: var(--admin-accent) !important;
 }
 
 .admin-btn-logout {
   background: rgba(239, 68, 68, 0.15) !important;
-  color: #fca5a5 !important;
+  color: var(--admin-danger) !important;
   font-weight: 700 !important;
   border: 1px solid rgba(239, 68, 68, 0.4) !important;
   padding: 6px 14px !important;
@@ -261,9 +325,8 @@ body:not(.login)::before {
 }
 
 .admin-btn-logout:hover {
-  background: rgba(239, 68, 68, 0.3) !important;
+  background: var(--admin-danger) !important;
   color: #ffffff !important;
-  border-color: #ef4444 !important;
   transform: translateY(-1px) !important;
 }
 
@@ -271,9 +334,9 @@ body:not(.login)::before {
    BREADCRUMBS & TOP NAV
    ========================================================================== */
 div.breadcrumbs {
-  background: rgba(13, 20, 36, 0.95) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-  padding: 12px 36px !important;
+  background: var(--admin-breadcrumbs-bg) !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
+  padding: 12px 32px !important;
   color: var(--admin-text-muted) !important;
   font-size: 0.85rem !important;
   backdrop-filter: blur(12px);
@@ -290,17 +353,17 @@ div.breadcrumbs a {
 }
 
 div.breadcrumbs a:hover {
-  color: #7dd3fc !important;
+  color: #0284c7 !important;
   text-decoration: underline !important;
 }
 
 /* ==========================================================================
-   MAIN CONTENT AREA & FULL WIDTH FLEX LAYOUT
+   MAIN DASHBOARD GRID LAYOUT (FULL LAPTOP / DESKTOP SCALING)
    ========================================================================== */
 #content {
-  padding: 28px 36px !important;
-  max-width: 1600px !important;
+  padding: 24px 32px !important;
   width: 100% !important;
+  max-width: 100% !important;
   margin: 0 auto !important;
   position: relative;
   z-index: 1;
@@ -308,33 +371,46 @@ div.breadcrumbs a:hover {
 }
 
 #content h1 {
-  font-size: 1.65rem !important;
+  font-size: 1.6rem !important;
   font-weight: 800 !important;
-  color: #ffffff !important;
+  color: var(--admin-text-main) !important;
   letter-spacing: -0.03em !important;
-  margin-bottom: 22px !important;
+  margin: 0 0 20px 0 !important;
 }
 
-/* Flex layout on dashboard: Models left, Recent Actions right */
-#content.colMS {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: flex-start !important;
-  gap: 32px !important;
+/* 2-Column Responsive Dashboard Layout */
+.dashboard #content.colMS {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 330px !important;
+  gap: 28px !important;
+  align-items: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
-#content-main {
-  flex: 1 1 0% !important;
-  min-width: 0 !important;
-  width: auto !important;
-  float: none !important;
+.dashboard #content.colMS > h1,
+.dashboard #content.colMS > .admin-dashboard-hero,
+.dashboard #content.colMS > .admin-quick-kpi-grid {
+  grid-column: 1 / -1 !important;
+}
+
+.dashboard #content-main {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)) !important;
+  gap: 24px !important;
+  align-items: start !important;
+  width: 100% !important;
+}
+
+/* Let the main users app span full width inside the app grid */
+.dashboard #content-main .app-users {
+  grid-column: 1 / -1 !important;
 }
 
 #content-related {
-  width: 320px !important;
-  flex-shrink: 0 !important;
+  width: 100% !important;
   margin: 0 !important;
-  float: none !important;
   position: sticky !important;
   top: 20px !important;
 }
@@ -343,15 +419,15 @@ div.breadcrumbs a:hover {
    DASHBOARD HERO & KPI BANNER
    ========================================================================== */
 .admin-dashboard-hero {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: var(--admin-hero-bg);
+  border: 1px solid var(--admin-card-border);
   border-radius: var(--admin-border-radius);
   padding: 24px 28px;
   margin-bottom: 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(56, 189, 248, 0.08);
+  box-shadow: 0 15px 40px var(--admin-shadow);
   backdrop-filter: blur(16px);
   position: relative;
   overflow: hidden;
@@ -375,7 +451,7 @@ div.breadcrumbs a:hover {
   gap: 8px;
   font-size: 0.76rem;
   font-weight: 800;
-  color: #34d399;
+  color: var(--admin-success);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -384,9 +460,9 @@ div.breadcrumbs a:hover {
 .pulse-dot {
   width: 8px;
   height: 8px;
-  background: #10b981;
+  background: var(--admin-success);
   border-radius: 50%;
-  box-shadow: 0 0 10px #10b981;
+  box-shadow: 0 0 10px var(--admin-success);
   animation: pulseDot 2s infinite;
 }
 
@@ -399,16 +475,16 @@ div.breadcrumbs a:hover {
 .hero-title {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--admin-text-main);
   margin: 0 0 6px 0;
   letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
   font-size: 0.88rem;
-  color: #94a3b8;
+  color: var(--admin-text-muted);
   margin: 0;
-  max-width: 600px;
+  max-width: 650px;
   line-height: 1.5;
 }
 
@@ -446,18 +522,18 @@ div.breadcrumbs a:hover {
 }
 
 .hero-btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--admin-card-bg);
+  color: var(--admin-text-main);
+  border: 1px solid var(--admin-card-border);
 }
 
 .hero-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--admin-accent);
   transform: translateY(-2px);
 }
 
-/* KPI Grid */
+/* KPI Grid - 4 Columns Across Wide Screens */
 .admin-quick-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -475,15 +551,15 @@ div.breadcrumbs a:hover {
   display: flex;
   align-items: center;
   gap: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px var(--admin-shadow);
   backdrop-filter: blur(14px);
   transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .kpi-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(56, 189, 248, 0.35);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  border-color: var(--admin-accent);
+  box-shadow: 0 12px 32px var(--admin-shadow);
 }
 
 .kpi-icon-wrap {
@@ -513,7 +589,7 @@ div.breadcrumbs a:hover {
 .kpi-value {
   font-size: 1rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--admin-text-main);
   margin-top: 2px;
 }
 
@@ -524,27 +600,29 @@ div.breadcrumbs a:hover {
   background: var(--admin-card-bg) !important;
   border: 1px solid var(--admin-card-border) !important;
   border-radius: var(--admin-border-radius) !important;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 12px 36px var(--admin-shadow) !important;
   margin-bottom: 24px !important;
   overflow: hidden !important;
   backdrop-filter: blur(16px) !important;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .module:hover {
-  border-color: rgba(56, 189, 248, 0.35) !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4) !important;
+  border-color: var(--admin-accent) !important;
+  box-shadow: 0 16px 48px var(--admin-shadow) !important;
 }
 
 .module caption, .module h2 {
-  background: linear-gradient(90deg, #111a2e, #0c1424) !important;
-  color: #38bdf8 !important;
+  background: var(--admin-module-caption-bg) !important;
+  color: var(--admin-accent) !important;
   font-size: 0.95rem !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.08em !important;
   padding: 15px 22px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
 }
 
 .module table {
@@ -554,40 +632,40 @@ div.breadcrumbs a:hover {
 
 .module th, .module td {
   padding: 13px 22px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  color: #e2e8f0 !important;
+  border-bottom: 1px solid var(--admin-table-border) !important;
+  color: var(--admin-text-main) !important;
   font-size: 0.92rem !important;
 }
 
 .module tr:hover th, .module tr:hover td {
-  background: rgba(56, 189, 248, 0.05) !important;
+  background: var(--admin-table-hover) !important;
 }
 
 .module th a {
-  color: #ffffff !important;
+  color: var(--admin-text-main) !important;
   font-weight: 700 !important;
   text-decoration: none !important;
   transition: color 0.2s ease;
 }
 
 .module th a:hover {
-  color: #38bdf8 !important;
+  color: var(--admin-accent) !important;
 }
 
 .addlink, .changelink {
-  color: #38bdf8 !important;
+  color: var(--admin-accent) !important;
   font-weight: 700 !important;
   text-decoration: none !important;
   padding: 4px 10px !important;
   border-radius: 8px !important;
   background: rgba(56, 189, 248, 0.1) !important;
-  border: 1px solid rgba(56, 189, 248, 0.2) !important;
+  border: 1px solid var(--admin-card-border) !important;
   transition: all 0.2s ease !important;
 }
 
 .addlink:hover, .changelink:hover {
-  background: rgba(56, 189, 248, 0.25) !important;
-  border-color: #38bdf8 !important;
+  background: var(--admin-accent) !important;
+  border-color: var(--admin-accent) !important;
   color: #ffffff !important;
 }
 
@@ -604,19 +682,57 @@ div.breadcrumbs a:hover {
   font-size: 0.92rem !important;
   font-weight: 800 !important;
   margin-bottom: 12px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
   padding-bottom: 8px !important;
 }
 
 #recent-actions-module li {
   font-size: 0.85rem !important;
   padding: 8px 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
 }
 
 #recent-actions-module li a {
-  color: #f1f5f9 !important;
+  color: var(--admin-text-main) !important;
   font-weight: 600 !important;
+}
+
+/* Forms & Fieldsets */
+fieldset {
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  padding: 24px !important;
+  margin-bottom: 28px !important;
+  box-shadow: 0 10px 30px var(--admin-shadow) !important;
+}
+
+fieldset h2 {
+  background: transparent !important;
+  color: var(--admin-accent) !important;
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 20px !important;
+}
+
+input[type=text], input[type=password], input[type=email], input[type=url], 
+input[type=number], textarea, select {
+  background: var(--admin-input-bg) !important;
+  border: 1px solid var(--admin-input-border) !important;
+  color: var(--admin-text-main) !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  font-size: 0.92rem !important;
+  transition: all 0.2s ease;
+}
+
+input[type=text]:focus, input[type=password]:focus, input[type=email]:focus, 
+input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
+  border-color: var(--admin-accent) !important;
+  box-shadow: 0 0 0 3px var(--admin-accent-glow) !important;
+  outline: none !important;
 }
 
 /* Footer in Admin */
@@ -625,22 +741,25 @@ div.breadcrumbs a:hover {
   padding: 24px;
   color: var(--admin-text-muted);
   font-size: 0.84rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--admin-card-border);
   margin-top: auto;
 }
 
 /* ==========================================================================
    RESPONSIVE BREAKPOINTS (Mobile, Tablet, Laptop, Ultra-Wide)
    ========================================================================== */
-@media (max-width: 1200px) {
+@media (max-width: 1280px) {
   .admin-quick-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard #content-main {
+    grid-template-columns: 1fr !important;
   }
 }
 
 @media (max-width: 980px) {
-  #content.colMS {
-    flex-direction: column !important;
+  .dashboard #content.colMS {
+    grid-template-columns: 1fr !important;
   }
   
   #content-related {
