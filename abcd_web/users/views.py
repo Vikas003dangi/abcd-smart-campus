@@ -2790,16 +2790,44 @@ def change_password_view(request):
 
 @login_required
 def guest_page_view(request):
-    track_visitor_intent(request.user, "guest_browsed")
-    youtube_videos = get_latest_youtube_videos()
-    preview_courses = get_accessible_courses(request.user)[:3]
+    try:
+        track_visitor_intent(request.user, "guest_browsed")
+    except Exception:
+        pass
 
-    _ach_pool = list(
-        StudentAchievement.objects.filter(status='approved')
-        .order_by('-id')[:50]
-    )
-    achievements = random.sample(_ach_pool, min(len(_ach_pool), 8))
-    resolved_complaints_count = Complaint.objects.filter(status='resolved').count()
+    try:
+        youtube_videos = get_latest_youtube_videos()
+    except Exception:
+        youtube_videos = []
+
+    try:
+        preview_courses = list(get_accessible_courses(request.user)[:3])
+    except Exception:
+        preview_courses = []
+
+    try:
+        _ach_pool = list(
+            StudentAchievement.objects.filter(status='approved')
+            .order_by('-id')[:50]
+        )
+        achievements = random.sample(_ach_pool, min(len(_ach_pool), 8))
+    except Exception:
+        achievements = []
+
+    try:
+        resolved_complaints_count = Complaint.objects.filter(status='resolved').count()
+    except Exception:
+        resolved_complaints_count = 0
+
+    try:
+        avail_seats = get_available_seats_count()
+    except Exception:
+        avail_seats = 0
+
+    try:
+        courses_count = get_accessible_courses(request.user).count()
+    except Exception:
+        courses_count = len(preview_courses)
 
     show_reg_animation = request.session.pop('show_registration_animation', False)
 
@@ -2808,8 +2836,8 @@ def guest_page_view(request):
         "preview_courses": preview_courses,
         "achievements": achievements,
         "res_count": resolved_complaints_count,
-        "avail_seats_count": get_available_seats_count(),
-        "courses_count": get_accessible_courses(request.user).count(),
+        "avail_seats_count": avail_seats,
+        "courses_count": courses_count,
         "profile": None,
         "show_registration_animation": show_reg_animation,
     })

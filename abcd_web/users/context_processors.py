@@ -56,14 +56,17 @@ def student_context(request):
             is_read=False
         ).count()
         
-        # Check for profile
+        # Default permission and status flags
         is_approved_coaching = False
         is_approved_library = False
         has_pending_coaching = False
         has_pending_library = False
+        is_approved_alumni = False
+        has_pending_alumni = False
         
-        if hasattr(request.user, 'profile'):
-            profile = request.user.profile
+        # Safely query StudentProfile
+        profile = StudentProfile.objects.filter(user=request.user).first()
+        if profile:
             context['profile'] = profile
             if profile.status == 'admitted':
                 if profile.service_type in ['Coaching', 'Both']:
@@ -76,18 +79,14 @@ def student_context(request):
             if profile.library_pending or (profile.status == 'pending' and profile.service_type in ['Library', 'Both']):
                 has_pending_library = True
 
-        # Check for achievement (alumni)
-        is_approved_alumni = False
-        has_pending_alumni = False
-        try:
-            ach = StudentAchievement.objects.get(user=request.user)
+        # Safely query StudentAchievement (alumni)
+        ach = StudentAchievement.objects.filter(user=request.user).first()
+        if ach:
             context['nav_achievement'] = ach
             if ach.status == 'approved':
                 is_approved_alumni = True
             elif ach.status == 'pending':
                 has_pending_alumni = True
-        except StudentAchievement.DoesNotExist:
-            pass
 
         context.update({
             'is_approved_coaching': is_approved_coaching,
