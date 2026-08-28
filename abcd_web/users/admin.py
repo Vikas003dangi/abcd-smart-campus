@@ -159,6 +159,12 @@ class StudyMaterialInline(admin.TabularInline):
     model = StudyMaterial
     extra = 1
 
+@admin.register(StudyMaterial)
+class StudyMaterialAdmin(admin.ModelAdmin):
+    list_display = ('title', 'course', 'material_type', 'is_active', 'created_at')
+    list_filter = ('material_type', 'is_active', 'course')
+    search_fields = ('title', 'course__title')
+
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = ('title', 'playlist_id', 'video_count', 'is_active', 'target_public', 'target_coaching', 'target_alumni', 'target_library', 'target_private')

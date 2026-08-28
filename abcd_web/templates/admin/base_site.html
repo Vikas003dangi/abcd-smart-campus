@@ -30,37 +30,33 @@
 </div>
 {% endblock %}
 
+{% block welcome-msg %}
+  <span class="admin-welcome-label">WELCOME,</span>
+  <span class="admin-user-pill">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    {{ user.first_name|default:user.username|upper }}
+  </span>
+{% endblock %}
+
 {% block userlinks %}
-  {% if user.is_authenticated %}
-    <span class="admin-user-tag">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-      <strong>{{ user.first_name|default:user.username|upper }}</strong>
-    </span>
-
-    <!-- Master Theme Switcher Button -->
-    <button type="button" class="admin-btn-theme" id="masterThemeToggleBtn" title="Toggle Dark / Light Mode">
-      <span id="masterThemeIcon">🌙</span>
-      <span id="masterThemeLabel">Dark</span>
-    </button>
-
-    <a href="{% url 'users:teacher_dashboard' %}" class="admin-btn-dashboard" title="Open Teacher Dashboard">
-      🎓 Teacher Dashboard
-    </a>
-    <a href="/" target="_blank" class="admin-btn-site" title="View Public Live Website">
-      🌐 Live Site
-    </a>
-    {% if user.has_usable_password %}
-    <a href="{% url 'admin:password_change' %}" class="admin-btn-subtle" title="Change Password">
-      🔑 Change Password
-    </a>
-    {% endif %}
-    <form id="logout-form" method="post" action="{% url 'admin:logout' %}" style="display:inline-flex;margin:0;padding:0;">
-      {% csrf_token %}
-      <button type="submit" class="admin-btn-logout" title="Log out">
-        🚪 Log Out
-      </button>
-    </form>
+  {% if user.has_usable_password %}
+  <a href="{% url 'admin:password_change' %}" class="admin-btn-header" title="Change Password">
+    🔑 Change Password
+  </a>
   {% endif %}
+
+  <!-- Dark / Light Theme Toggle Button -->
+  <button type="button" class="admin-btn-theme" id="masterThemeToggleBtn" title="Toggle Dark / Light Mode">
+    <span id="masterThemeIcon">🌙</span>
+    <span id="masterThemeLabel">Dark</span>
+  </button>
+
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}" style="display:inline-flex;margin:0;padding:0;">
+    {% csrf_token %}
+    <button type="submit" class="admin-btn-logout" title="Log out">
+      🚪 Log Out
+    </button>
+  </form>
 {% endblock %}
 
 {% block footer %}
