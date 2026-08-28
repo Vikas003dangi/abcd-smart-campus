@@ -1,438 +1,397 @@
-{% extends "admin/base_site.html" %}
 {% load i18n static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Admin Authentication | ABCD Smart Campus</title>
+  <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
+  <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
 
-{% block title %}Master Admin Authentication | ABCD Smart Campus{% endblock %}
+    html, body {
+      width: 100%;
+      min-height: 100vh;
+      background-color: #060b14;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(14, 165, 233, 0.08) 0px, transparent 60%);
+      background-attachment: fixed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
 
-{% block nav-sidebar %}{% endblock %}
-{% block content_title %}{% endblock %}
-{% block breadcrumbs %}{% endblock %}
-{% block header %}{% endblock %}
-{% block usertools %}{% endblock %}
-{% block footer %}{% endblock %}
+    /* Ambient glowing orbs in background */
+    .ambient-orb-1 {
+      position: fixed;
+      top: 20%;
+      left: 15%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+      filter: blur(80px);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      animation: orbFloat 10s ease-in-out infinite alternate;
+    }
 
-{% block extrastyle %}
-{{ block.super }}
-<link rel="stylesheet" href="{% static 'css/custom_admin.css' %}">
-<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
-<style>
-  /* Fix Django admin layout for login page */
-  html, body {
-    height: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #060b14 !important;
-  }
+    .ambient-orb-2 {
+      position: fixed;
+      bottom: 20%;
+      right: 15%;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.14) 0%, transparent 70%);
+      filter: blur(90px);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      animation: orbFloat 12s ease-in-out infinite alternate-reverse;
+    }
 
-  body.login {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 100vh !important;
-    position: relative !important;
-    overflow-x: hidden !important;
-  }
+    @keyframes orbFloat {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(25px, -25px) scale(1.08); }
+    }
 
-  /* Completely eliminate Django default sidebar & extra headers on login */
-  body.login #nav-sidebar,
-  body.login #toggle-nav-sidebar,
-  body.login .sticky,
-  body.login #header,
-  body.login .breadcrumbs,
-  body.login > h1,
-  body.login #content > h1:first-child,
-  body.login #content-title,
-  body.login .content-title,
-  body.login #footer {
-    display: none !important;
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
+    /* Master Page Wrapper */
+    .master-login-wrapper {
+      width: 100%;
+      max-width: 440px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 10;
+      margin: auto;
+    }
 
-  /* Ambient glowing background orbs */
-  body.login::before {
-    content: '';
-    position: fixed;
-    top: 20%;
-    left: 25%;
-    width: 450px;
-    height: 450px;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, rgba(14, 165, 233, 0.04) 50%, transparent 70%);
-    filter: blur(80px);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-    animation: floatGlow 10s ease-in-out infinite alternate;
-  }
+    /* Glassmorphic Login Card */
+    .login-card {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      padding: 38px 32px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 0 40px rgba(56, 189, 248, 0.1);
+      position: relative;
+      overflow: hidden;
+      animation: cardEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-  body.login::after {
-    content: '';
-    position: fixed;
-    bottom: 20%;
-    right: 25%;
-    width: 480px;
-    height: 480px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(79, 70, 229, 0.03) 50%, transparent 70%);
-    filter: blur(90px);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-    animation: floatGlow 12s ease-in-out infinite alternate-reverse;
-  }
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(18px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-  @keyframes floatGlow {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(25px, -30px) scale(1.08); }
-  }
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #f59e0b);
+    }
 
-  /* True Vertically and Horizontally Centered Container */
-  #container {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    width: 100% !important;
-    max-width: 100vw !important;
-    min-height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 24px 16px !important;
-    position: relative !important;
-    z-index: 10 !important;
-    margin: 0 auto !important;
-    box-sizing: border-box !important;
-  }
+    /* Header & Branding */
+    .login-header {
+      text-align: center;
+      margin-bottom: 26px;
+    }
 
-  #content {
-    margin: 0 auto !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: 450px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
+    .login-logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 76px;
+      height: 76px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 20px;
+      padding: 8px;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.2);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
 
-  #content-main {
-    width: 100% !important;
-    margin: 0 auto !important;
-  }
+    .login-logo-wrap:hover {
+      transform: scale(1.06) rotate(2deg);
+    }
 
-  .login-card {
-    background: rgba(15, 23, 42, 0.88);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 22px;
-    padding: 38px 34px;
-    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75), 0 0 45px rgba(56, 189, 248, 0.1);
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    box-sizing: border-box;
-    animation: cardFadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+    .login-logo-wrap img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
+    }
 
-  @keyframes cardFadeIn {
-    from { opacity: 0; transform: translateY(16px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
+    .login-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px 0;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
 
-  .login-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #38bdf8, #818cf8, #f59e0b);
-  }
+    .login-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.12));
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 14px;
+      border-radius: 999px;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
+      margin-bottom: 6px;
+    }
 
-  .login-header-box {
-    text-align: center;
-    margin-bottom: 26px;
-  }
+    .login-subtitle {
+      font-size: 0.84rem;
+      color: #94a3b8;
+      margin: 0;
+      line-height: 1.4;
+    }
 
-  .login-logo-wrap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 76px;
-    height: 76px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(56, 189, 248, 0.35);
-    border-radius: 20px;
-    padding: 8px;
-    margin-bottom: 14px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(56, 189, 248, 0.2);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
+    /* Error Alert */
+    .error-box {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      border-radius: 12px;
+      color: #fca5a5;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);
+    }
 
-  .login-logo-wrap:hover {
-    transform: scale(1.06) rotate(2deg);
-  }
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 20px;
+    }
 
-  .login-logo-wrap img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5));
-  }
+    .form-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      text-align: left;
+      letter-spacing: 0.02em;
+    }
 
-  .login-title {
-    font-size: 1.55rem;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.02em;
-    margin: 0 0 8px 0;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  }
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
 
-  .login-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.12));
-    border: 1px solid rgba(245, 158, 11, 0.5);
-    color: #fbbf24;
-    font-size: 0.74rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 4px 14px;
-    border-radius: 999px;
-    box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
-    margin-bottom: 6px;
-  }
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      color: #64748b;
+      font-size: 1.18rem;
+      pointer-events: none;
+      transition: color 0.25s ease;
+    }
 
-  .login-subtitle {
-    font-size: 0.84rem;
-    color: #94a3b8;
-    margin: 0;
-    line-height: 1.4;
-  }
+    .input-wrapper input {
+      width: 100%;
+      background: rgba(10, 16, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 12px;
+      padding: 12px 14px 12px 42px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-family: inherit;
+      box-sizing: border-box;
+      transition: all 0.25s ease;
+      outline: none;
+    }
 
-  .form-row {
-    margin-bottom: 20px !important;
-    padding: 0 !important;
-    border: none !important;
-    background: transparent !important;
-  }
+    .input-wrapper input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.15);
+      background: #0f172a;
+    }
 
-  .form-row label {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    font-size: 0.85rem !important;
-    font-weight: 600 !important;
-    color: #cbd5e1 !important;
-    margin-bottom: 8px !important;
-    text-align: left !important;
-    letter-spacing: 0.02em;
-  }
+    .input-wrapper:focus-within i {
+      color: #38bdf8;
+    }
 
-  .input-icon-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 100%;
-  }
+    /* Submit Button */
+    .submit-btn {
+      width: 100%;
+      padding: 13px 20px;
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%);
+      color: #ffffff;
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45);
+      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+    }
 
-  .input-icon-wrapper i {
-    position: absolute;
-    left: 14px;
-    color: #64748b;
-    font-size: 1.18rem;
-    pointer-events: none;
-    transition: color 0.25s ease;
-  }
+    .submit-btn:hover {
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      box-shadow: 0 10px 30px rgba(14, 165, 233, 0.65);
+      transform: translateY(-2px);
+    }
 
-  .form-row input[type="text"],
-  .form-row input[type="password"] {
-    width: 100% !important;
-    background: rgba(10, 16, 30, 0.95) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    border-radius: 12px !important;
-    padding: 12px 14px 12px 42px !important;
-    color: #ffffff !important;
-    font-size: 0.95rem !important;
-    font-family: inherit !important;
-    box-sizing: border-box !important;
-    transition: all 0.25s ease !important;
-    outline: none !important;
-  }
+    .submit-btn:active {
+      transform: translateY(0);
+    }
 
-  .form-row input[type="text"]:focus,
-  .form-row input[type="password"]:focus {
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25), 0 0 20px rgba(56, 189, 248, 0.15) !important;
-    background: #0f172a !important;
-  }
+    /* Footer Navigation inside card */
+    .card-footer-links {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.84rem;
+    }
 
-  .input-icon-wrapper:focus-within i {
-    color: #38bdf8 !important;
-  }
+    .card-footer-links a {
+      color: #94a3b8;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
 
-  .submit-row {
-    margin-top: 26px !important;
-    padding: 0 !important;
-    border: none !important;
-    background: transparent !important;
-    text-align: center !important;
-  }
+    .card-footer-links a:hover {
+      color: #38bdf8;
+      transform: translateY(-1px);
+    }
 
-  .submit-row input[type="submit"] {
-    width: 100% !important;
-    padding: 13px 20px !important;
-    background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%) !important;
-    color: #ffffff !important;
-    font-size: 0.98rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.02em !important;
-    border: 1px solid rgba(56, 189, 248, 0.5) !important;
-    border-radius: 12px !important;
-    cursor: pointer !important;
-    box-shadow: 0 8px 24px rgba(2, 132, 199, 0.45) !important;
-    transition: all 0.25s ease !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
+    /* Single Copyright Note Beneath Card */
+    .master-footer-note {
+      text-align: center;
+      margin-top: 22px;
+      font-size: 0.82rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
 
-  .submit-row input[type="submit"]:hover {
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
-    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.65) !important;
-    transform: translateY(-2px) !important;
-  }
+    .master-footer-note strong {
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-orb-1"></div>
+  <div class="ambient-orb-2"></div>
 
-  .submit-row input[type="submit"]:active {
-    transform: translateY(0) !important;
-  }
+  <div class="master-login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-wrap">
+          <img src="{% static 'data/light-logo.png' %}" alt="ABCD Smart Campus Logo">
+        </div>
+        <h1 class="login-title">ABCD Smart Campus</h1>
+        <div>
+          <span class="login-badge">
+            <i class='bx bxs-crown'></i> Master Admin Architecture
+          </span>
+        </div>
+        <p class="login-subtitle">System & Database Control Center</p>
+      </div>
 
-  /* Error notifications */
-  .errornote {
-    background: rgba(239, 68, 68, 0.15) !important;
-    border: 1px solid rgba(239, 68, 68, 0.45) !important;
-    border-radius: 12px !important;
-    color: #fca5a5 !important;
-    padding: 12px 16px !important;
-    font-size: 0.88rem !important;
-    margin-bottom: 20px !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25) !important;
-  }
+      {% if form.errors and not form.non_field_errors %}
+      <div class="error-box">
+        <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
+        <span>{% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}</span>
+      </div>
+      {% endif %}
 
-  /* Bottom quick exit links */
-  .login-footer-links {
-    margin-top: 22px;
-    padding-top: 18px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.84rem;
-  }
+      {% if form.non_field_errors %}
+      {% for error in form.non_field_errors %}
+      <div class="error-box">
+        <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
+        <span>{{ error }}</span>
+      </div>
+      {% endfor %}
+      {% endif %}
 
-  .login-footer-links a {
-    color: #94a3b8;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s ease;
-  }
+      <form action="{{ app_path }}" method="post" id="login-form">
+        {% csrf_token %}
+        
+        <div class="form-group">
+          <label for="id_username"><i class='bx bx-user'></i> Master Username / Email:</label>
+          <div class="input-wrapper">
+            <i class='bx bx-user-circle'></i>
+            <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" placeholder="Enter master username or email">
+          </div>
+        </div>
 
-  .login-footer-links a:hover {
-    color: #38bdf8;
-    transform: translateY(-1px);
-  }
+        <div class="form-group">
+          <label for="id_password"><i class='bx bx-lock-alt'></i> Secure Password:</label>
+          <div class="input-wrapper">
+            <i class='bx bx-key'></i>
+            <input type="password" name="password" autocomplete="current-password" required id="id_password" placeholder="Enter master password">
+          </div>
+        </div>
 
-  /* Single clean caption directly beneath card */
-  .login-page-copyright {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 0.8rem;
-    color: #64748b;
-    line-height: 1.5;
-  }
+        <input type="hidden" name="next" value="{{ next }}">
 
-  .login-page-copyright strong {
-    color: #94a3b8;
-  }
-</style>
-{% endblock %}
+        <button type="submit" class="submit-btn">
+          🚀 Authenticate & Enter Master Admin
+        </button>
 
-{% block content %}
-<div class="login-card">
-  <div class="login-header-box">
-    <div class="login-logo-wrap">
-      <img src="{% static 'data/light-logo.png' %}" alt="ABCD Smart Campus Logo">
+        <div class="card-footer-links">
+          <a href="/" target="_blank"><i class='bx bx-arrow-back'></i> Public Website</a>
+          <a href="{% url 'users:teacher_dashboard' %}"><i class='bx bxs-dashboard'></i> Teacher Dashboard</a>
+        </div>
+      </form>
     </div>
-    <h1 class="login-title">ABCD Smart Campus</h1>
-    <div>
-      <span class="login-badge">
-        <i class='bx bxs-crown'></i> Master Admin Architecture
-      </span>
+
+    <div class="master-footer-note">
+      <p>&copy; 2026 <strong>ABCD Coaching & Library</strong> • Master Architecture</p>
+      <p style="margin-top: 2px;">Secure System Infrastructure & Operations</p>
     </div>
-    <p class="login-subtitle">System & Database Control Center</p>
   </div>
-
-  {% if form.errors and not form.non_field_errors %}
-  <p class="errornote">
-    <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
-    {% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
-  </p>
-  {% endif %}
-
-  {% if form.non_field_errors %}
-  {% for error in form.non_field_errors %}
-  <p class="errornote">
-    <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i>
-    {{ error }}
-  </p>
-  {% endfor %}
-  {% endif %}
-
-  <form action="{{ app_path }}" method="post" id="login-form">
-    {% csrf_token %}
-    
-    <div class="form-row">
-      <label for="id_username"><i class='bx bx-user'></i> Master Username / Email:</label>
-      <div class="input-icon-wrapper">
-        <i class='bx bx-user-circle'></i>
-        <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username" placeholder="Enter master username or email">
-      </div>
-    </div>
-
-    <div class="form-row">
-      <label for="id_password"><i class='bx bx-lock-alt'></i> Secure Password:</label>
-      <div class="input-icon-wrapper">
-        <i class='bx bx-key'></i>
-        <input type="password" name="password" autocomplete="current-password" required id="id_password" placeholder="Enter master password">
-      </div>
-    </div>
-
-    <input type="hidden" name="next" value="{{ next }}">
-
-    <div class="submit-row">
-      <input type="submit" value="🚀 Authenticate & Enter Master Admin">
-    </div>
-
-    <div class="login-footer-links">
-      <a href="/" target="_blank"><i class='bx bx-arrow-back'></i> Public Website</a>
-      <a href="{% url 'users:teacher_dashboard' %}"><i class='bx bxs-dashboard'></i> Teacher Dashboard</a>
-    </div>
-  </form>
-</div>
-
-<div class="login-page-copyright">
-  <p>&copy; 2026 <strong>ABCD Coaching & Library</strong> • Master Architecture</p>
-  <p>Secure System Infrastructure & Operations</p>
-</div>
-{% endblock %}
+</body>
+</html>
