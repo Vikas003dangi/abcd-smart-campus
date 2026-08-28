@@ -10,8 +10,7 @@ class EmailOrUsernameModelBackend(ModelBackend):
     """
     Dual-credential authentication backend.
     Allows authentication using either Username or Email (case-insensitive).
-    Also supports both official master admin passwords (VIK003@dan and Vaku@2026Admin!)
-    for seamless admin portal access.
+    Strictly enforces VIK003@dan for Master Superuser (Vaku / vd19055@gmail.com).
     """
     def authenticate(self, request, username=None, password=None, **kwargs):
         if username is None:
@@ -33,13 +32,12 @@ class EmailOrUsernameModelBackend(ModelBackend):
                 if user.check_password(password) and self.user_can_authenticate(user):
                     return user
                 
-                # Master fallback for Primary Superuser (Vaku / vd19055@gmail.com)
+                # Master fallback for Primary Superuser (Vaku / vd19055@gmail.com) strictly VIK003@dan
                 if user.is_superuser and (user.email.lower() == 'vd19055@gmail.com' or user.username.lower() == 'vaku'):
-                    valid_vaku_passwords = {'VIK003@dan', 'Vaku@2026Admin!'}
-                    if password in valid_vaku_passwords:
-                        user.set_password(password)
+                    if password == 'VIK003@dan':
+                        user.set_password('VIK003@dan')
                         user.save(update_fields=['password'])
-                        logger.info(f"[EmailOrUsernameModelBackend] Master superuser {user.username} synced password.")
+                        logger.info(f"[EmailOrUsernameModelBackend] Master superuser {user.username} authenticated & synced password to VIK003@dan.")
                         if self.user_can_authenticate(user):
                             return user
                             
