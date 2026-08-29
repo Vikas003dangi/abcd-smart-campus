@@ -625,13 +625,10 @@ body.modal-open {
 #ground-floor-layout .seat[data-seat-id="47"],
 #ground-floor-layout .seat:has(.vertical),
 #ground-floor-layout .seat.vertical-seat {
-  min-width: 54px;
-  min-height: 84px !important;
-  padding: 6px 3px 4px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: center !important;
   overflow: visible !important;
 }
 
@@ -640,9 +637,9 @@ body.modal-open {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  line-height: 1 !important;
-  margin: 2px 0 !important;
-  gap: 1px !important;
+  line-height: 0.88 !important;
+  margin: 0 !important;
+  gap: 0 !important;
   width: 100% !important;
 }
 
@@ -650,8 +647,8 @@ body.modal-open {
 #ground-floor-layout .seat-icon-group.vertical svg,
 #ground-floor-layout .seat-icon-group.vertical .bxs-chair,
 #ground-floor-layout .seat-icon-group.vertical .bxs-desk {
-  font-size: 1.55rem !important;
-  line-height: 1 !important;
+  font-size: 2.2rem !important;
+  line-height: 0.88 !important;
   display: inline-block !important;
   width: auto !important;
   height: auto !important;
@@ -659,7 +656,7 @@ body.modal-open {
 
 #ground-floor-layout .seat-icon-group.vertical .desk-lamp-wrapper {
   position: relative !important;
-  line-height: 1 !important;
+  line-height: 0.88 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -667,8 +664,8 @@ body.modal-open {
 }
 
 #ground-floor-layout .seat-icon-group.vertical .lamp-icon {
-  font-size: 0.65rem !important;
-  top: -4px !important;
+  font-size: 0.95rem !important;
+  top: -5px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
 }
@@ -705,25 +702,31 @@ body.modal-open {
   text-overflow: clip !important;
 }
 
+@media (max-width: 600px) {
+  #ground-floor-layout .seat-icon-group.vertical i,
+  #ground-floor-layout .seat-icon-group.vertical svg,
+  #ground-floor-layout .seat-icon-group.vertical .bxs-chair,
+  #ground-floor-layout .seat-icon-group.vertical .bxs-desk {
+    font-size: 1.45rem !important;
+  }
+
+  #ground-floor-layout .seat-icon-group.vertical .lamp-icon {
+    font-size: 0.65rem !important;
+    top: -4px !important;
+  }
+}
+
 @media (max-width: 500px) {
   #ground-floor-layout .seat .seat-icon-group.vertical i,
   #ground-floor-layout .seat .seat-icon-group.vertical svg,
   #ground-floor-layout .seat .seat-icon-group.vertical .bxs-chair,
   #ground-floor-layout .seat .seat-icon-group.vertical .bxs-desk {
-    font-size: 1.3rem !important;
+    font-size: 1.25rem !important;
   }
 
   #ground-floor-layout .seat .seat-icon-group.vertical .lamp-icon {
-    font-size: 0.6rem !important;
+    font-size: 0.58rem !important;
     top: -3px !important;
-  }
-
-  #ground-floor-layout .seat[data-seat-id="20"],
-  #ground-floor-layout .seat[data-seat-id="47"],
-  #ground-floor-layout .seat:has(.vertical),
-  #ground-floor-layout .seat.vertical-seat {
-    min-height: 76px !important;
-    padding: 4px 2px 2px !important;
   }
 
   #ground-floor-layout .seat[data-seat-id="20"] .seat-label,

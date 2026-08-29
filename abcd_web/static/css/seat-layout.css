@@ -210,13 +210,10 @@ body.dark-theme .seat-modal-close-btn {
 #ground-floor-layout .seat[data-seat-id="47"],
 #ground-floor-layout .seat:has(.vertical),
 #ground-floor-layout .seat.vertical-seat {
-    min-width: 54px;
-    min-height: 84px !important;
-    padding: 6px 3px 4px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: space-between !important;
+    justify-content: center !important;
     overflow: visible !important;
 }
 
@@ -295,69 +292,52 @@ body.dark-theme .seat-modal-close-btn {
     margin-right: -5px;
 }
 
-/* Vertical Layout for Seats 20 & 47 */
-.seat-icon-group.vertical {
-    flex-direction: column !important;
-    font-size: 1.45rem !important;
-    justify-content: center !important;
-    align-items: center !important;
-    width: 100% !important;
-    line-height: 1 !important;
-    margin: 2px 0 !important;
-    gap: 1px !important;
-}
-
-.seat-icon-group.vertical {
+/* Vertical Layout for Seats 20 & 47 (Ground Floor Only) */
+#ground-floor-layout .seat-icon-group.vertical {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    line-height: 1 !important;
-    margin: 2px 0 !important;
-    gap: 1px !important;
+    line-height: 0.88 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    width: 100% !important;
 }
 
-.seat-icon-group.vertical i,
-.seat-icon-group.vertical svg,
-.seat-icon-group.vertical .bxs-chair,
-.seat-icon-group.vertical .bxs-desk {
-    font-size: 1em !important;
-    line-height: 1 !important;
+#ground-floor-layout .seat-icon-group.vertical i,
+#ground-floor-layout .seat-icon-group.vertical svg,
+#ground-floor-layout .seat-icon-group.vertical .bxs-chair,
+#ground-floor-layout .seat-icon-group.vertical .bxs-desk {
+    font-size: 2.2rem !important;
+    line-height: 0.88 !important;
     display: inline-block !important;
     width: auto !important;
     height: auto !important;
 }
 
-.seat-icon-group.vertical .desk-lamp-wrapper {
+#ground-floor-layout .seat-icon-group.vertical .desk-lamp-wrapper {
     position: relative !important;
-    line-height: 1 !important;
-    font-size: 1em !important;
+    line-height: 0.88 !important;
+    font-size: inherit !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     width: auto !important;
 }
 
-.seat-icon-group.vertical .lamp-icon {
-    font-size: 0.52em !important;
+#ground-floor-layout .seat-icon-group.vertical .lamp-icon {
+    font-size: 0.95rem !important;
     top: -5px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
 }
 
-.seat-icon-group.vertical.chair-above .bxs-chair {
-    margin-bottom: 0 !important;
-    margin-top: 0 !important;
-    font-size: 1em !important;
+#ground-floor-layout .seat-icon-group.vertical.chair-above .bxs-chair,
+#ground-floor-layout .seat-icon-group.vertical.chair-below .bxs-chair {
+    margin: 0 !important;
 }
 
-.seat-icon-group.vertical.chair-below .bxs-chair {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    font-size: 1em !important;
-}
-
-.seat-icon-group.vertical .rotate-180 {
+#ground-floor-layout .seat-icon-group.vertical .rotate-180 {
     transform: rotate(180deg) !important;
 }
 
@@ -2238,7 +2218,7 @@ div.seat.hold-full * {
     #ground-floor-layout .seat .seat-icon-group.vertical svg,
     #ground-floor-layout .seat .seat-icon-group.vertical .bxs-chair,
     #ground-floor-layout .seat .seat-icon-group.vertical .bxs-desk {
-        font-size: 1.25rem !important;
+        font-size: 1.75rem !important;
     }
 
     .seat .lamp-icon {
