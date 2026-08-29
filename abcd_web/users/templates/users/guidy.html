@@ -1576,71 +1576,125 @@ body.dark-theme .contact-item-chatted {
 }
 
 @media (max-width: 768px) {
-  .g-wrap { margin: 15px auto; padding: 0 8px; height: calc(100vh - 90px); }
-  @media (max-width: 750px) {
-    .g-wrap {
-      height: calc(100vh - 166px) !important;
-      margin: 15px auto 8px !important;
-    }
+  html, body {
+    height: 100% !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
   }
-  @media (max-width: 450px) {
-    .g-input-inner-wrap {
-      gap: 4px !important;
-      padding: 4px 6px !important;
-    }
-    .g-attach-btn, .g-emoji-btn, .g-send-btn {
-      width: 32px !important;
-      height: 32px !important;
-      font-size: 1.15rem !important;
-    }
-    .g-attach-btn {
-      margin-right: -2px !important;
-    }
+
+  /* When inside active chat or mobile Guidy, hide outer site navbars so Guidy operates full-screen */
+  .g-shell.chat-active ~ .bottom-nav-menu,
+  .g-shell.chat-active ~ .guest-bottom-nav,
+  body.has-guidy-chat .top-nav-menu,
+  body.has-guidy-chat .bottom-nav-menu,
+  body.has-guidy-chat .guest-bottom-nav,
+  body.has-guidy-chat .mob-search-bubble,
+  body.has-guidy-chat .mob-search-overlay,
+  body.has-guidy-chat .sidebar-wrapper,
+  body.has-guidy-chat #sidebarOverlay,
+  body.has-guidy-chat .sidebar-overlay,
+  body.has-guidy-chat footer,
+  body.has-guidy-chat .footer-bottom {
+    display: none !important;
   }
-  .g-shell { display: block; position: relative; overflow: hidden; height: 100%; }
-  
+
+  .g-wrap {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    z-index: 500 !important;
+    overflow: hidden !important;
+    background: var(--g-bg);
+  }
+
+  .g-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    overflow: hidden !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    width: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
   .g-sidebar {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    height: 100dvh !important;
     display: flex !important;
     flex-direction: column !important;
     border-radius: 0 !important;
+    z-index: 5 !important;
   }
-  
+
   .g-main {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
     display: none !important;
     flex-direction: column !important;
-    transform: none !important;
-    transition: none !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+    z-index: 10 !important;
+    background: var(--g-chat-bg);
   }
-  
+
   /* Active Chat state visibility */
   .g-shell.chat-active .g-sidebar {
     display: none !important;
   }
-  
+
   .g-shell.chat-active .g-main {
     display: flex !important;
+    height: 100% !important;
+    height: 100dvh !important;
   }
-  
+
   /* Back Button styling */
-  .g-back-btn {
+  .g-back-btn,
+  .g-sidebar-back-btn {
     display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     margin-right: 2px !important;
   }
-  
-  /* Chat Header Mobile Compression */
+
+  /* Chat Header Mobile Compression & Sticky Top (Fixed in place like WhatsApp) */
   .g-chat-hdr {
+    flex-shrink: 0 !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 30 !important;
     gap: 8px !important;
     padding: 10px 12px !important;
+    border-radius: 0 !important;
   }
   .g-hdr-avatar {
     width: 35px !important;
@@ -1664,11 +1718,48 @@ body.dark-theme .contact-item-chatted {
     text-overflow: ellipsis !important;
     max-width: 100% !important;
   }
-}
 
-@media (max-width: 480px) {
-  .g-messages { padding: 10px 10px; }
-  .g-msg-row { max-width: 88%; }
+  /* Messages Canvas: shrinks flexibly between top header and bottom input bar */
+  .g-messages {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    padding: 12px 10px !important;
+  }
+
+  .g-msg-row {
+    max-width: 88% !important;
+  }
+
+  /* Input Bar: sticky at the bottom right above on-screen keyboard */
+  .g-input-bar {
+    flex-shrink: 0 !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 30 !important;
+    border-radius: 0 !important;
+    padding: 8px 10px !important;
+    background: var(--g-side-bg) !important;
+  }
+
+  .g-input-inner-wrap {
+    gap: 4px !important;
+    padding: 4px 6px !important;
+  }
+  .g-attach-btn, .g-emoji-btn, .g-send-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 1.15rem !important;
+  }
+  .g-attach-btn {
+    margin-right: -2px !important;
+  }
 }
 
 /* Theme hardening for icons and back buttons inside Guidy shell */
@@ -1952,7 +2043,12 @@ body.dark-theme .search-highlight {
     <div class="g-sidebar-top">
       <!-- ROW 1: Title & Menu -->
       <div class="g-sidebar-title-row">
-        <h2>Guidy Chats</h2>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <a href="{% if is_teacher %}{% url 'users:teacher_dashboard' %}{% elif is_guest %}{% url 'users:guest_page' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}" class="g-sidebar-back-btn" title="Back to Dashboard" style="display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; color: var(--g-text); background: var(--g-bg); text-decoration: none; font-size: 1.3rem;">
+            <i class='bx bx-left-arrow-alt'></i>
+          </a>
+          <h2>Guidy Chats</h2>
+        </div>
         <!-- 3-Dot Icon Wrapper -->
         <div class="g-sidebar-menu-wrapper">
           <button id="gSidebarMenuBtn" onclick="toggleSidebarMenu(event)" title="Menu">
@@ -3369,6 +3465,71 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       gShell.classList.remove('chat-active');
     }
+  }
+
+  // ── Mobile Visual Viewport & Keyboard Resizing (WhatsApp style) ──
+  document.body.classList.add('has-guidy-chat');
+  
+  function syncGuidyVisualViewport() {
+    if (window.innerWidth > 768) return;
+    const vv = window.visualViewport;
+    const gWrap = document.querySelector('.g-wrap');
+    const gShellElem = document.getElementById('gShell');
+    const gMainElem = document.querySelector('.g-main');
+    const gMessagesElem = document.getElementById('gMessages');
+
+    if (vv && gWrap) {
+      const height = vv.height;
+      const top = vv.offsetTop;
+
+      gWrap.style.height = `${height}px`;
+      gWrap.style.top = `${top}px`;
+
+      if (gShellElem) gShellElem.style.height = `${height}px`;
+      if (gMainElem) gMainElem.style.height = `${height}px`;
+
+      if (gMessagesElem && gShellElem && gShellElem.classList.contains('chat-active')) {
+        requestAnimationFrame(() => {
+          gMessagesElem.scrollTop = gMessagesElem.scrollHeight;
+        });
+      }
+    }
+
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncGuidyVisualViewport);
+    window.visualViewport.addEventListener('scroll', syncGuidyVisualViewport);
+  }
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth <= 768) {
+      syncGuidyVisualViewport();
+    }
+  });
+
+  const gInputElem = document.getElementById('gInput');
+  if (gInputElem) {
+    gInputElem.addEventListener('focus', () => {
+      document.body.classList.add('guidy-keyboard-open');
+      setTimeout(syncGuidyVisualViewport, 50);
+      setTimeout(syncGuidyVisualViewport, 150);
+      setTimeout(syncGuidyVisualViewport, 300);
+    });
+    gInputElem.addEventListener('blur', () => {
+      document.body.classList.remove('guidy-keyboard-open');
+      setTimeout(syncGuidyVisualViewport, 50);
+      setTimeout(syncGuidyVisualViewport, 150);
+      setTimeout(syncGuidyVisualViewport, 300);
+    });
+  }
+
+  // Initial sync
+  if (window.innerWidth <= 768) {
+    setTimeout(syncGuidyVisualViewport, 100);
   }
 });
 
