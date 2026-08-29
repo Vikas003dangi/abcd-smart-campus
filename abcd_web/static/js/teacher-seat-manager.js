@@ -26,61 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const groundFloorWrapper = document.getElementById('ground-floor-wrapper');
   const firstFloorWrapper = document.getElementById('first-floor-wrapper');
 
-  // --- PREMIUM CUSTOM SELECT LOGIC ---
+  // --- PREMIUM CUSTOM SELECT LOGIC (Unified with window.enhanceSelectElements) ---
   function initCustomSelects() {
-    document.querySelectorAll('select.form-control').forEach(select => {
-      if (select.dataset.customized) return;
-      select.dataset.customized = "true";
-      select.style.display = 'none';
-
-      const wrapper = document.createElement('div');
-      wrapper.className = 'abcd-select-wrapper';
-
-      const trigger = document.createElement('div');
-      trigger.className = 'abcd-select-trigger';
-      // Find currently selected option or first option
-      const selectedOption = select.options[select.selectedIndex] || select.options[0];
-      trigger.innerHTML = `<span>${selectedOption ? selectedOption.text : 'Select...'}</span><i class='bx bx-chevron-down'></i>`;
-
-      const dropdown = document.createElement('div');
-      dropdown.className = 'abcd-select-dropdown';
-
-      Array.from(select.options).forEach(option => {
-        const optDiv = document.createElement('div');
-        optDiv.className = 'abcd-select-option';
-        if (option.selected) optDiv.classList.add('selected');
-        optDiv.textContent = option.text;
-        optDiv.dataset.value = option.value;
-
-        optDiv.addEventListener('click', () => {
-          select.value = option.value;
-          trigger.querySelector('span').textContent = option.text;
-          dropdown.querySelectorAll('.abcd-select-option').forEach(o => o.classList.remove('selected'));
-          optDiv.classList.add('selected');
-          wrapper.classList.remove('open');
-
-          // Trigger native change event
-          select.dispatchEvent(new Event('change'));
-        });
-        dropdown.appendChild(optDiv);
-      });
-
-      trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = wrapper.classList.contains('open');
-        document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
-        if (!isOpen) wrapper.classList.add('open');
-      });
-
-      wrapper.appendChild(trigger);
-      wrapper.appendChild(dropdown);
-      select.parentNode.insertBefore(wrapper, select.nextSibling);
-    });
-
-    // Close all dropdowns when clicking outside
-    document.addEventListener('click', () => {
-      document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
-    });
+    if (typeof window.enhanceSelectElements === 'function') {
+      window.enhanceSelectElements(document);
+    }
   }
 
   /**
@@ -90,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function refreshCustomSelect(select) {
     if (!select) return;
     if (typeof window.enhanceSelectElements === 'function') {
-      window.enhanceSelectElements(select);
+      window.enhanceSelectElements(select, true);
     }
   }
 

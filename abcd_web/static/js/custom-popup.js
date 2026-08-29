@@ -403,59 +403,91 @@ window.prompt = function (message, defaultVal) {
     };
 
     // Global Auto-Enhancer for all select elements in modals, forms, and popups
-    window.enhanceSelectElements = function(container) {
+    window.enhanceSelectElements = function(container, forceRefresh = false) {
         const parent = container || document;
         let selects = [];
         if (parent.tagName === 'SELECT') {
             selects = [parent];
         } else if (parent.querySelectorAll) {
-            selects = Array.from(parent.querySelectorAll('select:not([data-no-enhance]):not([data-customized]):not([multiple])'));
+            selects = Array.from(parent.querySelectorAll('select:not([data-no-enhance]):not([multiple])'));
         }
         
         selects.forEach(select => {
-            // Ignore if explicitly requested or if select is hidden / part of manual dropdown
-            if (select.getAttribute('data-no-enhance') === 'true' || select.getAttribute('data-customized') === 'true') return;
-            if (select.style.display === 'none' || select.closest('.custom-dropdown, .mob-custom-dropdown')) return;
+            // Ignore if explicitly marked to skip enhancement or if within a custom manual dropdown component
+            if (select.getAttribute('data-no-enhance') === 'true') return;
+            if (select.closest('.custom-dropdown, .mob-custom-dropdown')) return;
 
-            // Check if wrapper already exists
-            const hasWrapper = select.nextElementSibling && select.nextElementSibling.classList.contains('abcd-select-wrapper');
-            if (select.dataset.enhanced === 'true' && hasWrapper) {
-                // Ensure no secondary duplicate wrappers exist after the first valid wrapper
-                let nextSibling = select.nextElementSibling.nextElementSibling;
-                while (nextSibling && nextSibling.classList.contains('abcd-select-wrapper')) {
-                    const toRemove = nextSibling;
-                    nextSibling = nextSibling.nextElementSibling;
-                    toRemove.remove();
+            // Enforce select hiding
+            select.dataset.enhanced = 'true';
+            select.dataset.customized = 'true';
+            select.style.setProperty('display', 'none', 'important');
+            select.style.setProperty('visibility', 'hidden', 'important');
+            select.style.setProperty('position', 'absolute', 'important');
+            select.style.setProperty('width', '0', 'important');
+            select.style.setProperty('height', '0', 'important');
+            select.style.setProperty('opacity', '0', 'important');
+            select.style.setProperty('pointer-events', 'none', 'important');
+
+            // Find existing wrapper directly following this select
+            let existingWrapper = null;
+            if (select.nextElementSibling && select.nextElementSibling.classList.contains('abcd-select-wrapper')) {
+                existingWrapper = select.nextElementSibling;
+            }
+
+            // Clean up any extra/duplicate wrappers
+            let nextEl = existingWrapper ? existingWrapper.nextElementSibling : select.nextElementSibling;
+            while (nextEl && nextEl.classList.contains('abcd-select-wrapper')) {
+                const toRemove = nextEl;
+                nextEl = nextEl.nextElementSibling;
+                toRemove.remove();
+            }
+
+            if (existingWrapper && !forceRefresh) {
+                // Keep the trigger text up to date with currently selected option
+                const selectedOpt = select.options[select.selectedIndex] || select.options[0];
+                const triggerSpan = existingWrapper.querySelector('.abcd-select-trigger span');
+                if (triggerSpan) {
+                    triggerSpan.textContent = selectedOpt ? selectedOpt.text : 'Select...';
                 }
                 return;
             }
 
-            // Clean up any stale wrappers before creating a new one
-            let sibling = select.nextElementSibling;
-            while (sibling && sibling.classList.contains('abcd-select-wrapper')) {
-                const toRemove = sibling;
-                sibling = sibling.nextElementSibling;
-                toRemove.remove();
+            let wrapper = existingWrapper;
+            let trigger = null;
+            let dropdown = null;
+
+            if (wrapper) {
+                trigger = wrapper.querySelector('.abcd-select-trigger');
+                dropdown = wrapper.querySelector('.abcd-select-dropdown');
+                if (dropdown) dropdown.innerHTML = '';
+            } else {
+                wrapper = document.createElement('div');
+                wrapper.className = 'abcd-select-wrapper';
+
+                trigger = document.createElement('div');
+                trigger.className = 'abcd-select-trigger';
+
+                dropdown = document.createElement('div');
+                dropdown.className = 'abcd-select-dropdown';
+
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = wrapper.classList.contains('open');
+                    document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
+                    if (!isOpen) wrapper.classList.add('open');
+                });
+
+                wrapper.appendChild(trigger);
+                wrapper.appendChild(dropdown);
+                
+                if (select.parentNode) {
+                    select.parentNode.insertBefore(wrapper, select.nextSibling);
+                }
             }
 
-            select.dataset.enhanced = 'true';
-
-            select.style.display = 'none';
-            select.style.visibility = 'hidden';
-            select.style.position = 'absolute';
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'abcd-select-wrapper';
-
-            const trigger = document.createElement('div');
-            trigger.className = 'abcd-select-trigger';
-            
-            const selectedOpt = select.options[select.selectedIndex];
+            const selectedOpt = select.options[select.selectedIndex] || select.options[0];
             const selectedText = selectedOpt ? selectedOpt.text : 'Select...';
-            trigger.innerHTML = `<span>${selectedText}</span><i class='bx bx-chevron-down'></i>`;
-
-            const dropdown = document.createElement('div');
-            dropdown.className = 'abcd-select-dropdown';
+            trigger.innerHTML = `<span>${typeof escapeHTML === 'function' ? escapeHTML(selectedText) : selectedText}</span><i class='bx bx-chevron-down'></i>`;
 
             Array.from(select.options).forEach(option => {
                 const optDiv = document.createElement('div');
@@ -467,7 +499,8 @@ window.prompt = function (message, defaultVal) {
                 optDiv.addEventListener('click', (e) => {
                     e.stopPropagation();
                     select.value = option.value;
-                    trigger.querySelector('span').textContent = option.text;
+                    const triggerSpan = trigger.querySelector('span');
+                    if (triggerSpan) triggerSpan.textContent = option.text;
                     dropdown.querySelectorAll('.abcd-select-option').forEach(o => o.classList.remove('selected'));
                     optDiv.classList.add('selected');
                     wrapper.classList.remove('open');
@@ -476,20 +509,6 @@ window.prompt = function (message, defaultVal) {
                 });
                 dropdown.appendChild(optDiv);
             });
-
-            trigger.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isOpen = wrapper.classList.contains('open');
-                document.querySelectorAll('.abcd-select-wrapper').forEach(w => w.classList.remove('open'));
-                if (!isOpen) wrapper.classList.add('open');
-            });
-
-            wrapper.appendChild(trigger);
-            wrapper.appendChild(dropdown);
-            
-            if (select.parentNode) {
-                select.parentNode.insertBefore(wrapper, select.nextSibling);
-            }
         });
     };
 

@@ -489,7 +489,11 @@ textarea::-webkit-scrollbar-thumb {
    ========================================================================== */
 
 /* Native Select Inputs */
-select[data-enhanced="true"] {
+select[data-enhanced="true"],
+select[data-customized="true"],
+select.is-enhanced,
+.abcd-select-wrapper + select,
+select:has(+ .abcd-select-wrapper) {
     display: none !important;
     visibility: hidden !important;
     width: 0 !important;
@@ -499,7 +503,10 @@ select[data-enhanced="true"] {
     position: absolute !important;
 }
 
-select:not([data-enhanced="true"]), select.form-select:not([data-enhanced="true"]), select.custom-select:not([data-enhanced="true"]), .form-control select:not([data-enhanced="true"]) {
+select:not([data-enhanced="true"]):not([data-customized="true"]),
+select.form-select:not([data-enhanced="true"]):not([data-customized="true"]),
+select.custom-select:not([data-enhanced="true"]):not([data-customized="true"]),
+.form-control select:not([data-enhanced="true"]):not([data-customized="true"]) {
     appearance: none !important;
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
