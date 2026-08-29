@@ -26,7 +26,7 @@
 </div>
 
 ## 🌟 Highlights & Achievements
-- ⏱️ **1 Year of Continuous Engineering:** Built from the ground up with robust Django architecture, scalable ASGI WebSockets, and modular services.
+- 🏗️ **Production-Grade Full-Stack Architecture:** Built from the ground up with robust Django architecture, scalable ASGI WebSockets, and modular autonomous services.
 - ⚡ **Real-Time Communication:** Sub-second latency messaging and instant push alerts powered by Django Channels and Daphne.
 - 🪑 **Visual Seating Matrix:** Real-time interactive seat grid with 3-day grace hold period automations and instant switch workflows.
 - 🧾 **Financially Audited:** Automated fee lifecycle tracker with cryptographic PDF receipt generator and digital verification.
