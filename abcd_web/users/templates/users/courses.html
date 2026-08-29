@@ -443,8 +443,9 @@
 
             <a href="{% url 'users:course_detail' course.id %}" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%;">
                 <div class="course-thumbnail" style="position: relative;">
-                    {% if course.thumbnail %}
-                    <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}">
+                    {% if course.thumbnail_display_url %}
+                    <img src="{{ course.thumbnail_display_url }}" alt="{{ course.title }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                    <div style="display:none; width:100%; height:100%; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:4rem;">🎓</div>
                     {% else %}
                     <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:4rem;">🎓</div>
                     {% endif %}

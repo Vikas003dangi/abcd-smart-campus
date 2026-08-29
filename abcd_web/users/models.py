@@ -556,6 +556,27 @@ class Course(models.Model):
         return self.title
 
     @property
+    def thumbnail_display_url(self):
+        """Returns uploaded thumbnail URL or falls back to YouTube CDN thumbnail."""
+        if self.thumbnail:
+            try:
+                return self.thumbnail.url
+            except Exception:
+                pass
+        # Direct YouTube CDN fallback for custom / synced courses
+        if self.video_ids:
+            first_id = self.video_ids.split(',')[0].strip()
+            if first_id:
+                return f"https://img.youtube.com/vi/{first_id}/hqdefault.jpg"
+        first_mat = self.materials.filter(material_type='video').first()
+        if first_mat and first_mat.external_url:
+            import re
+            m = re.search(r'(?:v=|\/embed\/|\/watch\?v=|youtu\.be\/|\/v\/|e\/|watch\?feature=player_embedded&v=)([a-zA-Z0-9_-]{11})', first_mat.external_url)
+            if m:
+                return f"https://img.youtube.com/vi/{m.group(1)}/hqdefault.jpg"
+        return None
+
+    @property
     def average_rating(self):
         # Use simple aggregation or calculate from reviews
         avg = self.reviews.aggregate(models.Avg('rating'))['rating__avg']

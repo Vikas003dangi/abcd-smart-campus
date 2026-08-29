@@ -1876,7 +1876,7 @@
             </div>
             
             <div class="share-preview-card">
-                <img src="{% if course.thumbnail %}{{ course.thumbnail.url }}{% endif %}" alt="Preview">
+                <img src="{% if course.thumbnail_display_url %}{{ course.thumbnail_display_url }}{% endif %}" alt="Preview">
                 <div class="share-preview-info">
                     <h4>{{ course.title }}</h4>
                     <p>Learning is better with friends. Join me on ABCD!</p>
