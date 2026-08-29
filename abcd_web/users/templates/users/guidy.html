@@ -2253,7 +2253,7 @@ body.dark-theme .search-highlight {
       <button class="g-back-btn" onclick="goBack()" title="Back to chats">
         <i class='bx bx-arrow-back'></i>
       </button>
-      <div class="g-hdr-avatar" onclick="openProfileDrawer()" id="hdrAvatar">
+      <div class="g-hdr-avatar" onclick="toggleProfileDrawer(event)" id="hdrAvatar">
         {% if active_session or active_direct %}
           {% if other_user_photo %}
             <img src="{{ other_user_photo }}" alt="{{ other_user_name }}" style="width:100%; height:100%; object-fit:cover;">
@@ -2268,7 +2268,7 @@ body.dark-theme .search-highlight {
           {% endif %}
         {% endif %}
       </div>
-      <div class="g-hdr-info" onclick="openProfileDrawer()">
+      <div class="g-hdr-info" onclick="toggleProfileDrawer(event)">
         <div class="g-hdr-name">
           {% if active_session or active_direct %}
             <span class="g-hdr-name-text">{{ other_user_name }}</span>
@@ -5438,8 +5438,20 @@ function closeCurrentChat() {
 }
 
 // ── Profile Drawer ───────────────────────────────────────
+function toggleProfileDrawer(e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  const drawer = document.getElementById('profileDrawer');
+  if (drawer && drawer.classList.contains('open')) {
+    closeProfileDrawer();
+  } else {
+    openProfileDrawer();
+  }
+}
+
 async function openProfileDrawer() {
-  document.getElementById('profileDrawer').classList.add('open');
+  const drawer = document.getElementById('profileDrawer');
+  if (!drawer) return;
+  drawer.classList.add('open');
   if (!OTHER_TYPE || !OTHER_ID) {
     document.getElementById('drawerBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--g-sub);">Profile info unavailable.</div>';
     return;
@@ -6771,6 +6783,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Setup keyboard navigation on modal search suggestions
   setupModalSearchKeyboardNav();
+
+  // Toggle profile drawer when clicking on the chat header (except action buttons)
+  const activeHdr = document.getElementById('activeChatHeader');
+  if (activeHdr) {
+    activeHdr.addEventListener('click', (e) => {
+      // If clicking inside action buttons, back button, or menu, don't toggle profile
+      if (e.target.closest('.g-back-btn') || e.target.closest('.g-hdr-actions') || e.target.closest('.g-action-menu') || e.target.closest('.g-hdr-btn')) {
+        return;
+      }
+      toggleProfileDrawer(e);
+    });
+  }
+
+  // Close Profile Drawer on Outside Click
+  document.addEventListener('click', (e) => {
+    const drawer = document.getElementById('profileDrawer');
+    if (!drawer || !drawer.classList.contains('open')) return;
+
+    // Ignore clicks inside the profile drawer
+    if (e.target.closest('#profileDrawer')) return;
+
+    // Ignore clicks on header (handled by header click / toggle)
+    if (e.target.closest('#activeChatHeader')) return;
+
+    // Ignore clicks inside any modal / popup / dialog / context menu / toast
+    if (e.target.closest('.g-modal') || e.target.closest('.modal') || e.target.closest('.abcd-modal-container') || e.target.closest('.g-ctx-wrap') || e.target.closest('.toast') || e.target.closest('.g-toast')) return;
+
+    closeProfileDrawer();
+  });
 });
 
 let selectedPhotoFile = null;
