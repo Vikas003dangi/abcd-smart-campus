@@ -77,3 +77,7 @@ cffi==2.0.0
 pycparser==2.23
 six==1.17.0
 twilio==9.8.3
+
+# Cloud Media Storage (Cloudinary)
+cloudinary>=1.46.0
+django-cloudinary-storage>=0.3.0

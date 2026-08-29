@@ -8704,6 +8704,19 @@ def teacher_broadcast_view(request):
             else:
                 return JsonResponse({"status": "error", "message": "Invalid date/time format."}, status=400)
 
+        # Expiry Date (default 60 days from now if omitted)
+        expiry_date_str = request.POST.get("expiry_date", "").strip()
+        expires_at = None
+        if expiry_date_str:
+            try:
+                from datetime import datetime, time
+                exp_d = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
+                expires_at = timezone.make_aware(datetime.combine(exp_d, time(23, 59, 59)))
+            except Exception:
+                expires_at = timezone.now() + timedelta(days=60)
+        else:
+            expires_at = timezone.now() + timedelta(days=60)
+
         item_label = "Ads Banner" if message_type == "banner" else "Broadcast"
 
         # -----------------------------
@@ -8742,6 +8755,7 @@ def teacher_broadcast_view(request):
                 send_whatsapp=send_whatsapp,
                 send_email=send_email,
                 send_at=send_at,
+                expires_at=expires_at,
                 status="draft" if is_draft else status,
                 is_draft=is_draft,
                 is_sent=(not is_draft and status == "sent"),
@@ -8997,11 +9011,19 @@ def get_active_student_banner_api(request):
     now = timezone.now()
     dismissed_ids = BannerViewLog.objects.filter(user=user).values_list("broadcast_id", flat=True)
 
+    # 4-hour cooldown check: if user already saw any banner in the last 4 hours, do not show another one yet
+    four_hours_ago = now - timedelta(hours=4)
+    recent_view = BannerViewLog.objects.filter(user=user, viewed_at__gte=four_hours_ago).exists()
+    if recent_view:
+        return JsonResponse({"status": "success", "has_banner": False})
+
     try:
         process_scheduled_broadcasts()
+        purge_expired_broadcasts_and_complaint_media()
     except Exception:
         pass
 
+    # Filter unexpired banners and order FIFO (whichever was created first is shown first)
     banners = BroadcastMessage.objects.filter(
         message_type="banner",
         is_draft=False
@@ -9009,7 +9031,9 @@ def get_active_student_banner_api(request):
         Q(status="sent") | Q(status="scheduled", send_at__lte=now)
     ).filter(
         Q(send_at__isnull=True) | Q(send_at__lte=now)
-    ).exclude(id__in=dismissed_ids).order_by("-created_at")
+    ).filter(
+        Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+    ).exclude(id__in=dismissed_ids).order_by("created_at")
 
     matching_banner = None
     for b in banners:
@@ -9951,17 +9975,23 @@ def purge_group_chat_session(group):
         for msg in group.messages.exclude(file='').exclude(file__isnull=True):
             if msg.file:
                 try:
-                    if os.path.isfile(msg.file.path):
-                        os.remove(msg.file.path)
+                    msg.file.delete(save=False)
                 except Exception:
-                    pass
+                    try:
+                        if hasattr(msg.file, 'path') and os.path.isfile(msg.file.path):
+                            os.remove(msg.file.path)
+                    except Exception:
+                        pass
         # 2. Delete group avatar
         if group.photo:
             try:
-                if os.path.isfile(group.photo.path):
-                    os.remove(group.photo.path)
+                group.photo.delete(save=False)
             except Exception:
-                pass
+                try:
+                    if hasattr(group.photo, 'path') and os.path.isfile(group.photo.path):
+                        os.remove(group.photo.path)
+                except Exception:
+                    pass
         group.messages.all().delete()
         group.delete()
     except Exception as e:
@@ -9983,6 +10013,48 @@ def purge_expired_group_chats():
     )
     for g in expired_groups:
         purge_group_chat_session(g)
+
+
+def purge_expired_broadcasts_and_complaint_media():
+    """
+    1. Permanently deletes expired Broadcasts & Ads Banners (with all attached files and banners) from DB and storage.
+    2. Purges proof images from Resolved Complaints older than 30 days while preserving resolution history.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+    from .models import BroadcastMessage, Complaint
+
+    now = timezone.now()
+
+    # 1. Expired Broadcasts & Banners
+    expired_broadcasts = BroadcastMessage.objects.filter(expires_at__isnull=False, expires_at__lte=now)
+    for b in expired_broadcasts:
+        try:
+            b.delete() # Triggers post_delete signal on attachments and banners
+        except Exception:
+            pass
+
+    # 2. Resolved Complaints older than 30 days -> clear proof images
+    thirty_days_ago = now - timedelta(days=30)
+    resolved_complaints = Complaint.objects.filter(
+        status=Complaint.STATUS_RESOLVED,
+        resolved_at__isnull=False,
+        resolved_at__lte=thirty_days_ago
+    )
+    for comp in resolved_complaints:
+        cleared = False
+        for img_field in [comp.image1, comp.image2, comp.image3]:
+            if img_field:
+                try:
+                    img_field.delete(save=False)
+                except Exception:
+                    pass
+                cleared = True
+        if cleared:
+            comp.image1 = None
+            comp.image2 = None
+            comp.image3 = None
+            comp.save(update_fields=['image1', 'image2', 'image3'])
 
 
 def resolve_system_message_content(content, user):

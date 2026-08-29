@@ -230,8 +230,8 @@ class NotificationAdmin(admin.ModelAdmin):
 
 @admin.register(BroadcastMessage)
 class BroadcastMessageAdmin(admin.ModelAdmin):
-    list_display = ('subject', 'sender', 'target_group', 'status', 'created_at')
-    list_filter = ('target_group', 'status')
+    list_display = ('subject', 'sender', 'message_type', 'target_group', 'status', 'expires_at', 'created_at')
+    list_filter = ('message_type', 'target_group', 'status', 'expires_at')
     search_fields = ('subject', 'message')
 
 @admin.register(BroadcastAttachment)

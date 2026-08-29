@@ -489,14 +489,17 @@ class Complaint(models.Model):
 
 @receiver(post_delete, sender=Complaint)
 def auto_delete_complaint_images_on_delete(sender, instance, **kwargs):
-    """Deletes image files from filesystem when Complaint is deleted."""
+    """Deletes image files from storage (Local / Cloudinary) when Complaint is deleted."""
     for image_field in [instance.image1, instance.image2, instance.image3]:
         if image_field:
             try:
-                if os.path.isfile(image_field.path):
-                    os.remove(image_field.path)
+                image_field.delete(save=False)
             except Exception:
-                pass
+                try:
+                    if hasattr(image_field, 'path') and os.path.isfile(image_field.path):
+                        os.remove(image_field.path)
+                except Exception:
+                    pass
 
 
 # -------------------------------------------------------------------
@@ -737,6 +740,7 @@ class BroadcastMessage(models.Model):
     )
     banner_image = models.FileField(upload_to="broadcast_banners/", blank=True, null=True)
     banner_buttons = models.JSONField(default=list, blank=True, null=True, help_text="List of CTA button dicts")
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Auto-delete and expiration timestamp")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -767,11 +771,17 @@ class BroadcastAttachment(models.Model):
         return f"Attachment for {self.broadcast.subject}"
 
 @receiver(post_delete, sender=BroadcastAttachment)
-def auto_delete_file_on_delete(sender, instance, **kwargs):
-    """Deletes file from filesystem when BroadcastAttachment is deleted."""
+def auto_delete_broadcast_attachment_on_delete(sender, instance, **kwargs):
+    """Deletes file from storage (Local / Cloudinary) when BroadcastAttachment is deleted."""
     if instance.file:
-        if os.path.isfile(instance.file.path):
-            os.remove(instance.file.path)
+        try:
+            instance.file.delete(save=False)
+        except Exception:
+            try:
+                if hasattr(instance.file, 'path') and os.path.isfile(instance.file.path):
+                    os.remove(instance.file.path)
+            except Exception:
+                pass
 
 # -------------------------------------------------------------------
 # PAYMENT MODEL
@@ -2279,13 +2289,16 @@ def send_welcome_email_on_registration(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=Message)
 @receiver(post_delete, sender=GroupMessage)
 def auto_delete_chat_media_on_delete(sender, instance, **kwargs):
-    """Physically deletes the file from the hard drive when the message row is deleted."""
+    """Physically deletes the file from storage (Local / Cloudinary) when the message row is deleted."""
     if instance.file:
         try:
-            if os.path.isfile(instance.file.path):
-                os.remove(instance.file.path)
+            instance.file.delete(save=False)
         except Exception:
-            pass
+            try:
+                if hasattr(instance.file, 'path') and os.path.isfile(instance.file.path):
+                    os.remove(instance.file.path)
+            except Exception:
+                pass
 
 
 class TeacherProfile(models.Model):
@@ -2342,7 +2355,7 @@ def create_teacher_profile(sender, instance, created, **kwargs):
 @receiver(pre_save, sender=StudyMaterial)
 @receiver(pre_save, sender=BroadcastMessage)
 def auto_delete_file_on_change(sender, instance, **kwargs):
-    """Deletes old physical file from hard drive when a new file is uploaded or cleared."""
+    """Deletes old physical file from storage (Local / Cloudinary) when a new file is uploaded or cleared."""
     if not instance.pk:
         return False
 
@@ -2357,10 +2370,13 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
         new_file = getattr(instance, field_name, None)
         if old_file and old_file != new_file:
             try:
-                if os.path.isfile(old_file.path):
-                    os.remove(old_file.path)
+                old_file.delete(save=False)
             except Exception:
-                pass
+                try:
+                    if hasattr(old_file, 'path') and os.path.isfile(old_file.path):
+                        os.remove(old_file.path)
+                except Exception:
+                    pass
 
 
 @receiver(post_delete, sender=StudentProfile)
@@ -2370,36 +2386,45 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
 @receiver(post_delete, sender=StudyMaterial)
 @receiver(post_delete, sender=BroadcastMessage)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
-    """Deletes old physical file from hard drive when the instance is completely deleted."""
+    """Deletes physical file from storage (Local / Cloudinary) when the instance is completely deleted."""
     file_fields = ['photo', 'thumbnail', 'file', 'attachment', 'banner_image']
     for field_name in file_fields:
         file = getattr(instance, field_name, None)
         if file:
             try:
-                if os.path.isfile(file.path):
-                    os.remove(file.path)
+                file.delete(save=False)
             except Exception:
-                pass
+                try:
+                    if hasattr(file, 'path') and os.path.isfile(file.path):
+                        os.remove(file.path)
+                except Exception:
+                    pass
 
 
 @receiver(post_delete, sender=Course)
 def auto_delete_course_files_on_delete(sender, instance, **kwargs):
-    """Deletes course thumbnail and all associated study material files from disk."""
+    """Deletes course thumbnail and all associated study material files from storage (Local / Cloudinary)."""
     if instance.thumbnail:
         try:
-            if os.path.isfile(instance.thumbnail.path):
-                os.remove(instance.thumbnail.path)
+            instance.thumbnail.delete(save=False)
         except Exception:
-            pass
+            try:
+                if hasattr(instance.thumbnail, 'path') and os.path.isfile(instance.thumbnail.path):
+                    os.remove(instance.thumbnail.path)
+            except Exception:
+                pass
 
     for mat in instance.materials.all():
         for field in [mat.file, mat.thumbnail]:
             if field:
                 try:
-                    if os.path.isfile(field.path):
-                        os.remove(field.path)
+                    field.delete(save=False)
                 except Exception:
-                    pass
+                    try:
+                        if hasattr(field, 'path') and os.path.isfile(field.path):
+                            os.remove(field.path)
+                    except Exception:
+                        pass
 
 
 class GuidyBlock(models.Model):

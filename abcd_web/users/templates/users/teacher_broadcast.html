@@ -431,6 +431,24 @@
               </div>
           </div>
 
+          <!-- SECTION 5: EXPIRY & LIFECYCLE -->
+          <div class="section-group">
+              <h4 class="section-title">
+                  <i class='bx bx-calendar-x' style="font-size: 1.15rem; color: #ef4444; vertical-align: middle;"></i>
+                  EXPIRY & AUTO-CLEANUP
+              </h4>
+              <div class="form-group" style="margin-bottom: 0;">
+                  <label for="expiryDateInput" style="font-size: 0.8rem; font-weight: 500; margin-bottom: 6px; display: block;">
+                      Auto-delete from database & storage on: <small style="color: #94a3b8; font-weight: 400;">(Default: 60 days from today)</small>
+                  </label>
+                  <input type="date" 
+                         id="expiryDateInput" 
+                         name="expiry_date" 
+                         class="form-input" 
+                         style="padding: 10px 14px; border-radius: 8px;">
+              </div>
+          </div>
+
           <!-- Date Selection Modal -->
           <div id="dateModal" class="broadcast-modal-overlay">
               <div class="broadcast-modal-container">
@@ -886,6 +904,16 @@
 
         if (window.showBroadcastStatus) window.showBroadcastStatus('Draft loaded', 'success');
     };
+
+    function initExpiryDefault() {
+        const expInput = document.getElementById('expiryDateInput');
+        if (expInput && !expInput.value) {
+            const d = new Date();
+            d.setDate(d.getDate() + 60);
+            expInput.value = d.toISOString().split('T')[0];
+        }
+    }
+    initExpiryDefault();
 
     if (typeof refreshDrafts === 'function') refreshDrafts();
 </script>
