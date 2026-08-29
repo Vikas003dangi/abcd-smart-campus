@@ -1052,17 +1052,27 @@ div.breadcrumbs a:hover {
   width: 100% !important;
   max-width: 100% !important;
   border-collapse: collapse !important;
+  table-layout: auto !important;
 }
 
 .module th, .module td {
-  padding: 13px 22px !important;
+  padding: 12px 18px !important;
   border-bottom: 1px solid var(--admin-table-border) !important;
   color: var(--admin-text-main) !important;
   font-size: 0.92rem !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: none !important;
 }
 
 .module tr:hover th, .module tr:hover td {
   background: var(--admin-table-hover) !important;
+}
+
+.module th {
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  white-space: normal !important;
 }
 
 .module th a {
@@ -1070,10 +1080,20 @@ div.breadcrumbs a:hover {
   font-weight: 800 !important;
   text-decoration: none !important;
   transition: color 0.2s ease;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  white-space: normal !important;
+  display: inline-block !important;
 }
 
 .module th a:hover {
   color: var(--admin-accent) !important;
+}
+
+.module td {
+  width: 1% !important;
+  white-space: nowrap !important;
+  text-align: right !important;
 }
 
 .addlink, .changelink {
@@ -1656,6 +1676,24 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     height: 36px !important;
   }
 
+  .module th, .module td {
+    padding: 10px 10px !important;
+  }
+
+  .module th a {
+    font-size: 0.88rem !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    white-space: normal !important;
+    line-height: 1.3 !important;
+  }
+
+  .addlink, .changelink {
+    padding: 3px 8px !important;
+    font-size: 0.76rem !important;
+    border-radius: 6px !important;
+  }
+
   .admin-dashboard-hero {
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -1721,6 +1759,27 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
+/* Compact Mobile Screens (< 550px) - Anti-Word-Breaking Rules */
+@media (max-width: 550px) {
+  .module th, .module td {
+    padding: 9px 8px !important;
+  }
+
+  .module th a {
+    font-size: 0.82rem !important;
+    word-break: keep-all !important;
+    overflow-wrap: normal !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+  }
+
+  .addlink, .changelink {
+    padding: 3px 6px !important;
+    font-size: 0.72rem !important;
+    border-radius: 6px !important;
+  }
+}
+
 /* Extra Small Phones (< 380px) */
 @media (max-width: 380px) {
   #header {
@@ -1738,6 +1797,10 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   .admin-hamburger-btn {
     width: 32px !important;
     height: 32px !important;
+  }
+
+  .module th a {
+    font-size: 0.78rem !important;
   }
 
   #content {
