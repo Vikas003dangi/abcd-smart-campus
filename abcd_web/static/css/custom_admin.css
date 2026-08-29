@@ -163,6 +163,7 @@ body:not(.login)::before {
 .admin-brand-header {
   display: flex !important;
   align-items: center !important;
+  gap: 14px !important;
   min-width: 0 !important;
 }
 
@@ -1643,31 +1644,83 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Extra Small Phones (Down to 320px) */
+/* Extra Small Phones (Down to 320px) - Balanced 2-Row Header */
 @media (max-width: 380px) {
   #header {
-    padding: 6px 8px !important;
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    grid-template-rows: auto auto !important;
+    padding: 8px 10px !important;
+    row-gap: 8px !important;
+    column-gap: 6px !important;
+    align-items: center !important;
+  }
+
+  #branding {
+    display: contents !important;
+  }
+
+  .admin-brand-header {
+    display: contents !important;
+  }
+
+  /* Row 1: Logo and Title centered */
+  .admin-brand-link {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
   }
 
   .admin-logo-img {
-    height: 26px !important;
+    height: 28px !important;
   }
 
   .admin-brand-title {
-    font-size: 0.88rem !important;
+    font-size: 0.98rem !important;
   }
 
-  .admin-brand-badge {
-    display: none !important;
-  }
-
+  /* Row 2: Left is User Pill */
   .admin-user-pill {
-    max-width: 80px !important;
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    justify-self: start !important;
+    font-size: 0.74rem !important;
+    padding: 3px 8px !important;
+    max-width: 110px !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
-    font-size: 0.72rem !important;
-    padding: 3px 6px !important;
+    margin: 0 !important;
+  }
+
+  /* Row 2: Center is Admin Badge */
+  .admin-brand-badge {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    justify-self: center !important;
+    display: inline-flex !important;
+    font-size: 0.68rem !important;
+    padding: 2px 8px !important;
+    margin: 0 auto !important;
+  }
+
+  /* Row 2: Right is Hamburger Menu */
+  #user-tools {
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+    justify-self: end !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .admin-hamburger-btn {
+    width: 34px !important;
+    height: 34px !important;
+    margin: 0 !important;
   }
 
   #content {

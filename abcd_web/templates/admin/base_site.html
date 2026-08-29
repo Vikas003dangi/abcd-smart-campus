@@ -25,21 +25,17 @@
 <div class="admin-brand-header">
   <a href="{% url 'admin:index' %}" class="admin-brand-link">
     <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="admin-logo-img">
-    <div class="admin-brand-titles">
-      <span class="admin-brand-title">ABCD Smart Campus</span>
-      <span class="admin-brand-badge">⚙️ Admin</span>
-    </div>
+    <span class="admin-brand-title">ABCD Smart Campus</span>
   </a>
-</div>
-{% endblock %}
-
-{% block welcome-msg %}
-  <span class="admin-welcome-label">WELCOME,</span>
+  <span class="admin-brand-badge">⚙️ Admin</span>
   <span class="admin-user-pill">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
     {{ user.first_name|default:user.username|upper }}
   </span>
+</div>
 {% endblock %}
+
+{% block welcome-msg %}{% endblock %}
 
 {% block userlinks %}
   <!-- Desktop Action Buttons (Visible on screens >= 1025px) -->
@@ -64,7 +60,7 @@
     </form>
   </div>
 
-  <!-- Mobile Hamburger Button (Visible on screens < 1025px) -->
+  <!-- Mobile Hamburger Button (Visible on screens < 1025px, Right Side of Header) -->
   <button type="button" class="admin-hamburger-btn" id="adminMobileMenuBtn" aria-label="Toggle Master Admin Navigation Menu" title="Menu">
     <span class="hamburger-icon">
       <span></span>
@@ -180,7 +176,7 @@
       });
     });
 
-    // Mobile Hamburger Drawer Toggle & Dynamic Clean Positioning
+    // Mobile Hamburger Drawer Toggle & Dynamic Clean Positioning Below Header
     const menuBtn = document.getElementById('adminMobileMenuBtn');
     const drawer = document.getElementById('adminMobileDrawer');
     const headerEl = document.getElementById('header');
