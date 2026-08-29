@@ -2675,8 +2675,8 @@ body.dark-theme .search-highlight {
             <div id="gInput" class="g-text-input" contenteditable="true" role="textbox"
               aria-multiline="true" data-placeholder="Type a message…"
               onkeydown="handleInputKey(event)"
-              oninput="toggleSendBtn(); handleMessageInputTyping();"></div>
-            <button class="g-send-btn" id="gSendBtn" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="sendMessage()" disabled title="Send">
+              oninput="toggleSendBtn();"></div>
+            <button class="g-send-btn" id="gSendBtn" type="button" onmousedown="event.preventDefault()" onclick="sendMessage()" disabled title="Send">
               <i class='bx bx-send'></i>
             </button>
           </div>
@@ -3752,7 +3752,7 @@ async function sendMessage() {
     inp.innerHTML = '';
     toggleSendBtn();
     cancelReply();
-    emitTypingIndicator(false);
+    inp.focus();
     requestAnimationFrame(() => {
       inp.focus();
       // Ensure cursor sits at beginning for next message
