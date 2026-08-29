@@ -1066,9 +1066,30 @@
       return `abcd_tour_card_seen_v20_${pageKey}_${userIdent}`;
     }
 
-    start(force = false) {
+    closeAllDrawers() {
+      const sidebars = document.querySelectorAll(
+        '#sidebar, .nav-sidebar, #sidebarWrapper, .sidebar-wrapper, #hubSidebar, .hub-sidebar, #mobileNav, #guestMobileNav'
+      );
+      sidebars.forEach(s => s.classList.remove('active', 'open'));
+
+      const overlays = document.querySelectorAll(
+        '#sidebarOverlay, .sidebar-overlay, #mobileNavOverlay, .mobile-search-overlay'
+      );
+      overlays.forEach(o => o.classList.remove('active', 'open'));
+
+      const hamburgerBtns = document.querySelectorAll(
+        '#hamburgerBtn, .hamburger-icon, #sidebarToggleBtn, .sidebar-toggle-btn, #mobileNavToggle'
+      );
+      hamburgerBtns.forEach(h => h.classList.remove('open', 'active'));
+    }
+
+    async start(force = false) {
       if (this.isStarted) return;
       if (!this.steps || this.steps.length === 0) return;
+
+      // Autoclose any open navigation sidebars before starting tour
+      this.closeAllDrawers();
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       let stepsToUse = [...this.steps];
 
@@ -1148,27 +1169,37 @@
         this.popover.className = 'abcd-tour-popover';
         this.popover.innerHTML = `
           <div class="abcd-tour-arrow"></div>
-          <div class="abcd-tour-header">
-            <span class="abcd-tour-badge"><i class="bx bx-compass"></i> Feature Tour</span>
-            <button class="abcd-tour-close-icon" title="Close Tour">&times;</button>
-          </div>
-          <h4 class="abcd-tour-title"></h4>
-          <p class="abcd-tour-description"></p>
-          <div class="abcd-tour-footer">
-            <span class="abcd-tour-steps-count">Step 1 of 5</span>
-            <div class="abcd-tour-controls">
-              <button class="abcd-tour-btn abcd-tour-btn-skip">Skip</button>
-              <button class="abcd-tour-btn abcd-tour-btn-prev"><i class="bx bx-chevron-left"></i> Back</button>
-              <button class="abcd-tour-btn abcd-tour-btn-next">Next <i class="bx bx-chevron-right"></i></button>
+          <div class="abcd-tour-card">
+            <div class="abcd-tour-header">
+              <span class="abcd-tour-badge">
+                <i class='bx bx-compass'></i> FEATURE TOUR
+              </span>
+              <button type="button" class="abcd-tour-close" aria-label="Close tour">&times;</button>
+            </div>
+            <h4 class="abcd-tour-title"></h4>
+            <p class="abcd-tour-content"></p>
+            <div class="abcd-tour-footer">
+              <div class="abcd-tour-steps">
+                Step <span class="abcd-tour-current">1</span> of <span class="abcd-tour-total">1</span>
+              </div>
+              <button type="button" class="abcd-tour-skip">Skip</button>
+              <div class="abcd-tour-actions">
+                <button type="button" class="abcd-tour-btn abcd-tour-prev">
+                  <i class='bx bx-chevron-left'></i> Back
+                </button>
+                <button type="button" class="abcd-tour-btn abcd-tour-btn-primary abcd-tour-next">
+                  Next <i class='bx bx-chevron-right'></i>
+                </button>
+              </div>
             </div>
           </div>
         `;
         document.body.appendChild(this.popover);
 
-        this.popover.querySelector('.abcd-tour-close-icon').addEventListener('click', () => this.stop(true));
-        this.popover.querySelector('.abcd-tour-btn-skip').addEventListener('click', () => this.stop(true));
-        this.popover.querySelector('.abcd-tour-btn-prev').addEventListener('click', () => this.prev());
-        this.popover.querySelector('.abcd-tour-btn-next').addEventListener('click', () => this.next());
+        this.popover.querySelector('.abcd-tour-close').addEventListener('click', () => this.stop(true));
+        this.popover.querySelector('.abcd-tour-skip').addEventListener('click', () => this.stop(true));
+        this.popover.querySelector('.abcd-tour-prev').addEventListener('click', () => this.prev());
+        this.popover.querySelector('.abcd-tour-next').addEventListener('click', () => this.next());
       }
     }
 
@@ -1219,17 +1250,11 @@
     async handleDrawerState(targetElem) {
       if (!targetElem) return;
 
-      // DO NOT mess with Guidy chat panels or layout on /guidy/ page!
-      const path = window.location.pathname.toLowerCase();
-      if (path.includes('/guidy') || targetElem.closest('.g-layout, .g-side-body, .g-sidebar, .g-chat-area')) {
-        return;
-      }
-
-      // Strictly check for true navigation drawer containers
+      // Check if target element is explicitly inside a navigation drawer container (NOT Guidy chat panels)
       const sidebarContainer = targetElem.closest(
         '.sidebar-wrapper, #sidebarWrapper, #sidebar, .nav-sidebar, #mobileNav, #guestMobileNav, #hubSidebar, .hub-sidebar'
       );
-      const isInsideSidebar = !!sidebarContainer;
+      const isInsideSidebar = !!sidebarContainer && !targetElem.closest('.g-layout, .g-side-body, .g-sidebar, .g-chat-area');
 
       const sidebar = document.getElementById('hubSidebar') ||
                       document.getElementById('sidebar') ||
@@ -1254,22 +1279,11 @@
         if (hamburgerBtn) {
           hamburgerBtn.classList.add('open', 'active');
         }
-        await new Promise(resolve => setTimeout(resolve, 450));
+        await new Promise(resolve => setTimeout(resolve, 400));
       } else {
-        const hubSidebar = document.getElementById('hubSidebar') || document.querySelector('.hub-sidebar');
-        if (hubSidebar) hubSidebar.classList.remove('active');
-        const isSidebarOpen = (sidebar && (sidebar.classList.contains('active') || sidebar.classList.contains('open'))) ||
-                              (sidebarContainer && (sidebarContainer.classList.contains('active') || sidebarContainer.classList.contains('open')));
-
-        if (isSidebarOpen) {
-          if (sidebar) sidebar.classList.remove('active', 'open');
-          if (sidebarContainer) sidebarContainer.classList.remove('active', 'open');
-          if (overlay) overlay.classList.remove('active', 'open');
-          if (hamburgerBtn) {
-            hamburgerBtn.classList.remove('open', 'active');
-          }
-          await new Promise(resolve => setTimeout(resolve, 250));
-        }
+        // Target is outside navigation drawers - close all navigation sidebars cleanly!
+        this.closeAllDrawers();
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
 
@@ -1516,11 +1530,10 @@
             btn._hasTourListener = true;
             btn.addEventListener('click', (e) => {
               e.preventDefault();
-              const sidebar = document.getElementById('sidebar') || document.querySelector('.nav-sidebar');
-              if (sidebar && sidebar.classList.contains('active') && typeof toggleSidebar === 'function') {
-                toggleSidebar();
-              }
-              this.start(true);
+              this.closeAllDrawers();
+              setTimeout(() => {
+                this.start(true);
+              }, 150);
             });
           }
         });
@@ -1543,10 +1556,10 @@
         const link = tourLi.querySelector('a');
         link.addEventListener('click', (e) => {
           e.preventDefault();
-          if (sidebar.classList.contains('active') && typeof toggleSidebar === 'function') {
-            toggleSidebar();
-          }
-          this.start(true);
+          this.closeAllDrawers();
+          setTimeout(() => {
+            this.start(true);
+          }, 150);
         });
 
         const logoutItem = sidebar.querySelector('.sidebar-logout-item, .sidebar-signin-item');

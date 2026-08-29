@@ -4448,7 +4448,7 @@
             <li><a href="https://www.youtube.com/@englishekkhoz8279" target="_blank" rel="noopener"><i class='bx bxl-youtube' style="color:#FF0000;"></i> Free Classes on YouTube</a></li>
             <li><a href="{% url 'users:hall_of_fame' %}"><i class='bx bx-trophy' style="color:#fbbf24;"></i> ABCD's Hall Of Fame</a></li>
             <li class="sidebar-tour-item">
-                <a href="javascript:void(0)" onclick="if(window.startABCDTour){window.startABCDTour(true);} if(document.getElementById('sidebar')?.classList.contains('active') && typeof toggleSidebar === 'function'){toggleSidebar();}" class="sidebar-tour-btn">
+                <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
                     <i class='bx bx-compass' style="color:#0284c7;"></i> <span>Take Tour</span>
                 </a>
             </li>

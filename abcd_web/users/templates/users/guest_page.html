@@ -3829,7 +3829,7 @@
 
     <!-- Take Tour Item -->
     <li class="sidebar-tour-item">
-      <a href="javascript:void(0)" onclick="if(window.startABCDTour){window.startABCDTour(true);} if(document.getElementById('sidebar')?.classList.contains('active') && typeof toggleSidebar === 'function'){toggleSidebar();}" class="sidebar-tour-btn">
+      <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
         <i class='bx bx-compass' style="color:#0284c7;"></i>
         <span>Take Tour</span>
       </a>
