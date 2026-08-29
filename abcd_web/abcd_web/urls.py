@@ -17,9 +17,11 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.http import JsonResponse
 from django.views.generic import RedirectView
+from django.conf import settings
+from django.views.static import serve
 from users.views import robots_txt_view, sitemap_xml_view
 
 def ping_view(request):
@@ -37,6 +39,9 @@ urlpatterns = [
     path('favicon.ico', RedirectView.as_view(url='/static/data/favicon/favicon.ico', permanent=True)),
     path('robots.txt', robots_txt_view, name='robots_txt'),
     path('sitemap.xml', sitemap_xml_view, name='sitemap_xml'),
+
+    # Media files serving (works in both DEBUG and Production)
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 
     # All your app's URLs, including the home page, are now handled here
     path('', include('users.urls')),

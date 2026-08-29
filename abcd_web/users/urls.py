@@ -314,7 +314,3 @@ urlpatterns = [
     path('todo/add-reminder/', views.todo_add_reminder, name='todo_add_reminder'),
     path('todo/update-reminder/<int:task_id>/', views.todo_update_reminder, name='todo_update_reminder'),
 ]
-
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
