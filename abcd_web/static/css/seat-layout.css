@@ -307,38 +307,54 @@ body.dark-theme .seat-modal-close-btn {
     gap: 1px !important;
 }
 
+.seat-icon-group.vertical {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    margin: 2px 0 !important;
+    gap: 1px !important;
+}
+
 .seat-icon-group.vertical i,
 .seat-icon-group.vertical svg,
 .seat-icon-group.vertical .bxs-chair,
 .seat-icon-group.vertical .bxs-desk {
-    font-size: 1.45rem !important;
+    font-size: 1em !important;
     line-height: 1 !important;
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
 }
 
 .seat-icon-group.vertical .desk-lamp-wrapper {
     position: relative !important;
     line-height: 1 !important;
-    font-size: 1.45rem !important;
+    font-size: 1em !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    width: auto !important;
 }
 
 .seat-icon-group.vertical .lamp-icon {
-    font-size: 0.72rem !important;
-    top: -4px !important;
+    font-size: 0.52em !important;
+    top: -5px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
 }
 
 .seat-icon-group.vertical.chair-above .bxs-chair {
     margin-bottom: 0 !important;
-    font-size: 1.45rem !important;
+    margin-top: 0 !important;
+    font-size: 1em !important;
 }
 
 .seat-icon-group.vertical.chair-below .bxs-chair {
     margin-top: 0 !important;
-    font-size: 1.45rem !important;
+    margin-bottom: 0 !important;
+    font-size: 1em !important;
 }
 
 .seat-icon-group.vertical .rotate-180 {
