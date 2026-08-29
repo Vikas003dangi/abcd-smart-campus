@@ -2426,7 +2426,7 @@ body.dark-theme .search-highlight {
                   {% if msg.media_expired and msg.message_type != 'text' %}
                     <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
                   {% elif msg.message_type == 'image' and msg.file %}
-                    <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')">
+                    <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
                   {% elif msg.message_type == 'audio' and msg.file %}
                     <div class="g-audio-player" data-src="{{ msg.file.url }}">
                       <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
@@ -2529,7 +2529,7 @@ body.dark-theme .search-highlight {
                       {% if msg.media_expired and msg.message_type != 'text' %}
                         <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
                       {% elif msg.message_type == 'image' and msg.file %}
-                        <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')">
+                        <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
                       {% elif msg.message_type == 'audio' and msg.file %}
                         <div class="g-audio-player" data-src="{{ msg.file.url }}">
                           <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
@@ -4079,7 +4079,7 @@ function appendMessage(msg) {
     mediaHtml = `<div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>`;
   } else if (msg.file_url) {
     if (msg.message_type === 'image') {
-      mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image')">`;
+      mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">`;
     } else if (msg.message_type === 'audio') {
       mediaHtml = `<div class="g-audio-player" data-src="${msg.file_url}">
         <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
@@ -4345,7 +4345,7 @@ async function fetchOlderMessages() {
             mediaHtml = `<div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>`;
           } else if (msg.file_url) {
             if (msg.message_type === 'image') {
-              mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image')">`;
+              mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">`;
             } else if (msg.message_type === 'audio') {
               mediaHtml = `<div class="g-audio-player" data-src="${msg.file_url}">
                 <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
