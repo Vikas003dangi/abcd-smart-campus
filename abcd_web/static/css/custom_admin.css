@@ -1514,54 +1514,63 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Tablets & Mobile Screens (< 1025px) - Exact 2-Row Header Architecture */
+/* Tablets & Mobile Screens (< 1025px) - Clean Single-Row Header */
 @media (max-width: 1024px) {
   #header {
     display: flex !important;
-    flex-direction: column !important;
+    justify-content: space-between !important;
+    align-items: center !important;
     padding: 10px 16px !important;
-    gap: 8px !important;
     width: 100% !important;
     box-sizing: border-box !important;
   }
 
-  /* Row 1: Strictly Centered Logo + Title */
+  /* Left-aligned Branding */
   #branding {
-    width: 100% !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
+    min-width: 0 !important;
     margin: 0 !important;
   }
 
   .admin-brand-header {
-    width: 100% !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
     gap: 8px !important;
+    min-width: 0 !important;
   }
 
   .admin-brand-link {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    white-space: nowrap !important;
-  }
-
-  .desktop-only-badge {
-    display: none !important; /* Never in Row 1 on mobile/tablet */
-  }
-
-  /* Row 2: 3-column Controls Bar (Left: VIKAS | Center: ADMIN | Right: Hamburger) */
-  #user-tools {
-    width: 100% !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
-    margin: 0 !important;
+    gap: 8px !important;
+    text-decoration: none !important;
+    min-width: 0 !important;
+  }
+
+  .admin-logo-img {
+    height: 32px !important;
+    width: auto !important;
+    flex-shrink: 0 !important;
+  }
+
+  .admin-brand-title {
+    font-size: 1.05rem !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    color: var(--admin-text-main) !important;
+  }
+
+  .admin-brand-badge {
+    display: none !important; /* Cleanly hidden on < 1025px */
+  }
+
+  /* Right-aligned Hamburger Menu */
+  #user-tools {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
     padding: 0 !important;
   }
 
@@ -1570,22 +1579,7 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 
   .admin-user-pill {
-    display: inline-flex !important;
-    order: 1 !important;
-    margin: 0 !important;
-    padding: 4px 10px !important;
-    font-size: 0.76rem !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-  }
-
-  .mobile-center-badge {
-    display: inline-flex !important;
-    order: 2 !important;
-    margin: 0 auto !important;
-    font-size: 0.7rem !important;
-    padding: 2px 8px !important;
-    flex-shrink: 0 !important;
+    display: none !important; /* Cleanly hidden from header on < 1025px (accessible in drawer) */
   }
 
   .admin-desktop-links {
@@ -1594,11 +1588,9 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 
   .admin-hamburger-btn {
     display: inline-flex !important;
-    order: 3 !important;
-    margin-left: 0 !important;
-    width: 36px !important;
-    height: 36px !important;
-    flex-shrink: 0 !important;
+    margin: 0 !important;
+    width: 38px !important;
+    height: 38px !important;
   }
 
   #content {
@@ -1627,11 +1619,10 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Mobile & Small Screens (< 700px) */
+/* Mobile Screens (< 700px) */
 @media (max-width: 700px) {
   #header {
     padding: 8px 12px !important;
-    gap: 6px !important;
   }
 
   .admin-logo-img {
@@ -1639,22 +1630,12 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 
   .admin-brand-title {
-    font-size: 1.02rem !important;
-  }
-
-  .admin-user-pill {
-    padding: 3px 8px !important;
-    font-size: 0.74rem !important;
-  }
-
-  .mobile-center-badge {
-    font-size: 0.68rem !important;
-    padding: 2px 7px !important;
+    font-size: 0.98rem !important;
   }
 
   .admin-hamburger-btn {
-    width: 34px !important;
-    height: 34px !important;
+    width: 36px !important;
+    height: 36px !important;
   }
 
   .admin-dashboard-hero {
@@ -1722,11 +1703,10 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Extra Small Phones (Down to 320px) */
+/* Extra Small Phones (< 380px) */
 @media (max-width: 380px) {
   #header {
     padding: 6px 8px !important;
-    gap: 6px !important;
   }
 
   .admin-logo-img {
@@ -1734,21 +1714,7 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 
   .admin-brand-title {
-    font-size: 0.92rem !important;
-  }
-
-  .admin-user-pill {
-    padding: 3px 6px !important;
-    font-size: 0.7rem !important;
-    max-width: 90px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
-
-  .mobile-center-badge {
-    font-size: 0.65rem !important;
-    padding: 2px 6px !important;
+    font-size: 0.88rem !important;
   }
 
   .admin-hamburger-btn {

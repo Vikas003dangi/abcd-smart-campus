@@ -26,8 +26,8 @@
   <a href="{% url 'admin:index' %}" class="admin-brand-link">
     <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="admin-logo-img">
     <span class="admin-brand-title">ABCD Smart Campus</span>
+    <span class="admin-brand-badge">⚙️ Admin</span>
   </a>
-  <span class="admin-brand-badge desktop-only-badge">⚙️ Admin</span>
 </div>
 {% endblock %}
 
@@ -37,7 +37,6 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
     {{ user.first_name|default:user.username|upper }}
   </span>
-  <span class="admin-brand-badge mobile-center-badge">⚙️ Admin</span>
 {% endblock %}
 
 {% block userlinks %}
@@ -63,7 +62,7 @@
     </form>
   </div>
 
-  <!-- Mobile Hamburger Button (Visible on screens < 1025px, Right side of Row 2) -->
+  <!-- Mobile Hamburger Button (Visible on screens < 1025px, Right side of Header) -->
   <button type="button" class="admin-hamburger-btn" id="adminMobileMenuBtn" aria-label="Toggle Master Admin Navigation Menu" title="Menu">
     <span class="hamburger-icon">
       <span></span>
