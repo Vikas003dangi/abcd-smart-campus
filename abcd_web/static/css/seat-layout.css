@@ -206,10 +206,10 @@ body.dark-theme .seat-modal-close-btn {
     box-sizing: border-box;
 }
 
-.seat[data-seat-id="20"],
-.seat[data-seat-id="47"],
-.seat:has(.vertical),
-.seat.vertical-seat {
+#ground-floor-layout .seat[data-seat-id="20"],
+#ground-floor-layout .seat[data-seat-id="47"],
+#ground-floor-layout .seat:has(.vertical),
+#ground-floor-layout .seat.vertical-seat {
     min-width: 54px;
     min-height: 84px !important;
     padding: 6px 3px 4px !important;
@@ -390,13 +390,13 @@ body.dark-theme .seat-modal-close-btn {
     display: inline-block;
 }
 
-.seat[data-seat-id="20"] .seat-label,
-.seat[data-seat-id="47"] .seat-label,
-.seat:has(.vertical) .seat-label,
-.seat[data-seat-id="20"] .seat-morning-label,
-.seat[data-seat-id="47"] .seat-morning-label,
-.seat[data-seat-id="20"] .seat-evening-label,
-.seat[data-seat-id="47"] .seat-evening-label {
+#ground-floor-layout .seat[data-seat-id="20"] .seat-label,
+#ground-floor-layout .seat[data-seat-id="47"] .seat-label,
+#ground-floor-layout .seat:has(.vertical) .seat-label,
+#ground-floor-layout .seat[data-seat-id="20"] .seat-morning-label,
+#ground-floor-layout .seat[data-seat-id="47"] .seat-morning-label,
+#ground-floor-layout .seat[data-seat-id="20"] .seat-evening-label,
+#ground-floor-layout .seat[data-seat-id="47"] .seat-evening-label {
     font-size: 0.7rem !important;
     font-weight: 700 !important;
     padding: 2px 6px !important;
@@ -2208,10 +2208,10 @@ div.seat.hold-full * {
         max-width: 100%;
     }
 
-    .seat[data-seat-id="20"],
-    .seat[data-seat-id="47"],
-    .seat:has(.vertical),
-    .seat.vertical-seat {
+    #ground-floor-layout .seat[data-seat-id="20"],
+    #ground-floor-layout .seat[data-seat-id="47"],
+    #ground-floor-layout .seat:has(.vertical),
+    #ground-floor-layout .seat.vertical-seat {
         min-height: 76px !important;
         padding: 4px 2px 2px !important;
     }
@@ -2234,18 +2234,18 @@ div.seat.hold-full * {
         font-size: 2.1rem !important;
     }
 
-    .seat .seat-icon-group.vertical i,
-    .seat .seat-icon-group.vertical svg,
-    .seat .seat-icon-group.vertical .bxs-chair,
-    .seat .seat-icon-group.vertical .bxs-desk {
-        font-size: 1.1rem !important;
+    #ground-floor-layout .seat .seat-icon-group.vertical i,
+    #ground-floor-layout .seat .seat-icon-group.vertical svg,
+    #ground-floor-layout .seat .seat-icon-group.vertical .bxs-chair,
+    #ground-floor-layout .seat .seat-icon-group.vertical .bxs-desk {
+        font-size: 1.25rem !important;
     }
 
     .seat .lamp-icon {
         font-size: 0.6rem !important;
     }
 
-    .seat .seat-icon-group.vertical .lamp-icon {
+    #ground-floor-layout .seat .seat-icon-group.vertical .lamp-icon {
         font-size: 0.55rem !important;
         top: -3px !important;
     }
@@ -2292,10 +2292,10 @@ div.seat.hold-full * {
         box-sizing: border-box;
     }
 
-    .seat[data-seat-id="20"],
-    .seat[data-seat-id="47"],
-    .seat:has(.vertical),
-    .seat.vertical-seat {
+    #ground-floor-layout .seat[data-seat-id="20"],
+    #ground-floor-layout .seat[data-seat-id="47"],
+    #ground-floor-layout .seat:has(.vertical),
+    #ground-floor-layout .seat.vertical-seat {
         min-height: 76px !important;
         padding: 4px 2px 2px !important;
     }
