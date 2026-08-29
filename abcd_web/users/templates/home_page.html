@@ -517,17 +517,29 @@
             top: 75px;
             right: 20px;
             width: 320px;
-            height: calc(100vh - 95px);
+            height: calc(100dvh - 85px);
+            height: calc(100vh - 85px);
+            max-height: calc(100dvh - 85px);
             overflow: hidden;
             z-index: 999;
             pointer-events: none;
             border-radius: 0 0 20px 20px;
         }
 
+        @media (max-width: 768px) {
+            .sidebar-wrapper {
+                top: 68px;
+                right: 12px;
+                width: min(320px, calc(100vw - 24px));
+                height: calc(100dvh - 78px);
+                max-height: calc(100dvh - 78px);
+            }
+        }
+
         @media (max-width: 360px) {
             .sidebar-wrapper {
-                right: 10px;
-                width: calc(100% - 20px);
+                right: 8px;
+                width: calc(100% - 16px);
             }
         }
 
@@ -537,21 +549,47 @@
             right: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
             transform: translateY(-110%);
             opacity: 0;
-            transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1), opacity 0.4s ease;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+            transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1), opacity 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+            padding: 16px 14px 95px 14px !important;
             border-radius: 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            overflow-y: auto;
+            gap: 8px;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            overscroll-behavior: contain !important;
+            touch-action: pan-y !important;
             pointer-events: auto;
             list-style: none;
+        }
+
+        .nav-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .nav-sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .nav-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(123, 97, 255, 0.4);
+            border-radius: 10px;
+        }
+
+        body.dark-theme .nav-sidebar {
+            background: rgba(30, 20, 50, 0.92) !important;
+            backdrop-filter: blur(25px) !important;
+            -webkit-backdrop-filter: blur(25px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6) !important;
+        }
+
+        body.dark-theme .nav-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
         }
 
         .nav-sidebar.active {
@@ -559,60 +597,64 @@
             opacity: 1;
         }
 
-        body.dark-theme .nav-sidebar {
-            background: rgba(70, 40, 110, 0.6);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-        }
-
         .nav-sidebar li {
             width: 100%;
             list-style: none;
+            flex-shrink: 0;
         }
 
         .nav-sidebar a {
-            font-size: 1.1rem;
-            padding: 12px 15px;
-            display: block;
+            font-size: 1rem;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
             color: #333;
-            border-radius: 8px;
+            font-weight: 600;
+            border-radius: 10px;
             text-decoration: none;
-            transition: background 0.3s, color 0.3s;
-            font-weight: 500;
-        }
-
-        .nav-sidebar a:hover {
-            background: rgba(240, 240, 240, 0.5);
-            color: #7b61ff;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
         body.dark-theme .nav-sidebar a {
-            color: #fff;
+            color: #f1f5f9;
+        }
+
+        .nav-sidebar a:hover {
+            background: rgba(123, 97, 255, 0.12);
+            color: #7b61ff !important;
         }
 
         body.dark-theme .nav-sidebar a:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #a976e6;
+            background: rgba(255, 255, 255, 0.12);
+            color: #c084fc !important;
         }
 
         /* Sidebar Sign-In Button */
         .sidebar-signin-item {
-            margin-top: auto;
-            padding-top: 15px;
-            border-top: 1px solid rgba(0, 0, 0, 0.1);
-            text-align: center;
+            margin-top: 14px !important;
+            margin-bottom: 20px !important;
+            padding-top: 14px !important;
+            border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+            text-align: center !important;
+            flex-shrink: 0 !important;
         }
 
         .sidebar-signin-btn {
-            display: inline-block;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
             background: #526D82;
             color: white !important;
-            padding: 11px 34px;
-            border-radius: 25px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-decoration: none;
-            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 4px 12px rgba(82, 109, 130, 0.35);
+            padding: 10px 32px !important;
+            border-radius: 25px !important;
+            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            text-decoration: none !important;
+            transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+            box-shadow: 0 4px 12px rgba(82, 109, 130, 0.35) !important;
+            flex-shrink: 0 !important;
         }
 
         .sidebar-signin-btn:hover {
@@ -622,11 +664,12 @@
         }
 
         body.dark-theme .sidebar-signin-item {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
         }
 
         body.dark-theme .sidebar-signin-btn {
-            background: rgba(123, 97, 255, 0.85);
+            background: #7b61ff !important;
+            box-shadow: 0 4px 14px rgba(123, 97, 255, 0.4) !important;
         }
 
         .sidebar-overlay {
