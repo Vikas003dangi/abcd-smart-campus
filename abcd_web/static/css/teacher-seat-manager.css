@@ -620,3 +620,120 @@ body.modal-open {
       #ff9a9e 50%,
       #ff9a9e 100%);
 }
+
+/* === VERTICAL SEATS 20 & 47 ICON & LABEL ARCHITECTURE === */
+.seat[data-seat-id="20"],
+.seat[data-seat-id="47"],
+.seat:has(.vertical),
+.seat.vertical-seat {
+  min-width: 54px;
+  min-height: 84px !important;
+  padding: 6px 3px 4px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  overflow: visible !important;
+}
+
+.seat-icon-group.vertical {
+  flex-direction: column !important;
+  font-size: 1.45rem !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  line-height: 1 !important;
+  margin: 2px 0 !important;
+  gap: 1px !important;
+}
+
+.seat-icon-group.vertical i,
+.seat-icon-group.vertical svg,
+.seat-icon-group.vertical .bxs-chair,
+.seat-icon-group.vertical .bxs-desk {
+  font-size: 1.45rem !important;
+  line-height: 1 !important;
+}
+
+.seat-icon-group.vertical .desk-lamp-wrapper {
+  position: relative !important;
+  line-height: 1 !important;
+  font-size: 1.45rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.seat-icon-group.vertical .lamp-icon {
+  font-size: 0.72rem !important;
+  top: -4px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+.seat-icon-group.vertical.chair-above .bxs-chair,
+.seat-icon-group.vertical.chair-below .bxs-chair {
+  margin: 0 !important;
+  font-size: 1.45rem !important;
+}
+
+.seat[data-seat-id="20"] .seat-label,
+.seat[data-seat-id="47"] .seat-label,
+.seat:has(.vertical) .seat-label,
+.seat[data-seat-id="20"] .seat-morning-label,
+.seat[data-seat-id="47"] .seat-morning-label,
+.seat[data-seat-id="20"] .seat-evening-label,
+.seat[data-seat-id="47"] .seat-evening-label {
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+  padding: 2px 6px !important;
+  border-radius: 12px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  max-width: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 17px !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  margin-top: 2px !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+@media (max-width: 500px) {
+  .seat .seat-icon-group.vertical i,
+  .seat .seat-icon-group.vertical svg,
+  .seat .seat-icon-group.vertical .bxs-chair,
+  .seat .seat-icon-group.vertical .bxs-desk {
+    font-size: 1.15rem !important;
+  }
+
+  .seat .seat-icon-group.vertical .lamp-icon {
+    font-size: 0.6rem !important;
+    top: -3px !important;
+  }
+
+  .seat[data-seat-id="20"],
+  .seat[data-seat-id="47"],
+  .seat:has(.vertical),
+  .seat.vertical-seat {
+    min-height: 76px !important;
+    padding: 4px 2px 2px !important;
+  }
+
+  .seat[data-seat-id="20"] .seat-label,
+  .seat[data-seat-id="47"] .seat-label,
+  .seat:has(.vertical) .seat-label,
+  .seat[data-seat-id="20"] .seat-morning-label,
+  .seat[data-seat-id="47"] .seat-morning-label,
+  .seat[data-seat-id="20"] .seat-evening-label,
+  .seat[data-seat-id="47"] .seat-evening-label {
+    font-size: 0.62rem !important;
+    padding: 1px 5px !important;
+    min-height: 16px !important;
+  }
+}

@@ -206,10 +206,18 @@ body.dark-theme .seat-modal-close-btn {
     box-sizing: border-box;
 }
 
-.seat:has(.vertical) {
-    min-width: 52px;
-    min-height: 110px;
-    padding: 14px 4px 4px !important;
+.seat[data-seat-id="20"],
+.seat[data-seat-id="47"],
+.seat:has(.vertical),
+.seat.vertical-seat {
+    min-width: 54px;
+    min-height: 84px !important;
+    padding: 6px 3px 4px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    overflow: visible !important;
 }
 
 .seat.empty-space {
@@ -287,40 +295,54 @@ body.dark-theme .seat-modal-close-btn {
     margin-right: -5px;
 }
 
-/* Vertical Layout */
+/* Vertical Layout for Seats 20 & 47 */
 .seat-icon-group.vertical {
-    flex-direction: column;
-    font-size: 3rem;
-    justify-content: center;
-    width: 100%;
-    line-height: 1;
+    flex-direction: column !important;
+    font-size: 1.45rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    line-height: 1 !important;
+    margin: 2px 0 !important;
+    gap: 1px !important;
+}
+
+.seat-icon-group.vertical i,
+.seat-icon-group.vertical svg,
+.seat-icon-group.vertical .bxs-chair,
+.seat-icon-group.vertical .bxs-desk {
+    font-size: 1.45rem !important;
+    line-height: 1 !important;
 }
 
 .seat-icon-group.vertical .desk-lamp-wrapper {
-    position: relative;
-    line-height: 1;
-    font-size: 3rem;
+    position: relative !important;
+    line-height: 1 !important;
+    font-size: 1.45rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .seat-icon-group.vertical .lamp-icon {
-    font-size: 1.1rem;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%);
+    font-size: 0.72rem !important;
+    top: -4px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
 }
 
 .seat-icon-group.vertical.chair-above .bxs-chair {
-    margin-bottom: 2px;
-    font-size: 3rem;
+    margin-bottom: 0 !important;
+    font-size: 1.45rem !important;
 }
 
 .seat-icon-group.vertical.chair-below .bxs-chair {
-    margin-top: 2px;
-    font-size: 3rem;
+    margin-top: 0 !important;
+    font-size: 1.45rem !important;
 }
 
 .seat-icon-group.vertical .rotate-180 {
-    transform: rotate(180deg);
+    transform: rotate(180deg) !important;
 }
 
 /* ================================================== */
@@ -350,6 +372,33 @@ body.dark-theme .seat-modal-close-btn {
     white-space: nowrap;
     padding: 2px 8px;
     display: inline-block;
+}
+
+.seat[data-seat-id="20"] .seat-label,
+.seat[data-seat-id="47"] .seat-label,
+.seat:has(.vertical) .seat-label,
+.seat[data-seat-id="20"] .seat-morning-label,
+.seat[data-seat-id="47"] .seat-morning-label,
+.seat[data-seat-id="20"] .seat-evening-label,
+.seat[data-seat-id="47"] .seat-evening-label {
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    padding: 2px 6px !important;
+    border-radius: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    max-width: none !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 17px !important;
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    margin-top: 2px !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
 }
 
 .seat .seat-label.pt {
@@ -2011,6 +2060,43 @@ div.seat.hold-full * {
 /* 24. RESPONSIVE DESIGN */
 /* ================================================== */
 
+@media (max-width: 768px) {
+    .seat-modal-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .seat .seat-icon-group:not(.vertical) i,
+    .seat .seat-icon-group:not(.vertical) svg {
+        font-size: 2.5rem !important;
+    }
+
+    .seat .seat-icon-group.vertical i,
+    .seat .seat-icon-group.vertical svg,
+    .seat .seat-icon-group.vertical .bxs-chair,
+    .seat .seat-icon-group.vertical .bxs-desk {
+        font-size: 1.3rem !important;
+    }
+
+    .seat .lamp-icon {
+        font-size: 1rem !important;
+    }
+
+    .seat .seat-icon-group {
+        transform: scale(0.85);
+    }
+
+    .seat .seat-number {
+        font-size: 0.75rem;
+    }
+
+    .seat.special img.buddha-icon {
+        max-width: 50px;
+    }
+}
+
 @media (max-width: 600px) {
 
     .seat .seat-icon-group i,
@@ -2060,13 +2146,25 @@ div.seat.hold-full * {
 
 @media (max-width: 450px) {
 
-    .seat .seat-icon-group i,
-    .seat .seat-icon-group svg {
+    .seat .seat-icon-group:not(.vertical) i,
+    .seat .seat-icon-group:not(.vertical) svg {
         font-size: 2.2rem !important;
+    }
+
+    .seat .seat-icon-group.vertical i,
+    .seat .seat-icon-group.vertical svg,
+    .seat .seat-icon-group.vertical .bxs-chair,
+    .seat .seat-icon-group.vertical .bxs-desk {
+        font-size: 1.15rem !important;
     }
 
     .seat .lamp-icon {
         font-size: 0.8rem !important;
+    }
+
+    .seat .seat-icon-group.vertical .lamp-icon {
+        font-size: 0.6rem !important;
+        top: -3px !important;
     }
 
     .seat .seat-icon-group {
@@ -2094,6 +2192,14 @@ div.seat.hold-full * {
         max-width: 100%;
     }
 
+    .seat[data-seat-id="20"],
+    .seat[data-seat-id="47"],
+    .seat:has(.vertical),
+    .seat.vertical-seat {
+        min-height: 76px !important;
+        padding: 4px 2px 2px !important;
+    }
+
     .seat-layout {
         gap: 4px;
     }
@@ -2107,13 +2213,25 @@ div.seat.hold-full * {
 
 @media (max-width: 400px) {
 
-    .seat .seat-icon-group i,
-    .seat .seat-icon-group svg {
+    .seat .seat-icon-group:not(.vertical) i,
+    .seat .seat-icon-group:not(.vertical) svg {
         font-size: 2.1rem !important;
+    }
+
+    .seat .seat-icon-group.vertical i,
+    .seat .seat-icon-group.vertical svg,
+    .seat .seat-icon-group.vertical .bxs-chair,
+    .seat .seat-icon-group.vertical .bxs-desk {
+        font-size: 1.1rem !important;
     }
 
     .seat .lamp-icon {
         font-size: 0.6rem !important;
+    }
+
+    .seat .seat-icon-group.vertical .lamp-icon {
+        font-size: 0.55rem !important;
+        top: -3px !important;
     }
 
     .seat .seat-icon-group {
@@ -2156,6 +2274,14 @@ div.seat.hold-full * {
         padding: 5px 2px 2px;
         min-height: 72px;
         box-sizing: border-box;
+    }
+
+    .seat[data-seat-id="20"],
+    .seat[data-seat-id="47"],
+    .seat:has(.vertical),
+    .seat.vertical-seat {
+        min-height: 76px !important;
+        padding: 4px 2px 2px !important;
     }
 }
 
