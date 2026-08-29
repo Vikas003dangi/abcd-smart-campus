@@ -114,8 +114,8 @@ class SeatAssignmentAdmin(admin.ModelAdmin):
 
 @admin.register(SeatHoldRequest)
 class SeatHoldRequestAdmin(admin.ModelAdmin):
-    list_display = ('student', 'seat', 'shift', 'start_date', 'end_date', 'status', 'created_at')
-    list_filter = ('status', 'shift')
+    list_display = ('student', 'seat', 'start_date', 'duration_text', 'status', 'cancel_requested', 'created_at')
+    list_filter = ('status', 'cancel_requested', 'seat__floor')
     search_fields = ('student__full_name', 'seat__seat_number')
 
 
@@ -206,8 +206,9 @@ class FeeTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(DismissedFeeAlert)
 class DismissedFeeAlertAdmin(admin.ModelAdmin):
-    list_display = ('user', 'dismissed_month', 'dismissed_at')
-    search_fields = ('user__username',)
+    list_display = ('teacher', 'student', 'expiry_date', 'created_at')
+    list_filter = ('expiry_date', 'created_at')
+    search_fields = ('teacher__username', 'student__full_name')
 
 
 # -------------------------------------------------------------------
@@ -289,8 +290,9 @@ class ChatSessionAdmin(admin.ModelAdmin):
 
 @admin.register(DirectChatSession)
 class DirectChatSessionAdmin(admin.ModelAdmin):
-    list_display = ('student', 'alumni', 'is_active', 'created_at')
-    list_filter = ('is_active',)
+    list_display = ('user1', 'user2', 'is_active', 'created_at', 'session_ended_at')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('user1__username', 'user2__username')
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
@@ -341,5 +343,5 @@ class GroupMessageAdmin(admin.ModelAdmin):
 
 @admin.register(GuidyBlock)
 class GuidyBlockAdmin(admin.ModelAdmin):
-    list_display = ('blocked_by', 'blocked_user', 'created_at')
-    search_fields = ('blocked_by__username', 'blocked_user__username')
+    list_display = ('blocker', 'blocked', 'created_at')
+    search_fields = ('blocker__username', 'blocked__username')
