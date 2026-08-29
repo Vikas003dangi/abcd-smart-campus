@@ -1518,34 +1518,47 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 @media (max-width: 1024px) {
   #header {
     display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     justify-content: space-between !important;
     align-items: center !important;
-    padding: 10px 16px !important;
+    padding: 8px 16px !important;
     width: 100% !important;
+    min-height: 52px !important;
     box-sizing: border-box !important;
   }
 
   /* Left-aligned Branding */
   #branding {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
+    justify-content: flex-start !important;
     min-width: 0 !important;
     margin: 0 !important;
+    float: none !important;
+    flex: 1 1 auto !important;
   }
 
   .admin-brand-header {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
+    justify-content: flex-start !important;
     gap: 8px !important;
     min-width: 0 !important;
+    margin: 0 !important;
   }
 
   .admin-brand-link {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
+    justify-content: flex-start !important;
     gap: 8px !important;
     text-decoration: none !important;
     min-width: 0 !important;
+    margin: 0 !important;
   }
 
   .admin-logo-img {
@@ -1559,6 +1572,7 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     font-weight: 800 !important;
     white-space: nowrap !important;
     color: var(--admin-text-main) !important;
+    line-height: 1.2 !important;
   }
 
   .admin-brand-badge {
@@ -1568,10 +1582,13 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   /* Right-aligned Hamburger Menu */
   #user-tools {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: flex-end !important;
     margin-left: auto !important;
     padding: 0 !important;
+    float: none !important;
+    flex: 0 0 auto !important;
   }
 
   .admin-welcome-label {
@@ -1591,6 +1608,7 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     margin: 0 !important;
     width: 38px !important;
     height: 38px !important;
+    flex-shrink: 0 !important;
   }
 
   #content {
