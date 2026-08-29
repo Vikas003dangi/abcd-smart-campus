@@ -220,7 +220,7 @@ body:not(.login)::before {
   flex-shrink: 0;
 }
 
-.desktop-badge {
+.desktop-only-badge {
   display: inline-flex !important;
 }
 
@@ -1514,25 +1514,25 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Tablets & Mobile Screens (< 1025px) - Dedicated 2-Row Header Layout */
+/* Tablets & Mobile Screens (< 1025px) - Exact 2-Row Header Architecture */
 @media (max-width: 1024px) {
   #header {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto auto !important;
+    display: flex !important;
+    flex-direction: column !important;
     padding: 10px 16px !important;
-    row-gap: 8px !important;
-    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
-  /* Row 1: Centered Logo + ABCD Smart Campus + ADMIN */
+  /* Row 1: Strictly Centered Logo + Title */
   #branding {
-    grid-row: 1 !important;
     width: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
+    margin: 0 !important;
   }
 
   .admin-brand-header {
@@ -1540,7 +1540,7 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   .admin-brand-link {
@@ -1548,19 +1548,15 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     align-items: center !important;
     justify-content: center !important;
     gap: 8px !important;
+    white-space: nowrap !important;
   }
 
-  .desktop-badge {
-    display: inline-flex !important;
+  .desktop-only-badge {
+    display: none !important; /* Never in Row 1 on mobile/tablet */
   }
 
-  .mobile-center-badge {
-    display: none !important;
-  }
-
-  /* Row 2: Left is VIKAS, Right is Hamburger Button */
+  /* Row 2: 3-column Controls Bar (Left: VIKAS | Center: ADMIN | Right: Hamburger) */
   #user-tools {
-    grid-row: 2 !important;
     width: 100% !important;
     display: flex !important;
     align-items: center !important;
@@ -1577,6 +1573,19 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     display: inline-flex !important;
     order: 1 !important;
     margin: 0 !important;
+    padding: 4px 10px !important;
+    font-size: 0.76rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-center-badge {
+    display: inline-flex !important;
+    order: 2 !important;
+    margin: 0 auto !important;
+    font-size: 0.7rem !important;
+    padding: 2px 8px !important;
+    flex-shrink: 0 !important;
   }
 
   .admin-desktop-links {
@@ -1585,8 +1594,11 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 
   .admin-hamburger-btn {
     display: inline-flex !important;
-    order: 2 !important;
-    margin-left: auto !important;
+    order: 3 !important;
+    margin-left: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    flex-shrink: 0 !important;
   }
 
   #content {
@@ -1619,15 +1631,30 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 @media (max-width: 700px) {
   #header {
     padding: 8px 12px !important;
-    row-gap: 6px !important;
+    gap: 6px !important;
   }
 
   .admin-logo-img {
-    height: 30px !important;
+    height: 28px !important;
   }
 
   .admin-brand-title {
-    font-size: 1.05rem !important;
+    font-size: 1.02rem !important;
+  }
+
+  .admin-user-pill {
+    padding: 3px 8px !important;
+    font-size: 0.74rem !important;
+  }
+
+  .mobile-center-badge {
+    font-size: 0.68rem !important;
+    padding: 2px 7px !important;
+  }
+
+  .admin-hamburger-btn {
+    width: 34px !important;
+    height: 34px !important;
   }
 
   .admin-dashboard-hero {
@@ -1695,74 +1722,38 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Extra Small Phones (Down to 320px) - Center ADMIN Badge in Row 2 */
+/* Extra Small Phones (Down to 320px) */
 @media (max-width: 380px) {
   #header {
-    padding: 8px 10px !important;
-    row-gap: 8px !important;
-  }
-
-  #branding {
-    justify-content: center !important;
-  }
-
-  .admin-brand-header {
-    justify-content: center !important;
-    width: 100% !important;
-  }
-
-  .admin-brand-link {
-    justify-content: center !important;
-    width: 100% !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
   }
 
   .admin-logo-img {
-    height: 26px !important;
+    height: 24px !important;
   }
 
   .admin-brand-title {
-    font-size: 0.96rem !important;
-  }
-
-  .desktop-badge {
-    display: none !important;
-  }
-
-  #user-tools {
-    display: grid !important;
-    grid-template-columns: auto 1fr auto !important;
-    width: 100% !important;
-    align-items: center !important;
-    justify-content: stretch !important;
-    gap: 4px !important;
+    font-size: 0.92rem !important;
   }
 
   .admin-user-pill {
-    grid-column: 1 !important;
-    justify-self: start !important;
-    padding: 3px 8px !important;
-    font-size: 0.74rem !important;
-    max-width: 105px !important;
+    padding: 3px 6px !important;
+    font-size: 0.7rem !important;
+    max-width: 90px !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
   }
 
   .mobile-center-badge {
-    grid-column: 2 !important;
-    justify-self: center !important;
-    display: inline-flex !important;
-    margin: 0 auto !important;
-    font-size: 0.68rem !important;
-    padding: 2px 8px !important;
+    font-size: 0.65rem !important;
+    padding: 2px 6px !important;
   }
 
   .admin-hamburger-btn {
-    grid-column: 3 !important;
-    justify-self: end !important;
-    width: 34px !important;
-    height: 34px !important;
-    margin: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
   }
 
   #content {
