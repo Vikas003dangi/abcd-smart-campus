@@ -220,6 +220,14 @@ body:not(.login)::before {
   flex-shrink: 0;
 }
 
+.desktop-badge {
+  display: inline-flex !important;
+}
+
+.mobile-center-badge {
+  display: none !important;
+}
+
 /* User Tools & Header Right Items */
 #user-tools {
   float: none !important;
@@ -1506,14 +1514,60 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Tablets & Small Laptops (< 1025px) */
+/* Tablets & Mobile Screens (< 1025px) - Dedicated 2-Row Header Layout */
 @media (max-width: 1024px) {
   #header {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
     padding: 10px 16px !important;
+    row-gap: 8px !important;
+    align-items: center !important;
+  }
+
+  /* Row 1: Left-aligned Logo + ABCD Smart Campus + ADMIN */
+  #branding {
+    grid-row: 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+  }
+
+  .admin-brand-header {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  .desktop-badge {
+    display: inline-flex !important;
+  }
+
+  .mobile-center-badge {
+    display: none !important;
+  }
+
+  /* Row 2: Left is VIKAS, Right is Hamburger Button */
+  #user-tools {
+    grid-row: 2 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .admin-welcome-label {
     display: none !important;
+  }
+
+  .admin-user-pill {
+    display: inline-flex !important;
+    order: 1 !important;
+    margin: 0 !important;
   }
 
   .admin-desktop-links {
@@ -1522,6 +1576,8 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 
   .admin-hamburger-btn {
     display: inline-flex !important;
+    order: 2 !important;
+    margin-left: auto !important;
   }
 
   #content {
@@ -1554,11 +1610,7 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 @media (max-width: 700px) {
   #header {
     padding: 8px 12px !important;
-    gap: 8px !important;
-  }
-
-  .admin-brand-header {
-    gap: 8px !important;
+    row-gap: 6px !important;
   }
 
   .admin-logo-img {
@@ -1566,17 +1618,7 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 
   .admin-brand-title {
-    font-size: 0.98rem !important;
-  }
-
-  .admin-brand-badge {
-    font-size: 0.64rem !important;
-    padding: 2px 6px !important;
-  }
-
-  .admin-user-pill {
-    padding: 4px 8px !important;
-    font-size: 0.75rem !important;
+    font-size: 1.05rem !important;
   }
 
   .admin-dashboard-hero {
@@ -1644,80 +1686,71 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Extra Small Phones (Down to 320px) - Balanced 2-Row Header */
+/* Extra Small Phones (Down to 320px) - Center ADMIN Badge in Row 2 */
 @media (max-width: 380px) {
   #header {
-    display: grid !important;
-    grid-template-columns: auto 1fr auto !important;
-    grid-template-rows: auto auto !important;
     padding: 8px 10px !important;
     row-gap: 8px !important;
-    column-gap: 6px !important;
-    align-items: center !important;
   }
 
   #branding {
-    display: contents !important;
+    justify-content: center !important;
   }
 
   .admin-brand-header {
-    display: contents !important;
+    justify-content: center !important;
+    width: 100% !important;
   }
 
-  /* Row 1: Logo and Title centered */
   .admin-brand-link {
-    grid-column: 1 / -1 !important;
-    grid-row: 1 !important;
-    display: flex !important;
     justify-content: center !important;
-    align-items: center !important;
-    gap: 8px !important;
     width: 100% !important;
   }
 
   .admin-logo-img {
-    height: 28px !important;
+    height: 26px !important;
   }
 
   .admin-brand-title {
-    font-size: 0.98rem !important;
+    font-size: 0.96rem !important;
   }
 
-  /* Row 2: Left is User Pill */
+  .desktop-badge {
+    display: none !important;
+  }
+
+  #user-tools {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    width: 100% !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    gap: 4px !important;
+  }
+
   .admin-user-pill {
     grid-column: 1 !important;
-    grid-row: 2 !important;
     justify-self: start !important;
-    font-size: 0.74rem !important;
     padding: 3px 8px !important;
-    max-width: 110px !important;
+    font-size: 0.74rem !important;
+    max-width: 105px !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
-    margin: 0 !important;
   }
 
-  /* Row 2: Center is Admin Badge */
-  .admin-brand-badge {
+  .mobile-center-badge {
     grid-column: 2 !important;
-    grid-row: 2 !important;
     justify-self: center !important;
     display: inline-flex !important;
+    margin: 0 auto !important;
     font-size: 0.68rem !important;
     padding: 2px 8px !important;
-    margin: 0 auto !important;
-  }
-
-  /* Row 2: Right is Hamburger Menu */
-  #user-tools {
-    grid-column: 3 !important;
-    grid-row: 2 !important;
-    justify-self: end !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
 
   .admin-hamburger-btn {
+    grid-column: 3 !important;
+    justify-self: end !important;
     width: 34px !important;
     height: 34px !important;
     margin: 0 !important;
