@@ -1169,37 +1169,34 @@
         this.popover.className = 'abcd-tour-popover';
         this.popover.innerHTML = `
           <div class="abcd-tour-arrow"></div>
-          <div class="abcd-tour-card">
-            <div class="abcd-tour-header">
-              <span class="abcd-tour-badge">
-                <i class='bx bx-compass'></i> FEATURE TOUR
-              </span>
-              <button type="button" class="abcd-tour-close" aria-label="Close tour">&times;</button>
-            </div>
-            <h4 class="abcd-tour-title"></h4>
-            <p class="abcd-tour-content"></p>
-            <div class="abcd-tour-footer">
-              <div class="abcd-tour-steps">
-                Step <span class="abcd-tour-current">1</span> of <span class="abcd-tour-total">1</span>
-              </div>
-              <button type="button" class="abcd-tour-skip">Skip</button>
-              <div class="abcd-tour-actions">
-                <button type="button" class="abcd-tour-btn abcd-tour-prev">
-                  <i class='bx bx-chevron-left'></i> Back
-                </button>
-                <button type="button" class="abcd-tour-btn abcd-tour-btn-primary abcd-tour-next">
-                  Next <i class='bx bx-chevron-right'></i>
-                </button>
-              </div>
+          <div class="abcd-tour-header">
+            <span class="abcd-tour-badge"><i class="bx bx-compass"></i> Feature Tour</span>
+            <button type="button" class="abcd-tour-close-icon" title="Close Tour">&times;</button>
+          </div>
+          <h4 class="abcd-tour-title"></h4>
+          <p class="abcd-tour-description"></p>
+          <div class="abcd-tour-footer">
+            <span class="abcd-tour-steps-count">Step 1 of 1</span>
+            <div class="abcd-tour-controls">
+              <button type="button" class="abcd-tour-btn abcd-tour-btn-skip">Skip</button>
+              <button type="button" class="abcd-tour-btn abcd-tour-btn-prev"><i class="bx bx-chevron-left"></i> Back</button>
+              <button type="button" class="abcd-tour-btn abcd-tour-btn-next">Next <i class="bx bx-chevron-right"></i></button>
             </div>
           </div>
         `;
         document.body.appendChild(this.popover);
 
-        this.popover.querySelector('.abcd-tour-close').addEventListener('click', () => this.stop(true));
-        this.popover.querySelector('.abcd-tour-skip').addEventListener('click', () => this.stop(true));
-        this.popover.querySelector('.abcd-tour-prev').addEventListener('click', () => this.prev());
-        this.popover.querySelector('.abcd-tour-next').addEventListener('click', () => this.next());
+        const closeBtn = this.popover.querySelector('.abcd-tour-close-icon, .abcd-tour-close');
+        if (closeBtn) closeBtn.addEventListener('click', () => this.stop(true));
+
+        const skipBtn = this.popover.querySelector('.abcd-tour-btn-skip, .abcd-tour-skip');
+        if (skipBtn) skipBtn.addEventListener('click', () => this.stop(true));
+
+        const prevBtn = this.popover.querySelector('.abcd-tour-btn-prev, .abcd-tour-prev');
+        if (prevBtn) prevBtn.addEventListener('click', () => this.prev());
+
+        const nextBtn = this.popover.querySelector('.abcd-tour-btn-next, .abcd-tour-next');
+        if (nextBtn) nextBtn.addEventListener('click', () => this.next());
       }
     }
 
@@ -1358,21 +1355,27 @@
       this.activeTarget = targetElem;
       this.activeTarget.classList.add('abcd-tour-target-active');
 
-      this.popover.querySelector('.abcd-tour-title').textContent = step.title;
-      this.popover.querySelector('.abcd-tour-description').textContent = step.description;
-      this.popover.querySelector('.abcd-tour-steps-count').textContent = `Step ${index + 1} of ${this.validSteps.length}`;
+      const titleEl = this.popover.querySelector('.abcd-tour-title');
+      const descEl = this.popover.querySelector('.abcd-tour-description, .abcd-tour-content');
+      const stepsCountEl = this.popover.querySelector('.abcd-tour-steps-count, .abcd-tour-steps');
 
-      const prevBtn = this.popover.querySelector('.abcd-tour-btn-prev');
-      const nextBtn = this.popover.querySelector('.abcd-tour-btn-next');
+      if (titleEl) titleEl.textContent = step.title;
+      if (descEl) descEl.textContent = step.description;
+      if (stepsCountEl) stepsCountEl.textContent = `Step ${index + 1} of ${this.validSteps.length}`;
 
-      prevBtn.disabled = (index === 0);
+      const prevBtn = this.popover.querySelector('.abcd-tour-btn-prev, .abcd-tour-prev');
+      const nextBtn = this.popover.querySelector('.abcd-tour-btn-next, .abcd-tour-next');
 
-      if (index === this.validSteps.length - 1) {
-        nextBtn.textContent = 'Finish ✓';
-        nextBtn.className = 'abcd-tour-btn abcd-tour-btn-finish';
-      } else {
-        nextBtn.innerHTML = 'Next <i class="bx bx-chevron-right"></i>';
-        nextBtn.className = 'abcd-tour-btn abcd-tour-btn-next';
+      if (prevBtn) prevBtn.disabled = (index === 0);
+
+      if (nextBtn) {
+        if (index === this.validSteps.length - 1) {
+          nextBtn.textContent = 'Finish ✓';
+          nextBtn.className = 'abcd-tour-btn abcd-tour-btn-finish';
+        } else {
+          nextBtn.innerHTML = 'Next <i class="bx bx-chevron-right"></i>';
+          nextBtn.className = 'abcd-tour-btn abcd-tour-btn-next';
+        }
       }
 
       setTimeout(() => {
