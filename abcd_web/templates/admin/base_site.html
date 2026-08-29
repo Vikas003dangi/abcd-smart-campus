@@ -42,7 +42,7 @@
 {% endblock %}
 
 {% block userlinks %}
-  <!-- Desktop Action Buttons (Visible on screens >= 700px) -->
+  <!-- Desktop Action Buttons (Visible on screens >= 1025px) -->
   <div class="admin-desktop-links">
     {% if user.has_usable_password %}
     <a href="{% url 'admin:password_change' %}" class="admin-btn-header" title="Change Password">
@@ -64,7 +64,7 @@
     </form>
   </div>
 
-  <!-- Mobile Hamburger Button (Visible on screens < 700px) -->
+  <!-- Mobile Hamburger Button (Visible on screens < 1025px) -->
   <button type="button" class="admin-hamburger-btn" id="adminMobileMenuBtn" aria-label="Toggle Master Admin Navigation Menu" title="Menu">
     <span class="hamburger-icon">
       <span></span>
@@ -180,15 +180,30 @@
       });
     });
 
-    // Mobile Hamburger Drawer Toggle
+    // Mobile Hamburger Drawer Toggle & Dynamic Clean Positioning
     const menuBtn = document.getElementById('adminMobileMenuBtn');
     const drawer = document.getElementById('adminMobileDrawer');
+    const headerEl = document.getElementById('header');
 
     if (menuBtn && drawer) {
+      function positionDrawer() {
+        if (headerEl) {
+          const headerBottom = headerEl.getBoundingClientRect().bottom;
+          drawer.style.top = (headerBottom + 8) + 'px';
+        }
+      }
+
       menuBtn.addEventListener('click', function(e) {
         e.stopPropagation();
+        positionDrawer();
         drawer.classList.toggle('is-open');
         menuBtn.classList.toggle('is-active');
+      });
+
+      window.addEventListener('resize', function() {
+        if (drawer.classList.contains('is-open')) {
+          positionDrawer();
+        }
       });
 
       // Close when clicking outside

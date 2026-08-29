@@ -226,7 +226,9 @@ body:not(.login)::before {
   color: var(--admin-text-muted) !important;
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  margin-left: auto !important;
   font-weight: 500 !important;
   flex-shrink: 0 !important;
 }
@@ -328,7 +330,7 @@ body:not(.login)::before {
   transform: translateY(-1px) !important;
 }
 
-/* Mobile Hamburger Button (< 700px) */
+/* Mobile Hamburger Button (< 1025px) */
 .admin-hamburger-btn {
   display: none;
   background: var(--admin-card-bg);
@@ -342,6 +344,7 @@ body:not(.login)::before {
   justify-content: center;
   padding: 0;
   transition: all 0.2s ease;
+  margin-left: 4px;
 }
 
 .hamburger-icon {
@@ -370,15 +373,16 @@ body:not(.login)::before {
   transform: translateY(-6px) rotate(-45deg);
 }
 
-/* Mobile Navigation Drawer */
+/* Mobile Navigation Drawer - Below Hamburger */
 .admin-mobile-drawer {
   display: none;
   position: fixed;
-  top: 60px;
-  left: 10px;
-  right: 10px;
-  max-width: 440px;
-  margin: 0 auto;
+  top: 68px;
+  right: 12px;
+  left: auto;
+  width: calc(100vw - 24px);
+  max-width: 380px;
+  margin: 0;
   z-index: 2000;
   background: var(--admin-drawer-bg) !important;
   border: 1px solid var(--admin-card-border) !important;
@@ -1501,10 +1505,26 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   }
 }
 
-/* Tablets & Small Laptops */
+/* Tablets & Small Laptops (< 1025px) */
 @media (max-width: 1024px) {
+  #header {
+    padding: 10px 16px !important;
+  }
+
+  .admin-welcome-label {
+    display: none !important;
+  }
+
+  .admin-desktop-links {
+    display: none !important;
+  }
+
+  .admin-hamburger-btn {
+    display: inline-flex !important;
+  }
+
   #content {
-    padding: 20px 18px !important;
+    padding: 20px 16px !important;
   }
 
   .dashboard #content.colMS {
@@ -1514,6 +1534,17 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   #content-related {
     width: 100% !important;
     position: static !important;
+    margin-top: 20px !important;
+  }
+
+  #changelist {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  #changelist #changelist-filter {
+    position: static !important;
+    width: 100% !important;
     margin-top: 20px !important;
   }
 }
@@ -1542,21 +1573,9 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     padding: 2px 6px !important;
   }
 
-  .admin-welcome-label {
-    display: none !important;
-  }
-
   .admin-user-pill {
     padding: 4px 8px !important;
     font-size: 0.75rem !important;
-  }
-
-  .admin-desktop-links {
-    display: none !important;
-  }
-
-  .admin-hamburger-btn {
-    display: inline-flex !important;
   }
 
   .admin-dashboard-hero {
