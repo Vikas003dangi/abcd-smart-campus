@@ -1525,20 +1525,29 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     align-items: center !important;
   }
 
-  /* Row 1: Left-aligned Logo + ABCD Smart Campus + ADMIN */
+  /* Row 1: Centered Logo + ABCD Smart Campus + ADMIN */
   #branding {
     grid-row: 1 !important;
     width: 100% !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
+    text-align: center !important;
   }
 
   .admin-brand-header {
     width: 100% !important;
     display: flex !important;
     align-items: center !important;
+    justify-content: center !important;
     gap: 10px !important;
+  }
+
+  .admin-brand-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
   }
 
   .desktop-badge {
