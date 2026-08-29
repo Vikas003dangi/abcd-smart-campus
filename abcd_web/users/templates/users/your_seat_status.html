@@ -945,22 +945,46 @@
         }
 
         .hub-mobile-title {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            padding: 8px 26px;
+            border-radius: 50px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(243, 240, 255, 0.82) 50%, rgba(255, 255, 255, 0.92) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.12), 0 2px 6px rgba(102, 126, 234, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            transition: all 0.3s ease;
+        }
+        .hub-mobile-title,
+        .hub-mobile-title span {
             font-family: 'Playball', cursive;
             font-size: 1.8rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4338ca 0%, #6366f1 40%, #7c3aed 70%, #9333ea 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 700;
-            letter-spacing: 0.5px;
-            margin: 0;
+            letter-spacing: 0.6px;
+            filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.2));
         }
 
         body.dark-theme .hub-mobile-title {
-            background: linear-gradient(135deg, #f5deb3 0%, #e6be8a 100%);
+            background: linear-gradient(135deg, rgba(30, 20, 50, 0.88) 0%, rgba(45, 25, 75, 0.82) 50%, rgba(25, 15, 45, 0.92) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(245, 222, 179, 0.35);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(245, 222, 179, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+        body.dark-theme .hub-mobile-title,
+        body.dark-theme .hub-mobile-title span {
+            background: linear-gradient(135deg, #fff2cc 0%, #f5deb3 35%, #ffd700 70%, #e6be8a 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 1px 3px rgba(255, 215, 0, 0.25));
         }
 
         .back-link-mobile {
@@ -1775,7 +1799,7 @@
 
     <!-- Secondary Header for smaller screens -->
     <div class="hub-mobile-header">
-        <h1 class="hub-mobile-title">Your Seat Status</h1>
+        <h1 class="hub-mobile-title"><span>Your Seat Status</span></h1>
     </div>
 
     <div class="container">
