@@ -1126,7 +1126,7 @@
     <!-- Course Grid -->
     <div class="tc-grid" id="courseGrid" data-tour="course-list-grid">
       {% for course in courses %}
-      <div class="tc-card">
+      <div class="tc-card" data-course-id="{{ course.id }}">
         <div class="tc-card-thumb">
           {% if course.thumbnail %}
             <img src="{{ course.thumbnail.url }}" alt="{{ course.title }}">
@@ -1148,7 +1148,7 @@
 
           <div class="tc-card-meta">
             <span>🎬 {{ course.video_count }} Videos</span>
-            <span>📄 {{ course.studymaterial_set.count }} Materials</span>
+            <span>📄 {{ course.materials.count }} Materials</span>
           </div>
 
           <!-- Main Actions Row -->
@@ -1175,11 +1175,13 @@
               {% endif %}
             </button>
             
-            {% if request.user.is_superuser %}
-            <a href="{% url 'users:delete_course' course.id %}" class="tc-card-btn btn-danger delete-course-btn">
+            <button type="button" 
+                    class="tc-card-btn btn-danger delete-course-btn" 
+                    data-course-id="{{ course.id }}"
+                    onclick="confirmDeleteCourse('{{ course.id }}', '{{ course.title|escapejs }}')"
+                    title="Delete Course">
               <i class='bx bx-trash'></i>
-            </a>
-            {% endif %}
+            </button>
           </div>
         </div>
       </div>
@@ -1817,8 +1819,8 @@
 
   function applyCrop() {
     if (!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ width: 800, height: 450 });
-    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.80);
+    const canvas = cropper.getCroppedCanvas({ width: 1280, height: 720 });
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
     
     if (activeInputType === 'manual') {
       document.getElementById('thumbPreviewImg').src = croppedDataUrl;
@@ -1828,6 +1830,7 @@
       document.getElementById('editThumbPreviewImg').src = croppedDataUrl;
       document.getElementById('editThumbPreview').style.display = 'block';
       document.getElementById('editCroppedThumbData').value = croppedDataUrl;
+      document.getElementById('editRemoveThumb').value = "0";
     } else if (activeInputType === 'yt') {
       document.getElementById('ytCroppedThumbData').value = croppedDataUrl;
       const label = document.querySelector('#ytManualThumbGroup div[style*="font-size:0.8rem"]');
@@ -2163,21 +2166,64 @@
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCourseModal(); closeYTWizard(); closeEditModal(); closeCropModal(); } });
 
-  // Handle Delete Course with Styled Confirm
-  document.addEventListener('click', async function(e) {
-    const btn = e.target.closest('.delete-course-btn');
-    if (!btn) return;
-    
-    e.preventDefault();
-    const confirmed = await window.showStyledConfirm(
-      'Delete Course',
-      'Are you sure you want to <b>delete</b> this course permanently?'
-    );
-    
-    if (confirmed) {
-      window.location.href = btn.href;
+  // Handle Delete Course with Styled Confirm and AJAX POST
+  async function confirmDeleteCourse(courseId, courseTitle) {
+    const msg = `Are you sure you want to permanently delete "${courseTitle}" and all its study materials, thumbnails, and storage files?\n\nThis action is permanent and cannot be undone.`;
+    const confirmed = typeof window.showStyledConfirm === 'function'
+      ? await window.showStyledConfirm('Delete Course', msg)
+      : confirm(`Permanently delete "${courseTitle}"?`);
+      
+    if (!confirmed) return;
+
+    try {
+      const resp = await fetch(`/teacher/courses/${courseId}/delete/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+      const data = await resp.json();
+      if (data.success) {
+        if (typeof showToast === 'function') {
+          showToast(data.message || 'Course deleted successfully', 'success');
+        } else if (typeof window.showStyledAlert === 'function') {
+          await window.showStyledAlert('Deleted', data.message || 'Course deleted successfully');
+        }
+        
+        // Smoothly animate and remove card from DOM
+        const card = document.querySelector(`.tc-card[data-course-id="${courseId}"]`) || 
+                     document.querySelector(`button[onclick*="confirmDeleteCourse('${courseId}'"]`)?.closest('.tc-card');
+        if (card) {
+          card.style.transition = 'all 0.35s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.85)';
+          setTimeout(() => {
+            card.remove();
+            const remaining = document.querySelectorAll('.tc-card');
+            if (remaining.length === 0) {
+              const grid = document.getElementById('courseGrid');
+              if (grid) {
+                grid.innerHTML = '<div class="tc-empty"><div class="icon">📭</div><h3>No courses yet</h3><p>Click <strong>Create New Course</strong> or <strong>Sync YouTube</strong> to get started.</p></div>';
+              }
+            }
+          }, 350);
+        } else {
+          location.reload();
+        }
+      } else {
+        if (typeof window.showStyledAlert === 'function') {
+          await window.showStyledAlert('Error', data.error || 'Failed to delete course');
+        } else {
+          alert(data.error || 'Failed to delete course');
+        }
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+      location.reload();
     }
-  });
+  }
   // === INSTANT AJAX TOGGLE FOR COURSE STATUS ===
   async function toggleCourseStatus(btn) {
     const url = btn.dataset.toggleUrl;

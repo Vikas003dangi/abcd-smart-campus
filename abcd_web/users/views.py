@@ -1063,12 +1063,85 @@ def track_engagement_api(request):
     return JsonResponse({"error": "Invalid action"}, status=400)
 
 
+def _save_base64_thumbnail(course, base64_str, filename_prefix="thumb"):
+    """Saves a base64-encoded data URL image to course.thumbnail."""
+    if not base64_str or not isinstance(base64_str, str) or not base64_str.startswith("data:image"):
+        return False
+    try:
+        import base64
+        from django.core.files.base import ContentFile
+        format_part, imgstr = base64_str.split(';base64,')
+        ext = format_part.split('/')[-1].lower()
+        if ext == 'jpeg':
+            ext = 'jpg'
+        fname = f"{filename_prefix}_{int(timezone.now().timestamp())}.{ext}"
+        course.thumbnail = ContentFile(base64.b64decode(imgstr), name=fname)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving base64 thumbnail for course {getattr(course, 'id', 'new')}: {e}")
+        return False
+
+
+def _save_remote_thumbnail(course, url_or_urls, fallback_video_id=None, filename_prefix="thumb"):
+    """
+    Downloads and attaches a remote image URL to course.thumbnail.
+    Tries candidate URLs in order, with fallback to YouTube video ID URLs.
+    Uses browser User-Agent headers to prevent 403 Forbidden.
+    """
+    import urllib.request
+    import re
+    from django.core.files.base import ContentFile
+
+    candidate_urls = []
+    if isinstance(url_or_urls, str) and url_or_urls.strip():
+        candidate_urls.append(url_or_urls.strip())
+    elif isinstance(url_or_urls, (list, tuple)):
+        candidate_urls.extend([u.strip() for u in url_or_urls if u and isinstance(u, str)])
+
+    if fallback_video_id:
+        clean_vid = re.sub(r'[^a-zA-Z0-9_-]', '', str(fallback_video_id))
+        if clean_vid:
+            candidate_urls.extend([
+                f"https://img.youtube.com/vi/{clean_vid}/maxresdefault.jpg",
+                f"https://img.youtube.com/vi/{clean_vid}/hqdefault.jpg",
+                f"https://img.youtube.com/vi/{clean_vid}/mqdefault.jpg",
+                f"https://img.youtube.com/vi/{clean_vid}/default.jpg",
+            ])
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+
+    for u in candidate_urls:
+        if not u:
+            continue
+        try:
+            req = urllib.request.Request(u, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status == 200:
+                    content_type = response.headers.get('Content-Type', '')
+                    data = response.read()
+                    if len(data) > 1000:
+                        ext = "jpg"
+                        if "png" in content_type:
+                            ext = "png"
+                        elif "webp" in content_type:
+                            ext = "webp"
+                        fname = f"{filename_prefix}_{int(timezone.now().timestamp())}.{ext}"
+                        course.thumbnail = ContentFile(data, name=fname)
+                        return True
+        except Exception as e:
+            logger.warning(f"Could not fetch thumbnail from {u}: {e}")
+            continue
+
+    return False
+
+
 @login_required
 @require_POST
 @user_passes_test(is_teacher)
 def add_course_view(request):
-
-    if not request.user.is_staff:
+    if not (request.user.is_staff or is_teacher(request.user)):
         messages.error(request, "Permission denied.")
         return redirect("users:teacher_courses")
 
@@ -1118,15 +1191,7 @@ def add_course_view(request):
     )
 
     if cropped_data and cropped_data.startswith("data:image"):
-        try:
-            import base64
-            from django.core.files.base import ContentFile
-            format, imgstr = cropped_data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f"thumb_{timezone.now().timestamp()}.{ext}")
-            course.thumbnail = data
-        except Exception as e:
-            if thumbnail: course.thumbnail = thumbnail
+        _save_base64_thumbnail(course, cropped_data, filename_prefix="thumb")
     elif thumbnail:
         course.thumbnail = thumbnail
 
@@ -1292,17 +1357,14 @@ def edit_course_view(request, course_id):
     remove_thumb = request.POST.get("remove_thumbnail") == "1"
 
     if remove_thumb:
+        if course.thumbnail:
+            try:
+                course.thumbnail.delete(save=False)
+            except Exception:
+                pass
         course.thumbnail = None
     elif cropped_data and cropped_data.startswith("data:image"):
-        try:
-            import base64
-            from django.core.files.base import ContentFile
-            format, imgstr = cropped_data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f"thumb_edit_{timezone.now().timestamp()}.{ext}")
-            course.thumbnail = data
-        except Exception:
-            if thumbnail: course.thumbnail = thumbnail
+        _save_base64_thumbnail(course, cropped_data, filename_prefix=f"thumb_edit_{course.id}")
     elif thumbnail:
         course.thumbnail = thumbnail
 
@@ -1396,7 +1458,7 @@ def yt_fetch_videos_api(request):
 @require_POST
 def yt_import_playlist_api(request):
     """Import a YouTube playlist as a course."""
-    if not request.user.is_staff:
+    if not (request.user.is_staff or is_teacher(request.user)):
         return JsonResponse({"error": "Permission denied"}, status=403)
 
     try:
@@ -1466,44 +1528,38 @@ def yt_import_playlist_api(request):
 
         # 🖼 THUMBNAIL LOGIC
         if custom_thumb_data and custom_thumb_data.startswith("data:image"):
-            try:
-                import base64
-                from django.core.files.base import ContentFile
-                format, imgstr = custom_thumb_data.split(';base64,')
-                ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=f"yt_pl_{timezone.now().timestamp()}.{ext}")
-                course.thumbnail = data
-            except Exception: pass
-        
+            _save_base64_thumbnail(course, custom_thumb_data, filename_prefix=f"pl_{playlist_id}")
         elif use_pl_thumb:
-            thumb_url = snippet.get("thumbnails", {}).get("maxres", {}).get("url") or \
-                        snippet.get("thumbnails", {}).get("high", {}).get("url")
-            if thumb_url:
-                try:
-                    import urllib.request
-                    from django.core.files import File
-                    from django.core.files.temp import NamedTemporaryFile
-                    tmp = NamedTemporaryFile(delete=False, suffix='.jpg')
-                    tmp_path = tmp.name
-                    tmp.close()
-                    urllib.request.urlretrieve(thumb_url, tmp_path)
-                    with open(tmp_path, 'rb') as f:
-                        course.thumbnail.save(f"pl_{playlist_id}.jpg", File(f), save=False)
-                    import os
-                    os.remove(tmp_path)
-                except Exception: pass
+            pl_thumbs = snippet.get("thumbnails", {})
+            thumb_urls = [
+                pl_thumbs.get("maxres", {}).get("url"),
+                pl_thumbs.get("standard", {}).get("url"),
+                pl_thumbs.get("high", {}).get("url"),
+                pl_thumbs.get("medium", {}).get("url"),
+                pl_thumbs.get("default", {}).get("url"),
+            ]
+            first_vid_id = None
+            if videos:
+                v0_snippet = videos[0].get("snippet", {})
+                first_vid_id = v0_snippet.get("resourceId", {}).get("videoId") or videos[0].get("video_id") or videos[0].get("id")
+            _save_remote_thumbnail(course, thumb_urls, fallback_video_id=first_vid_id, filename_prefix=f"pl_{playlist_id}")
 
         course.save()
 
-        # ✅ NEW: Create StudyMaterial entries for each video to allow unified ordering
+        # ✅ Create StudyMaterial entries for each video to allow unified ordering
         for index, vid in enumerate(videos):
-            StudyMaterial.objects.create(
-                course=course,
-                title=vid.get("title", f"Video {index + 1}"),
-                external_url=f"https://www.youtube.com/watch?v={vid['video_id']}",
-                material_type='video',
-                order=index + 1
-            )
+            v_snippet = vid.get("snippet", {})
+            v_title = v_snippet.get("title", f"Video {index + 1}")
+            v_res = v_snippet.get("resourceId", {})
+            v_id = v_res.get("videoId") or vid.get("video_id") or vid.get("id")
+            if v_id:
+                StudyMaterial.objects.create(
+                    course=course,
+                    title=v_title,
+                    external_url=f"https://www.youtube.com/watch?v={v_id}",
+                    material_type='video',
+                    order=index + 1
+                )
 
         # Notify students in background (non-blocking)
         threading.Thread(
@@ -1514,6 +1570,7 @@ def yt_import_playlist_api(request):
 
         return JsonResponse({"success": True, "course_id": course.id, "title": course.title})
     except Exception as e:
+        logger.error(f"Error in yt_import_playlist_api: {e}")
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -1521,7 +1578,7 @@ def yt_import_playlist_api(request):
 @require_POST
 def yt_create_custom_course_api(request):
     """Create a course from hand-picked YouTube videos."""
-    if not request.user.is_staff:
+    if not (request.user.is_staff or is_teacher(request.user)):
         return JsonResponse({"error": "Permission denied"}, status=403)
 
     try:
@@ -1540,8 +1597,6 @@ def yt_create_custom_course_api(request):
         return JsonResponse({"error": "Select at least one video"}, status=400)
 
     try:
-        # Build a comma-separated video ID string for storage
-        # We'll store them in a custom field or use description
         video_id_str = ",".join(video_ids)
 
         target_public = body.get("target_public", True)
@@ -1566,7 +1621,7 @@ def yt_create_custom_course_api(request):
         course = Course(
             title=title,
             description=f"Custom course with {len(video_ids)} selected videos.",
-            video_ids=video_id_str, # ✅ SAVE HERE
+            video_ids=video_id_str,
             video_count=len(video_ids),
             is_active=True,
             created_by=request.user,
@@ -1582,50 +1637,14 @@ def yt_create_custom_course_api(request):
 
         # 🖼 THUMBNAIL LOGIC
         if custom_thumb_data and custom_thumb_data.startswith("data:image"):
-            try:
-                import base64
-                from django.core.files.base import ContentFile
-                format, imgstr = custom_thumb_data.split(';base64,')
-                ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=f"yt_custom_{timezone.now().timestamp()}.{ext}")
-                course.thumbnail = data
-            except Exception:
-                pass
-        
+            _save_base64_thumbnail(course, custom_thumb_data, filename_prefix="yt_custom")
         elif use_first_thumb and video_ids:
-            safe_vid = re.sub(r'[^a-zA-Z0-9_-]', '', video_ids[0])
-            if safe_vid:
-                # Try multiple qualities
-                thumb_urls = [
-                    f"https://img.youtube.com/vi/{safe_vid}/maxresdefault.jpg",
-                    f"https://img.youtube.com/vi/{safe_vid}/hqdefault.jpg",
-                    f"https://img.youtube.com/vi/{safe_vid}/mqdefault.jpg"
-                ]
-                
-                for t_url in thumb_urls:
-                    try:
-                        import urllib.request
-                        from django.core.files import File
-                        from django.core.files.temp import NamedTemporaryFile
-                        
-                        # Check if URL exists
-                        req = urllib.request.Request(t_url, method='HEAD')
-                        with urllib.request.urlopen(req) as r:
-                            if r.status == 200:
-                                tmp = NamedTemporaryFile(delete=False, suffix='.jpg')
-                                tmp_path = tmp.name
-                                tmp.close()
-                                urllib.request.urlretrieve(t_url, tmp_path)
-                                with open(tmp_path, 'rb') as f:
-                                    course.thumbnail.save(f"yt_{safe_vid}.jpg", File(f), save=False)
-                                os.remove(tmp_path)
-                                break
-                    except Exception:
-                        continue
+            first_vid_id = video_ids[0]
+            _save_remote_thumbnail(course, [], fallback_video_id=first_vid_id, filename_prefix=f"yt_{first_vid_id}")
 
         course.save()
 
-        # ✅ NEW: Create StudyMaterial entries for each selected video
+        # ✅ Create StudyMaterial entries for each selected video
         for index, vid_id in enumerate(video_ids):
             StudyMaterial.objects.create(
                 course=course,
@@ -1644,6 +1663,7 @@ def yt_create_custom_course_api(request):
 
         return JsonResponse({"success": True, "course_id": course.id, "title": course.title})
     except Exception as e:
+        logger.error(f"Error in yt_create_custom_course_api: {e}")
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -1651,10 +1671,14 @@ def yt_create_custom_course_api(request):
 @login_required
 @user_passes_test(is_teacher)
 def delete_course(request, course_id):
-    if not request.user.is_superuser:
-        return HttpResponseForbidden("Only admin can delete courses.")
+    if not (request.user.is_staff or request.user.is_superuser or is_teacher(request.user)):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({"error": "Permission denied."}, status=403)
+        messages.error(request, "Permission denied.")
+        return redirect("users:teacher_courses")
 
     course = get_object_or_404(Course, id=course_id)
+    title = course.title
     
     # 1. Physically delete files for all associated study materials
     for mat in course.materials.all():
@@ -1663,6 +1687,11 @@ def delete_course(request, course_id):
                 mat.file.delete(save=False)
             except Exception as e:
                 logger.error(f"Error deleting material file {mat.id}: {e}")
+        if getattr(mat, 'thumbnail', None):
+            try:
+                mat.thumbnail.delete(save=False)
+            except Exception as e:
+                logger.error(f"Error deleting material thumbnail {mat.id}: {e}")
 
     # 2. Physically delete course thumbnail file
     if course.thumbnail:
@@ -1673,15 +1702,23 @@ def delete_course(request, course_id):
 
     # 3. Delete course object (CASCADE deletes all related database records)
     course.delete()
-    messages.success(request, "Course and all associated data/files deleted successfully.")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({"success": True, "message": f'Course "{title}" and all associated files deleted successfully.'})
+
+    messages.success(request, f'Course "{title}" and all associated files deleted successfully.')
     return redirect("users:teacher_courses")
+
 
 # Delete Study Materials
 @login_required
 @user_passes_test(is_teacher)
 def delete_study_material(request, material_id):
-    if not request.user.is_superuser:
-        return HttpResponseForbidden("Only admin can delete materials.")
+    if not (request.user.is_staff or request.user.is_superuser or is_teacher(request.user)):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({"error": "Permission denied."}, status=403)
+        messages.error(request, "Permission denied.")
+        return redirect("users:teacher_courses")
 
     material = get_object_or_404(StudyMaterial, id=material_id)
     course_id = material.course.id
@@ -1691,6 +1728,9 @@ def delete_study_material(request, material_id):
         except Exception as e:
             logger.error(f"Error deleting material file {material.id}: {e}")
     material.delete()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({"success": True, "message": "Study material deleted successfully."})
 
     messages.success(request, "Study material deleted successfully.")
     return redirect("users:teacher_course_materials", course_id=course_id)

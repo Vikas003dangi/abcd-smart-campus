@@ -239,31 +239,40 @@ def sync_courses_from_youtube():
 
         # Download thumbnail if course is new or has no thumbnail
         if not course.thumbnail:
-            # Try playlist thumb first
-            thumb_url = pl["snippet"].get("thumbnails", {}).get("maxres", {}).get("url") or \
-                        pl["snippet"].get("thumbnails", {}).get("high", {}).get("url")
-            
-            if not thumb_url and videos:
-                # Try first video
-                vid_id = videos[0]["snippet"]["resourceId"]["videoId"]
-                thumb_url = f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg"
+            pl_thumbs = pl["snippet"].get("thumbnails", {})
+            candidate_urls = [
+                pl_thumbs.get("maxres", {}).get("url"),
+                pl_thumbs.get("standard", {}).get("url"),
+                pl_thumbs.get("high", {}).get("url"),
+                pl_thumbs.get("medium", {}).get("url"),
+                pl_thumbs.get("default", {}).get("url"),
+            ]
+            first_vid_id = None
+            if videos:
+                first_vid_id = videos[0].get("snippet", {}).get("resourceId", {}).get("videoId")
+                if first_vid_id:
+                    candidate_urls.extend([
+                        f"https://img.youtube.com/vi/{first_vid_id}/maxresdefault.jpg",
+                        f"https://img.youtube.com/vi/{first_vid_id}/hqdefault.jpg",
+                        f"https://img.youtube.com/vi/{first_vid_id}/mqdefault.jpg",
+                    ])
 
-            if thumb_url:
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+            for u in candidate_urls:
+                if not u:
+                    continue
                 try:
                     import urllib.request
-                    from django.core.files import File
-                    from django.core.files.temp import NamedTemporaryFile
-                    import re
-                    
-                    tmp = NamedTemporaryFile(delete=False, suffix='.jpg')
-                    tmp_path = tmp.name
-                    tmp.close()
-                    urllib.request.urlretrieve(thumb_url, tmp_path)
-                    with open(tmp_path, 'rb') as f:
-                        course.thumbnail.save(f"pl_{playlist_id}.jpg", File(f), save=True)
-                    os.remove(tmp_path)
+                    from django.core.files.base import ContentFile
+                    req = urllib.request.Request(u, headers=headers)
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        if resp.status == 200:
+                            data = resp.read()
+                            if len(data) > 1000:
+                                course.thumbnail.save(f"pl_{playlist_id}.jpg", ContentFile(data), save=True)
+                                break
                 except Exception:
-                    pass
+                    continue
 
 # -------------------------------------------------------------------
 # YOUTUBE PLAYLIST VIDEO FETCHING WITH CACHING
