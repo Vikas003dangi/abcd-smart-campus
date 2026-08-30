@@ -174,15 +174,16 @@ CLOUDINARY_CLOUD_NAME = config('CLOUDINARY_CLOUD_NAME', default='').strip()
 CLOUDINARY_API_KEY = config('CLOUDINARY_API_KEY', default='').strip()
 CLOUDINARY_API_SECRET = config('CLOUDINARY_API_SECRET', default='').strip()
 
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': CLOUDINARY_CLOUD_NAME or 'dummy_cloud_name',
+    'API_KEY': CLOUDINARY_API_KEY or 'dummy_api_key',
+    'API_SECRET': CLOUDINARY_API_SECRET or 'dummy_api_secret',
+}
+
 if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
-    CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
-        'API_KEY': CLOUDINARY_API_KEY,
-        'API_SECRET': CLOUDINARY_API_SECRET,
-    }
     STORAGES = {
         "default": {
-            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+            "BACKEND": "users.storage.SmartMediaCloudinaryStorage",
         },
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
