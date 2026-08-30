@@ -1434,9 +1434,10 @@ def get_profile_photo_url(user):
         return teacher_prof.photo.url
 
     email_clean = (user.email or '').strip().lower()
-    if email_clean == 'abcd2013baq@gmail.com':
+    username_clean = (user.username or '').strip().lower()
+    if email_clean == 'abcd2013baq@gmail.com' or username_clean in ['sandy', 'sandeep', 'sandeepananda', 'abcd2013baq']:
         return "/static/data/sandeep sir photo.jpeg"
-    elif email_clean == 'vd19055@gmail.com':
+    elif email_clean == 'vd19055@gmail.com' or username_clean in ['vaku', 'vikas', 'vd19055']:
         return "/static/data/favicon/web-app-manifest-512x512.png"
 
     # Priority 1: StudentProfile Photo / StudentAchievement Photo (Latest takes precedence)

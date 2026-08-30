@@ -13556,11 +13556,14 @@ def guidy_update_teacher_profile(request):
     if photo_action == 'remove' or remove_photo == 'true':
         if profile.photo:
             try:
-                import os
-                if os.path.isfile(profile.photo.path):
-                    os.remove(profile.photo.path)
+                profile.photo.delete(save=False)
             except Exception:
-                pass
+                try:
+                    import os
+                    if hasattr(profile.photo, 'path') and os.path.isfile(profile.photo.path):
+                        os.remove(profile.photo.path)
+                except Exception:
+                    pass
         profile.photo = None
     elif 'photo' in request.FILES:
         profile.photo = request.FILES['photo']

@@ -6893,8 +6893,9 @@ function removeTeacherPhoto() {
   // Preview default static image
   const avatarImg = document.getElementById('selfPaneAvatarImg');
   if (avatarImg) {
-    const email = "{{ request.user.email }}";
-    if (email === 'abcd2013baq@gmail.com') {
+    const email = "{{ request.user.email|lower }}";
+    const uname = "{{ request.user.username|lower }}";
+    if (email === 'abcd2013baq@gmail.com' || uname === 'sandy' || uname === 'sandeep' || uname === 'sandeepananda' || uname === 'abcd2013baq') {
       avatarImg.src = "/static/data/sandeep sir photo.jpeg";
     } else {
       avatarImg.src = "/static/data/favicon/web-app-manifest-512x512.png";
