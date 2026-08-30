@@ -67,7 +67,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'whitenoise.runserver_nostatic',  # WhiteNoise for static files
-    'cloudinary_storage',
     'django.contrib.staticfiles',
     'cloudinary',
  
@@ -166,6 +165,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"  # for production collectstatic
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # -------------------------------
 # MEDIA & CLOUDINARY STORAGE
