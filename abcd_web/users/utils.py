@@ -1526,44 +1526,32 @@ def get_user_notification_email(user_or_student):
     if not user_or_student:
         return None
 
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-
-    user = None
-    direct_email = None
-
-    if isinstance(user_or_student, User):
-        user = user_or_student
-    elif hasattr(user_or_student, 'user') and user_or_student.user:
-        user = user_or_student.user
-        direct_email = getattr(user_or_student, 'email', None)
-    elif hasattr(user_or_student, 'email'):
-        direct_email = getattr(user_or_student, 'email', None)
-
-    if user:
-        try:
-            from .models import StudentProfile
-            profile = StudentProfile.objects.filter(user=user).first()
-            if profile and profile.email:
-                return profile.email
-        except Exception:
-            pass
-
-        try:
-            from .models import StudentAchievement
-            ach = StudentAchievement.objects.filter(user=user).first()
-            if ach and ach.email:
-                return ach.email
-        except Exception:
-            pass
-
+    # Direct email check
+    direct_email = (getattr(user_or_student, 'email', None) or '').strip()
     if direct_email:
         return direct_email
 
-    if user and user.email:
-        return user.email
+    # Check associated user
+    user = getattr(user_or_student, 'user', None)
+    if not user and hasattr(user_or_student, 'username'):
+        user = user_or_student
 
-    return getattr(user_or_student, 'email', None)
+    if user:
+        user_email = (getattr(user, 'email', None) or '').strip()
+        if user_email:
+            return user_email
+
+        # Check StudentProfile attached to user
+        from .models import StudentProfile, StudentAchievement
+        prof = StudentProfile.objects.filter(user=user).exclude(email='').first()
+        if prof and prof.email:
+            return prof.email.strip()
+
+        ach = StudentAchievement.objects.filter(user=user).exclude(email='').first()
+        if ach and ach.email:
+            return ach.email.strip()
+
+    return None
 
 
 
