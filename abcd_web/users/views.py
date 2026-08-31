@@ -2426,38 +2426,66 @@ def login_view(request):
 # FORGOT PASSWORD VIEW
 def forgot_password_request(request):
     """
-    POST: expects {'email': '...'}
+    POST: expects {'email': '...'} or extracts email from authenticated user/profile.
     Sends OTP + username to the user's email (if user exists).
     """
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
     email = (request.POST.get('email') or "").strip()
-    if not email:
-        return JsonResponse({'status': 'error', 'message': 'Email is required'}, status=400)
+    if not email and request.user.is_authenticated:
+        email = (request.user.email or '').strip()
+        if not email:
+            prof = StudentProfile.objects.filter(user=request.user).first()
+            if prof and prof.email:
+                email = prof.email.strip()
+            else:
+                ach = StudentAchievement.objects.filter(user=request.user).first()
+                if ach and ach.email:
+                    email = ach.email.strip()
 
+    if not email:
+        return JsonResponse({'status': 'error', 'message': 'Email address is required.'}, status=400)
+
+    user = None
     try:
-        # Assuming email is unique per user
-        user = User.objects.get(email__iexact=email)
-    except User.DoesNotExist:
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            prof = StudentProfile.objects.filter(email__iexact=email).select_related('user').first()
+            if prof and prof.user:
+                user = prof.user
+            else:
+                ach = StudentAchievement.objects.filter(email__iexact=email).select_related('user').first()
+                if ach and ach.user:
+                    user = ach.user
+        if not user and request.user.is_authenticated:
+            user = request.user
+    except Exception as e:
+        logger.error(f"Error looking up user for password reset ({email}): {e}")
+
+    if not user:
         return JsonResponse({
             'status': 'error',
-            'message': 'No account found with this email. Please register first.'
+            'message': 'No account found with this email. Please check the spelling or register first.'
         }, status=404)
+
+    target_email = (user.email or email or getattr(getattr(user, 'profile', None), 'email', None) or '').strip()
+    if not target_email:
+        target_email = email
 
     user_ip = request.META.get('REMOTE_ADDR') or 'anonymous'
     
-    # 24-hour outer rate limit: max 3 verification requests per day (86400s) per IP or Email
+    # 24-hour outer rate limit: max 5 verification requests per day per IP or Email
     daily_ip_key = f"verification_daily_ip_{user_ip}"
-    daily_email_key = f"verification_daily_email_{email.lower()}"
+    daily_email_key = f"verification_daily_email_{target_email.lower()}"
     
     daily_ip_count = cache.get(daily_ip_key, 0)
     daily_email_count = cache.get(daily_email_key, 0)
     
-    if daily_ip_count >= 3 or daily_email_count >= 3:
+    if daily_ip_count >= 5 or daily_email_count >= 5:
         return JsonResponse({
             'status': 'error',
-            'message': 'Verification code request limit reached (max 3 per day). Please try again tomorrow.'
+            'message': 'Verification code request limit reached (max 5 per day). Please try again tomorrow.'
         }, status=429)
 
     # SUCCESSFUL PASSWORD RESET COOLDOWN (1 hour)
@@ -2476,26 +2504,25 @@ def forgot_password_request(request):
 
     # Cache keys
     counter_key = f"otp_resend_count_{user_id}"
-    cooldown_key = f"otp_cooldown_{user_id}"
+    otp_cooldown_key = f"otp_cooldown_{user_id}"
 
     # 60s COOLDOWN BETWEEN OTP REQUESTS
     import time
-    cooldown_expiry = cache.get(cooldown_key)
+    cooldown_expiry = cache.get(otp_cooldown_key)
     if cooldown_expiry:
         remaining = int(max(0, cooldown_expiry - time.time()))
         if remaining > 0:
             return JsonResponse({
                 'status': 'error',
-                'message': f"Please wait {remaining}s"
+                'message': f"Please wait {remaining}s before requesting a new OTP."
             }, status=429)
 
-    # 3 ATTEMPTS PER 5 HOURS LIMIT
-    # Use get_or_set to initialize to 0 if it doesn't exist, timeout 5 hours (18000s)
+    # 5 ATTEMPTS PER 5 HOURS LIMIT
     attempts = cache.get_or_set(counter_key, 0, timeout=18000)
-    if attempts >= 3:
+    if attempts >= 5:
         return JsonResponse({
             'status': 'error',
-            'message': 'Too many attempts'
+            'message': 'Too many OTP requests. Please wait a few hours before trying again.'
         }, status=429)
 
     # Generate 6-digit OTP
@@ -2506,7 +2533,7 @@ def forgot_password_request(request):
     try:
         success = send_html_email(
             subject="Your ABCD password reset OTP",
-            to_email=user.email,
+            to_email=target_email,
             template="emails/otp_security.html",
             context={
                 "username": user.username,
@@ -2515,30 +2542,31 @@ def forgot_password_request(request):
                 "preheader": "Use this OTP to reset your ABCD password",
                 "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
             },
-            fail_silently=False
+            fail_silently=False,
+            timeout=8
         )
         if not success:
             return JsonResponse(
-                {"status": "error", "message": "Unable to deliver OTP email at this moment. Please try again in a few moments."},
+                {"status": "error", "message": "Email delivery service temporarily delayed. Please try again in a few moments."},
                 status=500
             )
     except Exception as e:
-        logger.error(f"OTP email send exception for user {user.email}: {e}")
+        logger.error(f"OTP email send exception for user {target_email}: {e}")
         return JsonResponse(
-            {"status": "error", "message": "Unable to deliver OTP email at this moment. Please try again in a few moments."},
+            {"status": "error", "message": "Email delivery service temporarily delayed. Please try again in a few moments."},
             status=500
         )
 
     # Increment resend count, daily counts and set 60s cooldown on success
     attempts = cache.get(counter_key, 0)
     cache.set(counter_key, attempts + 1, timeout=18000)  # 5 hours
-    cache.set(cooldown_key, time.time() + 60, timeout=60)  # 60s
+    cache.set(otp_cooldown_key, time.time() + 60, timeout=60)  # 60s
     cache.set(daily_ip_key, daily_ip_count + 1, timeout=86400)
     cache.set(daily_email_key, daily_email_count + 1, timeout=86400)
 
     return JsonResponse({
         "status": "ok",
-        "message": "An email has been sent with your OTP.",
+        "message": f"Verification OTP sent successfully to {target_email}!",
         "attempts": attempts + 1,
         "cooldown_seconds": 60
     })
@@ -3013,10 +3041,17 @@ def admission_form_view(request):
 
     # ======================= POST ==========================
     if request.method == 'POST':
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '')
         form = StudentProfileForm(request.POST, request.FILES, instance=profile, user=request.user, disabled_services=disabled_services)
 
         if not form.is_valid():
             messages.error(request, "Please correct the errors below.")
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'error',
+                    'errors': form.errors.get_json_data(),
+                    'message': 'Please correct the highlighted errors in the form.'
+                }, status=400)
             return render(request, 'users/admission_form.html', {'form': form})
 
         cleaned = form.cleaned_data
@@ -3044,7 +3079,14 @@ def admission_form_view(request):
                     is_duplicate = False
             
             if is_duplicate:
-                messages.warning(request, "You already have an active admission with these exact details.")
+                dup_msg = "You already have an active admission with these exact details."
+                messages.warning(request, dup_msg)
+                if is_ajax:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': dup_msg,
+                        'show_duplicate_popup': True
+                    }, status=400)
                 return render(request, 'users/admission_form.html', {'form': form, 'show_duplicate_popup': True})
 
         # --- RETRY LOOP FOR DATABASE LOCKS ---
@@ -3257,27 +3299,43 @@ def admission_form_view(request):
                     try:
                         action()
                     except Exception as e:
-                        print(f"DEBUG Admission Form Post-Action Error: {e}")
+                        logger.error(f"Admission Form Post-Action Email Error: {e}")
 
                 if final_redirect == 'users:login':
                     from django.contrib.auth import logout
                     logout(request)
                     messages.success(request, submission_success_message)
                 
+                if is_ajax:
+                    return JsonResponse({
+                        'status': 'success',
+                        'redirect_url': reverse(final_redirect or 'users:login'),
+                        'message': submission_success_message
+                    })
+
                 return redirect(final_redirect or 'users:login')
 
             except ValidationError as e:
-                # Validation errors are user-facing, no retry needed
-                messages.error(request, e.message if hasattr(e, 'message') else str(e))
+                err_msg = e.message if hasattr(e, 'message') else str(e)
+                messages.error(request, err_msg)
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
                 return render(request, 'users/admission_form.html', {'form': form})
             except OperationalError as e:
                 if "database is locked" in str(e) and attempt < 2:
                     time.sleep(0.1 * (attempt + 1))
                     continue
-                raise
+                logger.error(f"Admission Form OperationalError: {e}")
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'The database is temporarily busy. Please try submitting again.'}, status=503)
+                messages.error(request, "The database is temporarily busy. Please try submitting again.")
+                return render(request, 'users/admission_form.html', {'form': form})
             except Exception as e:
-                print(f"DEBUG Admission Form Error: {e}")
-                messages.error(request, "There was an error processing your admission. Please try again.")
+                logger.error(f"Admission Form Exception: {e}", exc_info=True)
+                err_text = "There was an error processing your admission. Please try again."
+                messages.error(request, err_text)
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': err_text}, status=500)
                 return render(request, 'users/admission_form.html', {'form': form})
 
     return render(request, 'users/admission_form.html', {'form': form})
@@ -9298,85 +9356,125 @@ def toggle_material_privacy(request, material_id):
 @deduplicate_request(timeout=2)
 def achievement_form_view(request):
     """Form for students to submit their achievements/selections safely with concurrency protection."""
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '')
     achievement = StudentAchievement.objects.filter(user=request.user).first()
     if achievement:
-        messages.info(request, "You have already submitted an achievement request.")
+        msg = "You have already submitted an achievement request."
+        messages.info(request, msg)
+        if is_ajax:
+            return JsonResponse({'status': 'info', 'redirect_url': reverse('users:alumni_dashboard'), 'message': msg})
         return redirect('users:alumni_dashboard')
     
     if request.method == 'POST':
         form = StudentAchievementForm(request.POST, request.FILES, instance=achievement, user=request.user)
-        if form.is_valid():
-            try:
-                with safe_atomic_transaction():
-                    # Re-check inside atomic lock to prevent race condition
-                    if StudentAchievement.objects.filter(user=request.user).exists():
-                        messages.info(request, "An achievement request has already been submitted for your account.")
-                        return redirect('users:alumni_dashboard')
+        if not form.is_valid():
+            messages.error(request, "Please correct the highlighted fields in your story form.")
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'error',
+                    'errors': form.errors.get_json_data(),
+                    'message': 'Please correct the highlighted errors in the form.'
+                }, status=400)
+            other_data = achievement.other_achievements if achievement and achievement.other_achievements else []
+            return render(request, 'users/achievement_form.html', {
+                'form': form,
+                'achievement': achievement,
+                'other_achievements_data': other_data
+            })
 
-                    obj = form.save(commit=False)
-                    obj.user = request.user
-                    
-                    # Fill disabled fields from StudentProfile if they were not in POST
-                    if not form.cleaned_data.get('first_name') or not form.cleaned_data.get('last_name'):
-                        prof = StudentProfile.objects.filter(user=request.user).first()
-                        if prof:
-                            first_name, *rest = (prof.full_name or '').split(' ', 1)
-                            obj.first_name = first_name
-                            obj.last_name = rest[0] if rest else ''
-                            obj.gender = prof.sex.capitalize() if prof.sex else 'Male'
-                            if obj.gender not in ['Male', 'Female', 'Other']:
-                                obj.gender = 'Male'
-                            obj.dob = prof.dob
-                    
-                    # Dynamic fields: Other Achievements
-                    other_titles = request.POST.getlist('other_achievement_title[]')
-                    other_years = request.POST.getlist('other_achievement_year[]')
-                    others = []
-                    for t, y in zip(other_titles, other_years):
-                        if t.strip():
-                            others.append({'title': t, 'year': y})
-                    # Email sync
-                    email_val = (form.cleaned_data.get('email') or '').strip()
-                    if email_val:
-                        obj.email = email_val
-                    elif not obj.email:
-                        prof = StudentProfile.objects.filter(user=request.user).first()
-                        obj.email = (prof.email if prof and prof.email else None) or request.user.email or ''
+        try:
+            with safe_atomic_transaction():
+                # Re-check inside atomic lock to prevent race condition
+                if StudentAchievement.objects.filter(user=request.user).exists():
+                    dup_msg = "An achievement request has already been submitted for your account."
+                    messages.info(request, dup_msg)
+                    if is_ajax:
+                        return JsonResponse({'status': 'info', 'redirect_url': reverse('users:alumni_dashboard'), 'message': dup_msg})
+                    return redirect('users:alumni_dashboard')
 
-                    obj.save()
-            except Exception as e:
-                logger.error(f"Error saving achievement form concurrently: {e}")
-                messages.error(request, "An error occurred while saving your achievement. Please try again.")
-                return render(request, 'users/achievement_form.html', {
-                    'form': form,
-                    'achievement': achievement,
-                    'other_achievements_data': []
+                obj = form.save(commit=False)
+                obj.user = request.user
+                
+                # Fill disabled fields from StudentProfile if they were not in POST
+                if not form.cleaned_data.get('first_name') or not form.cleaned_data.get('last_name'):
+                    prof = StudentProfile.objects.filter(user=request.user).first()
+                    if prof:
+                        first_name, *rest = (prof.full_name or '').split(' ', 1)
+                        obj.first_name = first_name
+                        obj.last_name = rest[0] if rest else ''
+                        obj.gender = prof.sex.capitalize() if prof.sex else 'Male'
+                        if obj.gender not in ['Male', 'Female', 'Other']:
+                            obj.gender = 'Male'
+                        obj.dob = prof.dob
+                
+                # Dynamic fields: Other Achievements
+                other_titles = request.POST.getlist('other_achievement_title[]')
+                other_years = request.POST.getlist('other_achievement_year[]')
+                others = []
+                for t, y in zip(other_titles, other_years):
+                    if t.strip():
+                        others.append({'title': t, 'year': y})
+                obj.other_achievements = others
+
+                # Email sync
+                email_val = (form.cleaned_data.get('email') or '').strip()
+                if email_val:
+                    obj.email = email_val
+                elif not obj.email:
+                    prof = StudentProfile.objects.filter(user=request.user).first()
+                    obj.email = (prof.email if prof and prof.email else None) or request.user.email or ''
+
+                obj.save()
+        except Exception as e:
+            logger.error(f"Error saving achievement form concurrently: {e}", exc_info=True)
+            err_text = "An error occurred while saving your achievement. Please try again."
+            messages.error(request, err_text)
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': err_text}, status=500)
+            return render(request, 'users/achievement_form.html', {
+                'form': form,
+                'achievement': achievement,
+                'other_achievements_data': []
+            })
+        
+        # Send Email to Admin/Teacher (outside lock)
+        send_html_email(
+            subject="New Alumni Achievement Request",
+            to_email=settings.ADMIN_EMAIL,
+            template="emails/admin_achievement_request.html",
+            context={
+                "student_name": request.user.get_full_name() or request.user.username,
+                "achievement_summary": obj.current_post or "Achievement Submission",
+                "action_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}",
+            },
+            fail_silently=True,
+            run_async=True
+        )
+        
+        from .utils import get_user_dashboard_type
+        dtype = get_user_dashboard_type(request.user)
+        if dtype != 'student' and not (request.user.is_staff or request.user.is_superuser):
+            from django.contrib.auth import logout
+            logout(request)
+            success_msg = "Achievement form submitted successfully! Waiting for teacher approval. Log in again to access your dashboard once approved."
+            messages.success(request, success_msg)
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'success',
+                    'redirect_url': reverse('users:login'),
+                    'message': success_msg
                 })
-            
-            # Send Email to Admin/Teacher (outside lock)
-            send_html_email(
-                subject="New Alumni Achievement Request",
-                to_email=settings.ADMIN_EMAIL,
-                template="emails/admin_achievement_request.html",
-                context={
-                    "student_name": request.user.get_full_name() or request.user.username,
-                    "achievement_summary": obj.current_post or "Achievement Submission",
-                    "action_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}",
-                },
-                fail_silently=True,
-                run_async=True
-            )
-            
-            from .utils import get_user_dashboard_type
-            dtype = get_user_dashboard_type(request.user)
-            if dtype != 'student' and not (request.user.is_staff or request.user.is_superuser):
-                from django.contrib.auth import logout
-                logout(request)
-                messages.success(request, "Achievement form submitted successfully! Waiting for teacher approval. Log in again to access your dashboard once approved.")
-                return redirect('users:login')
-            else:
-                messages.success(request, "Achievement details submitted! Waiting for teacher approval.")
-                return redirect('users:alumni_dashboard')
+            return redirect('users:login')
+        else:
+            success_msg = "Achievement details submitted! Waiting for teacher approval."
+            messages.success(request, success_msg)
+            if is_ajax:
+                return JsonResponse({
+                    'status': 'success',
+                    'redirect_url': reverse('users:alumni_dashboard'),
+                    'message': success_msg
+                })
+            return redirect('users:alumni_dashboard')
     else:
         form = StudentAchievementForm(instance=achievement, user=request.user)
         

@@ -1085,12 +1085,10 @@
     const form = document.getElementById('achievementForm');
     if (!form) return;
     const submitBtn = document.getElementById('submitBtn');
-    let isAjaxSubmitting = false;
-    let isNativeSubmitting = false;
+    let isSubmitting = false;
 
     form.addEventListener('submit', async function(e) {
-        if (isNativeSubmitting) return; // Allow native form submit to proceed cleanly
-        if (isAjaxSubmitting) { e.preventDefault(); return; }
+        if (isSubmitting) { e.preventDefault(); return; }
 
         // Wait for other sync validation handlers to run.
         if (e.defaultPrevented) return;
@@ -1098,21 +1096,19 @@
         // Prevent default HTML form post
         e.preventDefault();
 
-        isAjaxSubmitting = true;
+        isSubmitting = true;
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.dataset.originalHtml = submitBtn.innerHTML;
-            submitBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin' style="vertical-align:middle;margin-right:6px;"></i>Submitting...`;
+            submitBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin' style="vertical-align:middle;margin-right:6px;"></i>Submitting Story...`;
         }
 
-        const fallbackNativeSubmit = () => {
-            isNativeSubmitting = true;
-            isAjaxSubmitting = false;
+        const resetButton = () => {
+            isSubmitting = false;
             if (submitBtn && submitBtn.dataset.originalHtml) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = submitBtn.dataset.originalHtml;
             }
-            form.submit();
         };
 
         try {
@@ -1121,38 +1117,85 @@
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 }
             });
 
-            if (response.ok && response.redirected) {
-                // Success! Display the beautiful flying toast.
-                const toast = document.createElement('div');
-                toast.className = 'flying-toast';
-                toast.innerHTML = '<span class="toast-check">✓</span> Story Submitted';
-                document.body.appendChild(toast);
-                
-                // Wait for the animation to play out (2.8s), then navigate
-                setTimeout(() => {
-                    window.location.replace(response.url);
-                }, 2800);
-            } else if (response.ok) {
-                if (response.url && response.url !== window.location.href) {
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    // Success! Display flying toast
                     const toast = document.createElement('div');
                     toast.className = 'flying-toast';
                     toast.innerHTML = '<span class="toast-check">✓</span> Story Submitted';
                     document.body.appendChild(toast);
+                    
                     setTimeout(() => {
-                        window.location.replace(response.url);
-                    }, 2800);
-                } else {
-                    fallbackNativeSubmit();
+                        window.location.href = data.redirect_url || "{% url 'users:login' %}";
+                    }, 2200);
+                    return;
                 }
-            } else {
-                fallbackNativeSubmit();
+
+                if (data.status === 'info') {
+                    window.location.href = data.redirect_url || "{% url 'users:alumni_dashboard' %}";
+                    return;
+                }
+
+                // Handle validation error
+                resetButton();
+                let errMsg = data.message || "Please correct the errors in the form.";
+                if (data.errors) {
+                    const errorList = [];
+                    for (const [field, fieldErrors] of Object.entries(data.errors)) {
+                        if (Array.isArray(fieldErrors)) {
+                            fieldErrors.forEach(errObj => {
+                                errorList.push(errObj.message || errObj);
+                            });
+                        }
+                    }
+                    if (errorList.length > 0) {
+                        errMsg = errorList.join('<br>');
+                    }
+                }
+
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Story Submission Notice", errMsg, "error");
+                } else if (window.CustomPopup) {
+                    await CustomPopup.alert(errMsg, "Submission Notice");
+                } else {
+                    alert(errMsg.replace(/<br>/g, '\n'));
+                }
+                return;
+            }
+
+            if (response.ok && response.redirected) {
+                const toast = document.createElement('div');
+                toast.className = 'flying-toast';
+                toast.innerHTML = '<span class="toast-check">✓</span> Story Submitted';
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    window.location.href = response.url;
+                }, 2200);
+                return;
+            }
+
+            resetButton();
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Notice", "Unable to complete submission. Please check your details and try again.", "error");
             }
         } catch (err) {
-            fallbackNativeSubmit();
+            console.error("Achievement submission error:", err);
+            resetButton();
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Network Error", "Unable to connect to the server. Please check your internet connection and try again.", "error");
+            } else if (window.CustomPopup) {
+                await CustomPopup.alert("Unable to connect to the server. Please check your internet connection.", "Network Error");
+            } else {
+                alert("Unable to connect to the server. Please check your internet connection.");
+            }
         }
     });
 })();

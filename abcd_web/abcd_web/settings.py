@@ -217,6 +217,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = f'"ABCD Coaching & Library" <{EMAIL_HOST_USER}>'
+ADMIN_EMAIL = config('ADMIN_EMAIL', default=EMAIL_HOST_USER)
 
 # -------------------------------
 # TEMPLATES

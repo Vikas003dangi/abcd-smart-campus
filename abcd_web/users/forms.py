@@ -232,7 +232,7 @@ class StudentProfileForm(forms.ModelForm):
         if service_type == 'Library' and floor and selected_seat:
 
             try:
-                seat = Seat.objects.select_for_update().get(
+                seat = Seat.objects.get(
                     floor=floor,
                     seat_number=str(selected_seat)
                 )

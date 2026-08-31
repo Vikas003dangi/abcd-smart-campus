@@ -634,22 +634,37 @@
         }
     }
     async function handleForgotPassword() {
+        const userEmail = "{{ request.user.email|default:profile.email|default:'' }}";
         let proceed = false;
+        const confirmMsg = userEmail 
+            ? `We will send a password reset OTP to ${userEmail}. Proceed?`
+            : "We will send a password reset OTP to your registered email. Proceed?";
+
         if (window.showStyledConfirm) {
-            proceed = await window.showStyledConfirm("Forgot Password", "We will send a password reset OTP to your email. Proceed?", false, true);
+            proceed = await window.showStyledConfirm("Forgot Password", confirmMsg, false, true);
+        } else if (window.CustomPopup) {
+            proceed = await CustomPopup.confirm(confirmMsg, "Forgot Password");
         } else {
-            proceed = await CustomPopup.confirm("We will send a password reset OTP to your email. Proceed?", "Forgot Password");
+            proceed = confirm(confirmMsg);
         }
         if (!proceed) return;
 
+        window.__activeResetEmail = userEmail;
+
         const formData = new FormData();
-        formData.append("email", "{{ request.user.email }}");
+        formData.append("email", userEmail);
+
         try {
+            if (window.showStyledToast) {
+                window.showStyledToast("Sending verification OTP...", "info");
+            }
             const response = await fetch("{% url 'users:forgot_password' %}", {
                 method: "POST",
                 body: formData,
                 headers: {
-                    "X-CSRFToken": "{{ csrf_token }}"
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json"
                 }
             });
             const data = await response.json();
@@ -657,17 +672,23 @@
                 closeChangePasswordModal();
                 showAuthOtpModal();
                 if (window.showStyledAlert) {
-                    await window.showStyledAlert("Success", "Password reset OTP sent to your email!", "success");
+                    await window.showStyledAlert("OTP Sent", data.message || "Password reset OTP sent to your email!", "success");
                 }
             } else {
                 if (window.showStyledAlert) {
-                    await window.showStyledAlert("Error", data.message || "Failed to trigger password reset.", "error");
+                    await window.showStyledAlert("OTP Request Notice", data.message || "Failed to trigger password reset.", "error");
+                } else if (window.CustomPopup) {
+                    await CustomPopup.alert(data.message || "Failed to trigger password reset.", "OTP Request Notice");
+                } else {
+                    alert(data.message || "Failed to trigger password reset.");
                 }
             }
         } catch (err) {
-            console.error(err);
+            console.error("Forgot password OTP error:", err);
             if (window.showStyledAlert) {
-                await window.showStyledAlert("Error", "An error occurred. Please try again.", "error");
+                await window.showStyledAlert("Network Error", "Unable to connect to the server. Please check your internet connection.", "error");
+            } else {
+                alert("Unable to connect to the server. Please check your internet connection.");
             }
         }
     }
