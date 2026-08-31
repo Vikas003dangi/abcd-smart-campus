@@ -364,6 +364,17 @@
                 padding: 12px 28px;
                 font-size: 0.95rem;
             }
+            .calendar-search-wrapper {
+                bottom: 20px;
+                left: 16px;
+            }
+            .theme-toggle-fixed {
+                bottom: 20px;
+                right: 16px;
+            }
+            .calendar-search-wrapper.expanded {
+                width: min(calc(100vw - 85px), 280px);
+            }
         }
 
         @media screen and (max-width: 400px) {
@@ -556,23 +567,27 @@
         /* Fading Top Center Red Alert Toast */
         .search-alert-toast {
             position: fixed;
-            top: 25px;
+            top: max(20px, env(safe-area-inset-top, 20px));
             left: 50%;
             transform: translate(-50%, -20px);
             z-index: 100000;
             background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
-            padding: 12px 24px;
-            border-radius: 16px;
+            padding: 11px 22px;
+            border-radius: 50px;
             font-weight: 700;
-            box-shadow: 0 10px 25px rgba(220, 38, 38, 0.35);
+            box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4), 0 4px 10px rgba(0, 0, 0, 0.2);
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             font-size: 0.95rem;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 90vw;
+            width: max-content;
+            text-align: center;
+            transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), top 0.15s ease;
         }
         .search-alert-toast.active {
             opacity: 1;
@@ -859,7 +874,7 @@
                 <!-- Search bar container (desktop placeholder) -->
                 <div class="desktop-search-container">
                     <div class="calendar-search-wrapper" id="calendarSearchWrapper">
-                        <input type="text" id="calendarSearchInput" placeholder="Search amount..." />
+                        <input type="text" id="calendarSearchInput" placeholder="Search amount..." inputmode="decimal" pattern="[0-9.]*" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
                         <div class="search-inline-extras">
                             <span id="searchResultCount"></span>
                             <div class="search-nav-arrows" id="searchNavArrows" style="display: none;">
@@ -2142,19 +2157,64 @@
             }
         });
 
+        function getUnsavedCard() {
+            if (activeCard) {
+                const bubble = document.getElementById('floating-action-bubble');
+                const saveBtn = document.getElementById('bubble-save-btn');
+                if (bubble && bubble.classList.contains('active') && saveBtn && saveBtn.style.display !== 'none') {
+                    return activeCard;
+                }
+            }
+            const cards = document.querySelectorAll('.month-card');
+            for (const card of cards) {
+                if (card._isMarkedCleared) return card;
+                const originallyPaid = card.dataset.originallyPaid === 'true';
+                const amtInput = card.querySelector('.amount-input');
+                const dateInput = card.querySelector('.payment-date-input');
+                const chk = card.querySelector('.mark-as-paid-checkbox');
+                
+                const currentAmt = amtInput ? amtInput.value.trim() : '';
+                const currentDate = dateInput ? dateInput.value : '';
+                const currentChk = chk ? chk.checked : false;
+
+                const origAmt = card.dataset.originalAmount || '';
+                const origDate = card.dataset.originalDate || '';
+
+                const monthName = card.dataset.month;
+                const year = card.dataset.year;
+                const isSavedInSession = sessionSavedActions.some(a => a.month === monthName && a.year === year);
+
+                if (originallyPaid) {
+                    if ((currentAmt !== origAmt || currentDate !== origDate) && !isSavedInSession) {
+                        return card;
+                    }
+                } else {
+                    if ((currentAmt !== '' || currentDate !== '' || currentChk) && !isSavedInSession) {
+                        return card;
+                    }
+                }
+            }
+            return null;
+        }
+
         // Submit and Send SMS Action
         submitBtn.addEventListener('click', async function() {
-            if (sessionSavedActions.length === 0) {
-                await window.showStyledAlert('Denied', 'To submit and send receipt, you have to add fee or mark as paid to any month(s)');
+            // 1. Check for unsaved changes in any open/dirty card
+            const unsavedCard = getUnsavedCard();
+            if (unsavedCard) {
+                const monthName = unsavedCard.dataset.month || 'the selected month';
+                if (!unsavedCard.classList.contains('expanded')) {
+                    unsavedCard.click();
+                }
+                unsavedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                await window.showStyledAlert('Unsaved Changes', `You have unsaved changes in <b>${monthName}</b>.<br><br>Please click the green <b>Save</b> button on the month card first before submitting and sending receipt.`);
                 return;
             }
 
-            if (activeCard && document.getElementById('floating-action-bubble').classList.contains('active')) {
-                const saveBtn = document.getElementById('bubble-save-btn');
-                if (saveBtn && saveBtn.style.display !== 'none') {
-                    await window.showStyledAlert('Unsaved Changes', 'Please save or clear the changes in the open month card before submitting.');
-                    return;
-                }
+            // 2. Check if anything was saved in this session
+            if (sessionSavedActions.length === 0) {
+                await window.showStyledAlert('Denied', 'To submit and send receipt, you have to add fee or mark as paid and click <b>Save</b> on the month card(s) first.');
+                return;
             }
 
             openExpiryModal();
@@ -2278,7 +2338,17 @@
                 document.body.appendChild(toast);
             }
             toast.innerHTML = `<i class='bx bx-error-circle' style="font-size:1.2rem;"></i> <span>${message}</span>`;
-            toast.getBoundingClientRect();
+            
+            // Visual viewport offset handling: always pin to top of visible screen
+            if (window.visualViewport) {
+                const topOffset = Math.max(16, window.visualViewport.offsetTop + 16);
+                toast.style.top = topOffset + 'px';
+            } else {
+                toast.style.top = 'max(20px, env(safe-area-inset-top, 20px))';
+            }
+
+            toast.classList.remove('active');
+            void toast.offsetWidth; // trigger reflow
             toast.classList.add('active');
             
             clearTimeout(window.searchToastTimeout);
@@ -2286,6 +2356,35 @@
                 toast.classList.remove('active');
             }, 2500);
         };
+
+        function updateFloatingElementsForVisualViewport() {
+            if (window.innerWidth >= 1000) return;
+            const wrapper = document.getElementById('calendarSearchWrapper');
+            const bubble = document.getElementById('floating-action-bubble');
+            const themeBtn = document.getElementById('themeBtn');
+            const toast = document.getElementById('searchAlertToast');
+
+            if (window.visualViewport) {
+                const vv = window.visualViewport;
+                // Calculate how much keyboard has pushed up or visual viewport offset
+                const keyboardOffset = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+                const bottomPos = (keyboardOffset + 20) + 'px';
+                
+                if (wrapper && wrapper.parentNode === document.body) {
+                    wrapper.style.bottom = bottomPos;
+                }
+                if (themeBtn) {
+                    themeBtn.style.bottom = bottomPos;
+                }
+                if (bubble && bubble.classList.contains('active')) {
+                    bubble.style.bottom = (keyboardOffset + 25) + 'px';
+                }
+                if (toast && toast.classList.contains('active')) {
+                    toast.style.top = Math.max(16, vv.offsetTop + 16) + 'px';
+                }
+            }
+            positionSearchNavPanel();
+        }
 
         window.positionSearchNavPanel = function() {
             const panel = document.getElementById('calendarSearchNavPanel');
@@ -2313,8 +2412,8 @@
                 panel.style.position = 'fixed';
                 panel.style.display = 'flex';
                 
-                panel.style.left = rect.left + 'px';
-                panel.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
+                panel.style.left = Math.max(16, rect.left) + 'px';
+                panel.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
                 panel.style.top = 'auto';
             }
         };
@@ -2514,9 +2613,34 @@
             }
             positionSearchNavPanel();
         }
-        window.addEventListener('resize', adjustSearchPlacement, { passive: true });
-        window.addEventListener('scroll', positionSearchNavPanel, { passive: true });
+        window.addEventListener('resize', () => {
+            adjustSearchPlacement();
+            updateFloatingElementsForVisualViewport();
+        }, { passive: true });
+        window.addEventListener('scroll', () => {
+            positionSearchNavPanel();
+            updateFloatingElementsForVisualViewport();
+        }, { passive: true });
+        
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateFloatingElementsForVisualViewport, { passive: true });
+            window.visualViewport.addEventListener('scroll', updateFloatingElementsForVisualViewport, { passive: true });
+        }
+
+        const calSearchInput = document.getElementById('calendarSearchInput');
+        if (calSearchInput) {
+            calSearchInput.addEventListener('focus', () => {
+                setTimeout(updateFloatingElementsForVisualViewport, 100);
+                setTimeout(updateFloatingElementsForVisualViewport, 300);
+            });
+            calSearchInput.addEventListener('blur', () => {
+                setTimeout(updateFloatingElementsForVisualViewport, 100);
+                setTimeout(updateFloatingElementsForVisualViewport, 300);
+            });
+        }
+
         adjustSearchPlacement();
+        updateFloatingElementsForVisualViewport();
 
         // Restore search state if page switched years or reloaded
         const savedQuery = sessionStorage.getItem('calendarSearchQuery');
