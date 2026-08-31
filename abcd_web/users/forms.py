@@ -419,11 +419,17 @@ class ComplaintForm(forms.ModelForm):
         subject = cleaned.get("subject")
         custom_subject = (cleaned.get("custom_subject") or "").strip()
 
-        if subject == Complaint.SUBJECT_OTHER and not custom_subject:
-            self.add_error(
-                "custom_subject",
-                "Please enter a subject when choosing 'Anything else'.",
-            )
+        if subject == Complaint.SUBJECT_OTHER:
+            if not custom_subject:
+                self.add_error(
+                    "custom_subject",
+                    "Please enter a subject when choosing 'Anything else'.",
+                )
+            else:
+                cleaned["custom_subject"] = custom_subject
+        else:
+            # Clear manual subject when selecting a fixed option to prevent dual subjects
+            cleaned["custom_subject"] = ""
         return cleaned
 
 

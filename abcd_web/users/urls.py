@@ -52,7 +52,8 @@ urlpatterns = [
     path('my-seat/', views.your_seat_status_view, name='your_seat_status'),
 
     # Student complaints
-    path("complaints/",views.student_complaints_view,name="student_complaints"),
+    path("complaints/", views.student_complaints_view, name="student_complaints"),
+    path("student/complaints/", views.student_complaints_view, name="student_complaints_alias"),
     path("complaints/success/<int:complaint_id>/", views.student_complaints_success_view, name="student_complaints_success"),
     path("complaints/rate/<int:complaint_id>/", views.submit_complaint_rating, name="complaint_rate"),
     

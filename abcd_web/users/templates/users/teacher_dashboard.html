@@ -7712,21 +7712,28 @@
             <div class="student-actions" style="flex-direction:column;align-items:flex-end;">
               <div style="margin-bottom:8px;">
                 {% if c.status == 'new' %}
-                <span style="color:#e67e22;font-weight:600;">New</span>
+                <span style="color:#e67e22;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class='bx bx-time'></i> New</span>
                 {% elif c.status == 'in_progress' %}
-                <span style="color:#2980b9;font-weight:600;">In progress</span>
+                <span style="color:#2563eb;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class='bx bx-loader-circle bx-spin'></i> In progress</span>
                 {% else %}
-                <span style="color:#27ae60;font-weight:600;">Resolved</span>
+                <span style="color:#16a34a;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class='bx bx-check-circle'></i> Resolved</span>
                 {% endif %}
               </div>
 
-              <button class="btn btn-primary complaint-status-btn" data-id="{{ c.id }}" data-status="in_progress" {% if c.status == 'in_progress' %}disabled{% endif %}>
-                Mark in progress
+              {% if c.status == 'new' %}
+              <button class="btn btn-primary complaint-status-btn" data-id="{{ c.id }}" data-status="in_progress" style="background:#4f46e5; border-color:#4f46e5; border-radius:8px; font-weight:600; font-size:0.85rem; padding:6px 14px;">
+                <i class='bx bx-loader-alt'></i> Mark in progress
               </button>
               <button class="btn btn-success complaint-status-btn" data-id="{{ c.id }}" data-status="resolved"
-                style="margin-top:6px;" {% if c.status == 'resolved' %}disabled{% endif %}>
-                Mark resolved
+                style="margin-top:6px; background:#10b981; border-color:#10b981; border-radius:8px; font-weight:600; font-size:0.85rem; padding:6px 14px;">
+                <i class='bx bx-check'></i> Mark resolved
               </button>
+              {% elif c.status == 'in_progress' %}
+              <button class="btn btn-success complaint-status-btn" data-id="{{ c.id }}" data-status="resolved"
+                style="background:#10b981; border-color:#10b981; border-radius:8px; font-weight:600; font-size:0.85rem; padding:6px 14px;">
+                <i class='bx bx-check-double'></i> Mark resolved
+              </button>
+              {% endif %}
             </div>
           </div>
           {% endfor %}

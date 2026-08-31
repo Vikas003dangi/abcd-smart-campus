@@ -55,7 +55,7 @@
 
       <!-- CTA -->
       <div style="text-align:center;margin:30px 0 10px;">
-        <a href="{% if action_url %}{{ action_url }}{% elif site_url %}{{ site_url }}{% url 'users:student_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}"
+        <a href="{% if action_url %}{{ action_url }}{% elif site_url %}{{ site_url }}{% url 'users:student_complaints' %}{% else %}{% url 'users:student_complaints' %}{% endif %}"
            style="display:inline-block;padding:14px 26px;background:#7b61ff;color:#ffffff;
                   text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;box-shadow:0 4px 12px rgba(123,97,255,0.2);">
           🔍 View Complaint Details

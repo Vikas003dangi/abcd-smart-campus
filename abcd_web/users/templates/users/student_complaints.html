@@ -688,7 +688,7 @@
           <label for="{{ form.subject.id_for_label }}">Complaint type</label>
           {{ form.subject }}
         </div>
-        <div class="complaint-field">
+        <div class="complaint-field" id="custom-subject-wrapper" style="display: none;">
           <label for="{{ form.custom_subject.id_for_label }}">Subject (only for “Anything else”)</label>
           {{ form.custom_subject }}
           <small>Leave blank for fixed options. Required for “Anything else”.</small>
@@ -918,6 +918,33 @@
   document.addEventListener('DOMContentLoaded', function () {
     // Initialize custom selects
     initCustomSelects();
+
+    // Toggle custom subject input dynamically
+    const subjectSelect = document.getElementById('{{ form.subject.id_for_label }}') || document.querySelector('select[name="subject"]');
+    const customSubjectWrap = document.getElementById('custom-subject-wrapper');
+    const customSubjectInput = document.getElementById('{{ form.custom_subject.id_for_label }}') || document.querySelector('input[name="custom_subject"]');
+
+    function toggleCustomSubject() {
+      if (!subjectSelect || !customSubjectWrap) return;
+      const isOther = subjectSelect.value === 'other';
+      if (isOther) {
+        customSubjectWrap.style.display = 'flex';
+        if (customSubjectInput) {
+          customSubjectInput.setAttribute('required', 'required');
+        }
+      } else {
+        customSubjectWrap.style.display = 'none';
+        if (customSubjectInput) {
+          customSubjectInput.removeAttribute('required');
+          customSubjectInput.value = '';
+        }
+      }
+    }
+
+    if (subjectSelect) {
+      subjectSelect.addEventListener('change', toggleCustomSubject);
+      toggleCustomSubject();
+    }
 
     const raiseForm = document.getElementById('raiseComplaintForm');
     if (raiseForm) {

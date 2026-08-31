@@ -4069,7 +4069,7 @@ def student_complaints_view(request):
                 user=request.user,
                 title=f"Complaint Submitted ({current_role.capitalize()})",
                 message="Your complaint has been submitted successfully. We will update you once it is reviewed.",
-                link="/student/complaints/",
+                link="/complaints/",
                 category="complaint"
             )
 
@@ -4202,7 +4202,7 @@ def update_complaint_status_view(request, complaint_id):
             "complaint_code": complaint.code,
             "complaint_subject": complaint.display_subject,
             "status_text": complaint.get_status_display(),
-            "action_url": f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
+            "action_url": f"{settings.SITE_URL.rstrip('/')}{reverse('users:student_complaints')}",
         },
         fail_silently=True,
         run_async=True,
@@ -4211,9 +4211,9 @@ def update_complaint_status_view(request, complaint_id):
     create_notification(
         user=complaint.student.user,
         title="Complaint Status Updated",
-        message=f"Your complaint '{complaint.subject}' is now {complaint.get_status_display()}. Would you like to rate it ?",
+        message=f"Your complaint '{complaint.display_subject}' is now {complaint.get_status_display()}.",
         category="complaint",
-        link="/student/complaints/"
+        link="/complaints/"
     )
         
     return JsonResponse(
