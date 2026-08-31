@@ -1425,13 +1425,9 @@ def get_profile_photo_url(user):
     teacher_prof = TeacherProfile.objects.filter(user=user).first()
     if teacher_prof and teacher_prof.photo:
         try:
-            import os
-            if os.path.exists(teacher_prof.photo.path):
-                mtime = int(os.path.getmtime(teacher_prof.photo.path))
-                return f"{teacher_prof.photo.url}?v={mtime}"
+            return teacher_prof.photo.url
         except Exception:
             pass
-        return teacher_prof.photo.url
 
     email_clean = (user.email or '').strip().lower()
     username_clean = (user.username or '').strip().lower()
@@ -1440,56 +1436,25 @@ def get_profile_photo_url(user):
     elif email_clean == 'vd19055@gmail.com' or username_clean in ['vaku', 'vikas', 'vd19055']:
         return "/static/data/favicon/web-app-manifest-512x512.png"
 
-    # Priority 1: StudentProfile Photo / StudentAchievement Photo (Latest takes precedence)
+    # Priority 1: StudentProfile Photo / StudentAchievement Photo
     from .models import StudentProfile, StudentAchievement
     profile = StudentProfile.objects.filter(user=user).first()
-    achievement = StudentAchievement.objects.filter(user=user).first()
-
-    profile_photo_url = None
-    profile_mtime = 0
     if profile and profile.photo:
         try:
-            import os
-            if os.path.exists(profile.photo.path):
-                profile_mtime = os.path.getmtime(profile.photo.path)
-                profile_photo_url = f"{profile.photo.url}?v={int(profile_mtime)}"
-            else:
-                profile_photo_url = profile.photo.url
-        except (ValueError, AttributeError):
-            profile_photo_url = None
+            p_url = profile.photo.url
+            if p_url:
+                return p_url
         except Exception:
-            try:
-                profile_photo_url = profile.photo.url
-            except (ValueError, AttributeError):
-                profile_photo_url = None
+            pass
 
-    achievement_photo_url = None
-    achievement_mtime = 0
+    achievement = StudentAchievement.objects.filter(user=user).first()
     if achievement and achievement.photo:
         try:
-            import os
-            if os.path.exists(achievement.photo.path):
-                achievement_mtime = os.path.getmtime(achievement.photo.path)
-                achievement_photo_url = f"{achievement.photo.url}?v={int(achievement_mtime)}"
-            else:
-                achievement_photo_url = achievement.photo.url
-        except (ValueError, AttributeError):
-            achievement_photo_url = None
+            a_url = achievement.photo.url
+            if a_url:
+                return a_url
         except Exception:
-            try:
-                achievement_photo_url = achievement.photo.url
-            except (ValueError, AttributeError):
-                achievement_photo_url = None
-
-    if profile_photo_url and achievement_photo_url:
-        if achievement_mtime >= profile_mtime:
-            return achievement_photo_url
-        else:
-            return profile_photo_url
-    elif profile_photo_url:
-        return profile_photo_url
-    elif achievement_photo_url:
-        return achievement_photo_url
+            pass
 
     # Priority 2: Google OAuth picture
     try:

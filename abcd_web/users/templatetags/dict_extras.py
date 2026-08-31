@@ -9,7 +9,17 @@ def dict_lookup(dictionary, key):
     return dictionary.get(key)
 
 @register.filter
-def user_photo(user):
+def user_photo(user_or_obj):
+    if not user_or_obj:
+        return "/static/data/user.png"
+    if hasattr(user_or_obj, 'photo') and user_or_obj.photo:
+        try:
+            url = user_or_obj.photo.url
+            if url:
+                return url
+        except Exception:
+            pass
+    user = getattr(user_or_obj, 'user', user_or_obj)
     from users.utils import get_profile_photo_url
     return get_profile_photo_url(user)
 
@@ -46,8 +56,16 @@ def format_message(content):
     return mark_safe(escaped)
 
 @register.filter
-def has_user_photo(user):
-    if not user or not user.is_authenticated:
+def has_user_photo(user_or_obj):
+    if not user_or_obj:
+        return False
+    
+    # 0. Direct Profile / Achievement check
+    if hasattr(user_or_obj, 'photo') and user_or_obj.photo:
+        return True
+
+    user = getattr(user_or_obj, 'user', user_or_obj)
+    if not user:
         return False
     
     # 1. TeacherProfile check
@@ -57,7 +75,7 @@ def has_user_photo(user):
         return True
         
     # 2. Hardcoded Sandeep Sir/Asst photo check
-    email_clean = (user.email or '').strip().lower()
+    email_clean = (getattr(user, 'email', '') or '').strip().lower()
     if email_clean in ['abcd2013baq@gmail.com', 'vd19055@gmail.com']:
         return True
         
