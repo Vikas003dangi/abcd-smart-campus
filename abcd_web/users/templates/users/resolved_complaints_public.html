@@ -667,50 +667,6 @@
       </div>
     {% endif %}
 
-</div>
-
-<!-- Lightbox Markup -->
-<div id="imageLightbox" class="image-lightbox" aria-hidden="true" role="dialog" aria-label="Image preview">
-  <button class="lb-close" aria-label="Close lightbox">&times;</button>
-  <div class="lb-card">
-    <img id="lbImg" src="" alt="Complaint image" class="lb-img">
-  </div>
-</div>
-
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}
 
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const lightbox = document.getElementById('imageLightbox');
-    const lbImg = document.getElementById('lbImg');
-    const closeBtn = lightbox.querySelector('.lb-close');
-
-    document.querySelectorAll('.complaint-img-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            lbImg.src = link.href;
-            lightbox.classList.add('open');
-        });
-    });
-
-    const closeLightbox = () => {
-        lightbox.classList.remove('open');
-    };
-
-    closeBtn.addEventListener('click', closeLightbox);
-    lightbox.addEventListener('click', (e) => {
-        if (e.target === lightbox) {
-            closeLightbox();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && lightbox.classList.contains('open')) {
-            closeLightbox();
-        }
-    });
-});
-</script>
-{% endblock %}

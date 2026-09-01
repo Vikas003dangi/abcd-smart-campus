@@ -431,11 +431,241 @@
   .master-loader-overlay.light-theme .loader-btn-cancel:hover {
       background: rgba(0, 0, 0, 0.08);
   }
+
+  /* ==========================================================================
+     GLOBAL MEDIA LIGHTBOX (PREVIEW MODAL FOR PHOTOS & ATTACHMENTS)
+     ========================================================================== */
+  .abcd-lightbox-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(8, 13, 26, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 10000000;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+      touch-action: none;
+  }
+
+  .abcd-lightbox-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+  }
+
+  .abcd-lb-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      background: linear-gradient(180deg, rgba(8, 13, 26, 0.85) 0%, rgba(8, 13, 26, 0) 100%);
+      z-index: 10;
+      color: #fff;
+  }
+
+  .abcd-lb-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      max-width: 65%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+  }
+
+  .abcd-lb-badge {
+      background: rgba(99, 102, 241, 0.25);
+      border: 1px solid rgba(99, 102, 241, 0.5);
+      color: #a5b4fc;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+  }
+
+  .abcd-lb-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+  }
+
+  .abcd-lb-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.25rem;
+      transition: all 0.18s ease;
+      outline: none;
+  }
+
+  .abcd-lb-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      transform: scale(1.06);
+  }
+
+  .abcd-lb-btn:active {
+      transform: scale(0.95);
+  }
+
+  .abcd-lb-btn-close {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+  }
+
+  .abcd-lb-btn-close:hover {
+      background: rgba(239, 68, 68, 0.35);
+      color: #ffffff;
+  }
+
+  .abcd-lb-body {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 10px;
+  }
+
+  .abcd-lb-viewport {
+      position: relative;
+      max-width: 95vw;
+      max-height: 85vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+  }
+
+  .abcd-lb-viewport.grabbing {
+      cursor: grabbing;
+  }
+
+  .abcd-lb-img {
+      max-width: 90vw;
+      max-height: 82vh;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+      transform-origin: center center;
+      will-change: transform;
+      user-select: none;
+      -webkit-user-drag: none;
+  }
+
+  .abcd-lb-spinner {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: loaderSpin 0.7s linear infinite;
+      display: none;
+  }
+
+  .abcd-lb-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      cursor: pointer;
+      z-index: 20;
+      transition: all 0.18s ease;
+      outline: none;
+  }
+
+  .abcd-lb-nav-btn:hover {
+      background: rgba(99, 102, 241, 0.85);
+      border-color: #818cf8;
+      transform: translateY(-50%) scale(1.08);
+  }
+
+  .abcd-lb-prev {
+      left: 20px;
+  }
+
+  .abcd-lb-next {
+      right: 20px;
+  }
+
+  .abcd-lb-bottombar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: linear-gradient(0deg, rgba(8, 13, 26, 0.85) 0%, rgba(8, 13, 26, 0) 100%);
+      z-index: 10;
+  }
+
+  .abcd-lb-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      transition: all 0.2s ease;
+  }
+
+  .abcd-lb-dot.active {
+      width: 24px;
+      border-radius: 10px;
+      background: #6366f1;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  }
+
+  @media (max-width: 640px) {
+      .abcd-lb-topbar {
+          padding: 10px 14px;
+      }
+      .abcd-lb-btn {
+          width: 36px;
+          height: 36px;
+          font-size: 1.1rem;
+      }
+      .abcd-lb-nav-btn {
+          width: 38px;
+          height: 38px;
+          font-size: 1.4rem;
+      }
+      .abcd-lb-prev { left: 10px; }
+      .abcd-lb-next { right: 10px; }
+  }
 </style>
 
 <!-- ABCD Master Loader Overlay -->
 <div id="master-loader" class="master-loader-overlay">
-  <!-- Inline JS to set theme class immediately before rendering to prevent white/dark flash -->
   <script>
       (function() {
           const savedTheme = localStorage.getItem('theme');
@@ -452,64 +682,47 @@
   
   <div class="loader-content">
     <div class="mascot-wrapper">
-      <!-- Custom SVG 2D Owl Mascot -->
       <svg class="abcd-mascot-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <!-- Glowing Ambient Circle -->
         <circle class="glowing-bg" cx="100" cy="100" r="85" />
-        
-        <!-- Orbiting Rings -->
         <ellipse class="orbit-ring orbit-ring-1" cx="100" cy="100" rx="90" ry="25" />
         <ellipse class="orbit-ring orbit-ring-2" cx="100" cy="100" rx="25" ry="90" />
 
-        <!-- Open Book Base -->
         <g class="book-group">
-          <!-- Book Pages/Cover -->
           <path class="book-cover" d="M40 145 C 70 135, 100 145, 100 145 C 100 145, 130 135, 160 145 L 165 160 C 135 150, 100 160, 100 160 C 100 160, 65 150, 35 160 Z" />
           <path class="book-page" d="M45 142 C 72 133, 98 142, 98 142 L 98 155 C 98 155, 72 146, 45 155 Z" />
           <path class="book-page" d="M155 142 C 128 133, 102 142, 102 142 L 102 155 C 102 155, 128 146, 155 155 Z" />
         </g>
 
-        <!-- Cute 2D Study Owl -->
         <g class="owl-group">
-          <!-- Owl Body -->
           <ellipse class="owl-body" cx="100" cy="105" rx="35" ry="42" />
           <ellipse class="owl-belly" cx="100" cy="108" rx="25" ry="32" />
 
-          <!-- Owl Ears / Feathers -->
           <polygon class="owl-feather" points="68,75 80,68 85,82" />
           <polygon class="owl-feather" points="132,75 120,68 115,82" />
 
-          <!-- Owl Face (Eyes & Beak) -->
-          <!-- Left Eye -->
           <circle class="owl-eye-white" cx="85" cy="95" r="12" />
           <circle class="owl-eye-pupil" cx="87" cy="95" r="6" />
           <circle class="owl-eye-shine" cx="89" cy="93" r="2.5" />
           
-          <!-- Right Eye -->
           <circle class="owl-eye-white" cx="115" cy="95" r="12" />
           <circle class="owl-eye-pupil" cx="113" cy="95" r="6" />
           <circle class="owl-eye-shine" cx="111" cy="93" r="2.5" />
           
-          <!-- Glasses Bridge & Frames -->
           <circle class="glasses-frame" cx="85" cy="95" r="14" />
           <circle class="glasses-frame" cx="115" cy="95" r="14" />
           <line class="glasses-bridge" x1="99" y1="95" x2="101" y2="95" />
 
-          <!-- Beak -->
           <polygon class="owl-beak" points="100,103 96,110 104,110" />
 
-          <!-- Cute Wings -->
           <path class="owl-wing left-wing" d="M65 105 C 55 110, 52 125, 62 132 C 67 122, 67 112, 65 105" />
           <path class="owl-wing right-wing" d="M135 105 C 145 110, 148 125, 138 132 C 133 122, 133 112, 135 105" />
 
-          <!-- Graduation Cap (Mortarboard) -->
           <polygon class="cap-top" points="100,53 130,62 100,71 70,62" />
           <rect class="cap-base" x="88" y="66" width="24" height="8" rx="2" />
           <path class="cap-tassel" d="M130 62 L 134 76 L 132 80" />
           <circle class="cap-tassel-end" cx="132" cy="81" r="2.5" />
         </g>
 
-        <!-- Tiny Floating Sparkles -->
         <path class="sparkle sparkle-1" d="M35 60 L 37 65 L 42 67 L 37 69 L 35 74 L 33 69 L 28 67 L 33 65 Z" />
         <path class="sparkle sparkle-2" d="M165 60 L 167 65 L 172 67 L 167 69 L 165 74 L 163 69 L 158 67 L 163 65 Z" />
       </svg>
@@ -552,8 +765,52 @@
   </div>
 </div>
 
+<!-- ==========================================================================
+     GLOBAL MEDIA LIGHTBOX OVERLAY DOM (SHARED ACROSS ENTIRE APPLICATION)
+     ========================================================================== -->
+<div id="abcd-global-lightbox" class="abcd-lightbox-overlay" aria-hidden="true" role="dialog" aria-label="Media Preview">
+  <div class="abcd-lb-topbar">
+    <div class="abcd-lb-title-wrap">
+      <span class="abcd-lb-badge" id="abcd-lb-badge">PHOTO</span>
+      <span id="abcd-lb-title">Media Preview</span>
+    </div>
+    <div class="abcd-lb-actions">
+      <button type="button" class="abcd-lb-btn" id="abcd-lb-zoom-in" title="Zoom In" aria-label="Zoom In">
+        <i class='bx bx-zoom-in'></i>
+      </button>
+      <button type="button" class="abcd-lb-btn" id="abcd-lb-zoom-out" title="Zoom Out" aria-label="Zoom Out">
+        <i class='bx bx-zoom-out'></i>
+      </button>
+      <button type="button" class="abcd-lb-btn" id="abcd-lb-download" title="Download Image" aria-label="Download Image">
+        <i class='bx bx-download'></i>
+      </button>
+      <button type="button" class="abcd-lb-btn abcd-lb-btn-close" id="abcd-lb-close" title="Close (Esc)" aria-label="Close">
+        <i class='bx bx-x'></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="abcd-lb-body" id="abcd-lb-body">
+    <button type="button" class="abcd-lb-nav-btn abcd-lb-prev" id="abcd-lb-prev" title="Previous (Left Arrow)" aria-label="Previous">
+      <i class='bx bx-chevron-left'></i>
+    </button>
+    <div class="abcd-lb-viewport" id="abcd-lb-viewport">
+      <div class="abcd-lb-spinner" id="abcd-lb-spinner"></div>
+      <img id="abcd-lb-img" class="abcd-lb-img" src="" alt="Media preview" draggable="false" />
+    </div>
+    <button type="button" class="abcd-lb-nav-btn abcd-lb-next" id="abcd-lb-next" title="Next (Right Arrow)" aria-label="Next">
+      <i class='bx bx-chevron-right'></i>
+    </button>
+  </div>
+
+  <div class="abcd-lb-bottombar" id="abcd-lb-dots"></div>
+</div>
+
 <script>
-  (placeholderScope => {
+  (function() {
+      // ----------------------------------------------------------------------
+      // 1. MASTER LOADER ENGINE & INTENT INTERCEPTION SAFEGUARDS
+      // ----------------------------------------------------------------------
       const loader = document.getElementById('master-loader');
       if (!loader) return;
 
@@ -570,18 +827,22 @@
           statusMsg.textContent = phrases[Math.floor(Math.random() * phrases.length)];
       }
 
-      // Hide loader on window fully loaded
-      function hideLoader() {
+      let watchdogTimer = null;
+      let showDebounceTimer = null;
+      window.__isHandlingExternalIntent = false;
+      window.__isLightboxOpen = false;
+
+      // Hide loader safely
+      window.hideMasterLoader = function() {
           clearTimeout(watchdogTimer);
           clearTimeout(showDebounceTimer);
           loader.classList.add('fade-out');
           setTimeout(() => {
               loader.style.display = 'none';
               resetErrorUI();
-          }, 200);
-      }
+          }, 180);
+      };
 
-      // Restore Normal Spinner state
       function resetErrorUI() {
           const errorContainer = document.getElementById('loader-error-container');
           const progressBar = document.querySelector('.loader-progress-bar');
@@ -593,33 +854,30 @@
       }
 
       if (document.readyState === 'interactive' || document.readyState === 'complete') {
-          hideLoader();
+          window.hideMasterLoader();
       } else {
-          document.addEventListener('DOMContentLoaded', hideLoader);
-          window.addEventListener('load', hideLoader);
+          document.addEventListener('DOMContentLoaded', window.hideMasterLoader);
+          window.addEventListener('load', window.hideMasterLoader);
       }
 
-      // Watchdog / Timeout state timer (25s for cold start cloud servers)
-      let watchdogTimer;
       function startWatchdog() {
           clearTimeout(watchdogTimer);
           watchdogTimer = setTimeout(() => {
-              showErrorUI("Could Not Load Page", "The page is taking longer than usual to load. It might be due to a server delay or slow connection.");
-          }, 25000); // 25 seconds watchdog
+              if (document.visibilityState === 'visible' && !loader.classList.contains('fade-out')) {
+                  showErrorUI("Could Not Load Page", "The page is taking longer than usual to load. Please check your internet connection.");
+              }
+          }, 25000);
       }
 
-      // Start watchdog if loader is active initially
       if (!loader.classList.contains('fade-out')) {
           startWatchdog();
       }
 
-      // Network Offline State Handler
       function showOfflineUI() {
           clearTimeout(watchdogTimer);
           showErrorUI("No Internet Connection", "Your device is offline. Please check your network cables or Wi-Fi settings.");
       }
 
-      // Generic error display
       function showErrorUI(title, description) {
           const errorContainer = document.getElementById('loader-error-container');
           const progressBar = document.querySelector('.loader-progress-bar');
@@ -630,33 +888,48 @@
               if (progressBar) progressBar.style.display = 'none';
               if (statusMsg) statusMsg.style.display = 'none';
               
-              document.getElementById('loader-error-title-text').textContent = title;
-              document.getElementById('loader-error-desc-text').textContent = description;
+              const titleEl = document.getElementById('loader-error-title-text');
+              const descEl = document.getElementById('loader-error-desc-text');
+              if (titleEl) titleEl.textContent = title;
+              if (descEl) descEl.textContent = description;
               errorContainer.style.display = 'block';
           }
       }
 
-      // Initial offline check
       if (!navigator.onLine) {
           showOfflineUI();
       }
 
-      // Online/Offline Events
       window.addEventListener('offline', showOfflineUI);
       window.addEventListener('online', () => {
           resetErrorUI();
           startWatchdog();
       });
 
-      // Handle back/forward cache restore (e.g. safari)
+      // Crucial: When returning from external apps (WhatsApp, Phone Call, Maps, Mail), instantly dismiss loader!
       window.addEventListener('pageshow', function(event) {
-          hideLoader();
+          window.hideMasterLoader();
       });
 
-      let showDebounceTimer;
+      window.addEventListener('visibilitychange', function() {
+          if (document.visibilityState === 'visible') {
+              window.hideMasterLoader();
+          }
+      });
+
+      window.addEventListener('focus', function() {
+          window.hideMasterLoader();
+      });
+
       function triggerLoader() {
+          if (window.__isHandlingExternalIntent || window.isDownloadingFile || window.__isLightboxOpen) {
+              return;
+          }
           clearTimeout(showDebounceTimer);
           showDebounceTimer = setTimeout(() => {
+              if (window.__isHandlingExternalIntent || window.isDownloadingFile || window.__isLightboxOpen) {
+                  return;
+              }
               resetErrorUI();
               loader.style.display = 'flex';
               loader.classList.remove('fade-out');
@@ -664,48 +937,488 @@
               if (!navigator.onLine) {
                   showOfflineUI();
               }
-          }, 180); // only show if page load takes > 180ms
+          }, 200);
       }
 
-      // Show loader on page transition / unload
+      // Check if a link is an external app intent, phone call, whatsapp, map, or media file
+      function isExternalOrSpecialAction(link, href) {
+          if (!href) return true;
+          const h = href.trim().toLowerCase();
+
+          // 1. External Protocols & Schemes
+          if (h.startsWith('#') || 
+              h.startsWith('javascript:') || 
+              h.startsWith('mailto:') || 
+              h.startsWith('tel:') || 
+              h.startsWith('sms:') || 
+              h.startsWith('whatsapp:') || 
+              h.startsWith('geo:') || 
+              h.startsWith('intent:') || 
+              h.startsWith('market:') || 
+              h.startsWith('blob:') || 
+              h.startsWith('data:')) {
+              return true;
+          }
+
+          // 2. WhatsApp & External Messaging Domains
+          if (h.includes('wa.me') || h.includes('api.whatsapp.com') || h.includes('web.whatsapp.com')) {
+              return true;
+          }
+
+          // 3. Maps & Location Domains
+          if (h.includes('maps.google.') || h.includes('maps.app.goo.gl') || h.includes('google.com/maps')) {
+              return true;
+          }
+
+          // 4. Social Media External Domains
+          if (h.includes('instagram.com') || h.includes('youtube.com') || h.includes('youtu.be') || h.includes('facebook.com') || h.includes('twitter.com') || h.includes('t.me')) {
+              return true;
+          }
+
+          // 5. Image & Media File Formats (Handled by Lightbox or direct view)
+          if (/\.(jpe?g|png|webp|gif|svg|bmp|pdf|mp4|webm|ogg|mp3|wav)(\?.*)?$/i.test(h) || h.includes('/media/') || h.includes('res.cloudinary.com')) {
+              return true;
+          }
+
+          // 6. Explicit Attributes / Classes
+          if (link.hasAttribute('download') || 
+              link.hasAttribute('data-no-loader') || 
+              link.hasAttribute('data-preview-media') || 
+              link.hasAttribute('data-bs-toggle') || 
+              link.classList.contains('complaint-thumb-link') || 
+              link.classList.contains('complaint-img-link') || 
+              link.classList.contains('abcd-lightbox-trigger') || 
+              link.classList.contains('contact-btn') || 
+              link.classList.contains('whatsapp') || 
+              link.classList.contains('social-pill')) {
+              return true;
+          }
+
+          // 7. New Tab targets
+          if (link.getAttribute('target') === '_blank') {
+              return true;
+          }
+
+          return false;
+      }
+
+      // Intercept beforeunload: Only show loader for actual page navigations
       window.addEventListener('beforeunload', function() {
-          if (window.isDownloadingFile) {
+          if (window.isDownloadingFile || window.__isHandlingExternalIntent || window.__isLightboxOpen) {
               window.isDownloadingFile = false;
               return;
           }
           triggerLoader();
       });
 
-      // Intercept any link click or form submission to show the loader instantly
+      // Intercept any link click
       document.addEventListener('click', function(e) {
           const link = e.target.closest('a');
           if (link) {
               const href = link.getAttribute('href');
-              const target = link.getAttribute('target');
               
-              if (href && 
-                  !href.startsWith('#') && 
-                  !href.startsWith('javascript:') && 
-                  !href.startsWith('mailto:') && 
-                  !href.startsWith('tel:') && 
-                  !link.hasAttribute('download') &&
-                  target !== '_blank' &&
-                  !link.hasAttribute('data-bs-toggle') &&
-                  !link.hasAttribute('onclick') &&
-                  !e.defaultPrevented) {
+              if (isExternalOrSpecialAction(link, href)) {
+                  // Mark as handling external intent to prevent beforeunload trap
+                  window.__isHandlingExternalIntent = true;
+                  setTimeout(() => {
+                      window.__isHandlingExternalIntent = false;
+                      window.hideMasterLoader();
+                  }, 2500);
+                  return; // DO NOT show loader!
+              }
 
+              if (!e.defaultPrevented) {
                   triggerLoader();
               }
           }
-      });
+      }, true);
 
       document.addEventListener('submit', function(e) {
           const form = e.target.closest('form');
           if (form && form.getAttribute('target') === '_blank') return;
-          
           if (!e.defaultPrevented) {
               triggerLoader();
           }
       });
+
+
+      // ----------------------------------------------------------------------
+      // 2. GLOBAL MEDIA LIGHTBOX ENGINE (SEAMLESS IN-PAGE PREVIEWS)
+      // ----------------------------------------------------------------------
+      const lbOverlay = document.getElementById('abcd-global-lightbox');
+      const lbTitle = document.getElementById('abcd-lb-title');
+      const lbBadge = document.getElementById('abcd-lb-badge');
+      const lbImg = document.getElementById('abcd-lb-img');
+      const lbSpinner = document.getElementById('abcd-lb-spinner');
+      const lbViewport = document.getElementById('abcd-lb-viewport');
+      const lbCloseBtn = document.getElementById('abcd-lb-close');
+      const lbZoomInBtn = document.getElementById('abcd-lb-zoom-in');
+      const lbZoomOutBtn = document.getElementById('abcd-lb-zoom-out');
+      const lbDownloadBtn = document.getElementById('abcd-lb-download');
+      const lbPrevBtn = document.getElementById('abcd-lb-prev');
+      const lbNextBtn = document.getElementById('abcd-lb-next');
+      const lbDots = document.getElementById('abcd-lb-dots');
+
+      let currentGallery = [];
+      let currentGalleryIndex = 0;
+      let currentZoom = 1;
+      let isPanning = false;
+      let startPanX = 0, startPanY = 0;
+      let currentPanX = 0, currentPanY = 0;
+      let touchStartDist = 0;
+
+      function updateImageTransform() {
+          if (!lbImg) return;
+          lbImg.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+      }
+
+      function resetZoomAndPan() {
+          currentZoom = 1;
+          currentPanX = 0;
+          currentPanY = 0;
+          updateImageTransform();
+          if (lbViewport) lbViewport.classList.remove('grabbing');
+      }
+
+      function renderLightboxImage(item) {
+          if (!item || !lbImg) return;
+          lbSpinner.style.display = 'block';
+          lbImg.style.opacity = '0.2';
+          resetZoomAndPan();
+
+          const tempImg = new Image();
+          tempImg.src = item.url;
+          tempImg.onload = function() {
+              lbImg.src = item.url;
+              lbSpinner.style.display = 'none';
+              lbImg.style.opacity = '1';
+          };
+          tempImg.onerror = function() {
+              lbSpinner.style.display = 'none';
+              lbImg.src = item.url; // fallback direct
+              lbImg.style.opacity = '1';
+          };
+
+          // Title & Badge
+          const title = item.title || `Image ${currentGalleryIndex + 1} of ${currentGallery.length}`;
+          if (lbTitle) lbTitle.textContent = title;
+          if (lbBadge) {
+              if (currentGallery.length > 1) {
+                  lbBadge.textContent = `${currentGalleryIndex + 1}/${currentGallery.length}`;
+              } else {
+                  lbBadge.textContent = item.badge || 'PHOTO';
+              }
+          }
+
+          // Nav Buttons
+          if (currentGallery.length > 1) {
+              if (lbPrevBtn) lbPrevBtn.style.display = 'flex';
+              if (lbNextBtn) lbNextBtn.style.display = 'flex';
+          } else {
+              if (lbPrevBtn) lbPrevBtn.style.display = 'none';
+              if (lbNextBtn) lbNextBtn.style.display = 'none';
+          }
+
+          // Render Dots
+          if (lbDots) {
+              lbDots.innerHTML = '';
+              if (currentGallery.length > 1 && currentGallery.length <= 8) {
+                  currentGallery.forEach((_, idx) => {
+                      const dot = document.createElement('div');
+                      dot.className = `abcd-lb-dot ${idx === currentGalleryIndex ? 'active' : ''}`;
+                      dot.onclick = () => {
+                          currentGalleryIndex = idx;
+                          renderLightboxImage(currentGallery[currentGalleryIndex]);
+                      };
+                      lbDots.appendChild(dot);
+                  });
+                  lbDots.style.display = 'flex';
+              } else {
+                  lbDots.style.display = 'none';
+              }
+          }
+      }
+
+      window.ABCDMediaLightbox = {
+          open: function(options) {
+              if (!lbOverlay) return;
+              window.__isLightboxOpen = true;
+              window.isDownloadingFile = false;
+              window.__isHandlingExternalIntent = false;
+
+              if (Array.isArray(options.gallery) && options.gallery.length > 0) {
+                  currentGallery = options.gallery;
+                  currentGalleryIndex = options.index >= 0 ? options.index : 0;
+              } else {
+                  currentGallery = [{
+                      url: options.url,
+                      title: options.title || 'Image Preview',
+                      badge: options.badge || 'PHOTO'
+                  }];
+                  currentGalleryIndex = 0;
+              }
+
+              renderLightboxImage(currentGallery[currentGalleryIndex]);
+
+              lbOverlay.classList.add('active');
+              lbOverlay.setAttribute('aria-hidden', 'false');
+              document.body.style.overflow = 'hidden'; // prevent scrolling behind
+          },
+
+          close: function() {
+              if (!lbOverlay) return;
+              lbOverlay.classList.remove('active');
+              lbOverlay.setAttribute('aria-hidden', 'true');
+              document.body.style.overflow = '';
+              setTimeout(() => {
+                  if (lbImg) lbImg.src = '';
+                  window.__isLightboxOpen = false;
+              }, 200);
+          },
+
+          next: function() {
+              if (currentGallery.length <= 1) return;
+              currentGalleryIndex = (currentGalleryIndex + 1) % currentGallery.length;
+              renderLightboxImage(currentGallery[currentGalleryIndex]);
+          },
+
+          prev: function() {
+              if (currentGallery.length <= 1) return;
+              currentGalleryIndex = (currentGalleryIndex - 1 + currentGallery.length) % currentGallery.length;
+              renderLightboxImage(currentGallery[currentGalleryIndex]);
+          },
+
+          zoomIn: function() {
+              currentZoom = Math.min(currentZoom + 0.35, 3.5);
+              updateImageTransform();
+          },
+
+          zoomOut: function() {
+              currentZoom = Math.max(currentZoom - 0.35, 0.7);
+              if (currentZoom <= 1) {
+                  currentPanX = 0;
+                  currentPanY = 0;
+              }
+              updateImageTransform();
+          },
+
+          downloadCurrent: async function() {
+              const item = currentGallery[currentGalleryIndex];
+              if (!item || !item.url) return;
+              
+              window.isDownloadingFile = true;
+              const fileName = (item.title || 'downloaded-image').replace(/[^a-zA-Z0-9_-]/g, '_') + '.jpg';
+
+              try {
+                  const res = await fetch(item.url, { mode: 'cors' });
+                  const blob = await res.blob();
+                  const blobUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = blobUrl;
+                  a.download = fileName;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+              } catch (err) {
+                  // Fallback direct safe download
+                  const a = document.createElement('a');
+                  a.href = item.url;
+                  a.target = '_blank';
+                  a.download = fileName;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+              } finally {
+                  setTimeout(() => { window.isDownloadingFile = false; }, 2000);
+              }
+          }
+      };
+
+      // Shorthand Global Function
+      window.openMediaPreview = function(url, title = 'Photo Preview') {
+          window.ABCDMediaLightbox.open({ url, title });
+      };
+
+      // Wire Up Lightbox Controls
+      if (lbCloseBtn) lbCloseBtn.addEventListener('click', () => window.ABCDMediaLightbox.close());
+      if (lbNextBtn) lbNextBtn.addEventListener('click', () => window.ABCDMediaLightbox.next());
+      if (lbPrevBtn) lbPrevBtn.addEventListener('click', () => window.ABCDMediaLightbox.prev());
+      if (lbZoomInBtn) lbZoomInBtn.addEventListener('click', () => window.ABCDMediaLightbox.zoomIn());
+      if (lbZoomOutBtn) lbZoomOutBtn.addEventListener('click', () => window.ABCDMediaLightbox.zoomOut());
+      if (lbDownloadBtn) lbDownloadBtn.addEventListener('click', () => window.ABCDMediaLightbox.downloadCurrent());
+
+      // Close on Backdrop Click
+      if (lbOverlay) {
+          lbOverlay.addEventListener('click', function(e) {
+              if (e.target === lbOverlay || e.target === document.getElementById('abcd-lb-body') || e.target === lbViewport) {
+                  window.ABCDMediaLightbox.close();
+              }
+          });
+      }
+
+      // Keyboard navigation (Esc to close, Arrow keys to navigate)
+      document.addEventListener('keydown', function(e) {
+          if (!window.__isLightboxOpen) return;
+          if (e.key === 'Escape') {
+              window.ABCDMediaLightbox.close();
+          } else if (e.key === 'ArrowRight') {
+              window.ABCDMediaLightbox.next();
+          } else if (e.key === 'ArrowLeft') {
+              window.ABCDMediaLightbox.prev();
+          } else if (e.key === '+' || e.key === '=') {
+              window.ABCDMediaLightbox.zoomIn();
+          } else if (e.key === '-') {
+              window.ABCDMediaLightbox.zoomOut();
+          }
+      });
+
+      // Mouse Wheel Zoom
+      if (lbViewport) {
+          lbViewport.addEventListener('wheel', function(e) {
+              if (!window.__isLightboxOpen) return;
+              e.preventDefault();
+              if (e.deltaY < 0) {
+                  window.ABCDMediaLightbox.zoomIn();
+              } else {
+                  window.ABCDMediaLightbox.zoomOut();
+              }
+          }, { passive: false });
+
+          // Mouse Drag Pan
+          lbViewport.addEventListener('mousedown', function(e) {
+              if (currentZoom <= 1) return;
+              isPanning = true;
+              startPanX = e.clientX - currentPanX;
+              startPanY = e.clientY - currentPanY;
+              lbViewport.classList.add('grabbing');
+          });
+
+          window.addEventListener('mousemove', function(e) {
+              if (!isPanning) return;
+              currentPanX = e.clientX - startPanX;
+              currentPanY = e.clientY - startPanY;
+              updateImageTransform();
+          });
+
+          window.addEventListener('mouseup', function() {
+              if (isPanning) {
+                  isPanning = false;
+                  if (lbViewport) lbViewport.classList.remove('grabbing');
+              }
+          });
+
+          // Touch Drag & Pinch-to-zoom for Mobile
+          lbViewport.addEventListener('touchstart', function(e) {
+              if (e.touches.length === 1 && currentZoom > 1) {
+                  isPanning = true;
+                  startPanX = e.touches[0].clientX - currentPanX;
+                  startPanY = e.touches[0].clientY - currentPanY;
+              } else if (e.touches.length === 2) {
+                  touchStartDist = Math.hypot(
+                      e.touches[0].clientX - e.touches[1].clientX,
+                      e.touches[0].clientY - e.touches[1].clientY
+                  );
+              }
+          }, { passive: true });
+
+          lbViewport.addEventListener('touchmove', function(e) {
+              if (e.touches.length === 1 && isPanning && currentZoom > 1) {
+                  currentPanX = e.touches[0].clientX - startPanX;
+                  currentPanY = e.touches[0].clientY - startPanY;
+                  updateImageTransform();
+              } else if (e.touches.length === 2 && touchStartDist > 0) {
+                  const dist = Math.hypot(
+                      e.touches[0].clientX - e.touches[1].clientX,
+                      e.touches[0].clientY - e.touches[1].clientY
+                  );
+                  const scaleFactor = dist / touchStartDist;
+                  currentZoom = Math.min(Math.max(currentZoom * scaleFactor, 0.8), 3.5);
+                  touchStartDist = dist;
+                  updateImageTransform();
+              }
+          }, { passive: true });
+
+          lbViewport.addEventListener('touchend', function(e) {
+              if (e.touches.length === 0) {
+                  isPanning = false;
+                  touchStartDist = 0;
+              }
+          });
+
+          // Double Tap to Zoom / Reset on Mobile
+          let lastTap = 0;
+          lbViewport.addEventListener('touchend', function(e) {
+              const currentTime = new Date().getTime();
+              const tapLength = currentTime - lastTap;
+              if (tapLength < 300 && tapLength > 0) {
+                  e.preventDefault();
+                  if (currentZoom > 1) {
+                      resetZoomAndPan();
+                  } else {
+                      currentZoom = 2;
+                      updateImageTransform();
+                  }
+              }
+              lastTap = currentTime;
+          });
+      }
+
+      // ----------------------------------------------------------------------
+      // 3. AUTOMATIC DELEGATED CLICK BINDING FOR COMPLAINTS & MEDIA LINKS
+      // ----------------------------------------------------------------------
+      document.addEventListener('click', function(e) {
+          // Check for image links or complaint thumbnails
+          const link = e.target.closest('.complaint-thumb-link, .complaint-img-link, [data-preview-media], .preview-attachments a, .history-attachments-grid a');
+          if (link) {
+              const href = link.getAttribute('href') || link.getAttribute('data-preview-url');
+              if (href && !href.startsWith('javascript:')) {
+                  e.preventDefault();
+                  e.stopPropagation();
+
+                  // Find gallery siblings if present in same container
+                  const parentGroup = link.closest('.complaint-thumbs, .images-grid, .history-attachments-grid, .preview-attachments');
+                  let gallery = [];
+                  let initialIndex = 0;
+
+                  if (parentGroup) {
+                      const allLinks = Array.from(parentGroup.querySelectorAll('.complaint-thumb-link, .complaint-img-link, [data-preview-media], a'));
+                      gallery = allLinks.map((l, i) => {
+                          const url = l.getAttribute('href') || l.getAttribute('data-preview-url');
+                          const title = l.getAttribute('title') || l.getAttribute('aria-label') || (l.querySelector('img') ? l.querySelector('img').getAttribute('alt') : `Photo ${i + 1}`);
+                          return { url, title, badge: 'COMPLAINT' };
+                      }).filter(item => item.url && item.url !== '#');
+
+                      initialIndex = allLinks.indexOf(link);
+                      if (initialIndex < 0) initialIndex = 0;
+                  }
+
+                  if (gallery.length === 0) {
+                      const title = link.getAttribute('title') || (link.querySelector('img') ? link.querySelector('img').getAttribute('alt') : 'Photo Preview');
+                      gallery = [{ url: href, title, badge: 'PHOTO' }];
+                      initialIndex = 0;
+                  }
+
+                  window.ABCDMediaLightbox.open({
+                      gallery: gallery,
+                      index: initialIndex
+                  });
+                  return;
+              }
+          }
+
+          // Also check direct click on images with zoom class or complaint-thumb class
+          const img = e.target.closest('img.complaint-thumb, img.complaint-img, img.preview-media-img');
+          if (img && !img.closest('a')) {
+              e.preventDefault();
+              e.stopPropagation();
+              window.ABCDMediaLightbox.open({
+                  url: img.src,
+                  title: img.alt || 'Photo Preview',
+                  badge: 'PHOTO'
+              });
+          }
+      }, true);
+
   })();
 </script>

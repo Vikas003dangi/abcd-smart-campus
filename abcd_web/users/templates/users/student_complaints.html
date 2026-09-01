@@ -790,7 +790,27 @@
           </tr>
           <tr>
             <td colspan="5" class="detail-cell">
-              <strong>Detail:</strong> {{ c.message|linebreaksbr }}
+              <div><strong>Detail:</strong> {{ c.message|linebreaksbr }}</div>
+              {% if c.image1 or c.image2 or c.image3 %}
+              <div class="complaint-thumbs" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <span style="font-size:0.8rem; font-weight:600; color:#64748b;">Attached Photos:</span>
+                {% if c.image1 %}
+                <a href="{{ c.image1.url }}" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="1" title="Complaint #{{ c.code }} Photo 1">
+                  <img src="{{ c.image1.url }}" alt="Photo 1" class="complaint-thumb" loading="lazy" style="height:60px; width:60px; border-radius:8px; border:1.5px solid #e2e8f0; object-fit:cover; cursor:pointer; transition:transform 0.18s ease; box-shadow:0 2px 6px rgba(0,0,0,0.06);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                </a>
+                {% endif %}
+                {% if c.image2 %}
+                <a href="{{ c.image2.url }}" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="2" title="Complaint #{{ c.code }} Photo 2">
+                  <img src="{{ c.image2.url }}" alt="Photo 2" class="complaint-thumb" loading="lazy" style="height:60px; width:60px; border-radius:8px; border:1.5px solid #e2e8f0; object-fit:cover; cursor:pointer; transition:transform 0.18s ease; box-shadow:0 2px 6px rgba(0,0,0,0.06);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                </a>
+                {% endif %}
+                {% if c.image3 %}
+                <a href="{{ c.image3.url }}" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="3" title="Complaint #{{ c.code }} Photo 3">
+                  <img src="{{ c.image3.url }}" alt="Photo 3" class="complaint-thumb" loading="lazy" style="height:60px; width:60px; border-radius:8px; border:1.5px solid #e2e8f0; object-fit:cover; cursor:pointer; transition:transform 0.18s ease; box-shadow:0 2px 6px rgba(0,0,0,0.06);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                </a>
+                {% endif %}
+              </div>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}

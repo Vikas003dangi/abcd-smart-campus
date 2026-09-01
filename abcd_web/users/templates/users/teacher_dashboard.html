@@ -7971,15 +7971,7 @@
     </div>
   </footer>
 
-  <!-- Lightbox (shared) -->
-  <div id="imageLightbox" class="image-lightbox" aria-hidden="true" role="dialog" aria-label="Image preview">
-    <div class="lb-card" role="document">
-      <button class="lb-close" aria-label="Close (Esc)"><i class="bx bx-x"></i></button>
-      <button class="lb-prev" aria-label="Previous image"><i class="bx bx-chevron-left"></i></button>
-      <img class="lb-img" src="" alt="Full size preview">
-      <button class="lb-next" aria-label="Next image"><i class="bx bx-chevron-right"></i></button>
-    </div>
-  </div>
+  <!-- Global lightbox is loaded via _master_loader.html -->
 
   <script>
     const API_MANAGE_HOLD_URL = "{% url 'users:api_manage_hold_request' %}";
@@ -9291,125 +9283,7 @@
     });
   </script>
 
-  <script>
-    (function () {
-      const lightbox = document.getElementById('imageLightbox');
-      if (!lightbox) return; // safety
 
-      const lbImg = lightbox.querySelector('.lb-img');
-      const btnClose = lightbox.querySelector('.lb-close');
-      const btnPrev = lightbox.querySelector('.lb-prev');
-      const btnNext = lightbox.querySelector('.lb-next');
-
-      let currentLinks = []; // {href, el, complaintId}
-      let currentIndex = -1;
-
-      function collectLinks() {
-        currentLinks = Array.from(document.querySelectorAll('.complaint-thumb-link')).map(a => ({
-          href: a.getAttribute('href'),
-          el: a,
-          complaintId: a.dataset.complaintId || null
-        }));
-      }
-
-      function openAtIndex(i) {
-        if (!currentLinks.length) return;
-        if (i < 0 || i >= currentLinks.length) return;
-        currentIndex = i;
-        lbImg.src = currentLinks[i].href;
-        lbImg.alt = 'Complaint image';
-        
-        // Show/hide prev/next buttons based on whether there are multiple images for this complaint
-        const scoped = getComplaintScopedIndexes();
-        if (scoped.length <= 1) {
-          btnPrev.style.display = 'none';
-          btnNext.style.display = 'none';
-        } else {
-          btnPrev.style.display = 'flex';
-          btnNext.style.display = 'flex';
-        }
-
-        lightbox.classList.add('open');
-        lightbox.setAttribute('aria-hidden', 'false');
-        // focus close for keyboard support
-        btnClose.focus();
-      }
-
-      function closeLightbox() {
-        lightbox.classList.remove('open');
-        lightbox.setAttribute('aria-hidden', 'true');
-        lbImg.src = '';
-        currentIndex = -1;
-      }
-
-      // click on thumbnail (delegated)
-      document.addEventListener('click', function (e) {
-        const a = e.target.closest('.complaint-thumb-link');
-        if (!a) return;
-        e.preventDefault();
-        collectLinks();
-        const idx = currentLinks.findIndex(item => item.el === a);
-        if (idx === -1) {
-          window.open(a.href, '_blank'); // fallback
-          return;
-        }
-        openAtIndex(idx);
-      });
-
-      // compute indexes of images that belong to same complaint
-      function getComplaintScopedIndexes() {
-        if (currentIndex === -1) return [];
-        const cid = currentLinks[currentIndex].complaintId;
-        const indexes = [];
-        currentLinks.forEach((it, idx) => { if (it.complaintId === cid) indexes.push(idx); });
-        return indexes;
-      }
-
-      function showPrev() {
-        const scoped = getComplaintScopedIndexes();
-        if (!scoped.length) {
-          openAtIndex((currentIndex - 1 + currentLinks.length) % currentLinks.length);
-          return;
-        }
-        const pos = scoped.indexOf(currentIndex);
-        const prevPos = (pos - 1 + scoped.length) % scoped.length;
-        openAtIndex(scoped[prevPos]);
-      }
-      function showNext() {
-        const scoped = getComplaintScopedIndexes();
-        if (!scoped.length) {
-          openAtIndex((currentIndex + 1) % currentLinks.length);
-          return;
-        }
-        const pos = scoped.indexOf(currentIndex);
-        const nextPos = (pos + 1) % scoped.length;
-        openAtIndex(scoped[nextPos]);
-      }
-
-      btnClose.addEventListener('click', closeLightbox);
-      btnPrev.addEventListener('click', showPrev);
-      btnNext.addEventListener('click', showNext);
-
-      // close on backdrop click
-      lightbox.addEventListener('click', function (e) {
-        if (e.target === lightbox) closeLightbox();
-      });
-
-      // keyboard
-      document.addEventListener('keydown', function (e) {
-        if (!lightbox.classList.contains('open')) return;
-        if (e.key === 'Escape') closeLightbox();
-        else if (e.key === 'ArrowLeft') showPrev();
-        else if (e.key === 'ArrowRight') showNext();
-      });
-
-      // Observe DOM changes and re-collect links (safe)
-      const obs = new MutationObserver(() => collectLinks());
-      obs.observe(document.body, { childList: true, subtree: true });
-
-      // initial collect
-      collectLinks();
-    })();
 
     // --- Broadcast Slide Panel Logic --- //
 
