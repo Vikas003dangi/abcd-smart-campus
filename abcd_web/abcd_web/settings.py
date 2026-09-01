@@ -23,20 +23,41 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-development-secret-ke
 # The cast=bool makes sure 'True' becomes True (boolean) and 'False' becomes False
 DEBUG = config('DEBUG', default=True, cast=bool) 
 
-ALLOWED_HOSTS = [
-    h.strip() for h in config(
-        'ALLOWED_HOSTS',
-        default='127.0.0.1,localhost,testserver,.onrender.com,abcd-web-platform.onrender.com,abcd2013.online,www.abcd2013.online,abcdcampus.in,www.abcdcampus.in,.railway.app'
-    ).split(',') if h.strip()
-]
+# Base supported domains for local, production, and staging
+DEFAULT_ALLOWED_HOSTS = {
+    '127.0.0.1', 'localhost', 'testserver',
+    '.onrender.com', 'abcd-web-platform.onrender.com',
+    'abcd2013.online', 'www.abcd2013.online',
+    'abcdcampus.in', 'www.abcdcampus.in',
+    '.railway.app'
+}
+env_hosts = [h.strip() for h in config('ALLOWED_HOSTS', default='').split(',') if h.strip()]
+ALLOWED_HOSTS = list(DEFAULT_ALLOWED_HOSTS.union(env_hosts))
 
-# CSRF Trusted Origins for HTTPS Production & Custom Domains
-CSRF_TRUSTED_ORIGINS = [
-    o.strip() for o in config(
-        'CSRF_TRUSTED_ORIGINS',
-        default='https://*.onrender.com,https://abcd-web-platform.onrender.com,https://abcd2013.online,https://www.abcd2013.online,https://abcdcampus.in,https://www.abcdcampus.in,http://127.0.0.1:8000,http://localhost:8000'
-    ).split(',') if o.strip()
-]
+# CSRF Trusted Origins for HTTPS Production, Custom Domains & Local Dev
+DEFAULT_CSRF_ORIGINS = {
+    'https://*.onrender.com',
+    'https://abcd-web-platform.onrender.com',
+    'https://abcd2013.online',
+    'https://www.abcd2013.online',
+    'https://abcdcampus.in',
+    'https://www.abcdcampus.in',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'http://127.0.0.1',
+    'http://localhost',
+}
+env_csrf = set()
+for raw_o in config('CSRF_TRUSTED_ORIGINS', default='').split(','):
+    o = raw_o.strip()
+    if o:
+        if not o.startswith(('http://', 'https://')):
+            env_csrf.add(f'https://{o}')
+            env_csrf.add(f'http://{o}')
+        else:
+            env_csrf.add(o)
+
+CSRF_TRUSTED_ORIGINS = list(DEFAULT_CSRF_ORIGINS.union(env_csrf))
 
 # Tell Django to trust the X-Forwarded-Proto header from Render's HTTPS reverse proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
