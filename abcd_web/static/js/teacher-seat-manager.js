@@ -157,13 +157,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return prefix + seatNum;
   }
 
-  /**
-   * Helper to show the premium confirmation modal
-   */
   window.showConfirmation = function({ title, mainText, subText, iconClass = 'bx-help-circle', confirmLabel = 'Confirm', theme = 'primary' }) {
-    confirmModalTitle.textContent = title || 'Confirm Action';
-    confirmModalMainText.textContent = mainText || 'Are you sure?';
-    confirmModalSubText.textContent = subText || 'Do you wish to continue?';
+    if (confirmModalTitle) {
+      if (title && (title.includes('<') || title.includes('&'))) confirmModalTitle.innerHTML = title;
+      else confirmModalTitle.textContent = title || 'Confirm Action';
+    }
+    if (confirmModalMainText) {
+      if (mainText && (mainText.includes('<') || mainText.includes('&'))) confirmModalMainText.innerHTML = mainText;
+      else confirmModalMainText.textContent = mainText || 'Are you sure?';
+    }
+    if (confirmModalSubText) {
+      if (subText && (subText.includes('<') || subText.includes('&'))) confirmModalSubText.innerHTML = subText;
+      else confirmModalSubText.textContent = subText || 'Do you wish to continue?';
+    }
     
     // Set icon
     confirmModalIcon.innerHTML = `<i class='bx ${iconClass}'></i>`;
@@ -3261,19 +3267,19 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.add('modal-open');
       if (modalOverlay) {
         modalOverlay.style.display = 'block';
-        modalOverlay.classList.add('active');
+        requestAnimationFrame(() => {
+          if (modalOverlay) modalOverlay.classList.add('active');
+        });
       }
     } else {
-      // 🚀 INSTANT BLUR REMOVAL (User Requirement)
+      // Instant blur & overlay removal
       document.body.classList.remove('modal-open');
       if (modalOverlay) modalOverlay.classList.remove('active');
 
-      // Clear any pending cleanup timeout
       if (window._overlayCloseTimeout) {
         clearTimeout(window._overlayCloseTimeout);
       }
       
-      // Separate cleanup for display:none and structural pieces (can be delayed for transitions)
       window._overlayCloseTimeout = setTimeout(() => {
         const stillActiveModals = document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open');
         const stillActivePopup = document.querySelector('.custom-popup.visible');
@@ -3281,7 +3287,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (stillActiveModals.length === 0 && !stillActivePopup) {
           if (modalOverlay) modalOverlay.style.display = 'none';
           
-          // Cleanup all hidden modals
           document.querySelectorAll('.admission-modal, .teacher-modal').forEach(m => {
             if (!m.classList.contains('active') && !m.classList.contains('open')) {
               m.style.display = 'none';
@@ -3289,14 +3294,14 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
         window._overlayCloseTimeout = null;
-      }, 350); 
+      }, 200); 
     }
   };
 
   window.openSmallModal = function(modalEl) {
     if (!modalEl) return;
     
-    // Dim and blur all currently active lower modals
+    // Dim lower active modals
     const activeModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open'));
     activeModals.forEach(m => {
       if (m !== modalEl) {
@@ -3304,14 +3309,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Dynamic z-index for top modal elevation
     const stackLevel = activeModals.length + 1;
     modalEl.style.zIndex = 2000 + (stackLevel * 10);
-    
     modalEl.style.display = 'flex';
-    modalEl.offsetHeight; // force reflow
-    modalEl.classList.add('active');
-    modalEl.classList.remove('modal-stacked-parent');
+    
+    requestAnimationFrame(() => {
+      modalEl.classList.add('active');
+      modalEl.classList.remove('modal-stacked-parent');
+    });
     
     window.syncGlobalModalState();
   };
@@ -3324,7 +3329,6 @@ document.addEventListener('DOMContentLoaded', () => {
       window.setButtonLoading(actionFinalConfirm, false);
     }
     
-    // Restore focus to top remaining modal
     const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open'))
       .filter(m => m !== modalEl);
     if (remainingModals.length > 0) {
@@ -3332,16 +3336,14 @@ document.addEventListener('DOMContentLoaded', () => {
       topModal.classList.remove('modal-stacked-parent');
     }
 
-    // 🚀 INSTANT SYNC (Remove blur immediately)
     window.syncGlobalModalState(modalEl);
 
-    // Delayed display:none for animation
     setTimeout(() => {
       if (!modalEl.classList.contains('active')) {
         modalEl.style.display = 'none';
         modalEl.style.zIndex = '';
       }
-    }, 350);
+    }, 200);
   };
 
   // 🚀 AUTOMATICALLY CLOSE ALL MODALS ON ACTION EXECUTION
@@ -3792,7 +3794,7 @@ document.addEventListener('DOMContentLoaded', () => {
       resetAssignModal();
 
       // Ensure we have a valid shift
-      const payloadShift = payload && payload.shift ? payload.shift : 'full';
+      const payloadShift = (typeof payload !== 'undefined' && payload && payload.shift) ? payload.shift : (lastAssignShift || 'full');
       updateAssignTitle(payloadShift);
 
 

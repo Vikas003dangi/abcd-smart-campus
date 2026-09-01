@@ -16,7 +16,7 @@ from django.conf import settings
 from .models import TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest, StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification, BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview, CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, StudentCourseInteraction, abcd_format_name
 from .forms import StudentAchievementForm, EditStudentProfileForm, EditAlumniProfileForm, InitialRegisterForm, StudentProfileForm, ComplaintForm, ComplaintRatingForm
 from collections import defaultdict
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, User as DjangoUser
 from django.urls import reverse
 from django.core.cache import cache
 from django.utils import timezone 
@@ -5651,9 +5651,11 @@ def get_student_list_api(request):
                     'has_coaching': profile.service_type in ['Coaching', 'Both'] if profile else False
                 })
         else:
-            qs = StudentProfile.objects.filter(status='admitted')
+            qs = StudentProfile.objects.filter(
+                Q(status__in=['admitted', 'pending', 'on_hold', 'approved']) | Q(is_admitted=True)
+            )
             if stype == 'library':
-                qs = qs.filter(service_type__in=['Library', 'Both'])
+                qs = qs.filter(Q(service_type__in=['Library', 'Both']) | Q(service_type__isnull=True) | Q(service_type=''))
             elif stype == 'coaching':
                 qs = qs.filter(service_type__in=['Coaching', 'Both'])
             elif stype != 'all':
@@ -5960,6 +5962,51 @@ def seat_action_api(request):
                 return success_response(
                     f'Admission for {student.full_name} approved ({shift_type}). Seat {seat_number} is now occupied.'
                 )
+
+        # ------------------------------------
+        # 2b. ACTION: APPROVE WITHOUT SEAT
+        # ------------------------------------
+        elif action == 'approve_without_seat':
+            request_student_id = (payload.get('request_id') if isinstance(payload, dict) else None) or student_id
+            
+            if request_student_id:
+                student = get_object_or_404(StudentProfile, id=request_student_id)
+            else:
+                pending_assign = SeatAssignment.objects.filter(seat=seat, is_active=False, student__status='pending').first()
+                if not pending_assign:
+                    return JsonResponse({'status': 'error', 'message': 'No pending student found.'}, status=400)
+                student = pending_assign.student
+
+            with transaction.atomic():
+                student.status = 'admitted'
+                student.is_admitted = True
+                student.seat = None
+                student.approved_at = timezone.now()
+                student.save(update_fields=['status', 'is_admitted', 'seat', 'approved_at'])
+
+                # Deactivate/delete any pending assignments for this student on this seat
+                SeatAssignment.objects.filter(student=student, seat=seat).delete()
+                SeatSpecialRequest.objects.filter(student=student, seat=seat).delete()
+
+                seat.recalc_status(save=True)
+
+            create_notification(
+                user=student.user,
+                title="Admission Approved",
+                message="Your admission has been approved. A library seat will be assigned to you soon.",
+                link="/dashboard/",
+                category="admission"
+            )
+
+            try:
+                threading.Thread(
+                    target=notifications.send_admission_approval_notifications,
+                    args=(student, None)
+                ).start()
+            except Exception:
+                pass
+
+            return success_response(f"Admission for {student.full_name} approved without seat.")
         
         # ------------------------------------
         # 3. ACTION: DELETE PENDING REQUEST
@@ -6496,7 +6543,6 @@ def seat_action_api(request):
                         email = achievement.email or student_user.email
 
                     # Get or create the StudentProfile
-                    from django.utils import timezone
                     student, created = StudentProfile.objects.select_for_update().get_or_create(
                         user=student_user,
                         defaults={
@@ -6542,13 +6588,17 @@ def seat_action_api(request):
                     student.save(update_fields=['service_type'])
 
                 existing_seat = student.seat
-                if existing_seat and (existing_seat.id != seat.id):
+                active_assignment = SeatAssignment.objects.filter(student=student, is_active=True).select_related('seat').first()
+                has_other_seat = (existing_seat and existing_seat.id != seat.id) or (active_assignment and active_assignment.seat_id != seat.id)
+
+                if has_other_seat:
+                    assigned_seat_num = existing_seat.seat_number if existing_seat else (active_assignment.seat.seat_number if active_assignment and active_assignment.seat else '?')
                     if not reassign and not force:
                         return JsonResponse({
                             'status': 'conflict',
                             'conflict_type': 'student_has_seat',
-                            'message': f"Student already has seat {existing_seat.seat_number}. Confirm reassign.",
-                            'existing_seat': existing_seat.seat_number,
+                            'message': f"Student already has seat {assigned_seat_num}. Confirm reassign.",
+                            'existing_seat': assigned_seat_num,
                             'student_name': student.full_name,
                             'student_id': student.id
                         }, status=409)
@@ -6608,7 +6658,6 @@ def seat_action_api(request):
                 # Email format & uniqueness checks
                 if email:
                     email = email.strip().lower()
-                    import re
                     if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
                         return JsonResponse({'status': 'error', 'message': 'Please enter a valid email address.'}, status=400)
                     if User.objects.filter(email__iexact=email).exists() or \
@@ -6757,6 +6806,9 @@ def seat_action_api(request):
 
             # C. Create Assignment
             try:
+                # Guarantee no dangling active assignments for this student
+                SeatAssignment.objects.filter(student=student, is_active=True).exclude(seat=seat).update(is_active=False)
+
                 SeatAssignment.objects.create(
                     seat=seat,
                     student=student,
