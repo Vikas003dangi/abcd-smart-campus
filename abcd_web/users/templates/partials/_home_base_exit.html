@@ -59,8 +59,7 @@
 
                 if (vv) {
                     bar.style.width = `${vv.width * totalZoom}px`;
-                    const offsetBottom = window.innerHeight - (vv.offsetTop + vv.height);
-                    bar.style.bottom = `${Math.max(0, offsetBottom)}px`;
+                    bar.style.bottom = '0px';
                     bar.style.left = `${vv.offsetLeft}px`;
                 } else {
                     bar.style.width = `${window.innerWidth * pageZoom}px`;
