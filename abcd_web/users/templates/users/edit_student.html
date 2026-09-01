@@ -125,15 +125,80 @@
         color: #475569;
     }
 
+    /* ── High-Contrast, Vivid Profile Photo Cropper Styles ── */
     .cropper-container {
         width: 100% !important;
-        background: #f8fafc;
-        border-radius: 15px;
+        border-radius: 18px;
+        overflow: hidden;
     }
 
-    .cropper-view-box,
+    .cropper-bg {
+        background-image: none !important;
+        background-color: #0f172a !important;
+    }
+
+    /* Semi-transparent outer dark vignette */
+    .cropper-modal {
+        background-color: rgba(15, 23, 42, 0.5) !important;
+        opacity: 1 !important;
+        z-index: 1 !important;
+    }
+
+    /* Force Crop Box to sit above the vignette */
+    .cropper-crop-box {
+        z-index: 100 !important;
+    }
+
+    /* Remove any dulling mask inside crop area */
     .cropper-face {
-        border-radius: 50%;
+        background-color: transparent !important;
+        opacity: 0 !important;
+        border-radius: 50% !important;
+    }
+
+    /* Circular View Box with High-Contrast Vivid Outline */
+    .cropper-view-box {
+        border-radius: 50% !important;
+        outline: 2.5px solid #6366f1 !important;
+        outline-color: #6366f1 !important;
+        box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95), 0 0 25px rgba(99, 102, 241, 0.5) !important;
+        background-color: transparent !important;
+        z-index: 101 !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+    }
+
+    /* Cloned image inside view-box MUST remain in 100% full original brightness */
+    .cropper-view-box img {
+        border-radius: 50% !important;
+        filter: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: block !important;
+    }
+
+    /* Bright Dashed Grid Guidelines */
+    .cropper-dashed {
+        border: 0 dashed rgba(255, 255, 255, 0.85) !important;
+    }
+    .cropper-dashed.dashed-h {
+        border-top-width: 1px !important;
+        border-bottom-width: 1px !important;
+    }
+    .cropper-dashed.dashed-v {
+        border-left-width: 1px !important;
+        border-right-width: 1px !important;
+    }
+
+    /* High-Contrast Interactive Corner/Center Points */
+    .cropper-point {
+        background-color: #6366f1 !important;
+        width: 10px !important;
+        height: 10px !important;
+        border-radius: 50% !important;
+        border: 2px solid #ffffff !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+        opacity: 0.95 !important;
     }
 
     .photo-preview-box {
@@ -228,13 +293,14 @@
     /* Teacher Modal Styling */
     .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.6); backdrop-filter: blur(5px);
-        display: none; z-index: 1000;
+        background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: none; z-index: 100000 !important;
     }
     .modal-card {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         background: var(--card-bg); border-radius: 30px; padding: 30px;
-        width: 90%; max-width: 400px; z-index: 1001; display: none;
+        width: 90%; max-width: 400px; z-index: 100001 !important; display: none;
         box-shadow: 0 30px 60px rgba(0,0,0,0.5);
         border: 1px solid var(--border-color);
     }
@@ -409,11 +475,16 @@
         </div>
     </div>
     <!-- Photo Cropper Modal -->
-    <div class="modal-overlay" id="cropOverlay" style="z-index: 2000;"></div>
-    <div class="modal-card" id="cropModal" style="z-index: 2001; max-width: 500px;">
-        <h3 style="margin-bottom: 20px;">Adjust Photo</h3>
-        <div style="width: 100%; max-height: 350px; overflow: hidden; border-radius: 15px; background: #f1f5f9;">
-            <img id="cropImg" src="" style="max-width: 100%;">
+    <div class="modal-overlay" id="cropOverlay"></div>
+    <div class="modal-card" id="cropModal" style="max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
+                <i class='bx bx-crop'></i> Adjust Photo
+            </h3>
+            <button type="button" onclick="document.getElementById('btnCropCancel').click()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
+        </div>
+        <div style="width: 100%; max-height: 360px; overflow: hidden; border-radius: 18px; background: #0f172a; position: relative;">
+            <img id="cropImg" src="" style="max-width: 100%; display: block;">
         </div>
         <div style="margin-top: 25px; display: flex; gap: 12px;">
             <button class="btn-pill btn-save" style="flex: 1;" id="btnCropDone">Done</button>
@@ -421,11 +492,14 @@
         </div>
     </div>
     <!-- Photo Actions Modal -->
-    <div class="modal-overlay" id="photoActionOverlay" style="z-index: 2100; display: none;" onclick="closePhotoActionModal()"></div>
-    <div class="modal-card" id="photoActionModal" style="z-index: 2101; max-width: 400px; display: none;">
-        <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <i class='bx bxs-camera'></i> Profile Photo
-        </h3>
+    <div class="modal-overlay" id="photoActionOverlay" style="display: none;" onclick="closePhotoActionModal()"></div>
+    <div class="modal-card" id="photoActionModal" style="max-width: 400px; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
+                <i class='bx bxs-camera'></i> Profile Photo
+            </h3>
+            <button type="button" onclick="closePhotoActionModal()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
+        </div>
         <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
             <button type="button" class="btn-pill btn-save" style="justify-content: center; background: #6366f1;" onclick="triggerPhotoUpload()">
                 <i class='bx bx-upload'></i> Upload/Change Photo

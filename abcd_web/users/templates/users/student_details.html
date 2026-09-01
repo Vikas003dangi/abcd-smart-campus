@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 <style>
     :root {
+        --z-modal-overlay: 100000;
+        --z-modal: 100001;
         --profile-primary: #6366f1;
         --profile-card-bg: #ffffff;
         --profile-text: #1e293b;
@@ -130,16 +132,80 @@
         color: #475569;
     }
 
-    /* Cropper Container Visibility */
+    /* ── High-Contrast, Vivid Profile Photo Cropper Styles ── */
     .cropper-container {
         width: 100% !important;
-        background: #f8fafc;
-        border-radius: 15px;
+        border-radius: 18px;
+        overflow: hidden;
     }
 
-    .cropper-view-box,
+    .cropper-bg {
+        background-image: none !important;
+        background-color: #0f172a !important;
+    }
+
+    /* Semi-transparent outer dark vignette */
+    .cropper-modal {
+        background-color: rgba(15, 23, 42, 0.5) !important;
+        opacity: 1 !important;
+        z-index: 1 !important;
+    }
+
+    /* Force Crop Box to sit above the vignette */
+    .cropper-crop-box {
+        z-index: 100 !important;
+    }
+
+    /* Remove any dulling mask inside crop area */
     .cropper-face {
-        border-radius: 50%;
+        background-color: transparent !important;
+        opacity: 0 !important;
+        border-radius: 50% !important;
+    }
+
+    /* Circular View Box with High-Contrast Vivid Outline */
+    .cropper-view-box {
+        border-radius: 50% !important;
+        outline: 2.5px solid #6366f1 !important;
+        outline-color: #6366f1 !important;
+        box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95), 0 0 25px rgba(99, 102, 241, 0.5) !important;
+        background-color: transparent !important;
+        z-index: 101 !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+    }
+
+    /* Cloned image inside view-box MUST remain in 100% full original brightness */
+    .cropper-view-box img {
+        border-radius: 50% !important;
+        filter: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: block !important;
+    }
+
+    /* Bright Dashed Grid Guidelines */
+    .cropper-dashed {
+        border: 0 dashed rgba(255, 255, 255, 0.85) !important;
+    }
+    .cropper-dashed.dashed-h {
+        border-top-width: 1px !important;
+        border-bottom-width: 1px !important;
+    }
+    .cropper-dashed.dashed-v {
+        border-left-width: 1px !important;
+        border-right-width: 1px !important;
+    }
+
+    /* High-Contrast Interactive Corner/Center Points */
+    .cropper-point {
+        background-color: #6366f1 !important;
+        width: 10px !important;
+        height: 10px !important;
+        border-radius: 50% !important;
+        border: 2px solid #ffffff !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+        opacity: 0.95 !important;
     }
 
     .student-name {
@@ -245,14 +311,15 @@
     /* Modal Styling */
     .modal-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
-        display: none; z-index: 1500;
+        background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: none; z-index: 100000 !important;
     }
     .modal-card {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         background: var(--profile-card-bg); border-radius: 30px; padding: 30px;
-        width: 90%; max-width: 500px; z-index: 1501; display: none;
-        box-shadow: var(--profile-shadow);
+        width: 90%; max-width: 500px; z-index: 100001 !important; display: none;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
         border: 1px solid var(--profile-border);
     }
 
@@ -380,30 +447,35 @@
 </div>
 
 <!-- Broad View Modal -->
-<div id="photoBroadView" class="modal-overlay" style="display:none; z-index: 2000; background: rgba(0,0,0,0.9);">
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 2001;">
-        <button onclick="closePhotoView()" style="background: none; border: none; color: white; font-size: 2.5rem; cursor: pointer;"><i class='bx bx-x'></i></button>
+<div id="photoBroadView" class="modal-overlay" style="display:none; z-index: 100000; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 100002;">
+        <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <i class='bx bx-x'></i>
+        </button>
     </div>
-    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 40px;">
-        <img id="broadViewImg" src="" style="max-width: 95%; max-height: 95%; border-radius: 10px; box-shadow: 0 0 50px rgba(0,0,0,0.8);">
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 30px;" onclick="event.stopPropagation()">
+        <img id="broadViewImg" src="" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15);">
     </div>
 </div>
 
 <!-- Photo Manager Modal -->
 <div id="photoManagerModal" class="modal-card">
-    <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-        <i class='bx bxs-camera'></i> Profile Photo
-    </h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
+            <i class='bx bxs-camera'></i> Profile Photo
+        </h3>
+        <button type="button" onclick="closePhotoManager()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
+    </div>
     
     <div id="cropperWrapper" style="display:none; margin-bottom: 20px;">
-        <div style="width: 100%; max-height: 350px; overflow: hidden; border-radius: 15px; background: #f1f5f9;">
-            <img id="cropperImg" src="" style="max-width: 100%;" crossorigin="anonymous">
+        <div style="width: 100%; max-height: 360px; overflow: hidden; border-radius: 18px; background: #0f172a; position: relative;">
+            <img id="cropperImg" src="" style="max-width: 100%; display: block;" crossorigin="anonymous">
         </div>
         <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px;">
-            <button class="pill-btn btn-indigo" onclick="saveCrop(event)" style="padding: 12px 25px;">
+            <button class="pill-btn btn-indigo" onclick="saveCrop(event)" style="padding: 12px 28px;">
                 <i class='bx bx-check'></i> Save
             </button>
-            <button class="pill-btn btn-grey" onclick="cancelCrop()" style="padding: 12px 25px;">
+            <button class="pill-btn btn-grey" onclick="cancelCrop()" style="padding: 12px 28px;">
                 Cancel
             </button>
         </div>

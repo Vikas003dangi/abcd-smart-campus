@@ -139,9 +139,9 @@
         margin-top: 30px; /* Reduced by another 5px as per user request */
     }
 
-    /* Ensure navbar is above all course detail headers, video elements, and sidebars */
+    /* Ensure navbar is above regular course streaming header (z-index: 100) while below modals (z-index: 100000) */
     .top-nav-menu {
-        z-index: 10005 !important;
+        z-index: 1000 !important;
     }
 
     /* --- HEADER --- */
