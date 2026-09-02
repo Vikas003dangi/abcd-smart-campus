@@ -525,12 +525,12 @@ body.dark-theme .g-req-card {
 .g-create-group-btn:hover { background: var(--g-hov); }
 
 /* Visibility & State Helper Classes */
-.g-pane-hidden { display: none !important; }
-.g-pane-flex { display: flex !important; }
-.g-pane-block { display: block !important; }
+.g-pane-hidden { display: none; }
+.g-pane-flex { display: flex; }
+.g-pane-block { display: block; }
 
-.msg-tick.tick-read { color: var(--g-accent) !important; font-size: 0.8rem; }
-.msg-tick.tick-unread { color: var(--g-sub) !important; opacity: 0.6; font-size: 0.8rem; }
+.msg-tick.tick-read { color: var(--g-accent); font-size: 0.8rem; }
+.msg-tick.tick-unread { color: var(--g-sub); opacity: 0.6; font-size: 0.8rem; }
 
 /* ══════════════════════════════════════════════════════
    MAIN CHAT AREA
@@ -5887,8 +5887,16 @@ function showNoChatPlaceholder(updateHistory = true) {
 
   const container = document.getElementById('chatContainerWrapper');
   const placeholder = document.getElementById('noChatPlaceholder');
-  if (container) container.style.display = 'none';
-  if (placeholder) placeholder.style.display = 'flex';
+  if (container) {
+    container.classList.remove('g-pane-flex');
+    container.classList.add('g-pane-hidden');
+    container.style.display = 'none';
+  }
+  if (placeholder) {
+    placeholder.classList.remove('g-pane-hidden');
+    placeholder.classList.add('g-pane-flex');
+    placeholder.style.display = 'flex';
+  }
 
   if (updateHistory) {
     history.pushState(null, '', window.location.pathname);
@@ -5922,8 +5930,16 @@ async function loadChatAJAX(type, id, pushState = true) {
   // Display chat wrapper, hide empty placeholder
   const placeholder = document.getElementById('noChatPlaceholder');
   const container = document.getElementById('chatContainerWrapper');
-  if (placeholder) placeholder.style.display = 'none';
-  if (container) container.style.display = 'flex';
+  if (placeholder) {
+    placeholder.classList.remove('g-pane-flex');
+    placeholder.classList.add('g-pane-hidden');
+    placeholder.style.display = 'none';
+  }
+  if (container) {
+    container.classList.remove('g-pane-hidden');
+    container.classList.add('g-pane-flex');
+    container.style.display = 'flex';
+  }
 
   // Smooth loading feedback
   const nameTextEl = document.querySelector('.g-hdr-name-text');
@@ -6052,12 +6068,14 @@ async function loadChatAJAX(type, id, pushState = true) {
     const inputBar = document.getElementById('gInputBar');
 
     if (data.is_blocked) {
-      if (blockedNotice) blockedNotice.style.display = 'flex';
-      if (lockedNotice) lockedNotice.style.display = 'none';
-      if (inputBar) inputBar.style.display = 'none';
+      if (blockedNotice) { blockedNotice.classList.remove('g-pane-hidden'); blockedNotice.classList.add('g-pane-flex'); blockedNotice.style.display = 'flex'; }
+      if (lockedNotice) { lockedNotice.classList.remove('g-pane-block'); lockedNotice.classList.add('g-pane-hidden'); lockedNotice.style.display = 'none'; }
+      if (inputBar) { inputBar.classList.remove('g-pane-flex'); inputBar.classList.add('g-pane-hidden'); inputBar.style.display = 'none'; }
     } else if (data.is_deleted_group || (!data.is_active && data.ended_by_name)) {
-      if (blockedNotice) blockedNotice.style.display = 'none';
+      if (blockedNotice) { blockedNotice.classList.remove('g-pane-flex'); blockedNotice.classList.add('g-pane-hidden'); blockedNotice.style.display = 'none'; }
       if (lockedNotice) {
+        lockedNotice.classList.remove('g-pane-hidden');
+        lockedNotice.classList.add('g-pane-block');
         lockedNotice.style.display = 'block';
         if (lockedNoticeText) {
           if (data.is_deleted_group) {
@@ -6067,11 +6085,11 @@ async function loadChatAJAX(type, id, pushState = true) {
           }
         }
       }
-      if (inputBar) inputBar.style.display = 'none';
+      if (inputBar) { inputBar.classList.remove('g-pane-flex'); inputBar.classList.add('g-pane-hidden'); inputBar.style.display = 'none'; }
     } else {
-      if (blockedNotice) blockedNotice.style.display = 'none';
-      if (lockedNotice) lockedNotice.style.display = 'none';
-      if (inputBar) inputBar.style.display = 'flex';
+      if (blockedNotice) { blockedNotice.classList.remove('g-pane-flex'); blockedNotice.classList.add('g-pane-hidden'); blockedNotice.style.display = 'none'; }
+      if (lockedNotice) { lockedNotice.classList.remove('g-pane-block'); lockedNotice.classList.add('g-pane-hidden'); lockedNotice.style.display = 'none'; }
+      if (inputBar) { inputBar.classList.remove('g-pane-hidden'); inputBar.classList.add('g-pane-flex'); inputBar.style.display = 'flex'; }
     }
 
     // Render Messages
