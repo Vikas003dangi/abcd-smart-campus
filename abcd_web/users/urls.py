@@ -252,6 +252,7 @@ urlpatterns = [
     path('guidy/chat/<int:session_id>/msg/<int:msg_id>/star/', views.guidy_star_message, name='guidy_star_msg'),
     path('guidy/chat/<int:session_id>/search/', views.guidy_search_messages, name='guidy_search_msgs'),
     path('guidy/chat/<int:session_id>/clear/', views.guidy_clear_chat, name='guidy_clear_chat'),
+    path('guidy/chat/<int:session_id>/delete-permanent/', views.guidy_delete_session_permanently, name='guidy_delete_session_permanently'),
 
     # 1-to-1 Direct Chat (standalone model)
     path('guidy/direct/<int:direct_id>/send/', views.guidy_send_message, name='guidy_send_message_direct'),
@@ -262,10 +263,12 @@ urlpatterns = [
     path('guidy/direct/<int:direct_id>/msg/<int:msg_id>/star/', views.guidy_star_message, name='guidy_star_msg_direct'),
     path('guidy/direct/<int:direct_id>/search/', views.guidy_search_messages, name='guidy_search_msgs_direct'),
     path('guidy/direct/<int:direct_id>/clear/', views.guidy_clear_chat, name='guidy_clear_chat_direct'),
+    path('guidy/direct/<int:direct_id>/delete-permanent/', views.guidy_delete_session_permanently, name='guidy_delete_session_permanently_direct'),
 
     path('guidy/load-older/', views.guidy_load_older, name='guidy_load_older'),
     path('guidy/chat-data/', views.guidy_load_chat_api, name='guidy_load_chat_api'),
     path('guidy/sessions/bulk-end/', views.guidy_bulk_end_sessions, name='guidy_bulk_end_sessions'),
+    path('guidy/chats/bulk-clear/', views.guidy_bulk_clear_chats, name='guidy_bulk_clear_chats'),
 
     # Profile info drawer
     path('guidy/profile/<str:entity_type>/<int:entity_id>/', views.guidy_profile_info, name='guidy_profile_info'),

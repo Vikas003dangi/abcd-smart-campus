@@ -10149,17 +10149,42 @@ def purge_group_chat_session(group):
         logging.getLogger(__name__).error(f"Error purging group chat session: {e}")
 
 
+def purge_1on1_chat_session(session):
+    """
+    Permanently deletes all messages, physical media files, and the ChatSession or DirectChatSession database row.
+    """
+    try:
+        if not session or not session.pk:
+            return
+        import os
+        for msg in session.messages.exclude(file='').exclude(file__isnull=True):
+            if msg.file:
+                try:
+                    msg.file.delete(save=False)
+                except Exception:
+                    try:
+                        if hasattr(msg.file, 'path') and os.path.isfile(msg.file.path):
+                            os.remove(msg.file.path)
+                    except Exception:
+                        pass
+        session.messages.all().delete()
+        session.delete()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error purging 1-on-1 chat session: {e}")
+
+
 def purge_expired_group_chats():
     """
-    Auto-purge: permanently deletes group chats that were marked deleted 30+ days ago.
+    Auto-purge: permanently deletes group chats that were marked deleted 5+ days ago.
     """
     from datetime import timedelta
     from django.utils import timezone
     from .models import GroupChatSession
-    cutoff_30d = timezone.now() - timedelta(days=30)
+    cutoff_5d = timezone.now() - timedelta(days=5)
     expired_groups = GroupChatSession.objects.filter(
         deleted_at__isnull=False,
-        deleted_at__lte=cutoff_30d
+        deleted_at__lte=cutoff_5d
     )
     for g in expired_groups:
         purge_group_chat_session(g)
@@ -10239,20 +10264,20 @@ def guidy_home(request):
     cache.set(f'guidy_presence_{request.user.id}', True, timeout=10)
     purge_expired_media()
 
-    # 20-day Auto-Purge of ended sessions
+    # 5-day Auto-Purge of ended sessions
     from django.db.models import Q
     from .models import ChatSession, DirectChatSession
     ended_sessions = ChatSession.objects.filter(is_active=False, session_ended_at__isnull=False)
     for s in ended_sessions:
         days_passed = (timezone.now() - s.session_ended_at).days
-        if days_passed >= 20:
-            s.delete()
+        if days_passed >= 5:
+            purge_1on1_chat_session(s)
 
     ended_direct_sessions = DirectChatSession.objects.filter(is_active=False, session_ended_at__isnull=False)
     for s in ended_direct_sessions:
         days_passed = (timezone.now() - s.session_ended_at).days
-        if days_passed >= 20:
-            s.delete()
+        if days_passed >= 5:
+            purge_1on1_chat_session(s)
 
     from users.utils import get_profile_photo_url, get_user_dashboard_type, get_user_display_name
     user = request.user
@@ -10369,17 +10394,11 @@ def guidy_home(request):
 
             if active_session and not active_session.is_active and active_session.session_ended_at:
                 days_passed = (timezone.now() - active_session.session_ended_at).days
-                locked_days_left = max(0, 20 - days_passed)
+                locked_days_left = max(0, 5 - days_passed)
                 
-                # THE AUTO PURGE: If 20 days have passed, permanently delete the session.
+                # THE AUTO PURGE: If 5 days have passed, permanently delete the session.
                 if locked_days_left == 0:
-                    for msg in active_session.messages.all():
-                        if msg.file:
-                            try:
-                                msg.file.delete(save=False)
-                            except Exception:
-                                pass
-                    active_session.delete()
+                    purge_1on1_chat_session(active_session)
                     return redirect('users:guidy_home')
 
             if active_session:
@@ -10437,17 +10456,11 @@ def guidy_home(request):
 
             if active_direct and not active_direct.is_active and active_direct.session_ended_at:
                 days_passed = (timezone.now() - active_direct.session_ended_at).days
-                locked_days_left = max(0, 20 - days_passed)
+                locked_days_left = max(0, 5 - days_passed)
 
-                # THE AUTO PURGE: If 20 days have passed, permanently delete the session.
+                # THE AUTO PURGE: If 5 days have passed, permanently delete the session.
                 if locked_days_left == 0:
-                    for msg in active_direct.messages.all():
-                        if msg.file:
-                            try:
-                                msg.file.delete(save=False)
-                            except Exception:
-                                pass
-                    active_direct.delete()
+                    purge_1on1_chat_session(active_direct)
                     return redirect('users:guidy_home')
 
             if active_direct:
@@ -10773,6 +10786,8 @@ def guidy_home(request):
             'last_timestamp': last_timestamp,
             'last_message_prefix': last_message_prefix,
             'unread_count': group_unread_count,
+            'created_by_id': g.created_by_id,
+            'is_created_by_me': (g.created_by_id == user.id),
         })
         
     my_groups_processed.sort(key=lambda x: x['last_timestamp'], reverse=True)
@@ -10781,7 +10796,7 @@ def guidy_home(request):
     # Calculate group deletion lifecycle status
     is_deleted_group = False
     group_deleted_by_name = ""
-    group_days_left = 30
+    group_days_left = 5
     if active_group and (not active_group.is_active or active_group.deleted_at):
         is_deleted_group = True
         if active_group.deleted_by_user:
@@ -10791,7 +10806,7 @@ def guidy_home(request):
         if active_group.deleted_at:
             from datetime import timedelta
             delta = timezone.now() - active_group.deleted_at
-            group_days_left = max(0, 30 - delta.days)
+            group_days_left = max(0, 5 - delta.days)
 
     ended_by_name = ""
     if active_session and active_session.ended_by:
@@ -10801,6 +10816,7 @@ def guidy_home(request):
 
     context = {
         'has_any_chat_history': has_any_chat_history,
+        'has_created_groups': any(g.created_by_id == user.id for g in my_groups),
         'is_teacher': is_teacher,
         'is_alumni': is_alumni,
         'is_student': is_student,
@@ -11342,52 +11358,73 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
 @require_POST
 def guidy_end_session(request, session_id=None, direct_id=None):
     """
-    Deactivates a ChatSession or DirectChatSession and purges messages based on user role.
-    If Alumni/Teacher/Admin ends it, it deletes all messages in the session.
-    If a Student ends it, it only deletes messages sent by the student.
+    Deactivates a ChatSession or DirectChatSession.
+    Only Teachers/Staff are permitted to end 1-on-1 sessions.
+    When a Teacher ends a session:
+    - Session is marked ended (is_active=False, ended_by=teacher, session_ended_at=now).
+    - Messages are hidden from teacher's view (added to teacher's deleted_by).
+    - Messages remain viewable by student/guest in locked mode for 5 days.
     """
+    from .models import DirectChatSession, ChatSession
+    user = request.user
+    if not (user.is_staff or user.is_superuser):
+        return JsonResponse({'success': False, 'error': 'Only teachers can end 1-on-1 chat sessions.'}, status=403)
+
     if direct_id:
         session = get_object_or_404(DirectChatSession, id=direct_id)
-        is_participant = (
-            session.user1 == request.user or
-            session.user2 == request.user
-        )
-    else:
+        if session.user1 != user and session.user2 != user:
+            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+    elif session_id:
         session = get_object_or_404(ChatSession, id=session_id)
-        # Security check: verify the user is a participant
         if session.request:
-            is_participant = (
-                session.request.student == request.user or
-                session.request.alumni.user == request.user
-            )
+            is_part = (session.request.student == user or session.request.alumni.user == user)
         else:
-            is_participant = (
-                session.user_one == request.user or
-                session.user_two == request.user
-            )
+            is_part = (session.user_one == user or session.user_two == user)
+        if not is_part:
+            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+    else:
+        return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
-    user = request.user
-    if not is_participant and not user.is_staff and not user.is_superuser:
-        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
-
-    # Deactivate session and log end metadata
     from django.utils import timezone
     session.is_active = False
     session.ended_by = user
     session.session_ended_at = timezone.now()
     session.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
 
-    # Determine role logic: staff, admin, or alumni
-    is_student = not user.is_staff and not user.is_superuser and getattr(user, 'studentprofile', None) is not None
+    # Hide all messages for the teacher who ended it
+    for msg in session.messages.all():
+        msg.deleted_by.add(user)
 
-    if is_student:
-        # Student wipe: only delete messages sent by the student
-        session.messages.filter(sender=user).delete()
+    return JsonResponse({'success': True, 'message': 'Session ended. Chat is now locked for the student for 5 days.'})
+
+
+@login_required
+@require_POST
+def guidy_delete_session_permanently(request, session_id=None, direct_id=None):
+    """
+    Permanently deletes an ended ChatSession or DirectChatSession and all its messages
+    and media files from the database.
+    Available to students/users or teachers once a session has been ended.
+    """
+    from .models import DirectChatSession, ChatSession
+    user = request.user
+    if direct_id:
+        session = get_object_or_404(DirectChatSession, id=direct_id)
+        if session.user1 != user and session.user2 != user and not user.is_staff and not user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+    elif session_id:
+        session = get_object_or_404(ChatSession, id=session_id)
+        if session.request:
+            is_part = (session.request.student == user or session.request.alumni.user == user)
+        else:
+            is_part = (session.user_one == user or session.user_two == user)
+        if not is_part and not user.is_staff and not user.is_superuser:
+            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
     else:
-        # Total wipe: Admin/Alumni ends it, delete all messages
-        session.messages.all().delete()
+        return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
-    return JsonResponse({'success': True, 'message': 'Session ended and messages cleared.'})
+    purge_1on1_chat_session(session)
+    return JsonResponse({'success': True, 'message': 'Chat session permanently deleted.'})
 
 
 @login_required
@@ -11395,12 +11432,16 @@ def guidy_end_session(request, session_id=None, direct_id=None):
 def guidy_bulk_end_sessions(request):
     """
     Bulk ends selected ChatSessions, DirectChatSessions, or GroupChatSessions.
-    Applies security verification to ensure the request user is a valid participant/admin.
+    Enforces strict permissions:
+    - 1-on-1 chats can ONLY be ended by teachers.
+    - Groups can ONLY be ended by teachers or the group creator (created_by == user).
     """
     import json
     from django.utils import timezone
+    from .models import DirectChatSession, ChatSession, GroupChatSession
 
     user = request.user
+    is_teacher = user.is_staff or user.is_superuser
     session_ids_raw = request.POST.get('session_ids', '[]')
     direct_ids_raw = request.POST.get('direct_ids', '[]')
     group_ids_raw = request.POST.get('group_ids', '[]')
@@ -11420,59 +11461,52 @@ def guidy_bulk_end_sessions(request):
     except Exception:
         group_ids = []
 
+    # Non-teachers cannot end 1-on-1 sessions
+    if not is_teacher and (session_ids or direct_ids):
+        return JsonResponse({'success': False, 'error': 'Only teachers can end 1-on-1 chat sessions.'}, status=403)
+
     ended_count = 0
     now = timezone.now()
-    is_student = not user.is_staff and not user.is_superuser and getattr(user, 'studentprofile', None) is not None
 
-    # 1. Process ChatSessions (Mentorship)
-    if session_ids:
+    # 1. Process ChatSessions (Mentorship) - Teacher only
+    if session_ids and is_teacher:
         sessions = ChatSession.objects.filter(id__in=session_ids)
         for s in sessions:
             if s.request:
-                is_participant = (s.request.student == user or s.request.alumni.user == user)
+                is_p = (s.request.student == user or s.request.alumni.user == user)
             else:
-                is_participant = (s.user_one == user or s.user_two == user)
-
-            if is_participant or user.is_staff or user.is_superuser:
+                is_p = (s.user_one == user or s.user_two == user)
+            if is_p or is_teacher:
                 s.is_active = False
                 s.ended_by = user
                 s.session_ended_at = now
                 s.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
-
-                if is_student:
-                    s.messages.filter(sender=user).delete()
-                else:
-                    s.messages.all().delete()
+                for msg in s.messages.all():
+                    msg.deleted_by.add(user)
                 ended_count += 1
 
-    # 2. Process DirectChatSessions
-    if direct_ids:
+    # 2. Process DirectChatSessions - Teacher only
+    if direct_ids and is_teacher:
         direct_sessions = DirectChatSession.objects.filter(id__in=direct_ids)
         for d in direct_sessions:
-            if d.user1 == user or d.user2 == user or user.is_staff or user.is_superuser:
+            if d.user1 == user or d.user2 == user or is_teacher:
                 d.is_active = False
                 d.ended_by = user
                 d.session_ended_at = now
                 d.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
-
-                if is_student:
-                    d.messages.filter(sender=user).delete()
-                else:
-                    d.messages.all().delete()
+                for msg in d.messages.all():
+                    msg.deleted_by.add(user)
                 ended_count += 1
 
-    # 3. Process GroupChatSessions
+    # 3. Process GroupChatSessions - Teacher or Group Creator
     if group_ids:
         groups = GroupChatSession.objects.filter(id__in=group_ids)
         for g in groups:
-            if g.created_by == user or user.is_staff or user.is_superuser:
+            if g.created_by == user or is_teacher:
                 g.is_active = False
                 g.deleted_by_user = user
                 g.deleted_at = now
                 g.save(update_fields=['is_active', 'deleted_by_user', 'deleted_at'])
-                ended_count += 1
-            elif user in g.members.all():
-                g.members.remove(user)
                 if hasattr(g, 'deleted_for_users'):
                     g.deleted_for_users.add(user)
                 ended_count += 1
@@ -11484,7 +11518,7 @@ def guidy_bulk_end_sessions(request):
 @require_POST
 def guidy_restrict_student(request, request_pk):
     """
-    Alumni restricts a student — different from blocking.
+    Alumni restricts a student - different from blocking.
     Restriction: student cannot send new guidance requests to this alumni.
     Session is NOT closed (restriction is a softer action).
     """
@@ -11631,17 +11665,113 @@ def guidy_group_clear_chat(request, group_id):
     """
     Clears all messages in a specific group chat session for the current user.
     Adds the user to the deleted_by ManyToManyField of all messages in this group.
+    If all members in the group have cleared/deleted the message, it is permanently deleted from DB.
     """
     group = get_object_or_404(GroupChatSession, id=group_id, is_active=True)
     if request.user not in group.members.all() and group.created_by != request.user:
         return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
 
-    # Simply hide the messages for this specific user. 
-    # The 10-day auto-purge will handle physical file deletion safely.
+    total_participants = group.members.count()
     for msg in group.messages.all():
         msg.deleted_by.add(request.user)
+        if total_participants > 0 and msg.deleted_by.count() >= total_participants:
+            if msg.file:
+                try:
+                    msg.file.delete(save=False)
+                except Exception:
+                    pass
+            msg.delete()
         
     return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
+def guidy_bulk_clear_chats(request):
+    """
+    Bulk clears messages for the requesting user across selected 1-on-1 chats and groups.
+    Messages are hidden only for this user (added to deleted_by).
+    If ALL participants in a chat have deleted/cleared a message, that message and its attached
+    file are permanently deleted from the database and disk storage to free space.
+    """
+    import json
+    from .models import DirectChatSession, ChatSession, GroupChatSession
+    user = request.user
+    session_ids_raw = request.POST.get('session_ids', '[]')
+    direct_ids_raw = request.POST.get('direct_ids', '[]')
+    group_ids_raw = request.POST.get('group_ids', '[]')
+
+    try:
+        session_ids = json.loads(session_ids_raw) if isinstance(session_ids_raw, str) and session_ids_raw.startswith('[') else [int(x) for x in session_ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        session_ids = []
+
+    try:
+        direct_ids = json.loads(direct_ids_raw) if isinstance(direct_ids_raw, str) and direct_ids_raw.startswith('[') else [int(x) for x in direct_ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        direct_ids = []
+
+    try:
+        group_ids = json.loads(group_ids_raw) if isinstance(group_ids_raw, str) and group_ids_raw.startswith('[') else [int(x) for x in group_ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        group_ids = []
+
+    cleared_count = 0
+
+    # 1. ChatSessions
+    if session_ids:
+        sessions = ChatSession.objects.filter(id__in=session_ids)
+        for s in sessions:
+            if s.request:
+                is_p = (s.request.student == user or s.request.alumni.user == user)
+            else:
+                is_p = (s.user_one == user or s.user_two == user)
+            if is_p or user.is_staff or user.is_superuser:
+                for msg in s.messages.all():
+                    msg.deleted_by.add(user)
+                    if msg.deleted_by.count() >= 2:
+                        if msg.file:
+                            try:
+                                msg.file.delete(save=False)
+                            except Exception:
+                                pass
+                        msg.delete()
+                cleared_count += 1
+
+    # 2. DirectChatSessions
+    if direct_ids:
+        direct_sessions = DirectChatSession.objects.filter(id__in=direct_ids)
+        for d in direct_sessions:
+            if d.user1 == user or d.user2 == user or user.is_staff or user.is_superuser:
+                for msg in d.messages.all():
+                    msg.deleted_by.add(user)
+                    if msg.deleted_by.count() >= 2:
+                        if msg.file:
+                            try:
+                                msg.file.delete(save=False)
+                            except Exception:
+                                pass
+                        msg.delete()
+                cleared_count += 1
+
+    # 3. GroupChatSessions
+    if group_ids:
+        groups = GroupChatSession.objects.filter(id__in=group_ids)
+        for g in groups:
+            if user in g.members.all() or g.created_by == user or user.is_staff or user.is_superuser:
+                total_participants = g.members.count()
+                for msg in g.messages.all():
+                    msg.deleted_by.add(user)
+                    if total_participants > 0 and msg.deleted_by.count() >= total_participants:
+                        if msg.file:
+                            try:
+                                msg.file.delete(save=False)
+                            except Exception:
+                                pass
+                        msg.delete()
+                cleared_count += 1
+
+    return JsonResponse({'success': True, 'cleared_count': cleared_count})
 
 
 
@@ -13748,7 +13878,17 @@ def guidy_teacher_direct_chat(request):
         (Q(user1=other_user) & Q(user2=user))
     ).first()
     
-    if not direct_session:
+    if direct_session:
+        if not direct_session.is_active:
+            from users.utils import get_user_display_name
+            other_name = get_user_display_name(other_user)
+            return JsonResponse({
+                'success': False,
+                'has_ended_session': True,
+                'direct_id': direct_session.id,
+                'error': f'You have an ended chat session with {other_name}. Please delete that chat first or wait for it to expire before starting a new conversation.'
+            }, status=400)
+    else:
         u1, u2 = sorted([user, other_user], key=lambda u: u.id)
         direct_session = DirectChatSession.objects.create(
             user1=u1,
@@ -14361,7 +14501,7 @@ def guidy_load_chat_api(request):
             ended_by_name = get_user_display_name(session.ended_by)
             if session.session_ended_at:
                 days_passed = (timezone.now() - session.session_ended_at).days
-                locked_days_left = max(0, 20 - days_passed)
+                locked_days_left = max(0, 5 - days_passed)
 
         if session.is_active:
             session.messages.exclude(sender=user).update(is_read=True)
@@ -14397,7 +14537,7 @@ def guidy_load_chat_api(request):
             ended_by_name = get_user_display_name(direct_session.ended_by)
             if direct_session.session_ended_at:
                 days_passed = (timezone.now() - direct_session.session_ended_at).days
-                locked_days_left = max(0, 20 - days_passed)
+                locked_days_left = max(0, 5 - days_passed)
 
         if direct_session.is_active:
             direct_session.messages.exclude(sender=user).update(is_read=True)
@@ -14431,7 +14571,7 @@ def guidy_load_chat_api(request):
                 group_deleted_by_name = "Admin/Teacher"
             if group.deleted_at:
                 delta = timezone.now() - group.deleted_at
-                group_days_left = max(0, 30 - delta.days)
+                group_days_left = max(0, 5 - delta.days)
 
         member_names = []
         has_self = False

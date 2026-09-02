@@ -2259,6 +2259,7 @@ body.dark-theme .search-highlight {
   data-other-id="{{ other_id }}"
   data-req-pk="{% if active_session %}{{ active_session.request.id }}{% endif %}"
   data-my-display-name="{{ request.user|user_display_name }}"
+  data-has-created-groups="{{ has_created_groups|yesno:'true,false' }}"
 ></div>
 
 <div class="g-wrap">
@@ -2272,15 +2273,15 @@ body.dark-theme .search-highlight {
 
     <!-- Sidebar Top Wrapper -->
     <div class="g-sidebar-top">
-      <!-- End Session Multi-Select Header Banner -->
+      <!-- Multi-Select Header Banner (Clear Chat / End Session) -->
       <div class="g-end-session-top-banner" id="endSessionTopBanner">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <button onclick="exitEndSessionSelectMode()" title="Cancel Selection" style="background: none; border: none; color: var(--g-text); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; padding: 4px; border-radius: 50%;">
+          <button onclick="exitSelectModeForAction()" title="Cancel Selection" style="background: none; border: none; color: var(--g-text); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; padding: 4px; border-radius: 50%;">
             <i class='bx bx-x'></i>
           </button>
           <span id="endSessionHeaderCount" style="font-size: 0.95rem; font-weight: 800; color: var(--g-text);">0 Selected</span>
         </div>
-        <button id="endSessionSelectAllBtn" onclick="toggleSelectAllEndSessions()" style="background: none; border: none; color: var(--g-primary-s); font-weight: 700; font-size: 0.85rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+        <button id="endSessionSelectAllBtn" onclick="toggleSelectAllActionItems()" style="background: none; border: none; color: var(--g-primary-s); font-weight: 700; font-size: 0.85rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
           Select All
         </button>
       </div>
@@ -2302,7 +2303,8 @@ body.dark-theme .search-highlight {
           <div id="gSidebarDropdown" class="g-dropdown-menu">
             <button onclick="openSelfProfilePane()"><i class='bx bx-user' style="color: var(--g-primary-s); font-size: 1rem;"></i> Your Profile</button>
             <button onclick="openBlockedContactsModal()"><i class='bx bx-block' style="color: #ef4444; font-size: 1rem;"></i> Blocked Contacts</button>
-            <button onclick="enterEndSessionSelectMode()"><i class='bx bx-log-out' style="color: #ef4444; font-size: 1rem;"></i> End Session</button>
+            <button onclick="enterSelectModeForAction('clear_chat')"><i class='bx bx-trash' style="color: #64748b; font-size: 1rem;"></i> Clear Chat</button>
+            <button id="sidebarEndSessionMenuItem" onclick="enterSelectModeForAction('end_session')" style="{% if not is_teacher %}display: none;{% endif %}"><i class='bx bx-log-out' style="color: #ef4444; font-size: 1rem;"></i> End Session</button>
           </div>
         </div>
       </div>
@@ -2437,7 +2439,7 @@ body.dark-theme .search-highlight {
         {% if my_groups %}
           {% for g in my_groups %}
           <a href="javascript:void(0)" data-href="?group={{ g.id }}" data-no-loader="true" class="g-chat-item {% if active_group.id == g.id %}active{% endif %}"
-             data-chat-name="{{ g.name }}" data-chat-type="group" data-chat-id="{{ g.id }}" onclick="return handleChatItemClick(event,this,'group','{{ g.id }}')">
+             data-chat-name="{{ g.name }}" data-chat-type="group" data-chat-id="{{ g.id }}" data-is-creator="{% if g.is_created_by_me or is_teacher %}true{% else %}false{% endif %}" onclick="return handleChatItemClick(event,this,'group','{{ g.id }}')">
             <div class="g-item-avatar" style="background:linear-gradient(135deg,#6c63ff,#764ba2);">
               {% if g.photo_url %}
                 <img src="{{ g.photo_url }}" alt="{{ g.name }}" style="width:100%; height:100%; object-fit:cover;">
@@ -2475,13 +2477,13 @@ body.dark-theme .search-highlight {
 
     </div><!-- /g-side-body -->
 
-    <!-- End Session Bottom Floating Action Bar -->
+    <!-- Multi-Select Bottom Floating Action Bar -->
     <div class="g-end-session-bottom-bar" id="endSessionBottomBar">
-      <button id="endSessionSubmitBtn" onclick="confirmEndSelectedSessions()" style="flex: 2; padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; opacity: 0.5; pointer-events: none;">
-        <i class='bx bx-log-out' style="font-size: 1.1rem;"></i>
-        <span>End Selected (<span id="endSessionBtnCount">0</span>)</span>
+      <button id="endSessionSubmitBtn" onclick="confirmExecuteSelectedAction()" style="flex: 2; padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; opacity: 0.5; pointer-events: none;">
+        <i id="selectActionSubmitIcon" class='bx bx-log-out' style="font-size: 1.1rem;"></i>
+        <span id="selectActionSubmitLabel">End Selected (<span id="endSessionBtnCount">0</span>)</span>
       </button>
-      <button onclick="exitEndSessionSelectMode()" style="flex: 1; padding: 10px 14px; background: var(--g-hov); color: var(--g-text); border: 1px solid var(--g-border); border-radius: 10px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">
+      <button onclick="exitSelectModeForAction()" style="flex: 1; padding: 10px 14px; background: var(--g-hov); color: var(--g-text); border: 1px solid var(--g-border); border-radius: 10px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">
         Cancel
       </button>
     </div>
@@ -2597,12 +2599,17 @@ body.dark-theme .search-highlight {
                  {% if is_alumni %}
                    <button class="g-menu-item" onclick="doRestrictStudent();closeMenu()"><i class='bx bx-no-entry'></i> Restrict Student</button>
                  {% endif %}
-                 <button class="g-menu-item danger" onclick="confirmEndSession();closeMenu()"><i class='bx bx-exit'></i> End Session</button>
+                 {% if is_teacher %}
+                   <button class="g-menu-item danger" onclick="confirmEndSession();closeMenu()"><i class='bx bx-exit'></i> End Session</button>
+                 {% endif %}
                {% endif %}
                {% endif %}
                {% if active_direct %}
                <button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>
                <button class="g-menu-item danger" onclick="confirmClearChat();closeMenu()"><i class='bx bx-trash'></i> Clear chat</button>
+               {% if is_teacher and active_direct.is_active %}
+                 <button class="g-menu-item danger" onclick="confirmEndSession();closeMenu()"><i class='bx bx-exit'></i> End Session</button>
+               {% endif %}
                {% endif %}
                {% if active_group %}
                  <button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>
@@ -2857,16 +2864,37 @@ body.dark-theme .search-highlight {
       <!-- Chat Input Area -->
       <div id="chatInputArea" style="position: relative; z-index: 2;">
         <!-- Locked Session / Group Notice -->
-        <div id="lockedNotice" class="{% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group %}g-pane-block{% else %}g-pane-hidden{% endif %}" style="background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
-          <i class='bx bx-lock' style="font-size: 1.2rem; margin-right: 5px; vertical-align: middle;"></i>
-          <span id="lockedNoticeText">
-            {% if is_deleted_group %}
-              This group was deleted by {{ group_deleted_by_name }}. You cannot send messages.
-            {% elif active_session or active_direct %}
-              This session got ended by {{ ended_by_name|default:"another user" }}. You cannot send more messages in this chat.
-              {% if is_teacher %}<br><span style="color: var(--g-sub); font-size: 0.8rem; font-weight: 400;">Start a new chat with them from the + menu.</span>{% endif %}
-            {% endif %}
-          </span>
+        <div id="lockedNotice" class="{% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group %}g-pane-block{% else %}g-pane-hidden{% endif %}" style="background: var(--g-side-bg); padding: 18px 20px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; border-radius: 0 0 16px 16px;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; font-size: 0.95rem;">
+              <i class='bx bx-lock' style="font-size: 1.25rem;"></i>
+              <span id="lockedNoticeHeading">
+                {% if is_deleted_group %}
+                  This group was deleted by {{ group_deleted_by_name }}. You cannot send messages.
+                {% elif active_session or active_direct %}
+                  This session got ended by {{ ended_by_name|default:"the teacher" }}. You cannot send more messages in this chat.
+                {% endif %}
+              </span>
+            </div>
+            <div id="lockedNoticeSubtext" style="color: var(--g-sub); font-size: 0.83rem; font-weight: 400; max-width: 520px; line-height: 1.45;">
+              {% if is_deleted_group %}
+                All messages and media will automatically be purged in <strong style="color: #ef4444;">{{ group_days_left|default:5 }} days</strong>.
+              {% elif active_session or active_direct %}
+                All messages and this chat will automatically be deleted in <strong style="color: #ef4444;" id="lockedNoticeDays">{{ locked_days_left|default:5 }} days</strong>. To start a new conversation with {{ ended_by_name|default:"the teacher" }}, you can wait {{ locked_days_left|default:5 }} days or delete this chat now.
+              {% endif %}
+            </div>
+            <div id="lockedNoticeActions" style="display: flex; gap: 10px; margin-top: 6px;">
+              {% if is_deleted_group %}
+                <button onclick="deleteGroupForMe('{{ active_group.id }}')" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 7px 18px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                  <i class='bx bx-trash'></i> Delete Group Now
+                </button>
+              {% elif active_session or active_direct %}
+                <button onclick="confirmPermanentDeleteCurrentSession()" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 7px 18px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                  <i class='bx bx-trash'></i> Delete Chat Now
+                </button>
+              {% endif %}
+            </div>
+          </div>
         </div>
 
         <!-- Blocked Contact Notice -->
@@ -2877,7 +2905,11 @@ body.dark-theme .search-highlight {
           </div>
           <div style="display: flex; gap: 12px; margin-top: 4px;">
             <button onclick="unblockChatUser()" style="padding: 8px 18px; border-radius: 8px; border: none; background: #25d366; color: white; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,211,102,0.25);"><i class='bx bx-check-circle' style="font-size:1.1rem;"></i> Unblock</button>
-            <button onclick="confirmEndSession()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid #ef4444; background: transparent; color: #ef4444; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i class='bx bx-exit' style="font-size:1.1rem;"></i> End Session</button>
+            {% if is_teacher %}
+              <button onclick="confirmEndSession()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid #ef4444; background: transparent; color: #ef4444; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i class='bx bx-exit' style="font-size:1.1rem;"></i> End Session</button>
+            {% else %}
+              <button onclick="confirmClearChat()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid #64748b; background: transparent; color: var(--g-text); font-weight: 600; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i class='bx bx-trash' style="font-size:1.1rem;"></i> Clear Chat</button>
+            {% endif %}
           </div>
         </div>
 
@@ -5652,6 +5684,27 @@ function switchTab(tab) {
     if (panel) panel.style.display = t === tab ? '' : 'none';
     if (btn) btn.classList.toggle('active', t === tab);
   });
+
+  // Dynamically toggle End Session in sidebar dropdown
+  const endSessionMenuItem = document.getElementById('sidebarEndSessionMenuItem');
+  if (endSessionMenuItem) {
+    if (IS_TEACHER) {
+      endSessionMenuItem.style.display = '';
+    } else {
+      const cfg = document.getElementById('guidyConfig');
+      const hasCreatedGroups = cfg ? cfg.dataset.hasCreatedGroups === 'true' : false;
+      if (tab === 'groups' && hasCreatedGroups) {
+        endSessionMenuItem.style.display = '';
+      } else {
+        endSessionMenuItem.style.display = 'none';
+      }
+    }
+  }
+
+  // If currently in selection mode, exit to avoid tab mismatched selections
+  if (endSessionSelectMode) {
+    exitSelectModeForAction();
+  }
 }
 
 // ── SPA Chat Navigation & Real-time Switching Engine ───
@@ -5707,16 +5760,33 @@ function handleChatItemClick(e, el, chatType, chatId) {
   return false;
 }
 
-// ── End Session Multi-Select Mode Engine ──
-function enterEndSessionSelectMode() {
+// ── Multi-Select Mode Engine (Clear Chat & End Session) ──
+let currentSelectAction = 'end_session'; // 'end_session' or 'clear_chat'
+
+function enterSelectModeForAction(action) {
+  currentSelectAction = action || 'end_session';
+
   // Close 3-dot dropdown menu
   const dropdown = document.getElementById('gSidebarDropdown');
   if (dropdown) dropdown.style.display = 'none';
 
-  const allChatItems = document.querySelectorAll('.g-chat-item');
-  if (!allChatItems || allChatItems.length === 0) {
-    showToast('There is no chat session to end', 'info');
+  const activeTab = getActiveTab();
+  const panelId = (activeTab === 'groups') ? 'panelGroups' : 'panelChats';
+  const panel = document.getElementById(panelId);
+  const items = panel ? Array.from(panel.querySelectorAll('.g-chat-item')) : [];
+
+  if (!items || items.length === 0) {
+    showToast(currentSelectAction === 'clear_chat' ? 'There is no chat to clear' : 'There is no chat session to end', 'info');
     return;
+  }
+
+  // If non-teacher triggers end_session on groups tab, check if any group was created by user
+  if (currentSelectAction === 'end_session' && !IS_TEACHER) {
+    const userGroups = items.filter(it => it.dataset.isCreator === 'true');
+    if (userGroups.length === 0) {
+      showToast('You have not created any groups to end', 'info');
+      return;
+    }
   }
 
   endSessionSelectMode = true;
@@ -5726,15 +5796,40 @@ function enterEndSessionSelectMode() {
   const sidebar = document.querySelector('.g-sidebar');
   if (sidebar) sidebar.classList.add('end-session-mode');
 
-  // Clear visual highlights
-  allChatItems.forEach(el => {
+  // Update banner and bottom bar labels/icons
+  const headerCount = document.getElementById('endSessionHeaderCount');
+  const submitLabel = document.getElementById('selectActionSubmitLabel');
+  const submitIcon = document.getElementById('selectActionSubmitIcon');
+
+  if (currentSelectAction === 'clear_chat') {
+    if (headerCount) headerCount.textContent = '0 Selected to Clear';
+    if (submitLabel) submitLabel.innerHTML = 'Clear Selected (<span id="endSessionBtnCount">0</span>)';
+    if (submitIcon) submitIcon.className = 'bx bx-trash';
+  } else {
+    if (headerCount) headerCount.textContent = '0 Selected to End';
+    if (submitLabel) submitLabel.innerHTML = 'End Selected (<span id="endSessionBtnCount">0</span>)';
+    if (submitIcon) submitIcon.className = 'bx bx-log-out';
+  }
+
+  // Clear visual highlights and handle non-teacher creator restrictions
+  items.forEach(el => {
     el.classList.remove('session-selected');
+    if (currentSelectAction === 'end_session' && !IS_TEACHER && el.dataset.isCreator !== 'true') {
+      el.style.opacity = '0.4';
+      el.style.pointerEvents = 'auto';
+    } else {
+      el.style.opacity = '';
+    }
   });
 
-  updateEndSessionUI();
+  updateSelectActionUI();
 }
 
-function exitEndSessionSelectMode() {
+function enterEndSessionSelectMode() {
+  enterSelectModeForAction('end_session');
+}
+
+function exitSelectModeForAction() {
   endSessionSelectMode = false;
   selectedEndSessionKeys.clear();
 
@@ -5743,12 +5838,25 @@ function exitEndSessionSelectMode() {
 
   document.querySelectorAll('.g-chat-item').forEach(el => {
     el.classList.remove('session-selected');
+    el.style.opacity = '';
   });
 
-  updateEndSessionUI();
+  updateSelectActionUI();
+}
+
+function exitEndSessionSelectMode() {
+  exitSelectModeForAction();
 }
 
 function toggleEndSessionItem(el, chatType, chatId) {
+  // Permission guard for non-teachers in end_session mode
+  if (currentSelectAction === 'end_session' && !IS_TEACHER) {
+    if (chatType !== 'group' || el.dataset.isCreator !== 'true') {
+      showToast('Only the group creator or a teacher can end/delete this conversation', 'info');
+      return;
+    }
+  }
+
   const key = `${chatType}:${chatId}`;
   if (selectedEndSessionKeys.has(key)) {
     selectedEndSessionKeys.delete(key);
@@ -5757,17 +5865,23 @@ function toggleEndSessionItem(el, chatType, chatId) {
     selectedEndSessionKeys.add(key);
     el.classList.add('session-selected');
   }
-  updateEndSessionUI();
+  updateSelectActionUI();
 }
 
-function toggleSelectAllEndSessions() {
+function toggleSelectAllActionItems() {
   const activeTab = getActiveTab();
   const panelId = (activeTab === 'groups') ? 'panelGroups' : 'panelChats';
   const panel = document.getElementById(panelId);
   if (!panel) return;
 
-  const items = Array.from(panel.querySelectorAll('.g-chat-item'));
+  let items = Array.from(panel.querySelectorAll('.g-chat-item'));
   if (items.length === 0) return;
+
+  // Non-teachers in end_session mode can only select groups they created
+  if (currentSelectAction === 'end_session' && !IS_TEACHER) {
+    items = items.filter(it => it.dataset.isCreator === 'true');
+    if (items.length === 0) return;
+  }
 
   const allSelected = items.every(item => {
     const type = item.dataset.chatType;
@@ -5792,17 +5906,22 @@ function toggleSelectAllEndSessions() {
       }
     });
   }
-  updateEndSessionUI();
+  updateSelectActionUI();
 }
 
-function updateEndSessionUI() {
+function toggleSelectAllEndSessions() {
+  toggleSelectAllActionItems();
+}
+
+function updateSelectActionUI() {
   const count = selectedEndSessionKeys.size;
   const headerCount = document.getElementById('endSessionHeaderCount');
   const btnCount = document.getElementById('endSessionBtnCount');
   const submitBtn = document.getElementById('endSessionSubmitBtn');
   const selectAllBtn = document.getElementById('endSessionSelectAllBtn');
 
-  if (headerCount) headerCount.textContent = `${count} Selected`;
+  const actionText = currentSelectAction === 'clear_chat' ? 'to Clear' : 'to End';
+  if (headerCount) headerCount.textContent = `${count} Selected ${actionText}`;
   if (btnCount) btnCount.textContent = count;
 
   if (submitBtn) {
@@ -5822,7 +5941,10 @@ function updateEndSessionUI() {
     const panelId = (activeTab === 'groups') ? 'panelGroups' : 'panelChats';
     const panel = document.getElementById(panelId);
     if (panel) {
-      const items = Array.from(panel.querySelectorAll('.g-chat-item'));
+      let items = Array.from(panel.querySelectorAll('.g-chat-item'));
+      if (currentSelectAction === 'end_session' && !IS_TEACHER) {
+        items = items.filter(it => it.dataset.isCreator === 'true');
+      }
       const allSelected = items.length > 0 && items.every(item => {
         const type = item.dataset.chatType;
         const id = item.dataset.chatId;
@@ -5830,6 +5952,81 @@ function updateEndSessionUI() {
       });
       selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All';
     }
+  }
+}
+
+function updateEndSessionUI() {
+  updateSelectActionUI();
+}
+
+async function confirmExecuteSelectedAction() {
+  if (selectedEndSessionKeys.size === 0) return;
+  if (currentSelectAction === 'clear_chat') {
+    await confirmClearSelectedChats();
+  } else {
+    await confirmEndSelectedSessions();
+  }
+}
+
+async function confirmClearSelectedChats() {
+  const count = selectedEndSessionKeys.size;
+  const confirmMsg = `Are you sure you want to clear chat messages for ${count} selected conversation${count > 1 ? 's' : ''}? This will delete all messages for your account.`;
+
+  if (!await GuidyAppModal.confirm('Clear Selected Chats', confirmMsg, `Clear ${count} Chat${count > 1 ? 's' : ''}`, true)) {
+    return;
+  }
+
+  const sessionIds = [];
+  const directIds = [];
+  const groupIds = [];
+
+  selectedEndSessionKeys.forEach(key => {
+    const [type, idStr] = key.split(':');
+    const id = parseInt(idStr);
+    if (type === 'session') sessionIds.push(id);
+    else if (type === 'direct') directIds.push(id);
+    else if (type === 'group') groupIds.push(id);
+  });
+
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('session_ids', JSON.stringify(sessionIds));
+  fd.append('direct_ids', JSON.stringify(directIds));
+  fd.append('group_ids', JSON.stringify(groupIds));
+
+  try {
+    const r = await fetch('/guidy/chats/bulk-clear/', {
+      method: 'POST',
+      body: fd
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast(`${d.cleared_count} conversation${d.cleared_count > 1 ? 's' : ''} messages cleared`);
+
+      // If active open chat is one of the cleared chats, clear its messages pane
+      selectedEndSessionKeys.forEach(key => {
+        const [type, idStr] = key.split(':');
+        const id = parseInt(idStr);
+        if (currentChatType === type && parseInt(currentChatId) === id) {
+          const messagesDiv = document.getElementById('messages');
+          if (messagesDiv) {
+            messagesDiv.innerHTML = '<div style="text-align:center;color:var(--g-sub);margin-top:40px;font-size:0.9rem;">👋 Chat cleared.</div>';
+          }
+        }
+        // Update sidebar subtitle
+        const item = getSidebarChatItem(type, idStr);
+        if (item) {
+          const sub = item.querySelector('.g-item-sub');
+          if (sub) sub.textContent = 'No messages yet';
+        }
+      });
+
+      exitSelectModeForAction();
+    } else {
+      showToast(d.error || 'Failed to clear selected chats', 'error');
+    }
+  } catch(e) {
+    showToast('Failed to clear selected chats', 'error');
   }
 }
 
@@ -5891,7 +6088,7 @@ async function confirmEndSelectedSessions() {
         showNoChatPlaceholder(true);
       }
 
-      exitEndSessionSelectMode();
+      exitSelectModeForAction();
     } else {
       showToast(d.error || 'Failed to end selected sessions', 'error');
     }
@@ -5900,8 +6097,46 @@ async function confirmEndSelectedSessions() {
   }
 }
 
+async function confirmPermanentDeleteCurrentSession() {
+  const isDirect = (currentChatType === 'direct' || DIRECT_ID);
+  const isSession = (currentChatType === 'session' || SESSION_ID);
+  const chatId = currentChatId || DIRECT_ID || SESSION_ID;
+
+  if (!chatId) return;
+
+  const confirmMsg = `Are you sure you want to permanently delete this chat? All messages will be wiped from your account and you will be able to start a fresh conversation.`;
+  if (!await GuidyAppModal.confirm('Delete Chat Permanently', confirmMsg, 'Delete Now', true)) {
+    return;
+  }
+
+  const url = isDirect 
+    ? `/guidy/direct/${chatId}/delete-permanent/`
+    : `/guidy/chat/${chatId}/delete-permanent/`;
+
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': CSRF,
+        'Content-Type': 'application/json'
+      }
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast('Chat permanently deleted. You can now start a new conversation.');
+      const item = getSidebarChatItem(currentChatType || (isDirect ? 'direct' : 'session'), chatId);
+      if (item) item.remove();
+      showNoChatPlaceholder(true);
+    } else {
+      showToast(d.error || 'Failed to delete chat', 'error');
+    }
+  } catch(e) {
+    showToast('Failed to delete chat', 'error');
+  }
+}
+
 function openEndSessionsModal() {
-  enterEndSessionSelectMode();
+  enterSelectModeForAction('end_session');
 }
 
 function goBack() {
@@ -6119,7 +6354,6 @@ async function loadChatAJAX(type, id, pushState = true) {
 
     // Update Input Bar & Locked/Blocked Notices
     const lockedNotice = document.getElementById('lockedNotice');
-    const lockedNoticeText = document.getElementById('lockedNoticeText');
     const blockedNotice = document.getElementById('blockedNotice');
     const inputBar = document.getElementById('gInputBar');
 
@@ -6133,12 +6367,17 @@ async function loadChatAJAX(type, id, pushState = true) {
         lockedNotice.classList.remove('g-pane-hidden');
         lockedNotice.classList.add('g-pane-block');
         lockedNotice.style.display = 'block';
-        if (lockedNoticeText) {
-          if (data.is_deleted_group) {
-            lockedNoticeText.textContent = `This group was deleted by ${data.group_deleted_by_name || 'Admin/Teacher'}. You cannot send messages.`;
-          } else {
-            lockedNoticeText.innerHTML = `This session got ended by ${escHtml(data.ended_by_name)}. You cannot send more messages in this chat.`;
-          }
+        const heading = document.getElementById('lockedNoticeHeading');
+        const subtext = document.getElementById('lockedNoticeSubtext');
+        const actions = document.getElementById('lockedNoticeActions');
+        if (data.is_deleted_group) {
+          if (heading) heading.textContent = `This group was deleted by ${data.group_deleted_by_name || 'Admin/Teacher'}. You cannot send messages.`;
+          if (subtext) subtext.innerHTML = `All messages and media will automatically be purged in <strong style="color: #ef4444;">${data.group_days_left || 5} days</strong>.`;
+          if (actions) actions.innerHTML = `<button onclick="deleteGroupForMe('${data.chat_id}')" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 7px 18px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i class='bx bx-trash'></i> Delete Group Now</button>`;
+        } else {
+          if (heading) heading.textContent = `This session was ended by ${escHtml(data.ended_by_name || 'the teacher')}. You cannot send more messages in this chat.`;
+          if (subtext) subtext.innerHTML = `All messages and this chat will automatically be deleted in <strong style="color: #ef4444;">${data.locked_days_left || 5} days</strong>. To start a new conversation with ${escHtml(data.ended_by_name || 'the teacher')}, you can wait ${data.locked_days_left || 5} days or delete this chat now.`;
+          if (actions) actions.innerHTML = `<button onclick="confirmPermanentDeleteCurrentSession()" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 7px 18px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i class='bx bx-trash'></i> Delete Chat Now</button>`;
         }
       }
       if (inputBar) { inputBar.classList.remove('g-pane-flex'); inputBar.classList.add('g-pane-hidden'); inputBar.style.display = 'none'; }
@@ -8504,7 +8743,24 @@ async function startDirectChat(userId) {
         loadChatAJAX('session', d.session_id, true);
       }
     } else {
-      showToast(d.error || 'Failed to start chat', 'error');
+      if (d.has_ended_session) {
+        closeContactListModal();
+        const openPrior = await GuidyAppModal.confirm(
+          'Previous Session Ended',
+          `${d.error}\n\nWould you like to open that session now to delete it and start fresh?`,
+          'Open Ended Chat',
+          false
+        );
+        if (openPrior) {
+          if (d.direct_id) {
+            loadChatAJAX('direct', d.direct_id, true);
+          } else if (d.session_id) {
+            loadChatAJAX('session', d.session_id, true);
+          }
+        }
+      } else {
+        showToast(d.error || 'Failed to start chat', 'error');
+      }
     }
   } catch(e) {
     showToast('Failed to connect', 'error');
