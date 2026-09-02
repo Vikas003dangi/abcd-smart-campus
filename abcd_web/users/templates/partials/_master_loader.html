@@ -945,8 +945,9 @@
           if (!href) return true;
           const h = href.trim().toLowerCase();
 
-          // 1. External Protocols & Schemes
+          // 1. External Protocols & SPA query schemes
           if (h.startsWith('#') || 
+              h.startsWith('?') || 
               h.startsWith('javascript:') || 
               h.startsWith('mailto:') || 
               h.startsWith('tel:') || 
@@ -980,11 +981,14 @@
               return true;
           }
 
-          // 6. Explicit Attributes / Classes
+          // 6. Explicit Attributes / Classes & SPA Containers
           if (link.hasAttribute('download') || 
               link.hasAttribute('data-no-loader') || 
               link.hasAttribute('data-preview-media') || 
               link.hasAttribute('data-bs-toggle') || 
+              link.hasAttribute('onclick') || 
+              link.closest('.g-sidebar, .g-wrap, .g-shell, .g-chat-item, [data-no-loader]') || 
+              link.classList.contains('g-chat-item') || 
               link.classList.contains('complaint-thumb-link') || 
               link.classList.contains('complaint-img-link') || 
               link.classList.contains('abcd-lightbox-trigger') || 
@@ -1011,7 +1015,7 @@
           triggerLoader();
       });
 
-      // Intercept any link click
+      // Intercept any link click (bubbling phase so preventDefault is honored)
       document.addEventListener('click', function(e) {
           const link = e.target.closest('a');
           if (link) {
@@ -1031,7 +1035,7 @@
                   triggerLoader();
               }
           }
-      }, true);
+      });
 
       document.addEventListener('submit', function(e) {
           const form = e.target.closest('form');

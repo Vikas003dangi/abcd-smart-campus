@@ -2291,11 +2291,11 @@ body.dark-theme .search-highlight {
         {% if unified_chats %}
           {% for c in unified_chats %}
           {% if c.is_direct_group %}
-            <a href="?group={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="group" data-chat-id="{{ c.id }}" onclick="handleChatItemClick(event, this, 'group', '{{ c.id }}')">
+            <a href="javascript:void(0)" data-href="?group={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="group" data-chat-id="{{ c.id }}" onclick="return handleChatItemClick(event, this, 'group', '{{ c.id }}')">
           {% elif c.is_direct_session %}
-            <a href="?direct={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="direct" data-chat-id="{{ c.id }}" onclick="handleChatItemClick(event, this, 'direct', '{{ c.id }}')">
+            <a href="javascript:void(0)" data-href="?direct={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="direct" data-chat-id="{{ c.id }}" onclick="return handleChatItemClick(event, this, 'direct', '{{ c.id }}')">
           {% else %}
-            <a href="?session={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="session" data-chat-id="{{ c.id }}" onclick="handleChatItemClick(event, this, 'session', '{{ c.id }}')">
+            <a href="javascript:void(0)" data-href="?session={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="session" data-chat-id="{{ c.id }}" onclick="return handleChatItemClick(event, this, 'session', '{{ c.id }}')">
           {% endif %}
             <div class="g-item-avatar">
               {% if c.photo_url %}
@@ -2376,8 +2376,8 @@ body.dark-theme .search-highlight {
         </button>
         {% if my_groups %}
           {% for g in my_groups %}
-          <a href="?group={{ g.id }}" class="g-chat-item {% if active_group.id == g.id %}active{% endif %}"
-             data-chat-name="{{ g.name }}" data-chat-type="group" data-chat-id="{{ g.id }}" onclick="handleChatItemClick(event,this,'group','{{ g.id }}')">
+          <a href="javascript:void(0)" data-href="?group={{ g.id }}" data-no-loader="true" class="g-chat-item {% if active_group.id == g.id %}active{% endif %}"
+             data-chat-name="{{ g.name }}" data-chat-type="group" data-chat-id="{{ g.id }}" onclick="return handleChatItemClick(event,this,'group','{{ g.id }}')">
             <div class="g-item-avatar" style="background:linear-gradient(135deg,#6c63ff,#764ba2);">
               {% if g.photo_url %}
                 <img src="{{ g.photo_url }}" alt="{{ g.name }}" style="width:100%; height:100%; object-fit:cover;">
@@ -5630,10 +5630,13 @@ function openDirectChat(e, a, directId) {
 }
 
 function handleChatItemClick(e, el, chatType, chatId) {
-  if (e && e.preventDefault) e.preventDefault();
+  if (e) {
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+  }
   if (endSessionSelectMode) {
     toggleEndSessionItem(el, chatType, chatId);
-    return;
+    return false;
   }
   if (chatType === 'group') {
     openGroupChat(e, el, chatId);
@@ -5642,6 +5645,7 @@ function handleChatItemClick(e, el, chatType, chatId) {
   } else {
     openChat(e, el, chatId);
   }
+  return false;
 }
 
 // ── End Session Multi-Select Mode Engine ──
@@ -6151,12 +6155,14 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
 
   if (!item) {
     item = document.createElement('a');
-    item.href = `?${chatType}=${chatId}`;
+    item.href = 'javascript:void(0)';
+    item.dataset.href = `?${chatType}=${chatId}`;
+    item.dataset.noLoader = 'true';
     item.className = 'g-chat-item active';
     item.dataset.chatName = name;
     item.dataset.chatType = chatType;
     item.dataset.chatId = chatId;
-    item.setAttribute('onclick', `handleChatItemClick(event, this, '${chatType}', '${chatId}')`);
+    item.setAttribute('onclick', `return handleChatItemClick(event, this, '${chatType}', '${chatId}')`);
 
     const avatarContent = photoUrl
       ? `<img src="${photoUrl}" alt="${escHtml(name)}" style="width:100%; height:100%; object-fit:cover;">`
