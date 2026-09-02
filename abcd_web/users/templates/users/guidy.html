@@ -524,6 +524,14 @@ body.dark-theme .g-req-card {
 }
 .g-create-group-btn:hover { background: var(--g-hov); }
 
+/* Visibility & State Helper Classes */
+.g-pane-hidden { display: none !important; }
+.g-pane-flex { display: flex !important; }
+.g-pane-block { display: block !important; }
+
+.msg-tick.tick-read { color: var(--g-accent) !important; font-size: 0.8rem; }
+.msg-tick.tick-unread { color: var(--g-sub) !important; opacity: 0.6; font-size: 0.8rem; }
+
 /* ══════════════════════════════════════════════════════
    MAIN CHAT AREA
 ══════════════════════════════════════════════════════ */
@@ -2459,7 +2467,7 @@ body.dark-theme .search-highlight {
     <div class="g-bg-canvas" aria-hidden="true"></div>
 
     <!-- Chat Container Wrapper -->
-    <div id="chatContainerWrapper" style="display:{% if active_session or active_group or active_direct %}flex{% else %}none{% endif %}; flex-direction:column; height:100%; width:100%; position:relative; overflow:hidden; z-index:2;">
+    <div id="chatContainerWrapper" class="{% if active_session or active_group or active_direct %}g-pane-flex{% else %}g-pane-hidden{% endif %}" style="flex-direction:column; height:100%; width:100%; position:relative; overflow:hidden; z-index:2;">
 
       <!-- Chat Header -->
       <div class="g-chat-hdr" id="activeChatHeader">
@@ -2562,7 +2570,7 @@ body.dark-theme .search-highlight {
       </div>
 
       <!-- Group Deleted Notice Banner -->
-      <div id="groupDeletedNotice" style="background: rgba(239, 68, 68, 0.1); border-bottom: 1px solid rgba(239, 68, 68, 0.2); padding: 12px 16px; display: {% if is_deleted_group %}flex{% else %}none{% endif %}; align-items: center; justify-content: space-between; gap: 12px; z-index: 5;">
+      <div id="groupDeletedNotice" class="{% if is_deleted_group %}g-pane-flex{% else %}g-pane-hidden{% endif %}" style="background: rgba(239, 68, 68, 0.1); border-bottom: 1px solid rgba(239, 68, 68, 0.2); padding: 12px 16px; align-items: center; justify-content: space-between; gap: 12px; z-index: 5;">
         <div style="display: flex; align-items: center; gap: 10px; color: #ef4444; font-size: 0.9rem; font-weight: 600;">
           <i class='bx bx-error-circle' style="font-size: 1.4rem; flex-shrink: 0;"></i>
           <span id="groupDeletedNoticeText">You are no longer a part of this group. The group was deleted by <strong>{{ group_deleted_by_name }}</strong>. All messages and media will automatically be purged in <strong>{{ group_days_left }} days</strong>.</span>
@@ -2669,7 +2677,7 @@ body.dark-theme .search-highlight {
                     {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
                     <span>{{ msg.timestamp|date:"H:i" }}</span>
                     {% if msg.sender == request.user %}
-                      <i class="bx bx-check-double msg-tick" {% if msg.is_read %}style="color: var(--g-accent); font-size:0.8rem;"{% else %}style="color: var(--g-sub); font-size:0.8rem;"{% endif %}></i>
+                      <i class="bx bx-check-double msg-tick {% if msg.is_read %}tick-read{% else %}tick-unread{% endif %}"></i>
                     {% endif %}
                   </div>
                 {% endif %}
@@ -2770,7 +2778,7 @@ body.dark-theme .search-highlight {
                        {% if request.user in msg.starred_by.all %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
                        <span>{{ msg.timestamp|date:"H:i" }}</span>
                        {% if msg.sender == request.user %}
-                         <i class="bx bx-check-double msg-tick" {% if msg.read_by.all|length > 0 %}style="color: var(--g-accent); font-size:0.8rem;"{% else %}style="color: var(--g-sub); font-size:0.8rem;"{% endif %}></i>
+                         <i class="bx bx-check-double msg-tick {% if msg.read_by.all|length > 0 %}tick-read{% else %}tick-unread{% endif %}"></i>
                        {% endif %}
                      </div>
                   {% endif %}
@@ -2797,7 +2805,7 @@ body.dark-theme .search-highlight {
       <!-- Chat Input Area -->
       <div id="chatInputArea" style="position: relative; z-index: 2;">
         <!-- Locked Session / Group Notice -->
-        <div id="lockedNotice" style="display:{% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group %}block{% else %}none{% endif %}; background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
+        <div id="lockedNotice" class="{% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group %}g-pane-block{% else %}g-pane-hidden{% endif %}" style="background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
           <i class='bx bx-lock' style="font-size: 1.2rem; margin-right: 5px; vertical-align: middle;"></i>
           <span id="lockedNoticeText">
             {% if is_deleted_group %}
@@ -2810,7 +2818,7 @@ body.dark-theme .search-highlight {
         </div>
 
         <!-- Blocked Contact Notice -->
-        <div id="blockedNotice" style="display:{% if is_blocked %}flex{% else %}none{% endif %}; background: var(--g-side-bg); padding: 16px; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; box-sizing: border-box; border-radius: 0 0 16px 16px;">
+        <div id="blockedNotice" class="{% if is_blocked %}g-pane-flex{% else %}g-pane-hidden{% endif %}" style="background: var(--g-side-bg); padding: 16px; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; box-sizing: border-box; border-radius: 0 0 16px 16px;">
           <div style="display: flex; align-items: center; gap: 8px; color: #ef4444; font-weight: 700; font-size: 0.95rem;">
             <i class='bx bx-block' style="font-size: 1.3rem;"></i>
             <span>This contact is blocked</span>
@@ -2822,7 +2830,7 @@ body.dark-theme .search-highlight {
         </div>
 
         <!-- Active Input Bar -->
-        <div class="g-input-bar" id="gInputBar" style="display:{% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group or is_blocked %}none{% else %}flex{% endif %};">
+        <div class="g-input-bar {% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group or is_blocked %}g-pane-hidden{% else %}g-pane-flex{% endif %}" id="gInputBar">
           <!-- Reply banner -->
           <div class="g-reply-banner" id="replyBanner">
             <i class='bx bx-reply' style="color:var(--g-primary-s);font-size:1.2rem;flex-shrink:0;"></i>
@@ -2895,7 +2903,7 @@ body.dark-theme .search-highlight {
     </div><!-- /chatContainerWrapper -->
 
     <!-- No chat selected state (Placeholder) -->
-    <div id="noChatPlaceholder" style="display:{% if active_session or active_group or active_direct %}none{% else %}flex{% endif %}; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: transparent; z-index: 1; padding: 40px 20px;">
+    <div id="noChatPlaceholder" class="{% if active_session or active_group or active_direct %}g-pane-hidden{% else %}g-pane-flex{% endif %}" style="height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: transparent; z-index: 1; padding: 40px 20px;">
       {% if not has_any_chat_history %}
         <!-- State 1 (Absolute Empty - New User) -->
         <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
