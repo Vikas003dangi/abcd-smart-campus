@@ -2335,269 +2335,174 @@ body.dark-theme .search-highlight {
     <!-- Floating ABCD Background Pattern -->
     <div class="g-bg-canvas" aria-hidden="true"></div>
 
-    {% if active_session or active_group or active_direct %}
+    <!-- Chat Container Wrapper -->
+    <div id="chatContainerWrapper" style="display:{% if active_session or active_group or active_direct %}flex{% else %}none{% endif %}; flex-direction:column; height:100%; width:100%; position:relative; overflow:hidden; z-index:2;">
 
-    <!-- Chat Header -->
-    <div class="g-chat-hdr" id="activeChatHeader">
-      <button class="g-back-btn" onclick="goBack()" title="Back to chats">
-        <i class='bx bx-arrow-back'></i>
-      </button>
-      <div class="g-hdr-avatar" onclick="toggleProfileDrawer(event)" id="hdrAvatar">
-        {% if active_session or active_direct %}
-          {% if other_user_photo %}
-            <img src="{{ other_user_photo }}" alt="{{ other_user_name }}" style="width:100%; height:100%; object-fit:cover;">
-          {% else %}
-            {{ other_user_name|first|upper }}
-          {% endif %}
-        {% elif active_group %}
-          {% if other_user_photo %}
-            <img src="{{ other_user_photo }}" alt="{{ other_user_name }}" style="width:100%; height:100%; object-fit:cover;">
-          {% else %}
-            <i class='bx bx-group' style="font-size:1.2rem;"></i>
-          {% endif %}
-        {% endif %}
-      </div>
-      <div class="g-hdr-info" onclick="toggleProfileDrawer(event)">
-        <div class="g-hdr-name">
+      <!-- Chat Header -->
+      <div class="g-chat-hdr" id="activeChatHeader">
+        <button class="g-back-btn" onclick="goBack()" title="Back to chats">
+          <i class='bx bx-arrow-back'></i>
+        </button>
+        <div class="g-hdr-avatar" onclick="toggleProfileDrawer(event)" id="hdrAvatar">
           {% if active_session or active_direct %}
-            <span class="g-hdr-name-text">{{ other_user_name }}</span>
-            {% if other_is_verified %}
-              <i class='bx bxs-badge-check g-verified-tick'></i>
+            {% if other_user_photo %}
+              <img src="{{ other_user_photo }}" alt="{{ other_user_name }}" style="width:100%; height:100%; object-fit:cover;">
+            {% else %}
+              {{ other_user_name|first|upper }}
             {% endif %}
           {% elif active_group %}
-            <span class="g-hdr-name-text">{{ active_group.name }}</span>
+            {% if other_user_photo %}
+              <img src="{{ other_user_photo }}" alt="{{ other_user_name }}" style="width:100%; height:100%; object-fit:cover;">
+            {% else %}
+              <i class='bx bx-group' style="font-size:1.2rem;"></i>
+            {% endif %}
           {% endif %}
         </div>
-        <div class="g-hdr-sub">
-          {% if active_session or active_direct %}
-              <div id="chatUserPresence" class="presence-indicator {% if other_user_active %}active{% endif %}">
-                  <span class="presence-dot"></span>
-                  <span class="presence-text">{% if other_user_active %}Active now{% else %}Offline{% endif %}</span>
-                  <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
-              </div>
-          {% elif active_group %}
-              <p id="chatSubtitle" style="margin: 0; font-size: inherit; color: inherit; font-weight: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px;">{{ group_members_str }}</p>
-              <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
-          {% endif %}
+        <div class="g-hdr-info" onclick="toggleProfileDrawer(event)">
+          <div class="g-hdr-name">
+            {% if active_session or active_direct %}
+              <span class="g-hdr-name-text">{{ other_user_name }}</span>
+              {% if other_is_verified %}
+                <i class='bx bxs-badge-check g-verified-tick'></i>
+              {% endif %}
+            {% elif active_group %}
+              <span class="g-hdr-name-text">{{ active_group.name }}</span>
+            {% else %}
+              <span class="g-hdr-name-text"></span>
+            {% endif %}
+          </div>
+          <div class="g-hdr-sub">
+            {% if active_session or active_direct %}
+                <div id="chatUserPresence" class="presence-indicator {% if other_user_active %}active{% endif %}">
+                    <span class="presence-dot"></span>
+                    <span class="presence-text">{% if other_user_active %}Active now{% else %}Offline{% endif %}</span>
+                    <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
+                </div>
+            {% elif active_group %}
+                <p id="chatSubtitle" style="margin: 0; font-size: inherit; color: inherit; font-weight: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px;">{{ group_members_str }}</p>
+                <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
+            {% else %}
+                <div id="chatUserPresence" class="presence-indicator">
+                    <span class="presence-dot"></span>
+                    <span class="presence-text">Offline</span>
+                    <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
+                </div>
+            {% endif %}
+          </div>
         </div>
-      </div>
-      <div class="g-hdr-actions" data-tour="guidy-header-actions">
-        <button class="g-hdr-btn" onclick="openSearchBar()" title="Search messages">
-          <i class='bx bx-search'></i>
-        </button>
-        <div class="g-menu-wrap">
-          <button class="g-hdr-btn" onclick="toggleActionMenu()" id="menuToggle" title="More options">
-            <i class='bx bx-dots-vertical-rounded'></i>
+        <div class="g-hdr-actions" data-tour="guidy-header-actions">
+          <button class="g-hdr-btn" onclick="openSearchBar()" title="Search messages">
+            <i class='bx bx-search'></i>
           </button>
-          <div class="g-action-menu" id="actionMenu">
-             <button class="g-menu-item" onclick="openProfileDrawer();closeMenu()"><i class='bx bx-user'></i> View Profile</button>
-             {% if active_session or active_direct %}
-               {% if is_blocked %}
-                 <button class="g-menu-item" onclick="unblockChatUser();closeMenu()"><i class='bx bx-check-circle'></i> Unblock User</button>
-               {% else %}
-                 <button class="g-menu-item danger" onclick="confirmBlockUser();closeMenu()"><i class='bx bx-block'></i> Block User</button>
+          <div class="g-menu-wrap">
+            <button class="g-hdr-btn" onclick="toggleActionMenu()" id="menuToggle" title="More options">
+              <i class='bx bx-dots-vertical-rounded'></i>
+            </button>
+            <div class="g-action-menu" id="actionMenu">
+               <button class="g-menu-item" onclick="openProfileDrawer();closeMenu()"><i class='bx bx-user'></i> View Profile</button>
+               {% if active_session or active_direct %}
+                 {% if is_blocked %}
+                   <button class="g-menu-item" onclick="unblockChatUser();closeMenu()"><i class='bx bx-check-circle'></i> Unblock User</button>
+                 {% else %}
+                   <button class="g-menu-item danger" onclick="confirmBlockUser();closeMenu()"><i class='bx bx-block'></i> Block User</button>
+                 {% endif %}
                {% endif %}
-             {% endif %}
-             {% if active_session %}
-             <button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>
-             <button class="g-menu-item danger" onclick="confirmClearChat();closeMenu()"><i class='bx bx-trash'></i> Clear chat</button>
-             {% if active_session.is_active %}
-               {% if is_alumni %}
-                 <button class="g-menu-item" onclick="doRestrictStudent();closeMenu()"><i class='bx bx-no-entry'></i> Restrict Student</button>
-               {% endif %}
-               <button class="g-menu-item danger" onclick="confirmEndSession();closeMenu()"><i class='bx bx-exit'></i> End Session</button>
-             {% endif %}
-             {% endif %}
-             {% if active_direct %}
-             <button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>
-             <button class="g-menu-item danger" onclick="confirmClearChat();closeMenu()"><i class='bx bx-trash'></i> Clear chat</button>
-             {% endif %}
-             {% if active_group %}
+               {% if active_session %}
                <button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>
                <button class="g-menu-item danger" onclick="confirmClearChat();closeMenu()"><i class='bx bx-trash'></i> Clear chat</button>
-               {% if is_deleted_group %}
-                 <button class="g-menu-item danger" onclick="deleteGroupForMe('{{ active_group.id }}');closeMenu()"><i class='bx bx-trash'></i> Delete group</button>
-               {% else %}
-                 {% if is_teacher or active_group.created_by == request.user %}
-                   <button class="g-menu-item danger" onclick="confirmDeleteGroup('{{ active_group.id }}');closeMenu()"><i class='bx bx-trash'></i> Delete group</button>
+               {% if active_session.is_active %}
+                 {% if is_alumni %}
+                   <button class="g-menu-item" onclick="doRestrictStudent();closeMenu()"><i class='bx bx-no-entry'></i> Restrict Student</button>
                  {% endif %}
-                 <button class="g-menu-item danger" onclick="exitGroup();closeMenu()"><i class='bx bx-exit'></i> Exit group</button>
+                 <button class="g-menu-item danger" onclick="confirmEndSession();closeMenu()"><i class='bx bx-exit'></i> End Session</button>
                {% endif %}
-             {% endif %}
+               {% endif %}
+               {% if active_direct %}
+               <button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>
+               <button class="g-menu-item danger" onclick="confirmClearChat();closeMenu()"><i class='bx bx-trash'></i> Clear chat</button>
+               {% endif %}
+               {% if active_group %}
+                 <button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>
+                 <button class="g-menu-item danger" onclick="confirmClearChat();closeMenu()"><i class='bx bx-trash'></i> Clear chat</button>
+                 {% if is_deleted_group %}
+                   <button class="g-menu-item danger" onclick="deleteGroupForMe('{{ active_group.id }}');closeMenu()"><i class='bx bx-trash'></i> Delete group</button>
+                 {% else %}
+                   {% if is_teacher or active_group.created_by == request.user %}
+                     <button class="g-menu-item danger" onclick="confirmDeleteGroup('{{ active_group.id }}');closeMenu()"><i class='bx bx-trash'></i> Delete group</button>
+                   {% endif %}
+                   <button class="g-menu-item danger" onclick="exitGroup();closeMenu()"><i class='bx bx-exit'></i> Exit group</button>
+                 {% endif %}
+               {% endif %}
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    {% if is_deleted_group %}
-    <div style="background: rgba(239, 68, 68, 0.1); border-bottom: 1px solid rgba(239, 68, 68, 0.2); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; z-index: 5;">
-      <div style="display: flex; align-items: center; gap: 10px; color: #ef4444; font-size: 0.9rem; font-weight: 600;">
-        <i class='bx bx-error-circle' style="font-size: 1.4rem; flex-shrink: 0;"></i>
-        <span>You are no longer a part of this group. The group was deleted by <strong>{{ group_deleted_by_name }}</strong>. All messages and media will automatically be purged in <strong>{{ group_days_left }} days</strong>.</span>
+      <!-- Group Deleted Notice Banner -->
+      <div id="groupDeletedNotice" style="background: rgba(239, 68, 68, 0.1); border-bottom: 1px solid rgba(239, 68, 68, 0.2); padding: 12px 16px; display: {% if is_deleted_group %}flex{% else %}none{% endif %}; align-items: center; justify-content: space-between; gap: 12px; z-index: 5;">
+        <div style="display: flex; align-items: center; gap: 10px; color: #ef4444; font-size: 0.9rem; font-weight: 600;">
+          <i class='bx bx-error-circle' style="font-size: 1.4rem; flex-shrink: 0;"></i>
+          <span id="groupDeletedNoticeText">You are no longer a part of this group. The group was deleted by <strong>{{ group_deleted_by_name }}</strong>. All messages and media will automatically be purged in <strong>{{ group_days_left }} days</strong>.</span>
+        </div>
+        <button id="groupDeletedActionBtn" onclick="deleteGroupForMe('{{ active_group.id }}')" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 7px 16px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.2s;">
+          <i class='bx bx-trash'></i> Delete Group
+        </button>
       </div>
-      <button onclick="deleteGroupForMe('{{ active_group.id }}')" style="background: #ef4444; color: white; border: none; border-radius: 8px; padding: 7px 16px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.2s;">
-        <i class='bx bx-trash'></i> Delete Group
-      </button>
-    </div>
-    {% endif %}
 
-    <!-- In-chat Search Bar -->
-    <div class="g-search-bar" id="gSearchBar">
-      <button class="g-search-close" onclick="closeSearchBar()"><i class='bx bx-x'></i></button>
-      <input type="text" id="msgSearchInput" placeholder="Search in chat..." oninput="searchInChatDebounced(this.value)" autocomplete="off">
-      <button id="calendarSearchBtn" style="background:none; border:none; color:var(--g-sub); font-size:1.2rem; cursor:pointer; margin-left:8px;"><i class='bx bx-calendar'></i></button>
-      <span class="g-search-count" id="searchCount"></span>
-      <div class="g-search-nav">
-        <button onclick="navSearch(-1)" title="Previous"><i class='bx bx-chevron-up'></i></button>
-        <button onclick="navSearch(1)" title="Next"><i class='bx bx-chevron-down'></i></button>
+      <!-- In-chat Search Bar -->
+      <div class="g-search-bar" id="gSearchBar">
+        <button class="g-search-close" onclick="closeSearchBar()"><i class='bx bx-x'></i></button>
+        <input type="text" id="msgSearchInput" placeholder="Search in chat..." oninput="searchInChatDebounced(this.value)" autocomplete="off">
+        <button id="calendarSearchBtn" style="background:none; border:none; color:var(--g-sub); font-size:1.2rem; cursor:pointer; margin-left:8px;"><i class='bx bx-calendar'></i></button>
+        <span class="g-search-count" id="searchCount"></span>
+        <div class="g-search-nav">
+          <button onclick="navSearch(-1)" title="Previous"><i class='bx bx-chevron-up'></i></button>
+          <button onclick="navSearch(1)" title="Next"><i class='bx bx-chevron-down'></i></button>
+        </div>
       </div>
-    </div>
 
-    <!-- Pinned Message Banner -->
-    <div class="g-pinned-bar" id="pinnedBar" onclick="scrollToPinned()">
-      <i class='bx bx-pin'></i>
-      <div class="g-pinned-text"><b>Pinned:</b> <span id="pinnedPreview">…</span></div>
-      <div class="g-pinned-nav" id="pinnedNav" style="display: none; align-items: center; gap: 6px; margin: 0 10px;">
-        <button class="g-pinned-nav-btn" onclick="event.stopPropagation(); navigatePinned(-1)" title="Previous Pinned Message"><i class='bx bx-chevron-up'></i></button>
-        <span id="pinnedCount" style="font-size: 0.8rem; color: var(--g-sub); min-width: 24px; text-align: center; font-weight: 500;">1/1</span>
-        <button class="g-pinned-nav-btn" onclick="event.stopPropagation(); navigatePinned(1)" title="Next Pinned Message"><i class='bx bx-chevron-down'></i></button>
+      <!-- Pinned Message Banner -->
+      <div class="g-pinned-bar" id="pinnedBar" onclick="scrollToPinned()">
+        <i class='bx bx-pin'></i>
+        <div class="g-pinned-text"><b>Pinned:</b> <span id="pinnedPreview">…</span></div>
+        <div class="g-pinned-nav" id="pinnedNav" style="display: none; align-items: center; gap: 6px; margin: 0 10px;">
+          <button class="g-pinned-nav-btn" onclick="event.stopPropagation(); navigatePinned(-1)" title="Previous Pinned Message"><i class='bx bx-chevron-up'></i></button>
+          <span id="pinnedCount" style="font-size: 0.8rem; color: var(--g-sub); min-width: 24px; text-align: center; font-weight: 500;">1/1</span>
+          <button class="g-pinned-nav-btn" onclick="event.stopPropagation(); navigatePinned(1)" title="Next Pinned Message"><i class='bx bx-chevron-down'></i></button>
+        </div>
+        <i class='bx bx-x' onclick="event.stopPropagation();hidePinnedBar()"></i>
       </div>
-      <i class='bx bx-x' onclick="event.stopPropagation();hidePinnedBar()"></i>
-    </div>
 
-    <!-- Messages Canvas -->
-    <div class="g-messages" id="gMessages">
-      {% if active_session or active_direct %}
-        {% if messages_list %}
-          {% for msg in messages_list %}
-            {% ifchanged msg.timestamp.date %}
-              <div class="g-date-div" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
-                <span>{{ msg.timestamp|date:"d M Y" }}</span>
-              </div>
-            {% endifchanged %}
-          <div class="g-msg-row {% if msg.sender == request.user %}mine{% else %}theirs{% endif %} {% if msg.is_pinned %}pinned-msg-row{% endif %}"
-               data-msg-id="{{ msg.id }}"
-               data-deleted-for-all="{{ msg.is_deleted_for_all|yesno:'true,false' }}"
-               data-read="{% if msg.sender == request.user %}{{ msg.is_read|yesno:'true,false' }}{% else %}true{% endif %}"
-               data-pinned="{{ msg.is_pinned|yesno:'true,false' }}"
-               data-starred="{% if msg.sender == request.user %}{{ msg.is_starred_by_sender|yesno:'true,false' }}{% else %}{{ msg.is_starred_by_receiver|yesno:'true,false' }}{% endif %}"
-               data-sender-name="{% if msg.sender == request.user %}You{% else %}{{ msg.sender|user_display_name }}{% endif %}"
-               oncontextmenu="openCtxMenu(event,this)"
-               ondblclick="triggerReply(this)">
-            {% if msg.sender != request.user %}
-              <div class="g-msg-avatar">
-                {% if other_user_photo %}<img src="{{ other_user_photo }}" alt="">{% else %}{{ other_user_name|first|upper }}{% endif %}
-              </div>
-            {% endif %}
-            <div class="g-msg-inner">
-              {% if msg.is_deleted_for_all %}
-                <div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);">
-                   <i class="bx bx-block"></i> deleted msg
+      <!-- Messages Canvas -->
+      <div class="g-messages" id="gMessages">
+        {% if active_session or active_direct %}
+          {% if messages_list %}
+            {% for msg in messages_list %}
+              {% ifchanged msg.timestamp.date %}
+                <div class="g-date-div" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
+                  <span>{{ msg.timestamp|date:"d M Y" }}</span>
                 </div>
-              {% else %}
-                {% if msg.reply_to %}
-                <div class="g-reply-preview">
-                  <div class="g-reply-sender">
-                    {% if msg.reply_to.sender == request.user %}
-                      You
-                    {% else %}
-                      {{ msg.reply_to.sender|user_display_name }}
-                    {% endif %}
-                  </div>
-                  {% if msg.reply_to.message_type == 'image' %}<i class='bx bx-image-alt'></i> Photo
-                  {% elif msg.reply_to.message_type == 'video' %}<i class='bx bx-video'></i> Video
-                  {% elif msg.reply_to.message_type == 'document' %}<i class='bx bx-file'></i> {{ msg.reply_to.file_name }}
-                  {% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
-                </div>
-                {% endif %}
-                <div class="g-bubble {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}starred-msg{% endif %}">
-                  <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
-                  {% if msg.media_expired and msg.message_type != 'text' %}
-                    <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
-                  {% elif msg.message_type == 'image' and msg.file %}
-                    <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
-                  {% elif msg.message_type == 'audio' and msg.file %}
-                    <div class="g-audio-player" data-src="{{ msg.file.url }}">
-                      <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
-                      <div class="g-audio-progress" onclick="seekCustomAudio(event, this)"><div class="g-audio-fill"></div></div>
-                      <audio src="{{ msg.file.url }}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
-                    </div>
-                  {% elif msg.message_type == 'video' and msg.file %}
-                    <video src="{{ msg.file.url }}" class="g-msg-video" controls></video>
-                  {% elif msg.message_type == 'document' and msg.file %}
-                    <div class="g-msg-file">
-                      <i class='bx bx-file'></i>
-                      <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                      <a href="{{ msg.file.url }}" download class="g-msg-file-dl">Download</a>
-                    </div>
-                  {% endif %}
-                  {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
-                </div>
-                <div class="g-msg-meta">
-                  {% if msg.is_pinned %}<i class='bx bx-pin g-msg-pin-ico'></i>{% endif %}
-                  {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
-                  <span>{{ msg.timestamp|date:"H:i" }}</span>
-                  {% if msg.sender == request.user %}
-                    <i class="bx bx-check-double msg-tick" {% if msg.is_read %}style="color: var(--g-accent); font-size:0.8rem;"{% else %}style="color: var(--g-sub); font-size:0.8rem;"{% endif %}></i>
-                  {% endif %}
-                </div>
-              {% endif %}
-            </div>
-          </div>
-          {% endfor %}
-        {% else %}
-          <div style="text-align:center;color:var(--g-sub);margin-top:40px;font-size:0.9rem;">
-            👋 Say hello to start the conversation!
-          </div>
-        {% endif %}
-
-      {% elif active_group %}
-        {% if group_messages_list %}
-          {% for msg in group_messages_list %}
-            {% ifchanged msg.timestamp.date %}
-              <div class="g-date-div" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
-                <span>{{ msg.timestamp|date:"d M Y" }}</span>
-              </div>
-            {% endifchanged %}
-            {% if msg.message_type == 'system' %}
-              <div class="g-system-msg-div" data-msg-id="{{ msg.id }}">
-                <span>{{ msg.resolved_content }}</span>
-              </div>
-            {% else %}
-              <div class="g-msg-row {% if msg.sender == request.user %}mine{% else %}theirs{% endif %} {% if msg.is_pinned %}pinned-msg-row{% endif %}"
-                 data-msg-id="{{ msg.id }}" data-group-msg="true"
+              {% endifchanged %}
+            <div class="g-msg-row {% if msg.sender == request.user %}mine{% else %}theirs{% endif %} {% if msg.is_pinned %}pinned-msg-row{% endif %}"
+                 data-msg-id="{{ msg.id }}"
                  data-deleted-for-all="{{ msg.is_deleted_for_all|yesno:'true,false' }}"
-                 data-read="{% if msg.sender == request.user %}{% if msg.read_by.all|length > 0 %}true{% else %}false{% endif %}{% else %}true{% endif %}"
+                 data-read="{% if msg.sender == request.user %}{{ msg.is_read|yesno:'true,false' }}{% else %}true{% endif %}"
                  data-pinned="{{ msg.is_pinned|yesno:'true,false' }}"
-                 data-starred="{% if request.user in msg.starred_by.all %}true{% else %}false{% endif %}"
+                 data-starred="{% if msg.sender == request.user %}{{ msg.is_starred_by_sender|yesno:'true,false' }}{% else %}{{ msg.is_starred_by_receiver|yesno:'true,false' }}{% endif %}"
                  data-sender-name="{% if msg.sender == request.user %}You{% else %}{{ msg.sender|user_display_name }}{% endif %}"
                  oncontextmenu="openCtxMenu(event,this)"
                  ondblclick="triggerReply(this)">
               {% if msg.sender != request.user %}
                 <div class="g-msg-avatar">
-                  <img src="{{ msg.sender|user_photo }}" alt="{{ msg.sender|user_display_name }}">
+                  {% if other_user_photo %}<img src="{{ other_user_photo }}" alt="">{% else %}{{ other_user_name|first|upper }}{% endif %}
                 </div>
               {% endif %}
               <div class="g-msg-inner">
                 {% if msg.is_deleted_for_all %}
                   <div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);">
-                    <i class="bx bx-block"></i> deleted msg
+                     <i class="bx bx-block"></i> deleted msg
                   </div>
                 {% else %}
-                  {% if msg.sender == request.user %}
-                    <div style="font-size:0.72rem;font-weight:700;color:var(--g-primary-s);margin-bottom:3px; align-self: flex-end;">
-                  {% else %}
-                    <div style="font-size:0.72rem;font-weight:700;color:var(--g-primary-s);margin-bottom:3px; align-self: flex-start;">
-                  {% endif %}
-                    {% if msg.sender == request.user %}
-                      You
-                    {% else %}
-                      {{ msg.sender|user_display_name }}
-                    {% endif %}
-                    {% if msg.sender.is_staff or msg.sender.is_superuser %}
-                      <i class='bx bxs-badge-check g-verified-tick'></i>
-                    {% endif %}
-                  </div>
                   {% if msg.reply_to %}
                   <div class="g-reply-preview">
                     <div class="g-reply-sender">
@@ -2613,96 +2518,188 @@ body.dark-theme .search-highlight {
                     {% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
                   </div>
                   {% endif %}
-                    <div class="g-bubble {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if request.user in msg.starred_by.all %}starred-msg{% endif %}">
-                      <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
-                      {% if msg.media_expired and msg.message_type != 'text' %}
-                        <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
-                      {% elif msg.message_type == 'image' and msg.file %}
-                        <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
-                      {% elif msg.message_type == 'audio' and msg.file %}
-                        <div class="g-audio-player" data-src="{{ msg.file.url }}">
-                          <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
-                          <div class="g-audio-progress" onclick="seekCustomAudio(event, this)"><div class="g-audio-fill"></div></div>
-                          <audio src="{{ msg.file.url }}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
-                        </div>
-                      {% elif msg.message_type == 'document' and msg.file %}
-                        <div class="g-msg-file">
-                          <i class='bx bx-file'></i>
-                          <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                          <a href="{{ msg.file.url }}" download class="g-msg-file-dl">Download</a>
-                        </div>
-                      {% endif %}
-                      {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
-                    </div>
-                   <div class="g-msg-meta">
-                     {% if msg.is_pinned %}<i class='bx bx-pin g-msg-pin-ico'></i>{% endif %}
-                     {% if request.user in msg.starred_by.all %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
-                     <span>{{ msg.timestamp|date:"H:i" }}</span>
-                     {% if msg.sender == request.user %}
-                       <i class="bx bx-check-double msg-tick" {% if msg.read_by.all|length > 0 %}style="color: var(--g-accent); font-size:0.8rem;"{% else %}style="color: var(--g-sub); font-size:0.8rem;"{% endif %}></i>
-                     {% endif %}
-                   </div>
+                  <div class="g-bubble {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}starred-msg{% endif %}">
+                    <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
+                    {% if msg.media_expired and msg.message_type != 'text' %}
+                      <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
+                    {% elif msg.message_type == 'image' and msg.file %}
+                      <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
+                    {% elif msg.message_type == 'audio' and msg.file %}
+                      <div class="g-audio-player" data-src="{{ msg.file.url }}">
+                        <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
+                        <div class="g-audio-progress" onclick="seekCustomAudio(event, this)"><div class="g-audio-fill"></div></div>
+                        <audio src="{{ msg.file.url }}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
+                      </div>
+                    {% elif msg.message_type == 'video' and msg.file %}
+                      <video src="{{ msg.file.url }}" class="g-msg-video" controls></video>
+                    {% elif msg.message_type == 'document' and msg.file %}
+                      <div class="g-msg-file">
+                        <i class='bx bx-file'></i>
+                        <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
+                        <a href="{{ msg.file.url }}" download class="g-msg-file-dl">Download</a>
+                      </div>
+                    {% endif %}
+                    {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
+                  </div>
+                  <div class="g-msg-meta">
+                    {% if msg.is_pinned %}<i class='bx bx-pin g-msg-pin-ico'></i>{% endif %}
+                    {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
+                    <span>{{ msg.timestamp|date:"H:i" }}</span>
+                    {% if msg.sender == request.user %}
+                      <i class="bx bx-check-double msg-tick" {% if msg.is_read %}style="color: var(--g-accent); font-size:0.8rem;"{% else %}style="color: var(--g-sub); font-size:0.8rem;"{% endif %}></i>
+                    {% endif %}
+                  </div>
                 {% endif %}
               </div>
             </div>
-            {% endif %}
-          {% endfor %}
-        {% else %}
-          <div style="text-align:center;color:var(--g-sub);margin-top:40px;font-size:0.9rem;">
-            👋 Start the group conversation!
-          </div>
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center;color:var(--g-sub);margin-top:40px;font-size:0.9rem;">
+              👋 Say hello to start the conversation!
+            </div>
+          {% endif %}
+
+        {% elif active_group %}
+          {% if group_messages_list %}
+            {% for msg in group_messages_list %}
+              {% ifchanged msg.timestamp.date %}
+                <div class="g-date-div" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
+                  <span>{{ msg.timestamp|date:"d M Y" }}</span>
+                </div>
+              {% endifchanged %}
+              {% if msg.message_type == 'system' %}
+                <div class="g-system-msg-div" data-msg-id="{{ msg.id }}">
+                  <span>{{ msg.resolved_content }}</span>
+                </div>
+              {% else %}
+                <div class="g-msg-row {% if msg.sender == request.user %}mine{% else %}theirs{% endif %} {% if msg.is_pinned %}pinned-msg-row{% endif %}"
+                   data-msg-id="{{ msg.id }}" data-group-msg="true"
+                   data-deleted-for-all="{{ msg.is_deleted_for_all|yesno:'true,false' }}"
+                   data-read="{% if msg.sender == request.user %}{% if msg.read_by.all|length > 0 %}true{% else %}false{% endif %}{% else %}true{% endif %}"
+                   data-pinned="{{ msg.is_pinned|yesno:'true,false' }}"
+                   data-starred="{% if request.user in msg.starred_by.all %}true{% else %}false{% endif %}"
+                   data-sender-name="{% if msg.sender == request.user %}You{% else %}{{ msg.sender|user_display_name }}{% endif %}"
+                   oncontextmenu="openCtxMenu(event,this)"
+                   ondblclick="triggerReply(this)">
+                {% if msg.sender != request.user %}
+                  <div class="g-msg-avatar">
+                    <img src="{{ msg.sender|user_photo }}" alt="{{ msg.sender|user_display_name }}">
+                  </div>
+                {% endif %}
+                <div class="g-msg-inner">
+                  {% if msg.is_deleted_for_all %}
+                    <div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);">
+                      <i class="bx bx-block"></i> deleted msg
+                    </div>
+                  {% else %}
+                    {% if msg.sender == request.user %}
+                      <div style="font-size:0.72rem;font-weight:700;color:var(--g-primary-s);margin-bottom:3px; align-self: flex-end;">
+                    {% else %}
+                      <div style="font-size:0.72rem;font-weight:700;color:var(--g-primary-s);margin-bottom:3px; align-self: flex-start;">
+                    {% endif %}
+                      {% if msg.sender == request.user %}
+                        You
+                      {% else %}
+                        {{ msg.sender|user_display_name }}
+                      {% endif %}
+                      {% if msg.sender.is_staff or msg.sender.is_superuser %}
+                        <i class='bx bxs-badge-check g-verified-tick'></i>
+                      {% endif %}
+                    </div>
+                    {% if msg.reply_to %}
+                    <div class="g-reply-preview">
+                      <div class="g-reply-sender">
+                        {% if msg.reply_to.sender == request.user %}
+                          You
+                        {% else %}
+                          {{ msg.reply_to.sender|user_display_name }}
+                        {% endif %}
+                      </div>
+                      {% if msg.reply_to.message_type == 'image' %}<i class='bx bx-image-alt'></i> Photo
+                      {% elif msg.reply_to.message_type == 'video' %}<i class='bx bx-video'></i> Video
+                      {% elif msg.reply_to.message_type == 'document' %}<i class='bx bx-file'></i> {{ msg.reply_to.file_name }}
+                      {% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
+                    </div>
+                    {% endif %}
+                      <div class="g-bubble {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if request.user in msg.starred_by.all %}starred-msg{% endif %}">
+                        <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
+                        {% if msg.media_expired and msg.message_type != 'text' %}
+                          <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
+                        {% elif msg.message_type == 'image' and msg.file %}
+                          <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
+                        {% elif msg.message_type == 'audio' and msg.file %}
+                          <div class="g-audio-player" data-src="{{ msg.file.url }}">
+                            <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
+                            <div class="g-audio-progress" onclick="seekCustomAudio(event, this)"><div class="g-audio-fill"></div></div>
+                            <audio src="{{ msg.file.url }}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
+                          </div>
+                        {% elif msg.message_type == 'document' and msg.file %}
+                          <div class="g-msg-file">
+                            <i class='bx bx-file'></i>
+                            <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
+                            <a href="{{ msg.file.url }}" download class="g-msg-file-dl">Download</a>
+                          </div>
+                        {% endif %}
+                        {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
+                      </div>
+                     <div class="g-msg-meta">
+                       {% if msg.is_pinned %}<i class='bx bx-pin g-msg-pin-ico'></i>{% endif %}
+                       {% if request.user in msg.starred_by.all %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
+                       <span>{{ msg.timestamp|date:"H:i" }}</span>
+                       {% if msg.sender == request.user %}
+                         <i class="bx bx-check-double msg-tick" {% if msg.read_by.all|length > 0 %}style="color: var(--g-accent); font-size:0.8rem;"{% else %}style="color: var(--g-sub); font-size:0.8rem;"{% endif %}></i>
+                       {% endif %}
+                     </div>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center;color:var(--g-sub);margin-top:40px;font-size:0.9rem;">
+              👋 Start the group conversation!
+            </div>
+          {% endif %}
         {% endif %}
-      {% endif %}
-    </div><!-- /messages -->
+      </div><!-- /messages -->
 
-    <!-- Select Mode Banner -->
-    <div class="g-select-banner" id="selectBanner">
-      <span id="selectCount">0 selected</span>
-      <button class="g-select-action" onclick="copySelectedMsgs()"><i class='bx bx-copy'></i> Copy</button>
-      <button class="g-select-action danger" onclick="deleteSelected()"><i class='bx bx-trash'></i> Delete</button>
-      <button class="g-select-cancel" onclick="exitSelectMode()">Cancel</button>
-    </div>
+      <!-- Select Mode Banner -->
+      <div class="g-select-banner" id="selectBanner">
+        <span id="selectCount">0 selected</span>
+        <button class="g-select-action" onclick="copySelectedMsgs()"><i class='bx bx-copy'></i> Copy</button>
+        <button class="g-select-action danger" onclick="deleteSelected()"><i class='bx bx-trash'></i> Delete</button>
+        <button class="g-select-cancel" onclick="exitSelectMode()">Cancel</button>
+      </div>
 
-    <!-- Input Bar -->
-    {% if active_session and not active_session.is_active or active_direct and not active_direct.is_active %}
-      <div style="background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
-        <i class='bx bx-lock' style="font-size: 1.2rem; margin-right: 5px; vertical-align: middle;"></i>
-        This session got ended by {% if active_session %}{{ active_session.ended_by.get_full_name|default:active_session.ended_by.username }}{% else %}{{ active_direct.ended_by.get_full_name|default:active_direct.ended_by.username }}{% endif %}. You cannot send more messages in this chat.
-        {% if is_teacher %}<br><span style="color: var(--g-sub); font-size: 0.8rem; font-weight: 400;">Start a new chat with them from the + menu.</span>{% endif %}
-        
-        <!-- Hidden input elements to avoid JS errors -->
-        <textarea id="gInput" style="display: none;"></textarea>
-        <input type="file" id="fileInput" style="display: none;">
-        <button id="gSendBtn" style="display: none;"></button>
-      </div>
-    {% elif is_deleted_group %}
-      <div style="background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
-        <i class='bx bx-lock' style="font-size: 1.2rem; margin-right: 5px; vertical-align: middle;"></i>
-        This group was deleted by {{ group_deleted_by_name }}. You cannot send messages.
-        
-        <!-- Hidden input elements to avoid JS errors -->
-        <textarea id="gInput" style="display: none;"></textarea>
-        <input type="file" id="fileInput" style="display: none;">
-        <button id="gSendBtn" style="display: none;"></button>
-      </div>
-    {% else %}
-      <div class="g-input-bar" id="gInputBar">
-        {% if is_blocked %}
-          <div style="background: var(--g-side-bg); padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; box-sizing: border-box; border-radius: 0 0 16px 16px;">
-            <div style="display: flex; align-items: center; gap: 8px; color: #ef4444; font-weight: 700; font-size: 0.95rem;">
-              <i class='bx bx-block' style="font-size: 1.3rem;"></i>
-              <span>This contact is blocked</span>
-            </div>
-            <div style="display: flex; gap: 12px; margin-top: 4px;">
-              <button onclick="unblockChatUser()" style="padding: 8px 18px; border-radius: 8px; border: none; background: #25d366; color: white; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,211,102,0.25);"><i class='bx bx-check-circle' style="font-size:1.1rem;"></i> Unblock</button>
-              <button onclick="confirmEndSession()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid #ef4444; background: transparent; color: #ef4444; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i class='bx bx-exit' style="font-size:1.1rem;"></i> End Session</button>
-            </div>
-            <!-- Hidden inputs to avoid JS errors -->
-            <textarea id="gInput" style="display: none;"></textarea>
-            <input type="file" id="fileInput" style="display: none;">
-            <button id="gSendBtn" style="display: none;"></button>
+      <!-- Chat Input Area -->
+      <div id="chatInputArea" style="position: relative; z-index: 2;">
+        <!-- Locked Session / Group Notice -->
+        <div id="lockedNotice" style="display:{% if (active_session and not active_session.is_active) or (active_direct and not active_direct.is_active) or is_deleted_group %}block{% else %}none{% endif %}; background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
+          <i class='bx bx-lock' style="font-size: 1.2rem; margin-right: 5px; vertical-align: middle;"></i>
+          <span id="lockedNoticeText">
+            {% if is_deleted_group %}
+              This group was deleted by {{ group_deleted_by_name }}. You cannot send messages.
+            {% elif active_session or active_direct %}
+              This session got ended by {% if active_session %}{{ active_session.ended_by.get_full_name|default:active_session.ended_by.username }}{% else %}{{ active_direct.ended_by.get_full_name|default:active_direct.ended_by.username }}{% endif %}. You cannot send more messages in this chat.
+              {% if is_teacher %}<br><span style="color: var(--g-sub); font-size: 0.8rem; font-weight: 400;">Start a new chat with them from the + menu.</span>{% endif %}
+            {% endif %}
+          </span>
+        </div>
+
+        <!-- Blocked Contact Notice -->
+        <div id="blockedNotice" style="display:{% if is_blocked %}flex{% else %}none{% endif %}; background: var(--g-side-bg); padding: 16px; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; box-sizing: border-box; border-radius: 0 0 16px 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; color: #ef4444; font-weight: 700; font-size: 0.95rem;">
+            <i class='bx bx-block' style="font-size: 1.3rem;"></i>
+            <span>This contact is blocked</span>
           </div>
-        {% else %}
+          <div style="display: flex; gap: 12px; margin-top: 4px;">
+            <button onclick="unblockChatUser()" style="padding: 8px 18px; border-radius: 8px; border: none; background: #25d366; color: white; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,211,102,0.25);"><i class='bx bx-check-circle' style="font-size:1.1rem;"></i> Unblock</button>
+            <button onclick="confirmEndSession()" style="padding: 8px 18px; border-radius: 8px; border: 1px solid #ef4444; background: transparent; color: #ef4444; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i class='bx bx-exit' style="font-size:1.1rem;"></i> End Session</button>
+          </div>
+        </div>
+
+        <!-- Active Input Bar -->
+        <div class="g-input-bar" id="gInputBar" style="display:{% if (active_session and not active_session.is_active) or (active_direct and not active_direct.is_active) or is_deleted_group or is_blocked %}none{% else %}flex{% endif %};">
           <!-- Reply banner -->
           <div class="g-reply-banner" id="replyBanner">
             <i class='bx bx-reply' style="color:var(--g-primary-s);font-size:1.2rem;flex-shrink:0;"></i>
@@ -2769,16 +2766,15 @@ body.dark-theme .search-highlight {
               <i class='bx bx-send'></i>
             </button>
           </div>
-        {% endif %}
-      </div>
-    {% endif %}
+        </div>
+      </div><!-- /chatInputArea -->
 
-    {% else %}
+    </div><!-- /chatContainerWrapper -->
 
-    <!-- No chat selected state -->
-    {% if not has_any_chat_history %}
-      <!-- State 1 (Absolute Empty - New User) -->
-      <div class="g-no-chat" style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: transparent; z-index: 1; padding: 40px 20px;">
+    <!-- No chat selected state (Placeholder) -->
+    <div id="noChatPlaceholder" style="display:{% if active_session or active_group or active_direct %}none{% else %}flex{% endif %}; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: transparent; z-index: 1; padding: 40px 20px;">
+      {% if not has_any_chat_history %}
+        <!-- State 1 (Absolute Empty - New User) -->
         <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
           <div class="nc-icon">
             <i class='bx bxs-graduation'></i>
@@ -2795,16 +2791,8 @@ body.dark-theme .search-highlight {
             {% endif %}
           </p>
         </div>
-        <!-- Pinned to bottom -->
-        <div style="margin-top: auto; padding-top: 20px;">
-          <p style="font-size: 0.8rem; color: var(--g-sub); opacity: 0.6;">
-            <i class='bx bx-lock-alt'></i> All messages are private & end-to-end encrypted
-          </p>
-        </div>
-      </div>
-    {% else %}
-      <!-- State 2 (Closed Chat - Returning User) -->
-      <div class="g-no-chat" style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: transparent; z-index: 1; padding: 40px 20px;">
+      {% else %}
+        <!-- State 2 (Closed Chat - Returning User) -->
         <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
           <div class="nc-icon">
             <i class='bx bx-message-square-dots'></i>
@@ -2814,16 +2802,14 @@ body.dark-theme .search-highlight {
             The official chatting platform of ABCD Coaching and Library.
           </p>
         </div>
-        <!-- Pinned to bottom -->
-        <div style="margin-top: auto; padding-top: 20px;">
-          <p style="font-size: 0.8rem; color: var(--g-sub); opacity: 0.6;">
-            <i class='bx bx-lock-alt'></i> All messages are private & end-to-end encrypted
-          </p>
-        </div>
+      {% endif %}
+      <!-- Pinned to bottom -->
+      <div style="margin-top: auto; padding-top: 20px;">
+        <p style="font-size: 0.8rem; color: var(--g-sub); opacity: 0.6;">
+          <i class='bx bx-lock-alt'></i> All messages are private & end-to-end encrypted
+        </p>
       </div>
-    {% endif %}
-
-    {% endif %}
+    </div><!-- /noChatPlaceholder -->
 
     <!-- Self Profile Pane -->
     <div id="guidySelfProfilePane" style="display: none;">
@@ -3409,17 +3395,19 @@ const GuidyAppModal = {
 const cfg    = document.getElementById('guidyConfig');
 const CSRF   = cfg.dataset.csrf;
 const IS_ALUMNI = cfg.dataset.isAlumni === 'true';
-const SESSION_ID = cfg.dataset.sessionId;
-const GROUP_ID   = cfg.dataset.groupId;
-const DIRECT_ID  = cfg.dataset.directId;
-const SEND_URL   = cfg.dataset.sendUrl;
-const POLL_URL   = cfg.dataset.pollUrl;
-const G_SEND_URL = cfg.dataset.groupSendUrl;
-const G_POLL_URL = cfg.dataset.groupPollUrl;
-const SEARCH_URL = cfg.dataset.searchUrl;
-const OTHER_TYPE = cfg.dataset.otherType;
-const OTHER_ID   = cfg.dataset.otherId;
-const MY_DISPLAY_NAME = cfg.dataset.myDisplayName || '';
+let SESSION_ID = cfg ? (cfg.dataset.sessionId || '') : '';
+let GROUP_ID   = cfg ? (cfg.dataset.groupId || '') : '';
+let DIRECT_ID  = cfg ? (cfg.dataset.directId || '') : '';
+let SEND_URL   = cfg ? (cfg.dataset.sendUrl || '') : '';
+let POLL_URL   = cfg ? (cfg.dataset.pollUrl || '') : '';
+let G_SEND_URL = cfg ? (cfg.dataset.groupSendUrl || '') : '';
+let G_POLL_URL = cfg ? (cfg.dataset.groupPollUrl || '') : '';
+let SEARCH_URL = cfg ? (cfg.dataset.searchUrl || '') : '';
+let OTHER_TYPE = cfg ? (cfg.dataset.otherType || '') : '';
+let OTHER_ID   = cfg ? (cfg.dataset.otherId || '') : '';
+let MY_DISPLAY_NAME = cfg ? (cfg.dataset.myDisplayName || '') : '';
+let currentChatType = SESSION_ID ? 'session' : (DIRECT_ID ? 'direct' : (GROUP_ID ? 'group' : null));
+let currentChatId = SESSION_ID || DIRECT_ID || GROUP_ID || null;
 
 let lastMsgId  = 0;
 let replyToId  = null;
@@ -4219,6 +4207,23 @@ function appendMessage(msg) {
   } else if (SESSION_ID) {
     chatItem = document.querySelector(`.g-chat-item[href*="session=${SESSION_ID}"]`);
   }
+
+  // If chat is active but not in sidebar yet (e.g. brand new direct chat with first message sent), add it
+  if (!chatItem && (GROUP_ID || DIRECT_ID || SESSION_ID) && OTHER_USER_NAME) {
+    const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'session');
+    const cId = GROUP_ID || DIRECT_ID || SESSION_ID;
+    const isVer = !!document.querySelector('.g-hdr-name-text')?.parentNode?.querySelector('.g-verified-tick');
+    const photoUrl = document.getElementById('hdrAvatar')?.querySelector('img')?.src || null;
+    ensureSidebarChatItem(cType, cId, OTHER_USER_NAME, photoUrl, isVer, msg.content, msg.timestamp, msg.message_type);
+    if (GROUP_ID) {
+      chatItem = document.querySelector(`.g-chat-item[href*="group=${GROUP_ID}"]`);
+    } else if (DIRECT_ID) {
+      chatItem = document.querySelector(`.g-chat-item[href*="direct=${DIRECT_ID}"]`);
+    } else if (SESSION_ID) {
+      chatItem = document.querySelector(`.g-chat-item[href*="session=${SESSION_ID}"]`);
+    }
+  }
+
   if (chatItem) {
     const timeEl = chatItem.querySelector('.g-item-time');
     const subEl = chatItem.querySelector('.g-item-sub');
@@ -5467,64 +5472,392 @@ function switchTab(tab) {
   });
 }
 
-// ── Mobile Navigation ───────────────────────────────────
+// ── SPA Chat Navigation & Real-time Switching Engine ───
 function openChat(e, a, sessionId) {
-  if (window.innerWidth <= 768) {
-    e.preventDefault();
-    const currentParams = new URLSearchParams(window.location.search);
-    if (currentParams.get('session') === String(sessionId)) {
-      document.getElementById('gShell').classList.add('chat-active');
-      return;
-    }
-    document.getElementById('gShell').classList.add('chat-active');
-    setTimeout(() => {
-      location.href = '?session=' + sessionId;
-    }, 100);
-  }
+  if (e && e.preventDefault) e.preventDefault();
+  loadChatAJAX('session', sessionId, true);
 }
+
 function openGroupChat(e, a, groupId) {
-  if (window.innerWidth <= 768) {
-    e.preventDefault();
-    const currentParams = new URLSearchParams(window.location.search);
-    if (currentParams.get('group') === String(groupId)) {
-      document.getElementById('gShell').classList.add('chat-active');
-      return;
-    }
-    document.getElementById('gShell').classList.add('chat-active');
-    setTimeout(() => {
-      location.href = '?group=' + groupId;
-    }, 100);
-  }
+  if (e && e.preventDefault) e.preventDefault();
+  loadChatAJAX('group', groupId, true);
 }
+
 function openDirectChat(e, a, directId) {
-  if (window.innerWidth <= 768) {
-    e.preventDefault();
-    const currentParams = new URLSearchParams(window.location.search);
-    if (currentParams.get('direct') === String(directId)) {
-      document.getElementById('gShell').classList.add('chat-active');
-      return;
-    }
-    document.getElementById('gShell').classList.add('chat-active');
-    setTimeout(() => {
-      location.href = '?direct=' + directId;
-    }, 100);
-  }
+  if (e && e.preventDefault) e.preventDefault();
+  loadChatAJAX('direct', directId, true);
 }
+
 function goBack() {
-  const gShell = document.getElementById('gShell');
-  if (gShell) gShell.classList.remove('chat-active');
-  if (window.innerWidth <= 768) {
-    setTimeout(() => {
-      location.href = '/guidy/';
-    }, 50);
-  } else {
-    location.href = '/guidy/';
-  }
+  showNoChatPlaceholder(true);
 }
 
 function closeCurrentChat() {
-  goBack();
+  showNoChatPlaceholder(true);
 }
+
+function showNoChatPlaceholder(updateHistory = true) {
+  isPollingActive = false;
+  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+  if (chatWebSocket) {
+    try { chatWebSocket.close(); } catch(err) {}
+    chatWebSocket = null;
+  }
+  currentChatType = null;
+  currentChatId = null;
+  SESSION_ID = '';
+  DIRECT_ID = '';
+  GROUP_ID = '';
+  SEND_URL = '';
+  POLL_URL = '';
+  G_SEND_URL = '';
+  G_POLL_URL = '';
+  SEARCH_URL = '';
+  OTHER_TYPE = '';
+  OTHER_ID = '';
+  OTHER_USER_NAME = '';
+  REQ_PK = '';
+
+  const gShell = document.getElementById('gShell');
+  if (gShell) gShell.classList.remove('chat-active');
+
+  document.querySelectorAll('.g-chat-item').forEach(el => el.classList.remove('active'));
+
+  const container = document.getElementById('chatContainerWrapper');
+  const placeholder = document.getElementById('noChatPlaceholder');
+  if (container) container.style.display = 'none';
+  if (placeholder) placeholder.style.display = 'flex';
+
+  if (updateHistory) {
+    history.pushState(null, '', window.location.pathname);
+  }
+}
+
+async function loadChatAJAX(type, id, pushState = true) {
+  if (!type || !id) return;
+
+  // Stop current polling and socket
+  isPollingActive = false;
+  if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+  if (chatWebSocket) {
+    try { chatWebSocket.close(); } catch(err) {}
+    chatWebSocket = null;
+  }
+
+  // Mobile layout switch
+  const gShell = document.getElementById('gShell');
+  if (gShell) gShell.classList.add('chat-active');
+
+  // Update sidebar active highlights
+  document.querySelectorAll('.g-chat-item').forEach(el => el.classList.remove('active'));
+  const targetSidebarItem = document.querySelector(`.g-chat-item[href*="${type}=${id}"]`);
+  if (targetSidebarItem) {
+    targetSidebarItem.classList.add('active');
+    const badge = targetSidebarItem.querySelector('.g-unread-badge');
+    if (badge) badge.remove();
+  }
+
+  // Display chat wrapper, hide empty placeholder
+  const placeholder = document.getElementById('noChatPlaceholder');
+  const container = document.getElementById('chatContainerWrapper');
+  if (placeholder) placeholder.style.display = 'none';
+  if (container) container.style.display = 'flex';
+
+  // Smooth loading feedback
+  const nameTextEl = document.querySelector('.g-hdr-name-text');
+  if (nameTextEl) nameTextEl.innerHTML = '<i class="bx bx-loader-alt bx-spin" style="margin-right:4px;"></i> Loading...';
+
+  try {
+    const res = await fetch(`/guidy/chat-data/?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`);
+    const data = await res.json();
+    if (!data.success) {
+      showToast(data.error || 'Unable to open chat', 'error');
+      return;
+    }
+
+    // Update global state variables
+    currentChatType = data.chat_type;
+    currentChatId = data.chat_id;
+    SESSION_ID = (data.chat_type === 'session' ? String(data.chat_id) : '');
+    DIRECT_ID  = (data.chat_type === 'direct'  ? String(data.chat_id) : '');
+    GROUP_ID   = (data.chat_type === 'group'   ? String(data.chat_id) : '');
+    SEND_URL   = data.send_url || '';
+    POLL_URL   = data.poll_url || '';
+    G_SEND_URL = (data.chat_type === 'group' ? (data.send_url || '') : '');
+    G_POLL_URL = (data.chat_type === 'group' ? (data.poll_url || '') : '');
+    SEARCH_URL = data.search_url || '';
+    OTHER_TYPE = data.other_type || '';
+    OTHER_ID   = data.other_id ? String(data.other_id) : '';
+    OTHER_USER_NAME = data.name || '';
+    REQ_PK = data.req_pk ? String(data.req_pk) : '';
+
+    // Synchronize dataset on guidyConfig
+    if (cfg) {
+      cfg.dataset.sessionId = SESSION_ID;
+      cfg.dataset.directId = DIRECT_ID;
+      cfg.dataset.groupId = GROUP_ID;
+      cfg.dataset.sendUrl = SEND_URL;
+      cfg.dataset.pollUrl = POLL_URL;
+      cfg.dataset.groupSendUrl = G_SEND_URL;
+      cfg.dataset.groupPollUrl = G_POLL_URL;
+      cfg.dataset.searchUrl = SEARCH_URL;
+      cfg.dataset.otherType = OTHER_TYPE;
+      cfg.dataset.otherId = OTHER_ID;
+      cfg.dataset.reqPk = REQ_PK;
+    }
+
+    // Push state to browser history
+    if (pushState) {
+      const newUrl = window.location.pathname + '?' + data.chat_type + '=' + data.chat_id;
+      history.pushState({ type: data.chat_type, id: data.chat_id }, '', newUrl);
+    }
+
+    // Update Header Avatar
+    const avatarEl = document.getElementById('hdrAvatar');
+    if (avatarEl) {
+      if (data.photo_url) {
+        avatarEl.innerHTML = `<img src="${data.photo_url}" alt="${escHtml(data.name)}" style="width:100%; height:100%; object-fit:cover;">`;
+      } else if (data.chat_type === 'group') {
+        avatarEl.innerHTML = `<i class='bx bx-group' style="font-size:1.2rem;"></i>`;
+      } else {
+        const initial = data.name ? data.name.charAt(0).toUpperCase() : '?';
+        avatarEl.innerHTML = initial;
+      }
+    }
+
+    // Update Header Name & Verified tick
+    if (nameTextEl) {
+      nameTextEl.textContent = data.name || '';
+      const existingTick = nameTextEl.parentNode.querySelector('.g-verified-tick');
+      if (existingTick) existingTick.remove();
+      if (data.other_is_verified) {
+        const tick = document.createElement('i');
+        tick.className = 'bx bxs-badge-check g-verified-tick';
+        nameTextEl.parentNode.appendChild(tick);
+      }
+    }
+
+    // Update Subtitle / Presence Indicator
+    const presenceBox = document.getElementById('chatUserPresence');
+    const groupSub = document.getElementById('chatSubtitle');
+    if (data.chat_type === 'group') {
+      if (presenceBox) presenceBox.style.display = 'none';
+      if (groupSub) {
+        groupSub.style.display = 'block';
+        groupSub.textContent = data.group_members_str || '';
+      }
+    } else {
+      if (groupSub) groupSub.style.display = 'none';
+      if (presenceBox) {
+        presenceBox.style.display = 'flex';
+        const dot = presenceBox.querySelector('.presence-dot');
+        const txt = presenceBox.querySelector('.presence-text');
+        if (data.other_user_active) {
+          presenceBox.classList.add('active');
+          if (txt) txt.textContent = 'Active now';
+        } else {
+          presenceBox.classList.remove('active');
+          if (txt) txt.textContent = 'Offline';
+        }
+      }
+    }
+
+    // Update Action Menu items
+    updateActionMenuUI(data);
+
+    // Update Group Deleted Banner
+    const grpDeletedBanner = document.getElementById('groupDeletedNotice');
+    if (grpDeletedBanner) {
+      if (data.is_deleted_group) {
+        grpDeletedBanner.style.display = 'flex';
+        const txt = document.getElementById('groupDeletedNoticeText');
+        if (txt) {
+          txt.innerHTML = `You are no longer a part of this group. The group was deleted by <strong>${escHtml(data.group_deleted_by_name || 'Admin/Teacher')}</strong>. All messages and media will automatically be purged in <strong>${data.group_days_left || 30} days</strong>.`;
+        }
+        const actionBtn = document.getElementById('groupDeletedActionBtn');
+        if (actionBtn) {
+          actionBtn.setAttribute('onclick', `deleteGroupForMe('${data.chat_id}')`);
+        }
+      } else {
+        grpDeletedBanner.style.display = 'none';
+      }
+    }
+
+    // Update Input Bar & Locked/Blocked Notices
+    const lockedNotice = document.getElementById('lockedNotice');
+    const lockedNoticeText = document.getElementById('lockedNoticeText');
+    const blockedNotice = document.getElementById('blockedNotice');
+    const inputBar = document.getElementById('gInputBar');
+
+    if (data.is_blocked) {
+      if (blockedNotice) blockedNotice.style.display = 'flex';
+      if (lockedNotice) lockedNotice.style.display = 'none';
+      if (inputBar) inputBar.style.display = 'none';
+    } else if (data.is_deleted_group || (!data.is_active && data.ended_by_name)) {
+      if (blockedNotice) blockedNotice.style.display = 'none';
+      if (lockedNotice) {
+        lockedNotice.style.display = 'block';
+        if (lockedNoticeText) {
+          if (data.is_deleted_group) {
+            lockedNoticeText.textContent = `This group was deleted by ${data.group_deleted_by_name || 'Admin/Teacher'}. You cannot send messages.`;
+          } else {
+            lockedNoticeText.innerHTML = `This session got ended by ${escHtml(data.ended_by_name)}. You cannot send more messages in this chat.`;
+          }
+        }
+      }
+      if (inputBar) inputBar.style.display = 'none';
+    } else {
+      if (blockedNotice) blockedNotice.style.display = 'none';
+      if (lockedNotice) lockedNotice.style.display = 'none';
+      if (inputBar) inputBar.style.display = 'flex';
+    }
+
+    // Render Messages
+    const msgArea = document.getElementById('gMessages');
+    if (msgArea) {
+      msgArea.innerHTML = '';
+      lastRenderedDate = '';
+      lastMsgId = 0;
+      pendingReadIds = [];
+
+      if (!data.messages || data.messages.length === 0) {
+        msgArea.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--g-sub);"><i class="bx bx-message-rounded-dots" style="font-size:3rem;display:block;margin-bottom:10px;opacity:0.6;"></i>Say hello to start the conversation!</div>';
+      } else {
+        data.messages.forEach(m => appendMessage(m));
+      }
+    }
+
+    // Reset input, reply & pinned bar
+    const inp = document.getElementById('gInput');
+    if (inp) inp.innerHTML = '';
+    cancelReply();
+    toggleSendBtn();
+    initMessages();
+
+    // Start Polling & WebSocket
+    if (data.chat_type === 'group') {
+      startGroupPolling();
+    } else {
+      startPolling();
+    }
+    initGuidyWebSocket();
+
+  } catch(err) {
+    console.error("loadChatAJAX error:", err);
+    showToast('Failed to load chat', 'error');
+  }
+}
+
+function updateActionMenuUI(data) {
+  const menu = document.getElementById('actionMenu');
+  if (!menu) return;
+
+  let html = `<button class="g-menu-item" onclick="openProfileDrawer();closeMenu()"><i class='bx bx-user'></i> View Profile</button>`;
+
+  if (data.chat_type === 'direct' || data.chat_type === 'session') {
+    if (data.is_blocked) {
+      html += `<button class="g-menu-item" onclick="unblockChatUser();closeMenu()"><i class='bx bx-check-circle'></i> Unblock User</button>`;
+    } else {
+      html += `<button class="g-menu-item danger" onclick="confirmBlockUser();closeMenu()"><i class='bx bx-block'></i> Block User</button>`;
+    }
+  }
+
+  html += `<button class="g-menu-item" onclick="enterSelectMode();closeMenu()"><i class='bx bx-check-square'></i> Select messages</button>`;
+  html += `<button class="g-menu-item danger" onclick="confirmClearChat();closeMenu()"><i class='bx bx-trash'></i> Clear chat</button>`;
+
+  if (data.chat_type === 'session' && data.is_active) {
+    if (IS_ALUMNI) {
+      html += `<button class="g-menu-item" onclick="doRestrictStudent();closeMenu()"><i class='bx bx-no-entry'></i> Restrict Student</button>`;
+    }
+    html += `<button class="g-menu-item danger" onclick="confirmEndSession();closeMenu()"><i class='bx bx-exit'></i> End Session</button>`;
+  }
+
+  if (data.chat_type === 'group') {
+    if (data.is_deleted_group) {
+      html += `<button class="g-menu-item danger" onclick="deleteGroupForMe('${data.chat_id}');closeMenu()"><i class='bx bx-trash'></i> Delete group</button>`;
+    } else {
+      if (data.can_manage_group) {
+        html += `<button class="g-menu-item danger" onclick="confirmDeleteGroup('${data.chat_id}');closeMenu()"><i class='bx bx-trash'></i> Delete group</button>`;
+      }
+      html += `<button class="g-menu-item danger" onclick="exitGroup();closeMenu()"><i class='bx bx-exit'></i> Exit group</button>`;
+    }
+  }
+
+  menu.innerHTML = html;
+}
+
+function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, lastMsg, timestamp, msgType) {
+  const selector = `.g-chat-item[href*="${chatType}=${chatId}"]`;
+  let item = document.querySelector(selector);
+  const parentId = (chatType === 'group') ? 'panelGroups' : 'panelChats';
+  const parent = document.getElementById(parentId);
+  if (!parent) return;
+
+  const emptyDiv = parent.querySelector('.g-empty');
+  if (emptyDiv) emptyDiv.remove();
+
+  if (!item) {
+    item = document.createElement('a');
+    item.href = `?${chatType}=${chatId}`;
+    item.className = 'g-chat-item active';
+    item.dataset.chatName = name;
+
+    if (chatType === 'group') {
+      item.setAttribute('onclick', `openGroupChat(event, this, '${chatId}')`);
+    } else if (chatType === 'direct') {
+      item.setAttribute('onclick', `openDirectChat(event, this, '${chatId}')`);
+    } else {
+      item.setAttribute('onclick', `openChat(event, this, '${chatId}')`);
+    }
+
+    const avatarContent = photoUrl
+      ? `<img src="${photoUrl}" alt="${escHtml(name)}" style="width:100%; height:100%; object-fit:cover;">`
+      : (chatType === 'group' ? `<i class='bx bx-group' style="font-size:1.3rem;"></i>` : (name ? name.charAt(0).toUpperCase() : '?'));
+
+    let previewText = escHtml(lastMsg || '');
+    if (msgType === 'image') previewText = `<i class='bx bx-image-alt'></i> Photo`;
+    else if (msgType === 'video') previewText = `<i class='bx bx-video'></i> Video`;
+    else if (msgType === 'document') previewText = `<i class='bx bx-file'></i> Document`;
+    else if (msgType === 'audio') previewText = `<i class='bx bx-microphone'></i> Audio`;
+
+    item.innerHTML = `
+      <div class="g-item-avatar" ${chatType === 'group' ? 'style="background:linear-gradient(135deg,#6c63ff,#764ba2);"' : ''}>
+        ${avatarContent}
+      </div>
+      <div class="g-item-info">
+        <div class="g-item-top">
+          <span class="g-item-name">${escHtml(name)} ${isVerified ? `<i class='bx bxs-badge-check g-verified-tick'></i>` : ''}</span>
+          <span class="g-item-time">${timestamp || ''}</span>
+        </div>
+        <div class="g-item-sub">${previewText}</div>
+      </div>
+    `;
+
+    const createBtn = parent.querySelector('.g-create-group-btn');
+    if (createBtn) {
+      parent.insertBefore(item, createBtn.nextSibling);
+    } else {
+      parent.insertBefore(item, parent.firstChild);
+    }
+  }
+}
+
+window.addEventListener('popstate', () => {
+  const params = new URLSearchParams(window.location.search);
+  const session = params.get('session');
+  const direct = params.get('direct');
+  const group = params.get('group');
+
+  if (group) {
+    loadChatAJAX('group', group, false);
+  } else if (direct) {
+    loadChatAJAX('direct', direct, false);
+  } else if (session) {
+    loadChatAJAX('session', session, false);
+  } else {
+    showNoChatPlaceholder(false);
+  }
+});
 
 // ── Profile Drawer ───────────────────────────────────────
 function toggleProfileDrawer(e) {
@@ -6329,20 +6662,23 @@ async function exitGroup() {
   if (!GROUP_ID) return;
   if (!await GuidyAppModal.confirm('Exit Group', 'Are you sure you want to exit this group?', 'Exit', true)) return;
   
+  const gId = GROUP_ID;
   const fd = new FormData();
   fd.append('action', 'exit');
   fd.append('member_id', cfg.dataset.userId);
   fd.append('csrfmiddlewaretoken', CSRF);
   
   try {
-    const r = await fetch(`/guidy/groups/${GROUP_ID}/members/manage/`, {
+    const r = await fetch(`/guidy/groups/${gId}/members/manage/`, {
       method: 'POST',
       body: fd
     });
     const d = await r.json();
     if (d.success) {
       showToast(d.group_deleted ? 'Group deleted' : 'Exited group');
-      setTimeout(() => location.href = '/guidy/', 800);
+      const item = document.querySelector(`.g-chat-item[href*="group=${gId}"]`);
+      if (item) item.remove();
+      showNoChatPlaceholder(true);
     } else {
       showToast(d.error || 'Failed to exit group', 'error');
     }
@@ -6369,7 +6705,9 @@ async function confirmDeleteGroup(groupId) {
     const d = await r.json();
     if (d.success) {
       showToast('Group deleted');
-      setTimeout(() => location.href = '/guidy/', 800);
+      const item = document.querySelector(`.g-chat-item[href*="group=${gId}"]`);
+      if (item) item.remove();
+      showNoChatPlaceholder(true);
     } else {
       showToast(d.error || 'Failed to delete group', 'error');
     }
@@ -6394,7 +6732,9 @@ async function deleteGroupForMe(groupId) {
     const d = await r.json();
     if (d.success) {
       showToast('Group removed from your list');
-      setTimeout(() => location.href = '/guidy/', 800);
+      const item = document.querySelector(`.g-chat-item[href*="group=${gId}"]`);
+      if (item) item.remove();
+      showNoChatPlaceholder(true);
     } else {
       showToast(d.error || 'Failed to remove group', 'error');
     }
@@ -6411,11 +6751,6 @@ function closeProfileDrawer() {
   const btn = document.getElementById('drawerEditToggleBtn');
   if (btn) { btn.textContent = 'Edit'; btn.style.background = 'rgba(255,255,255,0.15)'; }
   document.getElementById('profileDrawer').classList.remove('open');
-}
-
-function closeCurrentChat() {
-  // Drop any ?session= or ?group= URL parameters to return to the default empty state
-  window.location.href = window.location.pathname;
 }
 
 // ── Action Menu ──────────────────────────────────────────
@@ -6469,13 +6804,16 @@ async function doRestrictStudent() {
 
 async function doEndSession() {
   if (!SESSION_ID) return;
+  const sId = SESSION_ID;
   const fd = new FormData();
   fd.append('csrfmiddlewaretoken', CSRF);
-  const r = await fetch(`/guidy/chat/${SESSION_ID}/end/`, { method:'POST', body:fd });
+  const r = await fetch(`/guidy/chat/${sId}/end/`, { method:'POST', body:fd });
   const d = await r.json();
   if (d.success) {
     showToast('Session ended');
-    setTimeout(() => location.href='/guidy/', 1200);
+    const item = document.querySelector(`.g-chat-item[href*="session=${sId}"]`);
+    if (item) item.remove();
+    showNoChatPlaceholder(true);
   } else {
     showToast(d.error || 'Failed to end session', 'error');
   }
@@ -6488,13 +6826,17 @@ async function confirmEndSession() {
 }
 
 async function forceDeleteLockedChat() {
+  const cType = DIRECT_ID ? 'direct' : 'session';
+  const cId = DIRECT_ID || SESSION_ID;
   const url = DIRECT_ID ? `/guidy/direct/${DIRECT_ID}/end/` : `/guidy/chat/${SESSION_ID}/end/`;
   const fd = new FormData(); fd.append('csrfmiddlewaretoken', CSRF);
   const r = await fetch(url, { method: 'POST', body: fd });
   const d = await r.json();
   if (d.success) {
     showToast('Chat permanently deleted.');
-    setTimeout(() => location.href='/guidy/', 800);
+    const item = document.querySelector(`.g-chat-item[href*="${cType}=${cId}"]`);
+    if (item) item.remove();
+    showNoChatPlaceholder(true);
   } else {
     showToast(d.error || 'Failed to delete chat.', 'error');
   }
@@ -6512,7 +6854,9 @@ async function respondReq(btn, action) {
   const d = await r.json();
   if (d.success) {
     if (action === 'accept' && d.session_id) {
-      location.href = '?session=' + d.session_id;
+      if (card) card.remove();
+      switchTab('chats');
+      loadChatAJAX('session', d.session_id, true);
     } else {
       card.style.transition = 'opacity 0.4s, max-height 0.4s';
       card.style.opacity = '0';
@@ -6548,14 +6892,20 @@ async function createGroup() {
   fd.append('csrfmiddlewaretoken', CSRF);
   fd.append('name', name);
   if (members) fd.append('member_ids', members);
-  const r = await fetch('/guidy/groups/create/', { method:'POST', body:fd });
-  const d = await r.json();
-  if (d.success) {
-    closeGroupModal();
-    showToast('Group created!');
-    setTimeout(() => location.href = '?group=' + d.group_id, 800);
-  } else {
-    showToast(d.error || 'Failed to create group', 'error');
+  try {
+    const r = await fetch('/guidy/groups/create/', { method:'POST', body:fd });
+    const d = await r.json();
+    if (d.success) {
+      closeGroupModal();
+      showToast('Group created!');
+      switchTab('groups');
+      ensureSidebarChatItem('group', d.group_id, d.name, null, false, '', '', 'text');
+      loadChatAJAX('group', d.group_id, true);
+    } else {
+      showToast(d.error || 'Failed to create group', 'error');
+    }
+  } catch(e) {
+    showToast('Failed to create group', 'error');
   }
 }
 
@@ -7273,7 +7623,17 @@ async function ajaxUnblockUser(userId) {
       showToast('Contact unblocked');
       loadBlockedContacts();
       if (typeof OTHER_ID !== 'undefined' && parseInt(OTHER_ID) === parseInt(userId)) {
-        setTimeout(() => location.reload(), 600);
+        const blockedNotice = document.getElementById('blockedNotice');
+        const inputBar = document.getElementById('gInputBar');
+        if (blockedNotice) blockedNotice.style.display = 'none';
+        if (inputBar) inputBar.style.display = 'flex';
+        updateActionMenuUI({
+          chat_type: currentChatType,
+          chat_id: currentChatId,
+          is_blocked: false,
+          is_active: true,
+          can_manage_group: false
+        });
       }
     } else {
       showToast(d.error || 'Failed to unblock contact', 'error');
@@ -7296,7 +7656,17 @@ async function confirmBlockUser() {
       const d = await r.json();
       if (d.success) {
         showToast('Contact blocked');
-        setTimeout(() => location.reload(), 600);
+        const blockedNotice = document.getElementById('blockedNotice');
+        const inputBar = document.getElementById('gInputBar');
+        if (blockedNotice) blockedNotice.style.display = 'flex';
+        if (inputBar) inputBar.style.display = 'none';
+        updateActionMenuUI({
+          chat_type: currentChatType,
+          chat_id: currentChatId,
+          is_blocked: true,
+          is_active: true,
+          can_manage_group: false
+        });
       } else {
         showToast(d.error || 'Failed to block contact', 'error');
       }
@@ -7322,7 +7692,7 @@ function closeEndSessionsModal() {
 
 function confirmEndSessions() {
   closeEndSessionsModal();
-  location.href = '/guidy/';
+  showNoChatPlaceholder(true);
 }
 
 // Media Upload/Download Warning Popups (10-Day Auto-Purge Policy)
@@ -7643,9 +8013,9 @@ async function startDirectChat(userId) {
     if (d.success) {
       closeContactListModal();
       if (d.direct_id) {
-        location.href = '?direct=' + d.direct_id;
-      } else {
-        location.href = '?session=' + d.session_id;
+        loadChatAJAX('direct', d.direct_id, true);
+      } else if (d.session_id) {
+        loadChatAJAX('session', d.session_id, true);
       }
     } else {
       showToast(d.error || 'Failed to start chat', 'error');
@@ -7714,7 +8084,10 @@ async function submitModalAction() {
       if (d.success) {
         closeContactListModal();
         showToast('Group created!');
-        setTimeout(() => location.href = '?group=' + d.group_id, 800);
+        switchTab('groups');
+        const photoUrl = (photoInp && photoInp.files && photoInp.files[0]) ? URL.createObjectURL(photoInp.files[0]) : null;
+        ensureSidebarChatItem('group', d.group_id, d.name, photoUrl, false, '', '', 'text');
+        loadChatAJAX('group', d.group_id, true);
       } else {
         showToast(d.error || 'Failed to create group', 'error');
       }
