@@ -393,6 +393,99 @@ body.dark-theme .g-item-sub { color: #94a3b8; }
   box-shadow: 0 2px 6px rgba(255,107,107,0.35);
 }
 
+/* ── End Session Multi-Select Mode ── */
+.g-session-checkbox {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--g-sub);
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  color: transparent;
+  font-size: 1rem;
+}
+
+.g-sidebar.end-session-mode .g-session-checkbox {
+  display: flex !important;
+}
+
+.g-sidebar.end-session-mode .g-chat-item.session-selected .g-session-checkbox {
+  border-color: #ef4444;
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.g-sidebar.end-session-mode .g-chat-item.session-selected {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-left: 3px solid #ef4444;
+}
+
+.g-sidebar.end-session-mode .g-unread-badge {
+  display: none !important;
+}
+
+/* End Session Top Banner */
+.g-end-session-top-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--g-side-bg);
+  border-bottom: 1px solid var(--g-border);
+  gap: 12px;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.g-sidebar.end-session-mode .g-end-session-top-banner {
+  display: flex;
+}
+
+.g-sidebar.end-session-mode .g-sidebar-title-row,
+.g-sidebar.end-session-mode .g-sidebar-search-row,
+.g-sidebar.end-session-mode .g-tabs {
+  display: none !important;
+}
+
+/* End Session Bottom Action Bar */
+.g-end-session-bottom-bar {
+  display: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: var(--g-side-bg);
+  border-top: 1px solid var(--g-border);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+  z-index: 25;
+  gap: 10px;
+  align-items: center;
+}
+
+body.dark-theme .g-end-session-bottom-bar {
+  border-top-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.35);
+}
+
+.g-sidebar.end-session-mode .g-end-session-bottom-bar {
+  display: flex;
+}
+
+.g-sidebar.end-session-mode .g-floating-add-btn,
+.g-sidebar.end-session-mode .g-floating-fullscreen-btn {
+  display: none !important;
+}
+
+.g-sidebar.end-session-mode .g-side-body {
+  padding-bottom: 70px;
+}
+
 /* Pending Request Card */
 .g-req-card {
   padding: 14px 16px; border-bottom: 1px solid var(--g-border);
@@ -2119,6 +2212,19 @@ body.dark-theme .search-highlight {
 
     <!-- Sidebar Top Wrapper -->
     <div class="g-sidebar-top">
+      <!-- End Session Multi-Select Header Banner -->
+      <div class="g-end-session-top-banner" id="endSessionTopBanner">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button onclick="exitEndSessionSelectMode()" title="Cancel Selection" style="background: none; border: none; color: var(--g-text); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; padding: 4px; border-radius: 50%;">
+            <i class='bx bx-x'></i>
+          </button>
+          <span id="endSessionHeaderCount" style="font-size: 0.95rem; font-weight: 800; color: var(--g-text);">0 Selected</span>
+        </div>
+        <button id="endSessionSelectAllBtn" onclick="toggleSelectAllEndSessions()" style="background: none; border: none; color: var(--g-primary-s); font-weight: 700; font-size: 0.85rem; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+          Select All
+        </button>
+      </div>
+
       <!-- ROW 1: Title & Menu -->
       <div class="g-sidebar-title-row">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -2136,7 +2242,7 @@ body.dark-theme .search-highlight {
           <div id="gSidebarDropdown" class="g-dropdown-menu">
             <button onclick="openSelfProfilePane()"><i class='bx bx-user' style="color: var(--g-primary-s); font-size: 1rem;"></i> Your Profile</button>
             <button onclick="openBlockedContactsModal()"><i class='bx bx-block' style="color: #ef4444; font-size: 1rem;"></i> Blocked Contacts</button>
-            <button onclick="openEndSessionsModal()"><i class='bx bx-log-out' style="color: #ef4444; font-size: 1rem;"></i> End Sessions</button>
+            <button onclick="enterEndSessionSelectMode()"><i class='bx bx-log-out' style="color: #ef4444; font-size: 1rem;"></i> End Session</button>
           </div>
         </div>
       </div>
@@ -2185,11 +2291,11 @@ body.dark-theme .search-highlight {
         {% if unified_chats %}
           {% for c in unified_chats %}
           {% if c.is_direct_group %}
-            <a href="?group={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" onclick="openGroupChat(event, this, '{{ c.id }}')">
+            <a href="?group={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="group" data-chat-id="{{ c.id }}" onclick="handleChatItemClick(event, this, 'group', '{{ c.id }}')">
           {% elif c.is_direct_session %}
-            <a href="?direct={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" onclick="openDirectChat(event, this, '{{ c.id }}')">
+            <a href="?direct={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="direct" data-chat-id="{{ c.id }}" onclick="handleChatItemClick(event, this, 'direct', '{{ c.id }}')">
           {% else %}
-            <a href="?session={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" onclick="openChat(event, this, '{{ c.id }}')">
+            <a href="?session={{ c.id }}" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="session" data-chat-id="{{ c.id }}" onclick="handleChatItemClick(event, this, 'session', '{{ c.id }}')">
           {% endif %}
             <div class="g-item-avatar">
               {% if c.photo_url %}
@@ -2218,6 +2324,9 @@ body.dark-theme .search-highlight {
             {% if c.unread_count > 0 %}
               <span class="g-unread-badge">{{ c.unread_count }}</span>
             {% endif %}
+            <div class="g-session-checkbox">
+              <i class='bx bx-check'></i>
+            </div>
           </a>
           {% endfor %}
         {% else %}
@@ -2268,7 +2377,7 @@ body.dark-theme .search-highlight {
         {% if my_groups %}
           {% for g in my_groups %}
           <a href="?group={{ g.id }}" class="g-chat-item {% if active_group.id == g.id %}active{% endif %}"
-             data-chat-name="{{ g.name }}" onclick="openGroupChat(event,this,'{{ g.id }}')">
+             data-chat-name="{{ g.name }}" data-chat-type="group" data-chat-id="{{ g.id }}" onclick="handleChatItemClick(event,this,'group','{{ g.id }}')">
             <div class="g-item-avatar" style="background:linear-gradient(135deg,#6c63ff,#764ba2);">
               {% if g.photo_url %}
                 <img src="{{ g.photo_url }}" alt="{{ g.name }}" style="width:100%; height:100%; object-fit:cover;">
@@ -2294,6 +2403,9 @@ body.dark-theme .search-highlight {
             {% if g.unread_count > 0 %}
               <span class="g-unread-badge">{{ g.unread_count }}</span>
             {% endif %}
+            <div class="g-session-checkbox">
+              <i class='bx bx-check'></i>
+            </div>
           </a>
           {% endfor %}
         {% else %}
@@ -2302,6 +2414,17 @@ body.dark-theme .search-highlight {
       </div>
 
     </div><!-- /g-side-body -->
+
+    <!-- End Session Bottom Floating Action Bar -->
+    <div class="g-end-session-bottom-bar" id="endSessionBottomBar">
+      <button id="endSessionSubmitBtn" onclick="confirmEndSelectedSessions()" style="flex: 2; padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; opacity: 0.5; pointer-events: none;">
+        <i class='bx bx-log-out' style="font-size: 1.1rem;"></i>
+        <span>End Selected (<span id="endSessionBtnCount">0</span>)</span>
+      </button>
+      <button onclick="exitEndSessionSelectMode()" style="flex: 1; padding: 10px 14px; background: var(--g-hov); color: var(--g-text); border: 1px solid var(--g-border); border-radius: 10px; font-weight: 600; font-size: 0.88rem; cursor: pointer;">
+        Cancel
+      </button>
+    </div>
 
     <!-- Floating Fullscreen Toggle Button -->
     <div class="g-floating-fullscreen-btn" id="sidebarFullscreenBtn" onclick="toggleFullscreenMode()" title="Toggle Fullscreen">
@@ -5473,19 +5596,243 @@ function switchTab(tab) {
 }
 
 // ── SPA Chat Navigation & Real-time Switching Engine ───
+let endSessionSelectMode = false;
+let selectedEndSessionKeys = new Set(); // Stores e.g. "session:12", "direct:34", "group:56"
+
 function openChat(e, a, sessionId) {
   if (e && e.preventDefault) e.preventDefault();
+  const el = a || (e ? e.currentTarget : null);
+  if (endSessionSelectMode) {
+    if (el) toggleEndSessionItem(el, 'session', sessionId);
+    return;
+  }
   loadChatAJAX('session', sessionId, true);
 }
 
 function openGroupChat(e, a, groupId) {
   if (e && e.preventDefault) e.preventDefault();
+  const el = a || (e ? e.currentTarget : null);
+  if (endSessionSelectMode) {
+    if (el) toggleEndSessionItem(el, 'group', groupId);
+    return;
+  }
   loadChatAJAX('group', groupId, true);
 }
 
 function openDirectChat(e, a, directId) {
   if (e && e.preventDefault) e.preventDefault();
+  const el = a || (e ? e.currentTarget : null);
+  if (endSessionSelectMode) {
+    if (el) toggleEndSessionItem(el, 'direct', directId);
+    return;
+  }
   loadChatAJAX('direct', directId, true);
+}
+
+function handleChatItemClick(e, el, chatType, chatId) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (endSessionSelectMode) {
+    toggleEndSessionItem(el, chatType, chatId);
+    return;
+  }
+  if (chatType === 'group') {
+    openGroupChat(e, el, chatId);
+  } else if (chatType === 'direct') {
+    openDirectChat(e, el, chatId);
+  } else {
+    openChat(e, el, chatId);
+  }
+}
+
+// ── End Session Multi-Select Mode Engine ──
+function enterEndSessionSelectMode() {
+  endSessionSelectMode = true;
+  selectedEndSessionKeys.clear();
+
+  // Close 3-dot dropdown menu
+  const dropdown = document.getElementById('gSidebarDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+
+  // Add class to sidebar
+  const sidebar = document.querySelector('.g-sidebar');
+  if (sidebar) sidebar.classList.add('end-session-mode');
+
+  // Clear visual highlights
+  document.querySelectorAll('.g-chat-item').forEach(el => {
+    el.classList.remove('session-selected');
+  });
+
+  updateEndSessionUI();
+}
+
+function exitEndSessionSelectMode() {
+  endSessionSelectMode = false;
+  selectedEndSessionKeys.clear();
+
+  const sidebar = document.querySelector('.g-sidebar');
+  if (sidebar) sidebar.classList.remove('end-session-mode');
+
+  document.querySelectorAll('.g-chat-item').forEach(el => {
+    el.classList.remove('session-selected');
+  });
+
+  updateEndSessionUI();
+}
+
+function toggleEndSessionItem(el, chatType, chatId) {
+  const key = `${chatType}:${chatId}`;
+  if (selectedEndSessionKeys.has(key)) {
+    selectedEndSessionKeys.delete(key);
+    el.classList.remove('session-selected');
+  } else {
+    selectedEndSessionKeys.add(key);
+    el.classList.add('session-selected');
+  }
+  updateEndSessionUI();
+}
+
+function toggleSelectAllEndSessions() {
+  const activeTab = getActiveTab();
+  const panelId = (activeTab === 'groups') ? 'panelGroups' : 'panelChats';
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+
+  const items = Array.from(panel.querySelectorAll('.g-chat-item'));
+  if (items.length === 0) return;
+
+  const allSelected = items.every(item => {
+    const type = item.dataset.chatType;
+    const id = item.dataset.chatId;
+    return selectedEndSessionKeys.has(`${type}:${id}`);
+  });
+
+  if (allSelected) {
+    items.forEach(item => {
+      const type = item.dataset.chatType;
+      const id = item.dataset.chatId;
+      selectedEndSessionKeys.delete(`${type}:${id}`);
+      item.classList.remove('session-selected');
+    });
+  } else {
+    items.forEach(item => {
+      const type = item.dataset.chatType;
+      const id = item.dataset.chatId;
+      if (type && id) {
+        selectedEndSessionKeys.add(`${type}:${id}`);
+        item.classList.add('session-selected');
+      }
+    });
+  }
+  updateEndSessionUI();
+}
+
+function updateEndSessionUI() {
+  const count = selectedEndSessionKeys.size;
+  const headerCount = document.getElementById('endSessionHeaderCount');
+  const btnCount = document.getElementById('endSessionBtnCount');
+  const submitBtn = document.getElementById('endSessionSubmitBtn');
+  const selectAllBtn = document.getElementById('endSessionSelectAllBtn');
+
+  if (headerCount) headerCount.textContent = `${count} Selected`;
+  if (btnCount) btnCount.textContent = count;
+
+  if (submitBtn) {
+    if (count > 0) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = '1';
+      submitBtn.style.pointerEvents = 'auto';
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.5';
+      submitBtn.style.pointerEvents = 'none';
+    }
+  }
+
+  if (selectAllBtn) {
+    const activeTab = getActiveTab();
+    const panelId = (activeTab === 'groups') ? 'panelGroups' : 'panelChats';
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      const items = Array.from(panel.querySelectorAll('.g-chat-item'));
+      const allSelected = items.length > 0 && items.every(item => {
+        const type = item.dataset.chatType;
+        const id = item.dataset.chatId;
+        return selectedEndSessionKeys.has(`${type}:${id}`);
+      });
+      selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All';
+    }
+  }
+}
+
+async function confirmEndSelectedSessions() {
+  if (selectedEndSessionKeys.size === 0) return;
+  const count = selectedEndSessionKeys.size;
+  const confirmMsg = `Are you sure you want to end ${count} selected chat session${count > 1 ? 's' : ''}? This will close the active chat session${count > 1 ? 's' : ''}.`;
+  
+  if (!await GuidyAppModal.confirm('End Selected Sessions', confirmMsg, `End ${count} Session${count > 1 ? 's' : ''}`, true)) {
+    return;
+  }
+
+  const sessionIds = [];
+  const directIds = [];
+  const groupIds = [];
+
+  selectedEndSessionKeys.forEach(key => {
+    const [type, idStr] = key.split(':');
+    const id = parseInt(idStr);
+    if (type === 'session') sessionIds.push(id);
+    else if (type === 'direct') directIds.push(id);
+    else if (type === 'group') groupIds.push(id);
+  });
+
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('session_ids', JSON.stringify(sessionIds));
+  fd.append('direct_ids', JSON.stringify(directIds));
+  fd.append('group_ids', JSON.stringify(groupIds));
+
+  try {
+    const r = await fetch('/guidy/sessions/bulk-end/', {
+      method: 'POST',
+      body: fd
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast(`${d.ended_count} session${d.ended_count > 1 ? 's' : ''} ended successfully`);
+
+      // Check if current open chat is one of the ended sessions
+      let isCurrentEnded = false;
+      selectedEndSessionKeys.forEach(key => {
+        const [type, idStr] = key.split(':');
+        const id = parseInt(idStr);
+        if (currentChatType === type && parseInt(currentChatId) === id) {
+          isCurrentEnded = true;
+        }
+      });
+
+      // Remove the ended chat items from the DOM
+      selectedEndSessionKeys.forEach(key => {
+        const [type, idStr] = key.split(':');
+        const item = document.querySelector(`.g-chat-item[data-chat-type="${type}"][data-chat-id="${idStr}"], .g-chat-item[href*="${type}=${idStr}"]`);
+        if (item) item.remove();
+      });
+
+      // If active chat pane was ended, show placeholder
+      if (isCurrentEnded) {
+        showNoChatPlaceholder(true);
+      }
+
+      exitEndSessionSelectMode();
+    } else {
+      showToast(d.error || 'Failed to end selected sessions', 'error');
+    }
+  } catch(e) {
+    showToast('Failed to end selected sessions', 'error');
+  }
+}
+
+function openEndSessionsModal() {
+  enterEndSessionSelectMode();
 }
 
 function goBack() {
@@ -5801,14 +6148,9 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
     item.href = `?${chatType}=${chatId}`;
     item.className = 'g-chat-item active';
     item.dataset.chatName = name;
-
-    if (chatType === 'group') {
-      item.setAttribute('onclick', `openGroupChat(event, this, '${chatId}')`);
-    } else if (chatType === 'direct') {
-      item.setAttribute('onclick', `openDirectChat(event, this, '${chatId}')`);
-    } else {
-      item.setAttribute('onclick', `openChat(event, this, '${chatId}')`);
-    }
+    item.dataset.chatType = chatType;
+    item.dataset.chatId = chatId;
+    item.setAttribute('onclick', `handleChatItemClick(event, this, '${chatType}', '${chatId}')`);
 
     const avatarContent = photoUrl
       ? `<img src="${photoUrl}" alt="${escHtml(name)}" style="width:100%; height:100%; object-fit:cover;">`
@@ -5830,6 +6172,9 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
           <span class="g-item-time">${timestamp || ''}</span>
         </div>
         <div class="g-item-sub">${previewText}</div>
+      </div>
+      <div class="g-session-checkbox">
+        <i class='bx bx-check'></i>
       </div>
     `;
 
@@ -7682,17 +8027,10 @@ async function unblockChatUser() {
 }
 
 function openEndSessionsModal() {
-  const dropdown = document.getElementById('gSidebarDropdown');
-  if (dropdown) dropdown.style.display = 'none';
-  document.getElementById('endSessionsModal').classList.add('open');
+  enterEndSessionSelectMode();
 }
 function closeEndSessionsModal() {
-  document.getElementById('endSessionsModal').classList.remove('open');
-}
-
-function confirmEndSessions() {
-  closeEndSessionsModal();
-  showNoChatPlaceholder(true);
+  exitEndSessionSelectMode();
 }
 
 // Media Upload/Download Warning Popups (10-Day Auto-Purge Policy)

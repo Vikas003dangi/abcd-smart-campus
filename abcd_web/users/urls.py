@@ -265,6 +265,7 @@ urlpatterns = [
 
     path('guidy/load-older/', views.guidy_load_older, name='guidy_load_older'),
     path('guidy/chat-data/', views.guidy_load_chat_api, name='guidy_load_chat_api'),
+    path('guidy/sessions/bulk-end/', views.guidy_bulk_end_sessions, name='guidy_bulk_end_sessions'),
 
     # Profile info drawer
     path('guidy/profile/<str:entity_type>/<int:entity_id>/', views.guidy_profile_info, name='guidy_profile_info'),

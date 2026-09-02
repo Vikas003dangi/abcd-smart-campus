@@ -11385,6 +11385,96 @@ def guidy_end_session(request, session_id=None, direct_id=None):
 
 @login_required
 @require_POST
+def guidy_bulk_end_sessions(request):
+    """
+    Bulk ends selected ChatSessions, DirectChatSessions, or GroupChatSessions.
+    Applies security verification to ensure the request user is a valid participant/admin.
+    """
+    import json
+    from django.utils import timezone
+
+    user = request.user
+    session_ids_raw = request.POST.get('session_ids', '[]')
+    direct_ids_raw = request.POST.get('direct_ids', '[]')
+    group_ids_raw = request.POST.get('group_ids', '[]')
+
+    try:
+        session_ids = json.loads(session_ids_raw) if isinstance(session_ids_raw, str) and session_ids_raw.startswith('[') else [int(x) for x in session_ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        session_ids = []
+
+    try:
+        direct_ids = json.loads(direct_ids_raw) if isinstance(direct_ids_raw, str) and direct_ids_raw.startswith('[') else [int(x) for x in direct_ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        direct_ids = []
+
+    try:
+        group_ids = json.loads(group_ids_raw) if isinstance(group_ids_raw, str) and group_ids_raw.startswith('[') else [int(x) for x in group_ids_raw.split(',') if x.strip().isdigit()]
+    except Exception:
+        group_ids = []
+
+    ended_count = 0
+    now = timezone.now()
+    is_student = not user.is_staff and not user.is_superuser and getattr(user, 'studentprofile', None) is not None
+
+    # 1. Process ChatSessions (Mentorship)
+    if session_ids:
+        sessions = ChatSession.objects.filter(id__in=session_ids)
+        for s in sessions:
+            if s.request:
+                is_participant = (s.request.student == user or s.request.alumni.user == user)
+            else:
+                is_participant = (s.user_one == user or s.user_two == user)
+
+            if is_participant or user.is_staff or user.is_superuser:
+                s.is_active = False
+                s.ended_by = user
+                s.session_ended_at = now
+                s.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+
+                if is_student:
+                    s.messages.filter(sender=user).delete()
+                else:
+                    s.messages.all().delete()
+                ended_count += 1
+
+    # 2. Process DirectChatSessions
+    if direct_ids:
+        direct_sessions = DirectChatSession.objects.filter(id__in=direct_ids)
+        for d in direct_sessions:
+            if d.user1 == user or d.user2 == user or user.is_staff or user.is_superuser:
+                d.is_active = False
+                d.ended_by = user
+                d.session_ended_at = now
+                d.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+
+                if is_student:
+                    d.messages.filter(sender=user).delete()
+                else:
+                    d.messages.all().delete()
+                ended_count += 1
+
+    # 3. Process GroupChatSessions
+    if group_ids:
+        groups = GroupChatSession.objects.filter(id__in=group_ids)
+        for g in groups:
+            if g.created_by == user or user.is_staff or user.is_superuser:
+                g.is_active = False
+                g.deleted_by_user = user
+                g.deleted_at = now
+                g.save(update_fields=['is_active', 'deleted_by_user', 'deleted_at'])
+                ended_count += 1
+            elif user in g.members.all():
+                g.members.remove(user)
+                if hasattr(g, 'deleted_for_users'):
+                    g.deleted_for_users.add(user)
+                ended_count += 1
+
+    return JsonResponse({'success': True, 'ended_count': ended_count})
+
+
+@login_required
+@require_POST
 def guidy_restrict_student(request, request_pk):
     """
     Alumni restricts a student — different from blocking.
