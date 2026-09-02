@@ -2803,7 +2803,7 @@ body.dark-theme .search-highlight {
             {% if is_deleted_group %}
               This group was deleted by {{ group_deleted_by_name }}. You cannot send messages.
             {% elif active_session or active_direct %}
-              This session got ended by {% if active_session %}{{ active_session.ended_by.get_full_name|default:active_session.ended_by.username }}{% else %}{{ active_direct.ended_by.get_full_name|default:active_direct.ended_by.username }}{% endif %}. You cannot send more messages in this chat.
+              This session got ended by {{ ended_by_name|default:"another user" }}. You cannot send more messages in this chat.
               {% if is_teacher %}<br><span style="color: var(--g-sub); font-size: 0.8rem; font-weight: 400;">Start a new chat with them from the + menu.</span>{% endif %}
             {% endif %}
           </span>
@@ -3435,7 +3435,7 @@ body.dark-theme .search-highlight {
           <i class='bx bx-time-five' style="font-size: 3rem; color: #f59e0b; margin-bottom: 10px;"></i>
           <h3 style="margin-bottom: 15px;">Session Ended</h3>
           <p style="color: var(--g-sub); font-size: 0.95rem; margin-bottom: 20px; line-height: 1.5;">
-              This chat's session got ended by <b>{% if active_session %}{{ active_session.ended_by.get_full_name|default:active_session.ended_by.username }}{% else %}{{ active_direct.ended_by.get_full_name|default:active_direct.ended_by.username }}{% endif %}</b>.<br>
+              This chat's session got ended by <b>{{ ended_by_name|default:"another user" }}</b>.<br>
               This chat review is only available for <b>{{ locked_days_left }} more days</b>. Would you like to let it be or delete it now?
           </p>
           <div style="display: flex; gap: 10px; justify-content: center;">

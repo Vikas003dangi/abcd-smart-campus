@@ -10793,6 +10793,12 @@ def guidy_home(request):
             delta = timezone.now() - active_group.deleted_at
             group_days_left = max(0, 30 - delta.days)
 
+    ended_by_name = ""
+    if active_session and active_session.ended_by:
+        ended_by_name = get_user_display_name(active_session.ended_by)
+    elif active_direct and active_direct.ended_by:
+        ended_by_name = get_user_display_name(active_direct.ended_by)
+
     context = {
         'has_any_chat_history': has_any_chat_history,
         'is_teacher': is_teacher,
@@ -10810,6 +10816,7 @@ def guidy_home(request):
         'active_group': active_group,
         'is_deleted_group': is_deleted_group,
         'group_deleted_by_name': group_deleted_by_name,
+        'ended_by_name': ended_by_name,
         'group_days_left': group_days_left,
         'group_members_str': group_members_str,
         'locked_days_left': locked_days_left,
