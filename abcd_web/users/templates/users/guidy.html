@@ -3528,6 +3528,16 @@ let G_POLL_URL = cfg ? (cfg.dataset.groupPollUrl || '') : '';
 let SEARCH_URL = cfg ? (cfg.dataset.searchUrl || '') : '';
 let OTHER_TYPE = cfg ? (cfg.dataset.otherType || '') : '';
 let OTHER_ID   = cfg ? (cfg.dataset.otherId || '') : '';
+
+function getSidebarChatItem(chatType, chatId) {
+  if (!chatType || !chatId) return null;
+  const idStr = String(chatId);
+  return document.querySelector(
+    `.g-chat-item[data-chat-type="${chatType}"][data-chat-id="${idStr}"], ` +
+    `.g-chat-item[data-href*="${chatType}=${idStr}"], ` +
+    `.g-chat-item[href*="${chatType}=${idStr}"]`
+  );
+}
 let MY_DISPLAY_NAME = cfg ? (cfg.dataset.myDisplayName || '') : '';
 let currentChatType = SESSION_ID ? 'session' : (DIRECT_ID ? 'direct' : (GROUP_ID ? 'group' : null));
 let currentChatId = SESSION_ID || DIRECT_ID || GROUP_ID || null;
@@ -4322,29 +4332,16 @@ function appendMessage(msg) {
   lastMsgId = Math.max(lastMsgId, msg.id);
 
   // Dynamic sidebar last message preview & time update
-  let chatItem = null;
-  if (GROUP_ID) {
-    chatItem = document.querySelector(`.g-chat-item[href*="group=${GROUP_ID}"]`);
-  } else if (DIRECT_ID) {
-    chatItem = document.querySelector(`.g-chat-item[href*="direct=${DIRECT_ID}"]`);
-  } else if (SESSION_ID) {
-    chatItem = document.querySelector(`.g-chat-item[href*="session=${SESSION_ID}"]`);
-  }
+  const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : (SESSION_ID ? 'session' : ''));
+  const cId = GROUP_ID || DIRECT_ID || SESSION_ID;
+  let chatItem = getSidebarChatItem(cType, cId);
 
   // If chat is active but not in sidebar yet (e.g. brand new direct chat with first message sent), add it
-  if (!chatItem && (GROUP_ID || DIRECT_ID || SESSION_ID) && OTHER_USER_NAME) {
-    const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'session');
-    const cId = GROUP_ID || DIRECT_ID || SESSION_ID;
+  if (!chatItem && cType && cId && OTHER_USER_NAME) {
     const isVer = !!document.querySelector('.g-hdr-name-text')?.parentNode?.querySelector('.g-verified-tick');
     const photoUrl = document.getElementById('hdrAvatar')?.querySelector('img')?.src || null;
     ensureSidebarChatItem(cType, cId, OTHER_USER_NAME, photoUrl, isVer, msg.content, msg.timestamp, msg.message_type);
-    if (GROUP_ID) {
-      chatItem = document.querySelector(`.g-chat-item[href*="group=${GROUP_ID}"]`);
-    } else if (DIRECT_ID) {
-      chatItem = document.querySelector(`.g-chat-item[href*="direct=${DIRECT_ID}"]`);
-    } else if (SESSION_ID) {
-      chatItem = document.querySelector(`.g-chat-item[href*="session=${SESSION_ID}"]`);
-    }
+    chatItem = getSidebarChatItem(cType, cId);
   }
 
   if (chatItem) {
@@ -5823,7 +5820,7 @@ async function confirmEndSelectedSessions() {
       // Remove the ended chat items from the DOM
       selectedEndSessionKeys.forEach(key => {
         const [type, idStr] = key.split(':');
-        const item = document.querySelector(`.g-chat-item[data-chat-type="${type}"][data-chat-id="${idStr}"], .g-chat-item[href*="${type}=${idStr}"]`);
+        const item = getSidebarChatItem(type, idStr);
         if (item) item.remove();
       });
 
@@ -5907,7 +5904,7 @@ async function loadChatAJAX(type, id, pushState = true) {
 
   // Update sidebar active highlights
   document.querySelectorAll('.g-chat-item').forEach(el => el.classList.remove('active'));
-  const targetSidebarItem = document.querySelector(`.g-chat-item[href*="${type}=${id}"]`);
+  const targetSidebarItem = getSidebarChatItem(type, id);
   if (targetSidebarItem) {
     targetSidebarItem.classList.add('active');
     const badge = targetSidebarItem.querySelector('.g-unread-badge');
@@ -6144,8 +6141,7 @@ function updateActionMenuUI(data) {
 }
 
 function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, lastMsg, timestamp, msgType) {
-  const selector = `.g-chat-item[href*="${chatType}=${chatId}"]`;
-  let item = document.querySelector(selector);
+  let item = getSidebarChatItem(chatType, chatId);
   const parentId = (chatType === 'group') ? 'panelGroups' : 'panelChats';
   const parent = document.getElementById(parentId);
   if (!parent) return;
@@ -6161,7 +6157,7 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
     item.className = 'g-chat-item active';
     item.dataset.chatName = name;
     item.dataset.chatType = chatType;
-    item.dataset.chatId = chatId;
+    item.dataset.chatId = String(chatId);
     item.setAttribute('onclick', `return handleChatItemClick(event, this, '${chatType}', '${chatId}')`);
 
     const avatarContent = photoUrl
@@ -6195,6 +6191,19 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
       parent.insertBefore(item, createBtn.nextSibling);
     } else {
       parent.insertBefore(item, parent.firstChild);
+    }
+  } else {
+    // If it already exists, update preview and timestamp
+    const timeEl = item.querySelector('.g-item-time');
+    const subEl = item.querySelector('.g-item-sub');
+    if (timeEl && timestamp) timeEl.textContent = timestamp;
+    if (subEl && lastMsg) {
+      let preview = escHtml(lastMsg);
+      if (msgType === 'image') preview = `<i class='bx bx-image-alt'></i> Photo`;
+      else if (msgType === 'video') preview = `<i class='bx bx-video'></i> Video`;
+      else if (msgType === 'document') preview = `<i class='bx bx-file'></i> Document`;
+      else if (msgType === 'audio') preview = `<i class='bx bx-microphone'></i> Audio`;
+      subEl.innerHTML = preview;
     }
   }
 }
@@ -7033,7 +7042,7 @@ async function exitGroup() {
     const d = await r.json();
     if (d.success) {
       showToast(d.group_deleted ? 'Group deleted' : 'Exited group');
-      const item = document.querySelector(`.g-chat-item[href*="group=${gId}"]`);
+      const item = getSidebarChatItem('group', gId);
       if (item) item.remove();
       showNoChatPlaceholder(true);
     } else {
@@ -7062,7 +7071,7 @@ async function confirmDeleteGroup(groupId) {
     const d = await r.json();
     if (d.success) {
       showToast('Group deleted');
-      const item = document.querySelector(`.g-chat-item[href*="group=${gId}"]`);
+      const item = getSidebarChatItem('group', gId);
       if (item) item.remove();
       showNoChatPlaceholder(true);
     } else {
@@ -7089,7 +7098,7 @@ async function deleteGroupForMe(groupId) {
     const d = await r.json();
     if (d.success) {
       showToast('Group removed from your list');
-      const item = document.querySelector(`.g-chat-item[href*="group=${gId}"]`);
+      const item = getSidebarChatItem('group', gId);
       if (item) item.remove();
       showNoChatPlaceholder(true);
     } else {
@@ -7168,7 +7177,7 @@ async function doEndSession() {
   const d = await r.json();
   if (d.success) {
     showToast('Session ended');
-    const item = document.querySelector(`.g-chat-item[href*="session=${sId}"]`);
+    const item = getSidebarChatItem('session', sId);
     if (item) item.remove();
     showNoChatPlaceholder(true);
   } else {
@@ -7191,7 +7200,7 @@ async function forceDeleteLockedChat() {
   const d = await r.json();
   if (d.success) {
     showToast('Chat permanently deleted.');
-    const item = document.querySelector(`.g-chat-item[href*="${cType}=${cId}"]`);
+    const item = getSidebarChatItem(cType, cId);
     if (item) item.remove();
     showNoChatPlaceholder(true);
   } else {
