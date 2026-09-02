@@ -5646,19 +5646,25 @@ function handleChatItemClick(e, el, chatType, chatId) {
 
 // ── End Session Multi-Select Mode Engine ──
 function enterEndSessionSelectMode() {
-  endSessionSelectMode = true;
-  selectedEndSessionKeys.clear();
-
   // Close 3-dot dropdown menu
   const dropdown = document.getElementById('gSidebarDropdown');
   if (dropdown) dropdown.style.display = 'none';
+
+  const allChatItems = document.querySelectorAll('.g-chat-item');
+  if (!allChatItems || allChatItems.length === 0) {
+    showToast('There is no chat session to end', 'info');
+    return;
+  }
+
+  endSessionSelectMode = true;
+  selectedEndSessionKeys.clear();
 
   // Add class to sidebar
   const sidebar = document.querySelector('.g-sidebar');
   if (sidebar) sidebar.classList.add('end-session-mode');
 
   // Clear visual highlights
-  document.querySelectorAll('.g-chat-item').forEach(el => {
+  allChatItems.forEach(el => {
     el.classList.remove('session-selected');
   });
 
