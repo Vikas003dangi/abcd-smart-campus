@@ -2304,7 +2304,7 @@ body.dark-theme .search-highlight {
             <button onclick="openSelfProfilePane()"><i class='bx bx-user' style="color: var(--g-primary-s); font-size: 1rem;"></i> Your Profile</button>
             <button onclick="openBlockedContactsModal()"><i class='bx bx-block' style="color: #ef4444; font-size: 1rem;"></i> Blocked Contacts</button>
             <button onclick="enterSelectModeForAction('clear_chat')"><i class='bx bx-trash' style="color: #64748b; font-size: 1rem;"></i> Clear Chat</button>
-            <button id="sidebarEndSessionMenuItem" onclick="enterSelectModeForAction('end_session')" style="{% if not is_teacher %}display: none;{% endif %}"><i class='bx bx-log-out' style="color: #ef4444; font-size: 1rem;"></i> End Session</button>
+            <button id="sidebarEndSessionMenuItem" onclick="enterSelectModeForAction('end_session')"{% if not is_teacher %} style="display: none;"{% endif %}><i class='bx bx-log-out' style="color: #ef4444; font-size: 1rem;"></i> End Session</button>
           </div>
         </div>
       </div>
@@ -7533,15 +7533,17 @@ async function doRestrictStudent() {
 }
 
 async function doEndSession() {
-  if (!SESSION_ID) return;
-  const sId = SESSION_ID;
+  const isDirect = (currentChatType === 'direct' || DIRECT_ID);
+  const sId = DIRECT_ID || SESSION_ID;
+  if (!sId) return;
+  const url = isDirect ? `/guidy/direct/${sId}/end/` : `/guidy/chat/${sId}/end/`;
   const fd = new FormData();
   fd.append('csrfmiddlewaretoken', CSRF);
-  const r = await fetch(`/guidy/chat/${sId}/end/`, { method:'POST', body:fd });
+  const r = await fetch(url, { method:'POST', body:fd });
   const d = await r.json();
   if (d.success) {
     showToast('Session ended');
-    const item = getSidebarChatItem('session', sId);
+    const item = getSidebarChatItem(isDirect ? 'direct' : 'session', sId);
     if (item) item.remove();
     showNoChatPlaceholder(true);
   } else {
@@ -7550,26 +7552,13 @@ async function doEndSession() {
 }
 
 async function confirmEndSession() {
-  if (await GuidyAppModal.confirm('End Session', 'End this mentorship session?', 'End', true)) {
+  if (await GuidyAppModal.confirm('End Session', 'Are you sure you want to end this chat session?', 'End Session', true)) {
     doEndSession();
   }
 }
 
 async function forceDeleteLockedChat() {
-  const cType = DIRECT_ID ? 'direct' : 'session';
-  const cId = DIRECT_ID || SESSION_ID;
-  const url = DIRECT_ID ? `/guidy/direct/${DIRECT_ID}/end/` : `/guidy/chat/${SESSION_ID}/end/`;
-  const fd = new FormData(); fd.append('csrfmiddlewaretoken', CSRF);
-  const r = await fetch(url, { method: 'POST', body: fd });
-  const d = await r.json();
-  if (d.success) {
-    showToast('Chat permanently deleted.');
-    const item = getSidebarChatItem(cType, cId);
-    if (item) item.remove();
-    showNoChatPlaceholder(true);
-  } else {
-    showToast(d.error || 'Failed to delete chat.', 'error');
-  }
+  confirmPermanentDeleteCurrentSession();
 }
 
 // ── Respond to Request ────────────────────────────────────

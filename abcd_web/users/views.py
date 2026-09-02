@@ -10263,6 +10263,7 @@ def guidy_home(request):
     """
     cache.set(f'guidy_presence_{request.user.id}', True, timeout=10)
     purge_expired_media()
+    purge_expired_group_chats()
 
     # 5-day Auto-Purge of ended sessions
     from django.db.models import Q
@@ -11391,9 +11392,16 @@ def guidy_end_session(request, session_id=None, direct_id=None):
     session.session_ended_at = timezone.now()
     session.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
 
-    # Hide all messages for the teacher who ended it
+    # Hide all messages for the teacher who ended it; hard-delete if student had also cleared
     for msg in session.messages.all():
         msg.deleted_by.add(user)
+        if msg.deleted_by.count() >= 2:
+            if msg.file:
+                try:
+                    msg.file.delete(save=False)
+                except Exception:
+                    pass
+            msg.delete()
 
     return JsonResponse({'success': True, 'message': 'Session ended. Chat is now locked for the student for 5 days.'})
 
@@ -11483,6 +11491,13 @@ def guidy_bulk_end_sessions(request):
                 s.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
                 for msg in s.messages.all():
                     msg.deleted_by.add(user)
+                    if msg.deleted_by.count() >= 2:
+                        if msg.file:
+                            try:
+                                msg.file.delete(save=False)
+                            except Exception:
+                                pass
+                        msg.delete()
                 ended_count += 1
 
     # 2. Process DirectChatSessions - Teacher only
@@ -11496,6 +11511,13 @@ def guidy_bulk_end_sessions(request):
                 d.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
                 for msg in d.messages.all():
                     msg.deleted_by.add(user)
+                    if msg.deleted_by.count() >= 2:
+                        if msg.file:
+                            try:
+                                msg.file.delete(save=False)
+                            except Exception:
+                                pass
+                        msg.delete()
                 ended_count += 1
 
     # 3. Process GroupChatSessions - Teacher or Group Creator
@@ -11509,7 +11531,20 @@ def guidy_bulk_end_sessions(request):
                 g.save(update_fields=['is_active', 'deleted_by_user', 'deleted_at'])
                 if hasattr(g, 'deleted_for_users'):
                     g.deleted_for_users.add(user)
+                for gm in g.messages.all():
+                    gm.deleted_by.add(user)
+                    if gm.deleted_by.count() >= g.members.count():
+                        if gm.file:
+                            try:
+                                gm.file.delete(save=False)
+                            except Exception:
+                                pass
+                        gm.delete()
                 ended_count += 1
+                member_count = g.members.count()
+                cleared_count = g.deleted_for_users.count() if hasattr(g, 'deleted_for_users') else 0
+                if member_count == 0 or cleared_count >= member_count:
+                    purge_group_chat_session(g)
 
     return JsonResponse({'success': True, 'ended_count': ended_count})
 
@@ -11654,7 +11689,10 @@ def guidy_clear_chat(request, session_id=None, direct_id=None):
         msg.deleted_by.add(user)
         if msg.deleted_by.count() >= 2:
             if msg.file:
-                msg.file.delete(save=False)
+                try:
+                    msg.file.delete(save=False)
+                except Exception:
+                    pass
             msg.delete()
     return JsonResponse({'success': True})
 
@@ -11667,7 +11705,7 @@ def guidy_group_clear_chat(request, group_id):
     Adds the user to the deleted_by ManyToManyField of all messages in this group.
     If all members in the group have cleared/deleted the message, it is permanently deleted from DB.
     """
-    group = get_object_or_404(GroupChatSession, id=group_id, is_active=True)
+    group = get_object_or_404(GroupChatSession, id=group_id)
     if request.user not in group.members.all() and group.created_by != request.user:
         return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
 
@@ -14140,10 +14178,20 @@ def guidy_group_manage_members(request, group_id):
             GroupMessage.objects.create(
                 group=group,
                 sender=exit_user,
-                content=f"system_user:{exit_user.id} deleted this group. Messages and media will automatically be purged in 30 days.",
+                content=f"system_user:{exit_user.id} deleted this group. Messages and media will automatically be purged in 5 days.",
                 message_type='system'
             )
             member_count = group.members.count()
+            for gm in group.messages.all():
+                gm.deleted_by.add(exit_user)
+                if member_count > 0 and gm.deleted_by.count() >= member_count:
+                    if gm.file:
+                        try:
+                            gm.file.delete(save=False)
+                        except Exception:
+                            pass
+                    gm.delete()
+
             cleared_count = group.deleted_for_users.count()
             if member_count == 0 or cleared_count >= member_count:
                 purge_group_chat_session(group)
@@ -14248,11 +14296,21 @@ def guidy_group_manage_members(request, group_id):
         GroupMessage.objects.create(
             group=group,
             sender=request.user,
-            content=f"system_user:{request.user.id} deleted this group. Messages and media will automatically be purged in 30 days.",
+            content=f"system_user:{request.user.id} deleted this group. Messages and media will automatically be purged in 5 days.",
             message_type='system'
         )
 
         member_count = group.members.count()
+        for gm in group.messages.all():
+            gm.deleted_by.add(request.user)
+            if member_count > 0 and gm.deleted_by.count() >= member_count:
+                if gm.file:
+                    try:
+                        gm.file.delete(save=False)
+                    except Exception:
+                        pass
+                gm.delete()
+
         cleared_count = group.deleted_for_users.count()
         if member_count == 0 or cleared_count >= member_count:
             purge_group_chat_session(group)
@@ -14274,8 +14332,18 @@ def guidy_delete_group_for_user(request, group_id):
     
     group.deleted_for_users.add(request.user)
     
-    # Early Master Purge check: if all members have cleared it, purge immediately
     member_count = group.members.count()
+    for gm in group.messages.all():
+        gm.deleted_by.add(request.user)
+        if member_count > 0 and gm.deleted_by.count() >= member_count:
+            if gm.file:
+                try:
+                    gm.file.delete(save=False)
+                except Exception:
+                    pass
+            gm.delete()
+
+    # Early Master Purge check: if all members have cleared it, purge immediately
     cleared_count = group.deleted_for_users.count()
     if not group.is_active and (member_count == 0 or cleared_count >= member_count):
         purge_group_chat_session(group)
