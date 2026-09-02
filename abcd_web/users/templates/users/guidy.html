@@ -6290,7 +6290,50 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
   }
 }
 
+window.handleCustomSmartBack = function() {
+  if (window.innerWidth <= 768) {
+    // 1. Close self profile pane if open
+    const selfPane = document.getElementById('guidySelfProfilePane');
+    if (selfPane && selfPane.style.display !== 'none') {
+      closeSelfProfilePane();
+      return true;
+    }
+
+    // 2. Close blocked contacts sidebar if open
+    const blockedSidebar = document.getElementById('blockedContactsSidebar');
+    if (blockedSidebar && blockedSidebar.style.display !== 'none') {
+      closeBlockedContactsModal();
+      return true;
+    }
+
+    // 3. Close active chat if chat area is open on mobile
+    const shell = document.getElementById('gShell');
+    const isChatActive = shell && shell.classList.contains('chat-active');
+    const container = document.getElementById('chatContainerWrapper');
+    const isChatContainerVisible = container && !container.classList.contains('g-pane-hidden') && container.style.display !== 'none';
+    const hasActiveId = Boolean((typeof SESSION_ID !== 'undefined' && SESSION_ID) || 
+                                (typeof DIRECT_ID !== 'undefined' && DIRECT_ID) || 
+                                (typeof GROUP_ID !== 'undefined' && GROUP_ID));
+
+    if (isChatActive || isChatContainerVisible || hasActiveId) {
+      goBack();
+      return true;
+    }
+  }
+  return false;
+};
+
 window.addEventListener('popstate', () => {
+  if (window.innerWidth <= 768) {
+    const shell = document.getElementById('gShell');
+    const isChatActive = shell && shell.classList.contains('chat-active');
+    const container = document.getElementById('chatContainerWrapper');
+    const isChatContainerVisible = container && !container.classList.contains('g-pane-hidden') && container.style.display !== 'none';
+    if (isChatActive || isChatContainerVisible) {
+      return; // Handled by handleCustomSmartBack
+    }
+  }
+
   const params = new URLSearchParams(window.location.search);
   const session = params.get('session');
   const direct = params.get('direct');

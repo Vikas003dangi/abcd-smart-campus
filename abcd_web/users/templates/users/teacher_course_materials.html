@@ -1078,5 +1078,6 @@
         }
     });
 </script>
-{% include 'partials/_smart_back_redirect.html' with back_url='users:teacher_courses' %}
+{% url 'users:teacher_courses' as teacher_courses_url %}
+{% include 'partials/_smart_back_redirect.html' with back_url_path=teacher_courses_url %}
 {% endblock %}

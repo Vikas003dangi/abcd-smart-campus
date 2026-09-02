@@ -3346,5 +3346,6 @@
             border-radius: 8px;
         }
     </style>
-{% include 'partials/_smart_back_redirect.html' with back_url='users:courses' %}
+{% url 'users:courses' as course_list_url %}
+{% include 'partials/_smart_back_redirect.html' with back_url_path=course_list_url %}
 {% endblock %}

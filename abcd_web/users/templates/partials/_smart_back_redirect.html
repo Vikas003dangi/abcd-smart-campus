@@ -20,6 +20,21 @@
             } catch(e) {}
             
             window.addEventListener('popstate', async function(event) {
+                // 1. Check custom page back hook (e.g. Guidy mobile chat close)
+                if (typeof window.handleCustomSmartBack === 'function') {
+                    try {
+                        const handled = window.handleCustomSmartBack();
+                        if (handled) {
+                            try {
+                                window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
+                            } catch(e) {}
+                            return;
+                        }
+                    } catch(err) {
+                        console.warn('handleCustomSmartBack error:', err);
+                    }
+                }
+
                 if (window.customBackConfirm) {
                     const ok = await window.customBackConfirm();
                     if (!ok) {
@@ -31,21 +46,37 @@
                     window.allowPageUnload = true;
                 }
 
-                // If template passed explicit override paths
-                const targetBackUrlPath = "{{ back_url_path|default:'' }}";
-                const rawBackUrl = "{{ back_url|default:'' }}";
-
-                if (targetBackUrlPath) {
-                    window.location.replace(targetBackUrlPath);
-                    return;
-                }
+                // 2. Resolve explicit override paths or named routes
+                let targetUrl = "{{ back_url_path|default:'' }}" || "{{ back_url|default:'' }}";
                 
-                if (rawBackUrl && (rawBackUrl.startsWith('/') || rawBackUrl.startsWith('http'))) {
-                    window.location.replace(rawBackUrl);
+                const routeNameMap = {
+                    'users:courses': "{% url 'users:courses' %}",
+                    'users:teacher_courses': "{% url 'users:teacher_courses' %}",
+                    'users:student_dashboard': "{% url 'users:student_dashboard' %}",
+                    'users:teacher_dashboard': "{% url 'users:teacher_dashboard' %}",
+                    'users:alumni_dashboard': "{% url 'users:alumni_dashboard' %}",
+                    'users:home_page': "{% url 'users:home_page' %}"
+                };
+
+                if (routeNameMap[targetUrl]) {
+                    targetUrl = routeNameMap[targetUrl];
+                }
+
+                // 3. Fallback: Path hierarchy detection for courses & teacher courses
+                if (!targetUrl) {
+                    if (cleanPath.startsWith('/courses/') && cleanPath !== '/courses') {
+                        targetUrl = "{% url 'users:courses' %}";
+                    } else if (cleanPath.startsWith('/teacher/courses/') && cleanPath !== '/teacher/courses') {
+                        targetUrl = "{% url 'users:teacher_courses' %}";
+                    }
+                }
+
+                if (targetUrl && (targetUrl.startsWith('/') || targetUrl.startsWith('http'))) {
+                    window.location.replace(targetUrl);
                     return;
                 }
 
-                // Default behavior for all sub-pages: Redirect directly to user's Home Base!
+                // Default behavior for all other sub-pages: Redirect directly to user's Home Base!
                 window.location.replace("{% url 'users:smart_back_router' %}");
             });
 
