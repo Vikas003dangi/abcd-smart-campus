@@ -2797,7 +2797,7 @@ body.dark-theme .search-highlight {
       <!-- Chat Input Area -->
       <div id="chatInputArea" style="position: relative; z-index: 2;">
         <!-- Locked Session / Group Notice -->
-        <div id="lockedNotice" style="display:{% if (active_session and not active_session.is_active) or (active_direct and not active_direct.is_active) or is_deleted_group %}block{% else %}none{% endif %}; background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
+        <div id="lockedNotice" style="display:{% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group %}block{% else %}none{% endif %}; background: var(--g-side-bg); padding: 16px; text-align: center; border-top: 1px solid var(--g-border); color: #ef4444; font-size: 0.9rem; font-weight: 600; border-radius: 0 0 16px 16px;">
           <i class='bx bx-lock' style="font-size: 1.2rem; margin-right: 5px; vertical-align: middle;"></i>
           <span id="lockedNoticeText">
             {% if is_deleted_group %}
@@ -2822,7 +2822,7 @@ body.dark-theme .search-highlight {
         </div>
 
         <!-- Active Input Bar -->
-        <div class="g-input-bar" id="gInputBar" style="display:{% if (active_session and not active_session.is_active) or (active_direct and not active_direct.is_active) or is_deleted_group or is_blocked %}none{% else %}flex{% endif %};">
+        <div class="g-input-bar" id="gInputBar" style="display:{% if active_session and not active_session.is_active or active_direct and not active_direct.is_active or is_deleted_group or is_blocked %}none{% else %}flex{% endif %};">
           <!-- Reply banner -->
           <div class="g-reply-banner" id="replyBanner">
             <i class='bx bx-reply' style="color:var(--g-primary-s);font-size:1.2rem;flex-shrink:0;"></i>
