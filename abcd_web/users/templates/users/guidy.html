@@ -3939,8 +3939,10 @@ const GuidyAppModal = {
    GUIDY JAVASCRIPT ENGINE
 ══════════════════════════════════════════════════════ */
 const cfg    = document.getElementById('guidyConfig');
-const CSRF   = cfg.dataset.csrf;
-const IS_ALUMNI = cfg.dataset.isAlumni === 'true';
+const CSRF   = cfg ? (cfg.dataset.csrf || '') : '';
+const IS_ALUMNI = cfg ? (cfg.dataset.isAlumni === 'true') : false;
+const IS_TEACHER = cfg ? (cfg.dataset.isTeacher === 'true') : false;
+const IS_STUDENT = cfg ? (cfg.dataset.isStudent === 'true') : false;
 let SESSION_ID = cfg ? (cfg.dataset.sessionId || '') : '';
 let GROUP_ID   = cfg ? (cfg.dataset.groupId || '') : '';
 let DIRECT_ID  = cfg ? (cfg.dataset.directId || '') : '';
@@ -3994,9 +3996,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (SESSION_ID || DIRECT_ID) startPolling();
   if (GROUP_ID)   startGroupPolling();
   document.addEventListener('click', globalClickClose);
-
-  // Initialize Guidy Date Picker
-  initGuidyDatePickerYears();
 
   // Apply jumbo emoji styles to existing history
   document.querySelectorAll('.g-bubble').forEach(bubble => {
@@ -9750,14 +9749,23 @@ async function submitModalAction() {
       if (d.success) {
         closeContactListModal();
         showToast('Group created!');
-        switchTab('groups');
+        try { switchTab('groups'); } catch(err) { console.error('switchTab error:', err); }
         const photoUrl = (photoInp && photoInp.files && photoInp.files[0]) ? URL.createObjectURL(photoInp.files[0]) : null;
-        ensureSidebarChatItem('group', d.group_id, d.name, photoUrl, false, '', '', 'text');
-        loadChatAJAX('group', d.group_id, true);
+        try {
+          ensureSidebarChatItem('group', d.group_id, d.name, photoUrl, false, '', '', 'text');
+        } catch(err) {
+          console.error('ensureSidebarChatItem error:', err);
+        }
+        try {
+          loadChatAJAX('group', d.group_id, true);
+        } catch(err) {
+          console.error('loadChatAJAX error:', err);
+        }
       } else {
         showToast(d.error || 'Failed to create group', 'error');
       }
     } catch(e) {
+      console.error('Error creating group:', e);
       showToast('Network error while creating group', 'error');
     }
   }
