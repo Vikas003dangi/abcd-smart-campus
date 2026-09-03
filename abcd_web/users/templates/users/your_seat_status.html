@@ -2667,8 +2667,7 @@
 
         // --- START DATE LOGIC ---
         function syncStartDateWheels() {
-            const minDate = new Date();
-            minDate.setDate(minDate.getDate() + 3);
+            const minDate = new Date(MIN_HOLD_DATE);
             const minYear = minDate.getFullYear(), minMonth = minDate.getMonth(), minDay = minDate.getDate();
             const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -2691,8 +2690,7 @@
         }
 
         function openStartDatePicker() {
-            const minDate = new Date();
-            minDate.setDate(minDate.getDate() + 3);
+            const minDate = new Date(MIN_HOLD_DATE);
             const minYear = minDate.getFullYear();
             
             const years = [];

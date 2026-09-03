@@ -2766,7 +2766,7 @@ body.dark-theme .search-highlight {
         {% if active_session or active_direct %}
           {% if messages_list %}
             {% for msg in messages_list %}
-              {% ifchanged msg.timestamp.date %}
+              {% ifchanged msg.timestamp|date:'Y-m-d' %}
                 <div class="g-date-div" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
                   <span>{{ msg.timestamp|date:"d M Y" }}</span>
                 </div>
@@ -2850,7 +2850,7 @@ body.dark-theme .search-highlight {
         {% elif active_group %}
           {% if group_messages_list %}
             {% for msg in group_messages_list %}
-              {% ifchanged msg.timestamp.date %}
+              {% ifchanged msg.timestamp|date:'Y-m-d' %}
                 <div class="g-date-div" data-date="{{ msg.timestamp|date:'Y-m-d' }}">
                   <span>{{ msg.timestamp|date:"d M Y" }}</span>
                 </div>
@@ -4623,29 +4623,36 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Append Message DOM ─────────────────────────────────
 let lastRenderedDate = '';
 
+function getISTDateStr(offsetDays = 0) {
+  try {
+    const d = new Date(Date.now() + offsetDays * 86400000);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  } catch(e) {
+    const d = new Date(Date.now() + offsetDays * 86400000);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+}
+
 function formatDividerDate(dateStr) {
   if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  const msgDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  const todayIST = getISTDateStr(0);
+  const yesterdayIST = getISTDateStr(-1);
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  yesterday.setHours(0, 0, 0, 0);
-  
-  const checkDate = new Date(msgDate);
-  checkDate.setHours(0, 0, 0, 0);
-  
-  if (checkDate.getTime() === today.getTime()) {
+  if (dateStr === todayIST) {
     return 'Today';
-  } else if (checkDate.getTime() === yesterday.getTime()) {
+  } else if (dateStr === yesterdayIST) {
     return 'Yesterday';
   } else {
-    const options = { day: 'numeric', month: 'short', year: 'numeric' };
-    return msgDate.toLocaleDateString('en-GB', options);
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const msgDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const options = { day: 'numeric', month: 'short', year: 'numeric' };
+      return msgDate.toLocaleDateString('en-GB', options);
+    }
+    return dateStr;
   }
 }
 

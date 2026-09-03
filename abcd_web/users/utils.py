@@ -1526,32 +1526,41 @@ def get_user_notification_email(user_or_student):
     if not user_or_student:
         return None
 
-    # Direct email check
-    direct_email = (getattr(user_or_student, 'email', None) or '').strip()
-    if direct_email:
-        return direct_email
+    from .models import StudentProfile, StudentAchievement
 
-    # Check associated user
+    # If StudentProfile or StudentAchievement passed directly
+    if isinstance(user_or_student, (StudentProfile, StudentAchievement)):
+        direct_email = (getattr(user_or_student, 'email', None) or '').strip()
+        if direct_email:
+            return direct_email
+        user = getattr(user_or_student, 'user', None)
+        if user and user.email:
+            return user.email.strip()
+        return None
+
+    # If a User instance was passed
     user = getattr(user_or_student, 'user', None)
     if not user and hasattr(user_or_student, 'username'):
         user = user_or_student
 
     if user:
+        # 1. Prioritize attached StudentProfile email if present
+        prof = StudentProfile.objects.filter(user=user).exclude(email='').first()
+        if prof and prof.email and prof.email.strip():
+            return prof.email.strip()
+
+        # 2. Check attached StudentAchievement email
+        ach = StudentAchievement.objects.filter(user=user).exclude(email='').first()
+        if ach and ach.email and ach.email.strip():
+            return ach.email.strip()
+
+        # 3. Fall back to user account email
         user_email = (getattr(user, 'email', None) or '').strip()
         if user_email:
             return user_email
 
-        # Check StudentProfile attached to user
-        from .models import StudentProfile, StudentAchievement
-        prof = StudentProfile.objects.filter(user=user).exclude(email='').first()
-        if prof and prof.email:
-            return prof.email.strip()
-
-        ach = StudentAchievement.objects.filter(user=user).exclude(email='').first()
-        if ach and ach.email:
-            return ach.email.strip()
-
-    return None
+    direct_email = (getattr(user_or_student, 'email', None) or '').strip()
+    return direct_email or None
 
 
 

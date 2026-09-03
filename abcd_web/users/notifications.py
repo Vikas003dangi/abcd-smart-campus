@@ -5,7 +5,7 @@ from django.conf import settings
 from .models import PushSubscription
 from users.email_service import send_html_email
 from django.urls import reverse
-from django.utils.timezone import now
+from django.utils.timezone import now, localdate
 
 logger = logging.getLogger(__name__)
 
@@ -431,7 +431,7 @@ def send_fee_reminder_email(student, reminder_type, date_text):
                 "reminder_type": reminder_type,
                 "service_details": service_details,
                 "months_text": date_text,
-                "date": now().strftime("%d %b %Y"),
+                "date": localdate().strftime("%d %b %Y"),
                 "dashboard_url": f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
             },
             fail_silently=False,

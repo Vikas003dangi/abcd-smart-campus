@@ -54,7 +54,7 @@ class SystemCoreTests(TestCase):
 
     def test_future_hold_activation(self):
         """Test that future hold auto-activation transitions pending holds to active status."""
-        today = timezone.now().date()
+        today = timezone.localdate()
         assignment = SeatAssignment.objects.create(
             student=self.profile,
             seat=self.seat,

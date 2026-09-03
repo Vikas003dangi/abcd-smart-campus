@@ -20,7 +20,7 @@ from django.contrib.auth.models import User, User as DjangoUser
 from django.urls import reverse
 from django.core.cache import cache
 from django.utils import timezone 
-from django.utils.timezone import is_aware, make_aware, localtime
+from django.utils.timezone import is_aware, make_aware, localtime, localdate
 from django.utils.dateparse import parse_datetime, parse_date
 from datetime import datetime, timedelta
 from . import notifications
@@ -93,7 +93,7 @@ def is_teacher(user):
 def get_available_seats_count():
     from .models import Seat
     seats = Seat.objects.prefetch_related('assignments')
-    today = timezone.now().date()
+    today = timezone.localdate()
     available_count = 0
     
     for seat in seats:
@@ -2777,17 +2777,17 @@ def _get_password_date_display(request):
     password_date_display = None
     if hasattr(user, 'profile') and user.profile.password_last_updated:
         dt = user.profile.password_last_updated
-        password_date_display = f"Updated at {dt.strftime('%d %b %Y, %I:%M %p')}"
+        password_date_display = f"Updated at {localtime(dt).strftime('%d %b %Y, %I:%M %p')}"
     elif 'password_last_updated' in request.session:
         from django.utils.dateparse import parse_datetime
         dt_str = request.session['password_last_updated']
         dt = parse_datetime(dt_str)
         if dt:
-            password_date_display = f"Updated at {dt.strftime('%d %b %Y, %I:%M %p')}"
+            password_date_display = f"Updated at {localtime(dt).strftime('%d %b %Y, %I:%M %p')}"
             
     if not password_date_display:
         dt = user.date_joined
-        password_date_display = f"Created at {dt.strftime('%d %b %Y, %I:%M %p')}"
+        password_date_display = f"Created at {localtime(dt).strftime('%d %b %Y, %I:%M %p')}"
         
     return password_date_display
 
@@ -3388,7 +3388,7 @@ def get_seat_status_api(request):
         .prefetch_related('assignments', 'assignments__student', 'special_requests')
     )
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     seat_data = []
 
     for seat in seats:
@@ -3526,7 +3526,7 @@ def get_public_seat_status_api(request):
         'assignments__student',
         'special_requests'
     )
-    today = timezone.now().date()
+    today = timezone.localdate()
     seat_data = []
 
     for seat in seats:
@@ -3937,7 +3937,7 @@ def your_seat_status_view(request):
         return redirect('users:student_dashboard')
 
     # Get today's date plus 3 days
-    min_hold_date = (timezone.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+    min_hold_date = (timezone.localdate() + timedelta(days=3)).strftime('%Y-%m-%d')
     
     # Find the current hold request (either pending, or approved future hold)
     hold_req = SeatHoldRequest.objects.filter(
@@ -3955,7 +3955,7 @@ def your_seat_status_view(request):
     remaining_days = None
     days_of_hold = None
     end_date_calculated = None
-    today = timezone.now().date()
+    today = timezone.localdate()
 
     if hold_req:
         remaining_days = (hold_req.start_date - today).days
@@ -4433,7 +4433,7 @@ def request_seat_hold_api(request):
                 status='approved',
                 defaults={
                     'student': profile,
-                    'start_date': seat.hold_start_date or timezone.now().date(),
+                    'start_date': seat.hold_start_date or timezone.localdate(),
                     'duration_text': 'Active Hold'
                 }
             )
@@ -4460,7 +4460,7 @@ def request_seat_hold_api(request):
                 is_active=True,
                 hold_status='none',
                 hold_start_date__isnull=False,
-                hold_start_date__gt=timezone.now().date(),
+                hold_start_date__gt=timezone.localdate(),
             ).first()
 
             if not scheduled:
@@ -4547,7 +4547,7 @@ def request_seat_hold_api(request):
             return JsonResponse({'status': 'error', 'message': 'Invalid date format.'}, status=400)
 
         # ===== STUDENT RESTRICTIONS =====
-        today = timezone.now().date()
+        today = timezone.localdate()
         if start_date < today + timedelta(days=3):
             return JsonResponse({'status': 'error', 'message': 'Must start at least 3 days from today.'}, status=400)
 
@@ -4633,7 +4633,7 @@ def teacher_dashboard_view(request):
 
     # ---------------- Notifications ----------------
     from django.utils import timezone
-    today = timezone.now().date()
+    today = timezone.localdate()
     
     # Fetch notifications for current user
     all_notifs = Notification.objects.filter(user=request.user).order_by("-created_at")
@@ -4842,7 +4842,7 @@ def teacher_dashboard_view(request):
         a.has_profile = a.other_profile is not None
 
     # Enrich partial requests with hold metadata for frontend alerts
-    today = timezone.now().date()
+    today = timezone.localdate()
     for req in pending_partial_requests:
         seat = req.seat
         
@@ -5305,7 +5305,7 @@ def get_teacher_seat_status_api(request):
         'special_requests__user',
     )
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     seat_data = []
 
     for seat in seats:
@@ -6088,7 +6088,7 @@ def seat_action_api(request):
             # Process removal
             for owner in target_assignments:
                 # 1. Restore owner status — keep dates for fee extension history
-                actual_end = timezone.now().date()
+                actual_end = timezone.localdate()
                 owner.hold_status = 'none'
                 owner.hold_end_date = actual_end  # Actual end, not original X days
                 # hold_start_date preserved for fee extension calc
@@ -6230,7 +6230,7 @@ def seat_action_api(request):
                 )
 
             assignment.hold_status = 'active'
-            assignment.hold_start_date = timezone.now().date()
+            assignment.hold_start_date = timezone.localdate()
             assignment.hold_end_date = seat.hold_end_date # fallback if seat has date
             assignment.save(
                 update_fields=['hold_status', 'hold_start_date', 'hold_end_date']
@@ -6349,7 +6349,7 @@ def seat_action_api(request):
                     'message': 'No active assignment found to place on hold.'
                 }, status=400)
 
-            today = timezone.now().date()
+            today = timezone.localdate()
 
             # Apply hold dates to selected assignments
             for owner in active_owners:
@@ -6399,7 +6399,7 @@ def seat_action_api(request):
         # 8b. ACTION: DELETE SCHEDULED (FUTURE) HOLD
         # ------------------------------------
         elif action == 'delete_scheduled_hold':
-            today = timezone.now().date()
+            today = timezone.localdate()
 
             # Find the scheduled future hold for the given student on this seat
             target_assigns = SeatAssignment.objects.filter(
@@ -7174,7 +7174,7 @@ def manage_hold_request_api(request):
             if action == 'approve':
                 hold_request.delete()
                 
-                today = timezone.now().date()
+                today = timezone.localdate()
                 hold_started = (owner_assignment.hold_start_date and owner_assignment.hold_start_date <= today)
                 
                 # Revert seat hold state
@@ -7269,7 +7269,7 @@ def manage_hold_request_api(request):
             owner_assignment.hold_start_date = start_date
             owner_assignment.hold_end_date = end_date
 
-            today = timezone.now().date()
+            today = timezone.localdate()
             if start_date <= today:
                 seat.status = 'on_hold'
                 seat.hold_status = 'active'
@@ -7409,7 +7409,7 @@ def teacher_put_seat_on_hold_api(request):
         # Calculate end date (inclusive)
         end_date = start_date + timedelta(days=days - 1)
 
-        today = timezone.now().date()
+        today = timezone.localdate()
         student = active_assignment.student
 
         # Store hold dates on seat
@@ -7560,7 +7560,7 @@ def edit_student_view(request, student_id):
                     hold_start_str = request.POST.get('hold_start_date')
                     hold_duration_str = request.POST.get('hold_duration')
 
-                    today_date = timezone.now().date()
+                    today_date = timezone.localdate()
                     start_date = today_date
                     end_date = start_date + timedelta(days=29)
 
@@ -8067,9 +8067,9 @@ def fee_calendar_view(request, student_id):
     student = get_object_or_404(StudentProfile, id=student_id)
     
     try:
-        selected_year = int(request.GET.get('year', datetime.now().year))
+        selected_year = int(request.GET.get('year', timezone.localdate().year))
     except ValueError:
-        selected_year = datetime.now().year
+        selected_year = timezone.localdate().year
 
     payments = Payment.objects.filter(student=student, year=selected_year)
     payment_data = {p.month: p for p in payments}
@@ -8115,7 +8115,7 @@ def fee_calendar_view(request, student_id):
         'student': student,
         'calendar_data': calendar_data,
         'selected_year': selected_year,
-        'year_range': range(datetime.now().year - 5, datetime.now().year + 6),
+        'year_range': range(timezone.localdate().year - 5, timezone.localdate().year + 6),
         'all_payments_json': all_payments_json,
         'expiry_date_json': expiry_date_json,
         'hold_periods_json': _json.dumps(get_student_hold_periods(student)),
@@ -8132,7 +8132,7 @@ def get_student_hold_periods(student):
     from datetime import date
     from django.utils import timezone
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     periods = []
 
     # 1) Check SeatAssignment-level holds (shift-level holds)
@@ -8272,7 +8272,7 @@ def sync_student_fee_chain(student):
     
     for p in all_payments:
         if p.amount > 0:
-            current_settlement_day = p.date_paid.day if p.date_paid else timezone.now().day
+            current_settlement_day = p.date_paid.day if p.date_paid else timezone.localdate().day
         elif current_settlement_day is not None:
             # Sync marked month to chain
             y = int(p.year) if str(p.year).isdigit() else 0
@@ -8298,7 +8298,7 @@ def sync_student_fee_chain(student):
         max_payment = p
         
     if max_payment:
-        return max_year, max_month_num, current_settlement_day if current_settlement_day else (max_payment.date_paid.day if max_payment.date_paid else timezone.now().day)
+        return max_year, max_month_num, current_settlement_day if current_settlement_day else (max_payment.date_paid.day if max_payment.date_paid else timezone.localdate().day)
     return None, None, None
 
 def send_receipt_notifications_async(transaction_id, student_id):
@@ -8411,7 +8411,7 @@ def process_fees_view(request, student_id):
         if not explicit_day and student.fee_expiry_date:
             explicit_day = student.fee_expiry_date.day
         if not explicit_day:
-            explicit_day = timezone.now().day
+            explicit_day = timezone.localdate().day
 
         for action_data in actions:
             action_type = action_data.get('action')
@@ -8453,7 +8453,7 @@ def process_fees_view(request, student_id):
                     })
                 elif action_type == 'mark_as_paid':
                     payment = Payment.objects.filter(student=student, month=month, year=year).first()
-                    p_date = payment.date_paid if payment and payment.date_paid else timezone.now().date()
+                    p_date = payment.date_paid if payment and payment.date_paid else timezone.localdate()
                     notification_details.append(
                         f"{month} marked as paid on {p_date.strftime('%d %b %Y')}"
                     )
@@ -8608,7 +8608,7 @@ def process_fees_view(request, student_id):
             teacher_name = request.user.username 
 
             # STUDENT DASHBOARD NOTIFICATION
-            today_str = timezone.now().strftime("%d %b %Y")
+            today_str = timezone.localdate().strftime("%d %b %Y")
             details_text = "\n".join(notification_details)
 
             msg = "Your fee has been submitted successfully.\nCheck your email/WhatsApp to download receipt."
@@ -8654,7 +8654,7 @@ def process_fees_view(request, student_id):
                         student=student,
                         teacher=request.user,
                         receipt_number=FeeTransaction.generate_receipt_number(),
-                        payment_date=timezone.now().date(),
+                        payment_date=timezone.localdate(),
                         expiry_date=student.fee_expiry_date,
                         service_snapshot=get_student_service_details(student),
                         months_snapshot=fee_snapshots,
@@ -9182,7 +9182,7 @@ def get_active_student_banner_api(request):
             "banner_type": matching_banner.banner_type or "text",
             "image_url": banner_image_url,
             "buttons": matching_banner.banner_buttons or [],
-            "created_at": matching_banner.created_at.strftime("%b %d, %Y")
+            "created_at": localtime(matching_banner.created_at).strftime("%b %d, %Y")
         }
     })
 
@@ -9877,7 +9877,7 @@ def student_progress_view(request):
     else:
         records = PerformanceRecord.objects.filter(batch=record_group).order_by('-created_at')[:5]
 
-    today = timezone.now().date()
+    today = timezone.localdate()
 
     # Prepare data for JS
     import json
@@ -12021,7 +12021,7 @@ def guidy_profile_info(request, entity_type, entity_id):
             'photo': group_photo,
             'role': 'Group Chat',
             'admin_id': group.created_by.id if group.created_by else None,
-            'created_at': group.created_at.strftime('%d %b %Y'),
+            'created_at': localtime(group.created_at).strftime('%d %b %Y'),
             'description': group.description,
             'members': members_data,
             'has_teacher_member': has_teacher_member,
@@ -12049,7 +12049,7 @@ def guidy_profile_info(request, entity_type, entity_id):
             'emails': profile.emails or '',
             'mobile_numbers': profile.mobile_numbers or '',
             'whatsapp_numbers': profile.whatsapp_numbers or '',
-            'member_since': teacher_user.date_joined.strftime('%d %b %Y'),
+            'member_since': localtime(teacher_user.date_joined).strftime('%d %b %Y'),
             'is_verified': True,
         })
 
@@ -12067,7 +12067,7 @@ def guidy_profile_info(request, entity_type, entity_id):
                 'detail2': ach.working_city or '',
                 'detail3': ach.short_achievement or '',
                 'about': ach.about_yourself[:200] if ach.about_yourself else '',
-                'member_since': ach.user.date_joined.strftime('%d %b %Y') if ach.user else '',
+                'member_since': localtime(ach.user.date_joined).strftime('%d %b %Y') if ach.user else '',
                 'is_verified': False,
             })
 
@@ -12094,7 +12094,7 @@ def guidy_profile_info(request, entity_type, entity_id):
                 'detail2': seat_num,
                 'detail3': '',
                 'about': '',
-                'member_since': profile.user.date_joined.strftime('%d %b %Y') if profile.user else '',
+                'member_since': localtime(profile.user.date_joined).strftime('%d %b %Y') if profile.user else '',
                 'is_verified': False,
             })
 
@@ -12120,7 +12120,7 @@ def guidy_profile_info(request, entity_type, entity_id):
                 'emails': profile.emails or '',
                 'mobile_numbers': profile.mobile_numbers or '',
                 'whatsapp_numbers': profile.whatsapp_numbers or '',
-                'member_since': fallback_user.date_joined.strftime('%d %b %Y'),
+                'member_since': localtime(fallback_user.date_joined).strftime('%d %b %Y'),
                 'is_verified': True,
             })
             
@@ -12137,7 +12137,7 @@ def guidy_profile_info(request, entity_type, entity_id):
             'detail2': '',
             'detail3': '',
             'about': '',
-            'member_since': fallback_user.date_joined.strftime('%d %b %Y'),
+            'member_since': localtime(fallback_user.date_joined).strftime('%d %b %Y'),
             'is_verified': False,
         })
 
@@ -12640,7 +12640,7 @@ def notifications_api_view(request):
     if dashboard_type is None:
         dashboard_type = 'guest'
         
-    today = timezone.now().date()
+    today = timezone.localdate()
     
     if dashboard_type == 'teacher' or user.is_staff or user.is_superuser:
         # --- Teacher / Staff Dashboard ---
@@ -12752,7 +12752,7 @@ def notifications_api_view(request):
                 'link': n.link,
                 'category': n.category,
                 'is_read': n.is_read,
-                'created_at_date': n.created_at.strftime("%d %b"),
+                'created_at_date': localtime(n.created_at).strftime("%d %b"),
                 'created_at_time': timesince(n.created_at) + " ago",
                 'student_obj': student_obj,
                 'meta': n.meta if isinstance(n.meta, dict) else {}
@@ -12812,7 +12812,7 @@ def notifications_api_view(request):
                 'link': n.link,
                 'category': n.category,
                 'is_read': n.is_read,
-                'created_at': n.created_at.strftime("%d %b %Y, %I:%M %p")
+                'created_at': localtime(n.created_at).strftime("%d %b %Y, %I:%M %p")
             })
             
         fee_alert = None
@@ -13133,7 +13133,7 @@ def todo_get_tasks(request):
         q_lower = q.lower()
         for t in tasks:
             cat_display = t.get_category_display()
-            dt_str = t.created_at.strftime("%b %d, %Y | %I:%M %p")
+            dt_str = localtime(t.created_at).strftime("%b %d, %Y | %I:%M %p")
             title = ""
             desc = ""
             student_names = ""
@@ -13189,7 +13189,7 @@ def todo_get_tasks(request):
         # Dynamic Heading: {Category} : {Date} | {Time}
         # Example: Fee : May 09, 2026 | 10:30 PM
         cat_display = t.get_category_display()
-        dt_str = t.created_at.strftime("%b %d, %Y | %I:%M %p")
+        dt_str = localtime(t.created_at).strftime("%b %d, %Y | %I:%M %p")
         
         # Breakdown tasks have their own titles
         if t.category == 'BREAKDOWN' and isinstance(t.metadata, dict) and t.metadata.get('title'):
@@ -15148,7 +15148,7 @@ def sitemap_xml_view(request):
     except Exception:
         site_url = getattr(settings, 'SITE_URL', 'https://abcd2013.online').rstrip('/')
 
-    now_str = timezone.now().strftime('%Y-%m-%d')
+    now_str = timezone.localdate().strftime('%Y-%m-%d')
 
     # Static public routes
     static_urls = [

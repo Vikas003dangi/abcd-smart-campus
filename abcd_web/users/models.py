@@ -792,7 +792,7 @@ class Payment(models.Model):
     year = models.IntegerField()
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     # Day *inside* that month that you choose in Fee Calendar
-    date_paid = models.DateField(default=timezone.now)
+    date_paid = models.DateField(default=timezone.localdate)
 
     # Actual date when teacher saved/updated this payment
     created_at = models.DateTimeField(auto_now_add=True)
@@ -874,7 +874,7 @@ class FeeTransaction(models.Model):
         from django.utils import timezone
         
         prefix = "ABCD_"
-        year_suffix = timezone.now().strftime("%y") # Last 2 digits of current year
+        year_suffix = timezone.localdate().strftime("%y") # Last 2 digits of current year in IST
         
         while True:
             # Generate 7 random digits

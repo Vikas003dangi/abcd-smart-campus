@@ -1067,6 +1067,16 @@
     const EXPIRY_DATE_STR = JSON.parse('{{ expiry_date_json|escapejs }}');
     const HOLD_PERIODS = JSON.parse('{{ hold_periods_json|escapejs }}');
 
+    function getISTDate() {
+        try {
+            const istStr = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', year: 'numeric', month: 'numeric', day: 'numeric' }).format(new Date());
+            const [m, d, y] = istStr.split('/').map(Number);
+            return new Date(y, m - 1, d);
+        } catch(e) {
+            return new Date();
+        }
+    }
+
     // ── Theme ────────────────────────────────────────────────────────────────
     function toggleTheme() {
         document.body.classList.toggle('dark-theme');
@@ -1149,7 +1159,7 @@
 
         const currentDayVal = getWheelValue('wheel-expiry-day');
         let dayToSelect = parseInt(currentDayVal, 10);
-        if (isNaN(dayToSelect)) dayToSelect = new Date().getDate();
+        if (isNaN(dayToSelect)) dayToSelect = getISTDate().getDate();
         if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
 
         const days = Array.from({length:daysInMonth},(_,i)=>(i+1).toString().padStart(2,'0'));
@@ -1454,7 +1464,7 @@
         const DAYS_LABEL = ['Su','Mo','Tu','We','Th','Fr','Sa'];
         const MONTH_NAMES = ['January','February','March','April','May','June',
                              'July','August','September','October','November','December'];
-        const today = new Date();
+        const today = getISTDate();
 
         // Header
         const header = document.createElement('div');
@@ -2233,7 +2243,7 @@
             const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
             const years = [];
             for(let y=SELECTED_YEAR; y<=SELECTED_YEAR+5; y++) years.push(y.toString());
-            const today = new Date();
+            const today = getISTDate();
             const daysInMonth = new Date(SELECTED_YEAR, today.getMonth() + 1, 0).getDate();
             const days = Array.from({length:daysInMonth},(_,i)=>(i+1).toString().padStart(2,'0'));
 
