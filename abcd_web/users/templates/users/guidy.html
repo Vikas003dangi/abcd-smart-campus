@@ -323,6 +323,38 @@ body.dark-theme .g-tab:hover {
   font-size: 0.62rem; font-weight: 900;
 }
 
+/* Smooth Tab Panel Slide Transitions */
+.g-tab-panel {
+  transition: opacity 0.22s cubic-bezier(0.25, 1, 0.5, 1), transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform, opacity;
+}
+.g-tab-panel.slide-in-right {
+  animation: tabSlideInRight 0.22s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+.g-tab-panel.slide-in-left {
+  animation: tabSlideInLeft 0.22s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+@keyframes tabSlideInRight {
+  0% {
+    opacity: 0.25;
+    transform: translateX(35px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes tabSlideInLeft {
+  0% {
+    opacity: 0.25;
+    transform: translateX(-35px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Sidebar Scroll Area */
 .g-side-body, .g-chat-list { overflow-y: auto; flex-grow: 1; flex-shrink: 1; }
 .g-side-body::-webkit-scrollbar, .g-chat-list::-webkit-scrollbar { width: 3px; }
@@ -716,27 +748,28 @@ body.dark-theme .g-bg-canvas { opacity: 0.18; }
 /* ── Search in Chat Bar ── */
 .g-search-bar {
   display: none; flex-shrink: 0;
-  padding: 8px 14px; background: var(--g-side-bg);
+  padding: 10px 14px; background: var(--g-side-bg);
   border-bottom: 1px solid var(--g-border);
   align-items: center; gap: 8px; z-index: 3;
 }
 .g-search-bar.open { display: flex; }
 .g-search-bar input {
   flex: 1; border: none; outline: none; background: var(--g-bg);
-  padding: 8px 14px; border-radius: 20px;
-  font-size: 0.88rem; color: var(--g-text);
+  padding: 10px 14px; border-radius: 20px;
+  font-size: 0.92rem; color: var(--g-text);
 }
 .g-search-bar input::placeholder { color: var(--g-sub); }
 .g-search-nav { display: none; gap: 4px; }
 .g-search-nav button {
-  width: 30px; height: 30px; border: none; border-radius: 50%;
+  width: 32px; height: 32px; border: none; border-radius: 50%;
   background: var(--g-hov); color: var(--g-primary-s);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 0.9rem; transition: background 0.2s;
+  font-size: 0.95rem; transition: background 0.2s;
 }
 .g-search-nav button:hover { background: var(--g-active); }
-.g-search-count { font-size: 0.78rem; color: var(--g-sub); white-space: nowrap; }
-.g-search-close { width: 30px; height: 30px; border: none; border-radius: 50%; background: none; color: var(--g-sub); cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+.g-search-count { font-size: 0.8rem; color: var(--g-sub); white-space: nowrap; }
+.g-search-close { width: 36px; height: 36px; border: none; border-radius: 50%; background: var(--g-hov); color: var(--g-sub); cursor: pointer; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+.g-search-close:hover { background: var(--g-active); color: #ef4444; }
 
 /* ── Pinned Message Banner ── */
 .g-pinned-bar {
@@ -2277,48 +2310,64 @@ body.dark-theme .search-highlight {
 
 @media screen and (max-width: 400px) {
   .g-search-bar {
-    padding: 6px 6px;
-    gap: 4px;
+    padding: 10px 8px;
+    gap: 6px;
   }
   .g-search-bar input {
-    padding: 6px 10px;
-    font-size: 0.82rem;
-    min-width: 80px; /* enforce minimum width constraint to prevent elements from overflowing */
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    min-width: 80px;
   }
   #calendarSearchBtn {
-    margin-left: 1px !important;
-    width: 24px;
-    height: 24px;
-    font-size: 0.95rem;
+    margin-left: 2px !important;
+    width: 32px;
+    height: 32px;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
   .g-search-count {
-    font-size: 0.7rem;
-    margin: 0 1px;
+    font-size: 0.75rem;
+    margin: 0 2px;
   }
   .g-search-nav {
-    gap: 2px;
+    gap: 4px;
   }
   .g-search-nav button {
-    width: 24px;
-    height: 24px;
-    font-size: 0.75rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
   }
   .g-search-close {
-    width: 24px;
-    height: 24px;
-    font-size: 0.9rem;
+    width: 34px;
+    height: 34px;
+    font-size: 1.3rem;
+    border-radius: 50%;
+    background: var(--g-hov);
+    color: var(--g-sub);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
 }
 
 @media screen and (max-width: 320px) {
   .g-search-bar {
-    padding: 6px 4px;
-    gap: 2px;
+    padding: 8px 6px;
+    gap: 4px;
   }
   .g-search-bar input {
-    padding: 6px 8px;
-    font-size: 0.78rem;
+    padding: 7px 10px;
+    font-size: 0.84rem;
     min-width: 65px;
+  }
+  .g-search-close {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
   }
 }
 
@@ -2327,75 +2376,109 @@ body.dark-theme .search-highlight {
   max-width: 460px;
   width: 92%;
   max-height: 90vh;
+  max-height: 90dvh;
   height: 85vh;
+  height: 85dvh;
   display: flex;
   flex-direction: column;
   padding: 16px 18px 14px 18px;
   border-radius: 18px;
   box-sizing: border-box;
   overflow: hidden;
+  transition: height 0.2s ease, max-height 0.2s ease, border-radius 0.2s ease;
+}
+
+/* When the mobile keyboard is open, go full-height bottom-sheet */
+.g-contact-modal.keyboard-active {
+  height: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0 !important;
+  padding: 10px 14px 8px 14px;
+}
+
+/* When searching in contact/group modal, float search bar and collapse header fields */
+.g-contact-modal.searching-active #contactModalTitle,
+.g-contact-modal.searching-active #modalGroupFields {
+  display: none !important;
+}
+.g-contact-modal.searching-active {
+  padding-top: 10px !important;
+}
+.g-contact-modal.searching-active .modal-search-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  margin-bottom: 6px;
+}
+.g-contact-modal.searching-active #modalContactsList {
+  flex: 1 1 auto !important;
+  min-height: 140px !important;
 }
 
 @media (max-height: 700px) {
   .g-contact-modal {
     height: 92vh;
+    height: 92dvh;
     max-height: 92vh;
+    max-height: 92dvh;
     padding: 12px 14px 10px 14px;
   }
 }
 
-.g-cal-nav-btn:hover {
-  background: var(--g-hov) !important;
-  color: var(--g-primary-s) !important;
-}
-
-.g-cal-day-btn {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  border: none;
-  background: none;
-  color: var(--g-text);
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
+/* ── Guidy Wheel Date Picker ── */
+.g-wheel-picker-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  height: 180px;
+  background: var(--g-bg);
+  border: 1px solid var(--g-border);
+  border-radius: 14px;
   position: relative;
-  transition: all 0.15s ease;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
 }
 
-.g-cal-day-btn:hover:not(:disabled) {
-  background: var(--g-hov);
+.g-wheel-col {
+  flex: 1;
+  height: 100%;
+  overflow-y: scroll;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  text-align: center;
+  scroll-snap-type: y mandatory;
+  padding: 70px 0;
 }
 
-.g-cal-day-btn.is-other-month {
-  opacity: 0.28;
+.g-wheel-col::-webkit-scrollbar { display: none; }
+
+.g-wheel-item {
+  height: 40px;
+  line-height: 40px;
+  font-size: 1.05rem;
+  font-weight: 700;
   color: var(--g-sub);
+  scroll-snap-align: center;
+  transition: color 0.2s, transform 0.2s;
+  user-select: none;
 }
 
-.g-cal-day-btn.is-today {
-  border: 1px solid var(--g-primary-s);
+.g-wheel-item.selected {
   color: var(--g-primary-s);
-  font-weight: 800;
+  transform: scale(1.12);
 }
 
-.g-cal-day-btn.is-selected {
-  background: linear-gradient(135deg, #6c63ff, #8b5cf6) !important;
-  color: white !important;
-  font-weight: 800;
-  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
-}
-
-.g-cal-msg-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #38bdf8;
+.g-wheel-highlight {
   position: absolute;
-  bottom: 3px;
+  top: 50%;
+  left: 8px;
+  right: 8px;
+  height: 42px;
+  transform: translateY(-50%);
+  background: rgba(108, 99, 255, 0.1);
+  border-top: 1px solid var(--g-border);
+  border-bottom: 1px solid var(--g-border);
+  pointer-events: none;
+  border-radius: 8px;
 }
 </style>
 {% endblock %}
@@ -3658,10 +3741,11 @@ body.dark-theme .search-highlight {
     </div>
 
     <!-- Search Input with suggestion helper -->
-    <div style="position: relative; margin-bottom: 8px; flex-shrink: 0;">
+    <div class="modal-search-wrapper" style="position: relative; margin-bottom: 8px; flex-shrink: 0;">
       <div class="g-search-inner" style="border-radius: 10px; display: flex; align-items: center; padding: 6px 10px; background: var(--g-bg);">
         <i class='bx bx-search' style="color: var(--g-sub); font-size: 1rem; margin-right: 6px;"></i>
-        <input type="text" id="modalSearchInput" placeholder="Search contacts..." oninput="handleModalSearchDebounced(this.value)" autocomplete="off" style="border: none; background: none; outline: none; width: 100%; font-size: 0.82rem; color: var(--g-text);">
+        <input type="text" id="modalSearchInput" placeholder="Search contacts..." onfocus="onModalSearchFocus()" oninput="handleModalSearchDebounced(this.value)" autocomplete="off" style="border: none; background: none; outline: none; width: 100%; font-size: 0.84rem; color: var(--g-text);">
+        <button type="button" id="modalSearchClearBtn" onclick="clearModalSearch(event)" style="display: none; background: none; border: none; color: var(--g-sub); font-size: 1.15rem; cursor: pointer; padding: 0 4px; align-items: center; justify-content: center;"><i class='bx bx-x-circle'></i></button>
       </div>
       <!-- Keyword Suggestion Dropdown -->
       <div id="modalSearchSuggestions" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--g-side-bg); border-radius: 10px; border: 1px solid var(--g-border); box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 100; overflow: hidden;">
@@ -3684,49 +3768,39 @@ body.dark-theme .search-highlight {
   </div>
 </div>
 
-<!-- Custom Guidy In-Chat Date Picker Modal -->
+<!-- Custom Guidy In-Chat Date Picker Modal (Wheel Style) -->
 <div class="g-modal-bg" id="guidyDatePickerModal" onclick="if(event.target===this)closeGuidyDatePicker()">
   <div class="g-modal" style="max-width: 340px; width: 92%; padding: 18px 20px; border-radius: 20px; background: var(--g-side-bg); border: 1px solid var(--g-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 12px; box-sizing: border-box;">
     <!-- Header -->
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-      <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
-        <button type="button" class="g-cal-nav-btn" onclick="changeCalMonth(-1)" title="Previous Month" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;"><i class='bx bx-chevron-left' style="font-size: 1.2rem;"></i></button>
-        <select id="gCalMonthSelect" onchange="onCalMonthSelectChange()" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); font-weight: 700; font-size: 0.84rem; padding: 5px 8px; border-radius: 8px; outline: none; cursor: pointer; flex: 1;">
-          <option value="0">January</option>
-          <option value="1">February</option>
-          <option value="2">March</option>
-          <option value="3">April</option>
-          <option value="4">May</option>
-          <option value="5">June</option>
-          <option value="6">July</option>
-          <option value="7">August</option>
-          <option value="8">September</option>
-          <option value="9">October</option>
-          <option value="10">November</option>
-          <option value="11">December</option>
-        </select>
-        <select id="gCalYearSelect" onchange="onCalYearSelectChange()" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); font-weight: 700; font-size: 0.84rem; padding: 5px 8px; border-radius: 8px; outline: none; cursor: pointer;">
-          <!-- Populated in JS: 2022 to 2030 -->
-        </select>
-        <button type="button" class="g-cal-nav-btn" onclick="changeCalMonth(1)" title="Next Month" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;"><i class='bx bx-chevron-right' style="font-size: 1.2rem;"></i></button>
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div style="font-weight: 800; font-size: 1.05rem; color: var(--g-text); display: flex; align-items: center; gap: 8px;">
+        <i class='bx bx-calendar' style="color: var(--g-primary-s); font-size: 1.25rem;"></i> Select Date
       </div>
-      <button type="button" onclick="closeGuidyDatePicker()" style="background: none; border: none; color: var(--g-sub); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; padding: 2px;"><i class='bx bx-x'></i></button>
+      <button type="button" onclick="closeGuidyDatePicker()" style="background: none; border: none; color: var(--g-sub); font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; padding: 2px;"><i class='bx bx-x'></i></button>
     </div>
 
-    <!-- Weekday Labels -->
-    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.72rem; font-weight: 700; color: var(--g-sub); text-transform: uppercase;">
-      <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+    <!-- Column labels -->
+    <div style="display: flex; text-align: center; font-size: 0.74rem; font-weight: 700; color: var(--g-sub); text-transform: uppercase; padding: 0 6px;">
+      <div style="flex: 1;">Year</div>
+      <div style="flex: 1;">Month</div>
+      <div style="flex: 1;">Day</div>
     </div>
 
-    <!-- Calendar Days Grid -->
-    <div id="gCalDaysGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center;">
-      <!-- Populated dynamically via JS -->
+    <!-- 3-Column Wheel Picker Container -->
+    <div class="g-wheel-picker-container">
+      <div class="g-wheel-col" id="wheel-guidy-year"></div>
+      <div class="g-wheel-col" id="wheel-guidy-month"></div>
+      <div class="g-wheel-col" id="wheel-guidy-day"></div>
+      <div class="g-wheel-highlight"></div>
     </div>
 
     <!-- Footer Actions -->
-    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--g-border); padding-top: 10px; margin-top: 2px;">
-      <button type="button" onclick="selectCalToday()" style="background: var(--g-hov); border: 1px solid var(--g-border); color: var(--g-text); font-size: 0.78rem; font-weight: 600; padding: 5px 12px; border-radius: 8px; cursor: pointer;">Today</button>
-      <button type="button" onclick="clearCalDate()" style="background: none; border: none; color: var(--g-sub); font-size: 0.78rem; cursor: pointer; padding: 5px 8px;">Clear Filter</button>
+    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--g-border); padding-top: 12px; margin-top: 2px;">
+      <div style="display: flex; gap: 8px;">
+        <button type="button" onclick="selectGuidyWheelToday()" style="background: var(--g-hov); border: 1px solid var(--g-border); color: var(--g-text); font-size: 0.8rem; font-weight: 600; padding: 6px 12px; border-radius: 8px; cursor: pointer;">Today</button>
+        <button type="button" onclick="clearCalDate()" style="background: none; border: none; color: var(--g-sub); font-size: 0.8rem; cursor: pointer; padding: 6px 8px;">Clear</button>
+      </div>
+      <button type="button" onclick="submitGuidyWheelDate()" style="background: var(--g-primary-s); color: #fff; border: none; font-size: 0.82rem; font-weight: 700; padding: 7px 18px; border-radius: 8px; cursor: pointer;">Apply</button>
     </div>
   </div>
 </div>
@@ -4743,43 +4817,113 @@ function formatDividerDate(dateStr) {
   }
 }
 
-// ── Guidy Custom In-Chat Date Picker ────────────────────────────────
-let gCalCurrentYear = new Date().getFullYear();
-let gCalCurrentMonth = new Date().getMonth();
-let gCalSelectedDateStr = '';
+// ── Guidy Wheel In-Chat Date Picker ─────────────────────────────────
+let gWheelSelectedDateStr = '';
 
-function initGuidyDatePickerYears() {
-  const yearSel = document.getElementById('gCalYearSelect');
-  if (!yearSel || yearSel.options.length > 0) return;
-  const curY = new Date().getFullYear();
-  for (let y = curY - 4; y <= curY + 4; y++) {
-    const opt = document.createElement('option');
-    opt.value = y;
-    opt.textContent = y;
-    yearSel.appendChild(opt);
+function initGuidyWheel(containerId, items, defaultValue, onScrollChange) {
+  const col = document.getElementById(containerId);
+  if (!col) return;
+  col.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'g-wheel-item';
+    div.textContent = item;
+    col.appendChild(div);
+  });
+
+  let scrollTimeout;
+  col.onscroll = () => {
+    const index = Math.max(0, Math.min(items.length - 1, Math.round(col.scrollTop / 40)));
+    const children = col.children;
+    for (let i = 0; i < children.length; i++) {
+      children[i].classList.toggle('selected', i === index);
+    }
+    if (onScrollChange) {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(onScrollChange, 80);
+    }
+  };
+
+  const defaultIndex = items.indexOf(String(defaultValue));
+  if (defaultIndex !== -1) {
+    setTimeout(() => {
+      col.scrollTop = defaultIndex * 40;
+      const children = col.children;
+      for (let i = 0; i < children.length; i++) {
+        children[i].classList.toggle('selected', i === defaultIndex);
+      }
+    }, 40);
   }
+}
+
+function getGuidyWheelValue(containerId) {
+  const col = document.getElementById(containerId);
+  if (!col) return '';
+  const index = Math.max(0, Math.min(col.children.length - 1, Math.round(col.scrollTop / 40)));
+  return col.children[index]?.textContent || '';
+}
+
+function syncGuidyWheelDays() {
+  const yearStr = getGuidyWheelValue('wheel-guidy-year');
+  const monthStr = getGuidyWheelValue('wheel-guidy-month');
+  if (!yearStr || !monthStr) return;
+
+  const year = parseInt(yearStr, 10);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthIndex = months.indexOf(monthStr);
+  if (monthIndex === -1) return;
+
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const daysCol = document.getElementById('wheel-guidy-day');
+  if (!daysCol) return;
+
+  const currentCount = daysCol.children.length;
+  if (currentCount === daysInMonth) return;
+
+  const currentDayVal = getGuidyWheelValue('wheel-guidy-day');
+  let dayToSelect = parseInt(currentDayVal, 10);
+  if (isNaN(dayToSelect) || dayToSelect < 1) dayToSelect = 1;
+  if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
+
+  const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  initGuidyWheel('wheel-guidy-day', days, dayToSelect.toString().padStart(2, '0'));
 }
 
 function openGuidyDatePicker() {
   const modal = document.getElementById('guidyDatePickerModal');
   if (!modal) return;
-  initGuidyDatePickerYears();
-  
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const curY = new Date().getFullYear();
+  const years = [];
+  for (let y = curY - 5; y <= curY + 2; y++) {
+    years.push(y.toString());
+  }
+
+  let defYear = curY.toString();
+  let defMonth = months[new Date().getMonth()];
+  let defDay = new Date().getDate().toString().padStart(2, '0');
+
   const sInput = document.getElementById('msgSearchInput');
   const existingVal = sInput ? sInput.value.trim() : '';
   const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   if (datePattern.test(existingVal)) {
     const parts = existingVal.split('-');
-    gCalCurrentYear = parseInt(parts[0]);
-    gCalCurrentMonth = parseInt(parts[1]) - 1;
-    gCalSelectedDateStr = existingVal;
-  } else if (!gCalSelectedDateStr) {
-    const now = new Date();
-    gCalCurrentYear = now.getFullYear();
-    gCalCurrentMonth = now.getMonth();
+    defYear = parts[0];
+    const mIdx = parseInt(parts[1], 10) - 1;
+    if (mIdx >= 0 && mIdx < 12) defMonth = months[mIdx];
+    defDay = parts[2].padStart(2, '0');
   }
-  
-  renderGuidyCalendar();
+
+  const yVal = parseInt(defYear, 10);
+  const mIndex = months.indexOf(defMonth);
+  const daysInMonth = new Date(yVal, mIndex >= 0 ? mIndex + 1 : 1, 0).getDate();
+  const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+  initGuidyWheel('wheel-guidy-year', years, defYear, syncGuidyWheelDays);
+  initGuidyWheel('wheel-guidy-month', months, defMonth, syncGuidyWheelDays);
+  initGuidyWheel('wheel-guidy-day', days, defDay);
+
   modal.classList.add('open');
 }
 
@@ -4798,118 +4942,19 @@ function toggleGuidyDatePicker(event) {
   }
 }
 
-function onCalMonthSelectChange() {
-  const mSel = document.getElementById('gCalMonthSelect');
-  if (mSel) {
-    gCalCurrentMonth = parseInt(mSel.value);
-    renderGuidyCalendar();
-  }
-}
+function submitGuidyWheelDate() {
+  const yStr = getGuidyWheelValue('wheel-guidy-year');
+  const mStr = getGuidyWheelValue('wheel-guidy-month');
+  const dStr = getGuidyWheelValue('wheel-guidy-day');
+  if (!yStr || !mStr || !dStr) return;
 
-function onCalYearSelectChange() {
-  const ySel = document.getElementById('gCalYearSelect');
-  if (ySel) {
-    gCalCurrentYear = parseInt(ySel.value);
-    renderGuidyCalendar();
-  }
-}
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const mIdx = months.indexOf(mStr);
+  if (mIdx === -1) return;
 
-function changeCalMonth(dir) {
-  gCalCurrentMonth += dir;
-  if (gCalCurrentMonth < 0) {
-    gCalCurrentMonth = 11;
-    gCalCurrentYear -= 1;
-  } else if (gCalCurrentMonth > 11) {
-    gCalCurrentMonth = 0;
-    gCalCurrentYear += 1;
-  }
-  renderGuidyCalendar();
-}
-
-function renderGuidyCalendar() {
-  initGuidyDatePickerYears();
-  const mSel = document.getElementById('gCalMonthSelect');
-  const ySel = document.getElementById('gCalYearSelect');
-  if (mSel) mSel.value = gCalCurrentMonth;
-  if (ySel) ySel.value = gCalCurrentYear;
-
-  const grid = document.getElementById('gCalDaysGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-
-  // Get active chat message dates in DOM
-  const activeChatDates = new Set();
-  document.querySelectorAll('.g-date-div').forEach(div => {
-    if (div.dataset.date) activeChatDates.add(div.dataset.date);
-  });
-
-  const now = new Date();
-  const todayY = now.getFullYear();
-  const todayM = now.getMonth();
-  const todayD = now.getDate();
-
-  const firstDayIndex = new Date(gCalCurrentYear, gCalCurrentMonth, 1).getDay();
-  const totalDays = new Date(gCalCurrentYear, gCalCurrentMonth + 1, 0).getDate();
-  const prevMonthDays = new Date(gCalCurrentYear, gCalCurrentMonth, 0).getDate();
-
-  // Previous month trailing days
-  for (let i = firstDayIndex - 1; i >= 0; i--) {
-    const dayNum = prevMonthDays - i;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'g-cal-day-btn is-other-month';
-    btn.textContent = dayNum;
-    btn.onclick = () => changeCalMonth(-1);
-    grid.appendChild(btn);
-  }
-
-  // Current month days
-  for (let day = 1; day <= totalDays; day++) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'g-cal-day-btn';
-    btn.textContent = day;
-
-    const mStr = String(gCalCurrentMonth + 1).padStart(2, '0');
-    const dStr = String(day).padStart(2, '0');
-    const fullDateStr = `${gCalCurrentYear}-${mStr}-${dStr}`;
-
-    if (gCalCurrentYear === todayY && gCalCurrentMonth === todayM && day === todayD) {
-      btn.classList.add('is-today');
-    }
-    if (fullDateStr === gCalSelectedDateStr) {
-      btn.classList.add('is-selected');
-    }
-    if (activeChatDates.has(fullDateStr)) {
-      const dot = document.createElement('span');
-      dot.className = 'g-cal-msg-dot';
-      btn.appendChild(dot);
-    }
-
-    btn.onclick = () => onSelectCalDate(gCalCurrentYear, gCalCurrentMonth, day);
-    grid.appendChild(btn);
-  }
-
-  // Next month leading days to complete grid rows
-  const remainingCells = 42 - (firstDayIndex + totalDays);
-  if (remainingCells > 0 && remainingCells < 7) {
-    for (let day = 1; day <= remainingCells; day++) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'g-cal-day-btn is-other-month';
-      btn.textContent = day;
-      btn.onclick = () => changeCalMonth(1);
-      grid.appendChild(btn);
-    }
-  }
-}
-
-function onSelectCalDate(year, month, day) {
-  const yStr = String(year);
-  const mStr = String(month + 1).padStart(2, '0');
-  const dStr = String(day).padStart(2, '0');
-  const dateStr = `${yStr}-${mStr}-${dStr}`;
-  gCalSelectedDateStr = dateStr;
+  const monthNum = (mIdx + 1).toString().padStart(2, '0');
+  const dateStr = `${yStr}-${monthNum}-${dStr.padStart(2, '0')}`;
+  gWheelSelectedDateStr = dateStr;
 
   closeGuidyDatePicker();
 
@@ -4920,13 +4965,30 @@ function onSelectCalDate(year, month, day) {
   jumpToDate(dateStr);
 }
 
-function selectCalToday() {
+function selectGuidyWheelToday() {
   const now = new Date();
-  onSelectCalDate(now.getFullYear(), now.getMonth(), now.getDate());
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const curY = now.getFullYear();
+  const years = [];
+  for (let y = curY - 5; y <= curY + 2; y++) {
+    years.push(y.toString());
+  }
+  const y = curY.toString();
+  const m = months[now.getMonth()];
+  const d = now.getDate().toString().padStart(2, '0');
+
+  initGuidyWheel('wheel-guidy-year', years, y, syncGuidyWheelDays);
+  initGuidyWheel('wheel-guidy-month', months, m, syncGuidyWheelDays);
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  initGuidyWheel('wheel-guidy-day', Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0')), d);
+
+  setTimeout(() => {
+    submitGuidyWheelDate();
+  }, 100);
 }
 
 function clearCalDate() {
-  gCalSelectedDateStr = '';
+  gWheelSelectedDateStr = '';
   closeGuidyDatePicker();
   const sInput = document.getElementById('msgSearchInput');
   if (sInput) {
@@ -5018,6 +5080,29 @@ function appendMessage(msg) {
     systemDiv.innerHTML = `<span>${escHtml(msg.content)}</span>`;
     area.appendChild(systemDiv);
     area.scrollTop = area.scrollHeight;
+
+    // Check if group name changed live: "... changed the group name to "<new_name>""
+    const matchName = msg.content.match(/changed the group name to "(.*)"/);
+    if (matchName && matchName[1] && OTHER_ID) {
+      const newName = matchName[1];
+      const hdrName = document.querySelector('.g-hdr-name');
+      if (hdrName) {
+        const textEl = hdrName.querySelector('.g-hdr-name-text');
+        if (textEl) textEl.textContent = newName;
+        else hdrName.textContent = newName;
+      }
+      const targetItems = document.querySelectorAll(`.g-chat-item[data-chat-type="group"][data-chat-id="${OTHER_ID}"]`);
+      targetItems.forEach(item => {
+        item.dataset.chatName = newName;
+        const nameEl = item.querySelector('.g-item-name');
+        if (nameEl) {
+          const tick = nameEl.querySelector('.g-verified-tick');
+          nameEl.textContent = newName + ' ';
+          if (tick) nameEl.appendChild(tick);
+        }
+      });
+      if (_drawerGroupData) _drawerGroupData.name = newName;
+    }
     return;
   }
 
@@ -6345,11 +6430,26 @@ function filterChats(q) {
 }
 
 // ── Tab Switching ────────────────────────────────────────
-function switchTab(tab) {
+// ── Tab Switching ────────────────────────────────────────
+function switchTab(tab, animDir) {
   ['chats','requests','groups'].forEach(t => {
     const panel = document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1));
     const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
-    if (panel) panel.style.display = t === tab ? '' : 'none';
+    if (panel) {
+      if (t === tab) {
+        panel.style.display = '';
+        panel.classList.add('g-tab-panel');
+        panel.classList.remove('slide-in-right', 'slide-in-left');
+        if (animDir === 'right') {
+          panel.classList.add('slide-in-right');
+        } else if (animDir === 'left') {
+          panel.classList.add('slide-in-left');
+        }
+      } else {
+        panel.style.display = 'none';
+        panel.classList.remove('slide-in-right', 'slide-in-left');
+      }
+    }
     if (btn) btn.classList.toggle('active', t === tab);
   });
 
@@ -6373,6 +6473,52 @@ function switchTab(tab) {
   if (endSessionSelectMode) {
     exitSelectModeForAction();
   }
+}
+
+function initSidebarTabSwipeGestures() {
+  const sideBody = document.querySelector('.g-side-body');
+  if (!sideBody) return;
+
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+  let isTracking = false;
+
+  sideBody.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) return;
+    if (endSessionSelectMode) return;
+    // Only active on mobile / small screen where bottom navigation bar is present (width <= 768px)
+    if (window.innerWidth > 768) return;
+
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    startTime = Date.now();
+    isTracking = true;
+  }, { passive: true });
+
+  sideBody.addEventListener('touchend', function(e) {
+    if (!isTracking) return;
+    isTracking = false;
+    if (window.innerWidth > 768) return;
+
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = endX - startX;
+    const diffY = endY - startY;
+    const duration = Date.now() - startTime;
+
+    // Must be a deliberate swipe gesture
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2 && duration < 650) {
+      const currentTab = getActiveTab();
+      if (currentTab === 'chats') {
+        // Swiping from chats tab transitions to groups tab
+        switchTab('groups', diffX < 0 ? 'right' : 'left');
+      } else if (currentTab === 'groups') {
+        // Swiping from groups tab transitions to chats tab
+        switchTab('chats', diffX > 0 ? 'left' : 'right');
+      }
+    }
+  }, { passive: true });
 }
 
 // ── SPA Chat Navigation & Real-time Switching Engine ───
@@ -7834,15 +7980,19 @@ async function saveGroupEdits() {
   try {
     const r = await fetch(`/guidy/groups/${OTHER_ID}/settings/update/`, {
       method: 'POST',
-      body: fd
+      body: fd,
+      headers: {'X-CSRFToken': CSRF},
+      credentials: 'same-origin'
     });
     const d = await r.json();
     if (d.success) {
       showToast('Group settings saved');
       _pendingGroupPhoto = null;
+      _removeGroupPhoto = false;
       _drawerEditMode = false;
       const btn = document.getElementById('drawerEditToggleBtn');
       if (btn) { btn.textContent = 'Edit'; btn.style.background = 'rgba(255,255,255,0.15)'; }
+
       // Update header name
       const hdrName = document.querySelector('.g-hdr-name');
       if (hdrName && d.name) {
@@ -7850,6 +8000,7 @@ async function saveGroupEdits() {
         if (textEl) textEl.textContent = d.name;
         else hdrName.textContent = d.name;
       }
+
       // Update header avatar
       const avatarContainer = document.getElementById('hdrAvatar');
       if (avatarContainer) {
@@ -7860,17 +8011,34 @@ async function saveGroupEdits() {
         }
       }
       
-      // Update active sidebar group item avatar
-      const activeChatItem = document.querySelector('.g-chat-item.active');
-      if (activeChatItem) {
-        const itemAvatar = activeChatItem.querySelector('.g-item-avatar');
+      // Update sidebar group item name and avatar live
+      const targetItems = document.querySelectorAll(`.g-chat-item[data-chat-type="group"][data-chat-id="${OTHER_ID}"]`);
+      const itemsToUpdate = targetItems.length > 0 ? targetItems : document.querySelectorAll('.g-chat-item.active');
+      itemsToUpdate.forEach(item => {
+        if (d.name) {
+          item.dataset.chatName = d.name;
+          const nameEl = item.querySelector('.g-item-name');
+          if (nameEl) {
+            const tick = nameEl.querySelector('.g-verified-tick');
+            nameEl.textContent = d.name + ' ';
+            if (tick) nameEl.appendChild(tick);
+          }
+        }
+        const itemAvatar = item.querySelector('.g-item-avatar');
         if (itemAvatar) {
           if (d.photo_url) {
-            itemAvatar.innerHTML = `<img src="${d.photo_url}" style="width:100%;height:100%;object-fit:cover;">`;
+            itemAvatar.innerHTML = `<img src="${d.photo_url}" alt="${escHtml(d.name || '')}" style="width:100%;height:100%;object-fit:cover;">`;
           } else {
             itemAvatar.innerHTML = `<i class='bx bx-group' style="font-size:1.3rem;"></i>`;
           }
         }
+      });
+      
+      // Update cached _drawerGroupData
+      if (_drawerGroupData) {
+        if (d.name) _drawerGroupData.name = d.name;
+        if (d.description !== undefined) _drawerGroupData.description = d.description;
+        _drawerGroupData.photo = d.photo_url;
       }
       
       // Re-fetch and re-render drawer
@@ -7897,23 +8065,38 @@ function toggleRemoveMode() {
   if (_drawerRemoveMode) {
     // If in edit mode, exit it first
     if (_drawerEditMode) toggleDrawerEditMode();
+
+    const currentUserId = parseInt(cfg.dataset.userId || '0');
+    const isAdmin = _drawerGroupData && parseInt(_drawerGroupData.admin_id) === currentUserId;
     
     rows.forEach(row => {
       const mid = parseInt(row.dataset.memberId);
-      const member = _drawerGroupData && _drawerGroupData.members.find(m => m.id === mid);
-      // Don't show checkbox for admin, teacher, or self
-      const isSelf = mid === parseInt(cfg.dataset.userId || '0');
-      const isProtected = (member && (member.is_admin || member.is_teacher)) || isSelf;
+      const member = _drawerGroupData && _drawerGroupData.members.find(m => parseInt(m.id) === mid);
+      const isSelf = mid === currentUserId;
+      // Admin can remove teachers too! Only self and other admins are protected. Non-admins cannot remove teachers.
+      const isProtected = isSelf || (member && member.is_admin) || (!isAdmin && member && member.is_teacher);
       
       const slot = row.querySelector('.remove-cb-slot');
       if (slot && !isProtected) {
         slot.style.display = 'flex';
-        slot.innerHTML = `<input type="checkbox" data-remove-id="${mid}" onchange="updateRemoveSelection()" style="transform:scale(1.2);cursor:pointer;accent-color:#ef4444;">`;
+        slot.innerHTML = `<input type="checkbox" data-remove-id="${mid}" onchange="updateRemoveSelection()" style="transform:scale(1.25);cursor:pointer;accent-color:#ef4444;">`;
+        row.style.cursor = 'pointer';
+        row.onclick = (e) => {
+          if (e.target.tagName !== 'INPUT') {
+            const cb = slot.querySelector('input[type="checkbox"]');
+            if (cb) {
+              cb.checked = !cb.checked;
+              updateRemoveSelection();
+            }
+          }
+        };
       }
     });
   } else {
     // Exit remove mode
     rows.forEach(row => {
+      row.onclick = null;
+      row.style.cursor = '';
       const slot = row.querySelector('.remove-cb-slot');
       if (slot) { slot.style.display = 'none'; slot.innerHTML = ''; }
     });
@@ -7949,7 +8132,9 @@ async function confirmBulkRemove() {
   try {
     const r = await fetch(`/guidy/groups/${OTHER_ID}/members/manage/`, {
       method: 'POST',
-      body: fd
+      body: fd,
+      headers: {'X-CSRFToken': CSRF},
+      credentials: 'same-origin'
     });
     const d = await r.json();
     if (d.success) {
@@ -8585,6 +8770,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setup keyboard navigation on modal search suggestions
   setupModalSearchKeyboardNav();
 
+  // Setup touch swipe gestures between Chats and Groups tabs on mobile
+  initSidebarTabSwipeGestures();
+
   // Toggle profile drawer when clicking on the chat header (except action buttons)
   const activeHdr = document.getElementById('activeChatHeader');
   if (activeHdr) {
@@ -8744,8 +8932,14 @@ async function saveTeacherProfile() {
   try {
     const r = await fetch('/guidy/profile/teacher/update/', {
       method: 'POST',
-      body: fd
+      body: fd,
+      headers: {'X-CSRFToken': CSRF},
+      credentials: 'same-origin'
     });
+    if (!r.ok) {
+      showToast(`Server error (${r.status}). Please try again.`, 'error');
+      return;
+    }
     let d = {};
     try {
       d = await r.json();
@@ -9118,6 +9312,10 @@ function openContactListModal(mode) {
 
   document.getElementById('modalSearchInput').value = '';
   document.getElementById('modalSearchSuggestions').style.display = 'none';
+  const clearBtn = document.getElementById('modalSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const modalBox = document.querySelector('#contactListModal .g-contact-modal');
+  if (modalBox) modalBox.classList.remove('searching-active');
   
   const titleEl = document.getElementById('contactModalTitle');
   const groupFields = document.getElementById('modalGroupFields');
@@ -9145,9 +9343,53 @@ function openContactListModal(mode) {
   
   document.getElementById('contactListModal').classList.add('open');
   loadModalContacts();
+  // Start listening for mobile keyboard resize
+  _startContactModalKeyboardListener();
+}
+
+let _contactModalVVListener = null;
+
+function _startContactModalKeyboardListener() {
+  if (!window.visualViewport) return;
+  const modalBg = document.getElementById('contactListModal');
+  const modalBox = modalBg ? modalBg.querySelector('.g-contact-modal') : null;
+  if (!modalBg || !modalBox) return;
+
+  const handler = () => {
+    const vvHeight = window.visualViewport.height;
+    const fullHeight = window.innerHeight;
+    const keyboardOpen = (fullHeight - vvHeight) > 100;
+    // Resize the modal background to match the visual viewport
+    modalBg.style.height = vvHeight + 'px';
+    modalBg.style.alignItems = keyboardOpen ? 'flex-start' : 'center';
+    if (keyboardOpen) {
+      modalBox.classList.add('keyboard-active');
+    } else {
+      modalBox.classList.remove('keyboard-active');
+    }
+  };
+  window.visualViewport.addEventListener('resize', handler);
+  _contactModalVVListener = handler;
+  // Run once immediately
+  handler();
+}
+
+function _stopContactModalKeyboardListener() {
+  if (_contactModalVVListener && window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', _contactModalVVListener);
+    _contactModalVVListener = null;
+  }
+  const modalBg = document.getElementById('contactListModal');
+  if (modalBg) {
+    modalBg.style.height = '';
+    modalBg.style.alignItems = '';
+    const modalBox = modalBg.querySelector('.g-contact-modal');
+    if (modalBox) modalBox.classList.remove('keyboard-active');
+  }
 }
 
 function closeContactListModal() {
+  _stopContactModalKeyboardListener();
   document.getElementById('contactListModal').classList.remove('open');
 }
 
@@ -9333,7 +9575,41 @@ function renderModalContacts(query) {
   });
 }
 
+function onModalSearchFocus() {
+  const modalBox = document.querySelector('#contactListModal .g-contact-modal');
+  if (modalBox) {
+    modalBox.classList.add('searching-active');
+  }
+}
+
+function clearModalSearch(event) {
+  if (event) event.stopPropagation();
+  const input = document.getElementById('modalSearchInput');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  const clearBtn = document.getElementById('modalSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const sugg = document.getElementById('modalSearchSuggestions');
+  if (sugg) sugg.style.display = 'none';
+  renderModalContacts('');
+  const modalBox = document.querySelector('#contactListModal .g-contact-modal');
+  if (modalBox) {
+    modalBox.classList.remove('searching-active');
+  }
+}
+
 function handleModalSearch(val) {
+  const clearBtn = document.getElementById('modalSearchClearBtn');
+  if (clearBtn) {
+    clearBtn.style.display = val.trim() ? 'flex' : 'none';
+  }
+  const modalBox = document.querySelector('#contactListModal .g-contact-modal');
+  if (modalBox && val.trim()) {
+    modalBox.classList.add('searching-active');
+  }
+
   const sugg = document.getElementById('modalSearchSuggestions');
   const triggerChar = val.trim();
   
@@ -9457,8 +9733,14 @@ async function submitModalAction() {
     try {
       const r = await fetch('/guidy/groups/create/', {
         method: 'POST',
-        body: fd
+        body: fd,
+        headers: {'X-CSRFToken': CSRF},
+        credentials: 'same-origin'
       });
+      if (!r.ok) {
+        showToast(`Server error (${r.status}). Please try again.`, 'error');
+        return;
+      }
       let d = {};
       try {
         d = await r.json();

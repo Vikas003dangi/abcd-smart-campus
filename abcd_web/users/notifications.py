@@ -616,8 +616,8 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None):
         "title": title,
         "body": body,
         "url": url,
-        "icon": icon or "/static/data/favicon/favicon-96x96.png",
-        "badge": badge or "/static/data/favicon/favicon-32x32.png",
+        "icon": icon or "/static/data/favicon/web-app-manifest-192x192.png",
+        "badge": badge or "/static/data/favicon/favicon-96x96.png",
         "tag": tag or "abcd-notification",
     }
 

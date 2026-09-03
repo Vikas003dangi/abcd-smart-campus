@@ -71,11 +71,19 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
             def _notify_bg():
                 try:
                     sender_name = get_user_display_name(user)
-                    push_title = f"Guidy • {sender_name}"
-                    push_body = msg.content[:80] if msg.content else "Sent a message"
+                    if chat_type == 'group' and 'group' in locals() and group:
+                        push_title = group.name
+                        msg_text = msg.content[:80] if msg.content else "Sent a message"
+                        push_body = f"{sender_name}: {msg_text}"
+                        push_icon = (group.photo.url if group.photo else None) or get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
+                        push_tag = f"guidy-group-{session_id}"
+                    else:
+                        push_title = sender_name
+                        push_body = msg.content[:80] if msg.content else "Sent a message"
+                        push_icon = get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
+                        push_tag = f"guidy-{chat_type}-{session_id}"
+
                     push_url = f"/guidy/?{chat_type}={session_id}"
-                    push_icon = get_profile_photo_url(user) or "/static/data/favicon/favicon-96x96.png"
-                    push_tag = f"guidy-{chat_type}-{session_id}"
 
                     recipients = []
                     if chat_type == 'direct' and 'direct_session' in locals() and direct_session:
@@ -98,7 +106,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                             body=push_body,
                             url=push_url,
                             icon=push_icon,
-                            badge="/static/data/favicon/favicon-32x32.png",
+                            badge="/static/data/favicon/favicon-96x96.png",
                             tag=push_tag
                         )
                 except Exception:

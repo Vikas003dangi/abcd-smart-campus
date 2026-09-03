@@ -48,13 +48,13 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from users.models import SeatAssignment
 from users.db_utils import safe_atomic_transaction, deduplicate_request, safe_db_operation, retry_on_db_lock
-def _send_push_bg(user_target, title, body, url):
+def _send_push_bg(user_target, title, body, url, icon=None, badge=None, tag=None):
     from users.notifications import send_push
     from django.db import close_old_connections
     
     close_old_connections() # Clean state before starting
     try:
-        send_push(user_target, title, body, url)
+        send_push(user_target, title, body, url, icon=icon, badge=badge, tag=tag)
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"BG Push Error: {e}")
@@ -11127,8 +11127,9 @@ def guidy_send_message(request, session_id=None, direct_id=None):
             # Fire WhatsApp-style mobile push notification
             push_title = sender_name
             
+            push_title = sender_name
             if msg.message_type == 'text':
-                push_body = msg.content[:60] + '...' if len(msg.content) > 60 else msg.content
+                push_body = msg.content[:80] + '...' if len(msg.content) > 80 else msg.content
             elif msg.message_type == 'image':
                 push_body = "📷 Photo"
             elif msg.message_type == 'audio':
@@ -11139,9 +11140,11 @@ def guidy_send_message(request, session_id=None, direct_id=None):
                 push_body = "📎 Document"
                 
             push_url = f"/guidy/?{'direct=' + str(direct_session.id) if direct_session else 'session=' + str(session.id)}"
+            push_icon = get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
+            push_tag = f"guidy-direct-{direct_session.id}" if direct_session else f"guidy-session-{session.id}"
             threading.Thread(
                 target=_send_push_bg,
-                args=(other_user, push_title, push_body, push_url),
+                args=(other_user, push_title, push_body, push_url, push_icon, "/static/data/favicon/favicon-96x96.png", push_tag),
                 daemon=True
             ).start()
     except Exception as e:
@@ -12379,23 +12382,26 @@ def guidy_group_send_message(request, group_id):
                     )
 
                 # Fire WhatsApp-style mobile push notification for group members
-                push_title = f"{group.name} ({sender_name})"
+                push_title = group.name
                 
                 if msg.message_type == 'text':
-                    push_body = msg.content[:60] + '...' if len(msg.content) > 60 else msg.content
+                    msg_text = msg.content[:80] + '...' if len(msg.content) > 80 else msg.content
+                    push_body = f"{sender_name}: {msg_text}"
                 elif msg.message_type == 'image':
-                    push_body = "📷 Photo"
+                    push_body = f"{sender_name}: 📷 Photo"
                 elif msg.message_type == 'audio':
-                    push_body = "🎵 Audio"
+                    push_body = f"{sender_name}: 🎵 Audio"
                 elif msg.message_type == 'video':
-                    push_body = "🎥 Video"
+                    push_body = f"{sender_name}: 🎥 Video"
                 else:
-                    push_body = "📎 Document"
+                    push_body = f"{sender_name}: 📎 Document"
                     
                 push_url = f"/guidy/?group={group.id}"
+                push_icon = (group.photo.url if group.photo else None) or get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
+                push_tag = f"guidy-group-{group.id}"
                 threading.Thread(
                     target=_send_push_bg,
-                    args=(member, push_title, push_body, push_url),
+                    args=(member, push_title, push_body, push_url, push_icon, "/static/data/favicon/favicon-96x96.png", push_tag),
                     daemon=True
                 ).start()
     except Exception as e:
@@ -14284,6 +14290,7 @@ def guidy_group_manage_members(request, group_id):
         return JsonResponse({'success': True, 'added': len(added_names)})
 
     elif action == 'remove':
+        is_admin = (group.created_by == request.user)
         removed_names = []
         for tid in target_ids:
             try:
@@ -14293,8 +14300,8 @@ def guidy_group_manage_members(request, group_id):
             # Cannot remove the group creator
             if target_user == group.created_by:
                 continue
-            # Cannot remove a teacher member
-            if target_user.is_staff or target_user.is_superuser:
+            # Non-admins cannot remove a teacher member, but group admin CAN
+            if not is_admin and (target_user.is_staff or target_user.is_superuser):
                 continue
             if target_user in group.members.all():
                 group.members.remove(target_user)
