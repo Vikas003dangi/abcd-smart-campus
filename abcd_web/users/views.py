@@ -13,7 +13,16 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.urls import reverse
 from django.conf import settings
-from .models import TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest, StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification, BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview, CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, StudentCourseInteraction, abcd_format_name
+from .models import (
+    TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest,
+    StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification,
+    BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview,
+    CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, StudentCourseInteraction,
+    abcd_format_name,
+    # Guidy Mentorship & Group Chat Models
+    Message, ChatSession, DirectChatSession, GroupChatSession, GroupMessage,
+    GuidanceRequest, TeacherProfile, RestrictedStudent, BlockedGuidance, GuidyBlock
+)
 from .forms import StudentAchievementForm, EditStudentProfileForm, EditAlumniProfileForm, InitialRegisterForm, StudentProfileForm, ComplaintForm, ComplaintRatingForm
 from collections import defaultdict
 from django.contrib.auth.models import User, User as DjangoUser
@@ -29,7 +38,10 @@ from django.db import transaction, models, OperationalError
 from dateutil.relativedelta import relativedelta
 from .utils import parse_flexible_datetime, process_scheduled_broadcasts
 from django.utils.timesince import timesince
-from .utils import get_playlist_videos_for_course, sync_courses_from_youtube, track_visitor_intent, sync_active_holds, get_user_notification_email
+from .utils import (
+    get_playlist_videos_for_course, sync_courses_from_youtube, track_visitor_intent,
+    sync_active_holds, get_user_notification_email, get_user_display_name, get_profile_photo_url
+)
 from .youtube_service import fetch_playlists, fetch_playlist_videos, fetch_channel_videos
 from users.email_service import send_html_email
 from django.core.exceptions import ValidationError
@@ -12214,48 +12226,54 @@ def guidy_create_group(request):
     if photo_file and photo_file.size > 2 * 1024 * 1024:
         return JsonResponse({'success': False, 'error': 'Photo must be under 2 MB'}, status=400)
 
-    group = GroupChatSession.objects.create(
-        name=name,
-        created_by=user,
-        description=description,
-    )
-    if photo_file:
-        group.photo = photo_file
-        group.save()
-    group.members.add(user)
+    try:
+        group = GroupChatSession.objects.create(
+            name=name,
+            created_by=user,
+            description=description,
+        )
+        if photo_file:
+            group.photo = photo_file
+            group.save()
+        group.members.add(user)
 
-    # Log group creation
-    GroupMessage.objects.create(
-        group=group,
-        sender=user,
-        content=f"system_user:{user.id} created this group",
-        message_type='system'
-    )
-
-    from users.utils import get_user_display_name
-    from django.contrib.auth import get_user_model
-    UserModel = get_user_model()
-    added_names = []
-    
-    for uid in ids:
-        try:
-            u = UserModel.objects.get(id=uid)
-            group.members.add(u)
-            added_names.append(get_user_display_name(u))
-        except Exception:
-            pass
-
-    if added_names:
-        added_names.sort()
-        names_str = ", ".join(added_names)
+        # Log group creation
         GroupMessage.objects.create(
             group=group,
             sender=user,
-            content=f"system_user:{user.id} added {names_str}",
+            content=f"system_user:{user.id} created this group",
             message_type='system'
         )
 
-    return JsonResponse({'success': True, 'group_id': group.id, 'name': group.name})
+        from django.contrib.auth import get_user_model
+        UserModel = get_user_model()
+        added_names = []
+        
+        for uid in ids:
+            if uid == user.id:
+                continue
+            try:
+                u = UserModel.objects.get(id=uid)
+                group.members.add(u)
+                added_names.append(get_user_display_name(u))
+            except Exception:
+                pass
+
+        if added_names:
+            added_names.sort()
+            names_str = ", ".join(added_names)
+            GroupMessage.objects.create(
+                group=group,
+                sender=user,
+                content=f"system_user:{user.id} added {names_str}",
+                message_type='system'
+            )
+
+        return JsonResponse({'success': True, 'group_id': group.id, 'name': group.name})
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error creating group: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Failed to create group: {str(e)}'}, status=500)
 
 
 @login_required
@@ -13952,81 +13970,86 @@ def guidy_update_teacher_profile(request):
     if not (user.is_staff or user.is_superuser):
         return JsonResponse({'success': False, 'error': 'Only teachers/staff can edit profiles'}, status=403)
 
-    from users.models import TeacherProfile
-    profile, _ = TeacherProfile.objects.get_or_create(user=user)
+    try:
+        from users.models import TeacherProfile
+        profile, _ = TeacherProfile.objects.get_or_create(user=user)
 
-    display_name = request.POST.get('name')
-    about = request.POST.get('about')
-    role_title = request.POST.get('role_title')
-    mobile_number = request.POST.get('mobile_number')
-    detail1 = request.POST.get('detail1')
-    detail2 = request.POST.get('detail2')
-    detail3 = request.POST.get('detail3')
-    emails = request.POST.get('emails')
-    mobile_numbers = request.POST.get('mobile_numbers')
-    whatsapp_numbers = request.POST.get('whatsapp_numbers')
+        display_name = request.POST.get('name')
+        about = request.POST.get('about')
+        role_title = request.POST.get('role_title')
+        mobile_number = request.POST.get('mobile_number')
+        detail1 = request.POST.get('detail1')
+        detail2 = request.POST.get('detail2')
+        detail3 = request.POST.get('detail3')
+        emails = request.POST.get('emails')
+        mobile_numbers = request.POST.get('mobile_numbers')
+        whatsapp_numbers = request.POST.get('whatsapp_numbers')
 
-    if display_name is not None:
-        profile.display_name = display_name.strip()
-    if about is not None:
-        profile.about = about.strip()
-    if role_title is not None:
-        profile.role_title = role_title.strip()
-    if mobile_number is not None:
-        profile.mobile_number = mobile_number.strip()
-    if detail1 is not None:
-        profile.detail1 = detail1.strip()
-    if detail2 is not None:
-        profile.detail2 = detail2.strip()
-    if detail3 is not None:
-        profile.detail3 = detail3.strip()
-    if emails is not None:
-        profile.emails = emails.strip()
-    if mobile_numbers is not None:
-        profile.mobile_numbers = mobile_numbers.strip()
-        parts = [p.strip() for p in mobile_numbers.split(',') if p.strip()]
-        if parts:
-            profile.mobile_number = parts[0]
-        else:
-            profile.mobile_number = ''
-    if whatsapp_numbers is not None:
-        profile.whatsapp_numbers = whatsapp_numbers.strip()
+        if display_name is not None:
+            profile.display_name = display_name.strip()
+        if about is not None:
+            profile.about = about.strip()
+        if role_title is not None:
+            profile.role_title = role_title.strip()
+        if mobile_number is not None:
+            profile.mobile_number = mobile_number.strip()
+        if detail1 is not None:
+            profile.detail1 = detail1.strip()
+        if detail2 is not None:
+            profile.detail2 = detail2.strip()
+        if detail3 is not None:
+            profile.detail3 = detail3.strip()
+        if emails is not None:
+            profile.emails = emails.strip()
+        if mobile_numbers is not None:
+            profile.mobile_numbers = mobile_numbers.strip()
+            parts = [p.strip() for p in mobile_numbers.split(',') if p.strip()]
+            if parts:
+                profile.mobile_number = parts[0]
+            else:
+                profile.mobile_number = ''
+        if whatsapp_numbers is not None:
+            profile.whatsapp_numbers = whatsapp_numbers.strip()
 
-    photo_action = request.POST.get('photo_action')
-    remove_photo = request.POST.get('remove_photo')
-    
-    if photo_action == 'remove' or remove_photo == 'true':
-        if profile.photo:
-            try:
-                profile.photo.delete(save=False)
-            except Exception:
+        photo_action = request.POST.get('photo_action')
+        remove_photo = request.POST.get('remove_photo')
+        
+        if photo_action == 'remove' or remove_photo == 'true':
+            if profile.photo:
                 try:
-                    import os
-                    if hasattr(profile.photo, 'path') and os.path.isfile(profile.photo.path):
-                        os.remove(profile.photo.path)
+                    profile.photo.delete(save=False)
                 except Exception:
-                    pass
-        profile.photo = None
-    elif 'photo' in request.FILES:
-        profile.photo = request.FILES['photo']
+                    try:
+                        import os
+                        if hasattr(profile.photo, 'path') and os.path.isfile(profile.photo.path):
+                            os.remove(profile.photo.path)
+                    except Exception:
+                        pass
+            profile.photo = None
+        elif 'photo' in request.FILES:
+            profile.photo = request.FILES['photo']
 
-    profile.save()
+        profile.save()
 
-    photo_url = get_profile_photo_url(user)
-    return JsonResponse({
-        'success': True,
-        'photo_url': photo_url,
-        'name': profile.display_name,
-        'about': profile.about,
-        'role_title': profile.role_title,
-        'mobile_number': profile.mobile_number,
-        'emails': profile.emails,
-        'mobile_numbers': profile.mobile_numbers,
-        'whatsapp_numbers': profile.whatsapp_numbers,
-        'detail1': profile.detail1,
-        'detail2': profile.detail2,
-        'detail3': profile.detail3,
-    })
+        photo_url = get_profile_photo_url(user)
+        return JsonResponse({
+            'success': True,
+            'photo_url': photo_url,
+            'name': profile.display_name,
+            'about': profile.about,
+            'role_title': profile.role_title,
+            'mobile_number': profile.mobile_number,
+            'emails': profile.emails,
+            'mobile_numbers': profile.mobile_numbers,
+            'whatsapp_numbers': profile.whatsapp_numbers,
+            'detail1': profile.detail1,
+            'detail2': profile.detail2,
+            'detail3': profile.detail3,
+        })
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error in guidy_update_teacher_profile: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Update failed: {str(e)}'}, status=500)
 
 
 @login_required
@@ -14093,54 +14116,59 @@ def guidy_group_update_settings(request, group_id):
     if photo_file and photo_file.size > 2 * 1024 * 1024:
         return JsonResponse({'success': False, 'error': 'Photo must be under 2 MB'}, status=400)
 
-    if name and name != group.name:
-        GroupMessage.objects.create(
-            group=group,
-            sender=request.user,
-            content=f"system_user:{request.user.id} changed the group name to \"{name}\"",
-            message_type='system'
-        )
-        group.name = name
-
-    if remove_photo:
-        if group.photo:
-            group.photo.delete(save=False)
-            group.photo = None
+    try:
+        if name and name != group.name:
             GroupMessage.objects.create(
                 group=group,
                 sender=request.user,
-                content=f"system_user:{request.user.id} removed this group's profile picture",
+                content=f"system_user:{request.user.id} changed the group name to \"{name}\"",
                 message_type='system'
             )
-    elif photo_file:
-        if group.photo:
-            group.photo.delete(save=False)
-        GroupMessage.objects.create(
-            group=group,
-            sender=request.user,
-            content=f"system_user:{request.user.id} changed this group's profile picture",
-            message_type='system'
-        )
-        group.photo = photo_file
+            group.name = name
 
-    if description is not None and description.strip() != group.description:
-        GroupMessage.objects.create(
-            group=group,
-            sender=request.user,
-            content=f"system_user:{request.user.id} changed the group description",
-            message_type='system'
-        )
-        group.description = description.strip()
+        if remove_photo:
+            if group.photo:
+                group.photo.delete(save=False)
+                group.photo = None
+                GroupMessage.objects.create(
+                    group=group,
+                    sender=request.user,
+                    content=f"system_user:{request.user.id} removed this group's profile picture",
+                    message_type='system'
+                )
+        elif photo_file:
+            if group.photo:
+                group.photo.delete(save=False)
+            GroupMessage.objects.create(
+                group=group,
+                sender=request.user,
+                content=f"system_user:{request.user.id} changed this group's profile picture",
+                message_type='system'
+            )
+            group.photo = photo_file
 
-    group.save()
-    
-    photo_url = group.photo.url if group.photo else None
-    return JsonResponse({
-        'success': True,
-        'name': group.name,
-        'description': group.description,
-        'photo_url': photo_url
-    })
+        if description is not None and description.strip() != group.description:
+            GroupMessage.objects.create(
+                group=group,
+                sender=request.user,
+                content=f"system_user:{request.user.id} changed the group description",
+                message_type='system'
+            )
+            group.description = description.strip()
+
+        group.save()
+        
+        photo_url = group.photo.url if group.photo else None
+        return JsonResponse({
+            'success': True,
+            'name': group.name,
+            'description': group.description,
+            'photo_url': photo_url
+        })
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error updating group settings: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Failed to update group settings: {str(e)}'}, status=500)
 
 
 @login_required
@@ -14148,7 +14176,7 @@ def guidy_group_update_settings(request, group_id):
 def guidy_group_manage_members(request, group_id):
     """Allows the group admin or a teacher member to manage members, or any member to leave/exit.
     Supports bulk operations via comma-separated member_ids."""
-    from .models import GroupChatSession, StudentProfile, ChatSession
+    from .models import GroupChatSession, StudentProfile, ChatSession, GroupMessage
     group = get_object_or_404(GroupChatSession, id=group_id, is_active=True)
 
     action = request.POST.get('action')  # 'add', 'remove', or 'exit'
@@ -14181,7 +14209,6 @@ def guidy_group_manage_members(request, group_id):
             group.deleted_at = timezone.now()
             group.save()
             group.deleted_for_users.add(exit_user)
-            from .models import GroupMessage
             GroupMessage.objects.create(
                 group=group,
                 sender=exit_user,
@@ -14206,7 +14233,6 @@ def guidy_group_manage_members(request, group_id):
             return JsonResponse({'success': True, 'group_deleted': True})
         if exit_user in group.members.all():
             group.members.remove(exit_user)
-            from .models import GroupMessage
             GroupMessage.objects.create(
                 group=group,
                 sender=exit_user,
@@ -14249,7 +14275,6 @@ def guidy_group_manage_members(request, group_id):
         
         if added_names:
             added_names.sort()
-            from .models import GroupMessage
             GroupMessage.objects.create(
                 group=group,
                 sender=request.user,
@@ -14278,7 +14303,6 @@ def guidy_group_manage_members(request, group_id):
         
         if removed_names:
             removed_names.sort()
-            from .models import GroupMessage
             GroupMessage.objects.create(
                 group=group,
                 sender=request.user,
@@ -14299,7 +14323,6 @@ def guidy_group_manage_members(request, group_id):
         group.save()
         group.deleted_for_users.add(request.user)
 
-        from .models import GroupMessage
         GroupMessage.objects.create(
             group=group,
             sender=request.user,

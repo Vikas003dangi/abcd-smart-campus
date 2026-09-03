@@ -5,8 +5,6 @@
 
 {% block extra_css %}
 {{ block.super }}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css" id="flatpickrTheme">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 .self-profile-heading {
@@ -2310,10 +2308,6 @@ body.dark-theme .search-highlight {
     height: 24px;
     font-size: 0.9rem;
   }
-  .flatpickr-calendar {
-    transform: scale(0.85);
-    transform-origin: top right;
-  }
 }
 
 @media screen and (max-width: 320px) {
@@ -2326,10 +2320,82 @@ body.dark-theme .search-highlight {
     font-size: 0.78rem;
     min-width: 65px;
   }
-  .flatpickr-calendar {
-    transform: scale(0.72);
-    transform-origin: top right;
+}
+
+/* ── Custom Guidy Date Picker & Contact Modal Enhancements ── */
+.g-contact-modal {
+  max-width: 460px;
+  width: 92%;
+  max-height: 90vh;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 14px 18px;
+  border-radius: 18px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (max-height: 700px) {
+  .g-contact-modal {
+    height: 92vh;
+    max-height: 92vh;
+    padding: 12px 14px 10px 14px;
   }
+}
+
+.g-cal-nav-btn:hover {
+  background: var(--g-hov) !important;
+  color: var(--g-primary-s) !important;
+}
+
+.g-cal-day-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: var(--g-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.g-cal-day-btn:hover:not(:disabled) {
+  background: var(--g-hov);
+}
+
+.g-cal-day-btn.is-other-month {
+  opacity: 0.28;
+  color: var(--g-sub);
+}
+
+.g-cal-day-btn.is-today {
+  border: 1px solid var(--g-primary-s);
+  color: var(--g-primary-s);
+  font-weight: 800;
+}
+
+.g-cal-day-btn.is-selected {
+  background: linear-gradient(135deg, #6c63ff, #8b5cf6) !important;
+  color: white !important;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
+}
+
+.g-cal-msg-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #38bdf8;
+  position: absolute;
+  bottom: 3px;
 }
 </style>
 {% endblock %}
@@ -2741,7 +2807,7 @@ body.dark-theme .search-highlight {
       <div class="g-search-bar" id="gSearchBar">
         <button class="g-search-close" onclick="closeSearchBar()"><i class='bx bx-x'></i></button>
         <input type="text" id="msgSearchInput" placeholder="Search in chat..." oninput="searchInChatDebounced(this.value)" autocomplete="off">
-        <button id="calendarSearchBtn" style="background:none; border:none; color:var(--g-sub); font-size:1.2rem; cursor:pointer; margin-left:8px;"><i class='bx bx-calendar'></i></button>
+        <button id="calendarSearchBtn" type="button" onclick="toggleGuidyDatePicker(event)" style="background:none; border:none; color:var(--g-sub); font-size:1.2rem; cursor:pointer; margin-left:8px; display:flex; align-items:center; justify-content:center;" title="Select Date"><i class='bx bx-calendar'></i></button>
         <span class="g-search-count" id="searchCount"></span>
         <div class="g-search-nav">
           <button onclick="navSearch(-1)" title="Previous"><i class='bx bx-chevron-up'></i></button>
@@ -3573,18 +3639,18 @@ body.dark-theme .search-highlight {
 
 <!-- Unified Contacts / Group Modal -->
 <div class="g-modal-bg" id="contactListModal">
-  <div class="g-modal" style="max-width: 480px; width: 90%; max-height: 80vh; display: flex; flex-direction: column; padding: 20px; border-radius: 20px;">
-    <h3 id="contactModalTitle" style="font-weight: 800; font-size: 1.25rem; color: var(--g-text); display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+  <div class="g-modal g-contact-modal">
+    <h3 id="contactModalTitle" style="font-weight: 800; font-size: 1.15rem; color: var(--g-text); display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-shrink: 0;">
       <i class='bx bx-user-plus' style="color:var(--g-primary-s);"></i> Start Chat
     </h3>
     
     <!-- Group Fields (Visible only in Group Mode) -->
-    <div id="modalGroupFields" style="display: none; margin-bottom: 14px;">
-      <input type="text" id="newGroupNameInput" placeholder="Enter group name..." style="width: 100%; border: 1px solid var(--g-border); padding: 10px 14px; border-radius: 12px; font-size: 0.9rem; margin-bottom: 8px; outline: none; background: var(--g-bg); color: var(--g-text);">
-      <textarea id="newGroupDescInput" placeholder="Group description (optional)..." rows="2" style="width: 100%; border: 1px solid var(--g-border); padding: 10px 14px; border-radius: 12px; font-size: 0.9rem; margin-bottom: 8px; outline: none; background: var(--g-bg); color: var(--g-text); resize: vertical; font-family: inherit;"></textarea>
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <label for="newGroupPhotoInput" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 14px; border: 1px dashed var(--g-border); border-radius: 12px; font-size: 0.85rem; color: var(--g-sub); transition: background 0.2s;" onmouseover="this.style.background='var(--g-hov)'" onmouseout="this.style.background='transparent'">
-          <i class='bx bx-image-add' style="font-size: 1.2rem; color: var(--g-primary-s);"></i>
+    <div id="modalGroupFields" style="display: none; margin-bottom: 8px; flex-shrink: 0;">
+      <input type="text" id="newGroupNameInput" placeholder="Group name..." style="width: 100%; border: 1px solid var(--g-border); padding: 8px 12px; border-radius: 10px; font-size: 0.84rem; margin-bottom: 6px; outline: none; background: var(--g-bg); color: var(--g-text); box-sizing: border-box;">
+      <textarea id="newGroupDescInput" placeholder="Group description (optional)..." rows="1" onfocus="this.rows=2" onblur="if(!this.value.trim())this.rows=1" style="width: 100%; border: 1px solid var(--g-border); padding: 7px 12px; border-radius: 10px; font-size: 0.82rem; margin-bottom: 6px; outline: none; background: var(--g-bg); color: var(--g-text); resize: none; font-family: inherit; box-sizing: border-box; transition: height 0.2s;"></textarea>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="newGroupPhotoInput" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 6px 12px; border: 1px dashed var(--g-border); border-radius: 8px; font-size: 0.78rem; color: var(--g-sub); transition: background 0.2s;" onmouseover="this.style.background='var(--g-hov)'" onmouseout="this.style.background='transparent'">
+          <i class='bx bx-image-add' style="font-size: 1.1rem; color: var(--g-primary-s);"></i>
           <span id="newGroupPhotoLabel">Add group photo (max 2 MB)</span>
         </label>
         <input type="file" id="newGroupPhotoInput" accept="image/*" style="display: none;" onchange="handleGroupPhotoSelect(this)">
@@ -3592,28 +3658,75 @@ body.dark-theme .search-highlight {
     </div>
 
     <!-- Search Input with suggestion helper -->
-    <div style="position: relative; margin-bottom: 12px;">
-      <div class="g-search-inner" style="border-radius: 12px; display: flex; align-items: center; padding: 8px 12px; background: var(--g-bg);">
-        <i class='bx bx-search' style="color: var(--g-sub); font-size: 1.1rem; margin-right: 6px;"></i>
-        <input type="text" id="modalSearchInput" placeholder="Search contacts..." oninput="handleModalSearchDebounced(this.value)" autocomplete="off" style="border: none; background: none; outline: none; width: 100%; font-size: 0.88rem; color: var(--g-text);">
+    <div style="position: relative; margin-bottom: 8px; flex-shrink: 0;">
+      <div class="g-search-inner" style="border-radius: 10px; display: flex; align-items: center; padding: 6px 10px; background: var(--g-bg);">
+        <i class='bx bx-search' style="color: var(--g-sub); font-size: 1rem; margin-right: 6px;"></i>
+        <input type="text" id="modalSearchInput" placeholder="Search contacts..." oninput="handleModalSearchDebounced(this.value)" autocomplete="off" style="border: none; background: none; outline: none; width: 100%; font-size: 0.82rem; color: var(--g-text);">
       </div>
       <!-- Keyword Suggestion Dropdown -->
       <div id="modalSearchSuggestions" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--g-side-bg); border-radius: 10px; border: 1px solid var(--g-border); box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 100; overflow: hidden;">
-        <div class="suggestion-item" onclick="applySearchFilter('/coaching')" style="padding: 10px 14px; cursor: pointer; font-size: 0.85rem; color: var(--g-text); transition: background 0.15s; border-bottom: 1px solid var(--g-border);"><b>/coaching</b> - Filter coaching batch students</div>
-        <div class="suggestion-item" onclick="applySearchFilter('/library')" style="padding: 10px 14px; cursor: pointer; font-size: 0.85rem; color: var(--g-text); transition: background 0.15s; border-bottom: 1px solid var(--g-border);"><b>/library</b> - Filter library students</div>
-        <div class="suggestion-item" onclick="applySearchFilter('/alumni')" style="padding: 10px 14px; cursor: pointer; font-size: 0.85rem; color: var(--g-text); transition: background 0.15s;"><b>/alumni</b> - Filter alumni guides</div>
+        <div class="suggestion-item" onclick="applySearchFilter('/coaching')" style="padding: 8px 12px; cursor: pointer; font-size: 0.8rem; color: var(--g-text); transition: background 0.15s; border-bottom: 1px solid var(--g-border);"><b>/coaching</b> - Filter coaching batch students</div>
+        <div class="suggestion-item" onclick="applySearchFilter('/library')" style="padding: 8px 12px; cursor: pointer; font-size: 0.8rem; color: var(--g-text); transition: background 0.15s; border-bottom: 1px solid var(--g-border);"><b>/library</b> - Filter library students</div>
+        <div class="suggestion-item" onclick="applySearchFilter('/alumni')" style="padding: 8px 12px; cursor: pointer; font-size: 0.8rem; color: var(--g-text); transition: background 0.15s;"><b>/alumni</b> - Filter alumni guides</div>
       </div>
     </div>
 
     <!-- Scrollable Contacts List -->
-    <div id="modalContactsList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; margin-bottom: 16px;">
-      <div style="text-align: center; color: var(--g-sub); padding: 20px;">Loading contacts...</div>
+    <div id="modalContactsList" style="flex: 1 1 0; min-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 4px; margin-bottom: 10px; -webkit-overflow-scrolling: touch;">
+      <div style="text-align: center; color: var(--g-sub); padding: 20px; font-size: 0.82rem;">Loading contacts...</div>
     </div>
 
     <!-- Actions -->
-    <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--g-border); padding-top: 14px;">
-      <button class="g-modal-cancel" onclick="closeContactListModal()" style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--g-border); background: var(--g-hov); color: var(--g-text); cursor: pointer; font-weight: 600; font-size: 0.88rem;">Cancel</button>
-      <button id="modalActionBtn" class="g-modal-ok" onclick="submitModalAction()" style="padding: 10px 20px; border-radius: 10px; border: none; background: var(--g-primary-s); color: white; cursor: pointer; font-weight: 700; font-size: 0.88rem;">Create Group</button>
+    <div style="display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--g-border); padding-top: 10px; flex-shrink: 0;">
+      <button class="g-modal-cancel" onclick="closeContactListModal()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid var(--g-border); background: var(--g-hov); color: var(--g-text); cursor: pointer; font-weight: 600; font-size: 0.84rem;">Cancel</button>
+      <button id="modalActionBtn" class="g-modal-ok" onclick="submitModalAction()" style="padding: 8px 18px; border-radius: 8px; border: none; background: var(--g-primary-s); color: white; cursor: pointer; font-weight: 700; font-size: 0.84rem;">Create Group</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Guidy In-Chat Date Picker Modal -->
+<div class="g-modal-bg" id="guidyDatePickerModal" onclick="if(event.target===this)closeGuidyDatePicker()">
+  <div class="g-modal" style="max-width: 340px; width: 92%; padding: 18px 20px; border-radius: 20px; background: var(--g-side-bg); border: 1px solid var(--g-border); box-shadow: 0 16px 40px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 12px; box-sizing: border-box;">
+    <!-- Header -->
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+      <div style="display: flex; align-items: center; gap: 6px; flex: 1;">
+        <button type="button" class="g-cal-nav-btn" onclick="changeCalMonth(-1)" title="Previous Month" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;"><i class='bx bx-chevron-left' style="font-size: 1.2rem;"></i></button>
+        <select id="gCalMonthSelect" onchange="onCalMonthSelectChange()" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); font-weight: 700; font-size: 0.84rem; padding: 5px 8px; border-radius: 8px; outline: none; cursor: pointer; flex: 1;">
+          <option value="0">January</option>
+          <option value="1">February</option>
+          <option value="2">March</option>
+          <option value="3">April</option>
+          <option value="4">May</option>
+          <option value="5">June</option>
+          <option value="6">July</option>
+          <option value="7">August</option>
+          <option value="8">September</option>
+          <option value="9">October</option>
+          <option value="10">November</option>
+          <option value="11">December</option>
+        </select>
+        <select id="gCalYearSelect" onchange="onCalYearSelectChange()" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); font-weight: 700; font-size: 0.84rem; padding: 5px 8px; border-radius: 8px; outline: none; cursor: pointer;">
+          <!-- Populated in JS: 2022 to 2030 -->
+        </select>
+        <button type="button" class="g-cal-nav-btn" onclick="changeCalMonth(1)" title="Next Month" style="background: var(--g-bg); border: 1px solid var(--g-border); color: var(--g-text); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s;"><i class='bx bx-chevron-right' style="font-size: 1.2rem;"></i></button>
+      </div>
+      <button type="button" onclick="closeGuidyDatePicker()" style="background: none; border: none; color: var(--g-sub); font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; padding: 2px;"><i class='bx bx-x'></i></button>
+    </div>
+
+    <!-- Weekday Labels -->
+    <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 0.72rem; font-weight: 700; color: var(--g-sub); text-transform: uppercase;">
+      <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+    </div>
+
+    <!-- Calendar Days Grid -->
+    <div id="gCalDaysGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center;">
+      <!-- Populated dynamically via JS -->
+    </div>
+
+    <!-- Footer Actions -->
+    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--g-border); padding-top: 10px; margin-top: 2px;">
+      <button type="button" onclick="selectCalToday()" style="background: var(--g-hov); border: 1px solid var(--g-border); color: var(--g-text); font-size: 0.78rem; font-weight: 600; padding: 5px 12px; border-radius: 8px; cursor: pointer;">Today</button>
+      <button type="button" onclick="clearCalDate()" style="background: none; border: none; color: var(--g-sub); font-size: 0.78rem; cursor: pointer; padding: 5px 8px;">Clear Filter</button>
     </div>
   </div>
 </div>
@@ -3684,7 +3797,6 @@ body.dark-theme .search-highlight {
   {% endif %}
 {% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <div class="g-modal-bg" id="guidyAppModalBg" style="z-index: 99999;">
   <div class="g-modal" style="text-align: center; max-width: 380px;">
@@ -3809,33 +3921,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (GROUP_ID)   startGroupPolling();
   document.addEventListener('click', globalClickClose);
 
-  const calBtn = document.getElementById('calendarSearchBtn');
-  if (calBtn) {
-      const updateFlatpickrTheme = () => {
-          const isDark = document.body.classList.contains('dark-theme');
-          const themeLink = document.getElementById('flatpickrTheme');
-          if (themeLink) {
-              themeLink.disabled = !isDark;
-          }
-      };
-      
-      // Setup initial flatpickr theme
-      updateFlatpickrTheme();
-      
-      // Observe dark-theme body class changes to dynamically update flatpickr theme stylesheet
-      const themeObserver = new MutationObserver(updateFlatpickrTheme);
-      themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-      
-      flatpickr(calBtn, {
-          disableMobile: true, // Forces the nice UI on mobile too
-          position: "auto right", // Automatically prevents clipping outside the chat area
-          onChange: function(selectedDates, dateStr, instance) {
-              if (typeof jumpToDate === 'function') {
-                  jumpToDate(dateStr);
-              }
-          }
-      });
-  }
+  // Initialize Guidy Date Picker
+  initGuidyDatePickerYears();
 
   // Apply jumbo emoji styles to existing history
   document.querySelectorAll('.g-bubble').forEach(bubble => {
@@ -4656,6 +4743,198 @@ function formatDividerDate(dateStr) {
   }
 }
 
+// ── Guidy Custom In-Chat Date Picker ────────────────────────────────
+let gCalCurrentYear = new Date().getFullYear();
+let gCalCurrentMonth = new Date().getMonth();
+let gCalSelectedDateStr = '';
+
+function initGuidyDatePickerYears() {
+  const yearSel = document.getElementById('gCalYearSelect');
+  if (!yearSel || yearSel.options.length > 0) return;
+  const curY = new Date().getFullYear();
+  for (let y = curY - 4; y <= curY + 4; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    yearSel.appendChild(opt);
+  }
+}
+
+function openGuidyDatePicker() {
+  const modal = document.getElementById('guidyDatePickerModal');
+  if (!modal) return;
+  initGuidyDatePickerYears();
+  
+  const sInput = document.getElementById('msgSearchInput');
+  const existingVal = sInput ? sInput.value.trim() : '';
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (datePattern.test(existingVal)) {
+    const parts = existingVal.split('-');
+    gCalCurrentYear = parseInt(parts[0]);
+    gCalCurrentMonth = parseInt(parts[1]) - 1;
+    gCalSelectedDateStr = existingVal;
+  } else if (!gCalSelectedDateStr) {
+    const now = new Date();
+    gCalCurrentYear = now.getFullYear();
+    gCalCurrentMonth = now.getMonth();
+  }
+  
+  renderGuidyCalendar();
+  modal.classList.add('open');
+}
+
+function closeGuidyDatePicker() {
+  const modal = document.getElementById('guidyDatePickerModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function toggleGuidyDatePicker(event) {
+  if (event) event.stopPropagation();
+  const modal = document.getElementById('guidyDatePickerModal');
+  if (modal && modal.classList.contains('open')) {
+    closeGuidyDatePicker();
+  } else {
+    openGuidyDatePicker();
+  }
+}
+
+function onCalMonthSelectChange() {
+  const mSel = document.getElementById('gCalMonthSelect');
+  if (mSel) {
+    gCalCurrentMonth = parseInt(mSel.value);
+    renderGuidyCalendar();
+  }
+}
+
+function onCalYearSelectChange() {
+  const ySel = document.getElementById('gCalYearSelect');
+  if (ySel) {
+    gCalCurrentYear = parseInt(ySel.value);
+    renderGuidyCalendar();
+  }
+}
+
+function changeCalMonth(dir) {
+  gCalCurrentMonth += dir;
+  if (gCalCurrentMonth < 0) {
+    gCalCurrentMonth = 11;
+    gCalCurrentYear -= 1;
+  } else if (gCalCurrentMonth > 11) {
+    gCalCurrentMonth = 0;
+    gCalCurrentYear += 1;
+  }
+  renderGuidyCalendar();
+}
+
+function renderGuidyCalendar() {
+  initGuidyDatePickerYears();
+  const mSel = document.getElementById('gCalMonthSelect');
+  const ySel = document.getElementById('gCalYearSelect');
+  if (mSel) mSel.value = gCalCurrentMonth;
+  if (ySel) ySel.value = gCalCurrentYear;
+
+  const grid = document.getElementById('gCalDaysGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  // Get active chat message dates in DOM
+  const activeChatDates = new Set();
+  document.querySelectorAll('.g-date-div').forEach(div => {
+    if (div.dataset.date) activeChatDates.add(div.dataset.date);
+  });
+
+  const now = new Date();
+  const todayY = now.getFullYear();
+  const todayM = now.getMonth();
+  const todayD = now.getDate();
+
+  const firstDayIndex = new Date(gCalCurrentYear, gCalCurrentMonth, 1).getDay();
+  const totalDays = new Date(gCalCurrentYear, gCalCurrentMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(gCalCurrentYear, gCalCurrentMonth, 0).getDate();
+
+  // Previous month trailing days
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const dayNum = prevMonthDays - i;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'g-cal-day-btn is-other-month';
+    btn.textContent = dayNum;
+    btn.onclick = () => changeCalMonth(-1);
+    grid.appendChild(btn);
+  }
+
+  // Current month days
+  for (let day = 1; day <= totalDays; day++) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'g-cal-day-btn';
+    btn.textContent = day;
+
+    const mStr = String(gCalCurrentMonth + 1).padStart(2, '0');
+    const dStr = String(day).padStart(2, '0');
+    const fullDateStr = `${gCalCurrentYear}-${mStr}-${dStr}`;
+
+    if (gCalCurrentYear === todayY && gCalCurrentMonth === todayM && day === todayD) {
+      btn.classList.add('is-today');
+    }
+    if (fullDateStr === gCalSelectedDateStr) {
+      btn.classList.add('is-selected');
+    }
+    if (activeChatDates.has(fullDateStr)) {
+      const dot = document.createElement('span');
+      dot.className = 'g-cal-msg-dot';
+      btn.appendChild(dot);
+    }
+
+    btn.onclick = () => onSelectCalDate(gCalCurrentYear, gCalCurrentMonth, day);
+    grid.appendChild(btn);
+  }
+
+  // Next month leading days to complete grid rows
+  const remainingCells = 42 - (firstDayIndex + totalDays);
+  if (remainingCells > 0 && remainingCells < 7) {
+    for (let day = 1; day <= remainingCells; day++) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'g-cal-day-btn is-other-month';
+      btn.textContent = day;
+      btn.onclick = () => changeCalMonth(1);
+      grid.appendChild(btn);
+    }
+  }
+}
+
+function onSelectCalDate(year, month, day) {
+  const yStr = String(year);
+  const mStr = String(month + 1).padStart(2, '0');
+  const dStr = String(day).padStart(2, '0');
+  const dateStr = `${yStr}-${mStr}-${dStr}`;
+  gCalSelectedDateStr = dateStr;
+
+  closeGuidyDatePicker();
+
+  const sInput = document.getElementById('msgSearchInput');
+  if (sInput) {
+    sInput.value = dateStr;
+  }
+  jumpToDate(dateStr);
+}
+
+function selectCalToday() {
+  const now = new Date();
+  onSelectCalDate(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function clearCalDate() {
+  gCalSelectedDateStr = '';
+  closeGuidyDatePicker();
+  const sInput = document.getElementById('msgSearchInput');
+  if (sInput) {
+    sInput.value = '';
+    searchInChat('');
+  }
+}
+
 function jumpToDate(dateString) {
   if (!dateString) return;
   
@@ -4705,7 +4984,8 @@ function jumpToDate(dateString) {
       }, 1500);
     }
   } else {
-    showToast('No messages found on this date', 'error');
+    // If not in currently rendered DOM, search in chat by date
+    searchInChat(dateString);
   }
 }
 
@@ -7987,34 +8267,9 @@ function showRequestDetail(reqId, name, message, date) {
   // This is handled via URL change for full-page requests
 }
 
-// ── Groups ───────────────────────────────────────────────
-function openGroupModal() { document.getElementById('groupModal').classList.add('open'); }
-function closeGroupModal() { document.getElementById('groupModal').classList.remove('open'); }
-
-async function createGroup() {
-  const name = document.getElementById('groupNameInput').value.trim();
-  const members = document.getElementById('groupMembersInput').value.trim();
-  if (!name) { showToast('Please enter a group name', 'error'); return; }
-  const fd = new FormData();
-  fd.append('csrfmiddlewaretoken', CSRF);
-  fd.append('name', name);
-  if (members) fd.append('member_ids', members);
-  try {
-    const r = await fetch('/guidy/groups/create/', { method:'POST', body:fd });
-    const d = await r.json();
-    if (d.success) {
-      closeGroupModal();
-      showToast('Group created!');
-      switchTab('groups');
-      ensureSidebarChatItem('group', d.group_id, d.name, null, false, '', '', 'text');
-      loadChatAJAX('group', d.group_id, true);
-    } else {
-      showToast(d.error || 'Failed to create group', 'error');
-    }
-  } catch(e) {
-    showToast('Failed to create group', 'error');
-  }
-}
+// ── Groups (Delegates to unified contact/group modal) ───────────────────
+function openGroupModal() { openContactListModal('group'); }
+function closeGroupModal() { closeContactListModal(); }
 
 // ── Media Viewer ──────────────────────────────────────────
 function viewMedia(url, type) {
@@ -8491,7 +8746,12 @@ async function saveTeacherProfile() {
       method: 'POST',
       body: fd
     });
-    const d = await r.json();
+    let d = {};
+    try {
+      d = await r.json();
+    } catch(err) {
+      d = { success: false, error: 'Server returned an invalid response' };
+    }
     if (d.success) {
       showToast('Profile updated successfully!');
       setTimeout(() => window.location.reload(), 1000);
@@ -8499,7 +8759,7 @@ async function saveTeacherProfile() {
       showToast(d.error || 'Update failed', 'error');
     }
   } catch(e) {
-    showToast('An error occurred during update', 'error');
+    showToast('Network error during update', 'error');
   }
 }
 
@@ -8983,28 +9243,28 @@ function renderModalContacts(query) {
     }
     
     const avatarHtml = c.photo 
-      ? `<img src="${c.photo}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">`
-      : `<div style="width: 36px; height: 36px; border-radius: 50%; background: var(--g-primary-s); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem;">${c.name.charAt(0).toUpperCase()}</div>`;
+      ? `<img src="${c.photo}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">`
+      : `<div style="width: 30px; height: 30px; border-radius: 50%; background: var(--g-primary-s); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.76rem; flex-shrink: 0;">${c.name.charAt(0).toUpperCase()}</div>`;
       
     let actionWidget = '';
     if (modalMode === 'group' || modalMode === 'add_group_members') {
       const checked = selectedMembers.has(c.id) ? 'checked' : '';
-      actionWidget = `<input type="checkbox" data-user-id="${c.id}" ${checked} onclick="event.stopPropagation(); toggleMemberSelection(${c.id})" style="transform: scale(1.15); cursor: pointer; accent-color: var(--g-primary-s);">`;
+      actionWidget = `<input type="checkbox" data-user-id="${c.id}" ${checked} onclick="event.stopPropagation(); toggleMemberSelection(${c.id})" style="transform: scale(1.08); cursor: pointer; accent-color: var(--g-primary-s); margin-right: 4px;">`;
     }
     
-    const verifiedTick = c.is_verified ? ` <i class='bx bxs-badge-check g-verified-tick'></i>` : '';
+    const verifiedTick = c.is_verified ? ` <i class='bx bxs-badge-check g-verified-tick' style="font-size: 0.85rem;"></i>` : '';
     row.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
         ${avatarHtml}
-        <div>
-          <div style="font-size: 0.9rem; font-weight: 600; color: var(--g-text); display: flex; align-items: center; gap: 4px;">
-            ${c.name}
+        <div style="min-width: 0; flex: 1;">
+          <div style="font-size: 0.82rem; font-weight: 600; color: var(--g-text); display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;">
+            <span style="overflow: hidden; text-overflow: ellipsis;">${c.name}</span>
             ${verifiedTick}
           </div>
-          ${c.already_chatted ? '<span style="font-size: 0.72rem; color: #25d366; font-weight: 500;">Direct chat active</span>' : ''}
+          ${c.already_chatted ? '<span style="font-size: 0.68rem; color: #25d366; font-weight: 500; display: block;">Direct chat active</span>' : ''}
         </div>
       </div>
-      <div style="display: flex; align-items: center;">
+      <div style="display: flex; align-items: center; flex-shrink: 0;">
         ${actionWidget}
       </div>
     `;
@@ -9199,7 +9459,12 @@ async function submitModalAction() {
         method: 'POST',
         body: fd
       });
-      const d = await r.json();
+      let d = {};
+      try {
+        d = await r.json();
+      } catch(parseErr) {
+        d = { success: false, error: 'Server returned an invalid response' };
+      }
       if (d.success) {
         closeContactListModal();
         showToast('Group created!');
@@ -9211,7 +9476,7 @@ async function submitModalAction() {
         showToast(d.error || 'Failed to create group', 'error');
       }
     } catch(e) {
-      showToast('Failed to create group', 'error');
+      showToast('Network error while creating group', 'error');
     }
   }
 }

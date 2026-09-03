@@ -1487,17 +1487,16 @@ def get_user_display_name(user):
         return ""
     
     email_clean = (user.email or '').strip().lower()
-    if email_clean == 'abcd2013baq@gmail.com':
-        return 'Sandeep Sir'
-    elif email_clean == 'vd19055@gmail.com':
-        return 'ABCD Asst.'
-
     # 1. Teacher check
+    from .models import TeacherProfile
+    t_prof = TeacherProfile.objects.filter(user=user).first()
+    if t_prof and t_prof.display_name and t_prof.display_name.strip():
+        return t_prof.display_name.strip()
     if user.is_staff or user.is_superuser:
-        from .models import TeacherProfile
-        t_prof = TeacherProfile.objects.filter(user=user).first()
-        if t_prof and t_prof.display_name:
-            return t_prof.display_name
+        if email_clean == 'abcd2013baq@gmail.com':
+            return 'Sandeep Sir'
+        elif email_clean == 'vd19055@gmail.com':
+            return 'ABCD Asst.'
         return user.get_full_name() or user.username
         
     # 2. Alumni check
