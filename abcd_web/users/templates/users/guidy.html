@@ -32,7 +32,7 @@
   --g-bg:             #f0f2f5;
   --g-side-bg:        #ffffff;
   --g-chat-bg:        #eae6df;
-  --g-msg-out:        linear-gradient(135deg,#6c63ff,#8b5cf6);
+  --g-msg-out:        linear-gradient(135deg, #7b8cf8, #6874f6);
   --g-msg-in:         #ffffff;
   --g-text:           #111827;
   --g-sub:            #6b7280;
@@ -529,8 +529,11 @@ body.dark-theme .g-req-card {
 .g-pane-flex { display: flex; }
 .g-pane-block { display: block; }
 
-.msg-tick.tick-read { color: var(--g-accent); font-size: 0.8rem; }
-.msg-tick.tick-unread { color: var(--g-sub); opacity: 0.6; font-size: 0.8rem; }
+.msg-tick { font-size: 0.82rem; }
+.msg-tick.tick-read { color: #2563eb !important; }
+.msg-tick.tick-unread { color: #64748b !important; opacity: 0.85; }
+body.dark-theme .msg-tick.tick-read { color: #38bdf8 !important; }
+body.dark-theme .msg-tick.tick-unread { color: rgba(255, 255, 255, 0.65) !important; opacity: 1; }
 
 /* ══════════════════════════════════════════════════════
    MAIN CHAT AREA
@@ -833,7 +836,7 @@ body.dark-theme .g-bg-canvas { opacity: 0.18; }
 .g-msg-row.mine .g-bubble {
   background: var(--g-msg-out); color: #ffffff;
   border-bottom-right-radius: 5px;
-  box-shadow: 0 4px 14px rgba(108,99,255,0.28);
+  box-shadow: 0 4px 14px rgba(104, 116, 246, 0.22);
 }
 body.dark-theme .g-msg-row.mine .g-bubble {
   background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -949,10 +952,21 @@ body.dark-theme .g-msg-row.theirs .g-expired-media-notice i {
   display: flex; align-items: center; gap: 4px;
   margin-top: 3px; font-size: 0.68rem;
 }
-.g-msg-row.mine .g-msg-meta { justify-content: flex-end; color: rgba(255, 255, 255, 0.75); }
-body.dark-theme .g-msg-row.mine .g-msg-meta { color: rgba(255, 255, 255, 0.8); }
-.g-msg-row.theirs .g-msg-meta { color: var(--g-sub); }
-body.dark-theme .g-msg-row.theirs .g-msg-meta { color: #94a3b8; }
+.g-msg-row.mine .g-msg-meta {
+  justify-content: flex-end;
+  color: #64748b; /* Visible slate gray in light theme */
+  font-weight: 500;
+}
+body.dark-theme .g-msg-row.mine .g-msg-meta {
+  color: rgba(255, 255, 255, 0.75);
+}
+.g-msg-row.theirs .g-msg-meta {
+  color: #64748b;
+  font-weight: 500;
+}
+body.dark-theme .g-msg-row.theirs .g-msg-meta {
+  color: #94a3b8;
+}
 .g-msg-pin-ico, .g-msg-star-ico { font-size: 0.72rem; }
 .g-msg-pin-ico { color: #fbbf24; }
 .g-msg-star-ico { color: #f59e0b; }
@@ -3377,12 +3391,12 @@ body.dark-theme .search-highlight {
 <div class="g-ctx-wrap" id="ctxMenu">
   <div class="g-reactions-row">
     <div class="g-react-label">Quick reply</div>
-    <button class="g-react-btn" onclick="sendReaction('👍')">👍</button>
-    <button class="g-react-btn" onclick="sendReaction('❤️')">❤️</button>
-    <button class="g-react-btn" onclick="sendReaction('😂')">😂</button>
-    <button class="g-react-btn" onclick="sendReaction('😮')">😮</button>
-    <button class="g-react-btn" onclick="sendReaction('😢')">😢</button>
-    <button class="g-react-btn" onclick="sendReaction('🙏')">🙏</button>
+    <button type="button" class="g-react-btn" onmousedown="event.preventDefault()" onclick="sendReaction('👍')">👍</button>
+    <button type="button" class="g-react-btn" onmousedown="event.preventDefault()" onclick="sendReaction('❤️')">❤️</button>
+    <button type="button" class="g-react-btn" onmousedown="event.preventDefault()" onclick="sendReaction('😂')">😂</button>
+    <button type="button" class="g-react-btn" onmousedown="event.preventDefault()" onclick="sendReaction('😮')">😮</button>
+    <button type="button" class="g-react-btn" onmousedown="event.preventDefault()" onclick="sendReaction('😢')">😢</button>
+    <button type="button" class="g-react-btn" onmousedown="event.preventDefault()" onclick="sendReaction('🙏')">🙏</button>
   </div>
   <button class="g-ctx-item" onclick="ctxReply()"><i class='bx bx-reply'></i> Reply</button>
   <button class="g-ctx-item" onclick="ctxCopy()"><i class='bx bx-copy'></i> Copy</button>
@@ -4777,7 +4791,7 @@ function appendMessage(msg) {
                     <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
                     ${mediaHtml}<span class="g-msg-text">${formatMessageContent(msg.content||'')}</span>
                   </div>
-                  <div class="g-msg-meta"><span>${msg.timestamp}</span>${msg.is_mine ? `<i class="bx bx-check-double msg-tick" style="font-size:0.8rem; color:${msg.is_read ? 'var(--g-accent)' : 'var(--g-sub)'};"></i>` : ''}</div>`;
+                  <div class="g-msg-meta"><span>${msg.timestamp}</span>${msg.is_mine ? `<i class="bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}"></i>` : ''}</div>`;
   }
 
   row.innerHTML = `
@@ -5050,7 +5064,7 @@ async function fetchOlderMessages() {
                           <div class="g-msg-meta">
                             ${msg.is_pinned ? `<i class='bx bx-pin g-msg-pin-ico'></i>` : ''}
                             <span>${msg.timestamp}</span>
-                            ${msg.is_mine ? `<i class="bx bx-check-double msg-tick" style="font-size:0.8rem; color:${msg.is_read ? 'var(--g-accent)' : 'var(--g-sub)'};"></i>` : ''}
+                            ${msg.is_mine ? `<i class="bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}"></i>` : ''}
                           </div>`;
           }
 
@@ -9209,26 +9223,43 @@ function openGroupModal() {
   openContactListModal('group');
 }
 
-// ── Reactions — sends emoji as a quick reply to the target message ──────
-function sendReaction(emoji) {
+// ── Reactions — sends emoji as an instant reply without going through text input ──────
+async function sendReaction(emoji) {
   if (!ctxMsgRow) { closeCtxMenu(); return; }
 
-  // Extract reply metadata from the target message row
-  const bubble = ctxMsgRow.querySelector('.g-bubble');
-  const msgId  = ctxMsgRow.dataset.msgId;
-  const isMine = ctxMsgRow.classList.contains('mine');
-  const sender = ctxMsgRow.dataset.senderName || (isMine ? 'You' : 'Them');
-  const preview = bubble ? bubble.textContent.trim().slice(0, 60) : '';
-
-  // Set as reply
-  setReply(msgId, sender, preview);
-
-  // Put the emoji in the input and fire
-  const inp = document.getElementById('gInput');
-  if (inp) { inp.value = emoji; }
-
+  const msgId = ctxMsgRow.dataset.msgId;
   closeCtxMenu();
-  sendMessage();
+  if (!msgId) return;
+
+  // FAST-PATH: Send directly via WebSocket (<1ms latency)
+  if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+    chatWebSocket.send(JSON.stringify({
+      type: 'chat_message',
+      content: emoji,
+      reply_to_id: msgId
+    }));
+    return;
+  }
+
+  // Fallback to HTTP POST
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('content', emoji);
+  fd.append('reply_to_id', msgId);
+
+  const url = GROUP_ID ? G_SEND_URL : SEND_URL;
+  try {
+    const r = await fetch(url, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.success) {
+      appendMessage(data.message);
+    } else {
+      showToast(data.error || 'Failed to send quick reply', 'error');
+    }
+  } catch(e) {
+    console.error("sendReaction error:", e);
+    showToast('Failed to send quick reply', 'error');
+  }
 }
 
 // ── Global Click Close ────────────────────────────────────
