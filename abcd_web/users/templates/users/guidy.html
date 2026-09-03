@@ -1157,6 +1157,7 @@ body.dark-theme .g-msg-row.theirs .g-msg-meta { color: #94a3b8; }
   transition: none;
   word-break: break-word;
   white-space: pre-wrap;
+  -webkit-touch-callout: none !important;
 }
 /* Placeholder for contenteditable div */
 .g-text-input:empty::before {
@@ -1238,17 +1239,26 @@ body.dark-theme .g-msg-row.theirs .g-msg-meta { color: #94a3b8; }
   transform: translateX(-50%);
   background: var(--g-side-bg);
   border: 1.5px solid var(--g-border);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.35);
   border-radius: 14px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 5px;
+  padding: 6px 10px;
   z-index: 1000;
   animation: slideUpFade 0.2s ease-out;
   box-sizing: border-box;
   max-width: min(540px, calc(100vw - 24px));
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+@media (max-width: 768px) {
+  .g-format-toolbar {
+    bottom: calc(100% + 78px); /* Elevated comfortably ABOVE the native Android ActionMode selection pill */
+    box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+  }
 }
 .g-format-toolbar .format-btn {
   background: transparent;
@@ -1262,17 +1272,90 @@ body.dark-theme .g-msg-row.theirs .g-msg-meta { color: #94a3b8; }
   align-items: center;
   justify-content: center;
   font-size: 1.15rem;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
-.g-format-toolbar .format-btn:hover {
+.g-format-toolbar .format-btn:hover,
+.g-format-toolbar .format-btn:active {
   background: var(--g-bg);
   color: var(--g-primary-s);
+  transform: scale(1.05);
 }
 .g-format-toolbar .format-divider {
   width: 1px;
   height: 20px;
   background: var(--g-border);
-  margin: 0 4px;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* 3-Dots More Options Menu */
+.g-format-more-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.g-format-more-menu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  background: var(--g-side-bg);
+  border: 1.5px solid var(--g-border);
+  box-shadow: 0 14px 38px rgba(0,0,0,0.45);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 160px;
+  z-index: 1010;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: slideUpFade 0.15s ease-out;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.g-format-more-menu .more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--g-text);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+.g-format-more-menu .more-menu-item i {
+  font-size: 1.15rem;
+  color: var(--g-sub);
+  width: 20px;
+  text-align: center;
+  transition: color 0.15s;
+}
+.g-format-more-menu .more-menu-item:hover,
+.g-format-more-menu .more-menu-item:active {
+  background: var(--g-hov);
+  color: var(--g-primary-s);
+}
+.g-format-more-menu .more-menu-item:hover i,
+.g-format-more-menu .more-menu-item:active i {
+  color: var(--g-primary-s);
+}
+.g-format-more-menu .more-menu-divider {
+  height: 1px;
+  background: var(--g-border);
+  margin: 4px 0;
 }
 .g-format-color-palette {
   display: flex;
@@ -2943,26 +3026,72 @@ body.dark-theme .search-highlight {
 
           <!-- Floating Text Formatting Toolbar -->
           <div id="gFormatToolbar" class="g-format-toolbar" style="display: none;">
-            <button type="button" class="format-btn" onmousedown="event.preventDefault()" onclick="applyFormat('bold')" title="Bold"><i class='bx bx-bold'></i></button>
-            <button type="button" class="format-btn" onmousedown="event.preventDefault()" onclick="applyFormat('italic')" title="Italic"><i class='bx bx-italic'></i></button>
-            <button type="button" class="format-btn" onmousedown="event.preventDefault()" onclick="applyFormat('underline')" title="Underline"><i class='bx bx-underline'></i></button>
+            <button type="button" class="format-btn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('bold')" title="Bold"><i class='bx bx-bold'></i></button>
+            <button type="button" class="format-btn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('italic')" title="Italic"><i class='bx bx-italic'></i></button>
+            <button type="button" class="format-btn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('underline')" title="Underline"><i class='bx bx-underline'></i></button>
+            
             <div class="format-divider"></div>
-            <button type="button" class="format-btn color-palette-toggle" onmousedown="event.preventDefault()" onclick="toggleColorPalette()" title="Text Color"><i class='bx bx-font-color'></i></button>
+            
+            <button type="button" class="format-btn color-palette-toggle" id="gFormatColorBtn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="toggleColorPalette()" title="Text Color"><i class='bx bx-font-color'></i></button>
+            
+            <div class="format-divider"></div>
+
+            <!-- 3-Dots More Options Menu Button -->
+            <div class="g-format-more-wrap">
+              <button type="button" class="format-btn more-options-toggle" id="gFormatMoreBtn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="toggleFormatMoreMenu()" title="More text options (Cut, Copy, Paste, etc.)">
+                <i class='bx bx-dots-vertical-rounded'></i>
+              </button>
+              
+              <!-- Dropdown Menu -->
+              <div id="gFormatMoreMenu" class="g-format-more-menu" style="display: none;">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatCut()">
+                  <i class='bx bx-cut'></i>
+                  <span>Cut</span>
+                </button>
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatCopy()">
+                  <i class='bx bx-copy'></i>
+                  <span>Copy</span>
+                </button>
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatPaste()">
+                  <i class='bx bx-paste'></i>
+                  <span>Paste</span>
+                </button>
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatSelectAll()">
+                  <i class='bx bx-select-multiple'></i>
+                  <span>Select all</span>
+                </button>
+                <div class="more-menu-divider"></div>
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('strikethrough')">
+                  <i class='bx bx-strikethrough'></i>
+                  <span>Strikethrough</span>
+                </button>
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('monospace')">
+                  <i class='bx bx-code'></i>
+                  <span>Monospace</span>
+                </button>
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('removeFormat')">
+                  <i class='bx bx-eraser'></i>
+                  <span>Clear format</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Color Palette Dropdown -->
             <div id="gFormatColorPalette" class="g-format-color-palette" style="display: none;">
-              <span class="color-circle" style="background-color: #ef4444;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#ef4444')" title="Red"></span>
-              <span class="color-circle" style="background-color: #ec4899;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#ec4899')" title="Pink"></span>
-              <span class="color-circle" style="background-color: #f97316;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#f97316')" title="Orange"></span>
-              <span class="color-circle" style="background-color: #eab308;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#eab308')" title="Yellow"></span>
-              <span class="color-circle" style="background-color: #22c55e;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#22c55e')" title="Green"></span>
-              <span class="color-circle" style="background-color: #14b8a6;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#14b8a6')" title="Teal"></span>
-              <span class="color-circle" style="background-color: #3b82f6;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#3b82f6')" title="Blue"></span>
-              <span class="color-circle" style="background-color: #6366f1;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#6366f1')" title="Indigo"></span>
-              <span class="color-circle" style="background-color: #a855f7;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#a855f7')" title="Purple"></span>
-              <span class="color-circle" style="background-color: #ffffff; border: 1px solid #ddd;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#ffffff')" title="White"></span>
-              <span class="color-circle" style="background-color: #9ca3af;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#9ca3af')" title="Gray"></span>
-              <span class="color-circle" style="background-color: #000000;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#000000')" title="Black"></span>
+              <span class="color-circle" style="background-color: #ef4444;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#ef4444')" title="Red"></span>
+              <span class="color-circle" style="background-color: #ec4899;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#ec4899')" title="Pink"></span>
+              <span class="color-circle" style="background-color: #f97316;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#f97316')" title="Orange"></span>
+              <span class="color-circle" style="background-color: #eab308;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#eab308')" title="Yellow"></span>
+              <span class="color-circle" style="background-color: #22c55e;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#22c55e')" title="Green"></span>
+              <span class="color-circle" style="background-color: #14b8a6;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#14b8a6')" title="Teal"></span>
+              <span class="color-circle" style="background-color: #3b82f6;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#3b82f6')" title="Blue"></span>
+              <span class="color-circle" style="background-color: #6366f1;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#6366f1')" title="Indigo"></span>
+              <span class="color-circle" style="background-color: #a855f7;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#a855f7')" title="Purple"></span>
+              <span class="color-circle" style="background-color: #ffffff; border: 1px solid #ddd;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#ffffff')" title="White"></span>
+              <span class="color-circle" style="background-color: #9ca3af;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#9ca3af')" title="Gray"></span>
+              <span class="color-circle" style="background-color: #000000;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#000000')" title="Black"></span>
               <div style="width: 1px; height: 16px; background: var(--g-border); margin: 0 2px;"></div>
-              <button type="button" class="color-circle custom-picker-btn" id="gFormatCustomColorBtn" title="Custom Color Picker" onmousedown="event.preventDefault()" onclick="openCustomColorPickerBoard(event, this, (color) => applyFormat('color', color))" style="background: linear-gradient(45deg, red, orange, yellow, green, blue, purple); border: none; cursor: pointer; display: inline-block; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); width: 16px; height: 16px; transition: transform 0.15s; vertical-align: middle;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='none'"></button>
+              <button type="button" class="color-circle custom-picker-btn" id="gFormatCustomColorBtn" title="Custom Color Picker" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="openCustomColorPickerBoard(event, this, (color) => applyFormat('color', color))" style="background: linear-gradient(45deg, red, orange, yellow, green, blue, purple); border: none; cursor: pointer; display: inline-block; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); width: 16px; height: 16px; transition: transform 0.15s; vertical-align: middle;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='none'"></button>
             </div>
           </div>
 
@@ -2976,7 +3105,8 @@ body.dark-theme .search-highlight {
             <div id="gInput" class="g-text-input" contenteditable="true" role="textbox"
               aria-multiline="true" data-placeholder="Type a message…"
               onkeydown="handleInputKey(event)"
-              oninput="toggleSendBtn();"></div>
+              oninput="toggleSendBtn();"
+              oncontextmenu="event.preventDefault(); return false;"></div>
             <button class="g-send-btn" id="gSendBtn" type="button" onmousedown="event.preventDefault()" onclick="sendMessage()" disabled title="Send">
               <i class='bx bx-send'></i>
             </button>
@@ -4155,10 +4285,13 @@ function applyFormat(type, value) {
   }
 
   // Apply formatting via execCommand — renders visually in the contenteditable div
-  if (type === 'bold')           document.execCommand('bold',      false, null);
-  else if (type === 'italic')    document.execCommand('italic',    false, null);
-  else if (type === 'underline') document.execCommand('underline', false, null);
-  else if (type === 'color')     document.execCommand('foreColor', false, value);
+  if (type === 'bold')               document.execCommand('bold',          false, null);
+  else if (type === 'italic')        document.execCommand('italic',        false, null);
+  else if (type === 'underline')     document.execCommand('underline',     false, null);
+  else if (type === 'color')         document.execCommand('foreColor',     false, value);
+  else if (type === 'strikethrough') document.execCommand('strikeThrough', false, null);
+  else if (type === 'removeFormat')  document.execCommand('removeFormat',  false, null);
+  else if (type === 'monospace')     document.execCommand('fontName',      false, 'monospace');
 
   toggleSendBtn();
   hideFormatToolbar();
@@ -4166,22 +4299,161 @@ function applyFormat(type, value) {
 }
 
 function toggleColorPalette() {
+  const moreMenu = document.getElementById('gFormatMoreMenu');
+  if (moreMenu) moreMenu.style.display = 'none';
   const palette = document.getElementById('gFormatColorPalette');
   if (palette) {
     palette.style.display = palette.style.display === 'none' ? 'flex' : 'none';
   }
 }
 
+function toggleFormatMoreMenu() {
+  const palette = document.getElementById('gFormatColorPalette');
+  if (palette) palette.style.display = 'none';
+  const moreMenu = document.getElementById('gFormatMoreMenu');
+  if (moreMenu) {
+    moreMenu.style.display = moreMenu.style.display === 'none' ? 'flex' : 'none';
+  }
+}
+
+async function executeFormatCut() {
+  const gInput = document.getElementById('gInput');
+  if (!gInput) return;
+  gInput.focus();
+  if (savedRange) {
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+  }
+  const sel = window.getSelection();
+  const text = sel ? sel.toString() : '';
+  if (!text) return;
+
+  let copied = false;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch (e) {}
+  }
+  if (!copied) {
+    try {
+      copied = document.execCommand('copy');
+    } catch (e) {}
+  }
+
+  document.execCommand('delete', false, null);
+  savedRange = null;
+  hideFormatToolbar();
+  toggleSendBtn();
+  showToast('Cut to clipboard', 'info');
+}
+
+async function executeFormatCopy() {
+  const gInput = document.getElementById('gInput');
+  if (!gInput) return;
+  gInput.focus();
+  if (savedRange) {
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+  }
+  const sel = window.getSelection();
+  const text = sel ? sel.toString() : '';
+  if (!text) return;
+
+  let copied = false;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch (e) {}
+  }
+  if (!copied) {
+    try {
+      copied = document.execCommand('copy');
+    } catch (e) {}
+  }
+
+  hideFormatToolbar();
+  showToast('Copied to clipboard', 'info');
+}
+
+async function executeFormatPaste() {
+  const gInput = document.getElementById('gInput');
+  if (!gInput) return;
+  gInput.focus();
+  if (savedRange) {
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+    }
+  }
+
+  // 1. Try modern async Clipboard API
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        document.execCommand('insertText', false, text);
+        hideFormatToolbar();
+        toggleSendBtn();
+        showToast('Pasted from clipboard', 'info');
+        return;
+      }
+    } catch (err) {}
+  }
+
+  // 2. Try document.execCommand('paste')
+  try {
+    const ok = document.execCommand('paste');
+    if (ok) {
+      hideFormatToolbar();
+      toggleSendBtn();
+      showToast('Pasted from clipboard', 'info');
+      return;
+    }
+  } catch (err) {}
+
+  // 3. Inform user if browser security limits background clipboard reading
+  hideFormatToolbar();
+  showToast('Long-press or press Ctrl+V to paste', 'info');
+}
+
+function executeFormatSelectAll() {
+  const gInput = document.getElementById('gInput');
+  if (!gInput) return;
+  gInput.focus();
+  const range = document.createRange();
+  range.selectNodeContents(gInput);
+  const sel = window.getSelection();
+  if (sel) {
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  savedRange = range.cloneRange();
+  const moreMenu = document.getElementById('gFormatMoreMenu');
+  if (moreMenu) moreMenu.style.display = 'none';
+  handleTextSelection();
+}
+
 function hideFormatToolbar() {
   const toolbar = document.getElementById('gFormatToolbar');
   if (toolbar) {
     toolbar.style.display = 'none';
-    // Reset any inline position overrides set by the viewport-clamp logic
     toolbar.style.left = '';
     toolbar.style.transform = '';
+    toolbar.style.bottom = '';
   }
   const palette = document.getElementById('gFormatColorPalette');
   if (palette) palette.style.display = 'none';
+  const moreMenu = document.getElementById('gFormatMoreMenu');
+  if (moreMenu) moreMenu.style.display = 'none';
 }
 
 function handleTextSelection() {
@@ -4197,6 +4469,14 @@ function handleTextSelection() {
       const toolbar = document.getElementById('gFormatToolbar');
       if (toolbar) {
         toolbar.style.display = 'flex';
+        
+        const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+        if (isMobile) {
+          toolbar.style.bottom = 'calc(100% + 78px)';
+        } else {
+          toolbar.style.bottom = 'calc(100% + 12px)';
+        }
+
         requestAnimationFrame(() => {
           const tbRect = toolbar.getBoundingClientRect();
           const margin = 8;
@@ -4207,8 +4487,20 @@ function handleTextSelection() {
             toolbar.style.left = (window.innerWidth - tbRect.width - margin) + 'px';
             toolbar.style.transform = 'none';
           } else {
-            toolbar.style.left = '';
-            toolbar.style.transform = '';
+            toolbar.style.left = '50%';
+            toolbar.style.transform = 'translateX(-50%)';
+          }
+
+          // Orient 3-dots more menu upward or downward based on viewport space
+          const moreMenu = document.getElementById('gFormatMoreMenu');
+          if (moreMenu) {
+            if (tbRect.top < 240) {
+              moreMenu.style.bottom = 'auto';
+              moreMenu.style.top = 'calc(100% + 8px)';
+            } else {
+              moreMenu.style.bottom = 'calc(100% + 8px)';
+              moreMenu.style.top = 'auto';
+            }
           }
         });
       }
@@ -4224,19 +4516,43 @@ document.addEventListener('DOMContentLoaded', () => {
   if (gInput) {
     gInput.addEventListener('mouseup', handleTextSelection);
     gInput.addEventListener('keyup', handleTextSelection);
-    gInput.addEventListener('touchend', handleTextSelection);
+    gInput.addEventListener('touchend', () => setTimeout(handleTextSelection, 60));
     
-    // Auto-hide toolbar on click outside
+    // Suppress native context menu on long-press
+    gInput.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    });
+
+    // Auto-hide toolbar on click/tap outside
     document.addEventListener('mousedown', (e) => {
       const toolbar = document.getElementById('gFormatToolbar');
       if (toolbar && toolbar.style.display !== 'none') {
-        if (!e.target.closest('#gFormatToolbar') && !e.target.closest('#gInput')) {
+        if (!e.target.closest('#gFormatToolbar') && !e.target.closest('#gInput') && !e.target.closest('.custom-color-picker-board')) {
           hideFormatToolbar();
           savedRange = null;
         }
       }
     });
+    document.addEventListener('touchstart', (e) => {
+      const toolbar = document.getElementById('gFormatToolbar');
+      if (toolbar && toolbar.style.display !== 'none') {
+        if (!e.target.closest('#gFormatToolbar') && !e.target.closest('#gInput') && !e.target.closest('.custom-color-picker-board')) {
+          hideFormatToolbar();
+          savedRange = null;
+        }
+      }
+    }, { passive: true });
   }
+
+  // Also listen for selectionchange to detect handle drags or double taps
+  document.addEventListener('selectionchange', () => {
+    const gInput = document.getElementById('gInput');
+    if (document.activeElement === gInput) {
+      handleTextSelection();
+    }
+  });
 });
 
 // ── Append Message DOM ─────────────────────────────────
