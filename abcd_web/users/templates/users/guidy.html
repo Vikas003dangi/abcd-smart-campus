@@ -1256,7 +1256,7 @@ body.dark-theme .g-msg-row.theirs .g-msg-meta { color: #94a3b8; }
 }
 @media (max-width: 768px) {
   .g-format-toolbar {
-    bottom: calc(100% + 78px); /* Elevated comfortably ABOVE the native Android ActionMode selection pill */
+    bottom: calc(100% + 12px);
     box-shadow: 0 14px 40px rgba(0,0,0,0.5);
   }
 }
@@ -1908,14 +1908,13 @@ body.dark-theme .contact-item-chatted {
   body:has(#gShell.chat-active) .g-main {
     display: flex !important;
     position: fixed !important;
-    top: 0 !important;
+    top: var(--guidy-vv-top, 0px) !important;
     left: 0 !important;
     right: 0 !important;
-    bottom: 0 !important;
+    bottom: auto !important;
     width: 100vw !important;
-    height: 100% !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
+    height: var(--guidy-vv-height, 100%) !important;
+    max-height: var(--guidy-vv-height, 100%) !important;
     border-radius: 0 !important;
     overflow: hidden !important;
     z-index: 2000 !important;
@@ -1934,19 +1933,21 @@ body.dark-theme .contact-item-chatted {
     padding: 0 !important;
     width: 100vw !important;
     max-width: 100vw !important;
-    height: 100% !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
+    height: var(--guidy-vv-height, 100%) !important;
+    max-height: var(--guidy-vv-height, 100%) !important;
     border-radius: 0 !important;
     position: fixed !important;
-    inset: 0 !important;
+    top: var(--guidy-vv-top, 0px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
     z-index: 1001 !important;
   }
 
   body.chat-active .g-shell,
   body:has(#gShell.chat-active) .g-shell {
     height: 100% !important;
-    max-height: 100dvh !important;
+    max-height: 100% !important;
     border-radius: 0 !important;
     border: none !important;
     margin: 0 !important;
@@ -3026,50 +3027,50 @@ body.dark-theme .search-highlight {
 
           <!-- Floating Text Formatting Toolbar -->
           <div id="gFormatToolbar" class="g-format-toolbar" style="display: none;">
-            <button type="button" class="format-btn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('bold')" title="Bold"><i class='bx bx-bold'></i></button>
-            <button type="button" class="format-btn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('italic')" title="Italic"><i class='bx bx-italic'></i></button>
-            <button type="button" class="format-btn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('underline')" title="Underline"><i class='bx bx-underline'></i></button>
+            <button type="button" class="format-btn" onmousedown="event.preventDefault()" onclick="applyFormat('bold')" title="Bold"><i class='bx bx-bold'></i></button>
+            <button type="button" class="format-btn" onmousedown="event.preventDefault()" onclick="applyFormat('italic')" title="Italic"><i class='bx bx-italic'></i></button>
+            <button type="button" class="format-btn" onmousedown="event.preventDefault()" onclick="applyFormat('underline')" title="Underline"><i class='bx bx-underline'></i></button>
             
             <div class="format-divider"></div>
             
-            <button type="button" class="format-btn color-palette-toggle" id="gFormatColorBtn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="toggleColorPalette()" title="Text Color"><i class='bx bx-font-color'></i></button>
+            <button type="button" class="format-btn color-palette-toggle" id="gFormatColorBtn" onmousedown="event.preventDefault()" onclick="toggleColorPalette(event)" title="Text Color"><i class='bx bx-font-color'></i></button>
             
             <div class="format-divider"></div>
 
             <!-- 3-Dots More Options Menu Button -->
             <div class="g-format-more-wrap">
-              <button type="button" class="format-btn more-options-toggle" id="gFormatMoreBtn" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="toggleFormatMoreMenu()" title="More text options (Cut, Copy, Paste, etc.)">
+              <button type="button" class="format-btn more-options-toggle" id="gFormatMoreBtn" onmousedown="event.preventDefault()" onclick="toggleFormatMoreMenu(event)" title="More text options (Cut, Copy, Paste, etc.)">
                 <i class='bx bx-dots-vertical-rounded'></i>
               </button>
               
               <!-- Dropdown Menu -->
               <div id="gFormatMoreMenu" class="g-format-more-menu" style="display: none;">
-                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatCut()">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" onclick="executeFormatCut()">
                   <i class='bx bx-cut'></i>
                   <span>Cut</span>
                 </button>
-                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatCopy()">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" onclick="executeFormatCopy()">
                   <i class='bx bx-copy'></i>
                   <span>Copy</span>
                 </button>
-                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatPaste()">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" onclick="executeFormatPaste()">
                   <i class='bx bx-paste'></i>
                   <span>Paste</span>
                 </button>
-                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="executeFormatSelectAll()">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" onclick="executeFormatSelectAll()">
                   <i class='bx bx-select-multiple'></i>
                   <span>Select all</span>
                 </button>
                 <div class="more-menu-divider"></div>
-                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('strikethrough')">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" onclick="applyFormat('strikethrough')">
                   <i class='bx bx-strikethrough'></i>
                   <span>Strikethrough</span>
                 </button>
-                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('monospace')">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" onclick="applyFormat('monospace')">
                   <i class='bx bx-code'></i>
                   <span>Monospace</span>
                 </button>
-                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('removeFormat')">
+                <button type="button" class="more-menu-item" onmousedown="event.preventDefault()" onclick="applyFormat('removeFormat')">
                   <i class='bx bx-eraser'></i>
                   <span>Clear format</span>
                 </button>
@@ -3078,20 +3079,20 @@ body.dark-theme .search-highlight {
 
             <!-- Color Palette Dropdown -->
             <div id="gFormatColorPalette" class="g-format-color-palette" style="display: none;">
-              <span class="color-circle" style="background-color: #ef4444;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#ef4444')" title="Red"></span>
-              <span class="color-circle" style="background-color: #ec4899;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#ec4899')" title="Pink"></span>
-              <span class="color-circle" style="background-color: #f97316;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#f97316')" title="Orange"></span>
-              <span class="color-circle" style="background-color: #eab308;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#eab308')" title="Yellow"></span>
-              <span class="color-circle" style="background-color: #22c55e;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#22c55e')" title="Green"></span>
-              <span class="color-circle" style="background-color: #14b8a6;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#14b8a6')" title="Teal"></span>
-              <span class="color-circle" style="background-color: #3b82f6;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#3b82f6')" title="Blue"></span>
-              <span class="color-circle" style="background-color: #6366f1;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#6366f1')" title="Indigo"></span>
-              <span class="color-circle" style="background-color: #a855f7;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#a855f7')" title="Purple"></span>
-              <span class="color-circle" style="background-color: #ffffff; border: 1px solid #ddd;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#ffffff')" title="White"></span>
-              <span class="color-circle" style="background-color: #9ca3af;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#9ca3af')" title="Gray"></span>
-              <span class="color-circle" style="background-color: #000000;" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="applyFormat('color', '#000000')" title="Black"></span>
+              <span class="color-circle" style="background-color: #ef4444;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#ef4444')" title="Red"></span>
+              <span class="color-circle" style="background-color: #ec4899;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#ec4899')" title="Pink"></span>
+              <span class="color-circle" style="background-color: #f97316;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#f97316')" title="Orange"></span>
+              <span class="color-circle" style="background-color: #eab308;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#eab308')" title="Yellow"></span>
+              <span class="color-circle" style="background-color: #22c55e;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#22c55e')" title="Green"></span>
+              <span class="color-circle" style="background-color: #14b8a6;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#14b8a6')" title="Teal"></span>
+              <span class="color-circle" style="background-color: #3b82f6;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#3b82f6')" title="Blue"></span>
+              <span class="color-circle" style="background-color: #6366f1;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#6366f1')" title="Indigo"></span>
+              <span class="color-circle" style="background-color: #a855f7;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#a855f7')" title="Purple"></span>
+              <span class="color-circle" style="background-color: #ffffff; border: 1px solid #ddd;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#ffffff')" title="White"></span>
+              <span class="color-circle" style="background-color: #9ca3af;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#9ca3af')" title="Gray"></span>
+              <span class="color-circle" style="background-color: #000000;" onmousedown="event.preventDefault()" onclick="applyFormat('color', '#000000')" title="Black"></span>
               <div style="width: 1px; height: 16px; background: var(--g-border); margin: 0 2px;"></div>
-              <button type="button" class="color-circle custom-picker-btn" id="gFormatCustomColorBtn" title="Custom Color Picker" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault()" onclick="openCustomColorPickerBoard(event, this, (color) => applyFormat('color', color))" style="background: linear-gradient(45deg, red, orange, yellow, green, blue, purple); border: none; cursor: pointer; display: inline-block; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); width: 16px; height: 16px; transition: transform 0.15s; vertical-align: middle;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='none'"></button>
+              <button type="button" class="color-circle custom-picker-btn" id="gFormatCustomColorBtn" title="Custom Color Picker" onmousedown="event.preventDefault()" onclick="openCustomColorPickerBoard(event, this, (color) => applyFormat('color', color))" style="background: linear-gradient(45deg, red, orange, yellow, green, blue, purple); border: none; cursor: pointer; display: inline-block; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); width: 16px; height: 16px; transition: transform 0.15s; vertical-align: middle;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='none'"></button>
             </div>
           </div>
 
@@ -3895,35 +3896,62 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Mobile Visual Viewport & Keyboard Resizing (WhatsApp style) ──
   function syncGuidyVisualViewport() {
     if (window.innerWidth > 768) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
     const gShellElem = document.getElementById('gShell');
-    const isChat = gShellElem && gShellElem.classList.contains('chat-active');
+    const isChat = gShellElem && (gShellElem.classList.contains('chat-active') || document.body.classList.contains('chat-active'));
     const isFs = document.body.classList.contains('g-fullscreen-active');
     
     // Only constrain heights when in active chat mode or fullscreen mode
     if (!isChat && !isFs) return;
 
-    const vv = window.visualViewport;
-    const gMainElem = document.querySelector('.g-main');
+    const height = Math.round(vv.height);
+    const top = Math.round(vv.offsetTop);
+
+    document.documentElement.style.setProperty('--guidy-vv-height', `${height}px`);
+    document.documentElement.style.setProperty('--guidy-vv-top', `${top}px`);
+
+    const gMainElem = document.getElementById('gMain') || document.querySelector('.g-main');
+    if (gMainElem) {
+      gMainElem.style.setProperty('height', `${height}px`, 'important');
+      gMainElem.style.setProperty('max-height', `${height}px`, 'important');
+      gMainElem.style.setProperty('top', `${top}px`, 'important');
+      gMainElem.style.setProperty('bottom', 'auto', 'important');
+    }
+
+    const gWrapElem = document.querySelector('.g-wrap');
+    if (gWrapElem) {
+      gWrapElem.style.setProperty('height', `${height}px`, 'important');
+      gWrapElem.style.setProperty('max-height', `${height}px`, 'important');
+      gWrapElem.style.setProperty('top', `${top}px`, 'important');
+      gWrapElem.style.setProperty('bottom', 'auto', 'important');
+    }
+
     const gMessagesElem = document.getElementById('gMessages');
-
-    if (vv && isChat && gMainElem) {
-      const height = vv.height;
-      const top = vv.offsetTop;
-
-      gMainElem.style.height = `${height}px`;
-      gMainElem.style.top = `${top}px`;
-
-      if (gMessagesElem) {
-        requestAnimationFrame(() => {
-          gMessagesElem.scrollTop = gMessagesElem.scrollHeight;
-        });
-      }
+    if (gMessagesElem && isChat) {
+      requestAnimationFrame(() => {
+        gMessagesElem.scrollTop = gMessagesElem.scrollHeight;
+      });
     }
 
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   }
+
+  // Ensure Android Chrome resizes layout viewport for virtual keyboard
+  try {
+    let vpMeta = document.querySelector('meta[name="viewport"]');
+    if (vpMeta) {
+      let content = vpMeta.getAttribute('content') || '';
+      if (content.includes('interactive-widget=overlays-content')) {
+        vpMeta.setAttribute('content', content.replace('interactive-widget=overlays-content', 'interactive-widget=resizes-content'));
+      } else if (!content.includes('interactive-widget=')) {
+        vpMeta.setAttribute('content', content + ', interactive-widget=resizes-content');
+      }
+    }
+  } catch(e) {}
 
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', syncGuidyVisualViewport);
@@ -3938,17 +3966,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const gInputElem = document.getElementById('gInput');
   if (gInputElem) {
+    const triggerSync = () => {
+      syncGuidyVisualViewport();
+      setTimeout(syncGuidyVisualViewport, 50);
+      setTimeout(syncGuidyVisualViewport, 150);
+      setTimeout(syncGuidyVisualViewport, 300);
+      setTimeout(syncGuidyVisualViewport, 500);
+    };
+
     gInputElem.addEventListener('focus', () => {
       document.body.classList.add('guidy-keyboard-open');
-      setTimeout(syncGuidyVisualViewport, 50);
-      setTimeout(syncGuidyVisualViewport, 150);
-      setTimeout(syncGuidyVisualViewport, 300);
+      triggerSync();
     });
+    gInputElem.addEventListener('touchstart', () => setTimeout(triggerSync, 100), { passive: true });
+    gInputElem.addEventListener('click', triggerSync);
     gInputElem.addEventListener('blur', () => {
       document.body.classList.remove('guidy-keyboard-open');
-      setTimeout(syncGuidyVisualViewport, 50);
-      setTimeout(syncGuidyVisualViewport, 150);
-      setTimeout(syncGuidyVisualViewport, 300);
+      triggerSync();
     });
   }
 
@@ -4298,21 +4332,43 @@ function applyFormat(type, value) {
   savedRange = null;
 }
 
-function toggleColorPalette() {
+function toggleColorPalette(e) {
+  if (e) {
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+  }
   const moreMenu = document.getElementById('gFormatMoreMenu');
   if (moreMenu) moreMenu.style.display = 'none';
   const palette = document.getElementById('gFormatColorPalette');
   if (palette) {
-    palette.style.display = palette.style.display === 'none' ? 'flex' : 'none';
+    palette.style.display = (palette.style.display === 'none' || !palette.style.display) ? 'flex' : 'none';
   }
 }
 
-function toggleFormatMoreMenu() {
+function toggleFormatMoreMenu(e) {
+  if (e) {
+    if (e.preventDefault) e.preventDefault();
+    if (e.stopPropagation) e.stopPropagation();
+  }
   const palette = document.getElementById('gFormatColorPalette');
   if (palette) palette.style.display = 'none';
   const moreMenu = document.getElementById('gFormatMoreMenu');
   if (moreMenu) {
-    moreMenu.style.display = moreMenu.style.display === 'none' ? 'flex' : 'none';
+    const isOpening = (moreMenu.style.display === 'none' || !moreMenu.style.display);
+    moreMenu.style.display = isOpening ? 'flex' : 'none';
+    if (isOpening) {
+      const toolbar = document.getElementById('gFormatToolbar');
+      if (toolbar) {
+        const tbRect = toolbar.getBoundingClientRect();
+        if (tbRect.top < 240) {
+          moreMenu.style.bottom = 'auto';
+          moreMenu.style.top = 'calc(100% + 8px)';
+        } else {
+          moreMenu.style.bottom = 'calc(100% + 8px)';
+          moreMenu.style.top = 'auto';
+        }
+      }
+    }
   }
 }
 
@@ -4470,12 +4526,7 @@ function handleTextSelection() {
       if (toolbar) {
         toolbar.style.display = 'flex';
         
-        const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
-        if (isMobile) {
-          toolbar.style.bottom = 'calc(100% + 78px)';
-        } else {
-          toolbar.style.bottom = 'calc(100% + 12px)';
-        }
+        toolbar.style.bottom = 'calc(100% + 12px)';
 
         requestAnimationFrame(() => {
           const tbRect = toolbar.getBoundingClientRect();
