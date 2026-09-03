@@ -8820,7 +8820,13 @@ def teacher_broadcast_view(request):
         if expiry_date_str:
             try:
                 from datetime import datetime, time
-                exp_d = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
+                try:
+                    exp_d = datetime.strptime(expiry_date_str, "%Y-%m-%d").date()
+                except ValueError:
+                    try:
+                        exp_d = datetime.strptime(expiry_date_str, "%d %b %Y").date()
+                    except ValueError:
+                        exp_d = datetime.strptime(expiry_date_str, "%d/%m/%Y").date()
                 expires_at = timezone.make_aware(datetime.combine(exp_d, time(23, 59, 59)))
             except Exception:
                 expires_at = timezone.now() + timedelta(days=60)
@@ -9084,7 +9090,8 @@ def get_drafts_api(request):
             "banner_buttons": d.banner_buttons or [],
             "target_group": d.target_group,
             "floor": d.floor,
-            "batch": d.batch
+            "batch": d.batch,
+            "expiry_date": d.expires_at.strftime("%Y-%m-%d") if d.expires_at else None
         })
     return JsonResponse({"drafts": data})
 

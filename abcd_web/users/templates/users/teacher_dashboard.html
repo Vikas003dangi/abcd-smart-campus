@@ -10256,6 +10256,9 @@
       return col.children[index]?.textContent || '';
     }
 
+    window.initWheel = initWheel;
+    window.getWheelValue = getWheelValue;
+
     function syncScheduleDateDays() {
       const yearStr = getWheelValue('wheel-date-year');
       const monthStr = getWheelValue('wheel-date-month');
@@ -10305,7 +10308,8 @@
     };
 
     window.closeDateModal = function () {
-      document.getElementById('dateModal').classList.remove('active');
+      const modal = document.getElementById('dateModal');
+      if (modal) modal.classList.remove('active');
     };
 
     window.confirmDateSelection = function () {
@@ -10320,8 +10324,98 @@
       if (input) {
         input.value = `${y}-${mo}-${d}`;
       }
-      closeDateModal();
+      window.closeDateModal();
       if (window.validateSchedule) window.validateSchedule();
+    };
+
+    /* ---------- EXPIRY DATE MODAL ---------- */
+    window.syncExpiryDateDays = function () {
+      const yearStr = getWheelValue('wheel-expiry-year');
+      const monthStr = getWheelValue('wheel-expiry-month');
+      if (!yearStr || !monthStr) return;
+
+      const year = parseInt(yearStr, 10);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIndex = months.indexOf(monthStr);
+      if (monthIndex === -1) return;
+
+      const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+      const daysCol = document.getElementById('wheel-expiry-day');
+      if (!daysCol) return;
+
+      const currentCount = daysCol.children.length;
+      if (currentCount === daysInMonth) return;
+
+      const currentDayVal = getWheelValue('wheel-expiry-day');
+      let dayToSelect = parseInt(currentDayVal, 10);
+      if (isNaN(dayToSelect)) dayToSelect = new Date().getDate();
+      if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
+
+      const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+      initWheel('wheel-expiry-day', days, dayToSelect.toString().padStart(2, '0'));
+    };
+
+    window.openExpiryDateModal = function () {
+      const modal = document.getElementById('expiryDateModal');
+      if (!modal) return;
+      modal.classList.add('active');
+
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentYear = new Date().getFullYear();
+      const years = [];
+      for (let y = currentYear; y <= currentYear + 5; y++) {
+        years.push(y.toString());
+      }
+
+      const expInput = document.getElementById('expiryDateInput');
+      let targetDate = new Date();
+      if (expInput && expInput.value) {
+        const parts = expInput.value.split('-');
+        if (parts.length === 3) {
+          const py = parseInt(parts[0], 10);
+          const pm = parseInt(parts[1], 10) - 1;
+          const pd = parseInt(parts[2], 10);
+          if (!isNaN(py) && !isNaN(pm) && !isNaN(pd)) {
+            targetDate = new Date(py, pm, pd);
+          }
+        }
+      } else {
+        targetDate.setDate(targetDate.getDate() + 60);
+      }
+
+      const targetYearStr = targetDate.getFullYear().toString();
+      const targetMonthStr = months[targetDate.getMonth()];
+      const daysInMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+      const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+      const targetDayStr = targetDate.getDate().toString().padStart(2, '0');
+
+      initWheel('wheel-expiry-year', years, targetYearStr, window.syncExpiryDateDays);
+      initWheel('wheel-expiry-month', months, targetMonthStr, window.syncExpiryDateDays);
+      initWheel('wheel-expiry-day', days, targetDayStr);
+    };
+
+    window.closeExpiryDateModal = function () {
+      const modal = document.getElementById('expiryDateModal');
+      if (modal) modal.classList.remove('active');
+    };
+
+    window.confirmExpiryDateSelection = function () {
+      const d = getWheelValue('wheel-expiry-day');
+      const moStr = getWheelValue('wheel-expiry-month');
+      const y = getWheelValue('wheel-expiry-year');
+
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const moIndex = months.indexOf(moStr);
+      const mo = (moIndex + 1).toString().padStart(2, '0');
+
+      const isoDate = `${y}-${mo}-${d}`;
+      const expInput = document.getElementById('expiryDateInput');
+      const expDisplay = document.getElementById('expiryDateDisplay');
+
+      if (expInput) expInput.value = isoDate;
+      if (expDisplay) expDisplay.value = `${d} ${moStr} ${y}`;
+
+      window.closeExpiryDateModal();
     };
 
     /* ---------- TIME MODAL ---------- */
