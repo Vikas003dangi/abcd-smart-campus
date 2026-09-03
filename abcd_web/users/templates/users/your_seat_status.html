@@ -171,19 +171,32 @@
             text-transform: uppercase;
         }
 
-        /* Expandable Form Logic */
+        /* Expandable Form Logic & Action Buttons */
+        .hold-switch-actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .hold-switch-actions .hold-expand-btn {
+            flex: 1 1 200px;
+            min-width: 160px;
+            margin: 0;
+        }
+
         .hold-expand-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
-            padding: 18px;
+            padding: 13px 18px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 12px;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
             transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -195,7 +208,7 @@
         }
 
         .hold-expand-btn i {
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             transition: transform 0.3s;
         }
 
@@ -1421,14 +1434,36 @@
                 height: 40px;
                 font-size: 1.4rem;
             }
-            /* Compact hold button on small screens */
+            /* Compact hold/switch actions & info on small screens */
+            .hold-switch-actions {
+                gap: 8px !important;
+                margin-bottom: 14px !important;
+            }
+            .hold-switch-actions .hold-expand-btn {
+                flex: 1 1 100% !important;
+                min-width: 0 !important;
+            }
             .hold-expand-btn {
-                padding: 11px 15px !important;
-                font-size: 0.95rem !important;
+                padding: 10px 14px !important;
+                font-size: 0.88rem !important;
                 border-radius: 10px !important;
+                gap: 8px !important;
             }
             .hold-expand-btn i {
-                font-size: 1.2rem !important;
+                font-size: 1.15rem !important;
+            }
+            .hold-section h3 {
+                font-size: 1.05rem !important;
+                margin-bottom: 12px !important;
+            }
+            .status-message {
+                padding: 12px 14px !important;
+                font-size: 0.88rem !important;
+                gap: 10px !important;
+                border-radius: 10px !important;
+            }
+            .status-message i {
+                font-size: 1.4rem !important;
             }
         }
 
@@ -1812,14 +1847,14 @@
                 <h3>Your Seat Hold & Change Requests</h3>
 
                 {% if pending_switch %}
-                <div class="status-message pending" style="background: linear-gradient(135deg, #f0f4ff 0%, #dbe4ff 100%); color: #3b5998; border: 1px solid #764ba2; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 15px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <i class='bx bx-time-five' style="font-size: 2rem; color: #764ba2;"></i>
-                        <div>
+                <div class="pending-switch-card">
+                    <div class="pending-switch-info">
+                        <i class='bx bx-time-five'></i>
+                        <div class="pending-switch-text">
                             Your request to switch to seat <strong>{% if pending_switch.target_seat.floor == 'Ground Floor' %}G{% else %}F{% endif %}-{{ pending_switch.target_seat.seat_number }}</strong> ({{ pending_switch.target_shift|capfirst }}{% if pending_switch.is_temporary %} - Temporary{% endif %}) is pending.
                         </div>
                     </div>
-                    <button class="btn-end-hold" onclick="cancelPendingSwitch()" style="background: #e74c3c; margin: 0; white-space: nowrap; font-weight: 700; border-radius: 8px; border: none; padding: 8px 16px; color: white; cursor: pointer;">Cancel Request</button>
+                    <button type="button" class="btn-cancel-pending" onclick="cancelPendingSwitch()">Cancel Request</button>
                 </div>
                 {% endif %}
 
@@ -1890,13 +1925,13 @@
                     </div>
                 </div>
                 {% else %}
-                <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button class="hold-expand-btn" id="toggleHoldBtn" style="flex: 1; min-width: 200px; margin: 0;">
+                <div class="hold-switch-actions">
+                    <button class="hold-expand-btn" id="toggleHoldBtn">
                         <i class='bx bxs-lock-alt'></i>
                         <span>Put the seat on Hold</span>
                         <i class='bx bx-chevron-down chevron' style="margin-left: auto;"></i>
                     </button>
-                    <button class="hold-expand-btn btn-switch-seat" id="toggleSwitchSeatBtn" style="flex: 1; min-width: 200px; margin: 0; background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);">
+                    <button class="hold-expand-btn btn-switch-seat" id="toggleSwitchSeatBtn" style="background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);">
                         <i class='bx bx-transfer'></i>
                         <span>Request TO Switch Seat</span>
                     </button>
@@ -2307,20 +2342,36 @@
         /* Modal and Banner Styles */
         .switch-selection-banner {
             position: fixed;
-            top: 90px;
+            top: 76px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
             color: #fff;
-            padding: 12px 24px;
-            border-radius: 30px;
-            box-shadow: 0 10px 25px rgba(74, 0, 224, 0.4);
+            padding: 7px 16px;
+            border-radius: 24px;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
             z-index: 9999;
             font-weight: 600;
+            font-size: 0.86rem;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             animation: slideDown 0.3s ease;
+            max-width: min(92vw, 400px);
+            text-align: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            pointer-events: none;
+        }
+
+        .switch-selection-banner i {
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+
+        .switch-selection-banner span {
+            line-height: 1.35;
         }
         
         @keyframes slideDown {
@@ -2331,43 +2382,45 @@
         /* Premium Floating Action Bar UI & Animations */
         .bubble-toast-group {
             position: fixed;
-            bottom: 35px;
+            bottom: 22px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px;
-            background: rgba(15, 23, 42, 0.82);
+            gap: 8px;
+            padding: 5px 8px;
+            background: rgba(15, 23, 42, 0.88);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 50px;
-            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.6),
-                        0 0 30px rgba(16, 185, 129, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 36px;
+            box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.6),
+                        0 0 20px rgba(16, 185, 129, 0.2);
             z-index: 10000;
-            animation: floatPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: floatPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: calc(100vw - 20px);
         }
 
         .bubble-toast-submit {
             position: relative;
             background: linear-gradient(135deg, #10b981 0%, #059669 60%, #047857 100%);
             color: #ffffff;
-            padding: 13px 26px;
-            border-radius: 40px;
+            padding: 9px 16px;
+            border-radius: 26px;
             font-weight: 700;
-            font-size: 0.98rem;
-            letter-spacing: 0.02em;
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+            font-size: 0.85rem;
+            letter-spacing: 0.01em;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 7px;
             border: 1px solid rgba(255, 255, 255, 0.3);
             outline: none;
             overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+            white-space: nowrap;
         }
 
         /* Animated shimmer sweep overlay */
@@ -2389,57 +2442,60 @@
         }
 
         .bubble-toast-submit:hover {
-            transform: translateY(-3px) scale(1.03);
+            transform: translateY(-2px) scale(1.02);
             background: linear-gradient(135deg, #34d399 0%, #10b981 60%, #059669 100%);
-            box-shadow: 0 14px 32px rgba(16, 185, 129, 0.65), 0 0 15px rgba(52, 211, 153, 0.5);
+            box-shadow: 0 10px 24px rgba(16, 185, 129, 0.55), 0 0 12px rgba(52, 211, 153, 0.4);
             border-color: rgba(255, 255, 255, 0.6);
         }
 
         .bubble-toast-submit:active {
             transform: translateY(1px) scale(0.97);
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
         }
 
         .animated-check-icon {
-            font-size: 1.45rem;
+            font-size: 1.15rem;
             display: inline-block;
             animation: iconPulseGlow 2s infinite ease-in-out;
+            flex-shrink: 0;
         }
 
         .bubble-toast-cancel {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: #ffffff;
-            padding: 13px 20px;
-            border-radius: 40px;
+            padding: 9px 14px;
+            border-radius: 26px;
             font-weight: 700;
-            font-size: 0.95rem;
-            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+            font-size: 0.85rem;
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             border: 1px solid rgba(255, 255, 255, 0.25);
             outline: none;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
         }
 
         .bubble-toast-cancel:hover {
             background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
-            transform: translateY(-3px) scale(1.04);
-            box-shadow: 0 12px 26px rgba(239, 68, 68, 0.6);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.5);
             border-color: rgba(255, 255, 255, 0.5);
         }
 
         .bubble-toast-cancel:active {
             transform: translateY(1px) scale(0.96);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+            box-shadow: 0 3px 8px rgba(239, 68, 68, 0.35);
         }
 
         .animated-cancel-icon {
-            font-size: 1.35rem;
+            font-size: 1.1rem;
             display: inline-block;
             transition: transform 0.3s ease;
+            flex-shrink: 0;
         }
 
         .bubble-toast-cancel:hover .animated-cancel-icon {
@@ -2448,8 +2504,8 @@
 
         /* KEYFRAME ANIMATIONS */
         @keyframes floatPopIn {
-            0% { transform: translate(-50%, 90px) scale(0.8); opacity: 0; }
-            70% { transform: translate(-50%, -6px) scale(1.03); opacity: 1; }
+            0% { transform: translate(-50%, 60px) scale(0.85); opacity: 0; }
+            70% { transform: translate(-50%, -4px) scale(1.02); opacity: 1; }
             100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
         }
 
@@ -2461,7 +2517,89 @@
 
         @keyframes iconPulseGlow {
             0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8)); }
-            50% { transform: scale(1.22); filter: drop-shadow(0 0 10px rgba(52, 211, 153, 1)); }
+            50% { transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.9)); }
+        }
+
+        /* PENDING SWITCH REQUEST CARD */
+        .pending-switch-card {
+            background: linear-gradient(135deg, #f0f4ff 0%, #dbe4ff 100%);
+            color: #1e3a8a;
+            border: 1px solid #818cf8;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08);
+        }
+
+        body.dark-theme .pending-switch-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            color: #93c5fd;
+            border-color: rgba(99, 102, 241, 0.35);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+        }
+
+        .pending-switch-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .pending-switch-info i {
+            font-size: 1.6rem;
+            color: #6366f1;
+            flex-shrink: 0;
+        }
+
+        body.dark-theme .pending-switch-info i {
+            color: #818cf8;
+        }
+
+        .pending-switch-text {
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.45;
+            color: #1e3a8a;
+        }
+
+        body.dark-theme .pending-switch-text {
+            color: #e2e8f0;
+        }
+
+        .pending-switch-text strong {
+            font-weight: 700;
+            color: #4338ca;
+        }
+
+        body.dark-theme .pending-switch-text strong {
+            color: #a5b4fc;
+        }
+
+        .btn-cancel-pending {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            margin: 0;
+            white-space: nowrap;
+            font-weight: 700;
+            border-radius: 8px;
+            border: none;
+            padding: 9px 18px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.25);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-cancel-pending:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(239, 68, 68, 0.35);
         }
         
         .styled-modal-overlay {
@@ -2482,8 +2620,8 @@
         .styled-modal-box {
             background: #fff;
             border-radius: 16px;
-            padding: 30px;
-            max-width: 480px;
+            padding: 24px;
+            max-width: 440px;
             width: 90%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.35);
             text-align: center;
@@ -2515,33 +2653,33 @@
         }
         
         .styled-modal-box h3 {
-            margin-bottom: 12px;
-            font-size: 1.4rem;
+            margin-bottom: 10px;
+            font-size: 1.25rem;
             font-weight: 700;
             color: #333;
         }
         
         .styled-modal-box p {
             color: #666;
-            margin-bottom: 24px;
-            font-size: 0.95rem;
-            line-height: 1.6;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
         
         .modal-btn-container {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
         
         .modal-btn-container button {
             width: 100%;
-            padding: 12px;
+            padding: 11px;
             border: none;
             border-radius: 8px;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -2564,7 +2702,96 @@
             font-weight: 600;
             cursor: pointer;
             padding: 8px 16px;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+        }
+
+        /* MOBILE SPECIFIC REFINEMENTS FOR SWITCH BANNER, TOAST & MODAL */
+        @media (max-width: 600px) {
+            .switch-selection-banner {
+                top: 66px;
+                padding: 6px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                gap: 6px;
+                max-width: 88vw;
+            }
+            .switch-selection-banner i {
+                font-size: 1.05rem;
+            }
+            .bubble-toast-group {
+                bottom: 14px;
+                padding: 4px 6px;
+                gap: 5px;
+                border-radius: 28px;
+                max-width: calc(100vw - 16px);
+            }
+            .bubble-toast-submit {
+                padding: 7px 12px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                gap: 5px;
+            }
+            .animated-check-icon {
+                font-size: 1.05rem;
+            }
+            .bubble-toast-cancel {
+                padding: 7px 10px;
+                font-size: 0.78rem;
+                border-radius: 20px;
+                gap: 4px;
+            }
+            .animated-cancel-icon {
+                font-size: 1rem;
+            }
+            .pending-switch-card {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 12px 14px;
+                gap: 10px;
+                border-radius: 12px;
+            }
+            .pending-switch-info {
+                gap: 10px;
+            }
+            .pending-switch-info i {
+                font-size: 1.35rem;
+            }
+            .pending-switch-text {
+                font-size: 0.85rem;
+                line-height: 1.4;
+            }
+            .btn-cancel-pending {
+                width: 100%;
+                text-align: center;
+                padding: 7px 12px;
+                font-size: 0.8rem;
+                border-radius: 8px;
+            }
+            .styled-modal-box {
+                padding: 18px 14px !important;
+                max-width: 92% !important;
+                border-radius: 14px !important;
+            }
+            .styled-modal-box h3 {
+                font-size: 1.1rem !important;
+                margin-bottom: 8px !important;
+            }
+            .styled-modal-box p {
+                font-size: 0.82rem !important;
+                margin-bottom: 14px !important;
+            }
+            .modal-btn-container {
+                gap: 8px !important;
+                margin-bottom: 10px !important;
+            }
+            .modal-btn-container button {
+                padding: 9px 10px !important;
+                font-size: 0.85rem !important;
+            }
+            .modal-close-btn {
+                font-size: 0.82rem !important;
+                padding: 6px !important;
+            }
         }
     </style>
 
@@ -4301,6 +4528,10 @@
                 });
                 const toastGroup = document.getElementById('switchRequestToastGroup');
                 if (toastGroup) toastGroup.style.display = 'none';
+                const banner = document.getElementById('switchSelectionBanner');
+                if (isSwitchSelectionActive && banner) {
+                    banner.style.display = 'flex';
+                }
                 refreshGrids();
             }
 
@@ -4316,11 +4547,17 @@
                 // Trigger refreshGrids to render exact Admission Form colors & "Selected" label
                 refreshGrids();
 
-                const suffix = isTemp ? ` (Temporary - ${days} Days)` : '';
+                // Hide the top guide banner once a seat is selected
+                const banner = document.getElementById('switchSelectionBanner');
+                if (banner) banner.style.display = 'none';
+
+                const floorLetter = seat.floor === 'Ground Floor' ? 'G' : 'F';
+                const shiftFormatted = shift ? shift.charAt(0).toUpperCase() + shift.slice(1) : 'Full';
+                const suffix = isTemp ? ` (${days}d Temp)` : '';
                 const toastGroup = document.getElementById('switchRequestToastGroup');
                 const toastLabel = document.getElementById('switchRequestToastLabel');
                 if (toastLabel) {
-                    toastLabel.textContent = `Request Change: Seat ${seat.floor === 'Ground Floor' ? 'G' : 'F'}-${seat.seat_number} - ${shift.toUpperCase()}${suffix}`;
+                    toastLabel.textContent = `Switch: ${floorLetter}-${seat.seat_number} (${shiftFormatted}${suffix})`;
                 }
                 if (toastGroup) toastGroup.style.display = 'flex';
             }
