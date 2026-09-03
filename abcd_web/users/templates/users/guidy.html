@@ -9268,59 +9268,141 @@ class CustomColorPicker {
   }
   
   initEvents() {
-    const handleSVMouse = (e) => {
+    const getPoint = (e) => {
+      if (e.touches && e.touches.length > 0) return e.touches[0];
+      if (e.changedTouches && e.changedTouches.length > 0) return e.changedTouches[0];
+      return e;
+    };
+
+    const handleSV = (e) => {
+      const pt = getPoint(e);
       const rect = this.canvas.getBoundingClientRect();
-      let x = (e.clientX - rect.left) / rect.width;
-      let y = (e.clientY - rect.top) / rect.height;
+      let x = (pt.clientX - rect.left) / rect.width;
+      let y = (pt.clientY - rect.top) / rect.height;
       x = Math.max(0, Math.min(1, x));
       y = Math.max(0, Math.min(1, y));
       this.s = x;
       this.v = 1 - y;
+      this.drawSV();
       this.updateColor();
     };
-    
-    this.canvas.addEventListener('mousedown', (e) => {
-      this.isDraggingSV = true;
-      handleSVMouse(e);
-    });
-    
-    const handleHueMouse = (e) => {
+
+    const handleHue = (e) => {
+      const pt = getPoint(e);
       const rect = this.hueContainer.getBoundingClientRect();
-      let x = (e.clientX - rect.left) / rect.width;
+      let x = (pt.clientX - rect.left) / rect.width;
       x = Math.max(0, Math.min(1, x));
       this.hue = x * 360;
       this.hueHandle.style.left = (x * 100) + '%';
       this.drawSV();
       this.updateColor();
     };
-    
+
+    // ── Mouse Listeners ──
+    this.canvas.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this.isDraggingSV = true;
+      handleSV(e);
+    });
+
     this.hueContainer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
       this.isDraggingHue = true;
-      handleHueMouse(e);
+      handleHue(e);
     });
-    
+
     window.addEventListener('mousemove', (e) => {
-      if (this.isDraggingSV) handleSVMouse(e);
-      if (this.isDraggingHue) handleHueMouse(e);
+      if (this.isDraggingSV) {
+        e.preventDefault();
+        handleSV(e);
+      }
+      if (this.isDraggingHue) {
+        e.preventDefault();
+        handleHue(e);
+      }
     });
-    
+
     window.addEventListener('mouseup', () => {
       this.isDraggingSV = false;
       this.isDraggingHue = false;
     });
-    
+
+    // ── Touch Listeners (Mobile & Tablet) ──
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.isDraggingSV = true;
+      handleSV(e);
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      if (this.isDraggingSV) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleSV(e);
+      }
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.isDraggingSV = false;
+    }, { passive: false });
+
+    this.hueContainer.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.isDraggingHue = true;
+      handleHue(e);
+    }, { passive: false });
+
+    this.hueContainer.addEventListener('touchmove', (e) => {
+      if (this.isDraggingHue) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleHue(e);
+      }
+    }, { passive: false });
+
+    this.hueContainer.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.isDraggingHue = false;
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (this.isDraggingSV) {
+        e.preventDefault();
+        handleSV(e);
+      } else if (this.isDraggingHue) {
+        e.preventDefault();
+        handleHue(e);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+      this.isDraggingSV = false;
+      this.isDraggingHue = false;
+    });
+
+    window.addEventListener('touchcancel', () => {
+      this.isDraggingSV = false;
+      this.isDraggingHue = false;
+    });
+
+    // ── Hex Input & Done Button ──
     this.hexInput.addEventListener('change', () => {
       const val = this.hexInput.value;
       if (/^#[0-9A-F]{6}$/i.test(val)) {
         this.setColorFromHex(val);
       }
     });
-    
-    this.doneBtn.addEventListener('click', (e) => {
+
+    const triggerDone = (e) => {
       e.preventDefault();
       e.stopPropagation();
       if (this.onDone) this.onDone(this.getHexColor());
-    });
+    };
+    this.doneBtn.addEventListener('click', triggerDone);
+    this.doneBtn.addEventListener('touchend', triggerDone);
   }
   
   drawSV() {
@@ -9496,18 +9578,26 @@ document.addEventListener('mousedown', (e) => {
     }
   }
 });
+document.addEventListener('touchstart', (e) => {
+  const board = document.getElementById('gCustomColorPickerBoard');
+  if (board && board.style.display === 'block') {
+    if (!board.contains(e.target) && !e.target.closest('.custom-picker-btn')) {
+      board.style.display = 'none';
+    }
+  }
+}, { passive: true });
 </script>
 
 <!-- Custom Color Picker Board -->
-<div id="gCustomColorPickerBoard" class="custom-color-picker-board" style="display: none; position: fixed; z-index: 100001; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 224px; user-select: none; box-sizing: border-box;">
-  <canvas class="cp-canvas-sv" width="196" height="120" style="border-radius: 6px; cursor: crosshair; display: block; margin-bottom: 8px; box-sizing: border-box;"></canvas>
-  <div class="cp-hue-container" style="position: relative; height: 12px; border-radius: 6px; background: linear-gradient(to right, red, #ff00ff, blue, cyan, green, yellow, red); margin-bottom: 12px; cursor: pointer; box-sizing: border-box;">
-    <div class="cp-hue-handle" style="position: absolute; top: -2px; left: 0; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid #7b61ff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.3); transform: translateX(-50%); box-sizing: border-box;"></div>
+<div id="gCustomColorPickerBoard" class="custom-color-picker-board" style="display: none; position: fixed; z-index: 100001; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 224px; user-select: none; box-sizing: border-box; touch-action: none;">
+  <canvas class="cp-canvas-sv" width="196" height="120" style="border-radius: 6px; cursor: crosshair; display: block; margin-bottom: 8px; box-sizing: border-box; touch-action: none;"></canvas>
+  <div class="cp-hue-container" style="position: relative; height: 16px; border-radius: 8px; background: linear-gradient(to right, red, #ff00ff, blue, cyan, green, yellow, red); margin-bottom: 12px; cursor: pointer; box-sizing: border-box; touch-action: none;">
+    <div class="cp-hue-handle" style="position: absolute; top: -2px; left: 0; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2.5px solid #7b61ff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.3); transform: translateX(-50%); box-sizing: border-box; touch-action: none;"></div>
   </div>
   <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; box-sizing: border-box;">
     <div class="cp-color-preview" style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ddd; background: red; box-sizing: border-box;"></div>
     <input class="cp-color-hex" type="text" value="#FF0000" style="width: 70px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; font-size: 0.8rem; text-align: center; text-transform: uppercase; font-family: monospace; box-sizing: border-box; background: #fff; color: #000;">
-    <button class="cp-done-btn" type="button" style="background: #7b61ff; color: #fff; border: none; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: background 0.15s; box-sizing: border-box;">Done</button>
+    <button class="cp-done-btn" type="button" style="background: #7b61ff; color: #fff; border: none; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s; box-sizing: border-box;">Done</button>
   </div>
 </div>
 
