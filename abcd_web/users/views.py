@@ -15239,6 +15239,75 @@ def set_new_user_flag(backend, user, response, is_new=False, *args, **kwargs):
     return None
 
 
+@csrf_exempt
+def cron_maintenance_view(request):
+    """
+    Dedicated External Cron Webhook Endpoint for cron-job.org, UptimeRobot, or Admin.
+    
+    URL: /api/cron/maintenance/?key=<SECRET_OR_KEY>&mode=all
+    
+    Supported Modes:
+    - ?mode=high_frequency (Broadcasts, To-Do reminders, course reminders)
+    - ?mode=daily (Fee reminders, seat hold lifecycle, birthdays, waitlists, cleanup)
+    - ?mode=all (Default: runs high-frequency + daily maintenance)
+    
+    Supported Keys:
+    - settings.CRON_SECRET (from environment if set)
+    - settings.SECRET_KEY
+    - Default fallback key: 'abcd_smart_campus_cron_2026'
+    - Any logged-in staff user
+    """
+    from django.conf import settings
+    from decouple import config
+
+    provided_key = request.GET.get('key') or request.headers.get('X-Cron-Key', '')
+    expected_cron_secret = getattr(settings, 'CRON_SECRET', config('CRON_SECRET', default=''))
+    valid_keys = {
+        'abcd_smart_campus_cron_2026',
+        settings.SECRET_KEY,
+    }
+    if expected_cron_secret:
+        valid_keys.add(expected_cron_secret)
+
+    is_authenticated = (
+        (request.user and request.user.is_authenticated and request.user.is_staff)
+        or (provided_key in valid_keys)
+    )
+
+    if not is_authenticated:
+        return JsonResponse({
+            "status": "error",
+            "message": "Unauthorized. Please provide a valid ?key= parameter or authenticate as staff."
+        }, status=403)
+
+    mode = request.GET.get('mode', 'all').lower()
+    if mode not in ['high_frequency', 'daily', 'all']:
+        mode = 'all'
+
+    force_daily = request.GET.get('force_daily', '').lower() in ['1', 'true', 'yes']
+
+    try:
+        from users.scheduler import run_scheduler_cycle
+        start_time = time.time()
+        report = run_scheduler_cycle(force_daily=force_daily, mode=mode)
+        duration = time.time() - start_time
+        report["duration_seconds"] = round(duration, 3)
+
+        return JsonResponse({
+            "status": "success",
+            "message": "ABCD Smart Campus Background Maintenance Cycle Executed Successfully.",
+            "report": report
+        })
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error in cron_maintenance_view: {e}", exc_info=True)
+        return JsonResponse({
+            "status": "error",
+            "message": f"Execution failed: {str(e)}"
+        }, status=500)
+
+
+
 
 
 

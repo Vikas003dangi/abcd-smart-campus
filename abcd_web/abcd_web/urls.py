@@ -22,16 +22,33 @@ from django.http import JsonResponse
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.views.static import serve
-from users.views import robots_txt_view, sitemap_xml_view
+from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view
 
 def ping_view(request):
-    """Ultra-lightweight keep-alive endpoint for cron-job.org and UptimeRobot."""
+    """
+    Ultra-lightweight keep-alive & health check endpoint for UptimeRobot and cron-job.org.
+    Responds in ~1ms while opportunistically catching up any due tasks in the background.
+    """
+    try:
+        from users.scheduler import last_scheduler_run, run_scheduler_cycle
+        from django.utils import timezone
+        import threading
+        now = timezone.now()
+        # If scheduler hasn't ticked in 15 minutes (e.g. Render server was sleeping), catch up in thread
+        if not last_scheduler_run or (now - last_scheduler_run).total_seconds() > 900:
+            threading.Thread(target=run_scheduler_cycle, kwargs={'mode': 'all'}, daemon=True).start()
+    except Exception:
+        pass
+
     return JsonResponse({"status": "ok", "service": "ABCD Smart Campus", "uptime": "active"})
 
 urlpatterns = [
     # 24/7 Keep-Alive & Health Check Endpoints (Lightweight ~30 bytes)
     path('ping/', ping_view, name='ping'),
     path('healthz/', ping_view, name='healthz'),
+
+    # 24/7 Dedicated External Cron Maintenance Webhook (cron-job.org / Admin)
+    path('api/cron/maintenance/', cron_maintenance_view, name='cron_maintenance'),
 
     path('admin/', admin.site.urls),
 

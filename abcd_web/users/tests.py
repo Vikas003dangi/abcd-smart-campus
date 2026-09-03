@@ -426,6 +426,36 @@ class SystemCoreTests(TestCase):
         # Group must now be completely purged from database
         self.assertFalse(GroupChatSession.objects.filter(id=group.id).exists())
 
+    def test_ping_and_keepalive(self):
+        """Verify that /ping/ and /healthz/ respond with 200 OK and valid JSON."""
+        res = self.client.get('/ping/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data.get('status'), 'ok')
+        self.assertEqual(data.get('service'), 'ABCD Smart Campus')
+
+        res_h = self.client.get('/healthz/')
+        self.assertEqual(res_h.status_code, 200)
+        data_h = res_h.json()
+        self.assertEqual(data_h.get('status'), 'ok')
+
+    def test_cron_maintenance_webhook(self):
+        """Verify authentication and execution of /api/cron/maintenance/ webhook."""
+        # 1. Unauthorized request without key
+        res_unauth = self.client.get('/api/cron/maintenance/')
+        self.assertEqual(res_unauth.status_code, 403)
+        self.assertEqual(res_unauth.json().get('status'), 'error')
+
+        # 2. Authorized request with valid key
+        res_auth = self.client.get('/api/cron/maintenance/?key=abcd_smart_campus_cron_2026&mode=high_frequency')
+        self.assertEqual(res_auth.status_code, 200)
+        data = res_auth.json()
+        self.assertEqual(data.get('status'), 'success')
+        self.assertIn('report', data)
+        self.assertEqual(data['report'].get('mode'), 'high_frequency')
+        self.assertIn('high_frequency', data['report'])
+
+
 
 
 

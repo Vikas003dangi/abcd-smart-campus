@@ -31,3 +31,10 @@ class UsersConfig(AppConfig):
                     pass
 
         connection_created.connect(configure_sqlite)
+
+        # Start 24/7 Embedded Background Scheduler Daemon
+        try:
+            from users.scheduler import start_background_scheduler
+            start_background_scheduler()
+        except Exception as e:
+            sys.stderr.write(f"Scheduler auto-start error: {e}\n")
