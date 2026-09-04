@@ -72,6 +72,7 @@ urlpatterns = [
     # Teacher Dashboard
     # ============================
     path('teacher/', views.teacher_dashboard_view, name='teacher_dashboard'),
+    path('api/teacher/live-stats/', views.teacher_live_stats_api, name='teacher_live_stats_api'),
 
     # Students CRED
     path('teacher/student/<int:student_id>/', views.student_details_view, name='student_details'),

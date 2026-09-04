@@ -3991,6 +3991,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 300000);
   buildEmojiGrid();
   initMessages();
+  clearNotificationBadges();
   if (SESSION_ID || DIRECT_ID) startPolling();
   if (GROUP_ID)   startGroupPolling();
   document.addEventListener('click', globalClickClose);
@@ -5653,6 +5654,10 @@ function initGuidyWebSocket() {
           }
         } else if (data.type === 'guidy_sidebar_update') {
           handleIncomingSidebarUpdate(data);
+        } else if (data.type === 'guidy_badge_update') {
+          if (typeof data.guidy_badge_count !== 'undefined') {
+            updateSidebarBadge(data.guidy_badge_count);
+          }
         } else if (data.type === 'messages_read' && data.message_ids) {
           data.message_ids.forEach(id => {
             const ticks = document.querySelectorAll(`.msg-tick[data-msg-id="${id}"], .msg-status-tick[data-msg-id="${id}"]`);
@@ -5843,37 +5848,55 @@ function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCu
 }
 
 function updateTabBadges() {
-  const chatBadge = document.querySelector('#tabChats .g-tab-badge');
-  if (chatBadge) {
+  const chatTab = document.getElementById('tabChats');
+  if (chatTab) {
     let totalChats = 0;
-    document.querySelectorAll('#panelChats .g-unread-badge').forEach(b => {
+    document.querySelectorAll('#panelChats .g-chat-item:not(.active) .g-unread-badge').forEach(b => {
       if (b.style.display !== 'none' && b.textContent.trim()) {
-        const count = parseInt(b.textContent.trim());
-        if (!isNaN(count)) totalChats += count;
+        const count = parseInt(b.textContent.trim(), 10);
+        if (!isNaN(count) && count > 0) totalChats += count;
       }
     });
+
+    let chatBadge = chatTab.querySelector('.g-tab-badge');
     if (totalChats > 0) {
+      if (!chatBadge) {
+        chatBadge = document.createElement('span');
+        chatBadge.className = 'g-tab-badge';
+        chatTab.appendChild(chatBadge);
+      }
       chatBadge.textContent = totalChats;
       chatBadge.style.display = 'inline-block';
-    } else {
+    } else if (chatBadge) {
       chatBadge.style.display = 'none';
+      chatBadge.textContent = '0';
+      chatBadge.remove();
     }
   }
 
-  const groupBadge = document.querySelector('#tabGroups .g-tab-badge');
-  if (groupBadge) {
+  const groupTab = document.getElementById('tabGroups');
+  if (groupTab) {
     let totalGroups = 0;
-    document.querySelectorAll('#panelGroups .g-unread-badge').forEach(b => {
+    document.querySelectorAll('#panelGroups .g-chat-item:not(.active) .g-unread-badge').forEach(b => {
       if (b.style.display !== 'none' && b.textContent.trim()) {
-        const count = parseInt(b.textContent.trim());
-        if (!isNaN(count)) totalGroups += count;
+        const count = parseInt(b.textContent.trim(), 10);
+        if (!isNaN(count) && count > 0) totalGroups += count;
       }
     });
+
+    let groupBadge = groupTab.querySelector('.g-tab-badge');
     if (totalGroups > 0) {
+      if (!groupBadge) {
+        groupBadge = document.createElement('span');
+        groupBadge.className = 'g-tab-badge';
+        groupTab.appendChild(groupBadge);
+      }
       groupBadge.textContent = totalGroups;
       groupBadge.style.display = 'inline-block';
-    } else {
+    } else if (groupBadge) {
       groupBadge.style.display = 'none';
+      groupBadge.textContent = '0';
+      groupBadge.remove();
     }
   }
 }
@@ -5995,50 +6018,13 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function clearNotificationBadges() {
-  // 1. Hide active chat row unread badges inside sidebar
-  document.querySelectorAll('.g-unread-badge').forEach(b => {
-    const row = b.closest('.g-chat-item');
-    if (row && row.classList.contains('active')) {
-      b.style.display = 'none';
-      b.textContent = '0';
-    }
+  // 1. Remove active chat row unread badges inside sidebar
+  document.querySelectorAll('.g-chat-item.active .g-unread-badge').forEach(b => {
+    b.remove();
   });
 
-  // 2. Adjust the main Chat tab badge count
-  const chatBadge = document.querySelector('#tabChats .g-tab-badge');
-  if (chatBadge) {
-    let totalChats = 0;
-    document.querySelectorAll('#panelChats .g-unread-badge').forEach(b => {
-      if (b.style.display !== 'none' && b.textContent.trim()) {
-        const count = parseInt(b.textContent.trim());
-        if (!isNaN(count)) totalChats += count;
-      }
-    });
-    if (totalChats > 0) {
-      chatBadge.textContent = totalChats;
-      chatBadge.style.display = 'inline-block';
-    } else {
-      chatBadge.style.display = 'none';
-    }
-  }
-
-  // 2b. Adjust the Groups tab badge count
-  const groupBadge = document.querySelector('#tabGroups .g-tab-badge');
-  if (groupBadge) {
-    let totalGroups = 0;
-    document.querySelectorAll('#panelGroups .g-unread-badge').forEach(b => {
-      if (b.style.display !== 'none' && b.textContent.trim()) {
-        const count = parseInt(b.textContent.trim());
-        if (!isNaN(count)) totalGroups += count;
-      }
-    });
-    if (totalGroups > 0) {
-      groupBadge.textContent = totalGroups;
-      groupBadge.style.display = 'inline-block';
-    } else {
-      groupBadge.style.display = 'none';
-    }
-  }
+  // 2. Adjust the main Chat and Group tab badge counts dynamically
+  updateTabBadges();
 
   // 3. Clear global dashboard/navbar/sidebar notification badges
   const globalSelectors = ['.notification-badge', '.nav-badge', '.badge-danger', '.badge', '.notification-dot', '.bell-badge'];
@@ -7338,6 +7324,7 @@ async function loadChatAJAX(type, id, pushState = true) {
     const badge = targetSidebarItem.querySelector('.g-unread-badge');
     if (badge) badge.remove();
   }
+  clearNotificationBadges();
 
   // Display chat wrapper, hide empty placeholder
   const placeholder = document.getElementById('noChatPlaceholder');
@@ -7584,6 +7571,10 @@ async function loadChatAJAX(type, id, pushState = true) {
       if (typeof startPolling === 'function') startPolling();
     }
     if (typeof initGuidyWebSocket === 'function') initGuidyWebSocket();
+    if (typeof data.guidy_badge_count !== 'undefined') {
+      updateSidebarBadge(data.guidy_badge_count);
+    }
+    clearNotificationBadges();
 
   } catch(err) {
     console.error("loadChatAJAX error:", err);

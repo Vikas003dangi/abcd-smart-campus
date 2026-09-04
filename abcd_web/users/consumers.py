@@ -132,6 +132,25 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                             )
                         except Exception:
                             pass
+
+                        try:
+                            from django.core.cache import cache
+                            cache.delete(f"guidy_badge_count_{r.id}")
+                            from users.views import get_guidy_badge_count
+                            new_badge_val = get_guidy_badge_count(r)
+                            from asgiref.sync import async_to_sync
+                            from channels.layers import get_channel_layer
+                            c_layer = get_channel_layer()
+                            if c_layer:
+                                async_to_sync(c_layer.group_send)(
+                                    f"user_{r.id}",
+                                    {
+                                        "type": "guidy_badge_update",
+                                        "guidy_badge_count": new_badge_val,
+                                    }
+                                )
+                        except Exception:
+                            pass
                 finally:
                     close_old_connections()
 
@@ -431,6 +450,12 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             "locked_days_left": event.get("locked_days_left", 5),
         }))
 
+    async def guidy_badge_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_badge_update",
+            "guidy_badge_count": event.get("guidy_badge_count", 0),
+        }))
+
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
@@ -456,6 +481,11 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.user_group, self.channel_name)
         await self.channel_layer.group_add(self.broadcast_group, self.channel_name)
+
+        if self.user.is_staff or self.user.is_superuser:
+            self.staff_group = "staff_group"
+            await self.channel_layer.group_add(self.staff_group, self.channel_name)
+
         await self.accept()
 
         await self.update_user_presence(True)
@@ -465,6 +495,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_discard(self.user_group, self.channel_name)
         if hasattr(self, 'broadcast_group'):
             await self.channel_layer.group_discard(self.broadcast_group, self.channel_name)
+        if hasattr(self, 'staff_group'):
+            await self.channel_layer.group_discard(self.staff_group, self.channel_name)
 
     async def receive(self, text_data):
         try:
@@ -496,3 +528,16 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "sender_name": event.get("sender_name", ""),
             "message": event["message"],
         }))
+
+    async def guidy_badge_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_badge_update",
+            "guidy_badge_count": event.get("guidy_badge_count", 0),
+        }))
+
+    async def dashboard_stats_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "dashboard_stats_update",
+            "stats": event.get("stats", {}),
+        }))
+

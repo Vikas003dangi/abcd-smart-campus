@@ -5800,7 +5800,9 @@
           style="cursor:pointer;">
           <i class='bx bx-bell'></i>
           {% if total_notification_count > 0 %}
-          <span class="abcd-notif-badge">{{ total_notification_count }}</span>
+          <span class="abcd-notif-badge" id="teacherNotifBadge">{{ total_notification_count }}</span>
+          {% else %}
+          <span class="abcd-notif-badge" id="teacherNotifBadge" style="display: none;">0</span>
           {% endif %}
         </div>
       </div>
@@ -5886,7 +5888,9 @@
         <a href="{% url 'users:guidy_home' %}" class="{% if 'guidy' in request.resolver_match.url_name %}active{% endif %}" data-tour="teacher-nav-guidy">
           💬 Guidy Chat
           {% if guidy_badge_count > 0 %}
-          <span class="guidy-sidebar-badge guidy-badge-element" style="background:#25d366; margin-left: 8px; font-weight: 700; border-radius: 50%; padding: 2px 6px; font-size: 0.75rem; color: white; display: inline-block; line-height: 1;">{{ guidy_badge_count }}</span>
+          <span class="guidy-sidebar-badge guidy-badge-element" id="sidebarGuidyBadge" style="background:#25d366; margin-left: 8px; font-weight: 700; border-radius: 50%; padding: 2px 6px; font-size: 0.75rem; color: white; display: inline-block; line-height: 1;">{{ guidy_badge_count }}</span>
+          {% else %}
+          <span class="guidy-sidebar-badge guidy-badge-element" id="sidebarGuidyBadge" style="background:#25d366; margin-left: 8px; font-weight: 700; border-radius: 50%; padding: 2px 6px; font-size: 0.75rem; color: white; display: none; line-height: 1;">0</span>
           {% endif %}
         </a>
       </li>
@@ -5899,7 +5903,9 @@
             <span class="notification-icon-wrapper">
               <i class='bx bx-bell'></i>
               {% if total_notification_count > 0 %}
-              <span class="notification-badge">{{ total_notification_count }}</span>
+              <span class="notification-badge" id="sidebarNotifBadge">{{ total_notification_count }}</span>
+              {% else %}
+              <span class="notification-badge" id="sidebarNotifBadge" style="display: none;">0</span>
               {% endif %}
             </span>
             <span class="notification-label">Notifications</span>
@@ -6683,7 +6689,7 @@
           <i class="bx bxs-user-plus"></i>
         </div>
         <h3 class="card-heading">Admission Requests</h3>
-        <div class="number">{{ pending_students.count }}</div>
+        <div class="number" id="statAdmissionRequests">{{ pending_students.count }}</div>
       </div>
 
       <!-- 2. Alumni/ Achiever Requests -->
@@ -6692,7 +6698,7 @@
           <i class="bx bxs-trophy"></i>
         </div>
         <h3 class="card-heading">Achiever Requests</h3>
-        <div class="number">{{ total_pending_achievements }}</div>
+        <div class="number" id="statAchieverRequests">{{ total_pending_achievements }}</div>
       </div>
 
       <!-- 3. Pending Holds / Switches -->
@@ -6701,7 +6707,7 @@
           <i class="bx bx-pause-circle"></i>
         </div>
         <h3 class="card-heading">Hold / Switch Requests</h3>
-        <div class="number">{{ pending_hold_requests|length|add:seat_switch_requests|length }}</div>
+        <div class="number" id="statHoldRequests">{{ pending_hold_requests|length|add:seat_switch_requests|length }}</div>
       </div>
 
       <!-- 4. Complaints -->
@@ -6710,7 +6716,7 @@
           <i class="bx bxs-message-rounded-error"></i>
         </div>
         <h3 class="card-heading">Complaints</h3>
-        <div class="number">{{ pending_complaints_count }}</div>
+        <div class="number" id="statComplaints">{{ pending_complaints_count }}</div>
       </div>
 
       <!-- 5. Library Students -->
@@ -6719,7 +6725,7 @@
           <i class="bx bxs-book-open"></i>
         </div>
         <h3 class="card-heading">Library Students</h3>
-        <div class="number">{{ total_library_students }}</div>
+        <div class="number" id="statLibraryStudents">{{ total_library_students }}</div>
       </div>
 
       <!-- 6. Coaching Students -->
@@ -6728,7 +6734,7 @@
           <i class="bx bxs-graduation"></i>
         </div>
         <h3 class="card-heading">Coaching Students</h3>
-        <div class="number">{{ total_coaching_students }}</div>
+        <div class="number" id="statCoachingStudents">{{ total_coaching_students }}</div>
       </div>
 
       <!-- 7. Courses -->
@@ -6737,7 +6743,7 @@
           <i class="bx bxs-video"></i>
         </div>
         <h3 class="card-heading">Courses</h3>
-        <div class="number">{{ total_courses }}</div>
+        <div class="number" id="statCourses">{{ total_courses }}</div>
         <a href="{% url 'users:teacher_courses' %}" class="manage-btn">Manage</a>
       </div>
 
@@ -6747,25 +6753,19 @@
           <i class="bx bxs-message-rounded-dots"></i>
         </div>
         <h3 class="card-heading">Guidy Chat</h3>
-        <div class="number">
-          {% if guidy_badge_count > 0 %}
-            {{ guidy_badge_count }}
-          {% else %}
-            0
-          {% endif %}
-        </div>
+        <div class="number" id="guidyStatCount">{% if guidy_badge_count > 0 %}{{ guidy_badge_count }}{% else %}0{% endif %}</div>
         <a href="{% url 'users:guidy_home' %}" class="manage-btn">Open Chat</a>
       </div>
     </div>
 
     <!-- Tabs -->
     <div class="section-tabs" data-tour="teacher-students-section">
-      <button class="tab-btn active" data-tab-name="requests"><i class="bx bx-user-plus"></i> Admission Requests</button>
-      <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Achievement Requests ({{ total_pending_achievements }})</button>
-      <button class="tab-btn" data-tab-name="holds"><i class="bx bx-pause-circle"></i> Hold / Switch Requests</button>
+      <button class="tab-btn active" data-tab-name="requests"><i class="bx bx-user-plus"></i> Admission Requests <span class="tab-badge" id="tabBadgeRequests" style="{% if pending_students.count == 0 %}display:none;{% endif %}">({{ pending_students.count }})</span></button>
+      <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Achievement Requests (<span id="tabCountAchievements">{{ total_pending_achievements }}</span>)</button>
+      <button class="tab-btn" data-tab-name="holds"><i class="bx bx-pause-circle"></i> Hold / Switch Requests <span class="tab-badge" id="tabBadgeHolds" style="{% if pending_hold_requests|length|add:seat_switch_requests|length == 0 %}display:none;{% endif %}">({{ pending_hold_requests|length|add:seat_switch_requests|length }})</span></button>
       <button class="tab-btn" data-tab-name="coaching"><i class="bx bxs-graduation"></i> Coaching Students</button>
       <button class="tab-btn" data-tab-name="library"><i class="bx bx-book-open"></i> Library Students</button>
-      <button class="tab-btn" data-tab-name="complaints"><i class="bx bx-message-rounded-error"></i> Complaints</button>
+      <button class="tab-btn" data-tab-name="complaints"><i class="bx bx-message-rounded-error"></i> Complaints <span class="tab-badge" id="tabBadgeComplaints" style="{% if pending_complaints_count == 0 %}display:none;{% endif %}">({{ pending_complaints_count }})</span></button>
     </div>
 
     <div id="requests-tab" class="tab-content active">
@@ -12552,6 +12552,202 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
         });
     }
 }
+
+// ===================================================================
+// TEACHER DASHBOARD ULTRA-LIVE REAL-TIME ENGINE (Zero Page Reload)
+// ===================================================================
+(function initTeacherLiveSyncEngine() {
+    let teacherLiveWs = null;
+    let teacherWsHeartbeatTimer = null;
+    let teacherPollingTimer = null;
+
+    function updateDashboardStatsDOM(data) {
+        if (!data) return;
+
+        // 1. Guidy Chat Stat & Badges
+        const guidyEl = document.getElementById('guidyStatCount');
+        if (guidyEl && typeof data.guidy_badge_count !== 'undefined') {
+            guidyEl.textContent = data.guidy_badge_count;
+        }
+        const sidebarGuidy = document.getElementById('sidebarGuidyBadge');
+        if (sidebarGuidy && typeof data.guidy_badge_count !== 'undefined') {
+            if (data.guidy_badge_count > 0) {
+                sidebarGuidy.textContent = data.guidy_badge_count;
+                sidebarGuidy.style.display = 'inline-block';
+            } else {
+                sidebarGuidy.style.display = 'none';
+            }
+        }
+
+        // 2. Admission Requests
+        const admEl = document.getElementById('statAdmissionRequests');
+        if (admEl && typeof data.total_admission_requests !== 'undefined') {
+            admEl.textContent = data.total_admission_requests;
+        }
+        const tabBadgeAdm = document.getElementById('tabBadgeRequests');
+        if (tabBadgeAdm && typeof data.total_admission_requests !== 'undefined') {
+            tabBadgeAdm.textContent = `(${data.total_admission_requests})`;
+            tabBadgeAdm.style.display = data.total_admission_requests > 0 ? 'inline-block' : 'none';
+        }
+
+        // 3. Achiever Requests
+        const achEl = document.getElementById('statAchieverRequests');
+        if (achEl && typeof data.total_pending_achievements !== 'undefined') {
+            achEl.textContent = data.total_pending_achievements;
+        }
+        const tabCountAch = document.getElementById('tabCountAchievements');
+        if (tabCountAch && typeof data.total_pending_achievements !== 'undefined') {
+            tabCountAch.textContent = data.total_pending_achievements;
+        }
+
+        // 4. Hold / Switch Requests
+        const holdEl = document.getElementById('statHoldRequests');
+        if (holdEl && typeof data.total_hold_requests !== 'undefined') {
+            holdEl.textContent = data.total_hold_requests;
+        }
+        const tabBadgeHold = document.getElementById('tabBadgeHolds');
+        if (tabBadgeHold && typeof data.total_hold_requests !== 'undefined') {
+            tabBadgeHold.textContent = `(${data.total_hold_requests})`;
+            tabBadgeHold.style.display = data.total_hold_requests > 0 ? 'inline-block' : 'none';
+        }
+
+        // 5. Complaints
+        const compEl = document.getElementById('statComplaints');
+        if (compEl && typeof data.pending_complaints_count !== 'undefined') {
+            compEl.textContent = data.pending_complaints_count;
+        }
+        const tabBadgeComp = document.getElementById('tabBadgeComplaints');
+        if (tabBadgeComp && typeof data.pending_complaints_count !== 'undefined') {
+            tabBadgeComp.textContent = `(${data.pending_complaints_count})`;
+            tabBadgeComp.style.display = data.pending_complaints_count > 0 ? 'inline-block' : 'none';
+        }
+
+        // 6. Library Students
+        const libEl = document.getElementById('statLibraryStudents');
+        if (libEl && typeof data.total_library_students !== 'undefined') {
+            libEl.textContent = data.total_library_students;
+        }
+
+        // 7. Coaching Students
+        const coachEl = document.getElementById('statCoachingStudents');
+        if (coachEl && typeof data.total_coaching_students !== 'undefined') {
+            coachEl.textContent = data.total_coaching_students;
+        }
+
+        // 8. Total Admitted Students Hero
+        const totalEl = document.getElementById('total-students-counter');
+        if (totalEl && typeof data.total_admitted_students_count !== 'undefined') {
+            totalEl.textContent = data.total_admitted_students_count;
+            totalEl.dataset.target = data.total_admitted_students_count;
+        }
+
+        // 9. Total Courses
+        const courseEl = document.getElementById('statCourses');
+        if (courseEl && typeof data.total_courses !== 'undefined') {
+            courseEl.textContent = data.total_courses;
+        }
+
+        // 10. Notification Bell Badges
+        const notifBadge = document.getElementById('teacherNotifBadge');
+        if (notifBadge && typeof data.total_notification_count !== 'undefined') {
+            if (data.total_notification_count > 0) {
+                notifBadge.textContent = data.total_notification_count;
+                notifBadge.style.display = 'inline-block';
+            } else {
+                notifBadge.style.display = 'none';
+            }
+        }
+        const sidebarNotifBadge = document.getElementById('sidebarNotifBadge');
+        if (sidebarNotifBadge && typeof data.total_notification_count !== 'undefined') {
+            if (data.total_notification_count > 0) {
+                sidebarNotifBadge.textContent = data.total_notification_count;
+                sidebarNotifBadge.style.display = 'inline-block';
+            } else {
+                sidebarNotifBadge.style.display = 'none';
+            }
+        }
+    }
+
+    async function fetchTeacherLiveStats() {
+        try {
+            const res = await fetch('/api/teacher/live-stats/', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data && data.success) {
+                updateDashboardStatsDOM(data);
+            }
+        } catch (e) {}
+    }
+
+    function initTeacherWebSocket() {
+        try {
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const wsUrl = protocol + window.location.host + '/ws/guidy/notifications/';
+            teacherLiveWs = new WebSocket(wsUrl);
+
+            teacherLiveWs.onopen = function() {
+                if (teacherWsHeartbeatTimer) clearInterval(teacherWsHeartbeatTimer);
+                teacherWsHeartbeatTimer = setInterval(() => {
+                    if (teacherLiveWs && teacherLiveWs.readyState === WebSocket.OPEN) {
+                        try { teacherLiveWs.send(JSON.stringify({ type: 'heartbeat' })); } catch(e) {}
+                    }
+                }, 25000);
+            };
+
+            teacherLiveWs.onmessage = function(e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'guidy_badge_update') {
+                        const count = data.guidy_badge_count;
+                        const guidyEl = document.getElementById('guidyStatCount');
+                        if (guidyEl) guidyEl.textContent = count;
+                        const sidebarGuidy = document.getElementById('sidebarGuidyBadge');
+                        if (sidebarGuidy) {
+                            if (count > 0) {
+                                sidebarGuidy.textContent = count;
+                                sidebarGuidy.style.display = 'inline-block';
+                            } else {
+                                sidebarGuidy.style.display = 'none';
+                            }
+                        }
+                    } else if (data.type === 'guidy_sidebar_update' || data.type === 'notification' || data.type === 'dashboard_stats_update') {
+                        fetchTeacherLiveStats();
+                    }
+                } catch(err) {}
+            };
+
+            teacherLiveWs.onclose = function() {
+                if (teacherWsHeartbeatTimer) clearInterval(teacherWsHeartbeatTimer);
+                setTimeout(initTeacherWebSocket, 4000);
+            };
+        } catch(e) {}
+    }
+
+    function startPollingLoop() {
+        if (teacherPollingTimer) clearInterval(teacherPollingTimer);
+        teacherPollingTimer = setInterval(() => {
+            if (!document.hidden) {
+                fetchTeacherLiveStats();
+            }
+        }, 5000);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            fetchTeacherLiveStats();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initTeacherWebSocket();
+        startPollingLoop();
+        fetchTeacherLiveStats();
+    });
+
+    window.refreshTeacherLiveStats = fetchTeacherLiveStats;
+})();
 </script>
 
 {% if user.is_authenticated %}
