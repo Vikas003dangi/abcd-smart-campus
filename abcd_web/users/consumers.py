@@ -19,6 +19,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
         if reply_to_id:
             reply_to_obj = Message.objects.filter(id=reply_to_id).first() or GroupMessage.objects.filter(id=reply_to_id).first()
 
+        recipients = []
         if chat_type == 'group':
             group = GroupChatSession.objects.filter(id=session_id).first()
             if not group or not group.is_active:
@@ -31,6 +32,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                 reply_to=reply_to_obj
             )
             msg.read_by.add(user)
+            recipients = list(group.members.exclude(id=user.id))
         elif chat_type == 'direct':
             direct_session = DirectChatSession.objects.filter(id=session_id).first()
             if not direct_session or not direct_session.is_active:
@@ -42,6 +44,9 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                 message_type='text',
                 reply_to=reply_to_obj
             )
+            other = direct_session.user2 if direct_session.user1 == user else direct_session.user1
+            if other:
+                recipients = [other]
         else:  # guidance
             session = ChatSession.objects.filter(id=session_id).first()
             if not session or not session.is_active:
@@ -53,6 +58,12 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                 message_type='text',
                 reply_to=reply_to_obj
             )
+            if hasattr(session, 'request') and session.request:
+                other = session.request.alumni.user if session.request.student == user else session.request.student
+            else:
+                other = session.user_two if session.user_one == user else session.user_one
+            if other:
+                recipients = [other]
 
         reply_preview = None
         if reply_to_obj:
@@ -63,56 +74,72 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                 'type': getattr(reply_to_obj, 'message_type', 'text'),
             }
 
-        # Trigger background web push notification to recipient(s)
+        # Trigger background web push and database notifications to recipient(s)
         try:
             import threading
+            from django.db import close_old_connections
             from users.notifications import send_push
+            from users.models import Notification
 
-            def _notify_bg():
+            def _notify_bg(recipients_list, sender, message_obj, c_type, s_id):
+                close_old_connections()
                 try:
-                    sender_name = get_user_display_name(user)
-                    if chat_type == 'group' and 'group' in locals() and group:
-                        push_title = group.name
-                        msg_text = msg.content[:80] if msg.content else "Sent a message"
+                    sender_name = get_user_display_name(sender)
+                    if c_type == 'group':
+                        grp = GroupChatSession.objects.filter(id=s_id).first()
+                        push_title = grp.name if (grp and grp.name) else sender_name
+                        msg_text = message_obj.content[:80] if message_obj.content else "Sent a message"
                         push_body = f"{sender_name}: {msg_text}"
-                        push_icon = (group.photo.url if group.photo else None) or get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
-                        push_tag = f"guidy-group-{session_id}"
+                        push_icon = (grp.photo.url if grp and grp.photo else None) or get_profile_photo_url(sender) or "/static/data/favicon/web-app-manifest-192x192.png"
+                        push_tag = f"guidy-group-{s_id}"
+                        push_url = f"/guidy/?group={s_id}"
                     else:
                         push_title = sender_name
-                        push_body = msg.content[:80] if msg.content else "Sent a message"
-                        push_icon = get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
-                        push_tag = f"guidy-{chat_type}-{session_id}"
+                        push_body = message_obj.content[:80] if message_obj.content else "Sent a message"
+                        push_icon = get_profile_photo_url(sender) or "/static/data/favicon/web-app-manifest-192x192.png"
+                        push_tag = f"guidy-{c_type}-{s_id}"
+                        push_url = f"/guidy/?{c_type}={s_id}"
 
-                    push_url = f"/guidy/?{chat_type}={session_id}"
+                    for r in recipients_list:
+                        try:
+                            notif = Notification.objects.filter(user=r, category='guidy', is_read=False).first()
+                            if notif:
+                                notif.title = '💬 New Guidy Message'
+                                notif.message = f'{sender_name}: {push_body[:60]}'
+                                notif.link = push_url
+                                notif.save()
+                            else:
+                                Notification.objects.create(
+                                    user=r,
+                                    category='guidy',
+                                    is_read=False,
+                                    title='💬 New Guidy Message',
+                                    message=f'{sender_name}: {push_body[:60]}' if c_type == 'group' else f'New message from {sender_name}',
+                                    link=push_url
+                                )
+                        except Exception:
+                            pass
 
-                    recipients = []
-                    if chat_type == 'direct' and 'direct_session' in locals() and direct_session:
-                        other = direct_session.user2 if direct_session.user1 == user else direct_session.user1
-                        if other: recipients.append(other)
-                    elif chat_type == 'guidance' and 'session' in locals() and session:
-                        if hasattr(session, 'request') and session.request:
-                            other = session.request.alumni.user if session.request.student == user else session.request.student
-                        else:
-                            other = session.user_two if session.user_one == user else session.user_one
-                        if other: recipients.append(other)
-                    elif chat_type == 'group' and 'group' in locals() and group:
-                        if hasattr(group, 'members'):
-                            recipients = list(group.members.exclude(id=user.id))
+                        try:
+                            send_push(
+                                user=r,
+                                title=push_title,
+                                body=push_body,
+                                url=push_url,
+                                icon=push_icon,
+                                badge="/static/data/favicon/favicon-96x96.png",
+                                tag=push_tag
+                            )
+                        except Exception:
+                            pass
+                finally:
+                    close_old_connections()
 
-                    for recipient in recipients:
-                        send_push(
-                            user=recipient,
-                            title=push_title,
-                            body=push_body,
-                            url=push_url,
-                            icon=push_icon,
-                            badge="/static/data/favicon/favicon-96x96.png",
-                            tag=push_tag
-                        )
-                except Exception:
-                    pass
-
-            threading.Thread(target=_notify_bg, daemon=True).start()
+            threading.Thread(
+                target=_notify_bg,
+                args=(recipients, user, msg, chat_type, session_id),
+                daemon=True
+            ).start()
         except Exception:
             pass
 
@@ -131,6 +158,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
             'is_pinned': False,
             'media_expired': False,
             'is_verified': (user.is_staff or user.is_superuser),
+            'recipient_ids': [r.id for r in recipients],
         }
     except Exception as e:
         import logging
@@ -197,6 +225,18 @@ def delete_chat_message(user_id, chat_type, message_id):
 
 
 class GuidyChatConsumer(AsyncWebsocketConsumer):
+    @database_sync_to_async
+    def update_user_presence(self, is_online):
+        try:
+            from django.core.cache import cache
+            if self.user and self.user.is_authenticated:
+                if is_online:
+                    cache.set(f"guidy_presence_{self.user.id}", True, timeout=35)
+                else:
+                    cache.delete(f"guidy_presence_{self.user.id}")
+        except Exception:
+            pass
+
     async def connect(self):
         self.chat_type = self.scope['url_route']['kwargs']['chat_type']
         self.session_id = self.scope['url_route']['kwargs']['session_id']
@@ -207,12 +247,15 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Join channel group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
+        self.user_group = f"user_{self.user.id}"
+
+        # Join room channel group & user's personal group
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.channel_layer.group_add(self.user_group, self.channel_name)
         await self.accept()
+
+        # Keep presence cache alive
+        await self.update_user_presence(True)
 
         # Broadcast online presence to room
         await self.channel_layer.group_send(
@@ -239,6 +282,11 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name
             )
+        if hasattr(self, 'user_group') and hasattr(self, 'user') and self.user and self.user.is_authenticated:
+            await self.channel_layer.group_discard(
+                self.user_group,
+                self.channel_name
+            )
 
     async def receive(self, text_data):
         try:
@@ -248,7 +296,12 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
 
         event_type = data.get("type")
 
-        if event_type == "typing_indicator":
+        if event_type in ["heartbeat", "ping"]:
+            await self.update_user_presence(True)
+            await self.send(text_data=json.dumps({"type": "heartbeat_ack"}))
+            return
+
+        elif event_type == "typing_indicator":
             is_typing = bool(data.get("is_typing", False))
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -270,6 +323,7 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
                 self.user.id, self.chat_type, self.session_id, content, reply_to_id
             )
             if msg_data:
+                # 1. Send to current chat room
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
@@ -278,6 +332,19 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
                         "message": msg_data,
                     }
                 )
+                # 2. Also send real-time sidebar alert to each recipient's user channel
+                for r_id in msg_data.get('recipient_ids', []):
+                    await self.channel_layer.group_send(
+                        f"user_{r_id}",
+                        {
+                            "type": "guidy_sidebar_update",
+                            "chat_type": self.chat_type,
+                            "session_id": int(self.session_id),
+                            "sender_id": self.user.id,
+                            "sender_name": self.user.get_full_name() or self.user.username,
+                            "message": msg_data,
+                        }
+                    )
 
         elif event_type == "mark_read":
             read_ids = await mark_messages_as_read(self.user.id, self.chat_type, self.session_id)
@@ -331,6 +398,16 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             "message": msg_payload,
         }))
 
+    async def guidy_sidebar_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_sidebar_update",
+            "chat_type": event["chat_type"],
+            "session_id": event["session_id"],
+            "sender_id": event["sender_id"],
+            "sender_name": event.get("sender_name", ""),
+            "message": event["message"],
+        }))
+
     async def messages_read_broadcast(self, event):
         await self.send(text_data=json.dumps({
             "type": "messages_read",
@@ -356,6 +433,18 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):
+    @database_sync_to_async
+    def update_user_presence(self, is_online):
+        try:
+            from django.core.cache import cache
+            if self.user and self.user.is_authenticated:
+                if is_online:
+                    cache.set(f"guidy_presence_{self.user.id}", True, timeout=35)
+                else:
+                    cache.delete(f"guidy_presence_{self.user.id}")
+        except Exception:
+            pass
+
     async def connect(self):
         self.user = self.scope.get("user")
         if not self.user or not self.user.is_authenticated:
@@ -369,11 +458,22 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.broadcast_group, self.channel_name)
         await self.accept()
 
+        await self.update_user_presence(True)
+
     async def disconnect(self, close_code):
         if hasattr(self, 'user_group'):
             await self.channel_layer.group_discard(self.user_group, self.channel_name)
         if hasattr(self, 'broadcast_group'):
             await self.channel_layer.group_discard(self.broadcast_group, self.channel_name)
+
+    async def receive(self, text_data):
+        try:
+            data = json.loads(text_data)
+            if data.get("type") in ["heartbeat", "ping"]:
+                await self.update_user_presence(True)
+                await self.send(text_data=json.dumps({"type": "heartbeat_ack"}))
+        except Exception:
+            pass
 
     async def send_notification(self, event):
         await self.send(text_data=json.dumps({
@@ -385,4 +485,14 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "broadcast",
             "broadcast": event["broadcast"]
+        }))
+
+    async def guidy_sidebar_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_sidebar_update",
+            "chat_type": event["chat_type"],
+            "session_id": event["session_id"],
+            "sender_id": event["sender_id"],
+            "sender_name": event.get("sender_name", ""),
+            "message": event["message"],
         }))

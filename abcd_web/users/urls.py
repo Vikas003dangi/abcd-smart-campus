@@ -240,6 +240,7 @@ urlpatterns = [
     path('guidy/respond/<int:request_pk>/', views.guidy_respond, name='guidy_respond'),
     path('guidy/restrict/<int:request_pk>/', views.guidy_restrict_student, name='guidy_restrict'),
     path('guidy/status/<int:alumni_pk>/', views.guidy_check_status, name='guidy_check_status'),
+    path('guidy/heartbeat/', views.guidy_heartbeat, name='guidy_heartbeat'),
 
     # 1-to-1 Chat
     path('guidy/chat/<int:session_id>/send/', views.guidy_send_message, name='guidy_send_message'),

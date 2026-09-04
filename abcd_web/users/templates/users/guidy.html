@@ -5602,28 +5602,40 @@ let localTypingTimer = null;
 let wsReconnectTimer = null;
 
 function initGuidyWebSocket() {
-  if (!SESSION_ID && !DIRECT_ID && !GROUP_ID) return;
-
-  const chatType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'guidance');
-  const sessionId = GROUP_ID || DIRECT_ID || SESSION_ID;
-  
   const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/chat/${chatType}/${sessionId}/`;
+  let wsUrl;
+  const hasActiveChat = !!(SESSION_ID || DIRECT_ID || GROUP_ID);
+
+  if (hasActiveChat) {
+    const chatType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'guidance');
+    const sessionId = GROUP_ID || DIRECT_ID || SESSION_ID;
+    wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/chat/${chatType}/${sessionId}/`;
+  } else {
+    // When no chat is active, connect to user notification socket to listen for real-time messages & updates
+    wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
+  }
 
   try {
     if (chatWebSocket) {
+      chatWebSocket.onclose = null;
       chatWebSocket.close();
+      chatWebSocket = null;
     }
     chatWebSocket = new WebSocket(wsUrl);
 
     chatWebSocket.onopen = function() {
-      emitMarkRead();
+      if (hasActiveChat) {
+        emitMarkRead();
+      }
+      try { chatWebSocket.send(JSON.stringify({ type: 'heartbeat' })); } catch(e) {}
     };
 
     chatWebSocket.onmessage = function(e) {
       try {
         const data = JSON.parse(e.data);
-        if (data.type === 'typing_indicator') {
+        if (data.type === 'heartbeat_ack') {
+          return;
+        } else if (data.type === 'typing_indicator') {
           handleIncomingTypingIndicator(data);
         } else if (data.type === 'chat_message') {
           if (data.message) {
@@ -5631,7 +5643,16 @@ function initGuidyWebSocket() {
             if (!data.message.is_mine) {
               emitMarkRead();
             }
+            updateSidebarItemSnippet(
+              GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'session'),
+              GROUP_ID || DIRECT_ID || SESSION_ID,
+              data.message,
+              data.sender_name || '',
+              true
+            );
           }
+        } else if (data.type === 'guidy_sidebar_update') {
+          handleIncomingSidebarUpdate(data);
         } else if (data.type === 'messages_read' && data.message_ids) {
           data.message_ids.forEach(id => {
             const ticks = document.querySelectorAll(`.msg-tick[data-msg-id="${id}"], .msg-status-tick[data-msg-id="${id}"]`);
@@ -5641,13 +5662,12 @@ function initGuidyWebSocket() {
             });
           });
         } else if (data.type === 'user_presence') {
-          const presenceEl = document.getElementById('chatUserPresence');
-          if (presenceEl) {
-            if (data.status === 'online') {
-              presenceEl.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:4px;"></span> Online';
-            } else {
-              presenceEl.innerHTML = '<span style="display:inline-block;width:8px;height:8px;background:#9ca3af;border-radius:50%;margin-right:4px;"></span> Offline';
-            }
+          const presenceBox = document.getElementById('chatUserPresence');
+          if (presenceBox) {
+            const isOnline = (data.status === 'online');
+            presenceBox.classList.toggle('active', isOnline);
+            const txt = presenceBox.querySelector('.presence-text');
+            if (txt) txt.textContent = isOnline ? 'Active now' : 'Offline';
           }
         } else if (data.type === 'message_deleted' && data.message_id) {
           const msgEl = document.querySelector(`[data-message-id="${data.message_id}"]`);
@@ -5660,6 +5680,15 @@ function initGuidyWebSocket() {
         }
       } catch(err) {}
     };
+
+    chatWebSocket.onclose = function() {
+      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = setTimeout(() => {
+        initGuidyWebSocket();
+      }, 3000);
+    };
+  } catch(e) {}
+}
 
 function handleSessionStatusChanged(data) {
   const lockedNotice = document.getElementById('lockedNotice');
@@ -5703,15 +5732,203 @@ function handleSessionStatusChanged(data) {
   }
 }
 
-    chatWebSocket.onclose = function() {
-      if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-      wsReconnectTimer = setTimeout(() => {
-        if (SESSION_ID || DIRECT_ID || GROUP_ID) {
-          initGuidyWebSocket();
-        }
-      }, 4000);
-    };
+function handleIncomingSidebarUpdate(data) {
+  if (!data || !data.message) return;
+  const chatType = data.chat_type;
+  const sessionId = String(data.session_id);
+  const isCurrentChat = (
+    (chatType === 'group' && GROUP_ID && String(GROUP_ID) === sessionId) ||
+    (chatType === 'direct' && DIRECT_ID && String(DIRECT_ID) === sessionId) ||
+    (chatType === 'guidance' && SESSION_ID && String(SESSION_ID) === sessionId)
+  );
+
+  // If this message is for the currently open chat:
+  if (isCurrentChat) {
+    const existingMsg = document.querySelector(`[data-message-id="${data.message.id}"]`);
+    if (!existingMsg) {
+      appendMessage(data.message);
+      if (!data.message.is_mine) {
+        emitMarkRead();
+      }
+    }
+  }
+
+  // Update or insert sidebar row
+  updateSidebarItemSnippet(chatType, sessionId, data.message, data.sender_name, isCurrentChat);
+
+  // Sound chime & vibration on incoming message from other user
+  if (!data.message.is_mine) {
+    playGuidyNotificationChime();
+  }
+}
+
+function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCurrentChat) {
+  if (!sessionId) return;
+  const idStr = String(sessionId);
+  const item = getSidebarChatItem(chatType, idStr);
+
+  let snippet = '';
+  if (message.message_type === 'image') snippet = `<i class='bx bx-image-alt'></i> Photo`;
+  else if (message.message_type === 'video') snippet = `<i class='bx bx-video'></i> Video`;
+  else if (message.message_type === 'audio') snippet = `<i class='bx bx-microphone'></i> Audio`;
+  else if (message.message_type === 'document') snippet = `<i class='bx bx-file'></i> Document`;
+  else {
+    const raw = (message.content || '').replace(/<[^>]*>?/gm, '').trim();
+    snippet = raw.length > 30 ? raw.substring(0, 30) + '...' : raw;
+  }
+
+  if (item) {
+    const timeEl = item.querySelector('.g-item-time');
+    if (timeEl) timeEl.textContent = message.timestamp || 'Just now';
+
+    const subEl = item.querySelector('.g-item-sub');
+    if (subEl) subEl.innerHTML = snippet;
+
+    if (!isCurrentChat && !message.is_mine) {
+      let badge = item.querySelector('.g-unread-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'g-unread-badge';
+        badge.textContent = '0';
+        item.appendChild(badge);
+      }
+      const count = (parseInt(badge.textContent.trim()) || 0) + 1;
+      badge.textContent = String(count);
+      badge.style.display = 'inline-block';
+    }
+
+    const container = item.parentElement;
+    if (container && container.firstElementChild !== item) {
+      container.prepend(item);
+    }
+  } else {
+    // Brand new chat started while page was open: create new item
+    const container = (chatType === 'group') ? document.getElementById('panelGroups') : document.getElementById('panelChats');
+    if (container) {
+      const empty = container.querySelector('.g-empty');
+      if (empty) empty.remove();
+
+      const a = document.createElement('a');
+      a.href = 'javascript:void(0)';
+      a.dataset.href = `?${chatType}=${idStr}`;
+      a.dataset.noLoader = 'true';
+      a.className = 'g-chat-item' + (isCurrentChat ? ' active' : '');
+      a.dataset.chatName = senderName || 'Chat';
+      a.dataset.chatType = chatType;
+      a.dataset.chatId = idStr;
+      a.onclick = (e) => handleChatItemClick(e, a, chatType, idStr);
+
+      let avatarHtml = (senderName ? senderName.charAt(0).toUpperCase() : '?');
+      if (message.sender_photo) {
+        avatarHtml = `<img src="${message.sender_photo}" alt="${escHtml(senderName)}" style="width:100%; height:100%; object-fit:cover;">`;
+      }
+
+      a.innerHTML = `
+        <div class="g-item-avatar">${avatarHtml}</div>
+        <div class="g-item-info">
+          <div class="g-item-top">
+            <span class="g-item-name">${escHtml(senderName || 'Chat')}</span>
+            <span class="g-item-time">${message.timestamp || 'Just now'}</span>
+          </div>
+          <div class="g-item-sub">${snippet}</div>
+        </div>
+        ${(!isCurrentChat && !message.is_mine) ? '<span class="g-unread-badge">1</span>' : ''}
+        <div class="g-session-checkbox"><i class='bx bx-check'></i></div>
+      `;
+      container.prepend(a);
+    }
+  }
+
+  updateTabBadges();
+}
+
+function updateTabBadges() {
+  const chatBadge = document.querySelector('#tabChats .g-tab-badge');
+  if (chatBadge) {
+    let totalChats = 0;
+    document.querySelectorAll('#panelChats .g-unread-badge').forEach(b => {
+      if (b.style.display !== 'none' && b.textContent.trim()) {
+        const count = parseInt(b.textContent.trim());
+        if (!isNaN(count)) totalChats += count;
+      }
+    });
+    if (totalChats > 0) {
+      chatBadge.textContent = totalChats;
+      chatBadge.style.display = 'inline-block';
+    } else {
+      chatBadge.style.display = 'none';
+    }
+  }
+
+  const groupBadge = document.querySelector('#tabGroups .g-tab-badge');
+  if (groupBadge) {
+    let totalGroups = 0;
+    document.querySelectorAll('#panelGroups .g-unread-badge').forEach(b => {
+      if (b.style.display !== 'none' && b.textContent.trim()) {
+        const count = parseInt(b.textContent.trim());
+        if (!isNaN(count)) totalGroups += count;
+      }
+    });
+    if (totalGroups > 0) {
+      groupBadge.textContent = totalGroups;
+      groupBadge.style.display = 'inline-block';
+    } else {
+      groupBadge.style.display = 'none';
+    }
+  }
+}
+
+function playGuidyNotificationChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
   } catch(e) {}
+  if (navigator.vibrate) {
+    try { navigator.vibrate([100, 50, 100]); } catch(e) {}
+  }
+}
+
+let guidyHeartbeatTimer = null;
+function startGuidyHeartbeat() {
+  if (guidyHeartbeatTimer) clearInterval(guidyHeartbeatTimer);
+  guidyHeartbeatTimer = setInterval(async () => {
+    // 1. WebSocket heartbeat
+    if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
+      try { chatWebSocket.send(JSON.stringify({ type: 'heartbeat' })); } catch(e) {}
+    }
+    // 2. HTTP heartbeat fallback
+    try {
+      const fd = new FormData();
+      fd.append('csrfmiddlewaretoken', CSRF);
+      if (currentChatType && currentChatId) {
+        fd.append('chat_type', currentChatType);
+        fd.append('session_id', currentChatId);
+      }
+      const r = await fetch('/guidy/heartbeat/', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (data.success) {
+        if (currentChatType && currentChatType !== 'group') {
+          const presenceBox = document.getElementById('chatUserPresence');
+          if (presenceBox) {
+            const isOnline = !!data.other_user_active;
+            presenceBox.classList.toggle('active', isOnline);
+            const txt = presenceBox.querySelector('.presence-text');
+            if (txt) txt.textContent = isOnline ? 'Active now' : 'Offline';
+          }
+        }
+      }
+    } catch(e) {}
+  }, 15000);
 }
 
 function emitMarkRead() {
@@ -5719,7 +5936,6 @@ function emitMarkRead() {
     chatWebSocket.send(JSON.stringify({ type: 'mark_read' }));
   }
 }
-
 
 function handleIncomingTypingIndicator(data) {
   const typingSpan = document.getElementById('gChatTypingStatus');
@@ -5758,22 +5974,22 @@ function handleMessageInputTyping() {
   }, 2000);
 }
 
-// Call WebSocket init on chat start
-if (SESSION_ID || DIRECT_ID || GROUP_ID) {
-  initGuidyWebSocket();
-}
+// Initialize always-on WebSocket & presence heartbeat
+initGuidyWebSocket();
+startGuidyHeartbeat();
 
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
-    // User switched tabs: KILL polling instantly to save server load
     isPollingActive = false;
     if (pollTimer) clearTimeout(pollTimer);
   } else {
-    // User came back: RESUME polling & socket
+    // User came back: resume polling & socket
     if (SESSION_ID || DIRECT_ID) startPolling();
     if (GROUP_ID) startGroupPolling();
     if (!chatWebSocket || chatWebSocket.readyState !== WebSocket.OPEN) {
       initGuidyWebSocket();
+    } else {
+      try { chatWebSocket.send(JSON.stringify({ type: 'heartbeat' })); } catch(e) {}
     }
   }
 });
@@ -7050,7 +7266,10 @@ function showNoChatPlaceholder(updateHistory = true) {
   isPollingActive = false;
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
   if (chatWebSocket) {
-    try { chatWebSocket.close(); } catch(err) {}
+    try {
+      chatWebSocket.onclose = null;
+      chatWebSocket.close();
+    } catch(err) {}
     chatWebSocket = null;
   }
   currentChatType = null;
@@ -7067,6 +7286,9 @@ function showNoChatPlaceholder(updateHistory = true) {
   OTHER_ID = '';
   OTHER_USER_NAME = '';
   REQ_PK = '';
+
+  // Reconnect to user notification socket to keep receiving alerts and maintaining presence
+  initGuidyWebSocket();
 
   const gShell = document.getElementById('gShell');
   if (gShell) gShell.classList.remove('chat-active');
@@ -10303,6 +10525,11 @@ document.addEventListener('touchstart', (e) => {
     <button class="cp-done-btn" type="button" style="background: #7b61ff; color: #fff; border: none; padding: 6px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s; box-sizing: border-box;">Done</button>
   </div>
 </div>
+
+{% if user.is_authenticated %}
+<script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
+<script src="{% static 'js/push-permission.js' %}"></script>
+{% endif %}
 
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

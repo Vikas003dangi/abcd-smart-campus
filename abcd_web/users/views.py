@@ -10280,7 +10280,7 @@ def guidy_home(request):
     - Teachers see direct and group chats
     Handles ?session=<id> to open a specific chat.
     """
-    cache.set(f'guidy_presence_{request.user.id}', True, timeout=10)
+    cache.set(f'guidy_presence_{request.user.id}', True, timeout=35)
     purge_expired_media()
     purge_expired_group_chats()
 
@@ -11185,8 +11185,8 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         from asgiref.sync import async_to_sync
         channel_layer = get_channel_layer()
         if channel_layer:
-            c_type = 'group' if group else ('direct' if target_user else 'guidance')
-            s_id = group.id if group else (target_user.id if target_user else session.id)
+            c_type = 'direct' if direct_session else 'guidance'
+            s_id = direct_session.id if direct_session else session.id
             async_to_sync(channel_layer.group_send)(
                 f"guidy_{c_type}_{s_id}",
                 {
@@ -11195,6 +11195,18 @@ def guidy_send_message(request, session_id=None, direct_id=None):
                     'message': msg_dict,
                 }
             )
+            if other_user:
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{other_user.id}",
+                    {
+                        'type': 'guidy_sidebar_update',
+                        'chat_type': c_type,
+                        'session_id': s_id,
+                        'sender_id': user.id,
+                        'sender_name': get_user_display_name(user),
+                        'message': msg_dict,
+                    }
+                )
     except Exception:
         pass
 
@@ -11270,7 +11282,7 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
     Lightweight polling endpoint: returns all messages after a given message id.
     Called every 3 seconds by the frontend JS.
     """
-    cache.set(f'guidy_presence_{request.user.id}', True, timeout=10)
+    cache.set(f'guidy_presence_{request.user.id}', True, timeout=35)
     from .models import DirectChatSession
     from users.utils import get_user_display_name, get_profile_photo_url
     user = request.user
@@ -11383,6 +11395,74 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
         'read_message_ids': list(newly_read),
         'other_user_active': other_user_active,
         'guidy_badge_count': get_guidy_badge_count(user)
+    })
+
+
+@login_required
+@require_POST
+def guidy_heartbeat(request):
+    """
+    Lightweight heartbeat endpoint called every 15-20s by Guidy client.
+    - Keeps caller's presence alive in cache for 35s.
+    - Returns updated badge count.
+    - If chat_type and session_id are provided, returns other user's presence & active status.
+    """
+    user = request.user
+    cache.set(f'guidy_presence_{user.id}', True, timeout=35)
+
+    chat_type = request.POST.get('chat_type')
+    session_id = request.POST.get('session_id')
+    other_user_active = False
+    is_active = True
+    ended_by_name = ''
+    ended_by_me = False
+    locked_days_left = 0
+
+    if chat_type and session_id:
+        try:
+            s_id = int(session_id)
+            if chat_type == 'direct':
+                from users.models import DirectChatSession
+                ds = DirectChatSession.objects.filter(id=s_id).first()
+                if ds:
+                    other = ds.user2 if ds.user1 == user else ds.user1
+                    if other:
+                        other_user_active = bool(cache.get(f'guidy_presence_{other.id}'))
+                    is_active = ds.is_active
+                    if not is_active and ds.ended_by:
+                        ended_by_name = get_user_display_name(ds.ended_by)
+                        ended_by_me = (ds.ended_by == user)
+                        if ds.session_ended_at:
+                            days_passed = (timezone.now() - ds.session_ended_at).days
+                            locked_days_left = max(0, 5 - days_passed)
+            elif chat_type in ['session', 'guidance']:
+                from users.models import ChatSession
+                cs = ChatSession.objects.filter(id=s_id).first()
+                if cs:
+                    if cs.request:
+                        other = cs.request.student if cs.request.alumni.user == user else cs.request.alumni.user
+                    else:
+                        other = cs.user_two if cs.user_one == user else cs.user_one
+                    if other:
+                        other_user_active = bool(cache.get(f'guidy_presence_{other.id}'))
+                    is_active = cs.is_active
+                    if not is_active and cs.ended_by:
+                        ended_by_name = get_user_display_name(cs.ended_by)
+                        ended_by_me = (cs.ended_by == user)
+                        if cs.session_ended_at:
+                            days_passed = (timezone.now() - cs.session_ended_at).days
+                            locked_days_left = max(0, 5 - days_passed)
+        except Exception:
+            pass
+
+    return JsonResponse({
+        'success': True,
+        'other_user_active': other_user_active,
+        'is_active': is_active,
+        'ended_by_name': ended_by_name,
+        'ended_by_me': ended_by_me,
+        'locked_days_left': locked_days_left,
+        'guidy_badge_count': get_guidy_badge_count(user),
     })
 
 
@@ -12455,30 +12535,64 @@ def guidy_group_send_message(request, group_id):
             'type': reply_to_obj.message_type,
         }
 
+    sender_msg = {
+        'id': msg.id,
+        'content': resolve_system_message_content(msg.content, user) if msg.message_type == 'system' else msg.content,
+        'message_type': msg.message_type,
+        'file_url': msg.file.url if msg.file else None,
+        'file_name': msg.file_name,
+        'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
+        'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
+        'is_mine': False,
+        'is_read': False,
+        'sender_name': get_user_display_name(user),
+        'sender_photo': get_profile_photo_url(user),
+        'media_expired': msg.media_expired,
+        'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
+        'reply_to': reply_preview,
+    }
+
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                f"guidy_group_{group.id}",
+                {
+                    'type': 'chat_message_broadcast',
+                    'sender_id': user.id,
+                    'message': sender_msg,
+                }
+            )
+            for member in group.members.exclude(id=user.id):
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{member.id}",
+                    {
+                        'type': 'guidy_sidebar_update',
+                        'chat_type': 'group',
+                        'session_id': group.id,
+                        'sender_id': user.id,
+                        'sender_name': group.name,
+                        'message': sender_msg,
+                    }
+                )
+    except Exception:
+        pass
+
+    my_msg = dict(sender_msg)
+    my_msg['is_mine'] = True
+
     return JsonResponse({
         'success': True,
-        'message': {
-            'id': msg.id,
-            'content': resolve_system_message_content(msg.content, user) if msg.message_type == 'system' else msg.content,
-            'message_type': msg.message_type,
-            'file_url': msg.file.url if msg.file else None,
-            'file_name': msg.file_name,
-            'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
-            'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
-            'is_mine': True,
-            'is_read': False,
-            'sender_name': get_user_display_name(user),
-            'sender_photo': get_profile_photo_url(user),
-            'media_expired': msg.media_expired,
-            'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
-            'reply_to': reply_preview,
-        }
+        'message': my_msg
     })
 
 
 @login_required
 def guidy_group_poll(request, group_id):
     """Poll for new group messages."""
+    cache.set(f'guidy_presence_{request.user.id}', True, timeout=35)
     group = get_object_or_404(GroupChatSession, id=group_id, is_active=True)
     user = request.user
     from users.utils import get_user_display_name, get_profile_photo_url
