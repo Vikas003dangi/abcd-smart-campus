@@ -387,8 +387,8 @@ document.addEventListener('DOMContentLoaded', function() {
             notifSocket.onmessage = function(e) {
                 try {
                     const data = JSON.parse(e.data);
-                    if (data.type === 'notification' && data.notification) {
-                        const n = data.notification;
+                    if (data.type === 'notification') {
+                        const n = data.notification || data;
                         if (typeof window.showToast === 'function') {
                             window.showToast(`${n.title}: ${n.message}`, 'info');
                         } else {
@@ -397,10 +397,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (typeof checkAndDisplayStudentBanner === 'function' && n.category === 'broadcast') {
                             checkAndDisplayStudentBanner();
                         }
+                        if (typeof loadNotifications === 'function') {
+                            loadNotifications();
+                        }
+                        // Increment notification badge on the page
+                        document.querySelectorAll('.abcd-notif-badge, .notification-badge').forEach(b => {
+                            const cur = parseInt(b.textContent.trim(), 10) || 0;
+                            b.textContent = cur + 1;
+                            b.style.display = 'inline-flex';
+                        });
                     } else if (data.type === 'broadcast') {
                         if (typeof checkAndDisplayStudentBanner === 'function') {
                             checkAndDisplayStudentBanner();
                         }
+                    } else if (data.type === 'guidy_badge_update') {
+                        const count = data.guidy_badge_count;
+                        document.querySelectorAll('.guidy-badge-element, .guidy-sidebar-badge').forEach(el => {
+                            if (count > 0) {
+                                el.textContent = count;
+                                el.style.display = 'inline-flex';
+                            } else {
+                                el.style.display = 'none';
+                            }
+                        });
                     }
                 } catch(err) {}
             };

@@ -1627,13 +1627,29 @@
             loadLayout('Ground Floor', 'ground-floor-wrapper');
             loadLayout('1st Floor', 'first-floor-wrapper');
 
-            // Refresh seat data every 10 seconds for live updates (paused if tab is hidden)
+            // Refresh seat data every 5 seconds for live updates (paused if tab is hidden)
             setInterval(() => {
                 if (!document.hidden) {
                     loadLayout('Ground Floor', 'ground-floor-wrapper');
                     loadLayout('1st Floor', 'first-floor-wrapper');
                 }
-            }, 10000);
+            }, 5000);
+
+            // Real-time WebSocket instant updates
+            try {
+                const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
+                const libWs = new WebSocket(wsUrl);
+                libWs.onmessage = function (e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'dashboard_stats_update' || data.type === 'notification' || data.type === 'seat_update') {
+                            loadLayout('Ground Floor', 'ground-floor-wrapper');
+                            loadLayout('1st Floor', 'first-floor-wrapper');
+                        }
+                    } catch (err) {}
+                };
+            } catch (e) {}
 
 
             /*

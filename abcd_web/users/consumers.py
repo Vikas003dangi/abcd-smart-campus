@@ -485,6 +485,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         if self.user.is_staff or self.user.is_superuser:
             self.staff_group = "staff_group"
             await self.channel_layer.group_add(self.staff_group, self.channel_name)
+            await self.channel_layer.group_add("teachers", self.channel_name)
 
         await self.accept()
 
@@ -497,6 +498,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_discard(self.broadcast_group, self.channel_name)
         if hasattr(self, 'staff_group'):
             await self.channel_layer.group_discard(self.staff_group, self.channel_name)
+            await self.channel_layer.group_discard("teachers", self.channel_name)
 
     async def receive(self, text_data):
         try:
@@ -507,10 +509,34 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         except Exception:
             pass
 
-    async def send_notification(self, event):
+    async def notification(self, event):
+        notif_obj = event.get("notification") or {
+            "title": event.get("title", ""),
+            "message": event.get("message", ""),
+            "link": event.get("link", "/"),
+            "category": event.get("category", "general"),
+        }
         await self.send(text_data=json.dumps({
             "type": "notification",
-            "notification": event["notification"]
+            "notification": notif_obj,
+            "title": notif_obj.get("title", ""),
+            "message": notif_obj.get("message", ""),
+            "link": notif_obj.get("link", "/"),
+        }))
+
+    async def send_notification(self, event):
+        notif_obj = event.get("notification") or {
+            "title": event.get("title", ""),
+            "message": event.get("message", ""),
+            "link": event.get("link", "/"),
+            "category": event.get("category", "general"),
+        }
+        await self.send(text_data=json.dumps({
+            "type": "notification",
+            "notification": notif_obj,
+            "title": notif_obj.get("title", ""),
+            "message": notif_obj.get("message", ""),
+            "link": notif_obj.get("link", "/"),
         }))
 
     async def send_broadcast(self, event):

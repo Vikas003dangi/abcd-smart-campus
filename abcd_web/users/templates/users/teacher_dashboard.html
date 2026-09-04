@@ -8143,7 +8143,8 @@
 
         if (data.status === 'success') {
           await window.showStyledAlert('Success', data.message);
-          location.reload();
+          if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+          if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
         } else {
           await window.showStyledAlert('Failed', data.message || 'Action failed');
         }
@@ -8631,7 +8632,8 @@
             .then(r => r.json())
             .then(async data => {
               if (data.ok) {
-                window.location.reload();
+                if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+                if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
               } else {
                 await window.showStyledAlert('Update Failed', data.error || 'Could not update status.');
               }
@@ -8896,7 +8898,9 @@
           })
           .then(data => {
             if (data.status === 'success') {
-              window.location.reload();
+              closeModal();
+              if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+              if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
             } else if (data.status === 'conflict') {
               // Show conflict in Modal
               document.getElementById('modalTitle').innerHTML = '<span style="color:#ffffff;">⚠️ Seat Conflict Detected!</span>';
@@ -9223,7 +9227,8 @@
               return;
             }
 
-            location.reload();
+            if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+            if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
 
           } catch (err) {
             await window.showStyledAlert('Server Error', 'A server error occurred while approving the request.');
@@ -9271,7 +9276,8 @@
               return;
             }
 
-            location.reload();
+            if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+            if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
 
           } catch (err) {
             await window.showStyledAlert('Server Error', 'A server error occurred while rejecting the request.');
@@ -12498,7 +12504,10 @@ async function approveSwitchRequest(reqId) {
                 title: 'Success',
                 message: 'Seat switch request approved successfully!',
                 type: 'success',
-                onOk: () => window.location.reload()
+                onOk: () => {
+                    if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+                    if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
+                }
             });
         } else {
             showTeacherStyledPopup({
@@ -12527,14 +12536,13 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
         });
         const data = await response.json();
         if (response.ok) {
-            if (isSilent) {
-                window.location.reload();
-            } else {
+            if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+            if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
+            if (!isSilent) {
                 showTeacherStyledPopup({
                     title: 'Success',
                     message: 'Request rejected/deleted successfully.',
-                    type: 'success',
-                    onOk: () => window.location.reload()
+                    type: 'success'
                 });
             }
         } else {
@@ -12560,6 +12568,8 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
     let teacherLiveWs = null;
     let teacherWsHeartbeatTimer = null;
     let teacherPollingTimer = null;
+    let lastStats = null;
+    let isRefreshingTabs = false;
 
     function updateDashboardStatsDOM(data) {
         if (!data) return;
@@ -12666,6 +12676,63 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
                 sidebarNotifBadge.style.display = 'none';
             }
         }
+
+        // Live check if tab content or notifications need background update
+        if (lastStats) {
+            const tabsChanged = (
+                lastStats.total_admission_requests !== data.total_admission_requests ||
+                lastStats.total_hold_requests !== data.total_hold_requests ||
+                lastStats.total_pending_achievements !== data.total_pending_achievements ||
+                lastStats.pending_complaints_count !== data.pending_complaints_count ||
+                lastStats.total_library_students !== data.total_library_students ||
+                lastStats.total_coaching_students !== data.total_coaching_students ||
+                lastStats.total_admitted_students_count !== data.total_admitted_students_count
+            );
+            if (tabsChanged) {
+                refreshTeacherTabsContent();
+            }
+
+            if (lastStats.total_notification_count !== data.total_notification_count) {
+                const panel = document.getElementById('teacherNotifPanel');
+                if (panel && panel.classList.contains('active') && typeof loadTeacherNotifications === 'function') {
+                    loadTeacherNotifications();
+                }
+            }
+        }
+        lastStats = { ...data };
+    }
+
+    async function refreshTeacherTabsContent() {
+        if (isRefreshingTabs) return;
+        isRefreshingTabs = true;
+        try {
+            const res = await fetch('/teacher/?ajax_refresh=1', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!res.ok) return;
+            const html = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            const tabIds = [
+                'requests-tab', 'achievements-tab', 'holds-tab',
+                'coaching-tab', 'library-tab', 'complaints-tab'
+            ];
+
+            tabIds.forEach(tabId => {
+                const newTabEl = doc.getElementById(tabId);
+                const currentTabEl = document.getElementById(tabId);
+                if (newTabEl && currentTabEl) {
+                    const isActive = currentTabEl.classList.contains('active');
+                    currentTabEl.innerHTML = newTabEl.innerHTML;
+                    if (isActive) currentTabEl.classList.add('active');
+                }
+            });
+        } catch (e) {
+            console.debug("Error refreshing teacher tabs content:", e);
+        } finally {
+            isRefreshingTabs = false;
+        }
     }
 
     async function fetchTeacherLiveStats() {
@@ -12713,7 +12780,13 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
                             }
                         }
                     } else if (data.type === 'guidy_sidebar_update' || data.type === 'notification' || data.type === 'dashboard_stats_update') {
+                        if (data.type === 'notification' && data.title) {
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(`${data.title}: ${data.message}`, 'info');
+                            }
+                        }
                         fetchTeacherLiveStats();
+                        refreshTeacherTabsContent();
                     }
                 } catch(err) {}
             };
@@ -12747,6 +12820,7 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
     });
 
     window.refreshTeacherLiveStats = fetchTeacherLiveStats;
+    window.refreshTeacherTabsContent = refreshTeacherTabsContent;
 })();
 </script>
 

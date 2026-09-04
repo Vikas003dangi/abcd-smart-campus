@@ -4655,6 +4655,34 @@
                 });
             }
         }
+
+        // ===================================================================
+        // STUDENT SEAT STATUS LIVE REAL-TIME ENGINE
+        // ===================================================================
+        (function initStudentSeatRealtimeEngine() {
+            try {
+                const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
+                const seatWs = new WebSocket(wsUrl);
+
+                seatWs.onmessage = function (e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'notification' || data.type === 'seat_update' || data.type === 'dashboard_stats_update') {
+                            if (typeof refreshGrids === 'function') {
+                                refreshGrids();
+                            }
+                        }
+                    } catch (err) {}
+                };
+            } catch (e) {}
+
+            setInterval(() => {
+                if (!document.hidden && typeof refreshGrids === 'function') {
+                    refreshGrids();
+                }
+            }, 5000);
+        })();
     </script>
 {% if user.is_authenticated %}
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>

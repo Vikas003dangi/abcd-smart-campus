@@ -5290,18 +5290,20 @@
       }
     }
 
-    async function loadNotifications() {
+    async function loadNotifications(isSilent = false) {
       const notifBody = document.getElementById('notifBody');
       const notifControls = document.getElementById('notifControls');
       if (!notifBody) return;
 
-      notifBody.innerHTML = `
-        <div style="text-align: center; padding: 40px 0;">
-          <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem; border: 0.25em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 10px; display: inline-block;"></div>
-          <p style="color: #6b7280; font-size: 0.85rem;">Loading notifications...</p>
-        </div>
-      `;
-      if (notifControls) notifControls.style.display = 'none';
+      if (!isSilent) {
+        notifBody.innerHTML = `
+          <div style="text-align: center; padding: 40px 0;">
+            <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem; border: 0.25em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.75s linear infinite; margin-bottom: 10px; display: inline-block;"></div>
+            <p style="color: #6b7280; font-size: 0.85rem;">Loading notifications...</p>
+          </div>
+        `;
+        if (notifControls) notifControls.style.display = 'none';
+      }
 
       try {
         const response = await fetch("/api/notifications/", {
@@ -5689,6 +5691,13 @@
     // Legacy support
     function toggleNotifications() { toggleNotificationsPanel(); }
     function markAllNotificationsRead() { markAllAsRead(); }
+
+    // Live notification background sync (every 6 seconds when tab is active)
+    setInterval(() => {
+      if (!document.hidden && typeof loadNotifications === 'function') {
+        loadNotifications(true);
+      }
+    }, 6000);
 
     // --- DOM LOGIC ---
     document.addEventListener('DOMContentLoaded', function () {

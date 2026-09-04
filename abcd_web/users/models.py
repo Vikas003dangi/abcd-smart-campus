@@ -5,8 +5,11 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 import os
 from django.core.exceptions import ValidationError
-from django.db.models.signals import pre_save, post_delete
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
+import logging
+
+logger = logging.getLogger(__name__)
 
 # -------------------------------------------------------------------
 # ABCD UTILITIES
@@ -2439,6 +2442,68 @@ class GuidyBlock(models.Model):
 
     def __str__(self):
         return f"{self.blocker.username} blocked {self.blocked.username}"
+
+
+@receiver(post_save, sender=Notification)
+def dispatch_realtime_notification_on_save(sender, instance, created, **kwargs):
+    """
+    Dispatches instant real-time WebSocket event and Web Push notification whenever
+    any Notification record is created in the entire application.
+    """
+    if not created or not instance.user:
+        return
+
+    # 1. Real-time WebSocket event via Django Channels
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        cl = get_channel_layer()
+        if cl:
+            # Send to user's personal channel group
+            async_to_sync(cl.group_send)(
+                f"user_{instance.user.id}",
+                {
+                    "type": "notification",
+                    "title": instance.title,
+                    "message": instance.message,
+                    "link": instance.link or "/",
+                    "category": instance.category,
+                }
+            )
+
+            # If user is staff/teacher or notification is related to admissions/holds/complaints
+            if instance.user.is_staff or instance.user.is_superuser:
+                async_to_sync(cl.group_send)(
+                    "teachers",
+                    {
+                        "type": "dashboard_stats_update",
+                        "title": instance.title,
+                        "message": instance.message,
+                    }
+                )
+                async_to_sync(cl.group_send)(
+                    "staff_group",
+                    {
+                        "type": "dashboard_stats_update",
+                        "title": instance.title,
+                        "message": instance.message,
+                    }
+                )
+    except Exception as e:
+        logger.debug("Realtime notification channel broadcast error: %s", e)
+
+    # 2. Asynchronous Web Push notification to user devices
+    try:
+        import threading
+        from .notifications import send_push
+        threading.Thread(
+            target=send_push,
+            args=(instance.user, instance.title, instance.message, instance.link or "/"),
+            daemon=True
+        ).start()
+    except Exception as e:
+        logger.debug("Realtime notification web push dispatch error: %s", e)
+
 
 
 

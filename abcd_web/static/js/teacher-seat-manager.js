@@ -709,18 +709,23 @@ document.addEventListener('DOMContentLoaded', () => {
   window.ensureModalInBody();
 
   // --- Layout load/update ---
-  async function loadSeatLayout(floor) {
-    closeSeatDetailsModal();
-    if (!floor) {
-      if (groundFloorWrapper) groundFloorWrapper.style.display = 'none';
-      if (firstFloorWrapper) firstFloorWrapper.style.display = 'none';
-      if (loadingMessage) loadingMessage.style.display = 'none';
+  async function loadSeatLayout(floor, isSilent = false) {
+    if (!isSilent) closeSeatDetailsModal();
+    if (!floor) return;
+    if (floor === 'Whole Floor') {
+      if (!isSilent) {
+        if (groundFloorWrapper) groundFloorWrapper.style.display = 'none';
+        if (firstFloorWrapper) firstFloorWrapper.style.display = 'none';
+        if (loadingMessage) loadingMessage.style.display = 'none';
+      }
       return;
     }
     currentFloor = floor;
-    if (loadingMessage) loadingMessage.style.display = 'block';
-    if (groundFloorWrapper) groundFloorWrapper.style.display = 'none';
-    if (firstFloorWrapper) firstFloorWrapper.style.display = 'none';
+    if (!isSilent) {
+      if (loadingMessage) loadingMessage.style.display = 'block';
+      if (groundFloorWrapper) groundFloorWrapper.style.display = 'none';
+      if (firstFloorWrapper) firstFloorWrapper.style.display = 'none';
+    }
 
     const wrapper = (floor === 'Ground Floor') ? groundFloorWrapper : firstFloorWrapper;
 
@@ -732,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (wrapper) wrapper.style.display = 'block';
 
       // Auto-open seat when coming from dashboard
-      if (dashboardSeatNumber && wrapper) {
+      if (dashboardSeatNumber && wrapper && !isSilent) {
         setTimeout(() => {
           const seatEl = wrapper.querySelector(`.seat[data-seat-id="${dashboardSeatNumber}"]`);
           if (seatEl) {
@@ -744,13 +749,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.error('loadSeatLayout error:', err);
-      if (loadingMessage) loadingMessage.textContent = 'Error loading layout. Check console.';
+      if (!isSilent && loadingMessage) loadingMessage.textContent = 'Error loading layout. Check console.';
       // Show base layout even if API fails so the page isn't blank
       if (wrapper) wrapper.style.display = 'block';
     } finally {
-      if (loadingMessage) loadingMessage.style.display = 'none';
+      if (!isSilent && loadingMessage) loadingMessage.style.display = 'none';
     }
   }
+
+  window.refreshTeacherSeatLayout = function(isSilent = true) {
+    if (typeof loadSeatLayout === 'function') {
+      loadSeatLayout(currentFloor || 'Ground Floor', isSilent);
+    }
+  };
 
   function updateLayout(floor, seats) {
     const wrapper = (floor === 'Ground Floor') ? groundFloorWrapper : firstFloorWrapper;
@@ -4468,4 +4479,40 @@ document.body.addEventListener('click', function (ev) {
   // if no parent modal found, still call canonical close
   window.closeSeatDetailsModal();
 });
+
+// ===================================================================
+// TEACHER SEAT STATUS LIVE REAL-TIME ENGINE
+// ===================================================================
+(function initTeacherSeatRealtimeEngine() {
+  // 1. WebSocket Live Listener
+  try {
+    const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
+    const seatWs = new WebSocket(wsUrl);
+
+    seatWs.onmessage = function (e) {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'dashboard_stats_update' || data.type === 'notification' || data.type === 'seat_update') {
+          if (typeof window.refreshTeacherSeatLayout === 'function') {
+            const hasOpenModal = document.querySelector('.abcd-modal-overlay.active, .modal.show, .custom-popup-overlay, #teacherPremiumSeatDetailsModal.open, #teacherPremiumSeatDetailsModal.active');
+            if (!hasOpenModal) {
+              window.refreshTeacherSeatLayout(true);
+            }
+          }
+        }
+      } catch (err) {}
+    };
+  } catch (e) {}
+
+  // 2. Continuous Background Live Polling (every 5 seconds)
+  setInterval(() => {
+    if (!document.hidden && typeof window.refreshTeacherSeatLayout === 'function') {
+      const hasOpenModal = document.querySelector('.abcd-modal-overlay.active, .modal.show, .custom-popup-overlay, #teacherPremiumSeatDetailsModal.open, #teacherPremiumSeatDetailsModal.active');
+      if (!hasOpenModal) {
+        window.refreshTeacherSeatLayout(true);
+      }
+    }
+  }, 5000);
+})();
 
