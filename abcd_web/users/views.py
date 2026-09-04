@@ -11155,11 +11155,12 @@ def guidy_send_message(request, session_id=None, direct_id=None):
 
     reply_preview = None
     if reply_to_obj:
+        r_content = reply_to_obj.content or ''
         reply_preview = {
             'id': reply_to_obj.id,
-            'content': reply_to_obj.content[:80],
-            'sender': get_user_display_name(reply_to_obj.sender),
-            'type': reply_to_obj.message_type,
+            'content': r_content[:80],
+            'sender': get_user_display_name(reply_to_obj.sender) if reply_to_obj.sender else '',
+            'type': getattr(reply_to_obj, 'message_type', 'text'),
         }
 
     msg_dict = {
@@ -11336,11 +11337,12 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
             continue
         reply_preview = None
         if msg.reply_to:
+            r_content = msg.reply_to.content or ''
             reply_preview = {
                 'id': msg.reply_to.id,
-                'content': msg.reply_to.content[:80],
-                'sender': get_user_display_name(msg.reply_to.sender),
-                'type': msg.reply_to.message_type,
+                'content': r_content[:80],
+                'sender': get_user_display_name(msg.reply_to.sender) if msg.reply_to.sender else '',
+                'type': getattr(msg.reply_to, 'message_type', 'text'),
             }
         data.append({
             'id': msg.id,
@@ -12528,11 +12530,12 @@ def guidy_group_send_message(request, group_id):
 
     reply_preview = None
     if reply_to_obj:
+        r_content = reply_to_obj.content or ''
         reply_preview = {
             'id': reply_to_obj.id,
-            'content': reply_to_obj.content[:80],
-            'sender': get_user_display_name(reply_to_obj.sender),
-            'type': reply_to_obj.message_type,
+            'content': r_content[:80],
+            'sender': get_user_display_name(reply_to_obj.sender) if reply_to_obj.sender else '',
+            'type': getattr(reply_to_obj, 'message_type', 'text'),
         }
 
     sender_msg = {
@@ -12622,11 +12625,12 @@ def guidy_group_poll(request, group_id):
     for m in new_msgs:
         reply_preview = None
         if m.reply_to:
+            r_content = m.reply_to.content or ''
             reply_preview = {
                 'id': m.reply_to.id,
-                'content': m.reply_to.content[:80],
-                'sender': get_user_display_name(m.reply_to.sender),
-                'type': m.reply_to.message_type,
+                'content': r_content[:80],
+                'sender': get_user_display_name(m.reply_to.sender) if m.reply_to.sender else '',
+                'type': getattr(m.reply_to, 'message_type', 'text'),
             }
         data.append({
             'id': m.id,
@@ -14661,11 +14665,12 @@ def guidy_load_older(request):
     for msg in messages_qs:
         reply_preview = None
         if msg.reply_to:
+            r_content = msg.reply_to.content or ''
             reply_preview = {
                 'id': msg.reply_to.id,
-                'content': msg.reply_to.content[:80],
-                'sender': get_user_display_name(msg.reply_to.sender),
-                'type': msg.reply_to.message_type,
+                'content': r_content[:80],
+                'sender': get_user_display_name(msg.reply_to.sender) if msg.reply_to.sender else '',
+                'type': getattr(msg.reply_to, 'message_type', 'text'),
             }
 
         # Determine read status
@@ -14701,276 +14706,311 @@ def guidy_load_older(request):
 
 @login_required
 def guidy_load_chat_api(request):
-    """
-    Returns full metadata, status, permissions, and latest 50 messages
-    for a 1-to-1 mentorship session, direct chat, or group chat as JSON.
-    Used for instant SPA navigation in Guidy without page reloads.
-    """
-    from datetime import timedelta
-    from django.utils import timezone
-    from django.utils.timezone import localtime
-    from django.http import JsonResponse
-    from django.shortcuts import get_object_or_404
-    from django.core.cache import cache
-    from .models import ChatSession, DirectChatSession, GroupChatSession, StudentAchievement, GuidyBlock
-    from users.utils import get_user_display_name, get_profile_photo_url, get_user_dashboard_type
-
-    chat_type = request.GET.get('type')
-    chat_id = request.GET.get('id')
-
-    if not chat_type or not chat_id:
-        return JsonResponse({'success': False, 'error': 'Missing parameters'}, status=400)
+    import logging
+    logger = logging.getLogger(__name__)
 
     try:
-        chat_id = int(chat_id)
-    except ValueError:
-        return JsonResponse({'success': False, 'error': 'Invalid chat ID'}, status=400)
+        from datetime import timedelta
+        from django.utils import timezone
+        from django.utils.timezone import localtime
+        from django.http import JsonResponse
+        from django.core.cache import cache
+        from .models import ChatSession, DirectChatSession, GroupChatSession, StudentAchievement, GuidyBlock
+        from users.utils import get_user_display_name, get_profile_photo_url, get_user_dashboard_type
 
-    user = request.user
-    ten_days_ago = timezone.now() - timedelta(days=10)
+        chat_type = request.GET.get('type')
+        chat_id = request.GET.get('id')
 
-    other_user_name = ''
-    other_user_photo = None
-    other_type = ''
-    other_id = ''
-    other_is_verified = False
-    other_user_active = False
-    is_blocked = False
-    is_active = True
-    ended_by_name = ''
-    locked_days_left = 0
-    is_deleted_group = False
-    group_deleted_by_name = ''
-    group_days_left = 5
-    group_members_str = ''
-    can_manage_group = False
-    req_pk = None
-    messages_qs = []
+        if not chat_type or not chat_id:
+            return JsonResponse({'success': False, 'error': 'Missing parameters'}, status=400)
 
-    if chat_type == 'session':
-        session = get_object_or_404(ChatSession, id=chat_id)
-        if not session.is_active and session.ended_by == user:
-            return JsonResponse({'success': False, 'session_ended_for_me': True, 'error': 'You ended this chat session.'}, status=200)
+        try:
+            chat_id = int(chat_id)
+        except (ValueError, TypeError):
+            return JsonResponse({'success': False, 'error': 'Invalid chat ID'}, status=400)
 
-        if session.request:
-            is_participant = (
-                session.request.student == user or
-                (user.is_authenticated and session.request.alumni.user == user)
-            )
-            if not is_participant:
+        user = request.user
+        ten_days_ago = timezone.now() - timedelta(days=10)
+        is_staff = bool(user.is_staff or user.is_superuser)
+
+        other_user_name = ''
+        other_user_photo = None
+        other_type = ''
+        other_id = ''
+        other_is_verified = False
+        other_user_active = False
+        is_blocked = False
+        is_active = True
+        ended_by_name = ''
+        locked_days_left = 0
+        is_deleted_group = False
+        group_deleted_by_name = ''
+        group_days_left = 5
+        group_members_str = ''
+        can_manage_group = False
+        req_pk = None
+        messages_qs = []
+
+        if chat_type == 'session':
+            session = ChatSession.objects.filter(id=chat_id).first()
+            if not session:
+                return JsonResponse({'success': False, 'error': 'Chat session not found or deleted.'}, status=404)
+
+            if not session.is_active and session.ended_by_id == user.id:
+                return JsonResponse({'success': False, 'session_ended_for_me': True, 'error': 'You ended this chat session.'}, status=200)
+
+            if session.request:
+                is_student = (session.request.student_id == user.id)
+                is_alumni = bool(session.request.alumni and session.request.alumni.user_id == user.id)
+                if not is_student and not is_alumni and not is_staff:
+                    return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+
+                if session.request.student_id == user.id:
+                    other_u = session.request.alumni.user if session.request.alumni else None
+                    other_type = get_user_dashboard_type(other_u) if other_u else 'alumni'
+                    other_id = other_u.id if (other_u and other_type == 'teacher') else (session.request.alumni_id if session.request.alumni else '')
+                else:
+                    other_u = session.request.student
+                    other_type = 'student'
+                    other_id = other_u.id if other_u else ''
+                req_pk = session.request.id
+            else:
+                if session.user_one_id != user.id and session.user_two_id != user.id and not is_staff:
+                    return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+                other_u = session.user_two if session.user_one_id == user.id else session.user_one
+                other_type = get_user_dashboard_type(other_u) if other_u else 'student'
+                other_id = other_u.id if other_u else ''
+
+            other_user_name = get_user_display_name(other_u) if other_u else 'Inactive Chat'
+            other_user_photo = get_profile_photo_url(other_u) if other_u else None
+            other_is_verified = bool(other_u and (other_u.is_staff or other_u.is_superuser))
+            other_user_active = bool(other_u and cache.get(f'guidy_presence_{other_u.id}'))
+            is_blocked = GuidyBlock.objects.filter(blocker=user, blocked=other_u).exists() if other_u else False
+            is_active = session.is_active
+            if not is_active and session.ended_by:
+                ended_by_name = get_user_display_name(session.ended_by)
+                if session.session_ended_at:
+                    days_passed = (timezone.now() - session.session_ended_at).days
+                    locked_days_left = max(0, 5 - days_passed)
+
+            if session.is_active:
+                session.messages.exclude(sender=user).update(is_read=True)
+
+            messages_qs = list(reversed(session.messages.exclude(
+                deleted_by=user
+            ).exclude(
+                is_deleted_for_all=True, deleted_at__lt=ten_days_ago
+            ).select_related('sender', 'reply_to__sender').order_by('-timestamp')[:50]))
+
+        elif chat_type == 'direct':
+            direct_session = DirectChatSession.objects.filter(id=chat_id).first()
+            if not direct_session:
+                return JsonResponse({'success': False, 'error': 'Direct chat not found or deleted.'}, status=404)
+
+            if not direct_session.is_active and direct_session.ended_by_id == user.id:
+                return JsonResponse({'success': False, 'session_ended_for_me': True, 'error': 'You ended this chat session.'}, status=200)
+
+            is_participant = (user.id == direct_session.user1_id or user.id == direct_session.user2_id)
+            if not is_participant and not is_staff:
                 return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
-            
-            if session.request.student == user:
-                other_u = session.request.alumni.user
-                other_type = get_user_dashboard_type(other_u) or 'alumni'
-                other_id = other_u.id if other_type == 'teacher' else session.request.alumni.id
+
+            other_u = direct_session.user2 if direct_session.user1_id == user.id else direct_session.user1
+            other_type = get_user_dashboard_type(other_u) if other_u else 'student'
+            if other_type == 'alumni' and other_u:
+                ach = StudentAchievement.objects.filter(user=other_u, status='approved').first()
+                other_id = ach.id if ach else other_u.id
             else:
-                other_u = session.request.student
-                other_type = 'student'
-                other_id = other_u.id
-            req_pk = session.request.id
-        else:
-            if user != session.user_one and user != session.user_two:
+                other_id = other_u.id if other_u else ''
+
+            other_user_name = get_user_display_name(other_u) if other_u else 'User'
+            other_user_photo = get_profile_photo_url(other_u) if other_u else None
+            other_is_verified = bool(other_u and (other_u.is_staff or other_u.is_superuser))
+            other_user_active = bool(other_u and cache.get(f'guidy_presence_{other_u.id}'))
+            is_blocked = GuidyBlock.objects.filter(blocker=user, blocked=other_u).exists() if other_u else False
+            is_active = direct_session.is_active
+            if not is_active and direct_session.ended_by:
+                ended_by_name = get_user_display_name(direct_session.ended_by)
+                if direct_session.session_ended_at:
+                    days_passed = (timezone.now() - direct_session.session_ended_at).days
+                    locked_days_left = max(0, 5 - days_passed)
+
+            if direct_session.is_active:
+                direct_session.messages.exclude(sender=user).update(is_read=True)
+
+            messages_qs = list(reversed(direct_session.messages.exclude(
+                deleted_by=user
+            ).exclude(
+                is_deleted_for_all=True, deleted_at__lt=ten_days_ago
+            ).select_related('sender', 'reply_to__sender').order_by('-timestamp')[:50]))
+
+        elif chat_type == 'group':
+            group = GroupChatSession.objects.filter(id=chat_id).first()
+            if not group:
+                return JsonResponse({'success': False, 'error': 'Group chat not found or deleted.'}, status=404)
+
+            is_member = (user in group.members.all() or group.created_by_id == user.id)
+            if not is_member and not is_staff:
                 return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
-            other_u = session.user_two if session.user_one == user else session.user_one
-            other_type = get_user_dashboard_type(other_u) or 'student'
-            other_id = other_u.id
 
-        other_user_name = get_user_display_name(other_u)
-        other_user_photo = get_profile_photo_url(other_u)
-        other_is_verified = (other_u.is_staff or other_u.is_superuser)
-        other_user_active = bool(cache.get(f'guidy_presence_{other_u.id}'))
-        is_blocked = GuidyBlock.objects.filter(blocker=user, blocked=other_u).exists()
-        is_active = session.is_active
-        if not is_active and session.ended_by:
-            ended_by_name = get_user_display_name(session.ended_by)
-            if session.session_ended_at:
-                days_passed = (timezone.now() - session.session_ended_at).days
-                locked_days_left = max(0, 5 - days_passed)
+            other_type = 'group'
+            other_id = group.id
+            other_user_name = group.name
+            other_user_photo = None
+            try:
+                if group.photo:
+                    other_user_photo = group.photo.url
+            except Exception:
+                other_user_photo = None
+            is_active = group.is_active
 
-        if session.is_active:
-            session.messages.exclude(sender=user).update(is_read=True)
+            is_teacher = user.is_staff or user.is_superuser
+            isAdmin = group.created_by_id == user.id
+            can_manage_group = isAdmin or (is_teacher and user in group.members.all())
 
-        messages_qs = list(reversed(session.messages.exclude(
-            deleted_by=user
-        ).exclude(
-            is_deleted_for_all=True, deleted_at__lt=ten_days_ago
-        ).select_related('sender', 'reply_to__sender').order_by('-timestamp')[:50]))
+            if not group.is_active or group.deleted_at:
+                is_deleted_group = True
+                if group.deleted_by_user:
+                    group_deleted_by_name = get_user_display_name(group.deleted_by_user)
+                else:
+                    group_deleted_by_name = "Admin/Teacher"
+                if group.deleted_at:
+                    delta = timezone.now() - group.deleted_at
+                    group_days_left = max(0, 5 - delta.days)
 
-    elif chat_type == 'direct':
-        direct_session = get_object_or_404(DirectChatSession, id=chat_id)
-        if not direct_session.is_active and direct_session.ended_by == user:
-            return JsonResponse({'success': False, 'session_ended_for_me': True, 'error': 'You ended this chat session.'}, status=200)
-        if user != direct_session.user1 and user != direct_session.user2:
-            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+            member_names = []
+            has_self = False
+            for m in group.members.all():
+                if m.id == user.id:
+                    has_self = True
+                else:
+                    member_names.append(get_user_display_name(m))
+            member_names.sort()
+            if has_self:
+                member_names.insert(0, "You")
+            group_members_str = ", ".join(member_names)
 
-        other_u = direct_session.user2 if direct_session.user1 == user else direct_session.user1
-        other_type = get_user_dashboard_type(other_u) or 'student'
-        if other_type == 'alumni':
-            ach = StudentAchievement.objects.filter(user=other_u, status='approved').first()
-            other_id = ach.id if ach else other_u.id
+            # Mark group messages as read
+            for gm in group.messages.exclude(sender=user):
+                gm.read_by.add(user)
+
+            messages_qs = list(reversed(group.messages.exclude(
+                deleted_by=user
+            ).exclude(
+                is_deleted_for_all=True, deleted_at__lt=ten_days_ago
+            ).select_related('sender', 'reply_to__sender').order_by('-timestamp')[:50]))
+
         else:
-            other_id = other_u.id
+            return JsonResponse({'success': False, 'error': 'Invalid chat type'}, status=400)
 
-        other_user_name = get_user_display_name(other_u)
-        other_user_photo = get_profile_photo_url(other_u)
-        other_is_verified = (other_u.is_staff or other_u.is_superuser)
-        other_user_active = bool(cache.get(f'guidy_presence_{other_u.id}'))
-        is_blocked = GuidyBlock.objects.filter(blocker=user, blocked=other_u).exists()
-        is_active = direct_session.is_active
-        if not is_active and direct_session.ended_by:
-            ended_by_name = get_user_display_name(direct_session.ended_by)
-            if direct_session.session_ended_at:
-                days_passed = (timezone.now() - direct_session.session_ended_at).days
-                locked_days_left = max(0, 5 - days_passed)
+        # Format messages list safely
+        formatted_messages = []
+        for msg in messages_qs:
+            reply_preview = None
+            if msg.reply_to:
+                r_content = msg.reply_to.content or ''
+                reply_preview = {
+                    'id': msg.reply_to.id,
+                    'content': r_content[:80],
+                    'sender': get_user_display_name(msg.reply_to.sender) if msg.reply_to.sender else '',
+                    'type': getattr(msg.reply_to, 'message_type', 'text'),
+                }
 
-        if direct_session.is_active:
-            direct_session.messages.exclude(sender=user).update(is_read=True)
-
-        messages_qs = list(reversed(direct_session.messages.exclude(
-            deleted_by=user
-        ).exclude(
-            is_deleted_for_all=True, deleted_at__lt=ten_days_ago
-        ).select_related('sender', 'reply_to__sender').order_by('-timestamp')[:50]))
-
-    elif chat_type == 'group':
-        group = get_object_or_404(GroupChatSession, id=chat_id)
-        if user not in group.members.all() and group.created_by != user:
-            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
-
-        other_type = 'group'
-        other_id = group.id
-        other_user_name = group.name
-        other_user_photo = group.photo.url if group.photo else None
-        is_active = group.is_active
-
-        is_teacher = user.is_staff or user.is_superuser
-        isAdmin = group.created_by == user
-        can_manage_group = isAdmin or (is_teacher and user in group.members.all())
-
-        if not group.is_active or group.deleted_at:
-            is_deleted_group = True
-            if group.deleted_by_user:
-                group_deleted_by_name = get_user_display_name(group.deleted_by_user)
+            if chat_type == 'group':
+                is_read = msg.read_by.exclude(id=user.id).exists()
+                content_val = resolve_system_message_content(msg.content or '', user) if msg.message_type == 'system' else (msg.content or ("⏳ Media expired" if msg.media_expired else ""))
+                is_starred = user in msg.starred_by.all()
             else:
-                group_deleted_by_name = "Admin/Teacher"
-            if group.deleted_at:
-                delta = timezone.now() - group.deleted_at
-                group_days_left = max(0, 5 - delta.days)
+                is_read = bool(msg.is_read)
+                content_val = msg.content or ("⏳ Media expired" if msg.media_expired else "")
+                is_starred = bool(msg.is_starred_by_sender if msg.sender_id == user.id else msg.is_starred_by_receiver)
 
-        member_names = []
-        has_self = False
-        for m in group.members.all():
-            if m == user:
-                has_self = True
-            else:
-                member_names.append(get_user_display_name(m))
-        member_names.sort()
-        if has_self:
-            member_names.insert(0, "You")
-        group_members_str = ", ".join(member_names)
+            file_url = None
+            try:
+                if msg.file:
+                    file_url = msg.file.url
+            except Exception:
+                file_url = None
 
-        # Mark group messages as read
-        for gm in group.messages.exclude(sender=user):
-            gm.read_by.add(user)
+            ts_str = ''
+            date_str = ''
+            if msg.timestamp:
+                try:
+                    local_ts = localtime(msg.timestamp)
+                    ts_str = local_ts.strftime('%H:%M')
+                    date_str = local_ts.strftime('%Y-%m-%d')
+                except Exception:
+                    pass
 
-        messages_qs = list(reversed(group.messages.exclude(
-            deleted_by=user
-        ).exclude(
-            is_deleted_for_all=True, deleted_at__lt=ten_days_ago
-        ).select_related('sender', 'reply_to__sender').order_by('-timestamp')[:50]))
+            formatted_messages.append({
+                'id': msg.id,
+                'content': content_val,
+                'message_type': msg.message_type,
+                'file_url': file_url,
+                'file_name': msg.file_name or '',
+                'timestamp': ts_str,
+                'date': date_str,
+                'is_mine': (msg.sender_id == user.id),
+                'is_read': is_read,
+                'sender_name': get_user_display_name(msg.sender) if msg.sender else '',
+                'sender_photo': get_profile_photo_url(msg.sender) if msg.sender else None,
+                'is_pinned': bool(msg.is_pinned),
+                'is_starred': bool(is_starred),
+                'reply_to': reply_preview,
+                'is_deleted_for_all': bool(msg.is_deleted_for_all),
+                'media_expired': bool(msg.media_expired),
+                'is_verified': bool(msg.sender and (msg.sender.is_staff or msg.sender.is_superuser)),
+            })
 
-    else:
-        return JsonResponse({'success': False, 'error': 'Invalid chat type'}, status=400)
-
-    # Format messages list
-    formatted_messages = []
-    for msg in messages_qs:
-        reply_preview = None
-        if msg.reply_to:
-            reply_preview = {
-                'id': msg.reply_to.id,
-                'content': msg.reply_to.content[:80],
-                'sender': get_user_display_name(msg.reply_to.sender),
-                'type': msg.reply_to.message_type,
-            }
-
-        if chat_type == 'group':
-            is_read = msg.read_by.exclude(id=user.id).exists()
-            content_val = resolve_system_message_content(msg.content, user) if msg.message_type == 'system' else (msg.content or ("⏳ Media expired" if msg.media_expired else ""))
-            is_starred = user in msg.starred_by.all()
+        # Generate URLs
+        if chat_type == 'session':
+            send_url = f"/guidy/chat/{chat_id}/send/"
+            poll_url = f"/guidy/chat/{chat_id}/poll/"
+            search_url = f"/guidy/chat/{chat_id}/search/"
+            clear_url = f"/guidy/chat/{chat_id}/clear/"
+            end_url = f"/guidy/chat/{chat_id}/end/"
+        elif chat_type == 'direct':
+            send_url = f"/guidy/direct/{chat_id}/send/"
+            poll_url = f"/guidy/direct/{chat_id}/poll/"
+            search_url = f"/guidy/direct/{chat_id}/search/"
+            clear_url = f"/guidy/direct/{chat_id}/clear/"
+            end_url = f"/guidy/direct/{chat_id}/end/"
         else:
-            is_read = msg.is_read
-            content_val = msg.content or ("⏳ Media expired" if msg.media_expired else "")
-            is_starred = (msg.is_starred_by_sender if msg.sender == user else msg.is_starred_by_receiver)
+            send_url = f"/guidy/groups/{chat_id}/send/"
+            poll_url = f"/guidy/groups/{chat_id}/poll/"
+            search_url = f"/guidy/groups/{chat_id}/search/"
+            clear_url = f"/guidy/groups/{chat_id}/clear/"
+            end_url = f"/guidy/groups/{chat_id}/delete-for-user/"
 
-        formatted_messages.append({
-            'id': msg.id,
-            'content': content_val,
-            'message_type': msg.message_type,
-            'file_url': msg.file.url if msg.file else None,
-            'file_name': msg.file_name,
-            'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
-            'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
-            'is_mine': (msg.sender == user),
-            'is_read': is_read,
-            'sender_name': get_user_display_name(msg.sender),
-            'sender_photo': get_profile_photo_url(msg.sender),
-            'is_pinned': msg.is_pinned,
-            'is_starred': is_starred,
-            'reply_to': reply_preview,
-            'is_deleted_for_all': msg.is_deleted_for_all,
-            'media_expired': msg.media_expired,
-            'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
+        return JsonResponse({
+            'success': True,
+            'chat_type': chat_type,
+            'chat_id': chat_id,
+            'name': other_user_name,
+            'photo_url': other_user_photo,
+            'other_type': other_type,
+            'other_id': other_id,
+            'other_is_verified': other_is_verified,
+            'other_user_active': other_user_active,
+            'is_blocked': is_blocked,
+            'is_active': is_active,
+            'ended_by_name': ended_by_name,
+            'locked_days_left': locked_days_left,
+            'is_deleted_group': is_deleted_group,
+            'group_deleted_by_name': group_deleted_by_name,
+            'group_days_left': group_days_left,
+            'group_members_str': group_members_str,
+            'can_manage_group': can_manage_group,
+            'req_pk': req_pk,
+            'send_url': send_url,
+            'poll_url': poll_url,
+            'search_url': search_url,
+            'clear_url': clear_url,
+            'end_url': end_url,
+            'messages': formatted_messages,
         })
-
-    # Generate URLs
-    if chat_type == 'session':
-        send_url = f"/guidy/chat/{chat_id}/send/"
-        poll_url = f"/guidy/chat/{chat_id}/poll/"
-        search_url = f"/guidy/chat/{chat_id}/search/"
-        clear_url = f"/guidy/chat/{chat_id}/clear/"
-        end_url = f"/guidy/chat/{chat_id}/end/"
-    elif chat_type == 'direct':
-        send_url = f"/guidy/direct/{chat_id}/send/"
-        poll_url = f"/guidy/direct/{chat_id}/poll/"
-        search_url = f"/guidy/direct/{chat_id}/search/"
-        clear_url = f"/guidy/direct/{chat_id}/clear/"
-        end_url = f"/guidy/direct/{chat_id}/end/"
-    else:
-        send_url = f"/guidy/groups/{chat_id}/send/"
-        poll_url = f"/guidy/groups/{chat_id}/poll/"
-        search_url = f"/guidy/groups/{chat_id}/search/"
-        clear_url = f"/guidy/groups/{chat_id}/clear/"
-        end_url = f"/guidy/groups/{chat_id}/delete-for-user/"
-
-    return JsonResponse({
-        'success': True,
-        'chat_type': chat_type,
-        'chat_id': chat_id,
-        'name': other_user_name,
-        'photo_url': other_user_photo,
-        'other_type': other_type,
-        'other_id': other_id,
-        'other_is_verified': other_is_verified,
-        'other_user_active': other_user_active,
-        'is_blocked': is_blocked,
-        'is_active': is_active,
-        'ended_by_name': ended_by_name,
-        'locked_days_left': locked_days_left,
-        'is_deleted_group': is_deleted_group,
-        'group_deleted_by_name': group_deleted_by_name,
-        'group_days_left': group_days_left,
-        'group_members_str': group_members_str,
-        'can_manage_group': can_manage_group,
-        'req_pk': req_pk,
-        'send_url': send_url,
-        'poll_url': poll_url,
-        'search_url': search_url,
-        'clear_url': clear_url,
-        'end_url': end_url,
-        'messages': formatted_messages,
-    })
+    except Exception as e:
+        logger.exception("guidy_load_chat_api unexpected error: %s", e)
+        return JsonResponse({'success': False, 'error': f'Failed to load chat: {str(e)}'}, status=500)
 
 
 @login_required

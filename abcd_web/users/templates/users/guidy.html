@@ -7353,22 +7353,48 @@ async function loadChatAJAX(type, id, pushState = true) {
     container.style.display = 'flex';
   }
 
-  // Smooth loading feedback
+  // Smooth loading feedback with fallback name
   const nameTextEl = document.querySelector('.g-hdr-name-text');
-  if (nameTextEl) nameTextEl.innerHTML = '<i class="bx bx-loader-alt bx-spin" style="margin-right:4px;"></i> Loading...';
+  const fallbackName = (targetSidebarItem && targetSidebarItem.dataset.chatName) ||
+                       (nameTextEl ? nameTextEl.textContent.replace('Loading...', '').trim() : '') ||
+                       'Chat';
+  if (nameTextEl) {
+    nameTextEl.innerHTML = '<i class="bx bx-loader-alt bx-spin" style="margin-right:4px;"></i> Loading...';
+  }
 
   try {
-    const res = await fetch(`/guidy/chat-data/?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`);
-    const data = await res.json();
-    if (!data.success) {
-      if (data.session_ended_for_me) {
+    let res;
+    try {
+      res = await fetch(`/guidy/chat-data/?type=${encodeURIComponent(type)}&id=${encodeURIComponent(id)}`);
+    } catch (netErr) {
+      if (nameTextEl) nameTextEl.textContent = fallbackName;
+      console.error("loadChatAJAX network error:", netErr);
+      showToast('Network error: Unable to load chat', 'error');
+      return;
+    }
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      if (nameTextEl) nameTextEl.textContent = fallbackName;
+      console.error("loadChatAJAX JSON parse error, HTTP status:", res.status);
+      showToast(`Server returned status ${res.status}. Please try again.`, 'error');
+      return;
+    }
+
+    if (!data || !data.success) {
+      if (nameTextEl) nameTextEl.textContent = fallbackName;
+      if (data && data.session_ended_for_me) {
         showToast('You ended this chat session.', 'info');
         const item = getSidebarChatItem(type, id);
         if (item) item.remove();
       } else {
-        showToast(data.error || 'Unable to open chat', 'error');
+        showToast((data && data.error) || 'Unable to open chat', 'error');
       }
-      showNoChatPlaceholder(true);
+      if (res.status === 404 || (data && data.session_ended_for_me)) {
+        showNoChatPlaceholder(true);
+      }
       return;
     }
 
@@ -7413,24 +7439,27 @@ async function loadChatAJAX(type, id, pushState = true) {
     const avatarEl = document.getElementById('hdrAvatar');
     if (avatarEl) {
       if (data.photo_url) {
-        avatarEl.innerHTML = `<img src="${data.photo_url}" alt="${escHtml(data.name)}" style="width:100%; height:100%; object-fit:cover;">`;
+        avatarEl.innerHTML = `<img src="${data.photo_url}" alt="${escHtml(data.name || '')}" style="width:100%; height:100%; object-fit:cover;">`;
       } else if (data.chat_type === 'group') {
         avatarEl.innerHTML = `<i class='bx bx-group' style="font-size:1.2rem;"></i>`;
       } else {
-        const initial = data.name ? data.name.charAt(0).toUpperCase() : '?';
+        const initial = (data.name && data.name.trim()) ? data.name.trim().charAt(0).toUpperCase() : '?';
         avatarEl.innerHTML = initial;
       }
     }
 
     // Update Header Name & Verified tick
     if (nameTextEl) {
-      nameTextEl.textContent = data.name || '';
-      const existingTick = nameTextEl.parentNode.querySelector('.g-verified-tick');
-      if (existingTick) existingTick.remove();
-      if (data.other_is_verified) {
-        const tick = document.createElement('i');
-        tick.className = 'bx bxs-badge-check g-verified-tick';
-        nameTextEl.parentNode.appendChild(tick);
+      nameTextEl.textContent = data.name || fallbackName;
+      const hdrNameBox = nameTextEl.closest('.g-hdr-name') || nameTextEl.parentNode;
+      if (hdrNameBox) {
+        const existingTick = hdrNameBox.querySelector('.g-verified-tick');
+        if (existingTick) existingTick.remove();
+        if (data.other_is_verified) {
+          const tick = document.createElement('i');
+          tick.className = 'bx bxs-badge-check g-verified-tick';
+          hdrNameBox.appendChild(tick);
+        }
       }
     }
 
@@ -7460,7 +7489,11 @@ async function loadChatAJAX(type, id, pushState = true) {
     }
 
     // Update Action Menu items
-    updateActionMenuUI(data);
+    try {
+      updateActionMenuUI(data);
+    } catch (menuErr) {
+      console.warn("updateActionMenuUI error:", menuErr);
+    }
 
     // Update Group Deleted Banner
     const grpDeletedBanner = document.getElementById('groupDeletedNotice');
@@ -7515,7 +7548,7 @@ async function loadChatAJAX(type, id, pushState = true) {
       if (inputBar) { inputBar.classList.remove('g-pane-hidden'); inputBar.classList.add('g-pane-flex'); inputBar.style.display = 'flex'; }
     }
 
-    // Render Messages
+    // Render Messages safely
     const msgArea = document.getElementById('gMessages');
     if (msgArea) {
       msgArea.innerHTML = '';
@@ -7523,31 +7556,39 @@ async function loadChatAJAX(type, id, pushState = true) {
       lastMsgId = 0;
       pendingReadIds = [];
 
-      if (!data.messages || data.messages.length === 0) {
+      const msgs = Array.isArray(data.messages) ? data.messages : [];
+      if (msgs.length === 0) {
         msgArea.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--g-sub);"><i class="bx bx-message-rounded-dots" style="font-size:3rem;display:block;margin-bottom:10px;opacity:0.6;"></i>Say hello to start the conversation!</div>';
       } else {
-        data.messages.forEach(m => appendMessage(m));
+        msgs.forEach(m => {
+          try {
+            appendMessage(m);
+          } catch (mErr) {
+            console.warn("Error appending message:", m, mErr);
+          }
+        });
       }
     }
 
     // Reset input, reply & pinned bar
     const inp = document.getElementById('gInput');
     if (inp) inp.innerHTML = '';
-    cancelReply();
-    toggleSendBtn();
-    initMessages();
+    if (typeof cancelReply === 'function') cancelReply();
+    if (typeof toggleSendBtn === 'function') toggleSendBtn();
+    if (typeof initMessages === 'function') initMessages();
 
     // Start Polling & WebSocket
     if (data.chat_type === 'group') {
-      startGroupPolling();
+      if (typeof startGroupPolling === 'function') startGroupPolling();
     } else {
-      startPolling();
+      if (typeof startPolling === 'function') startPolling();
     }
-    initGuidyWebSocket();
+    if (typeof initGuidyWebSocket === 'function') initGuidyWebSocket();
 
   } catch(err) {
     console.error("loadChatAJAX error:", err);
-    showToast('Failed to load chat', 'error');
+    if (nameTextEl) nameTextEl.textContent = fallbackName;
+    showToast(err.message || 'Failed to load chat', 'error');
   }
 }
 
