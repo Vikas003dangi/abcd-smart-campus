@@ -11276,7 +11276,7 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
     user = request.user
 
     if session_id:
-        session = get_object_or_404(ChatSession, id=session_id, is_active=True)
+        session = get_object_or_404(ChatSession, id=session_id)
         if session.request:
             is_participant = (
                 session.request.student == user or
@@ -11288,7 +11288,7 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
                 session.user_two == user
             )
     elif direct_id:
-        session = get_object_or_404(DirectChatSession, id=direct_id, is_active=True)
+        session = get_object_or_404(DirectChatSession, id=direct_id)
         is_participant = (
             session.user1 == user or
             session.user2 == user
@@ -11368,8 +11368,17 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
             other_user = session.user_two if session.user_one == request.user else session.user_one
     other_user_active = bool(cache.get(f'guidy_presence_{other_user.id}'))
 
+    days_passed = (timezone.now() - session.session_ended_at).days if (session.session_ended_at and not session.is_active) else 0
+    locked_days_left = max(0, 5 - days_passed) if not session.is_active else 0
+    ended_by_name = get_user_display_name(session.ended_by) if (session.ended_by and not session.is_active) else ''
+    ended_by_me = bool(not session.is_active and session.ended_by == user)
+
     return JsonResponse({
         'success': True,
+        'is_active': session.is_active,
+        'ended_by_name': ended_by_name,
+        'ended_by_me': ended_by_me,
+        'locked_days_left': locked_days_left,
         'messages': data,
         'read_message_ids': list(newly_read),
         'other_user_active': other_user_active,
@@ -11382,29 +11391,31 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
 def guidy_end_session(request, session_id=None, direct_id=None):
     """
     Deactivates a ChatSession or DirectChatSession.
-    Only Teachers/Staff are permitted to end 1-on-1 sessions.
-    When a Teacher ends a session:
-    - Session is marked ended (is_active=False, ended_by=teacher, session_ended_at=now).
-    - Messages are hidden from teacher's view (added to teacher's deleted_by).
-    - Messages remain viewable by student/guest in locked mode for 5 days.
+    Either participant in a 1-on-1 session is permitted to end it.
+    When a participant ends a session:
+    - Session is marked ended (is_active=False, ended_by=user, session_ended_at=now).
+    - Messages are hidden from user's view (added to user's deleted_by).
+    - Messages remain viewable by the other party in locked mode for 5 days.
     """
     from .models import DirectChatSession, ChatSession
     user = request.user
-    if not (user.is_staff or user.is_superuser):
-        return JsonResponse({'success': False, 'error': 'Only teachers can end 1-on-1 chat sessions.'}, status=403)
 
     if direct_id:
         session = get_object_or_404(DirectChatSession, id=direct_id)
-        if session.user1 != user and session.user2 != user:
+        if session.user1 != user and session.user2 != user and not user.is_staff and not user.is_superuser:
             return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+        if not (user.is_staff or user.is_superuser):
+            return JsonResponse({'success': False, 'error': 'Only teachers can end 1-on-1 chat sessions.'}, status=403)
     elif session_id:
         session = get_object_or_404(ChatSession, id=session_id)
         if session.request:
             is_part = (session.request.student == user or session.request.alumni.user == user)
         else:
             is_part = (session.user_one == user or session.user_two == user)
-        if not is_part:
+        if not is_part and not user.is_staff and not user.is_superuser:
             return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+        if not (user.is_staff or user.is_superuser):
+            return JsonResponse({'success': False, 'error': 'Only teachers can end 1-on-1 chat sessions.'}, status=403)
     else:
         return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
@@ -11414,7 +11425,7 @@ def guidy_end_session(request, session_id=None, direct_id=None):
     session.session_ended_at = timezone.now()
     session.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
 
-    # Hide all messages for the teacher who ended it; hard-delete if student had also cleared
+    # Hide all messages for the user who ended it; hard-delete if both parties have deleted
     for msg in session.messages.all():
         msg.deleted_by.add(user)
         if msg.deleted_by.count() >= 2:
@@ -11425,7 +11436,29 @@ def guidy_end_session(request, session_id=None, direct_id=None):
                     pass
             msg.delete()
 
-    return JsonResponse({'success': True, 'message': 'Session ended. Chat is now locked for the student for 5 days.'})
+    # Broadcast session ended status via channel layer if channels available
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            c_type = 'direct' if direct_id else 'guidance'
+            c_id = direct_id or session_id
+            from users.utils import get_user_display_name
+            async_to_sync(channel_layer.group_send)(
+                f"guidy_{c_type}_{c_id}",
+                {
+                    "type": "session_status_changed",
+                    "is_active": False,
+                    "ended_by_id": user.id,
+                    "ended_by_name": get_user_display_name(user),
+                    "locked_days_left": 5,
+                }
+            )
+    except Exception:
+        pass
+
+    return JsonResponse({'success': True, 'message': 'Session ended. Chat is now locked for the other party for 5 days.'})
 
 
 @login_required
@@ -11462,8 +11495,8 @@ def guidy_delete_session_permanently(request, session_id=None, direct_id=None):
 def guidy_bulk_end_sessions(request):
     """
     Bulk ends selected ChatSessions, DirectChatSessions, or GroupChatSessions.
-    Enforces strict permissions:
-    - 1-on-1 chats can ONLY be ended by teachers.
+    Permissions:
+    - 1-on-1 chats can be ended by either participant or teacher.
     - Groups can ONLY be ended by teachers or the group creator (created_by == user).
     """
     import json
@@ -11491,58 +11524,48 @@ def guidy_bulk_end_sessions(request):
     except Exception:
         group_ids = []
 
-    # Non-teachers cannot end 1-on-1 sessions
-    if not is_teacher and (session_ids or direct_ids):
-        return JsonResponse({'success': False, 'error': 'Only teachers can end 1-on-1 chat sessions.'}, status=403)
-
     ended_count = 0
     now = timezone.now()
 
-    # 1. Process ChatSessions (Mentorship) - Teacher only
+    # 1. Process ChatSessions (Mentorship) - Only teachers can end
     if session_ids and is_teacher:
         sessions = ChatSession.objects.filter(id__in=session_ids)
         for s in sessions:
-            if s.request:
-                is_p = (s.request.student == user or s.request.alumni.user == user)
-            else:
-                is_p = (s.user_one == user or s.user_two == user)
-            if is_p or is_teacher:
-                s.is_active = False
-                s.ended_by = user
-                s.session_ended_at = now
-                s.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
-                for msg in s.messages.all():
-                    msg.deleted_by.add(user)
-                    if msg.deleted_by.count() >= 2:
-                        if msg.file:
-                            try:
-                                msg.file.delete(save=False)
-                            except Exception:
-                                pass
-                        msg.delete()
-                ended_count += 1
+            s.is_active = False
+            s.ended_by = user
+            s.session_ended_at = now
+            s.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+            for msg in s.messages.all():
+                msg.deleted_by.add(user)
+                if msg.deleted_by.count() >= 2:
+                    if msg.file:
+                        try:
+                            msg.file.delete(save=False)
+                        except Exception:
+                            pass
+                    msg.delete()
+            ended_count += 1
 
-    # 2. Process DirectChatSessions - Teacher only
+    # 2. Process DirectChatSessions - Only teachers can end
     if direct_ids and is_teacher:
         direct_sessions = DirectChatSession.objects.filter(id__in=direct_ids)
         for d in direct_sessions:
-            if d.user1 == user or d.user2 == user or is_teacher:
-                d.is_active = False
-                d.ended_by = user
-                d.session_ended_at = now
-                d.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
-                for msg in d.messages.all():
-                    msg.deleted_by.add(user)
-                    if msg.deleted_by.count() >= 2:
-                        if msg.file:
-                            try:
-                                msg.file.delete(save=False)
-                            except Exception:
-                                pass
-                        msg.delete()
-                ended_count += 1
+            d.is_active = False
+            d.ended_by = user
+            d.session_ended_at = now
+            d.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+            for msg in d.messages.all():
+                msg.deleted_by.add(user)
+                if msg.deleted_by.count() >= 2:
+                    if msg.file:
+                        try:
+                            msg.file.delete(save=False)
+                        except Exception:
+                            pass
+                    msg.delete()
+            ended_count += 1
 
-    # 3. Process GroupChatSessions - Teacher or Group Creator
+    # 3. Process GroupChatSessions - Teacher or Group Creator only
     if group_ids:
         groups = GroupChatSession.objects.filter(id__in=group_ids)
         for g in groups:
@@ -11716,6 +11739,13 @@ def guidy_clear_chat(request, session_id=None, direct_id=None):
                 except Exception:
                     pass
             msg.delete()
+
+    # If the session was already ended and cleared, purge it completely so users can start fresh
+    if not session.is_active:
+        if not session.messages.exclude(deleted_by=user).exists() or session.messages.count() == 0:
+            purge_1on1_chat_session(session)
+            return JsonResponse({'success': True, 'session_purged': True})
+
     return JsonResponse({'success': True})
 
 
@@ -11797,6 +11827,9 @@ def guidy_bulk_clear_chats(request):
                                 pass
                         msg.delete()
                 cleared_count += 1
+                if not s.is_active:
+                    if not s.messages.exclude(deleted_by=user).exists() or s.messages.count() == 0:
+                        purge_1on1_chat_session(s)
 
     # 2. DirectChatSessions
     if direct_ids:
@@ -11813,6 +11846,9 @@ def guidy_bulk_clear_chats(request):
                                 pass
                         msg.delete()
                 cleared_count += 1
+                if not d.is_active:
+                    if not d.messages.exclude(deleted_by=user).exists() or d.messages.count() == 0:
+                        purge_1on1_chat_session(d)
 
     # 3. GroupChatSessions
     if group_ids:
@@ -13949,14 +13985,44 @@ def guidy_teacher_direct_chat(request):
     
     if direct_session:
         if not direct_session.is_active:
-            from users.utils import get_user_display_name
-            other_name = get_user_display_name(other_user)
-            return JsonResponse({
-                'success': False,
-                'has_ended_session': True,
-                'direct_id': direct_session.id,
-                'error': f'You have an ended chat session with {other_name}. Please delete that chat first or wait for it to expire before starting a new conversation.'
-            }, status=400)
+            if direct_session.ended_by == user:
+                # User who ended the session wants to resume/continue conversation before recipient deleted it
+                direct_session.is_active = True
+                direct_session.ended_by = None
+                direct_session.session_ended_at = None
+                direct_session.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+
+                # Broadcast resumed status via WebSocket channel layer
+                try:
+                    from asgiref.sync import async_to_sync
+                    from channels.layers import get_channel_layer
+                    channel_layer = get_channel_layer()
+                    if channel_layer:
+                        async_to_sync(channel_layer.group_send)(
+                            f"guidy_direct_{direct_session.id}",
+                            {
+                                "type": "session_status_changed",
+                                "is_active": True,
+                                "ended_by_id": None,
+                                "ended_by_name": "",
+                                "locked_days_left": 0,
+                            }
+                        )
+                except Exception:
+                    pass
+
+                return JsonResponse({'success': True, 'direct_id': direct_session.id, 'resumed': True})
+            else:
+                from users.utils import get_user_display_name
+                other_name = get_user_display_name(other_user)
+                return JsonResponse({
+                    'success': False,
+                    'has_ended_session': True,
+                    'can_delete_and_start': True,
+                    'direct_id': direct_session.id,
+                    'other_name': other_name,
+                    'error': f'This chat session was ended by {other_name}. You can delete this ended chat to start a fresh conversation.'
+                }, status=400)
     else:
         u1, u2 = sorted([user, other_user], key=lambda u: u.id)
         direct_session = DirectChatSession.objects.create(
@@ -14561,7 +14627,7 @@ def guidy_load_chat_api(request):
     locked_days_left = 0
     is_deleted_group = False
     group_deleted_by_name = ''
-    group_days_left = 30
+    group_days_left = 5
     group_members_str = ''
     can_manage_group = False
     req_pk = None
@@ -14570,7 +14636,7 @@ def guidy_load_chat_api(request):
     if chat_type == 'session':
         session = get_object_or_404(ChatSession, id=chat_id)
         if not session.is_active and session.ended_by == user:
-            return JsonResponse({'success': False, 'error': 'Session ended and closed'}, status=403)
+            return JsonResponse({'success': False, 'session_ended_for_me': True, 'error': 'You ended this chat session.'}, status=200)
 
         if session.request:
             is_participant = (
@@ -14620,7 +14686,7 @@ def guidy_load_chat_api(request):
     elif chat_type == 'direct':
         direct_session = get_object_or_404(DirectChatSession, id=chat_id)
         if not direct_session.is_active and direct_session.ended_by == user:
-            return JsonResponse({'success': False, 'error': 'Session ended and closed'}, status=403)
+            return JsonResponse({'success': False, 'session_ended_for_me': True, 'error': 'You ended this chat session.'}, status=200)
         if user != direct_session.user1 and user != direct_session.user2:
             return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
 

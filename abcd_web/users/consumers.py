@@ -21,7 +21,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
 
         if chat_type == 'group':
             group = GroupChatSession.objects.filter(id=session_id).first()
-            if not group:
+            if not group or not group.is_active:
                 return None
             msg = GroupMessage.objects.create(
                 group=group,
@@ -33,7 +33,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
             msg.read_by.add(user)
         elif chat_type == 'direct':
             direct_session = DirectChatSession.objects.filter(id=session_id).first()
-            if not direct_session:
+            if not direct_session or not direct_session.is_active:
                 return None
             msg = Message.objects.create(
                 direct_session=direct_session,
@@ -44,7 +44,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
             )
         else:  # guidance
             session = ChatSession.objects.filter(id=session_id).first()
-            if not session:
+            if not session or not session.is_active:
                 return None
             msg = Message.objects.create(
                 session=session,
@@ -343,6 +343,15 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             "type": "message_deleted",
             "message_id": event["message_id"],
             "user_id": event["user_id"],
+        }))
+
+    async def session_status_changed(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "session_status_changed",
+            "is_active": event.get("is_active", True),
+            "ended_by_id": event.get("ended_by_id"),
+            "ended_by_name": event.get("ended_by_name", ""),
+            "locked_days_left": event.get("locked_days_left", 5),
         }))
 
 
