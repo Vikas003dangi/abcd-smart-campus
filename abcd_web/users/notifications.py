@@ -582,13 +582,75 @@ def send_hold_warning_whatsapp_teacher(teacher_user, student_name, seat_details)
 # dashboard_notifications for students
 from .models import Notification
 
+def format_push_title(raw_title, category=None, source=None):
+    """
+    Standardizes push notification and alert titles to strict branding rules:
+    - Guidy: "Guidy | ABCD"
+    - ToDo: "ToDo | ABCD"
+    - Course / Library / Admission / etc: "ABCD | <Topic>"
+    """
+    if not raw_title and not category and not source:
+        return "ABCD | Notification"
+
+    raw_clean = str(raw_title or "").strip()
+    cat_clean = str(category or "").strip().lower()
+    src_clean = str(source or "").strip().lower()
+
+    # Already formatted properly
+    if raw_clean.startswith("Guidy | ABCD") or raw_clean.startswith("ToDo | ABCD"):
+        return raw_clean
+    if re.match(r'^ABCD\s*\|\s*.+', raw_clean, re.IGNORECASE):
+        parts = raw_clean.split('|', 1)
+        return f"ABCD | {parts[1].strip().title()}"
+
+    # Guidy check
+    if src_clean == 'guidy' or cat_clean == 'guidy' or 'guidy' in raw_clean.lower():
+        return "Guidy | ABCD"
+
+    # ToDo check
+    if src_clean == 'todo' or cat_clean == 'todo' or 'todo' in raw_clean.lower():
+        return "ToDo | ABCD"
+
+    # Specific topic checks
+    lower_title = raw_clean.lower()
+    if cat_clean in ['course', 'lecture', 'quiz'] or 'course' in lower_title or 'lecture' in lower_title or 'material' in lower_title:
+        return "ABCD | Course"
+    if cat_clean in ['hold', 'seat', 'library'] or 'seat' in lower_title or 'library' in lower_title:
+        return "ABCD | Library Seat"
+    if cat_clean == 'broadcast' or 'broadcast' in lower_title:
+        return "ABCD | Broadcast"
+    if cat_clean in ['announcement', 'notice'] or 'announcement' in lower_title or 'notice' in lower_title:
+        return "ABCD | Announcement"
+    if cat_clean in ['admission', 'enrollment'] or 'admission' in lower_title or 'enrolled' in lower_title:
+        return "ABCD | Admission"
+    if cat_clean == 'complaint' or 'complaint' in lower_title:
+        return "ABCD | Complaint"
+    if cat_clean in ['fee', 'payment', 'fee_teacher'] or 'fee' in lower_title or 'payment' in lower_title or 'receipt' in lower_title:
+        return "ABCD | Fees"
+    if cat_clean == 'achievement' or 'achievement' in lower_title or 'alumni' in lower_title:
+        return "ABCD | Achievement"
+    if cat_clean == 'reminder' or 'reminder' in lower_title:
+        return "ABCD | Reminder"
+
+    # Clean text fallback
+    clean_text = re.sub(r'^[^\w\s]+', '', raw_clean).strip()
+    if clean_text:
+        words = clean_text.split()
+        topic = " ".join(words[:3]).title()
+        return f"ABCD | {topic}"
+
+    return "ABCD | Notification"
+
+
 def create_notification(user, title, message, link=None, category="general", meta=None):
     if not user:
         return
 
-    Notification.objects.create(
+    formatted_title = format_push_title(title, category=category)
+
+    notif = Notification.objects.create(
         user=user,
-        title=title,
+        title=formatted_title,
         message=message,
         link=link,
         category=category,
@@ -596,14 +658,15 @@ def create_notification(user, title, message, link=None, category="general", met
     )
 
     # 🔔 Send device push notification
-    send_push(user, title, message, link or "/")
+    send_push(user, formatted_title, message, url=link or "/", category=category)
+    return notif
 # ---------------------------------------------------------
 
 # push notifications for students
-def send_push(user, title, body, url="/", icon=None, badge=None, tag=None):
+def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound=None, badge_count=None, category=None, source=None):
     """
     Send browser/device push notification to all
-    subscribed devices of the user.
+    subscribed devices of the user with custom sound, vibration, and app badging.
     """
     if not user:
         return
@@ -612,14 +675,28 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None):
     if not subscriptions.exists():
         return
 
+    formatted_title = format_push_title(title, category=category, source=source)
+
+    # Calculate or get badge count (Guidy unread messages + active alerts)
+    if badge_count is None:
+        try:
+            from users.views import get_guidy_badge_count
+            badge_count = get_guidy_badge_count(user)
+        except Exception:
+            badge_count = 1
+
     payload = {
-        "title": title,
+        "title": formatted_title,
         "body": body,
         "url": url,
         "icon": icon or "/static/data/favicon/web-app-manifest-192x192.png",
         "badge": badge or "/static/data/favicon/favicon-96x96.png",
+        "sound": sound or "/static/audio/PWA.mp3",
+        "badge_count": max(1, badge_count or 1),
         "tag": tag or "abcd-notification",
     }
+
+    from pywebpush import webpush, WebPushException
 
     for sub in subscriptions:
         try:
@@ -634,6 +711,14 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None):
                     "sub": "mailto:admin@abcd.com"
                 }
             )
+        except WebPushException as ex:
+            logger.debug(f"Web push error for sub {sub.id}: {ex}")
+            # Automatically prune dead or expired subscriptions (404/410)
+            if ex.response is not None and ex.response.status_code in (404, 410):
+                try:
+                    sub.delete()
+                except Exception:
+                    pass
         except Exception as e:
             logger.debug(f"Web push error for sub {sub.id}: {e}")
 

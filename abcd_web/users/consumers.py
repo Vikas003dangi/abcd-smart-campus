@@ -85,27 +85,36 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                 close_old_connections()
                 try:
                     sender_name = get_user_display_name(sender)
+                    push_title = "Guidy | ABCD"
                     if c_type == 'group':
                         grp = GroupChatSession.objects.filter(id=s_id).first()
-                        push_title = grp.name if (grp and grp.name) else sender_name
+                        grp_name = grp.name if (grp and grp.name) else "Group"
                         msg_text = message_obj.content[:80] if message_obj.content else "Sent a message"
-                        push_body = f"{sender_name}: {msg_text}"
+                        push_body = f"[{grp_name}] {sender_name}: {msg_text}"
                         push_icon = (grp.photo.url if grp and grp.photo else None) or get_profile_photo_url(sender) or "/static/data/favicon/web-app-manifest-192x192.png"
                         push_tag = f"guidy-group-{s_id}"
                         push_url = f"/guidy/?group={s_id}"
                     else:
-                        push_title = sender_name
-                        push_body = message_obj.content[:80] if message_obj.content else "Sent a message"
+                        msg_text = message_obj.content[:80] if message_obj.content else "Sent a message"
+                        push_body = f"{sender_name}: {msg_text}"
                         push_icon = get_profile_photo_url(sender) or "/static/data/favicon/web-app-manifest-192x192.png"
                         push_tag = f"guidy-{c_type}-{s_id}"
                         push_url = f"/guidy/?{c_type}={s_id}"
 
                     for r in recipients_list:
                         try:
+                            from django.core.cache import cache
+                            cache.delete(f"guidy_badge_count_{r.id}")
+                            from users.views import get_guidy_badge_count
+                            new_badge_val = get_guidy_badge_count(r)
+                        except Exception:
+                            new_badge_val = 1
+
+                        try:
                             notif = Notification.objects.filter(user=r, category='guidy', is_read=False).first()
                             if notif:
-                                notif.title = '💬 New Guidy Message'
-                                notif.message = f'{sender_name}: {push_body[:60]}'
+                                notif.title = 'Guidy | ABCD'
+                                notif.message = push_body[:80]
                                 notif.link = push_url
                                 notif.save()
                             else:
@@ -113,8 +122,8 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                                     user=r,
                                     category='guidy',
                                     is_read=False,
-                                    title='💬 New Guidy Message',
-                                    message=f'{sender_name}: {push_body[:60]}' if c_type == 'group' else f'New message from {sender_name}',
+                                    title='Guidy | ABCD',
+                                    message=push_body[:80],
                                     link=push_url
                                 )
                         except Exception:
@@ -128,7 +137,11 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                                 url=push_url,
                                 icon=push_icon,
                                 badge="/static/data/favicon/favicon-96x96.png",
-                                tag=push_tag
+                                sound="/static/audio/receive.mp3",
+                                badge_count=new_badge_val,
+                                tag=push_tag,
+                                category="guidy",
+                                source="guidy"
                             )
                         except Exception:
                             pass

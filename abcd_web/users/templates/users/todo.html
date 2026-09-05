@@ -7997,7 +7997,12 @@
     })
       .then(r => r.json())
       .then(data => {
-        if (data.success) switchTab('todos');
+        if (data.success) {
+          if (isDone && window.playABCDSound) {
+            window.playABCDSound('done');
+          }
+          switchTab('todos');
+        }
       });
   }
 
@@ -11567,33 +11572,13 @@
   }
 
   function playAlarmSound() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      
-      const playBeep = (time, freq) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
-        
-        gain.gain.setValueAtTime(0, ctx.currentTime + time);
-        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + time + 0.05);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + time + 0.3);
-        
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc.start(ctx.currentTime + time);
-        osc.stop(ctx.currentTime + time + 0.3);
-      };
-
-      playBeep(0, 880);
-      playBeep(0.4, 880);
-      playBeep(0.8, 1046.5); 
-    } catch(e) {
-      console.warn('Audio play failed', e);
+    if (window.playABCDSound) {
+      window.playABCDSound('alarm');
+    } else {
+      try {
+        const audio = new Audio('/static/audio/alarm.mp3');
+        audio.play().catch(function () {});
+      } catch (e) {}
     }
   }
 
@@ -12201,5 +12186,6 @@ document.addEventListener('mousedown', (e) => {
     <button onclick="closeAlertModal()" class="picker-confirm-btn">Dismiss</button>
   </div>
 </div>
+<script src="{% static 'js/abcd-sound.js' %}"></script>
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

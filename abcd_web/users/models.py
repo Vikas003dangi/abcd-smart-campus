@@ -2499,6 +2499,7 @@ def dispatch_realtime_notification_on_save(sender, instance, created, **kwargs):
         threading.Thread(
             target=send_push,
             args=(instance.user, instance.title, instance.message, instance.link or "/"),
+            kwargs={"category": getattr(instance, 'category', 'general')},
             daemon=True
         ).start()
     except Exception as e:

@@ -48,13 +48,13 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from users.models import SeatAssignment
 from users.db_utils import safe_atomic_transaction, deduplicate_request, safe_db_operation, retry_on_db_lock
-def _send_push_bg(user_target, title, body, url, icon=None, badge=None, tag=None):
+def _send_push_bg(user_target, title, body, url, icon=None, badge=None, tag=None, sound=None, badge_count=None, category=None, **kwargs):
     from users.notifications import send_push
     from django.db import close_old_connections
     
     close_old_connections() # Clean state before starting
     try:
-        send_push(user_target, title, body, url, icon=icon, badge=badge, tag=tag)
+        send_push(user_target, title, body, url, icon=icon, badge=badge, tag=tag, sound=sound, badge_count=badge_count, category=category, **kwargs)
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"BG Push Error: {e}")
@@ -9477,20 +9477,35 @@ def broadcast_history_view(request):
 
 # ======================================================
 # API VIEW: Save Push Subscription
-@login_required
+# ======================================================
+@csrf_exempt
 @require_POST
 def save_push_subscription(request):
-    data = json.loads(request.body)
+    """
+    Saves or updates a Web Push subscription for the active user.
+    Uses @csrf_exempt so service worker background syncs and PWA requests
+    succeed reliably without CSRF cookie mismatch.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'status': 'guest', 'message': 'Authentication required for push subscription'}, status=200)
 
-    PushSubscription.objects.update_or_create(
-        endpoint=data['endpoint'],
-        defaults={
-            'user': request.user,
-            'keys': data['keys']
-        }
-    )
+    try:
+        data = json.loads(request.body)
+        endpoint = data.get('endpoint')
+        keys = data.get('keys')
+        if not endpoint or not keys:
+            return JsonResponse({'status': 'error', 'message': 'Missing endpoint or keys'}, status=400)
 
-    return JsonResponse({'status': 'ok'})
+        PushSubscription.objects.update_or_create(
+            endpoint=endpoint,
+            defaults={
+                'user': request.user,
+                'keys': keys
+            }
+        )
+        return JsonResponse({'status': 'ok', 'message': 'Push subscription saved successfully'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 # ======================================================
 
 @login_required
@@ -15667,7 +15682,40 @@ def cron_maintenance_view(request):
         }, status=500)
 
 
+# ==============================================================================
+# PWA SERVICE WORKER & WEB PUSH ENDPOINTS
+# ==============================================================================
+
+def service_worker_view(request):
+    """
+    Serves the PWA Service Worker at root (/sw.js) with full root-scope permissions.
+    Sets Service-Worker-Allowed: / and proper JavaScript MIME type.
+    """
+    import os
+    from django.http import HttpResponse
+    from django.conf import settings
+
+    sw_path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
+    try:
+        with open(sw_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception:
+        content = "// sw.js not found"
+
+    response = HttpResponse(content, content_type='application/javascript; charset=utf-8')
+    response['Service-Worker-Allowed'] = '/'
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 
+def vapid_public_key_api(request):
+    """
+    Returns the VAPID public key for Web Push client subscription.
+    """
+    from django.http import JsonResponse
+    from django.conf import settings
 
-
+    return JsonResponse({
+        'status': 'ok',
+        'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', '')
+    })

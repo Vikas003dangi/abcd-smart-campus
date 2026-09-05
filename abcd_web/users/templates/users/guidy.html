@@ -4415,6 +4415,9 @@ async function sendMessage() {
       content: rawHtml,
       reply_to_id: replyToId
     }));
+    if (window.playABCDSound) {
+      window.playABCDSound('send');
+    }
     keepInputFocus();
     return;
   }
@@ -4431,6 +4434,9 @@ async function sendMessage() {
       const r = await fetch(url, { method:'POST', body:fd });
       const data = await r.json();
       if (data.success) {
+        if (window.playABCDSound) {
+          window.playABCDSound('send');
+        }
         appendMessage(data.message);
         keepInputFocus();
         clearMediaSelection();
@@ -5902,22 +5908,16 @@ function updateTabBadges() {
 }
 
 function playGuidyNotificationChime() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.3);
-  } catch(e) {}
+  if (window.playABCDSound) {
+    window.playABCDSound('receive');
+  } else {
+    try {
+      const audio = new Audio('/static/audio/receive.mp3');
+      audio.play().catch(function () {});
+    } catch (e) {}
+  }
   if (navigator.vibrate) {
-    try { navigator.vibrate([100, 50, 100]); } catch(e) {}
+    try { navigator.vibrate([100, 50, 100]); } catch (e) {}
   }
 }
 
@@ -10558,6 +10558,7 @@ document.addEventListener('touchstart', (e) => {
   </div>
 </div>
 
+<script src="{% static 'js/abcd-sound.js' %}"></script>
 {% if user.is_authenticated %}
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
 <script src="{% static 'js/push-permission.js' %}"></script>

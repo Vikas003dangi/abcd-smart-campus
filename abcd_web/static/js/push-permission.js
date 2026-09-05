@@ -207,10 +207,24 @@
 
     async function registerServiceWorkerAndSync() {
         try {
-            const reg = await navigator.serviceWorker.register('/static/sw.js');
+            // Register service worker at root scope /sw.js
+            const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
             await navigator.serviceWorker.ready;
 
-            const vapidPublicKey = window.VAPID_PUBLIC_KEY || getVapidKeyFromMeta();
+            let vapidPublicKey = window.VAPID_PUBLIC_KEY || getVapidKeyFromMeta();
+            if (!vapidPublicKey) {
+                try {
+                    const res = await fetch('/api/vapid-public-key/');
+                    const kData = await res.json();
+                    if (kData && kData.vapid_public_key) {
+                        vapidPublicKey = kData.vapid_public_key;
+                        window.VAPID_PUBLIC_KEY = vapidPublicKey;
+                    }
+                } catch (e) {
+                    console.warn('Failed to fetch VAPID public key:', e);
+                }
+            }
+
             if (!vapidPublicKey) {
                 console.warn('VAPID public key missing. Web Push subscription postponed.');
                 return;
@@ -239,6 +253,18 @@
             console.error('Failed to register Web Push Subscription:', err);
         }
     }
+
+    // Global launcher icon app badging utility
+    window.updateAppBadge = function (count) {
+        if ('setAppBadge' in navigator) {
+            const num = parseInt(count, 10);
+            if (!isNaN(num) && num > 0) {
+                navigator.setAppBadge(num).catch(function () {});
+            } else {
+                navigator.clearAppBadge().catch(function () {});
+            }
+        }
+    };
 
     function getVapidKeyFromMeta() {
         const meta = document.querySelector('meta[name="vapid-public-key"]');

@@ -198,6 +198,7 @@ urlpatterns = [
 
     # Push Notification Subscription API
     path("api/save-push-subscription/", views.save_push_subscription, name="save_push_subscription"),
+    path("api/vapid-public-key/", views.vapid_public_key_api, name="vapid_public_key_api"),
 
     # Seat Special Request API
     path(

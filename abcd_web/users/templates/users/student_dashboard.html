@@ -6522,6 +6522,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {% include 'users/_banner_popup.html' %}
+<script src="{% static 'js/abcd-sound.js' %}"></script>
 {% if user.is_authenticated %}
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
 <script src="{% static 'js/push-permission.js' %}"></script>

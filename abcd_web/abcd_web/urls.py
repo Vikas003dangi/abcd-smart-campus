@@ -22,7 +22,7 @@ from django.http import JsonResponse
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.views.static import serve
-from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view
+from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view, service_worker_view, vapid_public_key_api
 
 def ping_view(request):
     """
@@ -43,6 +43,12 @@ def ping_view(request):
     return JsonResponse({"status": "ok", "service": "ABCD Smart Campus", "uptime": "active"})
 
 urlpatterns = [
+    # Root PWA Service Worker (with Service-Worker-Allowed: /)
+    path('sw.js', service_worker_view, name='service_worker'),
+
+    # VAPID Public Key API endpoint
+    path('api/vapid-public-key/', vapid_public_key_api, name='vapid_public_key_api'),
+
     # 24/7 Keep-Alive & Health Check Endpoints (Lightweight ~30 bytes)
     path('ping/', ping_view, name='ping'),
     path('healthz/', ping_view, name='healthz'),
