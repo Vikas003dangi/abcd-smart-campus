@@ -11114,6 +11114,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
     msg_type = request.POST.get('message_type', 'text')
     reply_to_id = request.POST.get('reply_to_id')
     uploaded_file = request.FILES.get('file')
+    client_msg_id = request.POST.get('client_msg_id')
 
     if uploaded_file:
         ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'ogg', 'm4a'}
@@ -11272,6 +11273,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
 
     msg_dict = {
         'id': msg.id,
+        'client_msg_id': client_msg_id,
         'content': msg.content,
         'message_type': msg.message_type,
         'file_url': msg.file.url if msg.file else None,
@@ -12515,6 +12517,7 @@ def guidy_group_send_message(request, group_id):
         return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
 
     content = request.POST.get('content', '').strip()
+    client_msg_id = request.POST.get('client_msg_id')
     uploaded_file = request.FILES.get('file')
 
     if uploaded_file:
@@ -12647,6 +12650,7 @@ def guidy_group_send_message(request, group_id):
 
     sender_msg = {
         'id': msg.id,
+        'client_msg_id': client_msg_id,
         'content': resolve_system_message_content(msg.content, user) if msg.message_type == 'system' else msg.content,
         'message_type': msg.message_type,
         'file_url': msg.file.url if msg.file else None,

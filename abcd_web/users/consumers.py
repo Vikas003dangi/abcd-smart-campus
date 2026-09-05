@@ -4,26 +4,28 @@ from channels.db import database_sync_to_async
 
 
 @database_sync_to_async
-def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None):
+def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None, client_msg_id=None):
     try:
         from django.contrib.auth.models import User
-        from users.models import Message, ChatSession, DirectChatSession, GroupChatSession, GroupMessage
+        from users.models import Message, ChatSession, DirectChatSession, GroupChatSession, GroupMessage, GuidyBlock
         from django.utils.timezone import localtime
         from users.utils import get_user_display_name, get_profile_photo_url
 
         user = User.objects.filter(id=user_id).first()
         if not user or not content:
-            return None
+            return {'error': 'User or content missing'}
 
         reply_to_obj = None
-        if reply_to_id:
-            reply_to_obj = Message.objects.filter(id=reply_to_id).first() or GroupMessage.objects.filter(id=reply_to_id).first()
-
         recipients = []
         if chat_type == 'group':
             group = GroupChatSession.objects.filter(id=session_id).first()
-            if not group or not group.is_active:
-                return None
+            if not group or not group.is_active or getattr(group, 'deleted_at', None):
+                return {'error': 'Group is inactive or deleted'}
+            is_member = (user in group.members.all() or group.created_by_id == user.id or user.is_staff or user.is_superuser)
+            if not is_member:
+                return {'error': 'You are not a member of this group'}
+            if reply_to_id:
+                reply_to_obj = GroupMessage.objects.filter(id=reply_to_id, group=group).first()
             msg = GroupMessage.objects.create(
                 group=group,
                 sender=user,
@@ -36,7 +38,19 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
         elif chat_type == 'direct':
             direct_session = DirectChatSession.objects.filter(id=session_id).first()
             if not direct_session or not direct_session.is_active:
-                return None
+                return {'error': 'Direct chat is inactive or ended'}
+            is_participant = (direct_session.user1_id == user.id or direct_session.user2_id == user.id or user.is_staff or user.is_superuser)
+            if not is_participant:
+                return {'error': 'Forbidden'}
+            other = direct_session.user2 if direct_session.user1_id == user.id else direct_session.user1
+            if other:
+                if GuidyBlock.objects.filter(blocker=other, blocked=user).exists():
+                    return {'error': 'You are blocked by this user.'}
+                if GuidyBlock.objects.filter(blocker=user, blocked=other).exists():
+                    return {'error': 'You have blocked this user. Unblock them to chat.'}
+                recipients = [other]
+            if reply_to_id:
+                reply_to_obj = Message.objects.filter(id=reply_to_id, direct_session=direct_session).first()
             msg = Message.objects.create(
                 direct_session=direct_session,
                 sender=user,
@@ -44,13 +58,30 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                 message_type='text',
                 reply_to=reply_to_obj
             )
-            other = direct_session.user2 if direct_session.user1 == user else direct_session.user1
-            if other:
-                recipients = [other]
-        else:  # guidance
+        else:  # guidance / session
             session = ChatSession.objects.filter(id=session_id).first()
             if not session or not session.is_active:
-                return None
+                return {'error': 'Guidance session is inactive or ended'}
+            if getattr(session, 'request', None):
+                is_participant = (
+                    session.request.student_id == user.id or
+                    (session.request.alumni and session.request.alumni.user_id == user.id) or
+                    user.is_staff or user.is_superuser
+                )
+                other = session.request.alumni.user if (session.request.alumni and session.request.student_id == user.id) else session.request.student
+            else:
+                is_participant = (session.user_one_id == user.id or session.user_two_id == user.id or user.is_staff or user.is_superuser)
+                other = session.user_two if session.user_one_id == user.id else session.user_one
+            if not is_participant:
+                return {'error': 'Forbidden'}
+            if other:
+                if GuidyBlock.objects.filter(blocker=other, blocked=user).exists():
+                    return {'error': 'You are blocked by this user.'}
+                if GuidyBlock.objects.filter(blocker=user, blocked=other).exists():
+                    return {'error': 'You have blocked this user. Unblock them to chat.'}
+                recipients = [other]
+            if reply_to_id:
+                reply_to_obj = Message.objects.filter(id=reply_to_id, session=session).first()
             msg = Message.objects.create(
                 session=session,
                 sender=user,
@@ -58,12 +89,6 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
                 message_type='text',
                 reply_to=reply_to_obj
             )
-            if hasattr(session, 'request') and session.request:
-                other = session.request.alumni.user if session.request.student == user else session.request.student
-            else:
-                other = session.user_two if session.user_one == user else session.user_one
-            if other:
-                recipients = [other]
 
         reply_preview = None
         if reply_to_obj:
@@ -177,6 +202,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
 
         return {
             'id': msg.id,
+            'client_msg_id': client_msg_id,
             'content': msg.content,
             'message_type': msg.message_type,
             'file_url': None,
@@ -190,12 +216,12 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None)
             'is_pinned': False,
             'media_expired': False,
             'is_verified': (user.is_staff or user.is_superuser),
-            'recipient_ids': [r.id for r in recipients],
+            'recipient_ids': [r.id for r in recipients if r],
         }
     except Exception as e:
         import logging
         logging.getLogger(__name__).exception("Failed to save Guidy WebSocket chat message: %s", e)
-        return None
+        return {'error': f'Failed to save message: {str(e)}'}
 
 
 @database_sync_to_async
@@ -348,24 +374,33 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         elif event_type == "chat_message":
             content = data.get("content", "").strip()
             reply_to_id = data.get("reply_to_id")
+            client_msg_id = data.get("client_msg_id")
             if not content:
                 return
 
-            msg_data = await save_chat_message(
-                self.user.id, self.chat_type, self.session_id, content, reply_to_id
+            res = await save_chat_message(
+                self.user.id, self.chat_type, self.session_id, content, reply_to_id, client_msg_id
             )
-            if msg_data:
+            if isinstance(res, dict) and 'error' in res:
+                await self.send(text_data=json.dumps({
+                    "type": "chat_message_error",
+                    "client_msg_id": client_msg_id,
+                    "error": res['error'],
+                }))
+                return
+
+            if res and isinstance(res, dict):
                 # 1. Send to current chat room
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
                         "type": "chat_message_broadcast",
                         "sender_id": self.user.id,
-                        "message": msg_data,
+                        "message": res,
                     }
                 )
                 # 2. Also send real-time sidebar alert to each recipient's user channel
-                for r_id in msg_data.get('recipient_ids', []):
+                for r_id in res.get('recipient_ids', []):
                     await self.channel_layer.group_send(
                         f"user_{r_id}",
                         {
@@ -374,9 +409,15 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
                             "session_id": int(self.session_id),
                             "sender_id": self.user.id,
                             "sender_name": self.user.get_full_name() or self.user.username,
-                            "message": msg_data,
+                            "message": res,
                         }
                     )
+            else:
+                await self.send(text_data=json.dumps({
+                    "type": "chat_message_error",
+                    "client_msg_id": client_msg_id,
+                    "error": "Failed to save message.",
+                }))
 
         elif event_type == "mark_read":
             read_ids = await mark_messages_as_read(self.user.id, self.chat_type, self.session_id)
@@ -519,6 +560,12 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             if data.get("type") in ["heartbeat", "ping"]:
                 await self.update_user_presence(True)
                 await self.send(text_data=json.dumps({"type": "heartbeat_ack"}))
+            elif data.get("type") == "chat_message":
+                await self.send(text_data=json.dumps({
+                    "type": "chat_message_error",
+                    "client_msg_id": data.get("client_msg_id"),
+                    "error": "Notification socket cannot receive chat messages.",
+                }))
         except Exception:
             pass
 

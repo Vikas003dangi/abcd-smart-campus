@@ -825,6 +825,10 @@ body.dark-theme .g-bg-canvas { opacity: 0.18; }
 @keyframes msgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 .g-msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
 .g-msg-row.theirs { align-self: flex-start; }
+.g-msg-row.g-msg-pending .g-bubble { opacity: 0.82; }
+.g-msg-row.g-msg-failed .g-bubble { border: 1.5px solid #ef4444; }
+.g-msg-row.g-msg-failed .tick-failed { animation: pulseFailed 1s infinite alternate; }
+@keyframes pulseFailed { from { opacity: 0.6; } to { opacity: 1; } }
 .g-msg-avatar {
   width: 28px; height: 28px; border-radius: 50%;
   background: var(--g-primary); color: white;
@@ -3955,10 +3959,14 @@ let OTHER_ID   = cfg ? (cfg.dataset.otherId || '') : '';
 function getSidebarChatItem(chatType, chatId) {
   if (!chatType || !chatId) return null;
   const idStr = String(chatId);
+  const altType = (chatType === 'guidance') ? 'session' : ((chatType === 'session') ? 'guidance' : chatType);
   return document.querySelector(
     `.g-chat-item[data-chat-type="${chatType}"][data-chat-id="${idStr}"], ` +
+    `.g-chat-item[data-chat-type="${altType}"][data-chat-id="${idStr}"], ` +
     `.g-chat-item[data-href*="${chatType}=${idStr}"], ` +
-    `.g-chat-item[href*="${chatType}=${idStr}"]`
+    `.g-chat-item[data-href*="${altType}=${idStr}"], ` +
+    `.g-chat-item[href*="${chatType}=${idStr}"], ` +
+    `.g-chat-item[href*="${altType}=${idStr}"]`
   );
 }
 let MY_DISPLAY_NAME = cfg ? (cfg.dataset.myDisplayName || '') : '';
@@ -4382,12 +4390,120 @@ function scrollToBottom(smooth=false) {
 }
 
 // ── Sending Messages ────────────────────────────────────
+const pendingSocketMessages = new Map();
+
+function getActiveChatTypeAndId() {
+  const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : (SESSION_ID ? 'guidance' : ''));
+  const cId = GROUP_ID || DIRECT_ID || SESSION_ID || '';
+  return { chatType: cType, sessionId: String(cId) };
+}
+
+function getChatSendUrl() {
+  let url = GROUP_ID ? G_SEND_URL : SEND_URL;
+  if (!url) {
+    if (GROUP_ID) url = `/guidy/groups/${GROUP_ID}/send/`;
+    else if (DIRECT_ID) url = `/guidy/direct/${DIRECT_ID}/send/`;
+    else if (SESSION_ID) url = `/guidy/chat/${SESSION_ID}/send/`;
+  }
+  return url;
+}
+
+async function fallbackSendViaHttp(clientMsgId, rawHtml, replyId) {
+  if (pendingSocketMessages.has(clientMsgId)) {
+    const p = pendingSocketMessages.get(clientMsgId);
+    if (p && p.timer) clearTimeout(p.timer);
+    pendingSocketMessages.delete(clientMsgId);
+  }
+
+  // If already confirmed, nothing to do
+  const existingPending = document.querySelector(`.g-msg-row[data-client-msg-id="${clientMsgId}"]`);
+  if (existingPending && !existingPending.classList.contains('g-msg-pending')) {
+    return;
+  }
+
+  const url = getChatSendUrl();
+  if (!url) {
+    markMessageFailed(clientMsgId, 'No active chat session');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF);
+  fd.append('content', rawHtml);
+  fd.append('client_msg_id', clientMsgId);
+  if (replyId) fd.append('reply_to_id', replyId);
+
+  try {
+    const r = await fetch(url, { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.success && data.message) {
+      appendMessage(data.message);
+    } else {
+      markMessageFailed(clientMsgId, data.error || 'Failed to send message');
+    }
+  } catch(e) {
+    console.warn("HTTP fallback send exception:", e);
+    markMessageFailed(clientMsgId, 'Network error. Click to retry.');
+  }
+}
+
+function markMessageFailed(clientMsgId, errorMsg) {
+  const row = document.querySelector(`.g-msg-row[data-client-msg-id="${clientMsgId}"]`);
+  if (!row) return;
+  row.classList.remove('g-msg-pending');
+  row.classList.add('g-msg-failed');
+  const tick = row.querySelector('.msg-tick');
+  if (tick) {
+    tick.className = 'bx bx-error-circle msg-tick tick-failed';
+    tick.style.color = '#ef4444';
+    tick.style.cursor = 'pointer';
+    tick.style.fontSize = '0.9rem';
+    tick.title = errorMsg || 'Failed to send. Click to retry.';
+    tick.onclick = () => retryFailedMessage(clientMsgId);
+  }
+  showToast(errorMsg || 'Message failed to send', 'error');
+}
+
+function retryFailedMessage(clientMsgId) {
+  const row = document.querySelector(`.g-msg-row[data-client-msg-id="${clientMsgId}"]`);
+  if (!row) return;
+  const contentEl = row.querySelector('.g-msg-text');
+  const rawHtml = contentEl ? contentEl.innerHTML : '';
+  const tick = row.querySelector('.msg-tick');
+  if (tick) {
+    tick.className = 'bx bx-time-five msg-tick tick-pending';
+    tick.style.color = '';
+    tick.style.cursor = '';
+    tick.title = 'Sending...';
+    tick.onclick = null;
+  }
+  row.classList.remove('g-msg-failed');
+  row.classList.add('g-msg-pending');
+  fallbackSendViaHttp(clientMsgId, rawHtml, null);
+}
+
 async function sendMessage() {
   const inp = document.getElementById('gInput');
   const content = inp.innerText.trim();
   const rawHtml = inp.innerHTML.trim();
   const hasFile = !!window.currentChatFile;
   if (!content && !hasFile) return;
+
+  const { chatType, sessionId } = getActiveChatTypeAndId();
+  if (!chatType || !sessionId) {
+    showToast('Please select a conversation first', 'warning');
+    return;
+  }
+
+  const currentReplyId = replyToId;
+  const currentReplyPreview = replyToId ? {
+    id: replyToId,
+    content: (replyToText || '').substring(0, 80),
+    sender: replyToSender || '',
+    type: 'text'
+  } : null;
+
+  const clientMsgId = 'c_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
   const keepInputFocus = () => {
     inp.innerHTML = '';
@@ -4408,28 +4524,83 @@ async function sendMessage() {
     });
   };
 
-  // FAST-PATH: Send text messages directly via WebSocket (<1ms latency)
-  if (!hasFile && chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
-    chatWebSocket.send(JSON.stringify({
-      type: 'chat_message',
+  if (!hasFile) {
+    // 1. Optimistic instant rendering so user never sees ghost delay
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const dateStr = now.toISOString().split('T')[0];
+    const optMsg = {
+      id: clientMsgId,
+      client_msg_id: clientMsgId,
       content: rawHtml,
-      reply_to_id: replyToId
-    }));
+      message_type: 'text',
+      timestamp: timeStr,
+      date: dateStr,
+      is_mine: true,
+      is_read: false,
+      is_pending: true,
+      sender_name: MY_DISPLAY_NAME || 'You',
+      reply_to: currentReplyPreview,
+      is_verified: IS_TEACHER
+    };
+
+    appendMessage(optMsg);
     if (window.playABCDSound) {
       window.playABCDSound('send');
     }
     keepInputFocus();
+    scrollToBottom(true);
+
+    // 2. Check if WebSocket is open AND verified for the CURRENT active chat room
+    const isSocketReady = chatWebSocket &&
+      chatWebSocket.readyState === WebSocket.OPEN &&
+      chatWebSocket.isChatSocket === true &&
+      chatWebSocket.chatType === chatType &&
+      String(chatWebSocket.sessionId) === String(sessionId);
+
+    if (isSocketReady) {
+      try {
+        chatWebSocket.send(JSON.stringify({
+          type: 'chat_message',
+          content: rawHtml,
+          reply_to_id: currentReplyId,
+          client_msg_id: clientMsgId
+        }));
+
+        // Set safety fallback timer: if no ack arrives in 2.5s, fall back to HTTP POST
+        const timer = setTimeout(() => {
+          if (pendingSocketMessages.has(clientMsgId)) {
+            console.warn("WebSocket send timed out for", clientMsgId, "- triggering HTTP fallback");
+            fallbackSendViaHttp(clientMsgId, rawHtml, currentReplyId);
+          }
+        }, 2500);
+
+        pendingSocketMessages.set(clientMsgId, {
+          rawHtml: rawHtml,
+          replyId: currentReplyId,
+          timer: timer
+        });
+        return;
+      } catch (wsErr) {
+        console.warn("WebSocket send failed, switching to HTTP:", wsErr);
+      }
+    }
+
+    // Fall back to HTTP immediately if socket not ready
+    fallbackSendViaHttp(clientMsgId, rawHtml, currentReplyId);
     return;
   }
 
+  // File upload path
   const fd = new FormData();
   fd.append('csrfmiddlewaretoken', CSRF);
   fd.append('content', rawHtml);
-  if (replyToId) fd.append('reply_to_id', replyToId);
+  fd.append('client_msg_id', clientMsgId);
+  if (currentReplyId) fd.append('reply_to_id', currentReplyId);
   if (hasFile) fd.append('file', window.currentChatFile);
 
   const sendAction = async () => {
-    const url = GROUP_ID ? G_SEND_URL : SEND_URL;
+    const url = getChatSendUrl();
     try {
       const r = await fetch(url, { method:'POST', body:fd });
       const data = await r.json();
@@ -4449,16 +4620,12 @@ async function sendMessage() {
     }
   };
 
-  if (hasFile) {
-    const skipWarn = localStorage.getItem('guidy_skip_sender_warn') === 'true';
-    if (skipWarn) {
-      await sendAction();
-    } else {
-      pendingUploadAction = sendAction;
-      document.getElementById('senderWarningModal').classList.add('open');
-    }
-  } else {
+  const skipWarn = localStorage.getItem('guidy_skip_sender_warn') === 'true';
+  if (skipWarn) {
     await sendAction();
+  } else {
+    pendingUploadAction = sendAction;
+    document.getElementById('senderWarningModal').classList.add('open');
   }
 }
 
@@ -5059,8 +5226,35 @@ function appendMessage(msg) {
   const area = document.getElementById('gMessages');
   if (!area) return;
 
+  // Upgrade existing pending row if client_msg_id matches
+  if (msg.client_msg_id) {
+    const pendingRow = area.querySelector(`.g-msg-row[data-client-msg-id="${msg.client_msg_id}"]`);
+    if (pendingRow) {
+      if (msg.id && typeof msg.id === 'number') {
+        pendingRow.dataset.msgId = msg.id;
+      }
+      pendingRow.classList.remove('g-msg-pending');
+      pendingRow.classList.remove('g-msg-failed');
+      const timeSpan = pendingRow.querySelector('.g-msg-meta span');
+      if (timeSpan && msg.timestamp) timeSpan.textContent = msg.timestamp;
+      const tick = pendingRow.querySelector('.msg-tick');
+      if (tick) {
+        tick.className = `bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}`;
+        tick.style.display = '';
+        tick.style.color = '';
+        tick.style.cursor = '';
+        tick.title = '';
+        tick.onclick = null;
+      }
+      if (msg.id && typeof msg.id === 'number') {
+        lastMsgId = Math.max(lastMsgId, msg.id);
+      }
+      return;
+    }
+  }
+
   // Duplicate check: if a message with this id is already rendered, skip appending
-  if (msg.id && area.querySelector(`[data-msg-id="${msg.id}"]`)) {
+  if (msg.id && typeof msg.id === 'number' && area.querySelector(`[data-msg-id="${msg.id}"]`)) {
     return;
   }
 
@@ -5110,9 +5304,11 @@ function appendMessage(msg) {
     return;
   }
 
+  const isPending = !!msg.is_pending;
   const row = document.createElement('div');
-  row.className = `g-msg-row ${msg.is_mine ? 'mine' : 'theirs'}`;
+  row.className = `g-msg-row ${msg.is_mine ? 'mine' : 'theirs'} ${isPending ? 'g-msg-pending' : ''}`;
   row.dataset.msgId = msg.id;
+  if (msg.client_msg_id) row.dataset.clientMsgId = msg.client_msg_id;
   row.dataset.deletedForAll = msg.is_deleted_for_all || false;
   row.dataset.pinned = msg.is_pinned || false;
   row.dataset.starred = msg.is_starred || false;
@@ -5157,6 +5353,15 @@ function appendMessage(msg) {
   const senderLabel = GROUP_ID
     ? `<div style="font-size:0.72rem;font-weight:700;color:var(--g-primary-s);margin-bottom:3px; align-self: ${msg.is_mine ? 'flex-end' : 'flex-start'};">${msg.is_mine ? 'You' : escHtml(msg.sender_name)}${msg.is_verified ? `<i class='bx bxs-badge-check g-verified-tick'></i>` : ''}</div>` : '';
 
+  let tickHtml = '';
+  if (msg.is_mine) {
+    if (isPending) {
+      tickHtml = `<i class="bx bx-time-five msg-tick tick-pending" style="font-size:0.75rem; opacity:0.75;" title="Sending..."></i>`;
+    } else {
+      tickHtml = `<i class="bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}"></i>`;
+    }
+  }
+
   let bubbleHtml = '';
   if (msg.is_deleted_for_all) {
     bubbleHtml = `<div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);"><i class="bx bx-block"></i> deleted msg</div>`;
@@ -5167,7 +5372,7 @@ function appendMessage(msg) {
                     <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
                     ${mediaHtml}<span class="g-msg-text">${formatMessageContent(msg.content||'')}</span>
                   </div>
-                  <div class="g-msg-meta"><span>${msg.timestamp}</span>${msg.is_mine ? `<i class="bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}"></i>` : ''}</div>`;
+                  <div class="g-msg-meta"><span>${msg.timestamp}</span>${tickHtml}</div>`;
   }
 
   row.innerHTML = `
@@ -5180,7 +5385,9 @@ function appendMessage(msg) {
 
   area.appendChild(row);
   scrollToBottom(true);
-  lastMsgId = Math.max(lastMsgId, msg.id);
+  if (msg.id && typeof msg.id === 'number') {
+    lastMsgId = Math.max(lastMsgId, msg.id);
+  }
 
   // Dynamic sidebar last message preview & time update
   const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : (SESSION_ID ? 'session' : ''));
@@ -5612,11 +5819,11 @@ function initGuidyWebSocket() {
   const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   let wsUrl;
   const hasActiveChat = !!(SESSION_ID || DIRECT_ID || GROUP_ID);
+  const activeChatType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'guidance');
+  const activeSessionId = GROUP_ID || DIRECT_ID || SESSION_ID;
 
   if (hasActiveChat) {
-    const chatType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'guidance');
-    const sessionId = GROUP_ID || DIRECT_ID || SESSION_ID;
-    wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/chat/${chatType}/${sessionId}/`;
+    wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/chat/${activeChatType}/${activeSessionId}/`;
   } else {
     // When no chat is active, connect to user notification socket to listen for real-time messages & updates
     wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
@@ -5625,10 +5832,14 @@ function initGuidyWebSocket() {
   try {
     if (chatWebSocket) {
       chatWebSocket.onclose = null;
+      chatWebSocket.onerror = null;
       chatWebSocket.close();
       chatWebSocket = null;
     }
     chatWebSocket = new WebSocket(wsUrl);
+    chatWebSocket.isChatSocket = hasActiveChat;
+    chatWebSocket.chatType = hasActiveChat ? activeChatType : 'notifications';
+    chatWebSocket.sessionId = hasActiveChat ? String(activeSessionId) : null;
 
     chatWebSocket.onopen = function() {
       if (hasActiveChat) {
@@ -5637,15 +5848,31 @@ function initGuidyWebSocket() {
       try { chatWebSocket.send(JSON.stringify({ type: 'heartbeat' })); } catch(e) {}
     };
 
+    chatWebSocket.onerror = function(err) {
+      console.warn("Guidy WebSocket error:", err);
+    };
+
     chatWebSocket.onmessage = function(e) {
       try {
         const data = JSON.parse(e.data);
         if (data.type === 'heartbeat_ack') {
           return;
+        } else if (data.type === 'chat_message_error') {
+          if (data.client_msg_id && pendingSocketMessages.has(data.client_msg_id)) {
+            const p = pendingSocketMessages.get(data.client_msg_id);
+            fallbackSendViaHttp(data.client_msg_id, p.rawHtml, p.replyId);
+          } else {
+            showToast(data.error || 'Failed to send message', 'error');
+          }
         } else if (data.type === 'typing_indicator') {
           handleIncomingTypingIndicator(data);
         } else if (data.type === 'chat_message') {
           if (data.message) {
+            if (data.message.client_msg_id && pendingSocketMessages.has(data.message.client_msg_id)) {
+              const p = pendingSocketMessages.get(data.message.client_msg_id);
+              if (p && p.timer) clearTimeout(p.timer);
+              pendingSocketMessages.delete(data.message.client_msg_id);
+            }
             appendMessage(data.message);
             if (!data.message.is_mine) {
               emitMarkRead();
@@ -5689,7 +5916,9 @@ function initGuidyWebSocket() {
         } else if (data.type === 'session_status_changed') {
           handleSessionStatusChanged(data);
         }
-      } catch(err) {}
+      } catch(err) {
+        console.warn("WebSocket onmessage error:", err);
+      }
     };
 
     chatWebSocket.onclose = function() {
@@ -5750,11 +5979,16 @@ function handleIncomingSidebarUpdate(data) {
   const isCurrentChat = (
     (chatType === 'group' && GROUP_ID && String(GROUP_ID) === sessionId) ||
     (chatType === 'direct' && DIRECT_ID && String(DIRECT_ID) === sessionId) ||
-    (chatType === 'guidance' && SESSION_ID && String(SESSION_ID) === sessionId)
+    ((chatType === 'guidance' || chatType === 'session') && SESSION_ID && String(SESSION_ID) === sessionId)
   );
 
   // If this message is for the currently open chat:
   if (isCurrentChat) {
+    if (data.message.client_msg_id && pendingSocketMessages.has(data.message.client_msg_id)) {
+      const p = pendingSocketMessages.get(data.message.client_msg_id);
+      if (p && p.timer) clearTimeout(p.timer);
+      pendingSocketMessages.delete(data.message.client_msg_id);
+    }
     const existingMsg = document.querySelector(`[data-message-id="${data.message.id}"]`);
     if (!existingMsg) {
       appendMessage(data.message);
@@ -5776,6 +6010,7 @@ function handleIncomingSidebarUpdate(data) {
 function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCurrentChat) {
   if (!sessionId) return;
   const idStr = String(sessionId);
+  const normalizedType = (chatType === 'guidance') ? 'session' : chatType;
   const item = getSidebarChatItem(chatType, idStr);
 
   let snippet = '';
@@ -5814,20 +6049,20 @@ function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCu
     }
   } else {
     // Brand new chat started while page was open: create new item
-    const container = (chatType === 'group') ? document.getElementById('panelGroups') : document.getElementById('panelChats');
+    const container = (normalizedType === 'group') ? document.getElementById('panelGroups') : document.getElementById('panelChats');
     if (container) {
       const empty = container.querySelector('.g-empty');
       if (empty) empty.remove();
 
       const a = document.createElement('a');
       a.href = 'javascript:void(0)';
-      a.dataset.href = `?${chatType}=${idStr}`;
+      a.dataset.href = `?${normalizedType}=${idStr}`;
       a.dataset.noLoader = 'true';
       a.className = 'g-chat-item' + (isCurrentChat ? ' active' : '');
       a.dataset.chatName = senderName || 'Chat';
-      a.dataset.chatType = chatType;
+      a.dataset.chatType = normalizedType;
       a.dataset.chatId = idStr;
-      a.onclick = (e) => handleChatItemClick(e, a, chatType, idStr);
+      a.onclick = (e) => handleChatItemClick(e, a, normalizedType, idStr);
 
       let avatarHtml = (senderName ? senderName.charAt(0).toUpperCase() : '?');
       if (message.sender_photo) {
