@@ -389,6 +389,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = JSON.parse(e.data);
                     if (data.type === 'notification') {
                         const n = data.notification || data;
+                        if (window.playABCDSound) {
+                            window.playABCDSound('receive');
+                        }
                         if (typeof window.showToast === 'function') {
                             window.showToast(`${n.title}: ${n.message}`, 'info');
                         } else {

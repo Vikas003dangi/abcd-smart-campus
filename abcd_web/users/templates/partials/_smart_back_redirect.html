@@ -147,5 +147,13 @@
         updateBottomBarZoom();
         document.addEventListener('DOMContentLoaded', updateBottomBarZoom);
         window.addEventListener('load', updateBottomBarZoom);
+
+        // Ensure ABCD Audio Engine is globally available on all pages
+        if (!window.playABCDSound && !document.querySelector('script[src*="abcd-sound.js"]')) {
+            const snd = document.createElement('script');
+            snd.src = '/static/js/abcd-sound.js';
+            snd.async = true;
+            document.head.appendChild(snd);
+        }
     })();
 </script>

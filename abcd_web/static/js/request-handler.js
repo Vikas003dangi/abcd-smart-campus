@@ -150,6 +150,10 @@
         showSuccess(button, message = 'Done!') {
             if (!button) return;
 
+            if (window.playABCDSound) {
+                window.playABCDSound('done');
+            }
+
             const originalText = button.getAttribute('data-original-text') || button.textContent;
             button.innerHTML = `✓ ${message}`;
             button.classList.add('btn-success-flash');
@@ -165,6 +169,10 @@
          */
         showError(button, message = 'Error') {
             if (!button) return;
+
+            if (window.playABCDSound) {
+                window.playABCDSound('error');
+            }
 
             button.innerHTML = `✗ ${message}`;
             button.classList.add('btn-error-flash');

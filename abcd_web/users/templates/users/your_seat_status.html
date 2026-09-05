@@ -4228,6 +4228,15 @@
 
             const msgColor = isDark ? '#cbd5e1' : '#475569';
 
+            // Play sound based on popup type
+            if (window.playABCDSound) {
+                if (type === 'success') {
+                    window.playABCDSound('done');
+                } else if (type === 'error' || type === 'warning') {
+                    window.playABCDSound('error');
+                }
+            }
+
             const overlay = document.createElement('div');
             overlay.id = 'styledPopupOverlay';
             overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
@@ -4684,6 +4693,7 @@
             }, 5000);
         })();
     </script>
+<script src="{% static 'js/abcd-sound.js' %}"></script>
 {% if user.is_authenticated %}
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
 <script src="{% static 'js/push-permission.js' %}"></script>

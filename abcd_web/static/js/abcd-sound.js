@@ -7,6 +7,10 @@
 (function () {
     'use strict';
 
+    // Idempotent initialization guard
+    if (window.__ABCD_SOUND_INITIALIZED) return;
+    window.__ABCD_SOUND_INITIALIZED = true;
+
     const SOUND_STORAGE_KEY = 'abcd_sound_enabled';
 
     // Audio file definitions
@@ -109,7 +113,42 @@
         }
     }
 
-    // Global click sound listener for interactive buttons
+    // Comprehensive selector for interactive elements across all ABCD pages:
+    // Buttons, action links, submit buttons, tabs, modal close X buttons, library seats, and controls
+    const CLICKABLE_SELECTOR = [
+        'button',
+        '.btn',
+        '.btn-action',
+        '.action-btn',
+        '[role="button"]',
+        'input[type="submit"]',
+        'input[type="button"]',
+        'input[type="reset"]',
+        '.nav-tab',
+        '.tab-btn',
+        '.dropdown-item',
+        '.custom-popup-btn',
+        '.modal-close-btn',
+        '.modal-close',
+        '.close',
+        '.close-btn',
+        '.seat-modal-close-btn',
+        '.todo-modal-close',
+        '.custom-popup-close',
+        '.tc-modal-close',
+        '[aria-label="Close"]',
+        '[aria-label="close"]',
+        '[data-close]',
+        '.seat:not(.empty-space)',
+        '[data-seat-id]:not(.empty-space)',
+        '.wheel-item',
+        '.abcd-select-option',
+        '.icon-btn',
+        '.hub-search-btn',
+        '.bnav-item'
+    ].join(', ');
+
+    // Global click sound listener for interactive elements (Capture phase guarantees execution)
     document.addEventListener('click', function (e) {
         if (!isSoundEnabled()) return;
 
@@ -119,14 +158,14 @@
         // Skip elements explicitly marked with .no-sound
         if (target.closest('.no-sound, [data-no-sound="true"]')) return;
 
-        // Trigger sound on buttons, action links, submit inputs
-        const isClickable = target.closest('button, .btn, [role="button"], input[type="submit"], .action-btn, .nav-tab, .dropdown-item');
+        // Trigger sound on any interactive button, seat, close X, or control
+        const isClickable = target.closest(CLICKABLE_SELECTOR);
         if (isClickable) {
             const now = Date.now();
-            // Debounce button clicks to avoid harsh machine-gun audio
-            if (now - lastButtonSoundTime > 80) {
+            // Debounce clicks slightly (60ms) to allow natural rapid clicks while preventing harsh machine-gun audio
+            if (now - lastButtonSoundTime > 60) {
                 lastButtonSoundTime = now;
-                playABCDSound('button', 0.4);
+                playABCDSound('button', 0.45);
             }
         }
     }, true);
@@ -140,6 +179,9 @@
 
     // Expose global methods on window
     window.playABCDSound = playABCDSound;
+    window.playDoneSound = function () { playABCDSound('done'); };
+    window.playErrorSound = function () { playABCDSound('error'); };
+    window.playButtonSound = function () { playABCDSound('button', 0.45); };
     window.setABCDSoundEnabled = setSoundEnabled;
     window.isABCDSoundEnabled = isSoundEnabled;
 

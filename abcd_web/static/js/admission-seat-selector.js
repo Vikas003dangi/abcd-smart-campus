@@ -11,6 +11,15 @@ if (typeof window.showStyledPopup === 'undefined') {
             success: { border: '#28a745', icon: '✅', titleColor: '#155724' }
         };
         const c = colors[type] || colors.info;
+
+        if (window.playABCDSound) {
+            if (type === 'success') {
+                window.playABCDSound('done');
+            } else if (type === 'error' || type === 'warning') {
+                window.playABCDSound('error');
+            }
+        }
+
         const overlay = document.createElement('div');
         overlay.id = 'styledPopupOverlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';

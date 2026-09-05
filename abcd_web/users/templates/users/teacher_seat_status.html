@@ -101,13 +101,15 @@
         }
 
         /* Blur Effect for Background when Modal is Open */
-        body.modal-open .hub-layout {
+        body.modal-open .hub-layout,
+        body.modal-open .hub-navbar,
+        body.modal-open .hub-mobile-header {
             filter: blur(12px);
             pointer-events: none;
         }
 
-        .hub-layout {
-            transition: filter 0.3s ease;
+        .hub-layout, .hub-navbar, .hub-mobile-header {
+            transition: filter 0.25s ease;
         }
 
         /* --- DASHBOARD STYLE MODALS --- */
@@ -2704,6 +2706,7 @@
         };
     </script>
 
+    <script src="{% static 'js/abcd-sound.js' %}"></script>
     <script src="{% static 'js/custom-popup.js' %}"></script>
     <script src="{% static 'js/request-handler.js' %}"></script>
 

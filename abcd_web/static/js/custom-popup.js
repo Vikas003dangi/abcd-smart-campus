@@ -171,6 +171,15 @@ const CustomPopup = (function () {
         popupContainer.classList.add('visible');
         document.body.classList.add('modal-open');
 
+        // Play appropriate sound effect
+        if (window.playABCDSound) {
+            if (type === 'success') {
+                window.playABCDSound('done');
+            } else if (type === 'error' || type === 'warning') {
+                window.playABCDSound('error');
+            }
+        }
+
         // Return promise
         return new Promise((resolve) => {
             resolveCallback = resolve;

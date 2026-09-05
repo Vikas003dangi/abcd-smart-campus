@@ -3267,36 +3267,40 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Centralized Modal State Sync
-  window.syncGlobalModalState = function(closingEl = null) {
-    const allModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open'));
-    const activeModals = closingEl ? allModals.filter(m => m !== closingEl) : allModals;
+  window.syncGlobalModalState = function(closingEl = null, openingEl = null) {
+    if (window._overlayCloseTimeout) {
+      clearTimeout(window._overlayCloseTimeout);
+      window._overlayCloseTimeout = null;
+    }
+
+    const allModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open'));
+    let activeModals = closingEl ? allModals.filter(m => m !== closingEl) : allModals;
+    if (openingEl && !activeModals.includes(openingEl)) {
+      activeModals.push(openingEl);
+    }
     const activePopup = document.querySelector('.custom-popup.visible');
     
-    const isAnyActive = activeModals.length > 0 || activePopup;
+    const isAnyActive = activeModals.length > 0 || !!activePopup;
+    const overlay = document.getElementById('admissionModalOverlay') || document.getElementById('teacherPremiumOverlay') || modalOverlay;
 
     if (isAnyActive) {
       document.body.classList.add('modal-open');
-      if (modalOverlay) {
-        modalOverlay.style.display = 'block';
-        requestAnimationFrame(() => {
-          if (modalOverlay) modalOverlay.classList.add('active');
-        });
+      if (overlay) {
+        overlay.style.display = 'block';
+        void overlay.offsetHeight; // Force reflow to ensure CSS transitions trigger reliably
+        overlay.classList.add('active');
       }
     } else {
       // Instant blur & overlay removal
       document.body.classList.remove('modal-open');
-      if (modalOverlay) modalOverlay.classList.remove('active');
+      if (overlay) overlay.classList.remove('active');
 
-      if (window._overlayCloseTimeout) {
-        clearTimeout(window._overlayCloseTimeout);
-      }
-      
       window._overlayCloseTimeout = setTimeout(() => {
-        const stillActiveModals = document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open');
+        const stillActiveModals = document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open');
         const stillActivePopup = document.querySelector('.custom-popup.visible');
         
         if (stillActiveModals.length === 0 && !stillActivePopup) {
-          if (modalOverlay) modalOverlay.style.display = 'none';
+          if (overlay) overlay.style.display = 'none';
           
           document.querySelectorAll('.admission-modal, .teacher-modal').forEach(m => {
             if (!m.classList.contains('active') && !m.classList.contains('open')) {
@@ -3312,6 +3316,11 @@ document.addEventListener('DOMContentLoaded', () => {
   window.openSmallModal = function(modalEl) {
     if (!modalEl) return;
     
+    if (window._overlayCloseTimeout) {
+      clearTimeout(window._overlayCloseTimeout);
+      window._overlayCloseTimeout = null;
+    }
+
     // Dim lower active modals
     const activeModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open'));
     activeModals.forEach(m => {
@@ -3321,15 +3330,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const stackLevel = activeModals.length + 1;
-    modalEl.style.zIndex = 2000 + (stackLevel * 10);
+    modalEl.style.setProperty('z-index', (100001 + (stackLevel * 10)).toString(), 'important');
     modalEl.style.display = 'flex';
+    void modalEl.offsetHeight; // Force layout recalculation so CSS animation runs cleanly
     
-    requestAnimationFrame(() => {
-      modalEl.classList.add('active');
-      modalEl.classList.remove('modal-stacked-parent');
-    });
-    
-    window.syncGlobalModalState();
+    modalEl.classList.add('active');
+    modalEl.classList.remove('modal-stacked-parent');
+
+    window.syncGlobalModalState(null, modalEl);
   };
 
   window.closeSmallModal = function(modalEl) {
@@ -3746,7 +3754,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
   }
 
-  if (modalOverlay) modalOverlay.addEventListener('click', window.closeSeatDetailsModal);
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', function (ev) {
+      if (ev.target !== modalOverlay) return;
+      const activeModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open'));
+      if (activeModals.length > 0) {
+        const topModal = activeModals[activeModals.length - 1];
+        window.closeSmallModal(topModal);
+      } else {
+        window.closeAllModals();
+      }
+    });
+  }
 
   if (allModals && allModals.length) {
     allModals.forEach(m => m.addEventListener('click', e => e.stopPropagation()));
