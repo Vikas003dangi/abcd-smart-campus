@@ -129,47 +129,56 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                     for r in recipients_list:
                         try:
                             from django.core.cache import cache
+                            # If recipient currently has this exact chat open live, do not spam push or DB unread notifications
+                            active_in_chat = cache.get(f"guidy_active_chat_{r.id}")
+                            is_reading_live = (active_in_chat == f"{c_type}_{s_id}")
+                        except Exception:
+                            is_reading_live = False
+
+                        try:
+                            from django.core.cache import cache
                             cache.delete(f"guidy_badge_count_{r.id}")
                             from users.views import get_guidy_badge_count
                             new_badge_val = get_guidy_badge_count(r)
                         except Exception:
                             new_badge_val = 1
 
-                        try:
-                            notif = Notification.objects.filter(user=r, category='guidy', is_read=False).first()
-                            if notif:
-                                notif.title = 'Guidy | ABCD'
-                                notif.message = push_body[:80]
-                                notif.link = push_url
-                                notif.save()
-                            else:
-                                Notification.objects.create(
-                                    user=r,
-                                    category='guidy',
-                                    is_read=False,
-                                    title='Guidy | ABCD',
-                                    message=push_body[:80],
-                                    link=push_url
-                                )
-                        except Exception:
-                            pass
+                        if not is_reading_live:
+                            try:
+                                notif = Notification.objects.filter(user=r, category='guidy', is_read=False).first()
+                                if notif:
+                                    notif.title = 'Guidy | ABCD'
+                                    notif.message = push_body[:80]
+                                    notif.link = push_url
+                                    notif.save()
+                                else:
+                                    Notification.objects.create(
+                                        user=r,
+                                        category='guidy',
+                                        is_read=False,
+                                        title='Guidy | ABCD',
+                                        message=push_body[:80],
+                                        link=push_url
+                                    )
+                            except Exception:
+                                pass
 
-                        try:
-                            send_push(
-                                user=r,
-                                title=push_title,
-                                body=push_body,
-                                url=push_url,
-                                icon=push_icon,
-                                badge="/static/data/favicon/favicon-96x96.png",
-                                sound="/static/audio/receive.mp3",
-                                badge_count=new_badge_val,
-                                tag=push_tag,
-                                category="guidy",
-                                source="guidy"
-                            )
-                        except Exception:
-                            pass
+                            try:
+                                send_push(
+                                    user=r,
+                                    title=push_title,
+                                    body=push_body,
+                                    url=push_url,
+                                    icon=push_icon,
+                                    badge="/static/data/favicon/favicon-96x96.png",
+                                    sound="/static/audio/receive.mp3",
+                                    badge_count=new_badge_val,
+                                    tag=push_tag,
+                                    category="guidy",
+                                    source="guidy"
+                                )
+                            except Exception:
+                                pass
 
                         try:
                             from django.core.cache import cache
@@ -295,6 +304,26 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         except Exception:
             pass
 
+    @database_sync_to_async
+    def update_active_chat(self):
+        try:
+            from django.core.cache import cache
+            if self.user and self.user.is_authenticated:
+                cache.set(f"guidy_active_chat_{self.user.id}", f"{self.chat_type}_{self.session_id}", timeout=45)
+        except Exception:
+            pass
+
+    @database_sync_to_async
+    def clear_active_chat(self):
+        try:
+            from django.core.cache import cache
+            if self.user and self.user.is_authenticated:
+                current = cache.get(f"guidy_active_chat_{self.user.id}")
+                if current == f"{self.chat_type}_{self.session_id}":
+                    cache.delete(f"guidy_active_chat_{self.user.id}")
+        except Exception:
+            pass
+
     async def connect(self):
         self.chat_type = self.scope['url_route']['kwargs']['chat_type']
         self.session_id = self.scope['url_route']['kwargs']['session_id']
@@ -312,8 +341,9 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.user_group, self.channel_name)
         await self.accept()
 
-        # Keep presence cache alive
+        # Keep presence cache and active chat cache alive
         await self.update_user_presence(True)
+        await self.update_active_chat()
 
         # Broadcast online presence to room
         await self.channel_layer.group_send(
@@ -326,6 +356,9 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, close_code):
+        # Clear active chat state from cache
+        await self.clear_active_chat()
+
         # Broadcast offline presence to room
         if hasattr(self, 'room_group_name') and hasattr(self, 'user') and self.user and self.user.is_authenticated:
             await self.channel_layer.group_send(
@@ -356,6 +389,7 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
 
         if event_type in ["heartbeat", "ping"]:
             await self.update_user_presence(True)
+            await self.update_active_chat()
             await self.send(text_data=json.dumps({"type": "heartbeat_ack"}))
             return
 

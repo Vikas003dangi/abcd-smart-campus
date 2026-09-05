@@ -11213,14 +11213,19 @@ def guidy_send_message(request, session_id=None, direct_id=None):
             django_models.Q(direct_session__user1=other_user) |
             django_models.Q(direct_session__user2=other_user)
         ).exclude(sender=other_user)
+        current_chat_key = f"direct_{direct_session.id}" if direct_session else f"session_{session.id}"
+        active_in_chat = cache.get(f"guidy_active_chat_{other_user.id}")
+        is_reading_live = (active_in_chat == current_chat_key)
+
         unread_count = unread_total.count()
-        if unread_count > 0:
+        if unread_count > 0 and not is_reading_live:
             sender_name = get_user_display_name(user)
+            push_url = f"/guidy/?{'direct=' + str(direct_session.id) if direct_session else 'session=' + str(session.id)}"
             notif = Notification.objects.filter(user=other_user, category='guidy', is_read=False).first()
             if notif:
                 notif.title = '💬 New Guidy Messages'
                 notif.message = f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.'
-                notif.link = '/guidy/'
+                notif.link = push_url
                 notif.save()
             else:
                 Notification.objects.create(
@@ -11229,12 +11234,10 @@ def guidy_send_message(request, session_id=None, direct_id=None):
                     is_read=False,
                     title='💬 New Guidy Messages',
                     message=f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.',
-                    link='/guidy/'
+                    link=push_url
                 )
 
             # Fire WhatsApp-style mobile push notification
-            push_title = sender_name
-            
             push_title = sender_name
             if msg.message_type == 'text':
                 push_body = msg.content[:80] + '...' if len(msg.content) > 80 else msg.content
@@ -11247,7 +11250,6 @@ def guidy_send_message(request, session_id=None, direct_id=None):
             else:
                 push_body = "📎 Document"
                 
-            push_url = f"/guidy/?{'direct=' + str(direct_session.id) if direct_session else 'session=' + str(session.id)}"
             push_icon = get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
             push_tag = f"guidy-direct-{direct_session.id}" if direct_session else f"guidy-session-{session.id}"
             threading.Thread(
@@ -11530,6 +11532,7 @@ def guidy_heartbeat(request):
     locked_days_left = 0
 
     if chat_type and session_id:
+        cache.set(f'guidy_active_chat_{user.id}', f"{chat_type}_{session_id}", timeout=45)
         try:
             s_id = int(session_id)
             if chat_type == 'direct':
@@ -12591,13 +12594,17 @@ def guidy_group_send_message(request, group_id):
                 group__is_active=True,
                 is_deleted_for_all=False,
             ).exclude(read_by=member).exclude(sender=member).count()
-            if unread_count > 0:
+            active_in_chat = cache.get(f"guidy_active_chat_{member.id}")
+            is_reading_live = (active_in_chat == f"group_{group.id}")
+
+            if unread_count > 0 and not is_reading_live:
+                push_url = f"/guidy/?group={group.id}"
                 # Safe update or create to avoid MultipleObjectsReturned
                 notif = Notification.objects.filter(user=member, category='guidy', is_read=False).first()
                 if notif:
                     notif.title = '💬 New Guidy Messages'
                     notif.message = f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.'
-                    notif.link = '/guidy/'
+                    notif.link = push_url
                     notif.save()
                 else:
                     Notification.objects.create(
@@ -12606,7 +12613,7 @@ def guidy_group_send_message(request, group_id):
                         is_read=False,
                         title='💬 New Guidy Messages',
                         message=f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.',
-                        link='/guidy/'
+                        link=push_url
                     )
 
                 # Fire WhatsApp-style mobile push notification for group members
@@ -12624,7 +12631,6 @@ def guidy_group_send_message(request, group_id):
                 else:
                     push_body = f"{sender_name}: 📎 Document"
                     
-                push_url = f"/guidy/?group={group.id}"
                 push_icon = (group.photo.url if group.photo else None) or get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
                 push_tag = f"guidy-group-{group.id}"
                 threading.Thread(

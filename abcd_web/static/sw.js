@@ -49,7 +49,38 @@ self.addEventListener('push', function (event) {
     }
 
     event.waitUntil(
-        self.registration.showNotification(title, options)
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+            // Check if this notification is for a Guidy chat currently open & visible in this browser
+            const isGuidy = (data.category === 'guidy') ||
+                            (data.source === 'guidy') ||
+                            (data.tag && String(data.tag).startsWith('guidy-')) ||
+                            (data.url && data.url.includes('/guidy'));
+
+            if (isGuidy && clientList && clientList.length > 0) {
+                let targetParam = '';
+                if (data.url && data.url.includes('?')) {
+                    targetParam = data.url.substring(data.url.indexOf('?') + 1); // e.g. "direct=27" or "session=12" or "group=5"
+                }
+
+                // If user currently has this exact chat open and the tab is visible:
+                const isChatActiveAndVisible = clientList.some(function (client) {
+                    if (!client.url || !client.url.includes('/guidy')) return false;
+                    if (client.visibilityState !== 'visible') return false;
+
+                    if (targetParam) {
+                        return client.url.includes(targetParam);
+                    }
+                    return false;
+                });
+
+                if (isChatActiveAndVisible) {
+                    // Suppress browser push popup: user is already reading this chat live
+                    return;
+                }
+            }
+
+            return self.registration.showNotification(title, options);
+        })
     );
 });
 

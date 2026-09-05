@@ -694,6 +694,8 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         "sound": sound or "/static/audio/PWA.mp3",
         "badge_count": max(1, badge_count or 1),
         "tag": tag or "abcd-notification",
+        "category": category,
+        "source": source,
     }
 
     from pywebpush import webpush, WebPushException

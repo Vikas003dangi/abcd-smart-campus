@@ -3273,7 +3273,7 @@ body.dark-theme .search-highlight {
               onkeydown="handleInputKey(event)"
               oninput="toggleSendBtn();"
               oncontextmenu="event.preventDefault(); return false;"></div>
-            <button class="g-send-btn" id="gSendBtn" type="button" onmousedown="event.preventDefault()" onclick="sendMessage()" disabled title="Send">
+            <button class="g-send-btn no-sound" id="gSendBtn" type="button" data-no-sound="true" onmousedown="event.preventDefault()" onclick="sendMessage()" disabled title="Send">
               <i class='bx bx-send'></i>
             </button>
           </div>
@@ -3972,6 +3972,8 @@ function getSidebarChatItem(chatType, chatId) {
 let MY_DISPLAY_NAME = cfg ? (cfg.dataset.myDisplayName || '') : '';
 let currentChatType = SESSION_ID ? 'session' : (DIRECT_ID ? 'direct' : (GROUP_ID ? 'group' : null));
 let currentChatId = SESSION_ID || DIRECT_ID || GROUP_ID || null;
+window.currentChatType = currentChatType;
+window.currentChatId = currentChatId;
 
 let lastMsgId  = 0;
 let replyToId  = null;
@@ -4482,6 +4484,17 @@ function retryFailedMessage(clientMsgId) {
   fallbackSendViaHttp(clientMsgId, rawHtml, null);
 }
 
+function playSendSound() {
+  if (window.playABCDSound) {
+    window.playABCDSound('send');
+  } else {
+    try {
+      const audio = new Audio('/static/audio/send.mp3');
+      audio.play().catch(function () {});
+    } catch (e) {}
+  }
+}
+
 async function sendMessage() {
   const inp = document.getElementById('gInput');
   const content = inp.innerText.trim();
@@ -4545,9 +4558,7 @@ async function sendMessage() {
     };
 
     appendMessage(optMsg);
-    if (window.playABCDSound) {
-      window.playABCDSound('send');
-    }
+    playSendSound();
     keepInputFocus();
     scrollToBottom(true);
 
@@ -4605,9 +4616,7 @@ async function sendMessage() {
       const r = await fetch(url, { method:'POST', body:fd });
       const data = await r.json();
       if (data.success) {
-        if (window.playABCDSound) {
-          window.playABCDSound('send');
-        }
+        playSendSound();
         appendMessage(data.message);
         keepInputFocus();
         clearMediaSelection();
@@ -5694,9 +5703,10 @@ async function doPoll() {
       }
       if (data.messages.length) {
         data.messages.forEach(m => appendMessage(m));
-        const hasIncoming = data.messages.some(m => !m.is_mine);
-        if (hasIncoming) {
+        const incomingMessages = data.messages.filter(m => !m.is_mine);
+        if (incomingMessages.length) {
           clearNotificationBadges();
+          incomingMessages.forEach(m => playIncomingMessageSound(m.id));
         }
       }
       if (data.read_message_ids) {
@@ -5786,9 +5796,10 @@ async function doGroupPoll() {
       }
       if (data.messages.length) {
         data.messages.forEach(m => appendMessage(m));
-        const hasIncoming = data.messages.some(m => !m.is_mine);
-        if (hasIncoming) {
+        const incomingMessages = data.messages.filter(m => !m.is_mine);
+        if (incomingMessages.length) {
           clearNotificationBadges();
+          incomingMessages.forEach(m => playIncomingMessageSound(m.id));
         }
       }
       if (data.read_message_ids) {
@@ -5876,6 +5887,7 @@ function initGuidyWebSocket() {
             appendMessage(data.message);
             if (!data.message.is_mine) {
               emitMarkRead();
+              playIncomingMessageSound(data.message.id);
             }
             updateSidebarItemSnippet(
               GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : 'session'),
@@ -6003,7 +6015,7 @@ function handleIncomingSidebarUpdate(data) {
 
   // Sound chime & vibration on incoming message from other user
   if (!data.message.is_mine) {
-    playGuidyNotificationChime();
+    playIncomingMessageSound(data.message.id);
   }
 }
 
@@ -6140,6 +6152,20 @@ function updateTabBadges() {
       groupBadge.remove();
     }
   }
+}
+
+const playedIncomingSoundIds = new Set();
+function playIncomingMessageSound(msgId) {
+  if (msgId) {
+    const idKey = String(msgId);
+    if (playedIncomingSoundIds.has(idKey)) return;
+    playedIncomingSoundIds.add(idKey);
+    if (playedIncomingSoundIds.size > 300) {
+      const first = playedIncomingSoundIds.values().next().value;
+      playedIncomingSoundIds.delete(first);
+    }
+  }
+  playGuidyNotificationChime();
 }
 
 function playGuidyNotificationChime() {
@@ -7623,6 +7649,8 @@ async function loadChatAJAX(type, id, pushState = true) {
     // Update global state variables
     currentChatType = data.chat_type;
     currentChatId = data.chat_id;
+    window.currentChatType = currentChatType;
+    window.currentChatId = currentChatId;
     SESSION_ID = (data.chat_type === 'session' ? String(data.chat_id) : '');
     DIRECT_ID  = (data.chat_type === 'direct'  ? String(data.chat_id) : '');
     GROUP_ID   = (data.chat_type === 'group'   ? String(data.chat_id) : '');

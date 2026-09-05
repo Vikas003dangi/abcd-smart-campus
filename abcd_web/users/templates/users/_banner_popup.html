@@ -389,13 +389,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = JSON.parse(e.data);
                     if (data.type === 'notification') {
                         const n = data.notification || data;
-                        if (window.playABCDSound) {
-                            window.playABCDSound('receive');
+
+                        // Check if this notification is for a Guidy chat currently open & active in this window
+                        let isCurrentActiveChat = false;
+                        if (n.category === 'guidy' || (n.link && n.link.includes('/guidy/'))) {
+                            if (window.location.pathname.includes('/guidy')) {
+                                const currentType = window.currentChatType;
+                                const currentId = window.currentChatId;
+                                const urlParams = new URLSearchParams(window.location.search);
+
+                                const activeDirect = currentId && currentType === 'direct' ? String(currentId) : (urlParams.get('direct') || '');
+                                const activeSession = currentId && (currentType === 'session' || currentType === 'guidance') ? String(currentId) : (urlParams.get('session') || '');
+                                const activeGroup = currentId && currentType === 'group' ? String(currentId) : (urlParams.get('group') || '');
+
+                                if (n.link) {
+                                    if (activeDirect && n.link.includes(`direct=${activeDirect}`)) isCurrentActiveChat = true;
+                                    if (activeSession && (n.link.includes(`session=${activeSession}`) || n.link.includes(`guidance=${activeSession}`))) isCurrentActiveChat = true;
+                                    if (activeGroup && n.link.includes(`group=${activeGroup}`)) isCurrentActiveChat = true;
+                                }
+                            }
                         }
-                        if (typeof window.showToast === 'function') {
-                            window.showToast(`${n.title}: ${n.message}`, 'info');
-                        } else {
-                            console.log("🔔 Real-Time Notification:", n);
+
+                        // If user has this chat open live, suppress the white toast bubble and duplicate chime
+                        if (!isCurrentActiveChat) {
+                            if (window.playABCDSound) {
+                                window.playABCDSound('receive');
+                            }
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(`${n.title}: ${n.message}`, 'info');
+                            } else {
+                                console.log("🔔 Real-Time Notification:", n);
+                            }
                         }
                         if (typeof checkAndDisplayStudentBanner === 'function' && n.category === 'broadcast') {
                             checkAndDisplayStudentBanner();

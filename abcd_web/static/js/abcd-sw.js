@@ -24,7 +24,18 @@ self.addEventListener('push', (event) => {
         data: { url: data.url || '/' }
     };
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            if (data.url && data.url.includes('/guidy') && clientList && clientList.length > 0) {
+                let targetParam = data.url.includes('?') ? data.url.substring(data.url.indexOf('?') + 1) : '';
+                const isChatActiveAndVisible = clientList.some((client) => {
+                    return client.url && client.url.includes('/guidy') && client.visibilityState === 'visible' && targetParam && client.url.includes(targetParam);
+                });
+                if (isChatActiveAndVisible) return;
+            }
+            return self.registration.showNotification(title, options);
+        })
+    );
 });
 
 self.addEventListener('notificationclick', (event) => {

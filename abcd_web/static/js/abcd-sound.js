@@ -56,7 +56,6 @@
     // Unlock audio context on first user interaction (browser autoplay policy)
     function unlockAudio() {
         if (isAudioUnlocked) return;
-        isAudioUnlocked = true;
 
         try {
             const primer = audioPool['button'] || new Audio(SOUND_PATHS['button']);
@@ -67,22 +66,27 @@
                     primer.pause();
                     primer.currentTime = 0;
                     primer.volume = 1.0;
+                    isAudioUnlocked = true;
+                    ['click', 'touchstart', 'keydown'].forEach(function (evt) {
+                        document.removeEventListener(evt, unlockAudio, { capture: true });
+                    });
                 }).catch(function () {
-                    isAudioUnlocked = false;
+                    // Keep listeners attached to retry on next user interaction
+                });
+            } else {
+                isAudioUnlocked = true;
+                ['click', 'touchstart', 'keydown'].forEach(function (evt) {
+                    document.removeEventListener(evt, unlockAudio, { capture: true });
                 });
             }
         } catch (e) {
-            isAudioUnlocked = false;
+            // Keep listeners attached to retry on next user interaction
         }
-
-        ['click', 'touchstart', 'keydown'].forEach(function (evt) {
-            document.removeEventListener(evt, unlockAudio, { capture: true });
-        });
     }
 
     // Register interaction listeners to unlock
     ['click', 'touchstart', 'keydown'].forEach(function (evt) {
-        document.addEventListener(evt, unlockAudio, { capture: true, once: true });
+        document.addEventListener(evt, unlockAudio, { capture: true });
     });
 
     /**
@@ -99,7 +103,35 @@
         if (!soundSrc) return;
 
         try {
-            // Create a dedicated audio object to allow overlapping sounds
+            const poolAudio = audioPool[normalizedName];
+            if (poolAudio) {
+                // If audio element is idle, reuse directly for instant playback
+                if (poolAudio.paused || poolAudio.ended) {
+                    poolAudio.currentTime = 0;
+                    poolAudio.volume = Math.max(0, Math.min(1, vol));
+                    const p = poolAudio.play();
+                    if (p !== undefined) {
+                        p.catch(function () {
+                            // Fallback to clone or fresh instance
+                            const clone = new Audio(soundSrc);
+                            clone.volume = Math.max(0, Math.min(1, vol));
+                            clone.play().catch(function () {});
+                        });
+                    }
+                    return;
+                } else {
+                    // Overlapping sound: clone pre-buffered element
+                    const clone = poolAudio.cloneNode(true);
+                    clone.volume = Math.max(0, Math.min(1, vol));
+                    const p = clone.play();
+                    if (p !== undefined) {
+                        p.catch(function () {});
+                    }
+                    return;
+                }
+            }
+
+            // Fresh instance fallback if pool entry is not ready
             const snd = new Audio(soundSrc);
             snd.volume = Math.max(0, Math.min(1, vol));
             const playPromise = snd.play();
