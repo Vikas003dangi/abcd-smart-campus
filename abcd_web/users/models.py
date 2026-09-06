@@ -1981,6 +1981,7 @@ class Message(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
 
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_delivered = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
     deleted_by = models.ManyToManyField(
         User,
@@ -2169,6 +2170,7 @@ class GroupMessage(models.Model):
     is_deleted_for_all = models.BooleanField(default=False)
     media_expired = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_delivered = models.BooleanField(default=False)
     read_by = models.ManyToManyField(
         User,
         related_name='read_group_messages',
@@ -2494,6 +2496,11 @@ def dispatch_realtime_notification_on_save(sender, instance, created, **kwargs):
 
     # 2. Asynchronous Web Push notification to user devices
     try:
+        # Skip generic push for Guidy messages because Guidy chat sends dedicated,
+        # avatar-tagged push notifications with unread badge count and sound.
+        if getattr(instance, 'category', None) == 'guidy':
+            return
+
         import threading
         from .notifications import send_push
         threading.Thread(

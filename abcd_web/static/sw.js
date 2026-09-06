@@ -8,6 +8,18 @@ self.addEventListener('activate', function (event) {
     event.waitUntil(self.clients.claim());
 });
 
+let activeChatState = { chatType: null, chatId: null, timestamp: 0 };
+
+self.addEventListener('message', function (event) {
+    if (event.data && event.data.type === 'ACTIVE_CHAT_UPDATE') {
+        activeChatState = {
+            chatType: event.data.chatType,
+            chatId: event.data.chatId ? String(event.data.chatId) : null,
+            timestamp: Date.now()
+        };
+    }
+});
+
 self.addEventListener('push', function (event) {
     let data = {};
     if (event.data) {
@@ -28,7 +40,6 @@ self.addEventListener('push', function (event) {
         icon: icon,
         badge: badge,
         sound: sound,
-        vibrate: [200, 100, 200, 100, 200],
         tag: data.tag || 'abcd-notification',
         renotify: true,
         requireInteraction: true,
@@ -62,7 +73,25 @@ self.addEventListener('push', function (event) {
                     targetParam = data.url.substring(data.url.indexOf('?') + 1); // e.g. "direct=27" or "session=12" or "group=5"
                 }
 
-                // If user currently has this exact chat open and the tab is visible:
+                // Check 1: Direct active chat sync from Guidy client via postMessage
+                const isRecentState = (Date.now() - activeChatState.timestamp) < 120000;
+                const activeId = activeChatState.chatId;
+                const matchesActiveChat = isRecentState && activeId && (
+                    (targetParam && targetParam.includes(activeId)) ||
+                    (data.tag && String(data.tag).includes(activeId)) ||
+                    (data.url && data.url.includes(activeId))
+                );
+
+                const hasVisibleGuidyTab = clientList.some(function (client) {
+                    return client.url && client.url.includes('/guidy') && client.visibilityState === 'visible';
+                });
+
+                if (hasVisibleGuidyTab && matchesActiveChat) {
+                    // Chat is currently open and visible: suppress notification!
+                    return;
+                }
+
+                // Check 2: Fallback URL inspection
                 const isChatActiveAndVisible = clientList.some(function (client) {
                     if (!client.url || !client.url.includes('/guidy')) return false;
                     if (client.visibilityState !== 'visible') return false;

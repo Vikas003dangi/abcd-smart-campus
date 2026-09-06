@@ -12781,7 +12781,30 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
                         }
                     } else if (data.type === 'guidy_sidebar_update' || data.type === 'notification' || data.type === 'dashboard_stats_update') {
                         if (data.type === 'notification' && data.title) {
-                            if (typeof window.showToast === 'function') {
+                            let isCurrentActiveChat = false;
+                            const notifObj = data.notification || data;
+                            const linkStr = String(notifObj.link || data.link || '');
+                            if (notifObj.category === 'guidy' || linkStr.includes('/guidy')) {
+                                if (window.location.pathname.includes('/guidy')) {
+                                    const currentType = window.currentChatType;
+                                    const currentId = window.currentChatId;
+                                    const urlParams = new URLSearchParams(window.location.search);
+
+                                    const activeDirect = currentId && currentType === 'direct' ? String(currentId) : (urlParams.get('direct') || '');
+                                    const activeSession = currentId && (currentType === 'session' || currentType === 'guidance') ? String(currentId) : (urlParams.get('session') || urlParams.get('guidance') || '');
+                                    const activeGroup = currentId && currentType === 'group' ? String(currentId) : (urlParams.get('group') || '');
+
+                                    if (linkStr) {
+                                        if (activeDirect && linkStr.includes(`direct=${activeDirect}`)) isCurrentActiveChat = true;
+                                        if (activeSession && (linkStr.includes(`session=${activeSession}`) || linkStr.includes(`guidance=${activeSession}`))) isCurrentActiveChat = true;
+                                        if (activeGroup && linkStr.includes(`group=${activeGroup}`)) isCurrentActiveChat = true;
+                                    }
+                                    if (currentId && (linkStr.includes(`=${currentId}`) || String(notifObj.chat_id || data.chat_id || '') === String(currentId))) {
+                                        isCurrentActiveChat = true;
+                                    }
+                                }
+                            }
+                            if (!isCurrentActiveChat && typeof window.showToast === 'function') {
                                 window.showToast(`${data.title}: ${data.message}`, 'info');
                             }
                         }

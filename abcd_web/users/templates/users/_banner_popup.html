@@ -392,20 +392,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         // Check if this notification is for a Guidy chat currently open & active in this window
                         let isCurrentActiveChat = false;
-                        if (n.category === 'guidy' || (n.link && n.link.includes('/guidy/'))) {
+                        const linkStr = String(n.link || data.link || '');
+                        if (n.category === 'guidy' || linkStr.includes('/guidy')) {
                             if (window.location.pathname.includes('/guidy')) {
                                 const currentType = window.currentChatType;
                                 const currentId = window.currentChatId;
                                 const urlParams = new URLSearchParams(window.location.search);
 
                                 const activeDirect = currentId && currentType === 'direct' ? String(currentId) : (urlParams.get('direct') || '');
-                                const activeSession = currentId && (currentType === 'session' || currentType === 'guidance') ? String(currentId) : (urlParams.get('session') || '');
+                                const activeSession = currentId && (currentType === 'session' || currentType === 'guidance') ? String(currentId) : (urlParams.get('session') || urlParams.get('guidance') || '');
                                 const activeGroup = currentId && currentType === 'group' ? String(currentId) : (urlParams.get('group') || '');
 
-                                if (n.link) {
-                                    if (activeDirect && n.link.includes(`direct=${activeDirect}`)) isCurrentActiveChat = true;
-                                    if (activeSession && (n.link.includes(`session=${activeSession}`) || n.link.includes(`guidance=${activeSession}`))) isCurrentActiveChat = true;
-                                    if (activeGroup && n.link.includes(`group=${activeGroup}`)) isCurrentActiveChat = true;
+                                if (linkStr) {
+                                    if (activeDirect && linkStr.includes(`direct=${activeDirect}`)) isCurrentActiveChat = true;
+                                    if (activeSession && (linkStr.includes(`session=${activeSession}`) || linkStr.includes(`guidance=${activeSession}`))) isCurrentActiveChat = true;
+                                    if (activeGroup && linkStr.includes(`group=${activeGroup}`)) isCurrentActiveChat = true;
+                                }
+                                if (currentId && (linkStr.includes(`=${currentId}`) || String(n.chat_id || data.chat_id || '') === String(currentId))) {
+                                    isCurrentActiveChat = true;
                                 }
                             }
                         }

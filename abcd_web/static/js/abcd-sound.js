@@ -112,18 +112,17 @@
                     const p = poolAudio.play();
                     if (p !== undefined) {
                         p.catch(function () {
-                            // Fallback to clone or fresh instance
-                            const clone = new Audio(soundSrc);
-                            clone.volume = Math.max(0, Math.min(1, vol));
-                            clone.play().catch(function () {});
+                            const fresh = new Audio(soundSrc);
+                            fresh.volume = Math.max(0, Math.min(1, vol));
+                            fresh.play().catch(function () {});
                         });
                     }
                     return;
                 } else {
-                    // Overlapping sound: clone pre-buffered element
-                    const clone = poolAudio.cloneNode(true);
-                    clone.volume = Math.max(0, Math.min(1, vol));
-                    const p = clone.play();
+                    // Overlapping sound: play via fresh Audio instance
+                    const fresh = new Audio(soundSrc);
+                    fresh.volume = Math.max(0, Math.min(1, vol));
+                    const p = fresh.play();
                     if (p !== undefined) {
                         p.catch(function () {});
                     }

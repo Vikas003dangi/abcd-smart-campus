@@ -559,11 +559,15 @@ body.dark-theme .g-req-card {
 .g-pane-flex { display: flex; }
 .g-pane-block { display: block; }
 
-.msg-tick { font-size: 0.82rem; }
-.msg-tick.tick-read { color: #2563eb !important; }
-.msg-tick.tick-unread { color: #64748b !important; opacity: 0.85; }
+.msg-tick { font-size: 0.82rem; transition: color 0.15s ease, transform 0.15s ease; }
+.msg-tick.tick-sent { color: #94a3b8 !important; opacity: 0.85; }
+.msg-tick.tick-delivered { color: #94a3b8 !important; opacity: 0.95; }
+.msg-tick.tick-read { color: #2563eb !important; opacity: 1; }
+.msg-tick.tick-unread { color: #94a3b8 !important; opacity: 0.85; }
+body.dark-theme .msg-tick.tick-sent { color: rgba(255, 255, 255, 0.55) !important; }
+body.dark-theme .msg-tick.tick-delivered { color: rgba(255, 255, 255, 0.75) !important; }
 body.dark-theme .msg-tick.tick-read { color: #38bdf8 !important; }
-body.dark-theme .msg-tick.tick-unread { color: rgba(255, 255, 255, 0.65) !important; opacity: 1; }
+body.dark-theme .msg-tick.tick-unread { color: rgba(255, 255, 255, 0.65) !important; }
 
 /* ══════════════════════════════════════════════════════
    MAIN CHAT AREA
@@ -2985,7 +2989,13 @@ body.dark-theme .search-highlight {
                     {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
                     <span>{{ msg.timestamp|date:"H:i" }}</span>
                     {% if msg.sender == request.user %}
-                      <i class="bx bx-check-double msg-tick {% if msg.is_read %}tick-read{% else %}tick-unread{% endif %}"></i>
+                      {% if msg.is_read %}
+                        <i class="bx bx-check-double msg-tick tick-read" data-msg-id="{{ msg.id }}" title="Read"></i>
+                      {% elif msg.is_delivered %}
+                        <i class="bx bx-check-double msg-tick tick-delivered" data-msg-id="{{ msg.id }}" title="Delivered"></i>
+                      {% else %}
+                        <i class="bx bx-check msg-tick tick-sent" data-msg-id="{{ msg.id }}" title="Sent"></i>
+                      {% endif %}
                     {% endif %}
                   </div>
                 {% endif %}
@@ -3086,7 +3096,13 @@ body.dark-theme .search-highlight {
                        {% if request.user in msg.starred_by.all %}<i class='bx bxs-star g-msg-star-ico'></i>{% endif %}
                        <span>{{ msg.timestamp|date:"H:i" }}</span>
                        {% if msg.sender == request.user %}
-                         <i class="bx bx-check-double msg-tick {% if msg.read_by.all|length > 0 %}tick-read{% else %}tick-unread{% endif %}"></i>
+                         {% if msg.read_by.all|length > 0 %}
+                           <i class="bx bx-check-double msg-tick tick-read" data-msg-id="{{ msg.id }}" title="Read"></i>
+                         {% elif msg.is_delivered %}
+                           <i class="bx bx-check-double msg-tick tick-delivered" data-msg-id="{{ msg.id }}" title="Delivered"></i>
+                         {% else %}
+                           <i class="bx bx-check msg-tick tick-sent" data-msg-id="{{ msg.id }}" title="Sent"></i>
+                         {% endif %}
                        {% endif %}
                      </div>
                   {% endif %}
@@ -3975,6 +3991,29 @@ let currentChatId = SESSION_ID || DIRECT_ID || GROUP_ID || null;
 window.currentChatType = currentChatType;
 window.currentChatId = currentChatId;
 
+function syncActiveChatToServiceWorker(chatType, chatId) {
+  if ('serviceWorker' in navigator) {
+    const msg = {
+      type: 'ACTIVE_CHAT_UPDATE',
+      chatType: chatType || null,
+      chatId: chatId ? String(chatId) : null
+    };
+    if (navigator.serviceWorker.controller) {
+      try {
+        navigator.serviceWorker.controller.postMessage(msg);
+      } catch(e) {}
+    }
+    navigator.serviceWorker.ready.then(reg => {
+      if (reg && reg.active) {
+        try {
+          reg.active.postMessage(msg);
+        } catch(e) {}
+      }
+    }).catch(() => {});
+  }
+}
+syncActiveChatToServiceWorker(currentChatType, currentChatId);
+
 let lastMsgId  = 0;
 let replyToId  = null;
 let replyToText = '';
@@ -3993,6 +4032,7 @@ let currentlyPlayingAudio = null;
 
 // ── Initialize ─────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  syncActiveChatToServiceWorker(currentChatType, currentChatId);
   buildBgCanvas();
   // Refresh background icons every 5 minutes for variety
   setInterval(() => {
@@ -5248,11 +5288,20 @@ function appendMessage(msg) {
       if (timeSpan && msg.timestamp) timeSpan.textContent = msg.timestamp;
       const tick = pendingRow.querySelector('.msg-tick');
       if (tick) {
-        tick.className = `bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}`;
+        if (msg.id) tick.dataset.msgId = msg.id;
+        if (msg.is_read) {
+          tick.className = 'bx bx-check-double msg-tick tick-read';
+          tick.title = 'Read';
+        } else if (msg.is_delivered) {
+          tick.className = 'bx bx-check-double msg-tick tick-delivered';
+          tick.title = 'Delivered';
+        } else {
+          tick.className = 'bx bx-check msg-tick tick-sent';
+          tick.title = 'Sent';
+        }
         tick.style.display = '';
         tick.style.color = '';
         tick.style.cursor = '';
-        tick.title = '';
         tick.onclick = null;
       }
       if (msg.id && typeof msg.id === 'number') {
@@ -5365,9 +5414,13 @@ function appendMessage(msg) {
   let tickHtml = '';
   if (msg.is_mine) {
     if (isPending) {
-      tickHtml = `<i class="bx bx-time-five msg-tick tick-pending" style="font-size:0.75rem; opacity:0.75;" title="Sending..."></i>`;
+      tickHtml = `<i class="bx bx-time-five msg-tick tick-pending" data-msg-id="${msg.id || ''}" style="font-size:0.75rem; opacity:0.75;" title="Sending..."></i>`;
+    } else if (msg.is_read) {
+      tickHtml = `<i class="bx bx-check-double msg-tick tick-read" data-msg-id="${msg.id || ''}" title="Read"></i>`;
+    } else if (msg.is_delivered) {
+      tickHtml = `<i class="bx bx-check-double msg-tick tick-delivered" data-msg-id="${msg.id || ''}" title="Delivered"></i>`;
     } else {
-      tickHtml = `<i class="bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}"></i>`;
+      tickHtml = `<i class="bx bx-check msg-tick tick-sent" data-msg-id="${msg.id || ''}" title="Sent"></i>`;
     }
   }
 
@@ -5514,14 +5567,22 @@ function formatMessageContent(s) {
 function updateReadTicks(readMessageIds) {
   if (!readMessageIds || !readMessageIds.length) return;
   readMessageIds.forEach(id => {
-    const row = document.querySelector(`.g-msg-row[data-msg-id="${id}"]`);
-    if (row) {
+    const rows = document.querySelectorAll(`.g-msg-row[data-msg-id="${id}"]`);
+    rows.forEach(row => {
       row.setAttribute('data-read', 'true');
       const tick = row.querySelector('.msg-tick');
       if (tick) {
-        tick.style.color = 'var(--g-accent)';
+        tick.className = 'bx bx-check-double msg-tick tick-read';
+        tick.title = 'Read';
+        tick.style.color = '';
       }
-    }
+    });
+    const directTicks = document.querySelectorAll(`.msg-tick[data-msg-id="${id}"]`);
+    directTicks.forEach(tick => {
+      tick.className = 'bx bx-check-double msg-tick tick-read';
+      tick.title = 'Read';
+      tick.style.color = '';
+    });
   });
   pendingReadIds = pendingReadIds.filter(id => !readMessageIds.includes(id));
 }
@@ -5656,7 +5717,7 @@ async function fetchOlderMessages() {
                           <div class="g-msg-meta">
                             ${msg.is_pinned ? `<i class='bx bx-pin g-msg-pin-ico'></i>` : ''}
                             <span>${msg.timestamp}</span>
-                            ${msg.is_mine ? `<i class="bx bx-check-double msg-tick ${msg.is_read ? 'tick-read' : 'tick-unread'}"></i>` : ''}
+                            ${msg.is_mine ? (msg.is_read ? `<i class="bx bx-check-double msg-tick tick-read" data-msg-id="${msg.id || ''}" title="Read"></i>` : (msg.is_delivered ? `<i class="bx bx-check-double msg-tick tick-delivered" data-msg-id="${msg.id || ''}" title="Delivered"></i>` : `<i class="bx bx-check msg-tick tick-sent" data-msg-id="${msg.id || ''}" title="Sent"></i>`)) : ''}
                           </div>`;
           }
 
@@ -5903,14 +5964,28 @@ function initGuidyWebSocket() {
           if (typeof data.guidy_badge_count !== 'undefined') {
             updateSidebarBadge(data.guidy_badge_count);
           }
-        } else if (data.type === 'messages_read' && data.message_ids) {
+        } else if (data.type === 'messages_delivered' && data.message_ids) {
           data.message_ids.forEach(id => {
-            const ticks = document.querySelectorAll(`.msg-tick[data-msg-id="${id}"], .msg-status-tick[data-msg-id="${id}"]`);
-            ticks.forEach(t => {
-              t.innerHTML = '✓✓';
-              t.style.color = '#3b82f6';
+            const rows = document.querySelectorAll(`.g-msg-row[data-msg-id="${id}"]`);
+            rows.forEach(r => {
+              const tick = r.querySelector('.msg-tick');
+              if (tick && !tick.classList.contains('tick-read')) {
+                tick.className = 'bx bx-check-double msg-tick tick-delivered';
+                tick.title = 'Delivered';
+                tick.style.color = '';
+              }
+            });
+            const directTicks = document.querySelectorAll(`.msg-tick[data-msg-id="${id}"]`);
+            directTicks.forEach(tick => {
+              if (tick && !tick.classList.contains('tick-read')) {
+                tick.className = 'bx bx-check-double msg-tick tick-delivered';
+                tick.title = 'Delivered';
+                tick.style.color = '';
+              }
             });
           });
+        } else if (data.type === 'messages_read' && data.message_ids) {
+          updateReadTicks(data.message_ids);
         } else if (data.type === 'user_presence') {
           const presenceBox = document.getElementById('chatUserPresence');
           if (presenceBox) {
@@ -6177,9 +6252,7 @@ function playGuidyNotificationChime() {
       audio.play().catch(function () {});
     } catch (e) {}
   }
-  if (navigator.vibrate) {
-    try { navigator.vibrate([100, 50, 100]); } catch (e) {}
-  }
+  // Vibration completely disabled per user preference (sound only)
 }
 
 let guidyHeartbeatTimer = null;
@@ -7510,6 +7583,7 @@ function closeCurrentChat() {
 }
 
 function showNoChatPlaceholder(updateHistory = true) {
+  syncActiveChatToServiceWorker(null, null);
   isPollingActive = false;
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
   if (chatWebSocket) {
@@ -7663,6 +7737,7 @@ async function loadChatAJAX(type, id, pushState = true) {
     OTHER_ID   = data.other_id ? String(data.other_id) : '';
     OTHER_USER_NAME = data.name || '';
     REQ_PK = data.req_pk ? String(data.req_pk) : '';
+    syncActiveChatToServiceWorker(data.chat_type, data.chat_id);
 
     // Synchronize dataset on guidyConfig
     if (cfg) {

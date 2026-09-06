@@ -99,6 +99,17 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                 'type': getattr(reply_to_obj, 'message_type', 'text'),
             }
 
+        # Initial delivery check: if recipient is currently online, mark delivered immediately
+        try:
+            from django.core.cache import cache
+            for r in recipients:
+                if r and cache.get(f"guidy_presence_{r.id}"):
+                    msg.is_delivered = True
+                    msg.save(update_fields=['is_delivered'])
+                    break
+        except Exception:
+            pass
+
         # Trigger background web push and database notifications to recipient(s)
         try:
             import threading
@@ -108,6 +119,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
 
             def _notify_bg(recipients_list, sender, message_obj, c_type, s_id):
                 close_old_connections()
+                delivered_marked = False
                 try:
                     sender_name = get_user_display_name(sender)
                     push_title = "Guidy | ABCD"
@@ -143,6 +155,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                         except Exception:
                             new_badge_val = 1
 
+                        push_delivered = False
                         if not is_reading_live:
                             try:
                                 notif = Notification.objects.filter(user=r, category='guidy', is_read=False).first()
@@ -164,7 +177,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                                 pass
 
                             try:
-                                send_push(
+                                push_delivered = bool(send_push(
                                     user=r,
                                     title=push_title,
                                     body=push_body,
@@ -176,7 +189,22 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                                     tag=push_tag,
                                     category="guidy",
                                     source="guidy"
-                                )
+                                ))
+                            except Exception:
+                                push_delivered = False
+
+                        try:
+                            from django.core.cache import cache
+                            recipient_online = bool(cache.get(f"guidy_presence_{r.id}") or is_reading_live)
+                        except Exception:
+                            recipient_online = False
+
+                        # If push reached recipient or recipient is active/online, mark delivered
+                        if (push_delivered or recipient_online) and not getattr(message_obj, 'is_delivered', False):
+                            try:
+                                message_obj.is_delivered = True
+                                message_obj.save(update_fields=['is_delivered'])
+                                delivered_marked = True
                             except Exception:
                                 pass
 
@@ -196,6 +224,24 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                                         "guidy_badge_count": new_badge_val,
                                     }
                                 )
+                        except Exception:
+                            pass
+
+                    # Real-time tick upgrade from single check to double check
+                    if delivered_marked:
+                        try:
+                            from asgiref.sync import async_to_sync
+                            from channels.layers import get_channel_layer
+                            c_layer = get_channel_layer()
+                            if c_layer:
+                                d_payload = {
+                                    "type": "messages_delivered_broadcast",
+                                    "chat_type": c_type,
+                                    "session_id": s_id,
+                                    "message_ids": [message_obj.id],
+                                }
+                                async_to_sync(c_layer.group_send)(f"guidy_{c_type}_{s_id}", d_payload)
+                                async_to_sync(c_layer.group_send)(f"user_{sender.id}", d_payload)
                         except Exception:
                             pass
                 finally:
@@ -224,6 +270,8 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
             'reply_to': reply_preview,
             'is_pinned': False,
             'media_expired': False,
+            'is_delivered': bool(getattr(msg, 'is_delivered', False)),
+            'is_read': False,
             'is_verified': (user.is_staff or user.is_superuser),
             'recipient_ids': [r.id for r in recipients if r],
         }
@@ -251,24 +299,58 @@ def mark_messages_as_read(user_id, chat_type, session_id):
                 for msg in msgs:
                     msg.read_by.add(user)
                     read_ids.append(msg.id)
+                GroupMessage.objects.filter(id__in=read_ids).update(is_delivered=True)
         elif chat_type == 'direct':
             direct_session = DirectChatSession.objects.filter(id=session_id).first()
             if direct_session:
                 qs = Message.objects.filter(direct_session=direct_session, is_read=False).exclude(sender=user)
                 read_ids = list(qs.values_list('id', flat=True))
-                qs.update(is_read=True)
+                qs.update(is_read=True, is_delivered=True)
         else:  # guidance
             session = ChatSession.objects.filter(id=session_id).first()
             if session:
                 qs = Message.objects.filter(session=session, is_read=False).exclude(sender=user)
                 read_ids = list(qs.values_list('id', flat=True))
-                qs.update(is_read=True)
+                qs.update(is_read=True, is_delivered=True)
 
         return read_ids
     except Exception as e:
         import logging
         logging.getLogger(__name__).exception("Failed to mark Guidy messages read: %s", e)
         return []
+
+
+@database_sync_to_async
+def mark_all_undelivered_for_user(user_id):
+    try:
+        from django.db.models import Q
+        from users.models import Message
+        undelivered = list(Message.objects.filter(
+            is_delivered=False
+        ).filter(
+            Q(direct_session__user1_id=user_id) |
+            Q(direct_session__user2_id=user_id) |
+            Q(session__user_one_id=user_id) |
+            Q(session__user_two_id=user_id) |
+            Q(session__request__student_id=user_id) |
+            Q(session__request__alumni__user_id=user_id)
+        ).exclude(sender_id=user_id))
+
+        if not undelivered:
+            return {}
+
+        delivered_by_sender = {}
+        msg_ids = []
+        for m in undelivered:
+            msg_ids.append(m.id)
+            delivered_by_sender.setdefault(m.sender_id, []).append(m.id)
+
+        Message.objects.filter(id__in=msg_ids).update(is_delivered=True)
+        return delivered_by_sender
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug("mark_all_undelivered_for_user error: %s", e)
+        return {}
 
 
 @database_sync_to_async
@@ -344,6 +426,22 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         # Keep presence cache and active chat cache alive
         await self.update_user_presence(True)
         await self.update_active_chat()
+
+        # Mark all pending messages sent to this user as delivered, and notify senders
+        try:
+            delivered_map = await mark_all_undelivered_for_user(self.user.id)
+            if delivered_map:
+                for s_id, m_ids in delivered_map.items():
+                    d_evt = {
+                        "type": "messages_delivered_broadcast",
+                        "chat_type": self.chat_type,
+                        "session_id": self.session_id,
+                        "message_ids": m_ids,
+                    }
+                    await self.channel_layer.group_send(f"user_{s_id}", d_evt)
+                    await self.channel_layer.group_send(self.room_group_name, d_evt)
+        except Exception:
+            pass
 
         # Broadcast online presence to room
         await self.channel_layer.group_send(
@@ -515,6 +613,14 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             "message": event["message"],
         }))
 
+    async def messages_delivered_broadcast(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "messages_delivered",
+            "chat_type": event.get("chat_type"),
+            "session_id": event.get("session_id"),
+            "message_ids": event.get("message_ids", []),
+        }))
+
     async def messages_read_broadcast(self, event):
         await self.send(text_data=json.dumps({
             "type": "messages_read",
@@ -578,6 +684,21 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
         await self.update_user_presence(True)
+
+        # Mark all pending messages sent to this user as delivered, and notify senders
+        try:
+            delivered_map = await mark_all_undelivered_for_user(self.user.id)
+            if delivered_map:
+                for s_id, m_ids in delivered_map.items():
+                    await self.channel_layer.group_send(
+                        f"user_{s_id}",
+                        {
+                            "type": "messages_delivered_broadcast",
+                            "message_ids": m_ids,
+                        }
+                    )
+        except Exception:
+            pass
 
     async def disconnect(self, close_code):
         if hasattr(self, 'user_group'):
@@ -659,5 +780,20 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": "dashboard_stats_update",
             "stats": event.get("stats", {}),
+        }))
+
+    async def messages_delivered_broadcast(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "messages_delivered",
+            "chat_type": event.get("chat_type"),
+            "session_id": event.get("session_id"),
+            "message_ids": event.get("message_ids", []),
+        }))
+
+    async def messages_read_broadcast(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "messages_read",
+            "reader_id": event.get("reader_id"),
+            "message_ids": event.get("message_ids", []),
         }))
 

@@ -48,13 +48,36 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from users.models import SeatAssignment
 from users.db_utils import safe_atomic_transaction, deduplicate_request, safe_db_operation, retry_on_db_lock
-def _send_push_bg(user_target, title, body, url, icon=None, badge=None, tag=None, sound=None, badge_count=None, category=None, **kwargs):
+def _send_push_bg(user_target, title, body, url, icon=None, badge=None, tag=None, sound=None, badge_count=None, category=None, msg_id=None, chat_type=None, session_id=None, sender_id=None, **kwargs):
     from users.notifications import send_push
     from django.db import close_old_connections
+    from django.core.cache import cache
     
     close_old_connections() # Clean state before starting
     try:
-        send_push(user_target, title, body, url, icon=icon, badge=badge, tag=tag, sound=sound, badge_count=badge_count, category=category, **kwargs)
+        delivered = bool(send_push(user_target, title, body, url, icon=icon, badge=badge, tag=tag, sound=sound, badge_count=badge_count, category=category, **kwargs))
+        if msg_id:
+            from users.models import Message
+            recipient_online = bool(user_target and cache.get(f"guidy_presence_{user_target.id}"))
+            if delivered or recipient_online:
+                Message.objects.filter(id=msg_id, is_delivered=False).update(is_delivered=True)
+                try:
+                    from channels.layers import get_channel_layer
+                    from asgiref.sync import async_to_sync
+                    cl = get_channel_layer()
+                    if cl:
+                        d_evt = {
+                            "type": "messages_delivered_broadcast",
+                            "chat_type": chat_type,
+                            "session_id": session_id,
+                            "message_ids": [msg_id],
+                        }
+                        if chat_type and session_id:
+                            async_to_sync(cl.group_send)(f"guidy_{chat_type}_{session_id}", d_evt)
+                        if sender_id:
+                            async_to_sync(cl.group_send)(f"user_{sender_id}", d_evt)
+                except Exception:
+                    pass
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"BG Push Error: {e}")
@@ -11252,9 +11275,19 @@ def guidy_send_message(request, session_id=None, direct_id=None):
                 
             push_icon = get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
             push_tag = f"guidy-direct-{direct_session.id}" if direct_session else f"guidy-session-{session.id}"
+            if other_user and cache.get(f"guidy_presence_{other_user.id}"):
+                msg.is_delivered = True
+                msg.save(update_fields=['is_delivered'])
+
             threading.Thread(
                 target=_send_push_bg,
                 args=(other_user, push_title, push_body, push_url, push_icon, "/static/data/favicon/favicon-96x96.png", push_tag),
+                kwargs={
+                    "msg_id": msg.id,
+                    "chat_type": 'direct' if direct_session else 'guidance',
+                    "session_id": direct_session.id if direct_session else session.id,
+                    "sender_id": user.id,
+                },
                 daemon=True
             ).start()
     except Exception as e:
@@ -11283,6 +11316,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
         'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
         'is_mine': False,
+        'is_delivered': bool(msg.is_delivered),
         'is_read': False,
         'sender_name': get_user_display_name(user),
         'sender_photo': get_profile_photo_url(user),
@@ -14911,7 +14945,24 @@ def guidy_load_chat_api(request):
                     locked_days_left = max(0, 5 - days_passed)
 
             if session.is_active:
-                session.messages.exclude(sender=user).update(is_read=True)
+                unr_qs = session.messages.exclude(sender=user).filter(is_read=False)
+                unr_ids = list(unr_qs.values_list('id', flat=True))
+                if unr_ids:
+                    unr_qs.update(is_read=True, is_delivered=True)
+                    try:
+                        from channels.layers import get_channel_layer
+                        from asgiref.sync import async_to_sync
+                        cl = get_channel_layer()
+                        if cl and other_u:
+                            r_payload = {
+                                "type": "messages_read_broadcast",
+                                "reader_id": user.id,
+                                "message_ids": unr_ids,
+                            }
+                            async_to_sync(cl.group_send)(f"guidy_{chat_type}_{chat_id}", r_payload)
+                            async_to_sync(cl.group_send)(f"user_{other_u.id}", r_payload)
+                    except Exception:
+                        pass
 
             messages_qs = list(reversed(session.messages.exclude(
                 deleted_by=user
@@ -14952,7 +15003,24 @@ def guidy_load_chat_api(request):
                     locked_days_left = max(0, 5 - days_passed)
 
             if direct_session.is_active:
-                direct_session.messages.exclude(sender=user).update(is_read=True)
+                unr_qs = direct_session.messages.exclude(sender=user).filter(is_read=False)
+                unr_ids = list(unr_qs.values_list('id', flat=True))
+                if unr_ids:
+                    unr_qs.update(is_read=True, is_delivered=True)
+                    try:
+                        from channels.layers import get_channel_layer
+                        from asgiref.sync import async_to_sync
+                        cl = get_channel_layer()
+                        if cl and other_u:
+                            r_payload = {
+                                "type": "messages_read_broadcast",
+                                "reader_id": user.id,
+                                "message_ids": unr_ids,
+                            }
+                            async_to_sync(cl.group_send)(f"guidy_{chat_type}_{chat_id}", r_payload)
+                            async_to_sync(cl.group_send)(f"user_{other_u.id}", r_payload)
+                    except Exception:
+                        pass
 
             messages_qs = list(reversed(direct_session.messages.exclude(
                 deleted_by=user
@@ -15067,6 +15135,7 @@ def guidy_load_chat_api(request):
                 'timestamp': ts_str,
                 'date': date_str,
                 'is_mine': (msg.sender_id == user.id),
+                'is_delivered': bool(getattr(msg, 'is_delivered', False) or is_read),
                 'is_read': is_read,
                 'sender_name': get_user_display_name(msg.sender) if msg.sender else '',
                 'sender_photo': get_profile_photo_url(msg.sender) if msg.sender else None,

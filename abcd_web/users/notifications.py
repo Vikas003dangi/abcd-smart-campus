@@ -700,6 +700,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
 
     from pywebpush import webpush, WebPushException
 
+    delivered = False
     for sub in subscriptions:
         try:
             webpush(
@@ -713,6 +714,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
                     "sub": "mailto:admin@abcd.com"
                 }
             )
+            delivered = True
         except WebPushException as ex:
             logger.debug(f"Web push error for sub {sub.id}: {ex}")
             # Automatically prune dead or expired subscriptions (404/410)
@@ -723,6 +725,8 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
                     pass
         except Exception as e:
             logger.debug(f"Web push error for sub {sub.id}: {e}")
+
+    return delivered
 
 
 def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, attachments=None, buttons=None):
