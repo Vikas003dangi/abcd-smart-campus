@@ -650,31 +650,68 @@
     margin-bottom: 10px;
     border: 1px solid #e2e8f0;
     transition: all 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   body.dark-theme .subtask-row {
-    background: #1a103c;
-    border-color: #32254e;
+    background: #191033;
+    border-color: #312154;
   }
 
-  .subtask-row.dragging {
-    opacity: 0.5;
+  .subtask-row.subtask-chosen {
     background: #f1f5f9;
+    border-color: #7b61ff;
+    box-shadow: 0 4px 15px rgba(123, 97, 255, 0.15);
+  }
+
+  body.dark-theme .subtask-row.subtask-chosen {
+    background: #251845;
+    border-color: #7b61ff;
+  }
+
+  .subtask-row.subtask-ghost {
+    opacity: 0.4;
+    background: #e2e8f0;
+    border: 2px dashed #7b61ff;
+  }
+
+  body.dark-theme .subtask-row.subtask-ghost {
+    background: #120924;
+    border: 2px dashed #7b61ff;
   }
 
   .subtask-drag-handle {
     cursor: grab;
     color: #94a3b8;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    padding: 6px 8px;
+    margin-left: -4px;
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .subtask-drag-handle:active {
+    cursor: grabbing;
+    color: #7b61ff;
   }
 
   .subtask-input {
     flex: 1;
     border: none;
     background: transparent;
-    font-size: 0.9rem;
+    font-size: 0.92rem;
     color: #1e293b;
     font-weight: 500;
+    user-select: text;
+    -webkit-user-select: text;
   }
 
   body.dark-theme .subtask-input {
@@ -686,15 +723,30 @@
   }
 
   .subtask-time-badge {
-    background: #7b61ff15;
+    background: #ede9fe;
     color: #7b61ff;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
     font-weight: 700;
-    min-width: 60px;
+    min-width: 65px;
     text-align: center;
     cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    transition: all 0.15s;
+    border: 1.5px solid transparent;
+  }
+
+  body.dark-theme .subtask-time-badge {
+    background: rgba(123, 97, 255, 0.18) !important;
+    color: #c4b5fd !important;
+  }
+
+  .subtask-time-badge:hover {
+    border-color: #7b61ff;
   }
 
   .subtask-time-input {
@@ -2387,6 +2439,21 @@
   body.dark-theme #reminderModal .todo-modal-header button {
     color: rgba(255,255,255,0.85) !important;
   }
+  .time-picker-preview {
+    color: #0f172a;
+  }
+  body.dark-theme .time-picker-preview {
+    color: #f8fafc !important;
+  }
+  body.dark-theme .subtask-picker-card {
+    background: #180f33 !important;
+    border: 1px solid #312154 !important;
+    color: #f8fafc !important;
+  }
+  body.dark-theme .subtask-picker-card .drum-scroll {
+    background: #120924 !important;
+    color: #f8fafc !important;
+  }
   /* Reminder Alarm Toast */
   .reminder-alarm-toast {
     position: fixed;
@@ -2651,7 +2718,7 @@
     <div id="subtaskTimePickerOverlay" style="display:none; position:fixed; inset:0;
          background:rgba(0,0,0,0.5); z-index:10000; align-items:center;
          justify-content:center;">
-      <div style="background:#fff; border-radius:16px; padding:20px; width:320px;
+      <div class="picker-card subtask-picker-card" style="border-radius:16px; padding:20px; width:340px;
                   box-shadow:0 20px 60px rgba(0,0,0,0.3);">
 
         <div style="display:flex; justify-content:space-between; align-items:center;
@@ -2691,8 +2758,8 @@
           </div>
         </div>
 
-        <div id="timePickerPreview"
-          style="text-align:center; margin-top:14px; font-size:0.85rem; color:#1e293b; font-weight:600;"></div>
+        <div id="timePickerPreview" class="time-picker-preview"
+          style="text-align:center; margin-top:14px; font-size:0.85rem; font-weight:600;"></div>
 
         <button onclick="confirmSubtaskTimePicker()"
           style="margin-top:14px; width:100%; padding:11px; background:#7b61ff; color:#fff; border:none; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer;">
@@ -3678,18 +3745,18 @@
 
     /* Time and Date picker card details */
     .picker-card {
-      padding: 15px 12px !important;
-      border-radius: 16px !important;
-      max-width: 300px !important;
+      padding: 16px 14px !important;
+      border-radius: 18px !important;
+      max-width: 340px !important;
       width: 92% !important;
     }
     
     .picker-header {
-      margin-bottom: 15px !important;
+      margin-bottom: 14px !important;
     }
     
     .picker-header h4 {
-      font-size: 1rem !important;
+      font-size: 1.05rem !important;
     }
     
     .drums-container {
@@ -3700,7 +3767,7 @@
     
     .drum-item {
       height: 36px !important;
-      font-size: 0.85rem !important;
+      font-size: 0.88rem !important;
     }
     
     .drum-column {
@@ -3712,40 +3779,45 @@
     }
     
     .picker-confirm-btn {
-      padding: 10px !important;
-      font-size: 0.85rem !important;
+      padding: 11px !important;
+      font-size: 0.9rem !important;
       border-radius: 10px !important;
     }
 
     /* Subtasks inside Breakdown modal */
     .subtask-row {
-      padding: 6px 8px !important;
-      gap: 6px !important;
-      border-radius: 8px !important;
-      margin-bottom: 6px !important;
+      padding: 8px 10px !important;
+      gap: 8px !important;
+      border-radius: 10px !important;
+      margin-bottom: 8px !important;
     }
     
+    .subtask-drag-handle {
+      font-size: 1.35rem !important;
+      padding: 6px 4px !important;
+    }
+
     .subtask-input {
-      font-size: 0.82rem !important;
+      font-size: 0.88rem !important;
     }
     
     .subtask-time-badge {
-      font-size: 0.68rem !important;
-      padding: 2px 4px !important;
-      min-width: 45px !important;
-      border-radius: 4px !important;
-    }
-    
-    #markCompletedBtn {
-      font-size: 0.72rem !important;
+      font-size: 0.76rem !important;
       padding: 4px 8px !important;
+      min-width: 52px !important;
       border-radius: 6px !important;
     }
     
-    #breakdownModal button[onclick="addSubtaskRow()"] {
-      padding: 6px !important;
-      font-size: 0.75rem !important;
+    #markCompletedBtn {
+      font-size: 0.76rem !important;
+      padding: 5px 10px !important;
       border-radius: 8px !important;
+    }
+    
+    #breakdownModal button[onclick="addSubtaskRow()"] {
+      padding: 8px 12px !important;
+      font-size: 0.82rem !important;
+      border-radius: 10px !important;
     }
 
     /* Student / Fee List Row adjustments */
@@ -3852,13 +3924,15 @@
     }
     
     .edit-subtask-row {
-      padding: 6px 8px !important;
-      gap: 6px !important;
+      padding: 8px 10px !important;
+      gap: 8px !important;
+      border-radius: 10px !important;
+      margin-bottom: 8px !important;
     }
     
     .edit-subtask-name {
-      padding: 4px 8px !important;
-      font-size: 0.78rem !important;
+      padding: 4px 6px !important;
+      font-size: 0.88rem !important;
     }
   }
 
@@ -4301,22 +4375,25 @@
     populateDrum('drumMins', 0, 59);
     populateDrum('drumSecs', 0, 59);
 
-    // Set initial scroll positions from curSecs
+    document.getElementById('timePickerMaxLabel').textContent =
+      'Max available: ' + formatHours(totalAvailableHours);
+
+    const overlay = document.getElementById('subtaskTimePickerOverlay');
+    overlay.style.display = 'flex';
+
+    // Set initial scroll positions from curSecs once overlay is rendered
     const initD = Math.floor(curSecs / 86400);
     const initH = Math.floor((curSecs % 86400) / 3600);
     const initM = Math.floor((curSecs % 3600) / 60);
     const initS = curSecs % 60;
-    scrollDrumTo('drumDays', initD);
-    scrollDrumTo('drumHours', initH);
-    scrollDrumTo('drumMins', initM);
-    scrollDrumTo('drumSecs', initS);
 
-    document.getElementById('timePickerMaxLabel').textContent =
-      'Max available: ' + formatHours(totalAvailableHours);
-    updateTimePickerPreview();
-
-    const overlay = document.getElementById('subtaskTimePickerOverlay');
-    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      scrollDrumTo('drumDays', initD);
+      scrollDrumTo('drumHours', initH);
+      scrollDrumTo('drumMins', initM);
+      scrollDrumTo('drumSecs', initS);
+      updateTimePickerPreview();
+    });
 
     // Attach scroll listeners to update preview
     ['drumDays', 'drumHours', 'drumMins', 'drumSecs'].forEach(id => {
@@ -5032,6 +5109,8 @@
     renderSubtaskRows();
   }
 
+  let subtasksSortable = null;
+
   function renderSubtaskRows() {
     const list = document.getElementById('subtasksList');
     list.innerHTML = '';
@@ -5039,7 +5118,6 @@
     breakdownSubtasks.forEach((s, index) => {
       const row = document.createElement('div');
       row.className = `subtask-row ${s.is_done ? 'subtask-done' : ''}`;
-      row.draggable = true;
       row.dataset.sid = s.id;
 
       const isActive = activeSubtaskId === s.id && !s.is_done;
@@ -5068,7 +5146,7 @@
       const timeColor = isActive && s.overdueTime > 0 ? '#dc2626' : '#7b61ff';
 
       row.innerHTML =
-        '<i class="bx bx-menu subtask-drag-handle"></i>' +
+        '<i class="bx bx-menu subtask-drag-handle" oncontextmenu="return false;"></i>' +
         '<input type="checkbox" ' + (s.is_done ? 'checked' : '') + ' onchange="toggleSubtaskDone(' + s.id + ')"' +
         ' style="width:18px;height:18px;cursor:pointer;display:' + (markCompletedMode ? 'inline-block' : 'none') + ';">' +
         '<input type="text" class="subtask-input" value="' + s.name + '" placeholder="Subtask name..."' +
@@ -5090,14 +5168,27 @@
         '<button onclick="confirmDeleteSubtask(' + s.id + ')"' +
         ' style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.2rem;">&times;</button>';
 
-      row.addEventListener('dragstart', () => row.classList.add('dragging'));
-      row.addEventListener('dragend', () => {
-        row.classList.remove('dragging');
-        reorderSubtasks();
-      });
-
       list.appendChild(row);
     });
+
+    if (subtasksSortable) {
+      try { subtasksSortable.destroy(); } catch (e) {}
+      subtasksSortable = null;
+    }
+    if (typeof Sortable !== 'undefined') {
+      subtasksSortable = Sortable.create(list, {
+        handle: '.subtask-drag-handle',
+        animation: 150,
+        touchStartThreshold: 3,
+        delayOnTouchOnly: true,
+        delay: 0,
+        chosenClass: 'subtask-chosen',
+        ghostClass: 'subtask-ghost',
+        onEnd: () => {
+          reorderSubtasks();
+        }
+      });
+    }
   }
 
   function getDragAfterElement(container, y) {
@@ -5114,7 +5205,7 @@
   }
 
   function reorderSubtasks() {
-    const rows = [...document.querySelectorAll('.subtask-row')];
+    const rows = [...document.querySelectorAll('#subtasksList .subtask-row')];
     const newOrder = rows.map(row => {
       const sid = parseInt(row.dataset.sid);
       return breakdownSubtasks.find(s => s.id === sid);
@@ -6223,7 +6314,7 @@
         subtasks.forEach((s, idx) => {
           html += `
             <div class="edit-subtask-row" data-origidx="${idx}">
-              <span style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;">&#10752;</span>
+              <span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;">⠿</span>
               <input class="edit-subtask-name" value="${s.name}">
               <div id="edit-time-idx-${idx}"
                    onclick="onEditSubtaskTimeClick(${task.id},${idx})"
@@ -6248,8 +6339,9 @@
           const el = document.getElementById('editSubtaskList');
           if (el && typeof Sortable !== 'undefined') {
             Sortable.create(el, {
-              handle: '[style*="cursor:grab"]',
+              handle: '.subtask-drag-handle',
               animation: 150,
+              touchStartThreshold: 3,
               onEnd: () => { handleBreakdownReorder(task); }
             });
           }
@@ -9028,7 +9120,7 @@
     if (!container) return;
     container.innerHTML = task.metadata.subtasks.map((s, idx) => `
       <div class="edit-subtask-row" data-origidx="${idx}">
-        <span style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;">⠿</span>
+        <span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;">⠿</span>
         <input class="edit-subtask-name" value="${s.name}">
         <div id="edit-time-idx-${idx}"
              onclick="onEditSubtaskTimeClick(${task.id},${idx})"
@@ -9048,8 +9140,9 @@
 
     if (typeof Sortable !== 'undefined') {
       Sortable.create(container, {
-        handle: '[style*="cursor:grab"]',
+        handle: '.subtask-drag-handle',
         animation: 150,
+        touchStartThreshold: 3,
         onEnd: () => { handleBreakdownReorder(task); }
       });
     }
@@ -9069,40 +9162,68 @@
 
     editSubtaskTimeState = { taskId, idx };
 
-    const totalHrsDecimal = parseFloat(sub.hours || 0);
-    const totalSecs = Math.round(totalHrsDecimal * 3600);
+    const totalHrsDecimal = (sub.hours != null && !isNaN(parseFloat(sub.hours)))
+      ? parseFloat(sub.hours)
+      : (sub.allocatedMs ? sub.allocatedMs / 3600000 : 0);
+    const totalSecs = Math.max(0, Math.round(totalHrsDecimal * 3600));
     const d = Math.floor(totalSecs / 86400);
     const h = Math.floor((totalSecs % 86400) / 3600);
     const m = Math.floor((totalSecs % 3600) / 60);
     const s = totalSecs % 60;
 
+    // 1. Flexible auto-pool subtasks
+    const autoPool = task.metadata.subtasks.filter((otherSub, i) =>
+      i !== idx && !otherSub.is_done && !otherSub.manual && !otherSub.isFixedTime && !otherSub.isFixed
+    );
+    const availableAutoPoolMs = autoPool.reduce((sum, otherSub) =>
+      sum + (otherSub.allocatedMs || toMs(parseFloat(otherSub.hours || 0))), 0
+    );
+    // 2. Reserve pool
+    const availableReserveMs = task.metadata.reservePoolMs || 0;
+    // 3. Current subtask's allocated duration
+    const currentSubtaskMs = sub.allocatedMs || toMs(totalHrsDecimal);
+    // 4. Max allowed is current time + all available unallocated/flexible time
+    const maxAllowedMs = currentSubtaskMs + availableAutoPoolMs + availableReserveMs;
+    const maxAllowedSecs = Math.floor(maxAllowedMs / 1000);
+    const maxDays = Math.max(d, Math.floor(maxAllowedSecs / 86400));
+
+    // Open overlay FIRST so bounding boxes are measurable
+    const overlay = document.getElementById('editSubtaskTimePickerOverlay');
+    if (overlay) overlay.classList.add('active');
+
     isPopulatingDrums = true;
-    populateEditSubtaskDrum('editSubtaskDrumDays', 0, 30);
+    populateEditSubtaskDrum('editSubtaskDrumDays', 0, maxDays);
     populateEditSubtaskDrum('editSubtaskDrumHours', 0, 23);
     populateEditSubtaskDrum('editSubtaskDrumMins', 0, 59);
     populateEditSubtaskDrum('editSubtaskDrumSecs', 0, 59);
 
-    finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumDays'), d);
-    finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumHours'), h);
-    finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumMins'), m);
-    finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumSecs'), s);
-
-    editSubtaskLastVals = { d, h, m, s };
-
     let maxLabel = '';
-    if (task.metadata.reservePoolMs != null) {
-      maxLabel = `Reserve Pool: ${formatHours(task.metadata.reservePoolMs / 3600000)}`;
+    if (availableReserveMs > 0 && availableAutoPoolMs > 0) {
+      maxLabel = `Reserve: ${formatHours(availableReserveMs / 3600000)} | Flexible: ${formatHours(availableAutoPoolMs / 3600000)}`;
+    } else if (availableReserveMs > 0) {
+      maxLabel = `Reserve Pool: ${formatHours(availableReserveMs / 3600000)}`;
+    } else if (availableAutoPoolMs > 0) {
+      maxLabel = `Flexible Pool: ${formatHours(availableAutoPoolMs / 3600000)}`;
+    } else {
+      maxLabel = `Allocated: ${formatHours(totalHrsDecimal)} (No extra reserve)`;
     }
     const maxLabelEl = document.getElementById('editSubtaskTimeMaxLabel');
     if (maxLabelEl) maxLabelEl.textContent = maxLabel;
 
-    setTimeout(() => {
-      isPopulatingDrums = false;
-      updateEditSubtaskTimePickerPreview();
-    }, 200);
+    editSubtaskLastVals = { d, h, m, s };
 
-    const overlay = document.getElementById('editSubtaskTimePickerOverlay');
-    if (overlay) overlay.classList.add('active');
+    // Align drums once modal layout is established
+    requestAnimationFrame(() => {
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumDays'), d);
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumHours'), h);
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumMins'), m);
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumSecs'), s);
+
+      setTimeout(() => {
+        isPopulatingDrums = false;
+        updateEditSubtaskTimePickerPreview();
+      }, 50);
+    });
   }
 
   function populateEditSubtaskDrum(drumId, min, max) {
@@ -9128,7 +9249,9 @@
     let targetIndex = -1;
     if (initialValue !== null) {
       const valStr = initialValue.toString().padStart(2, '0');
-      targetIndex = Array.from(items).findIndex(i => i.textContent == valStr || i.textContent == initialValue);
+      targetIndex = Array.from(items).findIndex(i =>
+        i.textContent == valStr || i.textContent == initialValue || parseInt(i.textContent) === parseInt(initialValue)
+      );
     }
     if (targetIndex === -1) targetIndex = 0;
 
@@ -9864,46 +9987,46 @@
     const oldMs = toMs(oldTotalHrs);
     const deltaMs = newMs - oldMs;
 
-    if (autoPool.length > 0) {
-      // Flexible subtasks exist -> DO NOT use reserve pool logic, redistribute from them
-      if (deltaMs > 0) {
-        const availableMs = autoPool.reduce((sum, s) => sum + (s.allocatedMs || toMs(s.hours || 0)), 0);
-        if (availableMs < deltaMs - 1) {
-          showModalAlert('Insufficient Pool', 'Not enough time in auto-distributed subtasks to take from.');
-          return;
-        }
+    if (task.metadata.reservePoolMs == null) {
+      task.metadata.reservePoolMs = 0;
+    }
+
+    if (deltaMs > 0) {
+      // INCREASING TIME:
+      const availableAutoMs = autoPool.reduce((sum, s) => sum + (s.allocatedMs || toMs(s.hours || 0)), 0);
+      const totalAvailableMs = availableAutoMs + (task.metadata.reservePoolMs || 0);
+
+      if (totalAvailableMs < deltaMs - 1000) {
+        showModalAlert('Insufficient Time', `Requested increase of ${formatHoursShort(deltaMs / 3600000)} exceeds available distributable pool of ${formatHoursShort(totalAvailableMs / 3600000)}.`);
+        return;
+      }
+
+      let remainingDeltaMs = deltaMs;
+      if (availableAutoMs > 0) {
+        const takeFromAutoMs = Math.min(remainingDeltaMs, availableAutoMs);
         autoPool.forEach(s => {
           const currentMs = s.allocatedMs || toMs(s.hours || 0);
-          const shareMs = Math.floor((currentMs / availableMs) * deltaMs);
+          const shareMs = Math.floor((currentMs / availableAutoMs) * takeFromAutoMs);
           s.allocatedMs = Math.max(0, currentMs - shareMs);
           s.hours = toHrs(s.allocatedMs);
         });
-      } else {
-        const freedMs = -deltaMs;
+        remainingDeltaMs -= takeFromAutoMs;
+      }
+
+      if (remainingDeltaMs > 0) {
+        task.metadata.reservePoolMs = Math.max(0, task.metadata.reservePoolMs - remainingDeltaMs);
+      }
+    } else if (deltaMs < 0) {
+      // REDUCING TIME (freed time):
+      const freedMs = -deltaMs;
+      if (autoPool.length > 0) {
         const shareMs = Math.floor(freedMs / autoPool.length);
         autoPool.forEach(s => {
           const currentMs = s.allocatedMs || toMs(s.hours || 0);
           s.allocatedMs = currentMs + shareMs;
           s.hours = toHrs(s.allocatedMs);
         });
-      }
-    } else {
-      // ALL SUBTASKS ARE FIXED/MANUAL -> Use reserve pool logic!
-      if (task.metadata.reservePoolMs == null) {
-        task.metadata.reservePoolMs = 0;
-      }
-      if (deltaMs > 0) {
-        // INCREASE TIME FLOW (All-fixed-time)
-        if (task.metadata.reservePoolMs < deltaMs - 1) {
-          showModalAlert('Insufficient Reserve', 'Insufficient unallocated reserve time. Please release time from other subtasks or increase the task deadline first.');
-          return;
-        }
-        task.metadata.reservePoolMs -= deltaMs;
-        task.metadata.reservePoolMs = Math.max(0, task.metadata.reservePoolMs);
       } else {
-        // REDUCE TIME FLOW (All-fixed-time)
-        // Do not reduce deadline, add freed time to reserve pool
-        const freedMs = -deltaMs;
         task.metadata.reservePoolMs += freedMs;
       }
     }
@@ -12190,8 +12313,8 @@ document.addEventListener('mousedown', (e) => {
       <div id="editSubtaskDrumSecs" class="drum-column" onscroll="onEditSubtaskDrumScroll(this)"></div>
     </div>
 
-    <div id="editSubtaskTimePickerPreview"
-      style="text-align:center; margin-bottom:18px; font-size:0.9rem; color:#0f172a; font-weight:700;"></div>
+    <div id="editSubtaskTimePickerPreview" class="time-picker-preview"
+      style="text-align:center; margin-bottom:18px; font-size:0.9rem; font-weight:700;"></div>
 
     <button class="picker-confirm-btn" onclick="confirmEditSubtaskTimePicker()">Confirm Time</button>
   </div>
