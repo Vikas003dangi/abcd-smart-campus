@@ -40,10 +40,30 @@ from .utils import parse_flexible_datetime, process_scheduled_broadcasts
 from django.utils.timesince import timesince
 from .utils import (
     get_playlist_videos_for_course, sync_courses_from_youtube, track_visitor_intent,
-    sync_active_holds, get_user_notification_email, get_user_display_name, get_profile_photo_url
+    sync_active_holds, get_user_notification_email, get_user_display_name, get_profile_photo_url,
+    get_admin_and_teacher_emails
 )
 from .youtube_service import fetch_playlists, fetch_playlist_videos, fetch_channel_videos
 from users.email_service import send_html_email
+
+def send_admin_alert_email(subject, template, context, attachments=None):
+    """
+    Broadcasts administrative alerts to all admin/teacher email addresses
+    including Sandeep Sir (abcd2013baq@gmail.com) and Vikas (vd19055@gmail.com).
+    """
+    for adm_email in get_admin_and_teacher_emails():
+        try:
+            send_html_email(
+                subject=subject,
+                to_email=adm_email,
+                template=template,
+                context=context,
+                attachments=attachments,
+                fail_silently=True,
+                run_async=True
+            )
+        except Exception as e:
+            logger.error(f"[send_admin_alert_email] Failed sending to {adm_email}: {e}")
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from users.models import SeatAssignment
@@ -2748,17 +2768,47 @@ def reset_password_view(request):
     return JsonResponse({'status': 'ok', 'message': 'Password reset successful'})
 
 
-def link_existing_account_by_email(backend, strategy, details, response, user=None, *args, **kwargs):
+def link_existing_account_by_email(backend, strategy=None, details=None, response=None, user=None, *args, **kwargs):
+    """
+    Links Google OAuth login to existing user account.
+    Specifically guarantees:
+    - abcd2013baq@gmail.com links to Sandy with superuser & staff privileges.
+    - vd19055@gmail.com links to Vaku with superuser & staff privileges.
+    - Any other existing user by email links to their account without duplicate creation.
+    """
     if user:
         return {'user': user, 'is_new': False}
 
-    email = details.get('email')
+    if details is None and isinstance(strategy, dict):
+        details = strategy
+
+    email = (details.get('email') or '').strip().lower() if details else ''
     if not email:
-        return
+        return None
+
+    if email == 'abcd2013baq@gmail.com':
+        sandy_user = User.objects.filter(Q(email__iexact='abcd2013baq@gmail.com') | Q(username__iexact='Sandy')).first()
+        if sandy_user:
+            sandy_user.email = 'abcd2013baq@gmail.com'
+            sandy_user.is_superuser = True
+            sandy_user.is_staff = True
+            sandy_user.save(update_fields=['email', 'is_superuser', 'is_staff'])
+            return {'user': sandy_user, 'is_new': False}
+
+    elif email == 'vd19055@gmail.com':
+        vaku_user = User.objects.filter(Q(email__iexact='vd19055@gmail.com') | Q(username__iexact='Vaku')).first()
+        if vaku_user:
+            vaku_user.email = 'vd19055@gmail.com'
+            vaku_user.is_superuser = True
+            vaku_user.is_staff = True
+            vaku_user.save(update_fields=['email', 'is_superuser', 'is_staff'])
+            return {'user': vaku_user, 'is_new': False}
 
     existing_user = User.objects.filter(email__iexact=email).first()
     if existing_user:
         return {'user': existing_user, 'is_new': False}
+
+    return None
 
 
 def set_new_user_flag(backend, strategy, details, response, user=None, is_new=False, *args, **kwargs):
@@ -3241,8 +3291,8 @@ def admission_form_view(request):
                                         message=f"Your temporary request for Seat {seat.seat_number} ({selected_shift}) has been submitted.",
                                         link="/dashboard/", category="seat"
                                     )
-                                    deferred_actions.append(lambda: send_html_email(
-                                        subject="Temporary Seat Request Submitted", to_email=settings.ADMIN_EMAIL,
+                                    deferred_actions.append(lambda: send_admin_alert_email(
+                                        subject="Temporary Seat Request Submitted",
                                         template="emails/admin_temp_seat_request.html",
                                         context={
                                             "student": student_profile, 
@@ -3250,8 +3300,7 @@ def admission_form_view(request):
                                             "floor": selected_floor, 
                                             "shift": selected_shift,
                                             "dashboard_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"
-                                        },
-                                        run_async=True
+                                        }
                                     ))
                                     submission_success_message = 'Temporary seat request submitted! Teacher will review it. Please log in again to check status.'
                                     final_redirect = 'users:login'
@@ -3290,8 +3339,8 @@ def admission_form_view(request):
                                 message=f"Seat {seat.seat_number} ({selected_shift} shift) reserved pending teacher approval.",
                                 link="/dashboard/", category="seat"
                             )
-                            deferred_actions.append(lambda: send_html_email(
-                                subject="Library Admission / Seat Request", to_email=settings.ADMIN_EMAIL,
+                            deferred_actions.append(lambda: send_admin_alert_email(
+                                subject="Library Admission / Seat Request",
                                 template="emails/admin_library_request.html",
                                 context={
                                     "student": student_profile, 
@@ -3299,8 +3348,7 @@ def admission_form_view(request):
                                     "is_new": not has_profile, 
                                     "shift": selected_shift,
                                     "dashboard_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"
-                                },
-                                run_async=True
+                                }
                             ))
                             submission_success_message = 'Admission form submitted successfully! Your library seat request is pending approval. Log in again to access your dashboard once approved.'
                             final_redirect = 'users:login'
@@ -3313,15 +3361,14 @@ def admission_form_view(request):
                             student_profile.shift = 'full'
                             student_profile.save(update_fields=['seat', 'shift'])
                         
-                        deferred_actions.append(lambda: send_html_email(
-                            subject="Coaching Admission Submission", to_email=settings.ADMIN_EMAIL,
+                        deferred_actions.append(lambda: send_admin_alert_email(
+                            subject="Coaching Admission Submission",
                             template="emails/admin_coaching_request.html", 
                             context={
                                 "student": student_profile,
                                 "batch": student_profile.get_batch_display() if hasattr(student_profile, 'get_batch_display') else student_profile.batch,
                                 "dashboard_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"
-                            },
-                            run_async=True
+                            }
                         ))
                         submission_success_message = 'Admission form submitted successfully! Please wait for teacher approval. Log in again to access your dashboard once approved.'
                         final_redirect = 'users:login'
@@ -4082,9 +4129,8 @@ def student_complaints_view(request):
             complaint.save()
 
             # Send Email to Admin/Teacher
-            send_html_email(
+            send_admin_alert_email(
                 subject=f"New Complaint: {complaint.display_subject}",
-                to_email=settings.ADMIN_EMAIL,
                 template="emails/admin_complaint_raised.html",
                 context={
                     "sender_name": student.full_name,
@@ -4094,9 +4140,7 @@ def student_complaints_view(request):
                     "raised_at": complaint.created_at,
                     "message": complaint.message,
                     "action_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}",
-                },
-                fail_silently=True,
-                run_async=True,
+                }
             )
 
             # notify student at dashboard
@@ -8466,20 +8510,18 @@ def send_receipt_notifications_async(transaction_id, student_id):
                 trans.email_sent = True
                 trans.save(update_fields=['email_sent'])
 
-        # 3. Email to Teacher (Sir Ji)
-        if settings.ADMIN_EMAIL:
-            pdf_buffer.seek(0)
-            send_html_email(
-                subject=f"Fee_Receipt_{trans.receipt_number}",
-                to_email=settings.ADMIN_EMAIL,
-                template="emails/teacher_fee_receipt_alert.html",
-                context={
-                    "student_name": stud.full_name,
-                    "service_details": trans.service_snapshot,
-                    "receipt_number": trans.receipt_number,
-                },
-                attachments=attachments
-            )
+        # 3. Email to Teacher & Admin
+        pdf_buffer.seek(0)
+        send_admin_alert_email(
+            subject=f"Fee_Receipt_{trans.receipt_number}",
+            template="emails/teacher_fee_receipt_alert.html",
+            context={
+                "student_name": stud.full_name,
+                "service_details": trans.service_snapshot,
+                "receipt_number": trans.receipt_number,
+            },
+            attachments=attachments
+        )
 
         pdf_buffer.close()
     except Exception as bg_err:
@@ -9636,17 +9678,14 @@ def achievement_form_view(request):
             })
         
         # Send Email to Admin/Teacher (outside lock)
-        send_html_email(
+        send_admin_alert_email(
             subject="New Alumni Achievement Request",
-            to_email=settings.ADMIN_EMAIL,
             template="emails/admin_achievement_request.html",
             context={
                 "student_name": request.user.get_full_name() or request.user.username,
                 "achievement_summary": obj.current_post or "Achievement Submission",
                 "action_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}",
-            },
-            fail_silently=True,
-            run_async=True
+            }
         )
         
         from .utils import get_user_dashboard_type
@@ -13253,6 +13292,12 @@ def _get_base_template(user):
 @login_required
 def todo_hub_page(request):
     """Renders the main To-Do Hub container."""
+    try:
+        from .utils import process_todo_notifications
+        process_todo_notifications()
+    except Exception:
+        pass
+
     user = request.user
     dashboard_type = get_user_dashboard_type(user)
     if dashboard_type is None and user.is_authenticated:
@@ -13970,6 +14015,56 @@ def todo_add_reminder(request):
             is_done=False,
             is_pinned=False,
         )
+
+        # If user requested email notifications, send immediate confirmation email
+        if metadata.get('email_notify'):
+            try:
+                target_email = get_user_notification_email(request.user)
+                if target_email:
+                    schedule_info = ''
+                    if recurrence == 'once' and delete_at:
+                        local_dt = timezone.localtime(delete_at)
+                        schedule_info = local_dt.strftime('%d %b %Y at %I:%M %p')
+                    elif recurrence == 'daily':
+                        schedule_info = f"Every Day at {metadata.get('time_str', '00:00')}"
+                    elif recurrence == 'weekly':
+                        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                        d_str = ', '.join([day_names[d] for d in metadata.get('days_of_week', []) if 0 <= d < 7])
+                        schedule_info = f"Every Week on {d_str} at {metadata.get('time_str', '00:00')}"
+                    elif recurrence == 'monthly':
+                        schedule_info = f"Day {metadata.get('day_of_month', 1)} of every month at {metadata.get('time_str', '00:00')}"
+                    elif recurrence == 'every_n_days':
+                        schedule_info = f"Every {metadata.get('interval_days', 1)} days at {metadata.get('time_str', '00:00')}"
+
+                    send_html_email(
+                        subject=f"⏰ Reminder Scheduled: {title}",
+                        to_email=target_email,
+                        template="emails/todo_reminder_scheduled.html",
+                        context={
+                            "user_name": get_user_display_name(request.user) or request.user.username,
+                            "title": title,
+                            "schedule_info": schedule_info,
+                            "note": metadata.get('note', ''),
+                            "recurrence": recurrence,
+                            "todo_url": f"{settings.SITE_URL}/todo/",
+                        },
+                        fail_silently=False,
+                        run_async=True
+                    )
+                    logger.info(f"[To-Do Reminder] Sent scheduled confirmation email for '{title}' to {target_email}")
+                else:
+                    logger.warning(f"[To-Do Reminder] Could not find email address to notify user {request.user.username}")
+            except Exception as email_err:
+                logger.error(f"[To-Do Reminder] Failed sending scheduled confirmation email: {email_err}")
+
+        # If it was scheduled for right now or past, run processor immediately
+        if delete_at and timezone.localtime(timezone.now()) >= delete_at:
+            try:
+                from .utils import process_todo_notifications
+                process_todo_notifications()
+            except Exception:
+                pass
+
         return JsonResponse({'success': True, 'task_id': task.id})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
@@ -14034,7 +14129,53 @@ def todo_update_reminder(request, task_id):
                 task.auto_delete = True
                 task.delete_at = dt
 
+        # Reset notification status if schedule was updated
+        schedule_keys = ('fire_at', 'time_str', 'recurrence', 'days_of_week', 'day_of_month', 'interval_days')
+        if any(k in data for k in schedule_keys):
+            task.initial_notified = False
+            task.is_done = False
+            task.last_notified_at = None
+
         task.save()
+
+        if current_meta.get('email_notify') and any(k in data for k in schedule_keys):
+            try:
+                target_email = get_user_notification_email(request.user)
+                if target_email:
+                    rec_val = current_meta.get('recurrence', 'once')
+                    schedule_info = ''
+                    if rec_val == 'once' and task.delete_at:
+                        local_dt = timezone.localtime(task.delete_at)
+                        schedule_info = local_dt.strftime('%d %b %Y at %I:%M %p')
+                    elif rec_val == 'daily':
+                        schedule_info = f"Every Day at {current_meta.get('time_str', '00:00')}"
+                    elif rec_val == 'weekly':
+                        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                        d_str = ', '.join([day_names[d] for d in current_meta.get('days_of_week', []) if 0 <= d < 7])
+                        schedule_info = f"Every Week on {d_str} at {current_meta.get('time_str', '00:00')}"
+                    elif rec_val == 'monthly':
+                        schedule_info = f"Day {current_meta.get('day_of_month', 1)} of every month at {current_meta.get('time_str', '00:00')}"
+                    elif rec_val == 'every_n_days':
+                        schedule_info = f"Every {current_meta.get('interval_days', 1)} days at {current_meta.get('time_str', '00:00')}"
+
+                    send_html_email(
+                        subject=f"⏰ Reminder Updated: {current_meta.get('title', 'Reminder')}",
+                        to_email=target_email,
+                        template="emails/todo_reminder_scheduled.html",
+                        context={
+                            "user_name": get_user_display_name(request.user) or request.user.username,
+                            "title": current_meta.get('title', 'Reminder'),
+                            "schedule_info": schedule_info,
+                            "note": current_meta.get('note', ''),
+                            "recurrence": rec_val,
+                            "todo_url": f"{settings.SITE_URL}/todo/",
+                        },
+                        fail_silently=False,
+                        run_async=True
+                    )
+            except Exception as email_err:
+                logger.error(f"[To-Do Reminder] Failed sending updated reminder email: {email_err}")
+
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
@@ -15663,23 +15804,7 @@ def sitemap_xml_view(request):
 # -------------------------------------------------------------------
 # GOOGLE OAUTH PIPELINE HELPERS
 # -------------------------------------------------------------------
-def link_existing_account_by_email(backend, details, user=None, *args, **kwargs):
-    """
-    If a user with the same email already exists, link the social account
-    to that existing user instead of failing or creating a duplicate user.
-    """
-    if user:
-        return {'user': user}
-
-    email = details.get('email')
-    if not email:
-        return None
-
-    existing_user = User.objects.filter(email__iexact=email).first()
-    if existing_user:
-        return {'user': existing_user, 'is_new': False}
-    
-    return None
+# (link_existing_account_by_email is defined above in OAuth section)
 
 
 def set_new_user_flag(backend, user, response, is_new=False, *args, **kwargs):

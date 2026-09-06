@@ -44,6 +44,7 @@ from users._utils_flat import (  # type: ignore[import]  # noqa: F401
     get_profile_photo_url,
     get_user_display_name,
     get_user_notification_email,
+    get_admin_and_teacher_emails,
 )
 
 

@@ -45,6 +45,11 @@ def send_html_email(
         thread.start()
         return True
 
+    if not to_email or not str(to_email).strip():
+        logger.warning(f"EMAIL SKIPPED: Missing recipient address for subject '{subject}'")
+        return False
+    to_email = str(to_email).strip()
+
     try:
         if context is None:
             context = {}
@@ -136,11 +141,15 @@ def send_html_email(
             'X-Auto-Response-Suppress': 'All',
         }
 
+        reply_to_addr = getattr(settings, 'ADMIN_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
+        reply_to_list = [reply_to_addr] if reply_to_addr else None
+
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[to_email],
+            reply_to=reply_to_list,
             headers=headers,
             connection=connection
         )
