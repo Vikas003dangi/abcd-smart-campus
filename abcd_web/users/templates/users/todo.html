@@ -705,6 +705,7 @@
 
   .subtask-input {
     flex: 1;
+    min-width: 0;
     border: none;
     background: transparent;
     font-size: 0.92rem;
@@ -1285,6 +1286,7 @@
 
   .edit-subtask-name {
     flex: 1;
+    min-width: 0;
     border: 1px solid #e2e8f0;
     border-radius: 7px;
     padding: 6px 10px;
@@ -4031,7 +4033,15 @@
       border-radius: 10px !important;
     }
 
-    /* Subtasks inside Breakdown modal */
+    /* Subtasks inside Breakdown modal & Detail Modal */
+    #breakdownModal .todo-modal,
+    #taskDetailModal .todo-modal {
+      width: 95% !important;
+      max-width: 95% !important;
+      border-radius: 16px !important;
+      max-height: 92vh !important;
+    }
+
     .subtask-row {
       padding: 8px 10px !important;
       gap: 8px !important;
@@ -4042,6 +4052,7 @@
     .subtask-drag-handle {
       font-size: 1.35rem !important;
       padding: 6px 4px !important;
+      min-width: 32px !important;
     }
 
     .subtask-input {
@@ -4053,6 +4064,24 @@
       padding: 4px 8px !important;
       min-width: 52px !important;
       border-radius: 6px !important;
+    }
+
+    .edit-subtask-row {
+      padding: 8px 10px !important;
+      gap: 8px !important;
+      border-radius: 10px !important;
+      margin-bottom: 8px !important;
+    }
+
+    .edit-subtask-name {
+      font-size: 0.86rem !important;
+      padding: 5px 8px !important;
+    }
+
+    .detail-sub-row {
+      padding: 9px 12px !important;
+      border-radius: 10px !important;
+      margin-bottom: 8px !important;
     }
     
     #markCompletedBtn {
@@ -4613,8 +4642,12 @@
       ? Math.round(presetHours * 3600)
       : Math.round((task.fixedHours || task.hours || 0) * 3600);
 
-    // Calculate max days from maxSecs
-    const maxDays = Math.floor(maxSecs / 86400);
+    // Calculate max days from maxSecs (at least 30, or total available parent days)
+    const initD = Math.floor(curSecs / 86400);
+    const initH = Math.floor((curSecs % 86400) / 3600);
+    const initM = Math.floor((curSecs % 3600) / 60);
+    const initS = curSecs % 60;
+    const maxDays = Math.max(initD, Math.max(30, Math.ceil(maxSecs / 86400)));
 
     // Populate drums
     populateDrum('drumDays', 0, maxDays);
@@ -4627,19 +4660,21 @@
 
     const overlay = document.getElementById('subtaskTimePickerOverlay');
     overlay.style.display = 'flex';
+    void overlay.offsetHeight; // Force reflow
 
-    // Set initial scroll positions from curSecs once overlay is rendered
-    const initD = Math.floor(curSecs / 86400);
-    const initH = Math.floor((curSecs % 86400) / 3600);
-    const initM = Math.floor((curSecs % 3600) / 60);
-    const initS = curSecs % 60;
-
-    requestAnimationFrame(() => {
+    function applyCreationDrums() {
       scrollDrumTo('drumDays', initD);
       scrollDrumTo('drumHours', initH);
       scrollDrumTo('drumMins', initM);
       scrollDrumTo('drumSecs', initS);
       updateTimePickerPreview();
+    }
+
+    applyCreationDrums();
+
+    requestAnimationFrame(() => {
+      applyCreationDrums();
+      setTimeout(applyCreationDrums, 40);
     });
 
     // Attach scroll listeners to update preview
@@ -4935,20 +4970,6 @@
     }
 
     const content = document.getElementById('tabContent');
-    const subtasksList = document.getElementById('subtasksList');
-    if (subtasksList) {
-      subtasksList.addEventListener('dragover', e => {
-        e.preventDefault();
-        const afterElement = getDragAfterElement(subtasksList, e.clientY);
-        const dragging = document.querySelector('.dragging');
-        if (!dragging) return;
-        if (afterElement == null) {
-          subtasksList.appendChild(dragging);
-        } else {
-          subtasksList.insertBefore(dragging, afterElement);
-        }
-      });
-    }
 
     const categoryMap = {
       'fees': 'FEES',
@@ -5366,6 +5387,9 @@
       const row = document.createElement('div');
       row.className = `subtask-row ${s.is_done ? 'subtask-done' : ''}`;
       row.dataset.sid = s.id;
+      row.setAttribute('oncontextmenu', 'return false;');
+      row.style.userSelect = 'none';
+      row.style.webkitUserSelect = 'none';
 
       const isActive = activeSubtaskId === s.id && !s.is_done;
       const activeBadge = isActive
@@ -5393,7 +5417,7 @@
       const timeColor = isActive && s.overdueTime > 0 ? '#dc2626' : '#7b61ff';
 
       row.innerHTML =
-        '<i class="bx bx-menu subtask-drag-handle" oncontextmenu="return false;"></i>' +
+        '<span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.3rem;flex-shrink:0;touch-action:none;user-select:none;-webkit-user-select:none;padding:6px 10px;min-width:36px;display:flex;align-items:center;justify-content:center;">⠿</span>' +
         '<input type="checkbox" ' + (s.is_done ? 'checked' : '') + ' onchange="toggleSubtaskDone(' + s.id + ')"' +
         ' style="width:18px;height:18px;cursor:pointer;display:' + (markCompletedMode ? 'inline-block' : 'none') + ';">' +
         '<input type="text" class="subtask-input" value="' + s.name + '" placeholder="Subtask name..."' +
@@ -5427,8 +5451,7 @@
         handle: '.subtask-drag-handle',
         animation: 150,
         touchStartThreshold: 3,
-        delayOnTouchOnly: true,
-        delay: 0,
+        fallbackTolerance: 3,
         chosenClass: 'subtask-chosen',
         ghostClass: 'subtask-ghost',
         onEnd: () => {
@@ -9542,19 +9565,25 @@
   function onEditSubtaskTimeClick(taskId, idx) {
     const task = currentTasks.find(t => t.id == taskId);
     if (!task) return;
-    const sub = task.metadata.subtasks[idx];
+    const sub = task.metadata?.subtasks?.[idx];
     if (!sub) return;
 
     editSubtaskTimeState = { taskId, idx };
 
-    const totalHrsDecimal = (sub.hours != null && !isNaN(parseFloat(sub.hours)))
-      ? parseFloat(sub.hours)
-      : (sub.allocatedMs ? sub.allocatedMs / 3600000 : 0);
+    let totalHrsDecimal = 0;
+    if (sub.allocatedMs != null) {
+      totalHrsDecimal = sub.allocatedMs / 3600000;
+    } else if (typeof sub.hours === 'number') {
+      totalHrsDecimal = sub.hours;
+    } else if (sub.hours != null) {
+      totalHrsDecimal = parseFloat(sub.hours) || 0;
+    }
+
     const totalSecs = Math.max(0, Math.round(totalHrsDecimal * 3600));
-    const d = Math.floor(totalSecs / 86400);
-    const h = Math.floor((totalSecs % 86400) / 3600);
-    const m = Math.floor((totalSecs % 3600) / 60);
-    const s = totalSecs % 60;
+    const initD = Math.floor(totalSecs / 86400);
+    const initH = Math.floor((totalSecs % 86400) / 3600);
+    const initM = Math.floor((totalSecs % 3600) / 60);
+    const initS = totalSecs % 60;
 
     // 1. Flexible auto-pool subtasks
     const autoPool = task.metadata.subtasks.filter((otherSub, i) =>
@@ -9567,14 +9596,30 @@
     const availableReserveMs = task.metadata.reservePoolMs || 0;
     // 3. Current subtask's allocated duration
     const currentSubtaskMs = sub.allocatedMs || toMs(totalHrsDecimal);
-    // 4. Max allowed is current time + all available unallocated/flexible time
-    const maxAllowedMs = currentSubtaskMs + availableAutoPoolMs + availableReserveMs;
+
+    // 4. Parent deadline total duration remaining
+    let parentRemainingMs = 0;
+    if (task.delete_at) {
+      const deadlineMs = new Date(task.delete_at).getTime();
+      const nowMs = window.breakdownNow || Date.now();
+      if (!isNaN(deadlineMs) && deadlineMs > nowMs) {
+        parentRemainingMs = deadlineMs - nowMs;
+      }
+    }
+
+    // Dynamic max allowed milliseconds based on available pools & parent deadline
+    const poolAllowedMs = currentSubtaskMs + availableAutoPoolMs + availableReserveMs;
+    const maxAllowedMs = Math.max(poolAllowedMs, parentRemainingMs);
     const maxAllowedSecs = Math.floor(maxAllowedMs / 1000);
-    const maxDays = Math.max(d, Math.floor(maxAllowedSecs / 86400));
+    // Allow up to the remaining parent duration (at least 30 days, or current days if greater)
+    const maxDays = Math.max(initD, Math.max(30, Math.ceil(maxAllowedSecs / 86400)));
 
     // Open overlay FIRST so bounding boxes are measurable
     const overlay = document.getElementById('editSubtaskTimePickerOverlay');
-    if (overlay) overlay.classList.add('active');
+    if (overlay) {
+      overlay.classList.add('active');
+      void overlay.offsetHeight; // Force browser layout/reflow
+    }
 
     isPopulatingDrums = true;
     populateEditSubtaskDrum('editSubtaskDrumDays', 0, maxDays);
@@ -9595,19 +9640,25 @@
     const maxLabelEl = document.getElementById('editSubtaskTimeMaxLabel');
     if (maxLabelEl) maxLabelEl.textContent = maxLabel;
 
-    editSubtaskLastVals = { d, h, m, s };
+    editSubtaskLastVals = { d: initD, h: initH, m: initM, s: initS };
 
-    // Align drums once modal layout is established
+    function applyDrumsPosition() {
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumDays'), initD);
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumHours'), initH);
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumMins'), initM);
+      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumSecs'), initS);
+      updateEditSubtaskTimePickerPreview();
+    }
+
+    applyDrumsPosition();
+
+    // Dual-frame alignment to ensure accurate positioning even during CSS transition
     requestAnimationFrame(() => {
-      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumDays'), d);
-      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumHours'), h);
-      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumMins'), m);
-      finalizeEditSubtaskDrum(document.getElementById('editSubtaskDrumSecs'), s);
-
+      applyDrumsPosition();
       setTimeout(() => {
+        applyDrumsPosition();
         isPopulatingDrums = false;
-        updateEditSubtaskTimePickerPreview();
-      }, 50);
+      }, 40);
     });
   }
 
@@ -9633,10 +9684,12 @@
 
     let targetIndex = -1;
     if (initialValue !== null) {
+      const valNum = parseInt(initialValue, 10);
       const valStr = initialValue.toString().padStart(2, '0');
-      targetIndex = Array.from(items).findIndex(i =>
-        i.textContent == valStr || i.textContent == initialValue || parseInt(i.textContent) === parseInt(initialValue)
-      );
+      targetIndex = Array.from(items).findIndex(i => {
+        const itemVal = parseInt(i.textContent, 10);
+        return itemVal === valNum || i.textContent.trim() === valStr || i.textContent.trim() === String(initialValue);
+      });
     }
     if (targetIndex === -1) targetIndex = 0;
 
