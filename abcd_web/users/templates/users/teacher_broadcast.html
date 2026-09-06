@@ -974,13 +974,81 @@
     /* =====================================================
        EXPIRY DATE WHEEL PICKER (Matches Schedule Wheel)
        ===================================================== */
+    function getWheelSelectedIndex(col) {
+        if (!col) return 0;
+        const items = col.children;
+        if (!items || items.length === 0) return 0;
+        const colRect = col.getBoundingClientRect();
+        const centerY = colRect.top + colRect.height / 2;
+        let closestIndex = 0, minDist = Infinity;
+        for (let i = 0; i < items.length; i++) {
+            const r = items[i].getBoundingClientRect();
+            const itemCenter = r.top + r.height / 2;
+            const dist = Math.abs(itemCenter - centerY);
+            if (dist < minDist) { minDist = dist; closestIndex = i; }
+        }
+        return closestIndex;
+    }
+
+    function scrollWheelToIndex(col, index, smooth = false) {
+        if (!col) return;
+        const items = col.children;
+        if (!items || items.length === 0) return;
+        const clamped = Math.max(0, Math.min(index, items.length - 1));
+        const target = items[clamped];
+        const targetScrollTop = target.offsetTop - col.offsetTop - (col.clientHeight - target.clientHeight) / 2;
+        if (smooth) {
+            col.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
+        } else {
+            col.scrollTop = Math.max(0, Math.round(targetScrollTop));
+        }
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.toggle('selected', i === clamped);
+        }
+    }
+
+    window.initWheel = function(containerId, items, defaultValue, onScrollChange) {
+        const col = document.getElementById(containerId);
+        if (!col) return;
+        col.innerHTML = '';
+        items.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'wheel-item';
+            div.textContent = item;
+            div.onclick = (e) => {
+                e.stopPropagation();
+                scrollWheelToIndex(col, idx, true);
+                if (onScrollChange) setTimeout(onScrollChange, 80);
+            };
+            col.appendChild(div);
+        });
+        let scrollTimeout;
+        col.addEventListener('scroll', () => {
+            const index = getWheelSelectedIndex(col);
+            const children = col.children;
+            for (let i = 0; i < children.length; i++) {
+                children[i].classList.toggle('selected', i === index);
+            }
+            if (onScrollChange) {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(onScrollChange, 80);
+            }
+        });
+        const defaultIndex = items.indexOf(defaultValue ? defaultValue.toString() : '');
+        if (defaultIndex !== -1) {
+            setTimeout(() => { scrollWheelToIndex(col, defaultIndex, false); }, 50);
+        }
+    };
+
+    window.getWheelValue = function(containerId) {
+        const col = document.getElementById(containerId);
+        if (!col) return '';
+        const index = getWheelSelectedIndex(col);
+        return col.children[index]?.textContent || '';
+    };
+
     window.syncExpiryDateDays = function () {
-        const getVal = window.getWheelValue || function (id) {
-            const col = document.getElementById(id);
-            if (!col) return '';
-            const index = Math.round(col.scrollTop / 40);
-            return col.children[index]?.textContent || '';
-        };
+        const getVal = window.getWheelValue;
         const yearStr = getVal('wheel-expiry-year');
         const monthStr = getVal('wheel-expiry-month');
         if (!yearStr || !monthStr) return;
@@ -1055,12 +1123,7 @@
     };
 
     window.confirmExpiryDateSelection = function () {
-        const getVal = window.getWheelValue || function (id) {
-            const col = document.getElementById(id);
-            if (!col) return '';
-            const index = Math.round(col.scrollTop / 40);
-            return col.children[index]?.textContent || '';
-        };
+        const getVal = window.getWheelValue;
         const d = getVal('wheel-expiry-day');
         const moStr = getVal('wheel-expiry-month');
         const y = getVal('wheel-expiry-year');

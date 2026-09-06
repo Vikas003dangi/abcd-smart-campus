@@ -2832,6 +2832,53 @@
         };
 
         // --- WHEEL PICKER CORE ---
+        function getWheelSelectedIndex(col) {
+            if (!col) return 0;
+            const items = col.children;
+            if (!items || items.length === 0) return 0;
+            const colRect = col.getBoundingClientRect();
+            const centerY = colRect.top + colRect.height / 2;
+            let closestIndex = 0, minDist = Infinity;
+            for (let i = 0; i < items.length; i++) {
+                const r = items[i].getBoundingClientRect();
+                const itemCenter = r.top + r.height / 2;
+                const dist = Math.abs(itemCenter - centerY);
+                if (dist < minDist) { minDist = dist; closestIndex = i; }
+            }
+            return closestIndex;
+        }
+
+        function scrollWheelToIndex(col, index, smooth = false) {
+            if (!col) return;
+            const items = col.children;
+            if (!items || items.length === 0) return;
+            const clamped = Math.max(0, Math.min(index, items.length - 1));
+            const target = items[clamped];
+            const targetScrollTop = target.offsetTop - col.offsetTop - (col.clientHeight - target.clientHeight) / 2;
+            if (smooth) {
+                col.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
+            } else {
+                col.scrollTop = Math.max(0, Math.round(targetScrollTop));
+            }
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.toggle('selected', i === clamped);
+            }
+        }
+
+        function triggerWheelSync(containerId) {
+            const col = document.getElementById(containerId);
+            if (!col) return;
+            if (containerId === 'wheel-year' || containerId === 'wheel-month') {
+                clearTimeout(col.syncTimeout);
+                col.syncTimeout = setTimeout(syncStartDateWheels, 150);
+            }
+            if (containerId === 'wheel-dur-months') {
+                clearTimeout(col.syncTimeout);
+                col.syncTimeout = setTimeout(syncDurationWheels, 150);
+            }
+            if (containerId.startsWith('wheel-dur')) updateDurationHint();
+        }
+
         function initWheel(containerId, items, defaultValue) {
             const col = document.getElementById(containerId);
             if (!col) return;
@@ -2843,49 +2890,49 @@
                 // Save current selection before wipe
                 const oldVal = getWheelValue(containerId);
                 col.innerHTML = '';
-                items.forEach(item => {
+                items.forEach((item, idx) => {
                     const div = document.createElement('div');
                     div.className = 'wheel-item';
                     div.textContent = item;
+                    div.onclick = (e) => {
+                        e.stopPropagation();
+                        scrollWheelToIndex(col, idx, true);
+                        triggerWheelSync(containerId);
+                    };
                     col.appendChild(div);
                 });
                 // Try to restore selection or use default
-                const newIndex = items.indexOf(oldVal) !== -1 ? items.indexOf(oldVal) : items.indexOf(defaultValue.toString());
-                if (newIndex !== -1) col.scrollTop = newIndex * 40;
+                const newIndex = items.indexOf(oldVal) !== -1 ? items.indexOf(oldVal) : items.indexOf(defaultValue ? defaultValue.toString() : '');
+                if (newIndex !== -1) {
+                    setTimeout(() => scrollWheelToIndex(col, newIndex, false), 40);
+                }
             }
 
             // High performance scroll listener
             col.onscroll = () => {
-                const index = Math.round(col.scrollTop / 50);
+                const index = getWheelSelectedIndex(col);
                 const children = col.children;
                 for(let i=0; i<children.length; i++) {
                     children[i].classList.toggle('selected', i === index);
                 }
                 
-                // Debounced sync to prevent wobbly behavior
-                if (containerId === 'wheel-year' || containerId === 'wheel-month') {
-                    clearTimeout(col.syncTimeout);
-                    col.syncTimeout = setTimeout(syncStartDateWheels, 150);
-                }
-                if (containerId === 'wheel-dur-months') {
-                    clearTimeout(col.syncTimeout);
-                    col.syncTimeout = setTimeout(syncDurationWheels, 150);
-                }
-                if (containerId.startsWith('wheel-dur')) updateDurationHint();
+                triggerWheelSync(containerId);
             };
 
             // Set initial position if first render
             if (itemsChanged || col.scrollTop === 0) {
                 const targetVal = defaultValue ? defaultValue.toString() : items[0];
                 const targetIndex = items.indexOf(targetVal);
-                if (targetIndex !== -1) col.scrollTop = targetIndex * 50;
+                if (targetIndex !== -1) {
+                    setTimeout(() => scrollWheelToIndex(col, targetIndex, false), 40);
+                }
             }
         }
 
         function getWheelValue(containerId) {
             const col = document.getElementById(containerId);
             if(!col) return '';
-            const index = Math.round(col.scrollTop / 50);
+            const index = getWheelSelectedIndex(col);
             return col.children[index]?.textContent || '';
         }
 

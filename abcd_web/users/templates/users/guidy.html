@@ -5040,20 +5040,58 @@ function formatDividerDate(dateStr) {
 // ── Guidy Wheel In-Chat Date Picker ─────────────────────────────────
 let gWheelSelectedDateStr = '';
 
+function getGuidyWheelSelectedIndex(col) {
+  if (!col) return 0;
+  const items = col.children;
+  if (!items || items.length === 0) return 0;
+  const colRect = col.getBoundingClientRect();
+  const centerY = colRect.top + colRect.height / 2;
+  let closestIndex = 0, minDist = Infinity;
+  for (let i = 0; i < items.length; i++) {
+    const r = items[i].getBoundingClientRect();
+    const itemCenter = r.top + r.height / 2;
+    const dist = Math.abs(itemCenter - centerY);
+    if (dist < minDist) { minDist = dist; closestIndex = i; }
+  }
+  return closestIndex;
+}
+
+function scrollGuidyWheelToIndex(col, index, smooth = false) {
+  if (!col) return;
+  const items = col.children;
+  if (!items || items.length === 0) return;
+  const clamped = Math.max(0, Math.min(index, items.length - 1));
+  const target = items[clamped];
+  const targetScrollTop = target.offsetTop - col.offsetTop - (col.clientHeight - target.clientHeight) / 2;
+  if (smooth) {
+    col.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
+  } else {
+    col.scrollTop = Math.max(0, Math.round(targetScrollTop));
+  }
+  for (let i = 0; i < items.length; i++) {
+    items[i].classList.toggle('selected', i === clamped);
+  }
+}
+
 function initGuidyWheel(containerId, items, defaultValue, onScrollChange) {
   const col = document.getElementById(containerId);
   if (!col) return;
   col.innerHTML = '';
-  items.forEach(item => {
+  items.forEach((item, idx) => {
     const div = document.createElement('div');
     div.className = 'g-wheel-item';
     div.textContent = item;
+    div.onclick = (e) => {
+      e.stopPropagation();
+      scrollGuidyWheelToIndex(col, idx, true);
+      if (onScrollChange) setTimeout(onScrollChange, 80);
+    };
     col.appendChild(div);
   });
 
   let scrollTimeout;
   col.onscroll = () => {
-    const index = Math.max(0, Math.min(items.length - 1, Math.round(col.scrollTop / 40)));
+    const index = getGuidyWheelSelectedIndex(col);
     const children = col.children;
     for (let i = 0; i < children.length; i++) {
       children[i].classList.toggle('selected', i === index);
@@ -5067,11 +5105,7 @@ function initGuidyWheel(containerId, items, defaultValue, onScrollChange) {
   const defaultIndex = items.indexOf(String(defaultValue));
   if (defaultIndex !== -1) {
     setTimeout(() => {
-      col.scrollTop = defaultIndex * 40;
-      const children = col.children;
-      for (let i = 0; i < children.length; i++) {
-        children[i].classList.toggle('selected', i === defaultIndex);
-      }
+      scrollGuidyWheelToIndex(col, defaultIndex, false);
     }, 40);
   }
 }
@@ -5079,7 +5113,7 @@ function initGuidyWheel(containerId, items, defaultValue, onScrollChange) {
 function getGuidyWheelValue(containerId) {
   const col = document.getElementById(containerId);
   if (!col) return '';
-  const index = Math.max(0, Math.min(col.children.length - 1, Math.round(col.scrollTop / 40)));
+  const index = getGuidyWheelSelectedIndex(col);
   return col.children[index]?.textContent || '';
 }
 
