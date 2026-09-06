@@ -996,7 +996,8 @@ def _fire_reminder(task, title, email_notify):
         title=f"⏰ Reminder: {title}",
         message=f"Your reminder '{title}' is due now.",
         link='/todo/',
-        category='reminder'
+        category='reminder',
+        sound='/static/audio/alarms and reminders.mp3'
     )
     if email_notify and task.user:
         target_email = get_user_notification_email(task.user)

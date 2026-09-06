@@ -33,7 +33,20 @@ self.addEventListener('push', function (event) {
     const title = data.title || 'ABCD | Notification';
     const icon = data.icon || '/static/data/favicon/web-app-manifest-192x192.png';
     const badge = data.badge || '/static/data/favicon/favicon-96x96.png';
-    const sound = data.sound || '/static/audio/PWA.mp3';
+
+    const catLower = (data.category || '').toLowerCase();
+    const titleLower = (title || '').toLowerCase();
+    const tagLower = (data.tag || '').toLowerCase();
+    const isAlarm = (catLower === 'reminder' || catLower === 'alarm' ||
+                     titleLower.includes('reminder') || titleLower.includes('alarm') ||
+                     tagLower.includes('reminder') || tagLower.includes('alarm'));
+
+    let sound = data.sound;
+    if (!sound) {
+        sound = isAlarm ? '/static/audio/alarms and reminders.mp3' : '/static/audio/PWA.mp3';
+    } else if (isAlarm && sound === '/static/audio/PWA.mp3') {
+        sound = '/static/audio/alarms and reminders.mp3';
+    }
 
     const options = {
         body: data.body || 'You have a new update.',

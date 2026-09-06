@@ -303,18 +303,18 @@
 
   /* Note modals: use CSS variables set by JS to color headers and add theme-based separator */
   #noteEditorModal .todo-modal-header {
-    background-color: var(--note-modal-bg, #c4b5fd) !important;
+    background-color: var(--note-modal-bg, #fef08a) !important;
     border-bottom: 1.5px solid black !important;
   }
 
   #noteViewModal .todo-modal-header {
-    background-color: var(--note-view-bg, #c4b5fd) !important;
+    background-color: var(--note-view-bg, #fef08a) !important;
     border-bottom: 1.5px solid black !important;
   }
 
   body.dark-theme #noteEditorModal .todo-modal-header,
   body.dark-theme #noteViewModal .todo-modal-header {
-    border-bottom: 1.5px solid wheat !important;
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.12) !important;
   }
 
   .todo-modal-header h3 {
@@ -1720,35 +1720,175 @@
     flex-direction: column;
   }
 
+  .note-editor-modal-container {
+    max-width: 680px;
+    width: 92vw;
+    border-radius: 18px !important;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  body.dark-theme .note-editor-modal-container {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .note-editor-header {
+    padding: 12px 18px !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.25s ease;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .note-icon-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    color: #1e293b;
+  }
+
+  .note-header-icon-btn {
+    background: rgba(0, 0, 0, 0.06);
+    border: none;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #1e293b;
+    transition: all 0.15s ease;
+  }
+
+  .note-header-icon-btn:hover {
+    background: rgba(0, 0, 0, 0.12);
+    transform: scale(1.08);
+  }
+
+  .note-header-icon-btn.close-btn {
+    font-size: 1.3rem;
+    font-weight: 300;
+  }
+
+  .note-editor-paper {
+    padding: 22px 22px 18px;
+    flex: 1;
+    min-height: 240px;
+    background-image: repeating-linear-gradient(transparent,
+        transparent 27px,
+        rgba(0, 0, 0, 0.05) 28px);
+    background-size: 100% 28px;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.25s ease;
+    overflow-y: auto;
+    max-height: 52vh;
+  }
+
   .note-editor-title {
-    font-size: 1.4rem;
-    font-weight: 700;
+    font-size: 1.35rem;
+    font-weight: 800;
     border: none;
     outline: none;
     background: transparent;
     width: 100%;
-    margin-bottom: 8px;
-    color: rgba(0, 0, 0, 0.8);
+    margin-bottom: 10px;
+    color: #0f172a;
     font-family: inherit;
+    transition: color 0.2s ease;
   }
 
   .note-editor-title::placeholder {
-    color: rgba(0, 0, 0, 0.3);
+    color: rgba(15, 23, 42, 0.38);
   }
 
   .note-editor-body[contenteditable] {
     flex: 1;
     outline: none;
     font-size: 1.05rem;
-    line-height: 1.8;
-    color: rgba(0, 0, 0, 0.75);
+    line-height: 1.75;
+    color: #1e293b;
     min-height: 180px;
   }
 
   .note-editor-body[contenteditable]:empty::before {
     content: attr(data-placeholder);
-    color: rgba(0, 0, 0, 0.3);
+    color: rgba(15, 23, 42, 0.38);
     pointer-events: none;
+  }
+
+  .note-editor-body a {
+    color: #2563eb !important;
+    text-decoration: underline !important;
+    font-weight: 600 !important;
+  }
+
+  .note-editor-footer {
+    padding: 12px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+  }
+
+  body.dark-theme .note-editor-footer {
+    background: #171026 !important;
+    border-top: 1px solid #2d2247 !important;
+  }
+
+  .note-footer-cancel-btn {
+    padding: 9px 20px;
+    background: transparent;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    color: #64748b;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  body.dark-theme .note-footer-cancel-btn {
+    border-color: #382c59;
+    color: #cbd5e1;
+  }
+
+  .note-footer-cancel-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  body.dark-theme .note-footer-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .note-footer-save-btn {
+    padding: 9px 24px;
+    background: #7b61ff;
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(123, 97, 255, 0.35);
+    transition: all 0.15s ease;
+  }
+
+  .note-footer-save-btn:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(123, 97, 255, 0.45);
   }
 
   /* Apply Playpen Sans to all note elements */
@@ -1768,33 +1908,74 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.04);
-    border-radius: 10px 10px 0 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 7px 12px;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
     align-items: center;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  body.dark-theme .note-toolbar {
+    background: #171026 !important;
+    border-bottom: 1px solid #2d2247 !important;
+  }
+
+  .note-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
   }
 
   .note-toolbar-btn {
-    background: none;
-    border: none;
-    padding: 5px 8px;
-    border-radius: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    width: 33px;
+    height: 33px;
+    border-radius: 7px;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     color: #475569;
-    transition: background 0.15s;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+
+  body.dark-theme .note-toolbar-btn {
+    color: #cbd5e1;
   }
 
   .note-toolbar-btn:hover {
-    background: rgba(123, 97, 255, 0.1);
+    background: rgba(123, 97, 255, 0.12);
     color: #7b61ff;
+    transform: translateY(-1px);
   }
 
+  body.dark-theme .note-toolbar-btn:hover {
+    background: rgba(123, 97, 255, 0.25);
+    color: #a78bfa;
+  }
+
+  /* Active tool highlighted & zoomed */
   .note-toolbar-btn.active {
-    background: #7b61ff20;
-    color: #7b61ff;
+    background: #7b61ff !important;
+    color: #ffffff !important;
+    border-color: #6366f1 !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 3px 10px rgba(123, 97, 255, 0.45) !important;
+    z-index: 2;
+  }
+
+  .note-text-color-indicator {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 3px;
+    background: #7b61ff;
+    border-radius: 2px;
   }
 
   .note-toolbar-sep {
@@ -1802,6 +1983,66 @@
     height: 20px;
     background: #e2e8f0;
     margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  body.dark-theme .note-toolbar-sep {
+    background: #2d2247;
+  }
+
+  .note-type-select {
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    padding: 5px 8px;
+    background: #f8fafc;
+    cursor: pointer;
+    color: #475569;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  body.dark-theme .note-type-select {
+    background: #22183a;
+    border-color: #382c59;
+    color: #cbd5e1;
+  }
+
+  .note-type-select:focus {
+    border-color: #7b61ff;
+  }
+
+  /* Dropdown for sticky note color */
+  .note-bg-picker-dropdown {
+    position: fixed;
+    z-index: 99999;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    width: 230px;
+    max-width: calc(100vw - 24px);
+    box-sizing: border-box;
+  }
+
+  body.dark-theme .note-bg-picker-dropdown {
+    background: #1e1633;
+    border-color: #382c59;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  }
+
+  .note-bg-picker-title {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-bottom: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  body.dark-theme .note-bg-picker-title {
+    color: #94a3b8;
   }
 
   /* Color palette for text coloring */
@@ -3104,94 +3345,104 @@
 
 <!-- ═══ NOTE EDITOR MODAL ═══ -->
 <div class="todo-modal-overlay" id="noteEditorModal">
-  <div class="todo-modal" style="max-width:680px;">
-    <div class="todo-modal-header" id="noteModalHeader" style="background:#c4b5fd; border-radius:12px 12px 0 0;">
+  <div class="todo-modal note-editor-modal-container" style="max-width:680px;">
+    <div class="todo-modal-header note-editor-header" id="noteModalHeader" style="background:#fef08a; border-radius:18px 18px 0 0;">
       <div style="display:flex; align-items:center; gap:10px;">
-        <span id="noteModalIcon" style="font-size:1.1rem;">📝</span>
-        <span style="font-weight:700; font-size:0.95rem;" id="noteModalTitle">New Note</span>
+        <div class="note-icon-badge"><i class='bx bxs-notepad' id="noteModalIcon"></i></div>
+        <span style="font-weight:800; font-size:1.05rem;" id="noteModalTitle">New Sticky Note</span>
       </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button id="notePinBtn" onclick="toggleNotePin()" style="background:none; border:none; cursor:pointer;
-                   font-size:1.1rem; padding:4px;" title="Pin note">📌</button>
-        <button class="todo-modal-close" onclick="closeNoteModal()">&times;</button>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button id="notePinBtn" onclick="toggleNotePin()" class="note-header-icon-btn" title="Pin note">
+          <i class='bx bxs-pin'></i>
+        </button>
+        <button class="note-header-icon-btn close-btn" onclick="closeNoteModal()" title="Close">&times;</button>
       </div>
     </div>
 
     <div class="todo-modal-body" style="padding:0; flex:1; display:flex; flex-direction:column; overflow:hidden;"
       id="noteEditorBody">
 
-      <!-- Toolbar -->
+      <!-- Studio Toolbar -->
       <div class="note-toolbar" id="noteToolbar">
-        <button class="note-toolbar-btn" onclick="noteCmd('bold')" title="Bold">
-          <b>B</b>
-        </button>
-        <button class="note-toolbar-btn" onclick="noteCmd('italic')" title="Italic">
-          <i>I</i>
-        </button>
-        <button class="note-toolbar-btn" onclick="noteCmd('underline')" title="Underline">
-          <u>U</u>
-        </button>
-        <button class="note-toolbar-btn" onclick="noteCmd('strikeThrough')" title="Strike">
-          <s>S</s>
-        </button>
-        <div class="note-toolbar-sep"></div>
-        <button class="note-toolbar-btn" onmousedown="showNoteColorPalette(event, 'text')"
-          onclick="event.preventDefault(); event.stopPropagation();" title="Text color" id="textColorBtn">
-          A <span id="textColorIndicator" style="display:inline-block;width:10px;height:3px;
-                           background:#7b61ff;border-radius:2px;
-                           vertical-align:bottom;margin-left:2px;"></span>
-        </button>
-        <button class="note-toolbar-btn" onmousedown="showNoteColorPalette(event, 'bg')"
-          onclick="event.preventDefault(); event.stopPropagation();" title="Highlight" id="bgColorBtn">
-          🖊
-        </button>
-        <div class="note-toolbar-sep"></div>
-        <button class="note-toolbar-btn" onclick="noteCmd('insertUnorderedList')" title="Bullet list">
-          ☰
-        </button>
-        <button class="note-toolbar-btn" onclick="noteCmd('insertOrderedList')" title="Numbered list">
-          1.
-        </button>
-        <button class="note-toolbar-btn" onclick="insertNoteChecklist()" title="Checklist">
-          ☑
-        </button>
-        <div class="note-toolbar-sep"></div>
-        <button class="note-toolbar-btn" onclick="insertNoteLink()" title="Add link">
-          🔗
-        </button>
-        <button class="note-toolbar-btn" onclick="document.getElementById('noteImgUpload').click()"
-          title="Add image (max 3)" id="noteImgBtn">
-          🖼
-        </button>
-        <input type="file" id="noteImgUpload" accept="image/*" style="display:none"
-          onchange="handleNoteImageUpload(this)">
-        <div class="note-toolbar-sep"></div>
-        <!-- Note background color -->
-        <div style="position:relative; display:inline-block;">
-          <button class="note-toolbar-btn" onclick="toggleNoteBgPicker()" title="Note color" id="noteBgPickerBtn">
-            🎨
+        <div class="note-toolbar-group">
+          <button class="note-toolbar-btn" id="btnNoteBold" onclick="noteCmd('bold')" title="Bold (Ctrl+B)">
+            <i class='bx bx-bold'></i>
           </button>
-          <div id="noteBgPickerDropdown" style="display:none; position:fixed;
-                        z-index:9999; background:#fff;
-                        border:1px solid #e2e8f0; border-radius:12px;
-                        padding:12px; box-shadow:0 8px 24px rgba(0,0,0,0.15);
-                        width:220px; max-width:calc(100vw - 24px); box-sizing:border-box;">
-            <div style="font-size:0.72rem; color:#64748b; margin-bottom:8px;
-                           font-weight:600;">NOTE COLOR</div>
+          <button class="note-toolbar-btn" id="btnNoteItalic" onclick="noteCmd('italic')" title="Italic (Ctrl+I)">
+            <i class='bx bx-italic'></i>
+          </button>
+          <button class="note-toolbar-btn" id="btnNoteUnderline" onclick="noteCmd('underline')" title="Underline (Ctrl+U)">
+            <i class='bx bx-underline'></i>
+          </button>
+          <button class="note-toolbar-btn" id="btnNoteStrike" onclick="noteCmd('strikeThrough')" title="Strikethrough">
+            <i class='bx bx-strikethrough'></i>
+          </button>
+        </div>
+
+        <div class="note-toolbar-sep"></div>
+
+        <div class="note-toolbar-group">
+          <button class="note-toolbar-btn" onmousedown="showNoteColorPalette(event, 'text')"
+            onclick="event.preventDefault(); event.stopPropagation();" title="Text color" id="textColorBtn">
+            <i class='bx bx-font-color'></i>
+            <span id="textColorIndicator" class="note-text-color-indicator"></span>
+          </button>
+          <button class="note-toolbar-btn" onmousedown="showNoteColorPalette(event, 'bg')"
+            onclick="event.preventDefault(); event.stopPropagation();" title="Highlight text" id="bgColorBtn">
+            <i class='bx bx-highlight'></i>
+          </button>
+        </div>
+
+        <div class="note-toolbar-sep"></div>
+
+        <div class="note-toolbar-group">
+          <button class="note-toolbar-btn" id="btnNoteUL" onclick="noteCmd('insertUnorderedList')" title="Bullet list">
+            <i class='bx bx-list-ul'></i>
+          </button>
+          <button class="note-toolbar-btn" id="btnNoteOL" onclick="noteCmd('insertOrderedList')" title="Numbered list">
+            <i class='bx bx-list-ol'></i>
+          </button>
+          <button class="note-toolbar-btn" id="btnNoteChecklist" onclick="insertNoteChecklist()" title="Checklist item">
+            <i class='bx bx-check-square'></i>
+          </button>
+        </div>
+
+        <div class="note-toolbar-sep"></div>
+
+        <div class="note-toolbar-group">
+          <button class="note-toolbar-btn" id="btnNoteLink" onclick="insertNoteLink()" title="Add link">
+            <i class='bx bx-link-alt'></i>
+          </button>
+          <button class="note-toolbar-btn" onclick="triggerNoteImageUpload()" title="Attach image (max 3)" id="noteImgBtn">
+            <i class='bx bx-image-add'></i>
+          </button>
+          <input type="file" id="noteImgUpload" accept="image/*" style="display:none"
+            onchange="handleNoteImageUpload(this)">
+        </div>
+
+        <div class="note-toolbar-sep"></div>
+
+        <!-- Note canvas background color -->
+        <div style="position:relative; display:inline-block;">
+          <button class="note-toolbar-btn" onclick="toggleNoteBgPicker()" title="Sticky Note color" id="noteBgPickerBtn">
+            <i class='bx bx-palette'></i>
+          </button>
+          <div id="noteBgPickerDropdown" class="note-bg-picker-dropdown" style="display:none;">
+            <div class="note-bg-picker-title">STICKY NOTE COLOR</div>
             <div class="note-bg-palette" id="noteBgPalette"></div>
           </div>
         </div>
+
         <!-- Note type toggle -->
         <div class="note-toolbar-sep"></div>
-        <select id="noteTypeSelect" onchange="onNoteTypeChange(this.value)" style="font-size:0.78rem; border:1px solid #e2e8f0; border-radius:6px;
-                   padding:4px 6px; background:transparent; cursor:pointer; color:#475569;">
-          <option value="quick">⚡ Quick</option>
+        <select id="noteTypeSelect" onchange="onNoteTypeChange(this.value)" class="note-type-select">
+          <option value="quick">⚡ Quick Note</option>
           <option value="checklist">☑ Checklist</option>
         </select>
       </div>
 
       <!-- Editor Paper -->
-      <div class="note-editor-paper" id="noteEditorPaper" style="background:#c4b5fd;">
+      <div class="note-editor-paper" id="noteEditorPaper" style="background:#fef08a;">
         <input type="text" class="note-editor-title" id="noteEditorTitle" placeholder="Title (optional)..."
           maxlength="120">
         <div class="note-editor-body" contenteditable="true" id="noteEditorContent"
@@ -3202,15 +3453,11 @@
       </div>
 
       <!-- Footer actions -->
-      <div style="padding:14px 20px; display:flex; justify-content:flex-end; gap:10px;
-                    border-top:1px solid rgba(0,0,0,0.06); flex-shrink:0;">
-        <button onclick="closeNoteModal()" style="padding:9px 20px; background:transparent; border:1.5px solid #e2e8f0;
-                   border-radius:10px; color:#64748b; font-weight:600; cursor:pointer;">
+      <div class="note-editor-footer">
+        <button onclick="closeNoteModal()" class="note-footer-cancel-btn">
           Cancel
         </button>
-        <button onclick="saveNote()" style="padding:9px 24px; background:#7b61ff; border:none; border-radius:10px;
-                   color:#fff; font-weight:600; cursor:pointer;
-                   box-shadow:0 4px 10px rgba(123,97,255,0.3);">
+        <button onclick="saveNote()" class="note-footer-save-btn">
           Save Note
         </button>
       </div>
@@ -6965,36 +7212,34 @@
 
   // ── NOTE EDITOR STATE ───────────────────────────────────
   const NOTE_BG_COLORS = [
-    { color: '#ef4444', name: 'Red' },
-    { color: '#ec4899', name: 'Pink' },
-    { color: '#f97316', name: 'Orange' },
-    { color: '#eab308', name: 'Yellow' },
-    { color: '#22c55e', name: 'Green' },
-    { color: '#14b8a6', name: 'Teal' },
-    { color: '#3b82f6', name: 'Blue' },
-    { color: '#6366f1', name: 'Indigo' },
-    { color: '#a855f7', name: 'Purple' },
-    { color: '#ffffff', name: 'White' },
-    { color: '#9ca3af', name: 'Gray' },
-    { color: '#000000', name: 'Black' },
+    { color: '#fef08a', name: 'Sunny Yellow' },
+    { color: '#fef3c7', name: 'Warm Amber' },
+    { color: '#fed7aa', name: 'Soft Peach' },
+    { color: '#bbf7d0', name: 'Mint Green' },
+    { color: '#bae6fd', name: 'Sky Blue' },
+    { color: '#e9d5ff', name: 'Soft Lavender' },
+    { color: '#fbcfe8', name: 'Rose Pink' },
+    { color: '#ffffff', name: 'Clean White' },
+    { color: '#e2e8f0', name: 'Cloud Gray' },
+    { color: '#1e293b', name: 'Slate Dark' },
   ];
 
   const NOTE_TEXT_COLORS = [
-    '#ef4444', // red
-    '#ec4899', // pink
-    '#f97316', // orange
-    '#eab308', // yellow
-    '#22c55e', // green
-    '#14b8a6', // teal
-    '#3b82f6', // blue
-    '#6366f1', // indigo
-    '#a855f7', // purple
+    '#0f172a', // charcoal
+    '#dc2626', // red
+    '#ea580c', // orange
+    '#ca8a04', // yellow
+    '#16a34a', // green
+    '#0891b2', // teal
+    '#2563eb', // blue
+    '#7c3aed', // indigo
+    '#db2777', // pink
     '#ffffff', // white
-    '#9ca3af', // gray
+    '#64748b', // gray
     '#000000', // black
   ];
 
-  let noteCurrentBg = '#c4b5fd';
+  let noteCurrentBg = '#fef08a';
   let noteIsPinned = false;
   let noteImages = [];       // array of base64 strings, max 3
   let editingNoteId = null;     // null = new, else task id
@@ -7045,18 +7290,60 @@
   }
 
   // ── NOTEBOOK FUNCTIONS ────────────────────────────────────────────────
+  let savedNoteCursorRange = null;
+
+  function saveNoteEditorSelection() {
+    const sel = window.getSelection();
+    const editor = document.getElementById('noteEditorContent');
+    if (sel && sel.rangeCount > 0 && editor && editor.contains(sel.anchorNode)) {
+      savedNoteCursorRange = sel.getRangeAt(0).cloneRange();
+    }
+  }
+
+  function updateNoteToolbarActiveStates() {
+    try {
+      const isBold = document.queryCommandState('bold');
+      const isItalic = document.queryCommandState('italic');
+      const isUnderline = document.queryCommandState('underline');
+      const isStrike = document.queryCommandState('strikeThrough');
+      const isUL = document.queryCommandState('insertUnorderedList');
+      const isOL = document.queryCommandState('insertOrderedList');
+
+      const btnBold = document.getElementById('btnNoteBold');
+      const btnItalic = document.getElementById('btnNoteItalic');
+      const btnUnderline = document.getElementById('btnNoteUnderline');
+      const btnStrike = document.getElementById('btnNoteStrike');
+      const btnUL = document.getElementById('btnNoteUL');
+      const btnOL = document.getElementById('btnNoteOL');
+
+      if (btnBold) btnBold.classList.toggle('active', !!isBold);
+      if (btnItalic) btnItalic.classList.toggle('active', !!isItalic);
+      if (btnUnderline) btnUnderline.classList.toggle('active', !!isUnderline);
+      if (btnStrike) btnStrike.classList.toggle('active', !!isStrike);
+      if (btnUL) btnUL.classList.toggle('active', !!isUL);
+      if (btnOL) btnOL.classList.toggle('active', !!isOL);
+
+      saveNoteEditorSelection();
+    } catch (e) {}
+  }
+
   function openNoteModal(editTaskId = null) {
     editingNoteId = editTaskId;
     noteImages = [];
     noteIsPinned = false;
-    noteCurrentBg = '#c4b5fd';
+    noteCurrentBg = '#fef08a';
 
     // Reset editor
     document.getElementById('noteEditorTitle').value = '';
     document.getElementById('noteEditorContent').innerHTML = '';
     document.getElementById('noteImageRow').innerHTML = '';
     document.getElementById('noteTypeSelect').value = 'quick';
-    document.getElementById('notePinBtn').style.opacity = '0.3';
+    const pinBtn = document.getElementById('notePinBtn');
+    if (pinBtn) {
+      pinBtn.style.opacity = '0.35';
+      pinBtn.style.transform = 'none';
+      pinBtn.style.color = '#ef4444';
+    }
 
     // If editing, load existing data
     if (editTaskId) {
@@ -7066,15 +7353,18 @@
         document.getElementById('noteEditorTitle').value = m.title || '';
         document.getElementById('noteEditorContent').innerHTML = m.content || '';
         document.getElementById('noteTypeSelect').value = m.note_type || 'quick';
-        noteCurrentBg = m.note_color || '#c4b5fd';
+        noteCurrentBg = m.note_color || '#fef08a';
         noteIsPinned = m.is_pinned || false;
         noteImages = [...(m.images || [])];
-        if (noteIsPinned) document.getElementById('notePinBtn').style.opacity = '1';
+        if (noteIsPinned && pinBtn) {
+          pinBtn.style.opacity = '1';
+          pinBtn.style.transform = 'rotate(45deg) scale(1.15)';
+        }
         renderNoteImageThumbs();
       }
-      document.getElementById('noteModalTitle').textContent = 'Edit Note';
+      document.getElementById('noteModalTitle').textContent = 'Edit Sticky Note';
     } else {
-      document.getElementById('noteModalTitle').textContent = 'New Note';
+      document.getElementById('noteModalTitle').textContent = 'New Sticky Note';
     }
 
     // Apply background
@@ -7085,6 +7375,19 @@
     closeNoteViewModal();
     closeNewModal();
     document.getElementById('noteEditorModal').classList.add('active');
+
+    // Attach listeners on noteEditorContent for active state
+    const editor = document.getElementById('noteEditorContent');
+    if (editor && !editor._hasActiveStateListeners) {
+      editor._hasActiveStateListeners = true;
+      ['keyup', 'mouseup', 'touchend', 'input', 'click'].forEach(evt => {
+        editor.addEventListener(evt, () => {
+          saveNoteEditorSelection();
+          updateNoteToolbarActiveStates();
+        });
+      });
+    }
+    updateNoteToolbarActiveStates();
     setTimeout(() => document.getElementById('noteEditorTitle').focus(), 120);
   }
 
@@ -7101,14 +7404,35 @@
 
   function applyNoteEditorBg(color) {
     noteCurrentBg = color;
-    document.getElementById('noteEditorPaper').style.background = color;
-    document.getElementById('noteModalHeader').style.background = color;
-    document.getElementById('noteModalHeader').style.setProperty('--note-modal-bg', color);
-    // For dark color, lighten text
+    const paper = document.getElementById('noteEditorPaper');
+    const header = document.getElementById('noteModalHeader');
+    if (paper) paper.style.background = color;
+    if (header) {
+      header.style.background = color;
+      header.style.setProperty('--note-modal-bg', color);
+    }
+    // High-contrast text colors
     const isDark = isColorDark(color);
-    const textColor = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.75)';
-    document.getElementById('noteEditorContent').style.color = textColor;
-    document.getElementById('noteEditorTitle').style.color = textColor;
+    const textColor = isDark ? '#ffffff' : '#0f172a';
+    const subColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.55)';
+    const placeholderColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.38)';
+
+    const contentEl = document.getElementById('noteEditorContent');
+    const titleEl = document.getElementById('noteEditorTitle');
+    const modalTitle = document.getElementById('noteModalTitle');
+    const modalIcon = document.getElementById('noteModalIcon');
+    const pinBtn = document.getElementById('notePinBtn');
+    const closeBtn = document.querySelector('#noteModalHeader .close-btn');
+
+    if (contentEl) contentEl.style.color = textColor;
+    if (titleEl) {
+      titleEl.style.color = textColor;
+      titleEl.style.setProperty('--placeholder-color', placeholderColor);
+    }
+    if (modalTitle) modalTitle.style.color = textColor;
+    if (modalIcon) modalIcon.style.color = isDark ? '#a78bfa' : '#7b61ff';
+    if (pinBtn) pinBtn.style.color = isDark ? '#fca5a5' : '#ef4444';
+    if (closeBtn) closeBtn.style.color = textColor;
   }
 
   function isColorDark(hex) {
@@ -7119,14 +7443,29 @@
   }
 
   function noteCmd(command, value = null) {
-    document.getElementById('noteEditorContent').focus();
+    const editor = document.getElementById('noteEditorContent');
+    editor.focus();
+    if (savedNoteCursorRange) {
+      try {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(savedNoteCursorRange);
+      } catch (err) {}
+    }
     document.execCommand('styleWithCSS', false, true);
     document.execCommand(command, false, value);
+    saveNoteEditorSelection();
+    updateNoteToolbarActiveStates();
   }
 
   function toggleNotePin() {
     noteIsPinned = !noteIsPinned;
-    document.getElementById('notePinBtn').style.opacity = noteIsPinned ? '1' : '0.3';
+    const pinBtn = document.getElementById('notePinBtn');
+    if (pinBtn) {
+      pinBtn.style.opacity = noteIsPinned ? '1' : '0.35';
+      pinBtn.style.transform = noteIsPinned ? 'rotate(45deg) scale(1.15)' : 'none';
+      pinBtn.style.color = '#ef4444';
+    }
 
     // Sync to card immediately if editing
     if (editingNoteId) {
@@ -7374,67 +7713,103 @@
   }
 
   function showModalPrompt(title, message, defaultVal, onConfirm) {
-    // Build a simple prompt popup using existing modal style
     const overlay = document.createElement('div');
     overlay.className = 'todo-modal-overlay active';
     overlay.style.zIndex = '99999';
     overlay.innerHTML = `
-          <div class="todo-modal" style="max-width:400px;">
-            <div class="todo-modal-header">
-              <h3 style="margin:0;font-size:1rem;">${title}</h3>
-              <button class="todo-modal-close" onclick="this.closest('.todo-modal-overlay').remove()">×</button>
-            </div>
-            <div class="todo-modal-body" style="padding:20px;">
-              <p style="font-size:0.9rem;color:#64748b;margin:0 0 12px;">${message}</p>
-              <input type="text" id="modalPromptInput" value="${defaultVal}"
-                     style="width:100%;padding:10px;border:1.5px solid #e2e8f0;
-                            border-radius:8px;font-size:0.9rem;outline:none;
-                            box-sizing:border-box;"
-                     onkeydown="if(event.key==='Enter') document.getElementById('modalPromptOk').click()">
-              <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
-                <button onclick="this.closest('.todo-modal-overlay').remove()"
-                  style="padding:9px 18px;background:transparent;border:1.5px solid #e2e8f0;
-                         border-radius:10px;color:#64748b;font-weight:600;cursor:pointer;">
-                  Cancel
-                </button>
-                <button id="modalPromptOk"
-                  onclick="
-                      const v = document.getElementById('modalPromptInput').value;
-                      this.closest('.todo-modal-overlay').remove();
-                      (${onConfirm.toString()})(v);"
-                  style="padding:9px 20px;background:#7b61ff;border:none;
-                         border-radius:10px;color:#fff;font-weight:600;cursor:pointer;">
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>`;
+      <div class="todo-modal" style="max-width:420px; border-radius:16px;">
+        <div class="todo-modal-header" style="padding:14px 18px; border-radius:16px 16px 0 0;">
+          <h3 style="margin:0;font-size:1.05rem;font-weight:700;">${title}</h3>
+          <button class="todo-modal-close" id="modalPromptClose">&times;</button>
+        </div>
+        <div class="todo-modal-body" style="padding:18px;">
+          <p style="font-size:0.9rem;color:#64748b;margin:0 0 12px;">${message}</p>
+          <input type="text" id="modalPromptInput" value="${defaultVal}"
+                 style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;
+                        border-radius:10px;font-size:0.95rem;outline:none;
+                        box-sizing:border-box;background:transparent;color:inherit;"
+                 onkeydown="if(event.key==='Enter') document.getElementById('modalPromptOk').click()">
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;">
+            <button id="modalPromptCancel"
+              style="padding:9px 18px;background:transparent;border:1.5px solid #e2e8f0;
+                     border-radius:10px;color:#64748b;font-weight:600;cursor:pointer;">
+              Cancel
+            </button>
+            <button id="modalPromptOk"
+              style="padding:9px 22px;background:#7b61ff;border:none;
+                     border-radius:10px;color:#fff;font-weight:600;cursor:pointer;
+                     box-shadow:0 3px 10px rgba(123,97,255,0.3);">
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>`;
     document.body.appendChild(overlay);
-    setTimeout(() => overlay.querySelector('#modalPromptInput').focus(), 100);
+
+    const input = overlay.querySelector('#modalPromptInput');
+    const btnOk = overlay.querySelector('#modalPromptOk');
+    const btnCancel = overlay.querySelector('#modalPromptCancel');
+    const btnClose = overlay.querySelector('#modalPromptClose');
+
+    const doClose = () => overlay.remove();
+    btnCancel.onclick = doClose;
+    btnClose.onclick = doClose;
+    btnOk.onclick = () => {
+      const val = input.value;
+      doClose();
+      if (typeof onConfirm === 'function') {
+        onConfirm(val);
+      }
+    };
+
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 100);
   }
 
   function insertNoteLink() {
-    // Save current selection
-    const sel = window.getSelection();
-    let range = null;
-    if (sel && sel.rangeCount > 0) range = sel.getRangeAt(0).cloneRange();
+    saveNoteEditorSelection();
+    const range = savedNoteCursorRange ? savedNoteCursorRange.cloneRange() : null;
+    const selectedText = range ? range.toString().trim() : '';
 
-    showModalPrompt('Add Link', 'Enter the URL:', 'https://', (url) => {
+    showModalPrompt('Add Link', 'Enter the URL (e.g. https://example.com):', 'https://', (url) => {
       if (!url || !url.trim()) return;
       let href = url.trim();
-      if (!href.startsWith('http')) href = 'https://' + href;
+      if (!href.startsWith('http://') && !href.startsWith('https://')) {
+        href = 'https://' + href;
+      }
       const editor = document.getElementById('noteEditorContent');
       editor.focus();
       if (range) {
-        const sel2 = window.getSelection();
-        sel2.removeAllRanges();
-        sel2.addRange(range);
+        try {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } catch (err) {}
       }
-      document.execCommand('createLink', false, href);
+      if (selectedText.length > 0) {
+        document.execCommand('createLink', false, href);
+      } else {
+        const linkHtml = `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;font-weight:600;">${href}</a>&nbsp;`;
+        document.execCommand('insertHTML', false, linkHtml);
+      }
       document.querySelectorAll('#noteEditorContent a').forEach(a => {
-        a.target = '_blank'; a.rel = 'noopener';
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.color = '#2563eb';
+        a.style.textDecoration = 'underline';
+        a.style.fontWeight = '600';
       });
+      saveNoteEditorSelection();
+      updateNoteToolbarActiveStates();
     });
+  }
+
+  function triggerNoteImageUpload() {
+    saveNoteEditorSelection();
+    const input = document.getElementById('noteImgUpload');
+    if (input) input.click();
   }
 
   function handleNoteImageUpload(input) {
@@ -7445,8 +7820,8 @@
     }
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showModalAlert('File Too Large', 'Image must be under 2MB.');
+    if (file.size > 3 * 1024 * 1024) {
+      showModalAlert('File Too Large', 'Image must be under 3MB.');
       input.value = '';
       return;
     }
@@ -7458,11 +7833,21 @@
       // Insert inline
       const editor = document.getElementById('noteEditorContent');
       editor.focus();
-      const imgHtml = `&nbsp;<span contenteditable="false" style="display:inline-block; resize:horizontal; overflow:hidden; width:250px; max-width:100%; vertical-align:middle; border:1px solid transparent; cursor:move;" onmouseenter="this.style.border='1px dashed #7b61ff'" onmouseleave="this.style.border='1px solid transparent'"><img src="${base64}" style="width:100%; height:auto; display:block; border-radius:8px;"></span>&nbsp;`;
+      if (savedNoteCursorRange) {
+        try {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(savedNoteCursorRange);
+        } catch (err) {}
+      }
+
+      const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="display:inline-block; max-width:100%; vertical-align:middle; margin:4px 0;"><img src="${base64}" style="max-width:100%; max-height:240px; border-radius:10px; display:block; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></span>&nbsp;`;
       document.execCommand('insertHTML', false, imgHtml);
 
       renderNoteImageThumbs();
       updateNoteImgBtn();
+      saveNoteEditorSelection();
+      updateNoteToolbarActiveStates();
     };
     reader.readAsDataURL(file);
     input.value = '';
@@ -7669,14 +8054,14 @@
     const meta = task.metadata || {};
     const title = meta.title || '';
     const content = meta.content || '';
-    const color = meta.note_color || '#c4b5fd';
+    const color = meta.note_color || '#fef08a';
     const rotation = parseFloat(meta.rotation || (Math.random() * 6 - 3).toFixed(2));
     const isPinned = meta.is_pinned || false;
     const noteType = meta.note_type || 'quick';
     const images = meta.images || [];
     const isDark = isColorDark(color);
-    const textCol = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.72)';
-    const subCol = isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)';
+    const textCol = isDark ? '#ffffff' : '#0f172a';
+    const subCol = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.65)';
 
     // Strip HTML tags for plain preview
     const plainText = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -7803,9 +8188,9 @@
     noteViewingId = taskId;
 
     const m = task.metadata;
-    const color = m.note_color || '#c4b5fd';
+    const color = m.note_color || '#fef08a';
     const isDark = isColorDark(color);
-    const textCol = isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.75)';
+    const textCol = isDark ? '#ffffff' : '#0f172a';
     const bgImgLine = isDark
       ? 'repeating-linear-gradient(transparent,transparent 27px,rgba(255,255,255,0.07) 28px)'
       : 'repeating-linear-gradient(transparent,transparent 27px,rgba(0,0,0,0.05) 28px)';
@@ -7883,18 +8268,18 @@
     } else if (type === 'image') {
       // Load html2canvas from CDN if not already loaded
       const captureNote = () => {
-        // Build a wrapper with title + content for capture
+        const noteBg = m.note_color || '#fef08a';
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
-                  background: ${m.note_color || '#c4b5fd'};
+                  background: ${noteBg};
                   padding: 28px 24px 24px;
                   font-family: 'Playpen Sans', cursive;
                   max-width: 600px;
                   border-radius: 6px;
                   box-shadow: 4px 4px 12px rgba(0,0,0,0.15);
               `;
-        const isDark = isColorDark(m.note_color || '#c4b5fd');
-        const tc = isDark ? 'rgba(255,255,255,0.88)' : 'rgba(0,0,0,0.75)';
+        const isDark = isColorDark(noteBg);
+        const tc = isDark ? '#ffffff' : '#0f172a';
 
         if (m.title) {
           const h = document.createElement('div');
@@ -7926,7 +8311,7 @@
 
         html2canvas(wrapper, {
           useCORS: true, scale: 2,
-          backgroundColor: m.note_color || '#c4b5fd'
+          backgroundColor: noteBg
         }).then(canvas => {
           document.body.removeChild(wrapper);
           const url = canvas.toDataURL('image/png');
@@ -9547,7 +9932,7 @@
     let targetIndex = -1;
     if (initialValue !== null) {
       const valStr = initialValue.toString().padStart(2, '0');
-      targetIndex = Array.from(items).findIndex(i => i.textContent == valStr || i.textContent == initialValue);
+      targetIndex = Array.from(items).findIndex(i => i.textContent.trim() == valStr || parseInt(i.textContent.trim(), 10) === parseInt(initialValue, 10));
     }
     if (targetIndex === -1) targetIndex = 0;
 
@@ -9671,26 +10056,28 @@
     const m = Math.floor((totalSecs % 3600) / 60);
     const s = totalSecs % 60;
 
+    const overlay = document.getElementById('autoDeleteTimePickerOverlay');
+    if (overlay) overlay.classList.add('active');
+
     isPopulatingAutoDeleteDrums = true;
     populateAutoDeleteDrum('autoDeleteDrumDays', 0, 30);
     populateAutoDeleteDrum('autoDeleteDrumHours', 0, 23);
     populateAutoDeleteDrum('autoDeleteDrumMins', 0, 59);
     populateAutoDeleteDrum('autoDeleteDrumSecs', 0, 59);
 
-    finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumDays'), d);
-    finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumHours'), h);
-    finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumMins'), m);
-    finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumSecs'), s);
+    requestAnimationFrame(() => {
+      finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumDays'), d);
+      finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumHours'), h);
+      finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumMins'), m);
+      finalizeAutoDeleteDrum(document.getElementById('autoDeleteDrumSecs'), s);
 
-    autoDeleteLastVals = { d, h, m, s };
+      autoDeleteLastVals = { d, h, m, s };
 
-    setTimeout(() => {
-      isPopulatingAutoDeleteDrums = false;
-      updateAutoDeleteTimePickerPreview();
-    }, 200);
-
-    const overlay = document.getElementById('autoDeleteTimePickerOverlay');
-    if (overlay) overlay.classList.add('active');
+      setTimeout(() => {
+        isPopulatingAutoDeleteDrums = false;
+        updateAutoDeleteTimePickerPreview();
+      }, 100);
+    });
   }
 
   function closeAutoDeleteTimePicker() {
@@ -9766,7 +10153,7 @@
     let targetIndex = -1;
     if (initialValue !== null) {
       const valStr = initialValue.toString().padStart(2, '0');
-      targetIndex = Array.from(items).findIndex(i => i.textContent == valStr || i.textContent == initialValue);
+      targetIndex = Array.from(items).findIndex(i => i.textContent.trim() == valStr || parseInt(i.textContent.trim(), 10) === parseInt(initialValue, 10));
     }
     if (targetIndex === -1) targetIndex = 0;
 
@@ -9877,26 +10264,28 @@
     const m = Math.floor((totalSecs % 3600) / 60);
     const s = totalSecs % 60;
 
+    const overlay = document.getElementById('editAutoDeleteTimePickerOverlay');
+    if (overlay) overlay.classList.add('active');
+
     isPopulatingEditAutoDeleteDrums = true;
     populateEditAutoDeleteDrum('editAutoDeleteDrumDays', 0, 30);
     populateEditAutoDeleteDrum('editAutoDeleteDrumHours', 0, 23);
     populateEditAutoDeleteDrum('editAutoDeleteDrumMins', 0, 59);
     populateEditAutoDeleteDrum('editAutoDeleteDrumSecs', 0, 59);
 
-    finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumDays'), d);
-    finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumHours'), h);
-    finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumMins'), m);
-    finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumSecs'), s);
+    requestAnimationFrame(() => {
+      finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumDays'), d);
+      finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumHours'), h);
+      finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumMins'), m);
+      finalizeEditAutoDeleteDrum(document.getElementById('editAutoDeleteDrumSecs'), s);
 
-    editAutoDeleteLastVals = { d, h, m, s };
+      editAutoDeleteLastVals = { d, h, m, s };
 
-    setTimeout(() => {
-      isPopulatingEditAutoDeleteDrums = false;
-      updateEditAutoDeleteTimePickerPreview();
-    }, 200);
-
-    const overlay = document.getElementById('editAutoDeleteTimePickerOverlay');
-    if (overlay) overlay.classList.add('active');
+      setTimeout(() => {
+        isPopulatingEditAutoDeleteDrums = false;
+        updateEditAutoDeleteTimePickerPreview();
+      }, 100);
+    });
   }
 
   function closeEditAutoDeleteTimePicker() {
@@ -11824,7 +12213,7 @@
       window.playABCDSound('alarm');
     } else {
       try {
-        const audio = new Audio('/static/audio/alarm.mp3');
+        const audio = new Audio('/static/audio/alarms and reminders.mp3');
         audio.play().catch(function () {});
       } catch (e) {}
     }

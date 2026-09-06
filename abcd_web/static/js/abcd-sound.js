@@ -21,8 +21,8 @@
         'done': '/static/audio/done.mp3',
         'success': '/static/audio/done.mp3',
         'error': '/static/audio/error.mp3',
-        'alarm': '/static/audio/alarm.mp3',
-        'reminder': '/static/audio/alarm.mp3',
+        'alarm': '/static/audio/alarms and reminders.mp3',
+        'reminder': '/static/audio/alarms and reminders.mp3',
         'pwa': '/static/audio/PWA.mp3'
     };
 

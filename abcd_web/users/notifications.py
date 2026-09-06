@@ -642,7 +642,7 @@ def format_push_title(raw_title, category=None, source=None):
     return "ABCD | Notification"
 
 
-def create_notification(user, title, message, link=None, category="general", meta=None):
+def create_notification(user, title, message, link=None, category="general", meta=None, sound=None):
     if not user:
         return
 
@@ -657,8 +657,15 @@ def create_notification(user, title, message, link=None, category="general", met
         meta=meta
     )
 
+    # Determine default sound for alarm / reminder
+    if not sound:
+        cat_lower = (category or "").lower()
+        title_lower = (title or "").lower()
+        if cat_lower in ('reminder', 'alarm') or 'alarm' in title_lower or 'reminder' in title_lower:
+            sound = "/static/audio/alarms and reminders.mp3"
+
     # 🔔 Send device push notification
-    send_push(user, formatted_title, message, url=link or "/", category=category)
+    send_push(user, formatted_title, message, url=link or "/", category=category, sound=sound)
     return notif
 # ---------------------------------------------------------
 
@@ -677,6 +684,19 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
 
     formatted_title = format_push_title(title, category=category, source=source)
 
+    # Determine default sound based on alarm/reminder category
+    if not sound:
+        cat_lower = (category or "").lower()
+        src_lower = (source or "").lower()
+        title_lower = (title or "").lower()
+        tag_lower = (tag or "").lower()
+        if (cat_lower in ('reminder', 'alarm') or src_lower in ('reminder', 'alarm') or
+                'alarm' in title_lower or 'reminder' in title_lower or
+                'alarm' in tag_lower or 'reminder' in tag_lower):
+            sound = "/static/audio/alarms and reminders.mp3"
+        else:
+            sound = "/static/audio/PWA.mp3"
+
     # Calculate or get badge count (Guidy unread messages + active alerts)
     if badge_count is None:
         try:
@@ -691,7 +711,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         "url": url,
         "icon": icon or "/static/data/favicon/web-app-manifest-192x192.png",
         "badge": badge or "/static/data/favicon/favicon-96x96.png",
-        "sound": sound or "/static/audio/PWA.mp3",
+        "sound": sound,
         "badge_count": max(1, badge_count or 1),
         "tag": tag or "abcd-notification",
         "category": category,
