@@ -163,5 +163,13 @@
             msl.async = true;
             document.head.appendChild(msl);
         }
+
+        // Universal Custom Color Picker for all pages
+        if (!window.openCustomColorPickerBoard && !document.querySelector('script[src*="abcd-color-picker.js"]')) {
+            const cp = document.createElement('script');
+            cp.src = '/static/js/abcd-color-picker.js?v=1';
+            cp.async = true;
+            document.head.appendChild(cp);
+        }
     })();
 </script>
