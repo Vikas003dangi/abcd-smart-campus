@@ -880,9 +880,23 @@ body.dark-theme .g-bg-canvas { opacity: 0.18; }
   }
   .g-bubble {
     padding-right: 14px;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
+  }
+  .g-messages,
+  .g-messages *,
+  .g-msg-row,
+  .g-msg-inner,
+  .g-bubble,
+  .g-bubble *,
+  .g-msg-text,
+  .g-msg-text *,
+  .g-reply-preview,
+  .g-msg-meta {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -khtml-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
   }
 }
 
@@ -4105,7 +4119,20 @@ document.addEventListener('DOMContentLoaded', () => {
       msgLongPressRow = null;
     }
 
+    // Suppress native text selection in messages (prevents Android blue handles & Google Touch-to-Search)
+    messagesArea.addEventListener('selectstart', function(e) {
+      if (e.target.closest('.g-msg-row')) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
     messagesArea.addEventListener('touchstart', function(e) {
+      if (window.getSelection) {
+        const sel = window.getSelection();
+        if (sel && sel.removeAllRanges) sel.removeAllRanges();
+      }
+
       if (e.touches.length !== 1) {
         clearMsgLongPress();
         return;
@@ -4133,6 +4160,10 @@ document.addEventListener('DOMContentLoaded', () => {
       msgLongPressTimer = setTimeout(() => {
         if (!msgLongPressRow) return;
         didTriggerLongPress = true;
+        if (window.getSelection) {
+          const sel = window.getSelection();
+          if (sel && sel.removeAllRanges) sel.removeAllRanges();
+        }
         if (msgLongPressBubble) {
           msgLongPressBubble.classList.add('long-pressing');
         }
@@ -4156,6 +4187,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     messagesArea.addEventListener('touchend', function(e) {
       if (didTriggerLongPress) {
+        if (window.getSelection) {
+          const sel = window.getSelection();
+          if (sel && sel.removeAllRanges) sel.removeAllRanges();
+        }
         if (e.cancelable) e.preventDefault();
         e.stopPropagation();
         didTriggerLongPress = false;
@@ -6687,6 +6722,10 @@ function openCtxMenu(e, row) {
   if (e && typeof e.preventDefault === 'function') {
     e.preventDefault();
     e.stopPropagation();
+  }
+  if (window.getSelection) {
+    const sel = window.getSelection();
+    if (sel && sel.removeAllRanges) sel.removeAllRanges();
   }
   ctxMsgRow = row;
   const menu = document.getElementById('ctxMenu');
