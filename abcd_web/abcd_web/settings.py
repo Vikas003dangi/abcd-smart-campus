@@ -202,6 +202,13 @@ CLOUDINARY_STORAGE = {
 }
 
 if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
+    import cloudinary
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+        secure=True
+    )
     STORAGES = {
         "default": {
             "BACKEND": "users.storage.SmartMediaCloudinaryStorage",
@@ -220,6 +227,9 @@ else:
         },
     }
 WHITENOISE_MANIFEST_STRICT = False
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024  # 15MB for sticky note images / rich content
+FILE_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"

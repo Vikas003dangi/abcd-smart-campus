@@ -2266,6 +2266,24 @@ class TodoTask(models.Model):
         return f"{self.user.username} | {self.category} | {self.created_at.date()}"
 
 
+@receiver(post_delete, sender=TodoTask)
+def auto_delete_todotask_cloudinary_images(sender, instance, **kwargs):
+    """Deletes sticky note images from Cloudinary when TodoTask is deleted permanently."""
+    if instance.category == 'NOTE' and isinstance(instance.metadata, dict):
+        c_ids = instance.metadata.get('cloudinary_ids', [])
+        if c_ids:
+            try:
+                import cloudinary.uploader
+                for pid in c_ids:
+                    if pid:
+                        try:
+                            cloudinary.uploader.destroy(pid)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+
 @receiver(post_save, sender=User)
 def send_welcome_email_on_registration(sender, instance, created, **kwargs):
     if created and instance.email:

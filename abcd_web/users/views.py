@@ -13861,9 +13861,15 @@ def todo_update_metadata(request, task_id):
             if isinstance(meta, dict):
                 if 'is_pinned' in meta:
                     task.is_pinned = bool(meta.get('is_pinned', False))
-                # Clamp images to max 3
-                if 'images' in meta:
-                    meta['images'] = meta['images'][:3]
+                old_c_ids = task.metadata.get('cloudinary_ids', []) if isinstance(task.metadata, dict) else []
+                content, images, c_ids = process_note_images_and_upload_to_cloudinary(
+                    meta.get('content', ''),
+                    meta.get('images', [])[:3],
+                    old_cloudinary_ids=old_c_ids
+                )
+                meta['content'] = content
+                meta['images'] = images
+                meta['cloudinary_ids'] = c_ids
                 task.metadata = meta
 
         task.save()
@@ -13904,20 +13910,124 @@ def todo_add_todo_task(request):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+def process_note_images_and_upload_to_cloudinary(content, images, old_cloudinary_ids=None):
+    """
+    Processes sticky note images:
+    - If base64 data URI, uploads directly to Cloudinary folder 'abcd/sticky_notes'
+    - Replaces base64 image strings in content and images array with secure Cloudinary URLs
+    - Tracks and returns new cloudinary_ids
+    - If old_cloudinary_ids is provided and some images were deleted, destroys orphaned Cloudinary assets
+    """
+    import re
+    from django.conf import settings
+
+    new_images = []
+    new_cloudinary_ids = []
+    has_cloudinary = bool(
+        getattr(settings, 'CLOUDINARY_CLOUD_NAME', '') and
+        getattr(settings, 'CLOUDINARY_API_KEY', '') and
+        getattr(settings, 'CLOUDINARY_API_SECRET', '')
+    )
+
+    # Process explicit images array (max 3)
+    for img_item in (images or [])[:3]:
+        if not img_item or not isinstance(img_item, str):
+            continue
+        if img_item.startswith('data:image/'):
+            if has_cloudinary:
+                try:
+                    import cloudinary.uploader
+                    res = cloudinary.uploader.upload(
+                        img_item,
+                        folder='abcd/sticky_notes',
+                        resource_type='image',
+                        overwrite=False
+                    )
+                    sec_url = res.get('secure_url') or res.get('url')
+                    pub_id = res.get('public_id')
+                    new_images.append(sec_url)
+                    if pub_id:
+                        new_cloudinary_ids.append(pub_id)
+                    if content:
+                        content = content.replace(img_item, sec_url)
+                except Exception as ex:
+                    import logging
+                    logging.getLogger(__name__).warning("Cloudinary upload failed: %s", ex)
+                    new_images.append(img_item)
+            else:
+                new_images.append(img_item)
+        else:
+            new_images.append(img_item)
+            if 'res.cloudinary.com' in img_item and '/abcd/sticky_notes/' in img_item:
+                try:
+                    parts = img_item.split('/abcd/sticky_notes/')
+                    if len(parts) > 1:
+                        pid = 'abcd/sticky_notes/' + parts[1].split('.')[0]
+                        if pid not in new_cloudinary_ids:
+                            new_cloudinary_ids.append(pid)
+                except Exception:
+                    pass
+
+    # Also scan content for any other inline base64 images that might have been pasted directly
+    if content and has_cloudinary:
+        base64_matches = re.findall(r'src=["\'](data:image\/[^;"\']+;base64,[^"\']+)["\']', content)
+        for b64 in base64_matches:
+            if b64 not in new_images:
+                try:
+                    import cloudinary.uploader
+                    res = cloudinary.uploader.upload(
+                        b64,
+                        folder='abcd/sticky_notes',
+                        resource_type='image',
+                        overwrite=False
+                    )
+                    sec_url = res.get('secure_url') or res.get('url')
+                    pub_id = res.get('public_id')
+                    content = content.replace(b64, sec_url)
+                    if sec_url not in new_images and len(new_images) < 3:
+                        new_images.append(sec_url)
+                    if pub_id and pub_id not in new_cloudinary_ids:
+                        new_cloudinary_ids.append(pub_id)
+                except Exception:
+                    pass
+
+    # Clean up old orphaned Cloudinary images if note was updated
+    if old_cloudinary_ids and has_cloudinary:
+        orphaned = [pid for pid in old_cloudinary_ids if pid and pid not in new_cloudinary_ids]
+        if orphaned:
+            try:
+                import cloudinary.uploader
+                for pid in orphaned:
+                    try:
+                        cloudinary.uploader.destroy(pid)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+    return content, new_images, new_cloudinary_ids
+
+
 @login_required
 @require_POST
 def todo_add_note_task(request):
     """Saves a new Notebook note."""
     try:
         data = json.loads(request.body)
+        raw_content = data.get('content', '')
+        raw_images = data.get('images', [])[:3]
+
+        content, images, c_ids = process_note_images_and_upload_to_cloudinary(raw_content, raw_images)
+
         metadata = {
-            'title':       data.get('title', '').strip(),
-            'content':     data.get('content', ''),
-            'note_color':  data.get('note_color', '#fef08a'),
-            'note_type':   data.get('note_type', 'quick'),
-            'images':      data.get('images', [])[:3],
-            'is_pinned':   data.get('is_pinned', False),
-            'rotation':    data.get('rotation', 0),
+            'title':          data.get('title', '').strip(),
+            'content':        content,
+            'note_color':     data.get('note_color', '#fef08a'),
+            'note_type':      data.get('note_type', 'quick'),
+            'images':         images,
+            'cloudinary_ids': c_ids,
+            'is_pinned':      data.get('is_pinned', False),
+            'rotation':       data.get('rotation', 0),
         }
         task = TodoTask.objects.create(
             user=request.user,

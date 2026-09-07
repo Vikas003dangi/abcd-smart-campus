@@ -3367,16 +3367,16 @@
       <!-- Studio Toolbar -->
       <div class="note-toolbar" id="noteToolbar">
         <div class="note-toolbar-group">
-          <button class="note-toolbar-btn" id="btnNoteBold" onclick="noteCmd('bold')" title="Bold (Ctrl+B)">
+          <button class="note-toolbar-btn" id="btnNoteBold" onmousedown="event.preventDefault();" onclick="noteCmd('bold')" title="Bold (Ctrl+B)">
             <i class='bx bx-bold'></i>
           </button>
-          <button class="note-toolbar-btn" id="btnNoteItalic" onclick="noteCmd('italic')" title="Italic (Ctrl+I)">
+          <button class="note-toolbar-btn" id="btnNoteItalic" onmousedown="event.preventDefault();" onclick="noteCmd('italic')" title="Italic (Ctrl+I)">
             <i class='bx bx-italic'></i>
           </button>
-          <button class="note-toolbar-btn" id="btnNoteUnderline" onclick="noteCmd('underline')" title="Underline (Ctrl+U)">
+          <button class="note-toolbar-btn" id="btnNoteUnderline" onmousedown="event.preventDefault();" onclick="noteCmd('underline')" title="Underline (Ctrl+U)">
             <i class='bx bx-underline'></i>
           </button>
-          <button class="note-toolbar-btn" id="btnNoteStrike" onclick="noteCmd('strikeThrough')" title="Strikethrough">
+          <button class="note-toolbar-btn" id="btnNoteStrike" onmousedown="event.preventDefault();" onclick="noteCmd('strikeThrough')" title="Strikethrough">
             <i class='bx bx-strikethrough'></i>
           </button>
         </div>
@@ -3398,13 +3398,13 @@
         <div class="note-toolbar-sep"></div>
 
         <div class="note-toolbar-group">
-          <button class="note-toolbar-btn" id="btnNoteUL" onclick="noteCmd('insertUnorderedList')" title="Bullet list">
+          <button class="note-toolbar-btn" id="btnNoteUL" onmousedown="event.preventDefault();" onclick="noteCmd('insertUnorderedList')" title="Bullet list">
             <i class='bx bx-list-ul'></i>
           </button>
-          <button class="note-toolbar-btn" id="btnNoteOL" onclick="noteCmd('insertOrderedList')" title="Numbered list">
+          <button class="note-toolbar-btn" id="btnNoteOL" onmousedown="event.preventDefault();" onclick="noteCmd('insertOrderedList')" title="Numbered list">
             <i class='bx bx-list-ol'></i>
           </button>
-          <button class="note-toolbar-btn" id="btnNoteChecklist" onclick="insertNoteChecklist()" title="Checklist item">
+          <button class="note-toolbar-btn" id="btnNoteChecklist" onmousedown="event.preventDefault();" onclick="insertNoteChecklist()" title="Checklist item">
             <i class='bx bx-check-square'></i>
           </button>
         </div>
@@ -3412,10 +3412,10 @@
         <div class="note-toolbar-sep"></div>
 
         <div class="note-toolbar-group">
-          <button class="note-toolbar-btn" id="btnNoteLink" onclick="insertNoteLink()" title="Add link">
+          <button class="note-toolbar-btn" id="btnNoteLink" onmousedown="event.preventDefault();" onclick="insertNoteLink()" title="Add link">
             <i class='bx bx-link-alt'></i>
           </button>
-          <button class="note-toolbar-btn" onclick="triggerNoteImageUpload()" title="Attach image (max 3)" id="noteImgBtn">
+          <button class="note-toolbar-btn" onmousedown="event.preventDefault();" onclick="triggerNoteImageUpload()" title="Attach image (max 3)" id="noteImgBtn">
             <i class='bx bx-image-add'></i>
           </button>
           <input type="file" id="noteImgUpload" accept="image/*" style="display:none"
@@ -3450,8 +3450,6 @@
         <div class="note-editor-body" contenteditable="true" id="noteEditorContent"
           data-placeholder="Write your note here...">
         </div>
-        <!-- Image preview row -->
-        <div class="note-image-row" id="noteImageRow"></div>
       </div>
 
       <!-- Footer actions -->
@@ -7323,12 +7321,43 @@
     }
   }
 
+  const pendingNoteFormats = {
+    bold: false,
+    italic: false,
+    underline: false,
+    strikeThrough: false
+  };
+
   function updateNoteToolbarActiveStates() {
     try {
-      const isBold = document.queryCommandState('bold');
-      const isItalic = document.queryCommandState('italic');
-      const isUnderline = document.queryCommandState('underline');
-      const isStrike = document.queryCommandState('strikeThrough');
+      const editor = document.getElementById('noteEditorContent');
+      if (!editor) return;
+
+      const sel = window.getSelection();
+      const inEditor = sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode);
+      const isCollapsed = !inEditor || sel.isCollapsed;
+
+      if (inEditor && !isCollapsed) {
+        pendingNoteFormats.bold = document.queryCommandState('bold');
+        pendingNoteFormats.italic = document.queryCommandState('italic');
+        pendingNoteFormats.underline = document.queryCommandState('underline');
+        pendingNoteFormats.strikeThrough = document.queryCommandState('strikeThrough');
+      } else if (inEditor && isCollapsed) {
+        const qBold = document.queryCommandState('bold');
+        const qItalic = document.queryCommandState('italic');
+        const qUnderline = document.queryCommandState('underline');
+        const qStrike = document.queryCommandState('strikeThrough');
+        if (qBold) pendingNoteFormats.bold = true;
+        if (qItalic) pendingNoteFormats.italic = true;
+        if (qUnderline) pendingNoteFormats.underline = true;
+        if (qStrike) pendingNoteFormats.strikeThrough = true;
+      }
+
+      const isBold = inEditor && !isCollapsed ? document.queryCommandState('bold') : pendingNoteFormats.bold;
+      const isItalic = inEditor && !isCollapsed ? document.queryCommandState('italic') : pendingNoteFormats.italic;
+      const isUnderline = inEditor && !isCollapsed ? document.queryCommandState('underline') : pendingNoteFormats.underline;
+      const isStrike = inEditor && !isCollapsed ? document.queryCommandState('strikeThrough') : pendingNoteFormats.strikeThrough;
+
       const isUL = document.queryCommandState('insertUnorderedList');
       const isOL = document.queryCommandState('insertOrderedList');
 
@@ -7356,10 +7385,14 @@
     noteIsPinned = false;
     noteCurrentBg = '#fef08a';
 
+    pendingNoteFormats.bold = false;
+    pendingNoteFormats.italic = false;
+    pendingNoteFormats.underline = false;
+    pendingNoteFormats.strikeThrough = false;
+
     // Reset editor
     document.getElementById('noteEditorTitle').value = '';
     document.getElementById('noteEditorContent').innerHTML = '';
-    document.getElementById('noteImageRow').innerHTML = '';
     document.getElementById('noteTypeSelect').value = 'quick';
     const pinBtn = document.getElementById('notePinBtn');
     if (pinBtn) {
@@ -7374,16 +7407,23 @@
       if (task && task.metadata) {
         const m = task.metadata;
         document.getElementById('noteEditorTitle').value = m.title || '';
-        document.getElementById('noteEditorContent').innerHTML = m.content || '';
+        const editor = document.getElementById('noteEditorContent');
+        editor.innerHTML = m.content || '';
+        if (m.images && Array.isArray(m.images)) {
+          m.images.forEach(src => {
+            if (src && !editor.innerHTML.includes(src)) {
+              const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="display:inline-block; max-width:100%; vertical-align:middle; margin:6px 0;"><img src="${src}" style="max-width:100%; max-height:280px; border-radius:10px; display:block; box-shadow:0 3px 10px rgba(0,0,0,0.15);"></span>&nbsp;`;
+              editor.insertAdjacentHTML('beforeend', imgHtml);
+            }
+          });
+        }
         document.getElementById('noteTypeSelect').value = m.note_type || 'quick';
         noteCurrentBg = m.note_color || '#fef08a';
         noteIsPinned = m.is_pinned || false;
-        noteImages = [...(m.images || [])];
         if (noteIsPinned && pinBtn) {
           pinBtn.style.opacity = '1';
           pinBtn.style.transform = 'rotate(45deg) scale(1.15)';
         }
-        renderNoteImageThumbs();
       }
       document.getElementById('noteModalTitle').textContent = 'Edit Sticky Note';
     } else {
@@ -7467,6 +7507,7 @@
 
   function noteCmd(command, value = null) {
     const editor = document.getElementById('noteEditorContent');
+    if (!editor) return;
     editor.focus();
     if (savedNoteCursorRange) {
       try {
@@ -7475,8 +7516,35 @@
         sel.addRange(savedNoteCursorRange);
       } catch (err) {}
     }
-    document.execCommand('styleWithCSS', false, true);
-    document.execCommand(command, false, value);
+
+    const sel = window.getSelection();
+    const inEditor = sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode);
+    const isCollapsed = !inEditor || sel.isCollapsed;
+
+    if (command in pendingNoteFormats) {
+      if (isCollapsed) {
+        // Toggle the clicked format
+        pendingNoteFormats[command] = !pendingNoteFormats[command];
+        document.execCommand('styleWithCSS', false, true);
+        document.execCommand(command, false, value);
+        // Ensure other active pending formats remain active
+        Object.keys(pendingNoteFormats).forEach(fmt => {
+          if (fmt !== command && pendingNoteFormats[fmt]) {
+            if (!document.queryCommandState(fmt)) {
+              document.execCommand(fmt, false, null);
+            }
+          }
+        });
+      } else {
+        document.execCommand('styleWithCSS', false, true);
+        document.execCommand(command, false, value);
+        pendingNoteFormats[command] = document.queryCommandState(command);
+      }
+    } else {
+      document.execCommand('styleWithCSS', false, true);
+      document.execCommand(command, false, value);
+    }
+
     saveNoteEditorSelection();
     updateNoteToolbarActiveStates();
   }
@@ -7836,81 +7904,89 @@
   }
 
   function handleNoteImageUpload(input) {
-    if (noteImages.length >= 3) {
+    const editor = document.getElementById('noteEditorContent');
+    const existingImgs = editor ? editor.querySelectorAll('img').length : 0;
+    if (existingImgs >= 3) {
       showModalAlert('Image Limit', 'Maximum 3 images allowed per note.');
       input.value = '';
       return;
     }
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      showModalAlert('File Too Large', 'Image must be under 3MB.');
+    if (file.size > 8 * 1024 * 1024) {
+      showModalAlert('File Too Large', 'Image must be under 8MB.');
       input.value = '';
       return;
     }
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64 = e.target.result;
-      noteImages.push(base64);
+      const img = new Image();
+      img.onload = () => {
+        let w = img.naturalWidth || img.width;
+        let h = img.naturalHeight || img.height;
+        const maxDim = 1280;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const base64 = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
 
-      // Insert inline
-      const editor = document.getElementById('noteEditorContent');
-      editor.focus();
-      if (savedNoteCursorRange) {
-        try {
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(savedNoteCursorRange);
-        } catch (err) {}
-      }
+        // Insert inline
+        editor.focus();
+        if (savedNoteCursorRange) {
+          try {
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedNoteCursorRange);
+          } catch (err) {}
+        }
 
-      const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="display:inline-block; max-width:100%; vertical-align:middle; margin:4px 0;"><img src="${base64}" style="max-width:100%; max-height:240px; border-radius:10px; display:block; box-shadow:0 2px 8px rgba(0,0,0,0.15);"></span>&nbsp;`;
-      document.execCommand('insertHTML', false, imgHtml);
+        const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="display:inline-block; max-width:100%; vertical-align:middle; margin:6px 0;"><img src="${base64}" style="max-width:100%; max-height:280px; border-radius:10px; display:block; box-shadow:0 3px 10px rgba(0,0,0,0.15);"></span>&nbsp;`;
+        document.execCommand('insertHTML', false, imgHtml);
 
-      renderNoteImageThumbs();
-      updateNoteImgBtn();
-      saveNoteEditorSelection();
-      updateNoteToolbarActiveStates();
+        updateNoteImgBtn();
+        saveNoteEditorSelection();
+        updateNoteToolbarActiveStates();
+      };
+      img.src = e.target.result;
     };
     reader.readAsDataURL(file);
     input.value = '';
   }
 
-  function renderNoteImageThumbs() {
-    const row = document.getElementById('noteImageRow');
-    row.innerHTML = '';
-    noteImages.forEach((src, idx) => {
-      const wrap = document.createElement('div');
-      wrap.className = 'note-image-thumb';
-      wrap.innerHTML = `
-              <img src="${src}" alt="note image">
-              <button class="remove-img" onclick="removeNoteImage(${idx})">×</button>`;
-      row.appendChild(wrap);
-    });
-  }
-
-  function removeNoteImage(idx) {
-    noteImages.splice(idx, 1);
-    renderNoteImageThumbs();
-    updateNoteImgBtn();
-  }
-
   function updateNoteImgBtn() {
     const btn = document.getElementById('noteImgBtn');
     if (!btn) return;
-    const remaining = 3 - noteImages.length;
-    btn.title = remaining > 0 ? `Add image (${remaining} left)` : 'Max 3 images reached';
+    const editor = document.getElementById('noteEditorContent');
+    const count = editor ? editor.querySelectorAll('img').length : 0;
+    const remaining = 3 - count;
+    btn.title = remaining > 0 ? `Attach image (${remaining} left)` : 'Max 3 images reached';
     btn.style.opacity = remaining > 0 ? '1' : '0.4';
     btn.disabled = remaining <= 0;
   }
 
   function saveNote() {
     const title = document.getElementById('noteEditorTitle').value.trim();
-    const rawContent = document.getElementById('noteEditorContent').innerHTML;
+    const editor = document.getElementById('noteEditorContent');
+    const rawContent = editor ? editor.innerHTML : '';
     const content = rawContent.replace(/<br\s*\/?>/gi, '').replace(/&nbsp;/g, '').trim();
+
+    const imgEls = editor ? editor.querySelectorAll('img') : [];
+    const images = Array.from(imgEls).map(img => img.src).filter(Boolean).slice(0, 3);
     const hasContent = content.length > 0;
 
-    if (!title && !hasContent && noteImages.length === 0) {
+    if (!title && !hasContent && images.length === 0) {
       document.getElementById('noteEditorTitle').style.borderBottom = '2px solid #ef4444';
       document.getElementById('noteEditorTitle').placeholder = 'Write something first...';
       document.getElementById('noteEditorTitle').focus();
@@ -7920,10 +7996,10 @@
 
     const payload = {
       title: title,
-      content: document.getElementById('noteEditorContent').innerHTML,
+      content: rawContent,
       note_color: noteCurrentBg,
       note_type: document.getElementById('noteTypeSelect').value,
-      images: noteImages,
+      images: images,
       is_pinned: noteIsPinned,
       rotation: (Math.random() < 0.5 ? -1 : 1) * (1.5 + Math.random() * 4),
     };
@@ -8229,14 +8305,16 @@
     document.getElementById('noteViewContent').innerHTML = m.content || '';
     document.getElementById('noteViewContent').style.color = textCol;
 
-    // Images
+    // Images (only render images not already embedded inline in content)
     const imgRow = document.getElementById('noteViewImages');
     imgRow.innerHTML = '';
     (m.images || []).forEach(src => {
-      const img = document.createElement('img');
-      img.src = src;
-      img.style.cssText = 'max-width:100%;border-radius:8px;margin-top:10px;';
-      imgRow.appendChild(img);
+      if (!(m.content || '').includes(src)) {
+        const img = document.createElement('img');
+        img.src = src;
+        img.style.cssText = 'max-width:100%;border-radius:8px;margin-top:10px;';
+        imgRow.appendChild(img);
+      }
     });
 
     document.getElementById('noteViewModal').classList.add('active');
@@ -8276,74 +8354,279 @@
     const m = task.metadata;
 
     if (type === 'text') {
-      // Build plain text
-      const title = m.title ? m.title + '\n' + '─'.repeat(m.title.length) + '\n\n' : '';
-      const plain = (m.content || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
-      const full = title + plain;
-      const blob = new Blob([full], { type: 'text/plain' });
+      const cleanTitle = (m.title || 'Untitled Note').trim();
+      const noteType = (m.note_type === 'checklist') ? 'Checklist Note' : 'Quick Note';
+
+      // Parse HTML content into structured plain text
+      const parserDiv = document.createElement('div');
+      parserDiv.innerHTML = m.content || '';
+
+      // 1. Checkboxes
+      parserDiv.querySelectorAll('.note-checklist-item, li, div, p').forEach(el => {
+        const cb = el.querySelector('input[type="checkbox"]');
+        if (cb) {
+          const isDone = cb.checked;
+          const mark = isDone ? '[✓] ' : '[ ] ';
+          cb.remove();
+          el.prepend(document.createTextNode(mark));
+        }
+      });
+
+      // 2. Unordered lists
+      parserDiv.querySelectorAll('ul > li').forEach(li => {
+        const text = li.textContent.trim();
+        if (!text.startsWith('[✓]') && !text.startsWith('[ ]')) {
+          li.prepend(document.createTextNode('• '));
+        }
+      });
+
+      // 3. Ordered lists
+      parserDiv.querySelectorAll('ol').forEach(ol => {
+        let num = 1;
+        ol.querySelectorAll(':scope > li').forEach(li => {
+          const text = li.textContent.trim();
+          if (!text.startsWith('[✓]') && !text.startsWith('[ ]')) {
+            li.prepend(document.createTextNode(`${num}. `));
+            num++;
+          }
+        });
+      });
+
+      // 4. Links
+      parserDiv.querySelectorAll('a').forEach(a => {
+        const text = a.textContent.trim();
+        const href = a.getAttribute('href') || '';
+        if (href && text && text !== href) {
+          a.textContent = `${text} (${href})`;
+        } else if (href) {
+          a.textContent = href;
+        }
+      });
+
+      // 5. Line breaks & blocks
+      parserDiv.querySelectorAll('br').forEach(br => br.replaceWith(document.createTextNode('\n')));
+      parserDiv.querySelectorAll('p, div, li, h1, h2, h3, h4, h5, h6, blockquote, hr').forEach(block => {
+        block.after(document.createTextNode('\n'));
+      });
+
+      // Strip images
+      parserDiv.querySelectorAll('img, span.note-inline-img-wrap').forEach(img => img.remove());
+
+      let bodyText = (parserDiv.innerText || parserDiv.textContent || '').trim();
+      bodyText = bodyText.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+
+      const dateStr = task.created_at ? new Date(task.created_at).toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }) : new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+      const headerBorder = '═'.repeat(Math.max(40, Math.min(60, cleanTitle.length + 8)));
+      const subBorder = '─'.repeat(headerBorder.length);
+
+      const outputLines = [
+        headerBorder,
+        cleanTitle.toUpperCase(),
+        headerBorder,
+        `Date: ${dateStr}`,
+        `Type: ${noteType}`,
+        subBorder,
+        '',
+        bodyText || '(No text content)',
+        '',
+        subBorder,
+        'ABCD Smart Campus • To-Do Hub Sticky Notes',
+        headerBorder
+      ];
+
+      const fullText = outputLines.join('\n');
+      const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = (m.title || 'note') + '.txt';
+      const fileSafeTitle = cleanTitle.toLowerCase().replace(/[^a-z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_') || 'sticky_note';
+      a.download = `${fileSafeTitle}.txt`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
     } else if (type === 'image') {
-      // Load html2canvas from CDN if not already loaded
       const captureNote = () => {
         const noteBg = m.note_color || '#fef08a';
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = `
-                  background: ${noteBg};
-                  padding: 28px 24px 24px;
-                  font-family: 'Playpen Sans', cursive;
-                  max-width: 600px;
-                  border-radius: 6px;
-                  box-shadow: 4px 4px 12px rgba(0,0,0,0.15);
-              `;
         const isDark = isColorDark(noteBg);
-        const tc = isDark ? '#ffffff' : '#0f172a';
+        const textCol = isDark ? '#ffffff' : '#1e293b';
+        const subCol = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(30,41,59,0.7)';
+        const borderColor = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.08)';
 
-        if (m.title) {
-          const h = document.createElement('div');
-          h.textContent = m.title;
-          h.style.cssText = `font-size:1.3rem;font-weight:700;color:${tc};
-                      text-align:center;margin-bottom:14px;`;
-          wrapper.appendChild(h);
-          const sep = document.createElement('hr');
-          sep.style.cssText = `border:none;border-top:1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'};margin-bottom:14px;`;
-          wrapper.appendChild(sep);
+        const wrapper = document.createElement('div');
+        wrapper.id = 'stickyNoteExportWrapper';
+        wrapper.style.cssText = `
+          position: fixed;
+          left: -9999px;
+          top: 0;
+          width: 520px;
+          background: ${noteBg};
+          border-radius: 18px;
+          padding: 30px 28px 22px;
+          box-sizing: border-box;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          box-shadow: 0 16px 36px rgba(0,0,0,0.18);
+          overflow: hidden;
+          color: ${textCol};
+          z-index: -1;
+        `;
+
+        // Pin icon
+        const pinWrap = document.createElement('div');
+        pinWrap.style.cssText = `display:flex; justify-content:center; align-items:center; margin-bottom:12px;`;
+        pinWrap.innerHTML = `
+          <div style="width:14px; height:14px; border-radius:50%; background:#ef4444; box-shadow:0 2px 6px rgba(239,68,68,0.5), inset 0 1px 2px rgba(255,255,255,0.6); position:relative;">
+            <div style="position:absolute; top:2px; left:3px; width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,0.8);"></div>
+          </div>
+        `;
+        wrapper.appendChild(pinWrap);
+
+        // Title
+        if (m.title && m.title.trim()) {
+          const titleEl = document.createElement('div');
+          titleEl.textContent = m.title.trim();
+          titleEl.style.cssText = `
+            font-size: 1.32rem;
+            font-weight: 700;
+            line-height: 1.35;
+            color: ${textCol};
+            text-align: center;
+            margin-bottom: 12px;
+            letter-spacing: -0.01em;
+            word-break: break-word;
+          `;
+          wrapper.appendChild(titleEl);
+
+          const hr = document.createElement('div');
+          hr.style.cssText = `height:1px; background:${borderColor}; margin:0 auto 16px; width:85%;`;
+          wrapper.appendChild(hr);
         }
 
-        const body = document.createElement('div');
-        body.innerHTML = m.content || '';
-        body.style.cssText = `font-size:0.9rem;line-height:1.8;color:${tc};`;
-        wrapper.appendChild(body);
+        // Note Body
+        const bodyEl = document.createElement('div');
+        bodyEl.innerHTML = m.content || '';
+        bodyEl.style.cssText = `font-size:0.96rem; line-height:1.75; color:${textCol}; word-break:break-word;`;
 
-        (m.images || []).forEach(src => {
-          const img = document.createElement('img');
-          img.src = src;
-          img.style.cssText = 'max-width:100%;border-radius:8px;margin-top:10px;display:block;';
-          wrapper.appendChild(img);
+        // Checklists inside body
+        bodyEl.querySelectorAll('.note-checklist-item, div, li').forEach(item => {
+          const cb = item.querySelector('input[type="checkbox"]');
+          if (cb) {
+            const isChecked = cb.checked;
+            const checkIcon = document.createElement('span');
+            checkIcon.style.cssText = `
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 17px;
+              height: 17px;
+              border-radius: 4px;
+              margin-right: 8px;
+              vertical-align: middle;
+              border: 1.5px solid ${isChecked ? '#10b981' : (isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)')};
+              background: ${isChecked ? '#10b981' : 'transparent'};
+              color: #ffffff;
+              font-size: 11px;
+              font-weight: bold;
+            `;
+            checkIcon.textContent = isChecked ? '✓' : '';
+            cb.replaceWith(checkIcon);
+            if (isChecked) {
+              item.style.opacity = '0.65';
+              item.style.textDecoration = 'line-through';
+            }
+          }
         });
 
-        document.body.appendChild(wrapper);
-        wrapper.style.position = 'fixed';
-        wrapper.style.left = '-9999px';
-        wrapper.style.top = '0';
+        // Ensure images inside bodyEl are clean
+        bodyEl.querySelectorAll('img').forEach(img => {
+          img.style.maxWidth = '100%';
+          img.style.borderRadius = '10px';
+          img.style.boxShadow = '0 3px 12px rgba(0,0,0,0.15)';
+          img.style.display = 'block';
+          img.style.margin = '8px 0';
+        });
 
-        html2canvas(wrapper, {
-          useCORS: true, scale: 2,
-          backgroundColor: noteBg
-        }).then(canvas => {
-          document.body.removeChild(wrapper);
-          const url = canvas.toDataURL('image/png');
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = (m.title || 'note') + '.png';
-          a.click();
-        }).catch(() => {
-          document.body.removeChild(wrapper);
+        wrapper.appendChild(bodyEl);
+
+        // Only append extra images if they were not already inline in body content
+        (m.images || []).forEach(src => {
+          if (!(m.content || '').includes(src)) {
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.cssText = 'max-width:100%; border-radius:10px; box-shadow:0 3px 12px rgba(0,0,0,0.15); display:block; margin:8px 0;';
+            wrapper.appendChild(img);
+          }
+        });
+
+        // Footer with timestamp and branding
+        const dateStr = task.created_at ? new Date(task.created_at).toLocaleDateString('en-IN', {
+          month: 'short', day: 'numeric', year: 'numeric'
+        }) : new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const footerEl = document.createElement('div');
+        footerEl.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 20px;
+          padding-top: 12px;
+          border-top: 1px solid ${borderColor};
+          font-size: 0.76rem;
+          color: ${subCol};
+          font-weight: 500;
+        `;
+        footerEl.innerHTML = `
+          <span>${dateStr}</span>
+          <span style="display:inline-flex; align-items:center; gap:4px; font-weight:600;">ABCD Notes</span>
+        `;
+        wrapper.appendChild(footerEl);
+
+        document.body.appendChild(wrapper);
+
+        // Preload images
+        const imgs = Array.from(wrapper.querySelectorAll('img'));
+        const imgPromises = imgs.map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve;
+            setTimeout(resolve, 1500);
+          });
+        });
+
+        Promise.all(imgPromises).then(() => {
+          html2canvas(wrapper, {
+            useCORS: true,
+            scale: 2,
+            backgroundColor: noteBg,
+            logging: false
+          }).then(canvas => {
+            if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+            canvas.toBlob(blob => {
+              if (!blob) return;
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              const fileSafeTitle = (m.title || 'sticky_note').toLowerCase().replace(/[^a-z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_') || 'sticky_note';
+              a.download = `${fileSafeTitle}.png`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setTimeout(() => {
+                URL.revokeObjectURL(url);
+                canvas.width = 1;
+                canvas.height = 1;
+              }, 150);
+            }, 'image/png');
+          }).catch(() => {
+            if (wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+            showModalAlert('Export Error', 'Unable to capture note as image.');
+          });
         });
       };
 
