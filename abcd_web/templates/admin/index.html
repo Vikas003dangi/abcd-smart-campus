@@ -119,25 +119,28 @@
     </div>
   </div>
 
-  <!-- 5. Support Hub & Complaints -->
+  <!-- 5. Support Hub & Inquiries -->
   <div class="kpi-card">
     <div class="kpi-top-row">
       <div class="kpi-icon-wrap kpi-icon-red">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
       </div>
       <div class="kpi-data">
-        <span class="kpi-title">Support & Inquiries</span>
+        <span class="kpi-title">Support & Messages</span>
         <span class="kpi-value">{{ stats.pending_complaints }} <small class="kpi-unit">Pending Tickets</small></span>
       </div>
     </div>
     <div class="kpi-sub-badges">
       <span class="sub-badge red">⚠️ {{ stats.pending_complaints }} Unresolved</span>
-      <span class="sub-badge gray">📨 {{ stats.total_complaints }} Total</span>
-      <span class="sub-badge purple">💬 {{ stats.total_chats }} Chats</span>
+      <span class="sub-badge purple">💬 {{ stats.total_chats }} Chats ({{ stats.total_messages }} msgs)</span>
+      <span class="sub-badge blue">👤 {{ stats.total_direct_chats }} Direct</span>
+      <span class="sub-badge green">👥 {{ stats.total_group_chats }} Groups</span>
     </div>
     <div class="kpi-crud-actions">
       <a href="{% url 'admin:users_complaint_changelist' %}" class="crud-btn-view" title="View all complaints">📋 Complaints</a>
-      <a href="{% url 'admin:users_chatsession_changelist' %}" class="crud-btn-filter" title="View chat sessions">💬 Chats</a>
+      <a href="{% url 'admin:users_directchatsession_changelist' %}" class="crud-btn-filter" title="View direct 1-to-1 chats (teachers & students)">💬 Direct Chats ({{ stats.total_direct_chats }})</a>
+      <a href="{% url 'admin:users_groupchatsession_changelist' %}" class="crud-btn-filter" title="View group chat sessions">👥 Groups ({{ stats.total_group_chats }})</a>
+      <a href="{% url 'admin:users_chatsession_changelist' %}" class="crud-btn-filter" title="View alumni guidance sessions">🎓 Guidance</a>
     </div>
   </div>
 

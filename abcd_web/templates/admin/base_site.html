@@ -212,6 +212,155 @@
         }
       });
     }
+
+    // =========================================================================
+    // Dynamic Floating Save Bar for Changelist Forms & Changeforms
+    // =========================================================================
+    function initFloatingSaveBar() {
+      const form = document.querySelector('form#changelist-form') || 
+                   document.querySelector('form[id$="_form"]') || 
+                   document.querySelector('#content-main form');
+      if (!form) return;
+
+      const nativeSaveBtn = form.querySelector('input[type="submit"][name="_save"]') || 
+                            form.querySelector('input[type="submit"].default') || 
+                            form.querySelector('input[type="submit"]');
+      if (!nativeSaveBtn) return;
+
+      const nativeContinueBtn = form.querySelector('input[type="submit"][name="_continue"]');
+
+      const initialValues = new Map();
+      const modifiedFields = new Set();
+
+      function recordInitialValues() {
+        const inputs = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea');
+        inputs.forEach((el, index) => {
+          const key = el.name || el.id || ('input_' + index);
+          if (el.type === 'checkbox' || el.type === 'radio') {
+            initialValues.set(key, el.checked);
+          } else {
+            initialValues.set(key, el.value);
+          }
+        });
+      }
+
+      recordInitialValues();
+
+      const bar = document.createElement('div');
+      bar.className = 'admin-floating-save-bar';
+      bar.id = 'adminFloatingSaveBar';
+      bar.setAttribute('role', 'region');
+      bar.setAttribute('aria-label', 'Floating Save Bar');
+
+      bar.innerHTML = `
+        <div class="admin-floating-save-info">
+          <span class="admin-floating-pulse"></span>
+          <span class="admin-floating-badge" id="adminFloatingEditBadge">Unsaved Changes</span>
+        </div>
+        <div class="admin-floating-save-actions">
+          <button type="button" class="admin-floating-btn-discard" id="adminFloatingDiscardBtn" title="Revert changes">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+            <span>Discard</span>
+          </button>
+          ${nativeContinueBtn ? `
+          <button type="button" class="admin-floating-btn-continue" id="adminFloatingContinueBtn" title="Save and continue editing">
+            <span>Save & Continue</span>
+          </button>` : ''}
+          <button type="button" class="admin-floating-btn-save" id="adminFloatingSaveBtn" title="Save changes (Ctrl+S)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            <span>Save Changes</span>
+          </button>
+        </div>
+      `;
+
+      document.body.appendChild(bar);
+
+      const badgeEl = document.getElementById('adminFloatingEditBadge');
+      const saveBtn = document.getElementById('adminFloatingSaveBtn');
+      const continueBtn = document.getElementById('adminFloatingContinueBtn');
+      const discardBtn = document.getElementById('adminFloatingDiscardBtn');
+
+      function checkDirtyState(e) {
+        const el = e.target;
+        if (!el || el.type === 'hidden' || el.type === 'submit' || el.type === 'button') return;
+        const key = el.name || el.id;
+        if (!key) return;
+
+        const initial = initialValues.get(key);
+        let current = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
+
+        if (current !== initial) {
+          modifiedFields.add(key);
+        } else {
+          modifiedFields.delete(key);
+        }
+
+        updateBarVisibility();
+      }
+
+      function updateBarVisibility() {
+        if (modifiedFields.size > 0) {
+          const count = modifiedFields.size;
+          badgeEl.textContent = count === 1 ? '1 field modified' : count + ' fields modified';
+          bar.classList.add('is-visible');
+        } else {
+          bar.classList.remove('is-visible');
+        }
+      }
+
+      form.addEventListener('input', checkDirtyState);
+      form.addEventListener('change', checkDirtyState);
+
+      saveBtn.addEventListener('click', function () {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `
+          <svg class="admin-floating-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"></circle></svg>
+          <span>Saving...</span>
+        `;
+        nativeSaveBtn.click();
+      });
+
+      if (continueBtn && nativeContinueBtn) {
+        continueBtn.addEventListener('click', function () {
+          continueBtn.disabled = true;
+          continueBtn.innerHTML = `<span>Saving...</span>`;
+          nativeContinueBtn.click();
+        });
+      }
+
+      discardBtn.addEventListener('click', function () {
+        const inputs = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea');
+        inputs.forEach((el, index) => {
+          const key = el.name || el.id || ('input_' + index);
+          if (initialValues.has(key)) {
+            const original = initialValues.get(key);
+            if (el.type === 'checkbox' || el.type === 'radio') {
+              el.checked = original;
+            } else {
+              el.value = original;
+            }
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+        modifiedFields.clear();
+        updateBarVisibility();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          if (modifiedFields.size > 0) {
+            e.preventDefault();
+            saveBtn.click();
+          }
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initFloatingSaveBar);
+    } else {
+      initFloatingSaveBar();
+    }
   })();
 </script>
 {% endblock %}

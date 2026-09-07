@@ -3,7 +3,8 @@ from django import template
 from django.contrib.auth.models import User
 from users.models import (
     StudentProfile, Seat, Course, StudyMaterial, 
-    Complaint, Payment, ChatSession, BroadcastMessage
+    Complaint, Payment, ChatSession, DirectChatSession, 
+    GroupChatSession, Message, GroupMessage, BroadcastMessage
 )
 
 register = template.Library()
@@ -39,9 +40,15 @@ def get_admin_live_stats():
         # Complaints & Support
         pending_complaints = Complaint.objects.filter(status='pending').count()
         total_complaints = Complaint.objects.count()
-        total_chats = ChatSession.objects.count()
 
-        # Payments
+        # Comprehensive Chat & Messaging System (Direct 1-to-1, Group, Alumni Guidance)
+        total_direct_chats = DirectChatSession.objects.count()
+        total_alumni_chats = ChatSession.objects.count()
+        total_group_chats = GroupChatSession.objects.count()
+        total_chats = total_direct_chats + total_alumni_chats + total_group_chats
+        total_messages = Message.objects.count() + GroupMessage.objects.count()
+
+        # Payments & Broadcasts
         total_payments = Payment.objects.count()
         total_broadcasts = BroadcastMessage.objects.count()
 
@@ -63,6 +70,10 @@ def get_admin_live_stats():
             'pending_complaints': pending_complaints,
             'total_complaints': total_complaints,
             'total_chats': total_chats,
+            'total_direct_chats': total_direct_chats,
+            'total_alumni_chats': total_alumni_chats,
+            'total_group_chats': total_group_chats,
+            'total_messages': total_messages,
             'total_payments': total_payments,
             'total_broadcasts': total_broadcasts,
         }
@@ -86,6 +97,10 @@ def get_admin_live_stats():
             'pending_complaints': 0,
             'total_complaints': 0,
             'total_chats': 0,
+            'total_direct_chats': 0,
+            'total_alumni_chats': 0,
+            'total_group_chats': 0,
+            'total_messages': 0,
             'total_payments': 0,
             'total_broadcasts': 0,
         }

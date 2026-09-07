@@ -290,19 +290,32 @@ class ChatSessionAdmin(admin.ModelAdmin):
 
 @admin.register(DirectChatSession)
 class DirectChatSessionAdmin(admin.ModelAdmin):
-    list_display = ('user1', 'user2', 'is_active', 'created_at', 'session_ended_at')
+    list_display = ('id', 'user1', 'user2', 'message_count', 'is_active', 'created_at', 'session_ended_at')
     list_filter = ('is_active', 'created_at')
-    search_fields = ('user1__username', 'user2__username')
+    search_fields = ('user1__username', 'user1__first_name', 'user1__last_name', 'user2__username', 'user2__first_name', 'user2__last_name')
+    readonly_fields = ('created_at',)
+
+    def message_count(self, obj):
+        return obj.messages.count()
+    message_count.short_description = "Messages"
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('session', 'sender', 'content_preview', 'timestamp', 'is_read')
-    list_filter = ('is_read',)
-    search_fields = ('sender__username', 'content')
-    readonly_fields = ('session', 'sender', 'timestamp')
+    list_display = ('id', 'chat_target', 'sender', 'message_type', 'content_preview', 'is_read', 'timestamp')
+    list_filter = ('message_type', 'is_read', 'timestamp')
+    search_fields = ('sender__username', 'content', 'direct_session__user1__username', 'direct_session__user2__username')
+    readonly_fields = ('session', 'direct_session', 'sender', 'timestamp')
+
+    def chat_target(self, obj):
+        if obj.direct_session:
+            return f"💬 Direct: {obj.direct_session.user1.username} ↔ {obj.direct_session.user2.username}"
+        elif obj.session:
+            return f"🎓 Guidance #{obj.session.id}"
+        return "—"
+    chat_target.short_description = "Chat Session"
 
     def content_preview(self, obj):
-        return obj.content[:60]
+        return (obj.content[:60] + '...') if len(obj.content) > 60 else (obj.content or "—")
     content_preview.short_description = "Content"
 
 @admin.register(BlockedGuidance)
@@ -326,19 +339,27 @@ class RestrictedStudentAdmin(admin.ModelAdmin):
 
 @admin.register(GroupChatSession)
 class GroupChatSessionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'created_by', 'is_active', 'created_at')
-    list_filter = ('is_active',)
+    list_display = ('name', 'created_by', 'member_count', 'message_count', 'is_active', 'created_at')
+    list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'created_by__username')
     readonly_fields = ('created_at',)
 
+    def member_count(self, obj):
+        return obj.members.count()
+    member_count.short_description = "Members"
+
+    def message_count(self, obj):
+        return obj.messages.count()
+    message_count.short_description = "Messages"
+
 @admin.register(GroupMessage)
 class GroupMessageAdmin(admin.ModelAdmin):
-    list_display = ('group', 'sender', 'content_preview', 'timestamp')
+    list_display = ('id', 'group', 'sender', 'message_type', 'content_preview', 'timestamp')
     search_fields = ('group__name', 'sender__username', 'content')
     readonly_fields = ('timestamp',)
 
     def content_preview(self, obj):
-        return obj.content[:60]
+        return (obj.content[:60] + '...') if len(obj.content) > 60 else (obj.content or "—")
     content_preview.short_description = "Content"
 
 @admin.register(GuidyBlock)

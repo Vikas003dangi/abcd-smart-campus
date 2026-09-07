@@ -1811,3 +1811,187 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
     font-size: 1.1rem !important;
   }
 }
+
+/* ==========================================================================
+   DYNAMIC FLOATING SAVE BAR (BOTTOM-CENTER AUTO-SLIDE)
+   ========================================================================== */
+.admin-floating-save-bar {
+  position: fixed !important;
+  bottom: 28px !important;
+  left: 50% !important;
+  transform: translateX(-50%) translateY(120px) scale(0.96) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 10px 18px !important;
+  border-radius: 999px !important;
+  background: rgba(17, 24, 39, 0.92) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(99, 102, 241, 0.35) !important;
+  transition: all 0.38s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  max-width: 90vw !important;
+}
+
+[data-theme="light"] .admin-floating-save-bar {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(203, 213, 225, 0.9) !important;
+  box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(99, 102, 241, 0.25) !important;
+}
+
+.admin-floating-save-bar.is-visible {
+  transform: translateX(-50%) translateY(0) scale(1) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.admin-floating-save-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.admin-floating-pulse {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background-color: #f59e0b !important;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7) !important;
+  animation: adminPulse 1.8s infinite cubic-bezier(0.66, 0, 0, 1) !important;
+}
+
+@keyframes adminPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.admin-floating-badge {
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  color: #f3f4f6 !important;
+  letter-spacing: -0.01em !important;
+  white-space: nowrap !important;
+}
+
+[data-theme="light"] .admin-floating-badge {
+  color: #1e293b !important;
+}
+
+.admin-floating-save-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.admin-floating-btn-discard,
+.admin-floating-btn-continue,
+.admin-floating-btn-save {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+}
+
+.admin-floating-btn-discard {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #9ca3af !important;
+}
+
+[data-theme="light"] .admin-floating-btn-discard {
+  border-color: #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+.admin-floating-btn-discard:hover {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  color: #ef4444 !important;
+  transform: translateY(-1px) !important;
+}
+
+.admin-floating-btn-continue {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #e5e7eb !important;
+}
+
+[data-theme="light"] .admin-floating-btn-continue {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+.admin-floating-btn-continue:hover {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border-color: #6366f1 !important;
+  color: #818cf8 !important;
+  transform: translateY(-1px) !important;
+}
+
+.admin-floating-btn-save {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45) !important;
+}
+
+.admin-floating-btn-save:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6) !important;
+  transform: translateY(-1px) scale(1.02) !important;
+}
+
+.admin-floating-btn-save:active {
+  transform: translateY(0) scale(0.98) !important;
+}
+
+.admin-floating-spin {
+  animation: adminSpin 0.8s linear infinite !important;
+}
+
+@keyframes adminSpin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile Responsiveness for Floating Save Bar */
+@media (max-width: 640px) {
+  .admin-floating-save-bar {
+    bottom: 16px !important;
+    padding: 8px 12px !important;
+    gap: 10px !important;
+    width: calc(100% - 24px) !important;
+    justify-content: space-between !important;
+  }
+  .admin-floating-badge {
+    font-size: 0.78rem !important;
+  }
+  .admin-floating-btn-discard,
+  .admin-floating-btn-continue,
+  .admin-floating-btn-save {
+    padding: 7px 12px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
