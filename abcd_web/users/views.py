@@ -13815,10 +13815,16 @@ def todo_add_breakdown(request):
             enriched['remaining_hours'] = float(s.get('hours', 0))
             enriched_subtasks.append(enriched)
 
+        total_hours = float(data.get('total_hours', 0) or 0)
+        subtasks_hours = sum(float(s.get('hours', 0) or 0) for s in enriched_subtasks)
+        reserve_hours = max(0.0, total_hours - subtasks_hours)
+        reserve_pool_ms = int(data.get('reserve_pool_ms', 0) or round(reserve_hours * 3600000))
+
         metadata = {
             'title': title,
             'subtasks': enriched_subtasks,
-            'total_hours': data.get('total_hours', 0),
+            'total_hours': total_hours,
+            'reservePoolMs': reserve_pool_ms,
             'active_started_at': timezone.now().isoformat(),
         }
         

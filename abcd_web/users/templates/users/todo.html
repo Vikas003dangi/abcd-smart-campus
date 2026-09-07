@@ -696,31 +696,42 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
   }
 
-  .subtask-drag-handle:active {
+  .subtask-drag-handle:active,
+  .subtask-drag-handle:hover {
     cursor: grabbing;
     color: #7b61ff;
+    background: rgba(123, 97, 255, 0.08);
   }
 
   .subtask-input {
     flex: 1;
     min-width: 0;
-    border: none;
-    background: transparent;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 6px 10px;
     font-size: 0.92rem;
     color: #1e293b;
     font-weight: 500;
+    transition: border-color 0.2s, box-shadow 0.2s;
     user-select: text;
     -webkit-user-select: text;
   }
 
   body.dark-theme .subtask-input {
+    background: #180e2e;
+    border-color: #312154;
     color: #f8fafc;
   }
 
   .subtask-input:focus {
     outline: none;
+    border-color: #7b61ff;
+    box-shadow: 0 0 0 2px rgba(123, 97, 255, 0.15);
   }
 
   .subtask-time-badge {
@@ -2893,66 +2904,73 @@
 
 <!-- Task Breakdown Modal -->
 <div class="todo-modal-overlay" id="breakdownModal">
-  <div class="todo-modal" style="max-width: 600px; display: flex; flex-direction: column; max-height: 90vh;">
-    <div class="todo-modal-header">
-      <h3>Breakdown New Task</h3>
+  <div class="todo-modal" style="max-width: 560px; width: 95%; display: flex; flex-direction: column; max-height: 90vh; border-radius: 16px;">
+    <div class="todo-modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(123, 97, 255, 0.12); color: #7b61ff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+          <i class='bx bx-git-branch'></i>
+        </span>
+        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700;">Breakdown New Task</h3>
+      </div>
       <button class="todo-modal-close" onclick="closeBreakdownModal()">&times;</button>
     </div>
 
-    <div class="todo-modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
-      <div class="deadline-container">
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          <label class="breakdown-label" style="margin-bottom: 0;">Set Deadline :</label>
-          <button type="button" id="deadlineDateBtn" class="deadline-btn" onclick="openDatePicker()">
-            📅 Select Date
-          </button>
-          <button type="button" id="deadlineTimeBtn" class="deadline-btn" onclick="openTimePicker()">
-            🕐 Select Time
-          </button>
+    <div class="todo-modal-body" style="flex: 1; overflow-y: auto; padding: 18px 20px;">
+      <div class="deadline-container" style="border-radius: 14px; margin-bottom: 16px; padding: 14px 16px;">
+        <div class="deadline-row-group" style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="breakdown-label" style="margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Set Deadline :</label>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <button type="button" id="deadlineDateBtn" class="deadline-btn" onclick="openDatePicker()">
+              📅 Select Date
+            </button>
+            <button type="button" id="deadlineTimeBtn" class="deadline-btn" onclick="openTimePicker()">
+              🕐 Select Time
+            </button>
+          </div>
         </div>
         <input type="hidden" id="breakdownDeadline">
         <div id="deadlineDisplay" class="deadline-display" style="display: none;"></div>
         <div id="deadlineCountdown" class="deadline-countdown"
-          style="font-size: 0.8rem; color: #7b61ff; font-weight: 500; margin-top: 4px; display: none;"></div>
+          style="font-size: 0.8rem; color: #7b61ff; font-weight: 600; margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: rgba(123, 97, 255, 0.08); display: none;"></div>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <label class="breakdown-label">Task Subject</label>
+      <div style="margin-bottom: 16px;">
+        <label class="breakdown-label" style="text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block;">Task Subject</label>
         <input type="text" id="breakdownTitle" class="breakdown-input"
           placeholder="What are you breaking down? (e.g. Learn Python)">
       </div>
 
       <!-- Subtasks -->
       <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <label
-              style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Subtasks</label>
+              style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Subtasks</label>
             <button type="button" id="markCompletedBtn" onclick="toggleMarkCompleted()"
-              style="padding: 6px 14px; border-radius: 8px; border: 1.5px solid #7b61ff; background: transparent; color: #7b61ff; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+              style="padding: 5px 12px; border-radius: 8px; border: 1.5px solid #7b61ff; background: transparent; color: #7b61ff; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
               ☑ Mark Completed
             </button>
           </div>
-          <div id="allocationStatus" style="font-size: 0.75rem; font-weight: 600; color: #10b981;"></div>
+          <div id="allocationStatus" style="font-size: 0.75rem; font-weight: 700; color: #10b981;"></div>
         </div>
 
-        <div id="subtasksList">
+        <div id="subtasksList" style="display: flex; flex-direction: column; gap: 8px;">
           <!-- Rows injected here -->
         </div>
 
         <button onclick="addSubtaskRow()"
-          style="width: 100%; margin-top: 10px; background: #7b61ff10; color: #7b61ff; border: 2px dashed #7b61ff30; padding: 10px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
-          <i class='bx bx-plus'></i> Add Subtask
+          style="width: 100%; margin-top: 12px; background: rgba(123, 97, 255, 0.07); color: #7b61ff; border: 2px dashed rgba(123, 97, 255, 0.35); padding: 11px; border-radius: 12px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+          <i class='bx bx-plus' style="font-size: 1.15rem;"></i> Add Subtask
         </button>
       </div>
     </div>
 
-    <div class="todo-modal-footer" style="padding: 20px; border-top: 1px solid #f1f5f9; display: flex; gap: 10px;">
-      <button onclick="closeBreakdownModal()" class="btn-secondary" style="flex: 1; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer;">
+    <div class="todo-modal-footer" style="padding: 16px 20px; display: flex; gap: 10px;">
+      <button onclick="closeBreakdownModal()" class="btn-secondary" style="flex: 1; padding: 11px 16px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">
         Cancel
       </button>
       <button onclick="saveBreakdownTask()"
-        style="flex: 2; background: #7b61ff; color: #fff; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.3);">
+        style="flex: 2; background: linear-gradient(135deg, #7b61ff 0%, #6347f5 100%); color: #fff; border: none; padding: 11px 18px; border-radius: 12px; font-weight: 600; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 12px rgba(123, 97, 255, 0.3); transition: transform 0.15s, box-shadow 0.15s;">
         Save Breakdown Task
       </button>
     </div>
@@ -4697,6 +4715,15 @@
     if (!items || items.length === 0) return 0;
 
     const drumRect = drum.getBoundingClientRect();
+    if (!drumRect.height || drumRect.height === 0) {
+      const selectedItem = drum.querySelector('.drum-item.selected');
+      if (selectedItem) {
+        const idx = Array.from(items).indexOf(selectedItem);
+        if (idx !== -1) return idx;
+      }
+      return 0;
+    }
+
     const centerY = drumRect.top + drumRect.height / 2;
 
     let closestIndex = 0;
@@ -4722,7 +4749,9 @@
     const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
     const targetItem = items[clampedIndex];
 
-    const targetScrollTop = targetItem.offsetTop - drum.offsetTop - (drum.clientHeight - targetItem.clientHeight) / 2;
+    const drumH = drum.clientHeight || 180;
+    const itemH = targetItem.clientHeight || 40;
+    const targetScrollTop = targetItem.offsetTop - drum.offsetTop - (drumH - itemH) / 2;
 
     if (smooth) {
       drum.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
@@ -4777,12 +4806,21 @@
     const el = document.getElementById(drumId);
     if (!el) return;
     const items = el.querySelectorAll('.drum-item');
+    if (!items || items.length === 0) return;
+    const valNum = parseInt(value, 10);
+    let targetIndex = -1;
     for (let i = 0; i < items.length; i++) {
-      if (parseInt(items[i].dataset.value) === value) {
-        scrollDrumToIndex(el, i, false);
+      const itemVal = parseInt(items[i].dataset.value != null ? items[i].dataset.value : items[i].textContent, 10);
+      if (itemVal === valNum) {
+        targetIndex = i;
         break;
       }
     }
+    if (targetIndex === -1 && !isNaN(valNum)) {
+      targetIndex = Math.min(Math.max(0, valNum), items.length - 1);
+    }
+    if (targetIndex === -1) targetIndex = 0;
+    scrollDrumToIndex(el, targetIndex, false);
   }
 
   function getSelectedDrumValue(drumId) {
@@ -5380,14 +5418,16 @@
   function renderSubtaskRows() {
     const list = document.getElementById('subtasksList');
     list.innerHTML = '';
+    list.oncontextmenu = e => { e.preventDefault(); return false; };
 
     breakdownSubtasks.forEach((s, index) => {
       const row = document.createElement('div');
       row.className = `subtask-row ${s.is_done ? 'subtask-done' : ''}`;
       row.dataset.sid = s.id;
-      row.setAttribute('oncontextmenu', 'return false;');
+      row.oncontextmenu = e => { e.preventDefault(); return false; };
       row.style.userSelect = 'none';
       row.style.webkitUserSelect = 'none';
+      row.style.webkitTouchCallout = 'none';
 
       const isActive = activeSubtaskId === s.id && !s.is_done;
       const activeBadge = isActive
@@ -5415,7 +5455,7 @@
       const timeColor = isActive && s.overdueTime > 0 ? '#dc2626' : '#7b61ff';
 
       row.innerHTML =
-        '<span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.3rem;flex-shrink:0;touch-action:none;user-select:none;-webkit-user-select:none;padding:6px 10px;min-width:36px;display:flex;align-items:center;justify-content:center;">⠿</span>' +
+        '<span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.25rem;flex-shrink:0;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;padding:6px 10px;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;">⠿</span>' +
         '<input type="checkbox" ' + (s.is_done ? 'checked' : '') + ' onchange="toggleSubtaskDone(' + s.id + ')"' +
         ' style="width:18px;height:18px;cursor:pointer;display:' + (markCompletedMode ? 'inline-block' : 'none') + ';">' +
         '<input type="text" class="subtask-input" value="' + s.name + '" placeholder="Subtask name..."' +
@@ -5448,10 +5488,10 @@
       subtasksSortable = Sortable.create(list, {
         handle: '.subtask-drag-handle',
         animation: 150,
-        touchStartThreshold: 3,
-        fallbackTolerance: 3,
-        chosenClass: 'subtask-chosen',
-        ghostClass: 'subtask-ghost',
+        delay: 200,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 5,
+        forceFallback: false,
         onEnd: () => {
           reorderSubtasks();
         }
@@ -6582,7 +6622,7 @@
         subtasks.forEach((s, idx) => {
           html += `
             <div class="edit-subtask-row" data-origidx="${idx}">
-              <span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;">⠿</span>
+              <span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;padding:6px 8px;min-width:34px;min-height:34px;display:flex;align-items:center;justify-content:center;">⠿</span>
               <input class="edit-subtask-name" value="${s.name}">
               <div id="edit-time-idx-${idx}"
                    onclick="onEditSubtaskTimeClick(${task.id},${idx})"
@@ -6609,7 +6649,10 @@
             Sortable.create(el, {
               handle: '.subtask-drag-handle',
               animation: 150,
-              touchStartThreshold: 3,
+              delay: 200,
+              delayOnTouchOnly: true,
+              touchStartThreshold: 5,
+              forceFallback: false,
               onEnd: () => { handleBreakdownReorder(task); }
             });
           }
@@ -9920,7 +9963,7 @@
     if (!container) return;
     container.innerHTML = task.metadata.subtasks.map((s, idx) => `
       <div class="edit-subtask-row" data-origidx="${idx}">
-        <span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;">⠿</span>
+        <span class="subtask-drag-handle" oncontextmenu="return false;" style="cursor:grab;color:#94a3b8;font-size:1.1rem;flex-shrink:0;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;padding:6px 8px;min-width:34px;min-height:34px;display:flex;align-items:center;justify-content:center;">⠿</span>
         <input class="edit-subtask-name" value="${s.name}">
         <div id="edit-time-idx-${idx}"
              onclick="onEditSubtaskTimeClick(${task.id},${idx})"
@@ -9942,7 +9985,10 @@
       Sortable.create(container, {
         handle: '.subtask-drag-handle',
         animation: 150,
-        touchStartThreshold: 3,
+        delay: 200,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 5,
+        forceFallback: false,
         onEnd: () => { handleBreakdownReorder(task); }
       });
     }
