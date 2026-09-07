@@ -872,6 +872,25 @@ body.dark-theme .g-bg-canvas { opacity: 0.18; }
   background: var(--g-msg-out); color: rgba(255,255,255,0.9); box-shadow: -4px 0 8px var(--g-primary-s);
 }
 .g-msg-row:hover .msg-chevron { opacity: 1; }
+
+/* Hide message down arrow on mobile/tablet screens where bottom bar appears or on touch devices */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .msg-chevron {
+    display: none !important;
+  }
+  .g-bubble {
+    padding-right: 14px;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+.g-bubble.long-pressing {
+  transform: scale(0.97) !important;
+  filter: brightness(0.92) !important;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
 .g-msg-row.mine .g-bubble {
   background: var(--g-msg-out); color: #ffffff;
   border-bottom-right-radius: 5px;
@@ -4066,6 +4085,89 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // ── Touch Long-Press on Message Bubbles (Mobile & Tablet) ──
+    let msgLongPressTimer = null;
+    let msgLongPressBubble = null;
+    let msgLongPressRow = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let didTriggerLongPress = false;
+
+    function clearMsgLongPress() {
+      if (msgLongPressTimer) {
+        clearTimeout(msgLongPressTimer);
+        msgLongPressTimer = null;
+      }
+      if (msgLongPressBubble) {
+        msgLongPressBubble.classList.remove('long-pressing');
+        msgLongPressBubble = null;
+      }
+      msgLongPressRow = null;
+    }
+
+    messagesArea.addEventListener('touchstart', function(e) {
+      if (e.touches.length !== 1) {
+        clearMsgLongPress();
+        return;
+      }
+      // If clicking interactive media control buttons, skip long press
+      if (e.target.closest('.g-audio-btn, .g-audio-progress, video, audio, .msg-chevron, a, button')) {
+        clearMsgLongPress();
+        return;
+      }
+      const bubble = e.target.closest('.g-bubble');
+      const row = e.target.closest('.g-msg-row');
+      if (!bubble || !row) {
+        clearMsgLongPress();
+        return;
+      }
+
+      clearMsgLongPress();
+      didTriggerLongPress = false;
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      msgLongPressBubble = bubble;
+      msgLongPressRow = row;
+
+      msgLongPressTimer = setTimeout(() => {
+        if (!msgLongPressRow) return;
+        didTriggerLongPress = true;
+        if (msgLongPressBubble) {
+          msgLongPressBubble.classList.add('long-pressing');
+        }
+        if (navigator.vibrate) {
+          try { navigator.vibrate(35); } catch (err) {}
+        }
+        openCtxMenu(t, msgLongPressRow);
+        setTimeout(() => {
+          if (msgLongPressBubble) msgLongPressBubble.classList.remove('long-pressing');
+        }, 200);
+      }, 420);
+    }, { passive: true });
+
+    messagesArea.addEventListener('touchmove', function(e) {
+      if (!msgLongPressTimer) return;
+      const t = e.touches[0];
+      if (Math.hypot(t.clientX - touchStartX, t.clientY - touchStartY) > 8) {
+        clearMsgLongPress();
+      }
+    }, { passive: true });
+
+    messagesArea.addEventListener('touchend', function(e) {
+      if (didTriggerLongPress) {
+        if (e.cancelable) e.preventDefault();
+        e.stopPropagation();
+        didTriggerLongPress = false;
+      }
+      clearMsgLongPress();
+    });
+
+    messagesArea.addEventListener('touchcancel', function() {
+      clearMsgLongPress();
+      didTriggerLongPress = false;
+    });
+
     messagesArea.addEventListener('contextmenu', function(e) {
       if (e.target.closest('.g-msg-row')) return; 
       
@@ -4099,6 +4201,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Fast dismissal on mobile/touch tap outside ctxMenu
+  document.addEventListener('pointerdown', (e) => {
+    const ctx = document.getElementById('ctxMenu');
+    if (ctx && ctx.classList.contains('open') && !ctx.contains(e.target) && !e.target.closest('.msg-chevron')) {
+      closeCtxMenu();
+    }
+  });
 
   // Activate mobile view switcher state ONLY if a chat/group is genuinely active
   const gShell = document.getElementById('gShell');
@@ -6574,13 +6684,20 @@ function cancelReply() {
 
 // ── Context Menu ─────────────────────────────────────────
 function openCtxMenu(e, row) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
+  if (e && typeof e.preventDefault === 'function') {
+    e.preventDefault();
+    e.stopPropagation();
+  }
   ctxMsgRow = row;
   const menu = document.getElementById('ctxMenu');
+  if (!menu || !row) return;
+
   const isPinned = row.dataset.pinned === 'true';
   const isStarred = row.dataset.starred === 'true';
-  document.getElementById('ctxPinLabel').textContent = isPinned ? 'Unpin' : 'Pin';
-  document.getElementById('ctxStarLabel').textContent = isStarred ? 'Unstar' : 'Star';
+  const pinLabel = document.getElementById('ctxPinLabel');
+  const starLabel = document.getElementById('ctxStarLabel');
+  if (pinLabel) pinLabel.textContent = isPinned ? 'Unpin' : 'Pin';
+  if (starLabel) starLabel.textContent = isStarred ? 'Unstar' : 'Star';
 
   const isDeleted = row.dataset.deletedForAll === 'true' || row.querySelector('.g-bubble.deleted') !== null;
   const reactionsRow = menu.querySelector('.g-reactions-row');
@@ -6604,25 +6721,59 @@ function openCtxMenu(e, row) {
   }
 
   menu.classList.add('open');
-  if (!e) { menu.style.top = '50%'; menu.style.left = '50%'; return; }
 
-  let x = e.clientX, y = e.clientY;
-  menu.style.left = x + 'px'; menu.style.top = y + 'px';
+  const bubble = row.querySelector('.g-bubble') || row;
+  const bRect = bubble.getBoundingClientRect();
+  const isMobile = window.innerWidth <= 768;
+
+  let x, y;
+  const touch = (e && e.touches && e.touches[0]) || (e && e.changedTouches && e.changedTouches[0]);
+  if (touch) {
+    x = touch.clientX;
+    y = touch.clientY;
+  } else if (e && typeof e.clientX === 'number') {
+    x = e.clientX;
+    y = e.clientY;
+  }
+
+  if (isMobile || x === undefined || y === undefined) {
+    // Anchor directly relative to the message bubble on mobile/touch
+    const isMine = row.classList.contains('mine');
+    x = isMine ? (bRect.right - 210) : bRect.left;
+
+    const approxMenuHeight = isDeleted ? 120 : 290;
+    if (bRect.bottom + approxMenuHeight > window.innerHeight - 20 && bRect.top - approxMenuHeight > 30) {
+      y = bRect.top - approxMenuHeight - 6;
+    } else {
+      y = bRect.bottom + 6;
+    }
+  }
+
+  menu.style.left = (x || 20) + 'px';
+  menu.style.top = (y || 80) + 'px';
   menu.style.transform = 'none';
 
-  // Adjust if off screen
+  // Smart adjustment to ensure menu never overflows viewport
   requestAnimationFrame(() => {
     const r = menu.getBoundingClientRect();
-    const chatArea = document.getElementById('gMain').getBoundingClientRect();
-    let left = x, top = y;
-    
-    if (r.right > chatArea.right) left = x - r.width;
-    if (r.bottom > chatArea.bottom) top = y - r.height;
-    
-    // Failsafe for tiny screens to ensure it doesn't clip top/left
-    if (left < chatArea.left) left = chatArea.left + 10;
-    if (top < chatArea.top) top = chatArea.top + 10;
-    
+    const pad = 10;
+    let left = parseFloat(menu.style.left) || 10;
+    let top = parseFloat(menu.style.top) || 10;
+
+    if (r.right > window.innerWidth - pad) {
+      left = window.innerWidth - r.width - pad;
+    }
+    if (left < pad) {
+      left = pad;
+    }
+
+    if (r.bottom > window.innerHeight - pad) {
+      top = Math.max(pad, window.innerHeight - r.height - pad);
+    }
+    if (top < pad) {
+      top = pad;
+    }
+
     menu.style.left = left + 'px';
     menu.style.top = top + 'px';
   });
