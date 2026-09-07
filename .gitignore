@@ -118,3 +118,4 @@ student_photos/
 *.swo
 .DS_Store
 Thumbs.db
+.playwright-mcp/
