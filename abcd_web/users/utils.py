@@ -1688,8 +1688,13 @@ def clean_guidy_message_content(content):
 
     # 5. Normalize consecutive breaks and trim
     s = re.sub(r'(<br\s*/?>){3,}', '<br><br>', s, flags=re.I)
-    s = re.sub(r'^(<br\s*/?>)+', '', s, flags=re.I)
-    s = re.sub(r'(<br\s*/?>)+$', '', s, flags=re.I)
+    s = re.sub(r'^\s*(<br\s*/?>\s*)+', '', s, flags=re.I)
+    s = re.sub(r'(\s*<br\s*/?>)+\s*$', '', s, flags=re.I)
+
+    # If message has no actual text or image/media tokens, return empty string
+    if not re.sub(r'<[^>]+>', '', s).strip():
+        return ""
+
     return s.strip()
 
 

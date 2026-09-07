@@ -4680,12 +4680,74 @@ function playSendSound() {
   }
 }
 
+function isMobileOrTouchKeyboard() {
+  const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  const isCoarse = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const isMobileOrTablet = window.innerWidth <= 1024;
+  return hasTouch && (isCoarse || isMobileOrTablet);
+}
+
+function insertNewlineAtCursor() {
+  const inp = document.getElementById('gInput');
+  if (!inp) return;
+  inp.focus();
+
+  let ok = false;
+  try {
+    ok = document.execCommand('insertLineBreak');
+  } catch(e) {
+    ok = false;
+  }
+
+  if (!ok) {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const br = document.createElement('br');
+      range.insertNode(br);
+      range.setStartAfter(br);
+      range.setEndAfter(br);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+  inp.scrollTop = inp.scrollHeight;
+}
+
+function prepareMessageContent(rawHtml, textContent) {
+  if (!rawHtml && !textContent) return '';
+  let html = rawHtml || '';
+  // Convert <div><br></div> or <p><br></p> to <br>
+  html = html.replace(/<(div|p)\s*>\s*<br\s*\/?>\s*<\/\1>/gi, '<br>');
+  // Convert </div> or </p> to empty
+  html = html.replace(/<\/(div|p)>/gi, '');
+  // Convert <div> or <p> to <br>
+  html = html.replace(/<(div|p)(\s+[^>]*)?>/gi, '<br>');
+  // If plain text with newlines (e.g. pasted or typed with \n)
+  if (textContent && textContent.includes('\n')) {
+    html = html.replace(/\r\n|\r|\n/g, '<br>');
+  }
+  // Convert any remaining raw \r\n, \r, \n to <br>
+  html = html.replace(/\r\n|\r|\n/g, '<br>');
+  // Collapse excessive consecutive breaks down to at most 2
+  html = html.replace(/(<br\s*\/?>){3,}/gi, '<br><br>');
+  // Trim leading/trailing breaks
+  html = html.replace(/^(<br\s*\/?>)+/gi, '');
+  html = html.replace(/(<br\s*\/?>)+$/gi, '');
+  return html.trim();
+}
+
 async function sendMessage() {
   const inp = document.getElementById('gInput');
-  const content = inp.innerText.trim();
-  const rawHtml = inp.innerHTML.trim();
+  const textContent = (inp ? (inp.innerText || '') : '').trim();
+  const rawHtml = (inp ? (inp.innerHTML || '') : '').trim();
   const hasFile = !!window.currentChatFile;
-  if (!content && !hasFile) return;
+  if (!textContent && !hasFile) return;
+
+  const cleanContent = prepareMessageContent(rawHtml, textContent);
+  if (!cleanContent && !hasFile) return;
 
   const { chatType, sessionId } = getActiveChatTypeAndId();
   if (!chatType || !sessionId) {
@@ -4696,7 +4758,7 @@ async function sendMessage() {
   const currentReplyId = replyToId;
   const currentReplyPreview = replyToId ? {
     id: replyToId,
-    content: (replyToText || '').substring(0, 80),
+    content: (stripHtml(replyToText || '')).substring(0, 80),
     sender: replyToSender || '',
     type: 'text'
   } : null;
@@ -4730,7 +4792,7 @@ async function sendMessage() {
     const optMsg = {
       id: clientMsgId,
       client_msg_id: clientMsgId,
-      content: rawHtml,
+      content: cleanContent,
       message_type: 'text',
       timestamp: timeStr,
       date: dateStr,
@@ -4758,7 +4820,7 @@ async function sendMessage() {
       try {
         chatWebSocket.send(JSON.stringify({
           type: 'chat_message',
-          content: rawHtml,
+          content: cleanContent,
           reply_to_id: currentReplyId,
           client_msg_id: clientMsgId
         }));
@@ -4767,12 +4829,12 @@ async function sendMessage() {
         const timer = setTimeout(() => {
           if (pendingSocketMessages.has(clientMsgId)) {
             console.warn("WebSocket send timed out for", clientMsgId, "- triggering HTTP fallback");
-            fallbackSendViaHttp(clientMsgId, rawHtml, currentReplyId);
+            fallbackSendViaHttp(clientMsgId, cleanContent, currentReplyId);
           }
         }, 2500);
 
         pendingSocketMessages.set(clientMsgId, {
-          rawHtml: rawHtml,
+          rawHtml: cleanContent,
           replyId: currentReplyId,
           timer: timer
         });
@@ -4783,14 +4845,14 @@ async function sendMessage() {
     }
 
     // Fall back to HTTP immediately if socket not ready
-    fallbackSendViaHttp(clientMsgId, rawHtml, currentReplyId);
+    fallbackSendViaHttp(clientMsgId, cleanContent, currentReplyId);
     return;
   }
 
   // File upload path
   const fd = new FormData();
   fd.append('csrfmiddlewaretoken', CSRF);
-  fd.append('content', rawHtml);
+  fd.append('content', cleanContent);
   fd.append('client_msg_id', clientMsgId);
   if (currentReplyId) fd.append('reply_to_id', currentReplyId);
   if (hasFile) fd.append('file', window.currentChatFile);
@@ -4824,15 +4886,27 @@ async function sendMessage() {
 }
 
 function handleInputKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault(); sendMessage();
+  if (e.key === 'Enter' || e.keyCode === 13) {
+    const isTouchMobile = isMobileOrTouchKeyboard();
+    if (isTouchMobile || e.shiftKey) {
+      // Touch screen (on-screen keyboard on mobile or tab) OR Shift+Enter on desktop/laptop:
+      // Insert a new line in msg input without sending
+      e.preventDefault();
+      insertNewlineAtCursor();
+      toggleSendBtn();
+      return;
+    }
+    // Physical keyboard (laptop or desktop) with Enter alone: send the message
+    e.preventDefault();
+    sendMessage();
   }
 }
 function toggleSendBtn() {
   const inp = document.getElementById('gInput');
   const btn = document.getElementById('gSendBtn');
   if (!btn) return;
-  const hasText = inp && inp.innerText.trim().length > 0;
+  const text = (inp ? (inp.innerText || '') : '').replace(/[\r\n\s]/g, '');
+  const hasText = text.length > 0;
   const hasFile = !!window.currentChatFile;
   btn.disabled = !hasText && !hasFile;
 }
@@ -5565,7 +5639,7 @@ function appendMessage(msg) {
   let replyHtml = '';
   if (msg.reply_to) {
     const rSender = (msg.reply_to.sender === MY_DISPLAY_NAME) ? "You" : msg.reply_to.sender;
-    replyHtml = `<div class="g-reply-preview"><div class="g-reply-sender">${escHtml(rSender)}</div>${escHtml(msg.reply_to.content)}</div>`;
+    replyHtml = `<div class="g-reply-preview"><div class="g-reply-sender">${escHtml(rSender)}</div>${escHtml(stripHtml(msg.reply_to.content))}</div>`;
   }
 
   let mediaHtml = '';
@@ -5721,25 +5795,39 @@ function escHtml(s) {
 }
 
 function stripHtml(html) {
+  if (!html) return '';
   const tmp = document.createElement('div');
-  tmp.innerHTML = html || '';
-  return tmp.textContent || tmp.innerText || '';
+  tmp.innerHTML = String(html).replace(/<(?:br|div|p)\s*\/?>|<\/(?:div|p)>/gi, ' ');
+  return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
 }
 
 function formatMessageContent(s) {
   if (!s) return '';
   let escaped = escHtml(s);
-  escaped = escaped.replace(/&lt;b&gt;/g, '<b>').replace(/&lt;\/b&gt;/g, '</b>');
-  escaped = escaped.replace(/&lt;strong&gt;/g, '<b>').replace(/&lt;\/strong&gt;/g, '</b>');
-  escaped = escaped.replace(/&lt;i&gt;/g, '<i>').replace(/&lt;\/i&gt;/g, '</i>');
-  escaped = escaped.replace(/&lt;em&gt;/g, '<i>').replace(/&lt;\/em&gt;/g, '</i>');
-  escaped = escaped.replace(/&lt;u&gt;/g, '<u>').replace(/&lt;\/u&gt;/g, '</u>');
-  escaped = escaped.replace(/&lt;span style=&quot;color:\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\));&quot;&gt;/g, (match, color) => {
+  escaped = escaped.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+  escaped = escaped.replace(/\r\n|\r|\n/g, '<br>');
+  escaped = escaped.replace(/&lt;b&gt;/gi, '<b>').replace(/&lt;\/b&gt;/gi, '</b>');
+  escaped = escaped.replace(/&lt;strong&gt;/gi, '<b>').replace(/&lt;\/strong&gt;/gi, '</b>');
+  escaped = escaped.replace(/&lt;i&gt;/gi, '<i>').replace(/&lt;\/i&gt;/gi, '</i>');
+  escaped = escaped.replace(/&lt;em&gt;/gi, '<i>').replace(/&lt;\/em&gt;/gi, '</i>');
+  escaped = escaped.replace(/&lt;u&gt;/gi, '<u>').replace(/&lt;\/u&gt;/gi, '</u>');
+  escaped = escaped.replace(/&lt;s&gt;/gi, '<s>').replace(/&lt;\/s&gt;/gi, '</s>');
+  escaped = escaped.replace(/&lt;strike&gt;/gi, '<s>').replace(/&lt;\/strike&gt;/gi, '</s>');
+  escaped = escaped.replace(/&lt;del&gt;/gi, '<s>').replace(/&lt;\/del&gt;/gi, '</s>');
+  escaped = escaped.replace(/&lt;code&gt;/gi, '<code>').replace(/&lt;\/code&gt;/gi, '</code>');
+  escaped = escaped.replace(/&lt;span style=&quot;color:\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\));?&quot;&gt;/gi, (match, color) => {
     return `<span style="color:${color};">`;
-  }).replace(/&lt;\/span&gt;/g, '</span>');
-  escaped = escaped.replace(/&lt;font color=&quot;?\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\))\s*&quot;?&gt;/g, (match, color) => {
+  }).replace(/&lt;\/span&gt;/gi, '</span>');
+  escaped = escaped.replace(/&lt;font color=&quot;?\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\))\s*&quot;?&gt;/gi, (match, color) => {
     return `<span style="color:${color};">`;
-  }).replace(/&lt;\/font&gt;/g, '</span>');
+  }).replace(/&lt;\/font&gt;/gi, '</span>');
+
+  // Convert lingering div / p block tags into <br>
+  escaped = escaped.replace(/&lt;\/(div|p)&gt;/gi, '');
+  escaped = escaped.replace(/&lt;(div|p)(\s+[^&]*)?&gt;/gi, '<br>');
+  escaped = escaped.replace(/(<br\s*\/?>){3,}/gi, '<br><br>');
+  escaped = escaped.replace(/^(<br\s*\/?>)+/gi, '');
+  escaped = escaped.replace(/(<br\s*\/?>)+$/gi, '');
   return escaped;
 }
 
@@ -6559,8 +6647,8 @@ function clearNotificationBadges() {
 
 function isOnlyEmojis(text) {
     if (!text) return false;
-    // Strip spaces and newlines so "😂 😂" is treated the same as "😂😂"
-    const trimmed = text.replace(/[\s\n]/g, ''); 
+    // Strip HTML tags, spaces and newlines so "😂<br>😂" or "😂 😂" is treated the same as "😂😂"
+    const trimmed = text.replace(/<[^>]+>/g, '').replace(/[\s\n\r]/g, ''); 
     if (!trimmed) return false;
     
     // Core Unicode emoji pattern (including modifiers and ZWJ sequences)
@@ -6827,17 +6915,20 @@ function closeBgCtxMenu() {
 
 function ctxReply() {
   if (!ctxMsgRow) return;
+  const t = ctxMsgRow.querySelector('.g-msg-text');
   const bubble = ctxMsgRow.querySelector('.g-bubble');
   const msgId = ctxMsgRow.dataset.msgId;
   const sender = ctxMsgRow.dataset.senderName || 'You';
-  setReply(msgId, sender, bubble ? bubble.textContent.trim() : '');
+  setReply(msgId, sender, t ? t.innerText.trim() : (bubble ? bubble.textContent.trim() : ''));
   closeCtxMenu();
 }
 
 function ctxCopy() {
   if (!ctxMsgRow) return;
+  const t = ctxMsgRow.querySelector('.g-msg-text');
   const bubble = ctxMsgRow.querySelector('.g-bubble');
-  if (bubble) navigator.clipboard.writeText(bubble.textContent.trim()).then(() => showToast('Copied!'));
+  const text = t ? t.innerText.trim() : (bubble ? bubble.textContent.trim() : '');
+  if (text) navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
   closeCtxMenu();
 }
 
@@ -7127,7 +7218,12 @@ function copySelectedMsgs() {
   const texts = [];
   selectedIds.forEach(id => {
     const row = document.querySelector(`[data-msg-id="${id}"]`);
-    if (row) { const b = row.querySelector('.g-bubble'); if (b) texts.push(b.textContent.trim()); }
+    if (row) {
+      const t = row.querySelector('.g-msg-text');
+      const b = row.querySelector('.g-bubble');
+      const text = t ? t.innerText.trim() : (b ? b.textContent.trim() : '');
+      if (text) texts.push(text);
+    }
   });
   navigator.clipboard.writeText(texts.join('\n\n')).then(() => showToast('Copied!'));
   exitSelectMode();
