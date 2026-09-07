@@ -360,29 +360,35 @@
 
   .tc-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 25px;
   }
   
   .tc-card {
-    background: white;
-    border-radius: 28px;
+    background: #ffffff;
+    border-radius: 24px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0,0,0,0.05);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 24px -4px rgba(21, 52, 72, 0.12), 0 2px 8px -2px rgba(21, 52, 72, 0.08);
+    border: 1.5px solid rgba(99, 102, 241, 0.22);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     position: relative;
   }
   body.dark-theme .tc-card {
-    background: #1e1b4b;
-    border-color: rgba(255,255,255,0.05);
+    background: linear-gradient(145deg, #332b69 0%, #241e4d 100%) !important;
+    border: 1.5px solid rgba(165, 180, 252, 0.32) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.1) inset !important;
   }
   .tc-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
-    border-color: rgba(99, 102, 241, 0.2);
+    transform: translateY(-8px);
+    box-shadow: 0 18px 36px -4px rgba(99, 102, 241, 0.22), 0 4px 12px -2px rgba(21, 52, 72, 0.1);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+  body.dark-theme .tc-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 45px rgba(99, 102, 241, 0.32), 0 1px 0 rgba(255, 255, 255, 0.16) inset !important;
+    border-color: rgba(165, 180, 252, 0.55) !important;
   }
 
   .tc-card-thumb {
@@ -947,29 +953,122 @@
       font-size: 0.85rem;
       padding: 10px 16px;
     }
+  }
+
+  /* --- RESPONSIVE GRID --- */
+  /* Maintain 3 columns down to 751px, with tailored compact sizing for 751px - 900px */
+  @media (max-width: 900px) and (min-width: 751px) {
     .tc-grid {
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .tc-card-body {
+      padding: 14px 14px 16px;
+    }
+    .tc-card-title {
+      font-size: 1rem;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+    .tc-card-thumb {
+      height: 145px;
+    }
+    .tc-card-meta {
+      font-size: 0.75rem;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .tc-card-actions {
+      gap: 6px;
+    }
+    .tc-card-btn {
+      padding: 8px 6px;
+      font-size: 0.72rem;
+    }
+    .btn-status {
+      font-size: 0.68rem;
+    }
+  }
+
+  /* 2 columns from 750px down to 501px */
+  @media (max-width: 750px) {
+    .tc-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+    .tc-card-body {
+      padding: 16px;
+    }
+    .tc-card-title {
+      font-size: 1.05rem;
+    }
+    .tc-card-thumb {
+      height: 160px;
     }
     .tc-card-meta {
       flex-wrap: wrap;
-      gap: 8px 12px;
+      gap: 6px 10px;
+      font-size: 0.8rem;
     }
     .tc-card-actions {
       flex-wrap: wrap;
+      gap: 8px;
     }
     .tc-card-actions .btn-primary {
       flex: 1 0 100%;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .tc-card-actions .btn-outline {
       flex: 1;
     }
+    .tc-card-btn {
+      padding: 8px 10px;
+      font-size: 0.78rem;
+    }
   }
 
-  @media (max-width: 600px) {
+  /* 1 column below 500px - precisely adjusted and centered */
+  @media (max-width: 500px) {
     .tc-grid {
       grid-template-columns: 1fr;
+      gap: 18px;
+      max-width: 440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .tc-card {
+      border-radius: 20px;
+    }
+    .tc-card-thumb {
+      height: 190px;
+      border-radius: 20px 20px 0 0;
+    }
+    .tc-card-body {
+      padding: 16px 18px 18px;
+    }
+    .tc-card-title {
+      font-size: 1.1rem;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .tc-card-meta {
+      font-size: 0.82rem;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .tc-card-actions {
+      gap: 8px;
+    }
+    .tc-card-btn {
+      padding: 10px 14px;
+      font-size: 0.82rem;
+    }
+    .tc-card-admin-actions {
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
     }
   }
 

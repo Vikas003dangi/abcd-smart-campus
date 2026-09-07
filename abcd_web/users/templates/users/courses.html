@@ -52,33 +52,39 @@
 
     .courses-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 30px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
     }
 
     /* Balanced Modern Card - Matching Teacher Side */
     .course-info-card {
-        background: white;
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 28px;
+        background: #ffffff;
+        border: 1.5px solid rgba(99, 102, 241, 0.22);
+        border-radius: 24px;
         display: flex;
         flex-direction: column;
         position: relative;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 8px 24px -4px rgba(21, 52, 72, 0.12), 0 2px 8px -2px rgba(21, 52, 72, 0.08);
         overflow: visible;
     }
 
     body.dark-theme .course-info-card {
-        background: linear-gradient(135deg, #2c3240 0%, #1a1e29 100%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+        background: linear-gradient(145deg, #332b69 0%, #241e4d 100%) !important;
+        border: 1.5px solid rgba(165, 180, 252, 0.32) !important;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.1) inset !important;
     }
 
     .course-info-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
-        border-color: rgba(99, 102, 241, 0.2);
+        transform: translateY(-8px);
+        box-shadow: 0 18px 36px -4px rgba(99, 102, 241, 0.22), 0 4px 12px -2px rgba(21, 52, 72, 0.1);
+        border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    body.dark-theme .course-info-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 45px rgba(99, 102, 241, 0.32), 0 1px 0 rgba(255, 255, 255, 0.16) inset !important;
+        border-color: rgba(165, 180, 252, 0.55) !important;
     }
 
     .course-thumbnail {
@@ -86,12 +92,12 @@
         width: 100%;
         aspect-ratio: 16/9;
         background: #f1f5f9;
-        border-radius: 28px 28px 0 0;
+        border-radius: 23px 23px 0 0;
         overflow: hidden;
     }
 
     body.dark-theme .course-thumbnail {
-        background: #111827;
+        background: #1e193e;
     }
 
     .course-thumbnail img {
@@ -402,6 +408,82 @@
     }
     .arch-active {
         color: #38bdf8 !important;
+    }
+
+    /* --- RESPONSIVE GRID --- */
+    /* Maintain 3 columns down to 751px, with tailored compact sizing for 751px - 900px */
+    @media (max-width: 900px) and (min-width: 751px) {
+        .courses-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .card-body {
+            padding: 14px 14px 16px;
+        }
+        .course-title {
+            font-size: 1rem;
+            line-height: 1.35;
+            margin-bottom: 6px;
+        }
+        .course-author {
+            font-size: 0.8rem;
+            margin-bottom: 12px;
+        }
+        .progress-text {
+            font-size: 0.75rem;
+        }
+        .leave-rating-link {
+            font-size: 0.72rem;
+        }
+        .live-rating-badge {
+            font-size: 0.72rem;
+            padding: 3px 8px;
+        }
+    }
+
+    /* 2 columns from 750px down to 501px */
+    @media (max-width: 750px) {
+        .courses-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+        .card-body {
+            padding: 16px;
+        }
+        .course-title {
+            font-size: 1.05rem;
+        }
+    }
+
+    /* 1 column below 500px - precisely adjusted and centered */
+    @media (max-width: 500px) {
+        .dashboard-container {
+            padding: 0 16px;
+        }
+        .courses-grid {
+            grid-template-columns: 1fr;
+            gap: 18px;
+            max-width: 440px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .course-info-card {
+            border-radius: 20px;
+        }
+        .course-thumbnail {
+            border-radius: 19px 19px 0 0;
+        }
+        .card-body {
+            padding: 16px 18px 18px;
+        }
+        .course-title {
+            font-size: 1.1rem;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        .progress-section {
+            margin-top: 10px;
+        }
     }
 </style>
 {% endblock %}
