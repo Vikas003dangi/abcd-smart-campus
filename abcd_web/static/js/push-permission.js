@@ -3,192 +3,244 @@
 (function () {
     'use strict';
 
+    const ALLOWED_KEY = 'abcd_push_allowed';
+    const DISMISS_SESSION_KEY = 'abcd_push_prompt_dismissed_session';
+
     // 1. Check feature support
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
         return;
     }
 
-    const ALLOWED_KEY = 'abcd_push_allowed';
-    const DISMISS_SESSION_KEY = 'abcd_push_prompt_dismissed_session';
+    let bubble = null;
 
-    // 2. Check if already granted or allowed permanently
-    if (Notification.permission === 'granted' || localStorage.getItem(ALLOWED_KEY) === 'true') {
-        registerServiceWorkerAndSync();
-        return;
-    }
-
-    // 3. If explicitly blocked by browser settings, do not prompt
-    if (Notification.permission === 'denied') {
-        return;
-    }
-
-    // 4. Session check: If user clicked "Not Now" or closed in this session, wait until next visit
-    if (sessionStorage.getItem(DISMISS_SESSION_KEY) === 'true') {
-        return;
-    }
-
-    // 4. Inject CSS styles for the floating bubble UI
-    const style = document.createElement('style');
-    style.textContent = `
-        .abcd-push-bubble {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            max-width: 360px;
-            width: calc(100vw - 32px);
-            background: rgba(17, 24, 39, 0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 18px;
-            padding: 18px 20px;
-            color: #ffffff;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 20px rgba(108, 99, 255, 0.2);
-            z-index: 999999;
-            transform: translateY(120%);
-            opacity: 0;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-        }
-        .abcd-push-bubble.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        .abcd-push-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        .abcd-push-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.98rem;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        .abcd-push-title i {
-            font-size: 1.2rem;
-            color: #6c63ff;
-        }
-        .abcd-push-close {
-            background: transparent;
-            border: none;
-            color: #9ca3af;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 2px 6px;
-            border-radius: 50%;
-            transition: color 0.2s;
-        }
-        .abcd-push-close:hover {
-            color: #ffffff;
-        }
-        .abcd-push-body {
-            font-size: 0.85rem;
-            color: #9ca3af;
-            line-height: 1.45;
-            margin-bottom: 14px;
-        }
-        .abcd-push-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .abcd-push-btn-allow {
-            flex: 1;
-            background: linear-gradient(135deg, #6c63ff 0%, #8b5cf6 100%);
-            color: #ffffff;
-            border: none;
-            padding: 9px 14px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
-            transition: transform 0.15s, box-shadow 0.15s;
-        }
-        .abcd-push-btn-allow:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.5);
-        }
-        .abcd-push-btn-later {
-            background: rgba(255, 255, 255, 0.08);
-            color: #d1d5db;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 9px 14px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s, color 0.2s;
-        }
-        .abcd-push-btn-later:hover {
-            background: rgba(255, 255, 255, 0.15);
-            color: #ffffff;
-        }
-        @media (max-width: 480px) {
+    // 2. Inject CSS styles for the notification prompt (dual-theme supported)
+    function injectStyles() {
+        if (document.getElementById('abcd-push-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'abcd-push-styles';
+        style.textContent = `
             .abcd-push-bubble {
-                bottom: 16px;
-                right: 16px;
-                left: 16px;
-                width: auto;
-                padding: 16px;
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                max-width: 380px;
+                width: calc(100vw - 36px);
+                background: linear-gradient(145deg, #ffffff 0%, #f9fafb 100%);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1.5px solid rgba(226, 232, 240, 0.9);
+                border-radius: 20px;
+                padding: 20px 22px;
+                color: #1e293b;
+                font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18), 0 0 25px rgba(108, 99, 255, 0.15);
+                z-index: 999997;
+                transform: translateY(130%);
+                opacity: 0;
+                transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
             }
-        }
-    `;
-    document.head.appendChild(style);
+            .abcd-push-bubble.show {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            body.dark-theme .abcd-push-bubble {
+                background: linear-gradient(145deg, #1b132c 0%, #110d20 100%);
+                border: 1.5px solid rgba(168, 85, 247, 0.25);
+                color: #f1f5f9;
+                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(124, 58, 237, 0.25);
+            }
+            .abcd-push-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 10px;
+            }
+            .abcd-push-title {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 1.02rem;
+                font-weight: 700;
+                color: #0f172a;
+            }
+            body.dark-theme .abcd-push-title {
+                color: #ffffff;
+            }
+            .abcd-push-bell-icon {
+                width: 34px;
+                height: 34px;
+                border-radius: 10px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #ffffff;
+                font-size: 1.15rem;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+                animation: bellShake 3s infinite ease-in-out;
+            }
+            @keyframes bellShake {
+                0%, 80%, 100% { transform: rotate(0deg); }
+                85% { transform: rotate(14deg); }
+                90% { transform: rotate(-14deg); }
+                95% { transform: rotate(8deg); }
+            }
+            .abcd-push-close {
+                background: transparent;
+                border: none;
+                color: #94a3b8;
+                font-size: 1.3rem;
+                cursor: pointer;
+                padding: 4px;
+                line-height: 1;
+                border-radius: 50%;
+                transition: color 0.2s, background 0.2s;
+            }
+            .abcd-push-close:hover {
+                color: #0f172a;
+                background: rgba(0, 0, 0, 0.05);
+            }
+            body.dark-theme .abcd-push-close:hover {
+                color: #ffffff;
+                background: rgba(255, 255, 255, 0.1);
+            }
+            .abcd-push-body {
+                font-size: 0.86rem;
+                color: #475569;
+                line-height: 1.5;
+                margin-bottom: 16px;
+            }
+            body.dark-theme .abcd-push-body {
+                color: #cbd5e1;
+            }
+            .abcd-push-actions {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .abcd-push-btn-allow {
+                flex: 1;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: #ffffff;
+                border: none;
+                padding: 10px 16px;
+                border-radius: 12px;
+                font-size: 0.88rem;
+                font-weight: 700;
+                cursor: pointer;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                transition: transform 0.15s, box-shadow 0.15s;
+            }
+            .abcd-push-btn-allow:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+            }
+            .abcd-push-btn-later {
+                background: rgba(0, 0, 0, 0.04);
+                color: #64748b;
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                padding: 10px 14px;
+                border-radius: 12px;
+                font-size: 0.88rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background 0.2s, color 0.2s;
+            }
+            .abcd-push-btn-later:hover {
+                background: rgba(0, 0, 0, 0.08);
+                color: #0f172a;
+            }
+            body.dark-theme .abcd-push-btn-later {
+                background: rgba(255, 255, 255, 0.08);
+                color: #94a3b8;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            body.dark-theme .abcd-push-btn-later:hover {
+                background: rgba(255, 255, 255, 0.15);
+                color: #ffffff;
+            }
+            @media (max-width: 480px) {
+                .abcd-push-bubble {
+                    bottom: 18px;
+                    right: 14px;
+                    left: 14px;
+                    width: auto;
+                    padding: 18px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 
-    // 5. Build and attach HTML bubble element
-    const bubble = document.createElement('div');
-    bubble.className = 'abcd-push-bubble';
-    bubble.innerHTML = `
-        <div class="abcd-push-header">
-            <div class="abcd-push-title">
-                <i class="bx bxs-bell-ring"></i>
-                <span>Enable Notifications</span>
+    // 3. Build and attach HTML bubble element
+    function buildBubble() {
+        if (bubble) return;
+        injectStyles();
+
+        bubble = document.createElement('div');
+        bubble.className = 'abcd-push-bubble';
+        bubble.id = 'abcdPushBubble';
+        bubble.innerHTML = `
+            <div class="abcd-push-header">
+                <div class="abcd-push-title">
+                    <div class="abcd-push-bell-icon">
+                        <i class="bx bxs-bell-ring"></i>
+                    </div>
+                    <span>Enable Notifications</span>
+                </div>
+                <button class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close">&times;</button>
             </div>
-            <button class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close">&times;</button>
-        </div>
-        <div class="abcd-push-body">
-            Get instant Guidy message alerts and important site updates even when the page is closed.
-        </div>
-        <div class="abcd-push-actions">
-            <button class="abcd-push-btn-allow" id="abcdPushAllowBtn">Allow Notifications</button>
-            <button class="abcd-push-btn-later" id="abcdPushLaterBtn">Not Now</button>
-        </div>
-    `;
+            <div class="abcd-push-body">
+                Get instant alerts for class updates, live library seat availability, and Guidy study support.
+            </div>
+            <div class="abcd-push-actions">
+                <button class="abcd-push-btn-allow" id="abcdPushAllowBtn">
+                    <i class='bx bx-check-shield'></i> Allow Alerts
+                </button>
+                <button class="abcd-push-btn-later" id="abcdPushLaterBtn">Not Now</button>
+            </div>
+        `;
 
-    // 6. Show bubble after a gentle delay (2.5 seconds)
-    window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            document.body.appendChild(bubble);
-            requestAnimationFrame(() => {
-                bubble.classList.add('show');
-            });
-        }, 2500);
-    });
+        document.body.appendChild(bubble);
 
-    // 7. Event listeners
-    document.addEventListener('click', (e) => {
-        if (e.target && e.target.id === 'abcdPushAllowBtn') {
-            requestNotificationPermission();
-        } else if (e.target && (e.target.id === 'abcdPushLaterBtn' || e.target.id === 'abcdPushCloseBtn')) {
-            dismissPrompt();
+        // Click listeners
+        document.getElementById('abcdPushAllowBtn').addEventListener('click', requestNotificationPermission);
+        document.getElementById('abcdPushLaterBtn').addEventListener('click', () => dismissPrompt(true));
+        document.getElementById('abcdPushCloseBtn').addEventListener('click', () => dismissPrompt(true));
+    }
+
+    function showBubble() {
+        if (window.__abcd_active_prompt && window.__abcd_active_prompt !== 'notification') {
+            return;
         }
-    });
+        buildBubble();
+        window.__abcd_active_prompt = 'notification';
+        requestAnimationFrame(() => {
+            bubble.classList.add('show');
+        });
+    }
 
     function dismissPrompt(isSessionDismiss = true) {
         if (isSessionDismiss) {
             sessionStorage.setItem(DISMISS_SESSION_KEY, 'true');
         }
-        bubble.classList.remove('show');
-        setTimeout(() => {
-            if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-        }, 400);
+        if (bubble) {
+            bubble.classList.remove('show');
+            setTimeout(() => {
+                if (bubble && bubble.parentNode) bubble.parentNode.removeChild(bubble);
+                bubble = null;
+                if (window.__abcd_active_prompt === 'notification') {
+                    window.__abcd_active_prompt = null;
+                }
+            }, 400);
+        }
     }
 
+    // 4. Permission Request ONLY triggered on user click
     async function requestNotificationPermission() {
         try {
             const permission = await Notification.requestPermission();
@@ -196,6 +248,9 @@
                 localStorage.setItem(ALLOWED_KEY, 'true');
                 dismissPrompt(false);
                 await registerServiceWorkerAndSync();
+                if (window.CustomPopup) {
+                    CustomPopup.alert('Notifications are successfully enabled! You will receive important campus updates.', '🎉 Notifications Active');
+                }
             } else {
                 dismissPrompt(true);
             }
@@ -207,7 +262,6 @@
 
     async function registerServiceWorkerAndSync() {
         try {
-            // Register service worker at root scope /sw.js
             const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
             await navigator.serviceWorker.ready;
 
@@ -239,7 +293,6 @@
                 });
             }
 
-            // Sync subscription with backend Django API
             const csrfToken = getCsrfToken();
             await fetch('/api/save-push-subscription/', {
                 method: 'POST',
@@ -254,7 +307,11 @@
         }
     }
 
-    // Global launcher icon app badging utility
+    // Global manual trigger
+    window.showABCDNotificationPrompt = function () {
+        showBubble();
+    };
+
     window.updateAppBadge = function (count) {
         if ('setAppBadge' in navigator) {
             const num = parseInt(count, 10);
@@ -265,6 +322,20 @@
             }
         }
     };
+
+    // If already granted, ensure service worker is registered in the background
+    if (Notification.permission === 'granted' || localStorage.getItem(ALLOWED_KEY) === 'true') {
+        registerServiceWorkerAndSync();
+    } else if (Notification.permission !== 'denied' && sessionStorage.getItem(DISMISS_SESSION_KEY) !== 'true') {
+        // Auto-show prompt after 2.2s
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(showBubble, 2200);
+            });
+        } else {
+            setTimeout(showBubble, 2200);
+        }
+    }
 
     function getVapidKeyFromMeta() {
         const meta = document.querySelector('meta[name="vapid-public-key"]');

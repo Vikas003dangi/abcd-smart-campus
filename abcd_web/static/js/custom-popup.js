@@ -364,15 +364,39 @@ window.CustomPopup = CustomPopup;
 
 // Automatically bridge standard browser dialogs to CustomPopup for seamless compatibility
 window.alert = function (message) {
-    return CustomPopup.alert(message);
+    const title = arguments.length > 1 ? arguments[1] : 'Notice';
+    return CustomPopup.alert(message, title);
 };
 
 window.confirm = function (message) {
-    return CustomPopup.confirm(message);
+    const title = arguments.length > 1 ? arguments[1] : 'Confirmation';
+    return CustomPopup.confirm(message, title);
 };
 
 window.prompt = function (message, defaultVal) {
     return CustomPopup.prompt(message, 'Input Required', defaultVal);
+};
+
+window.showStyledAlert = function (title, message) {
+    return CustomPopup.alert(message, title);
+};
+
+window.showStyledConfirm = function (title, message) {
+    return CustomPopup.confirm(message, title);
+};
+
+window.showStyledPopup = function (opts) {
+    if (!opts) return;
+    const title = opts.title || (opts.type === 'error' ? 'Error' : 'Notice');
+    const msg = opts.message || '';
+    return CustomPopup.alert(msg, title);
+};
+
+window.showABCDModal = function (opts) {
+    if (!opts) return;
+    const title = opts.title || (opts.type === 'error' ? 'Error' : 'Notice');
+    const msg = opts.message || '';
+    return CustomPopup.alert(msg, title);
 };
 
 // Global Helper & Mutation Observer to ensure ANY newly opened Modal B is ALWAYS on top of Modal A
