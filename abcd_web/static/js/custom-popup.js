@@ -24,7 +24,7 @@ window.setButtonLoading = function(button, isLoading, loadingText) {
     }
 };
 
-const CustomPopup = (function () {
+var CustomPopup = window.CustomPopup || (function () {
     'use strict';
 
     let popupOverlay = null;

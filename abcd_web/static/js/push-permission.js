@@ -262,7 +262,13 @@
 
     async function registerServiceWorkerAndSync() {
         try {
-            const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            let reg;
+            try {
+                reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            } catch (swErr) {
+                console.warn('Fallback registering /static/sw.js:', swErr);
+                reg = await navigator.serviceWorker.register('/static/sw.js');
+            }
             await navigator.serviceWorker.ready;
 
             let vapidPublicKey = window.VAPID_PUBLIC_KEY || getVapidKeyFromMeta();
@@ -286,22 +292,32 @@
 
             let sub = await reg.pushManager.getSubscription();
             if (!sub) {
-                const convertedKey = urlB64ToUint8Array(vapidPublicKey);
-                sub = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: convertedKey
-                });
+                try {
+                    const convertedKey = urlB64ToUint8Array(vapidPublicKey);
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: convertedKey
+                    });
+                } catch (subErr) {
+                    console.warn('Subscription with converted key failed, retrying with raw key:', subErr);
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: vapidPublicKey
+                    });
+                }
             }
 
-            const csrfToken = getCsrfToken();
-            await fetch('/api/save-push-subscription/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify(sub)
-            });
+            if (sub) {
+                const csrfToken = getCsrfToken();
+                await fetch('/api/save-push-subscription/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(sub)
+                });
+            }
         } catch (err) {
             console.error('Failed to register Web Push Subscription:', err);
         }
