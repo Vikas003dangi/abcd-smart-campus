@@ -1259,8 +1259,8 @@ def add_course_view(request):
         daemon=True,
     ).start()
 
-    messages.success(request, "Course created successfully.")
-    return redirect("users:teacher_courses")
+    messages.success(request, "Course created! Now add your first content below.")
+    return redirect("users:teacher_course_materials", course.id)
 
 # ===================================================================
 # BACKGROUND NOTIFICATION HELPERS (non-blocking email + notification)

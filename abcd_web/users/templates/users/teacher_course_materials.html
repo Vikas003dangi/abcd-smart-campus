@@ -25,9 +25,223 @@
     color: white;
     box-shadow: 0 20px 50px rgba(99, 102, 241, 0.15);
     border: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
   }
   body.dark-theme .tcm-hero {
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  }
+
+  /* Course thumbnail transparent background in hero */
+  .tcm-hero-thumb-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .tcm-hero-thumb-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.13;
+    filter: saturate(0.6) blur(1px);
+    border-radius: 32px;
+    transition: opacity 0.4s ease;
+  }
+  .tcm-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Big-screen: course name overlay in hero center */
+  .tcm-course-name-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+  .tcm-course-name-overlay-text {
+    font-size: clamp(1.8rem, 4vw, 3.5rem);
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: rgba(255,255,255,0.1);
+    text-align: center;
+    padding: 0 60px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.1);
+  }
+  @media (max-width: 999px) {
+    .tcm-course-name-overlay { display: none; }
+  }
+
+  /* --- STYLED FILE UPLOAD ZONE IN MODAL --- */
+  .tcm-file-drop-zone {
+    border: 2px dashed rgba(99,102,241,0.35);
+    border-radius: 18px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    background: rgba(99,102,241,0.03);
+    position: relative;
+    overflow: hidden;
+  }
+  .tcm-file-drop-zone:hover,
+  .tcm-file-drop-zone.dragover {
+    border-color: #6366f1;
+    background: rgba(99,102,241,0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(99,102,241,0.12);
+  }
+  body.dark-theme .tcm-file-drop-zone {
+    border-color: rgba(129,140,248,0.35);
+    background: rgba(129,140,248,0.04);
+  }
+  body.dark-theme .tcm-file-drop-zone:hover {
+    border-color: #818cf8;
+    background: rgba(129,140,248,0.1);
+  }
+  .tcm-file-drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+  }
+  .tcm-file-drop-icon {
+    font-size: 2.8rem;
+    color: #6366f1;
+    margin-bottom: 10px;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+  body.dark-theme .tcm-file-drop-icon { color: #818cf8; }
+  .tcm-file-drop-zone:hover .tcm-file-drop-icon {
+    transform: scale(1.15) translateY(-3px);
+  }
+  .tcm-file-drop-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #475569;
+    margin-bottom: 5px;
+    display: block;
+  }
+  body.dark-theme .tcm-file-drop-label { color: rgba(255,242,222,0.7); }
+  .tcm-file-drop-sub {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    display: block;
+  }
+  /* File chosen state */
+  .tcm-file-drop-zone.file-chosen {
+    border-color: #22c55e;
+    background: rgba(34,197,94,0.05);
+  }
+  body.dark-theme .tcm-file-drop-zone.file-chosen {
+    border-color: #4ade80;
+    background: rgba(74,222,128,0.06);
+  }
+  .tcm-file-chosen-name {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: rgba(34,197,94,0.1);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-top: 14px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #15803d;
+    word-break: break-all;
+  }
+  body.dark-theme .tcm-file-chosen-name {
+    background: rgba(74,222,128,0.12);
+    color: #4ade80;
+  }
+  .tcm-file-chosen-name i { font-size: 1.2rem; flex-shrink: 0; }
+  .tcm-file-preview {
+    display: none;
+    margin-top: 14px;
+    border-radius: 12px;
+    overflow: hidden;
+    max-height: 160px;
+    background: #0f172a;
+    position: relative;
+  }
+  .tcm-file-preview img,
+  .tcm-file-preview video {
+    width: 100%;
+    max-height: 160px;
+    object-fit: contain;
+    display: block;
+  }
+  .tcm-file-preview-clear {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(15,23,42,0.7);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: all 0.2s;
+  }
+  .tcm-file-preview-clear:hover {
+    background: #ef4444;
+    transform: scale(1.15);
+  }
+
+  /* --- ANIMATED MODAL CLOSE (X) BUTTON --- */
+  .tcm-modal-close-btn {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(100,116,139,0.1);
+    border: 1.5px solid rgba(100,116,139,0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    color: #64748b;
+    font-size: 1.2rem;
+    z-index: 10;
+  }
+  .tcm-modal-close-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+    transform: rotate(90deg) scale(1.1);
+    box-shadow: 0 0 20px rgba(239,68,68,0.4);
+  }
+  body.dark-theme .tcm-modal-close-btn {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.15);
+    color: rgba(255,242,222,0.7);
+  }
+  body.dark-theme .tcm-modal-close-btn:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
   }
 
   .tcm-hero-header {
@@ -725,6 +939,18 @@
 <main class="tcm-wrapper">
     <!-- Page Hero -->
     <section class="tcm-hero" data-tour="material-hero">
+
+      {% if course.thumbnail %}
+      <!-- Transparent thumbnail background -->
+      <div class="tcm-hero-thumb-bg">
+        <img src="{{ course.thumbnail_display_url }}" alt="">
+      </div>
+      <!-- Big-screen: course name overlay (>= 1000px) -->
+      <div class="tcm-course-name-overlay">
+        <span class="tcm-course-name-overlay-text">{{ course.title }}</span>
+      </div>
+      {% endif %}
+
       <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 18px;">
         <a href="{% url 'users:teacher_courses' %}" class="tc-back-btn" title="Back to Courses">
           <i class='bx bx-left-arrow-alt'></i>
@@ -732,7 +958,7 @@
         <div class="tcm-breadcrumb" style="margin-bottom: 0;">
           <a href="{% url 'users:teacher_courses' %}">Courses</a>
           <i class='bx bx-chevron-right'></i>
-          <span>{{ course.title }}</span>
+          <span style="font-size: 1rem; font-weight: 800;">{{ course.title }}</span>
         </div>
       </div>
       <div class="tcm-hero-header">
@@ -862,12 +1088,15 @@
     </div>
   </main>
 
-<!-- Modals & Forms remain similar to before but styled for studio -->
+<!-- Add Content Modal -->
 <div id="materialModal" class="tc-modal-bg">
     <div class="tc-modal-box">
-        <button class="tc-modal-close" onclick="closeMaterialModal()">&times;</button>
-        <h2 style="font-weight: 800; margin-bottom: 25px;">Add to Curriculum</h2>
-        <form method="post" action="{% url 'users:add_material' course.id %}" enctype="multipart/form-data">
+        <button class="tcm-modal-close-btn" onclick="closeMaterialModal()" title="Close">
+          <i class='bx bx-x'></i>
+        </button>
+        <h2 style="font-weight: 800; margin-bottom: 6px;">Add to Curriculum</h2>
+        <p style="font-size: 0.85rem; opacity: 0.6; margin-bottom: 22px;">Upload a file, paste a YouTube link, or add an external URL.</p>
+        <form method="post" action="{% url 'users:add_material' course.id %}" enctype="multipart/form-data" id="addMaterialForm">
             {% csrf_token %}
             <div class="tc-form-group">
                 <label class="tc-form-label">Title (Leave blank for auto-name)</label>
@@ -886,16 +1115,42 @@
                 </div>
                 <input type="hidden" name="material_type" id="matTypeInput" value="file">
             </div>
+
+            <!-- Styled file drop zone -->
             <div id="zoneFile" class="tc-form-group">
-                <input type="file" name="file" class="tc-form-input">
+                <div class="tcm-file-drop-zone" id="fileDropZone">
+                  <input type="file" name="file" id="matFileInput"
+                         onchange="handleMatFileChange(this)"
+                         ondragover="this.parentElement.classList.add('dragover')"
+                         ondragleave="this.parentElement.classList.remove('dragover')">
+                  <i class='bx bx-cloud-upload tcm-file-drop-icon'></i>
+                  <span class="tcm-file-drop-label">Drag & drop your file here</span>
+                  <span class="tcm-file-drop-sub">or click to browse — PDF, MP4, PNG, DOCX…</span>
+                </div>
+                <!-- Chosen file name indicator -->
+                <div class="tcm-file-chosen-name" id="matFileChosenName">
+                  <i class='bx bx-file-blank'></i>
+                  <span id="matFileChosenText">No file chosen</span>
+                </div>
+                <!-- Image/Video preview -->
+                <div class="tcm-file-preview" id="matFilePreview">
+                  <img id="matFilePreviewImg" src="" alt="preview" style="display:none;">
+                  <video id="matFilePreviewVid" controls style="display:none; width:100%;"></video>
+                  <button type="button" class="tcm-file-preview-clear" onclick="clearMatFile()" title="Remove">
+                    <i class='bx bx-x'></i>
+                  </button>
+                </div>
             </div>
+
             <div id="zoneVideo" class="tc-form-group" style="display:none;">
-                <input type="url" name="video_url" class="tc-form-input" placeholder="YouTube URL">
+                <input type="url" name="video_url" class="tc-form-input" placeholder="YouTube URL (e.g. https://youtu.be/...)">
             </div>
             <div id="zoneLink" class="tc-form-group" style="display:none;">
-                <input type="url" name="external_url" class="tc-form-input" placeholder="External URL">
+                <input type="url" name="external_url" class="tc-form-input" placeholder="External URL (e.g. https://...)">
             </div>
-            <button type="submit" class="studio-btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Add to Course</button>
+            <button type="submit" class="tc-modal-submit-btn" style="width: 100%; justify-content: center; padding: 14px; font-size: 1rem; border-radius: 14px; margin-top: 6px;">
+              <i class='bx bx-plus-circle'></i> Add to Course
+            </button>
         </form>
     </div>
 </div>
@@ -903,7 +1158,9 @@
 <!-- Edit Material Modal -->
 <div id="editMaterialModal" class="tc-modal-bg">
     <div class="tc-modal-box">
-        <button class="tc-modal-close" onclick="closeEditModal()">&times;</button>
+        <button class="tcm-modal-close-btn" onclick="closeEditModal()" title="Close">
+          <i class='bx bx-x'></i>
+        </button>
         <h2 style="font-weight: 800; margin-bottom: 25px;">Edit Details</h2>
         <form id="editMaterialForm">
             <input type="hidden" name="material_id" id="editMaterialId">
@@ -915,7 +1172,9 @@
                 <label class="tc-form-label">Description (Optional)</label>
                 <textarea name="description" id="editDescription" class="tc-form-input" style="height: 100px;"></textarea>
             </div>
-            <button type="submit" class="studio-btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Save Changes</button>
+            <button type="submit" class="tc-modal-submit-btn" style="width: 100%; justify-content: center; padding: 14px; font-size: 1rem; border-radius: 14px;">
+              <i class='bx bx-save'></i> Save Changes
+            </button>
         </form>
     </div>
 </div>
@@ -1004,8 +1263,11 @@
 
     // Modal Helpers
     function openMaterialModal() { document.getElementById('materialModal').classList.add('open'); }
-    function closeMaterialModal() { document.getElementById('materialModal').classList.remove('open'); }
-    
+    function closeMaterialModal() {
+        document.getElementById('materialModal').classList.remove('open');
+        clearMatFile();
+    }
+
     function pickType(type) {
         document.getElementById('matTypeInput').value = type;
         document.querySelectorAll('.tm-type-option').forEach(o => o.classList.remove('active'));
@@ -1013,6 +1275,59 @@
         document.getElementById('zoneFile').style.display = (type === 'file') ? 'block' : 'none';
         document.getElementById('zoneVideo').style.display = (type === 'video') ? 'block' : 'none';
         document.getElementById('zoneLink').style.display = (type === 'link') ? 'block' : 'none';
+    }
+
+    // Styled file picker logic
+    function handleMatFileChange(input) {
+        const file = input.files[0];
+        const zone = document.getElementById('fileDropZone');
+        const nameDiv = document.getElementById('matFileChosenName');
+        const nameText = document.getElementById('matFileChosenText');
+        const preview = document.getElementById('matFilePreview');
+        const previewImg = document.getElementById('matFilePreviewImg');
+        const previewVid = document.getElementById('matFilePreviewVid');
+
+        zone.classList.remove('dragover');
+
+        if (!file) { clearMatFile(); return; }
+
+        zone.classList.add('file-chosen');
+        nameDiv.style.display = 'flex';
+        nameText.textContent = file.name;
+
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+
+        if (isImage || isVideo) {
+            const url = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            if (isImage) {
+                previewImg.src = url;
+                previewImg.style.display = 'block';
+                previewVid.style.display = 'none';
+            } else {
+                previewVid.src = url;
+                previewVid.style.display = 'block';
+                previewImg.style.display = 'none';
+            }
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    function clearMatFile() {
+        const input = document.getElementById('matFileInput');
+        if (input) input.value = '';
+        const zone = document.getElementById('fileDropZone');
+        if (zone) zone.classList.remove('file-chosen');
+        const nameDiv = document.getElementById('matFileChosenName');
+        if (nameDiv) nameDiv.style.display = 'none';
+        const preview = document.getElementById('matFilePreview');
+        if (preview) preview.style.display = 'none';
+        const previewImg = document.getElementById('matFilePreviewImg');
+        if (previewImg) { previewImg.src = ''; previewImg.style.display = 'none'; }
+        const previewVid = document.getElementById('matFilePreviewVid');
+        if (previewVid) { previewVid.src = ''; previewVid.style.display = 'none'; }
     }
 
     // Edit Modal Logic
