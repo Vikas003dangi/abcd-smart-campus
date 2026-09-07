@@ -11172,7 +11172,8 @@ def guidy_send_message(request, session_id=None, direct_id=None):
     if GuidyBlock.objects.filter(blocker=user, blocked=other_user).exists():
         return JsonResponse({'success': False, 'error': 'You have blocked this user. Unblock them to chat.'}, status=403)
 
-    content = request.POST.get('content', '').strip()
+    from .utils import clean_guidy_message_content, strip_html_for_notification
+    content = clean_guidy_message_content(request.POST.get('content', '').strip())
     msg_type = request.POST.get('message_type', 'text')
     reply_to_id = request.POST.get('reply_to_id')
     uploaded_file = request.FILES.get('file')
@@ -11302,7 +11303,8 @@ def guidy_send_message(request, session_id=None, direct_id=None):
             # Fire WhatsApp-style mobile push notification
             push_title = sender_name
             if msg.message_type == 'text':
-                push_body = msg.content[:80] + '...' if len(msg.content) > 80 else msg.content
+                clean_content = strip_html_for_notification(msg.content)
+                push_body = clean_content[:80] + '...' if len(clean_content) > 80 else clean_content
             elif msg.message_type == 'image':
                 push_body = "📷 Photo"
             elif msg.message_type == 'audio':
@@ -12592,7 +12594,8 @@ def guidy_group_send_message(request, group_id):
     if user not in group.members.all() and group.created_by != user:
         return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
 
-    content = request.POST.get('content', '').strip()
+    from .utils import clean_guidy_message_content, strip_html_for_notification
+    content = clean_guidy_message_content(request.POST.get('content', '').strip())
     client_msg_id = request.POST.get('client_msg_id')
     uploaded_file = request.FILES.get('file')
 
@@ -12693,7 +12696,8 @@ def guidy_group_send_message(request, group_id):
                 push_title = group.name
                 
                 if msg.message_type == 'text':
-                    msg_text = msg.content[:80] + '...' if len(msg.content) > 80 else msg.content
+                    clean_content = strip_html_for_notification(msg.content)
+                    msg_text = clean_content[:80] + '...' if len(clean_content) > 80 else clean_content
                     push_body = f"{sender_name}: {msg_text}"
                 elif msg.message_type == 'image':
                     push_body = f"{sender_name}: 📷 Photo"

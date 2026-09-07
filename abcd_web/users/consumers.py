@@ -9,9 +9,10 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
         from django.contrib.auth.models import User
         from users.models import Message, ChatSession, DirectChatSession, GroupChatSession, GroupMessage, GuidyBlock
         from django.utils.timezone import localtime
-        from users.utils import get_user_display_name, get_profile_photo_url
+        from users.utils import get_user_display_name, get_profile_photo_url, clean_guidy_message_content, strip_html_for_notification
 
         user = User.objects.filter(id=user_id).first()
+        content = clean_guidy_message_content(content)
         if not user or not content:
             return {'error': 'User or content missing'}
 
@@ -123,16 +124,17 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                 try:
                     sender_name = get_user_display_name(sender)
                     push_title = "Guidy | ABCD"
+                    clean_msg_content = strip_html_for_notification(message_obj.content)
                     if c_type == 'group':
                         grp = GroupChatSession.objects.filter(id=s_id).first()
                         grp_name = grp.name if (grp and grp.name) else "Group"
-                        msg_text = message_obj.content[:80] if message_obj.content else "Sent a message"
+                        msg_text = clean_msg_content[:80] if clean_msg_content else "Sent a message"
                         push_body = f"[{grp_name}] {sender_name}: {msg_text}"
                         push_icon = (grp.photo.url if grp and grp.photo else None) or get_profile_photo_url(sender) or "/static/data/favicon/web-app-manifest-192x192.png"
                         push_tag = f"guidy-group-{s_id}"
                         push_url = f"/guidy/?group={s_id}"
                     else:
-                        msg_text = message_obj.content[:80] if message_obj.content else "Sent a message"
+                        msg_text = clean_msg_content[:80] if clean_msg_content else "Sent a message"
                         push_body = f"{sender_name}: {msg_text}"
                         push_icon = get_profile_photo_url(sender) or "/static/data/favicon/web-app-manifest-192x192.png"
                         push_tag = f"guidy-{c_type}-{s_id}"

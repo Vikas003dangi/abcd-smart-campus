@@ -35,24 +35,46 @@ def format_message(content):
     from django.utils.safestring import mark_safe
     if not content:
         return ""
-    escaped = html.escape(content)
-    escaped = escaped.replace("&lt;b&gt;", "<b>").replace("&lt;/b&gt;", "</b>")
-    escaped = escaped.replace("&lt;strong&gt;", "<b>").replace("&lt;/strong&gt;", "</b>")
-    escaped = escaped.replace("&lt;i&gt;", "<i>").replace("&lt;/i&gt;", "</i>")
-    escaped = escaped.replace("&lt;em&gt;", "<i>").replace("&lt;/em&gt;", "</i>")
-    escaped = escaped.replace("&lt;u&gt;", "<u>").replace("&lt;/u&gt;", "</u>")
+    escaped = html.escape(str(content))
+    escaped = re.sub(r'&lt;br\s*/?&gt;', '<br>', escaped, flags=re.I)
+    escaped = escaped.replace('\r\n', '<br>').replace('\r', '<br>').replace('\n', '<br>')
+    escaped = re.sub(r'&lt;b&gt;', '<b>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/b&gt;', '</b>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;strong&gt;', '<b>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/strong&gt;', '</b>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;i&gt;', '<i>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/i&gt;', '</i>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;em&gt;', '<i>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/em&gt;', '</i>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;u&gt;', '<u>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/u&gt;', '</u>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;s&gt;', '<s>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/s&gt;', '</s>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;strike&gt;', '<s>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/strike&gt;', '</s>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;del&gt;', '<s>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/del&gt;', '</s>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;code&gt;', '<code>', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;/code&gt;', '</code>', escaped, flags=re.I)
     escaped = re.sub(
-        r'&lt;span style=&quot;color:\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\));&quot;&gt;',
+        r'&lt;span style=&quot;color:\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\));?&quot;&gt;',
         r'<span style="color:\1;">',
-        escaped
+        escaped,
+        flags=re.I
     )
-    escaped = escaped.replace("&lt;/span&gt;", "</span>")
+    escaped = re.sub(r'&lt;/span&gt;', '</span>', escaped, flags=re.I)
     escaped = re.sub(
         r'&lt;font color=&quot;?\s*(#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\))\s*&quot;?&gt;',
         r'<span style="color:\1;">',
-        escaped
+        escaped,
+        flags=re.I
     )
-    escaped = escaped.replace("&lt;/font&gt;", "</span>")
+    escaped = re.sub(r'&lt;/font&gt;', '</span>', escaped, flags=re.I)
+
+    # Convert any lingering <div> or <p> tags into <br> so raw tags are never shown
+    escaped = re.sub(r'&lt;/(div|p)&gt;', '', escaped, flags=re.I)
+    escaped = re.sub(r'&lt;(div|p)(\s+[^&]*)?&gt;', '<br>', escaped, flags=re.I)
+    escaped = re.sub(r'(<br\s*/?>){3,}', '<br><br>', escaped, flags=re.I)
     return mark_safe(escaped)
 
 @register.filter

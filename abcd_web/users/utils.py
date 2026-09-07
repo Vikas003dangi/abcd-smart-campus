@@ -1646,4 +1646,72 @@ def get_admin_and_teacher_emails():
     return [e for e in recipients if e and '@' in e]
 
 
+def clean_guidy_message_content(content):
+    """
+    Cleans and normalizes Guidy chat message content:
+    - Normalizes block tags and line breaks to <br>
+    - Whitelists only safe inline formatting (b, strong, i, em, u, s, strike, del, code, span with color)
+    - Strips all other HTML tags, scripts, div wrappers, styles
+    - Trims excess linebreaks
+    """
+    if not content:
+        return ""
+    import re
+    s = str(content)
+
+    # 1. Convert block breaks to <br>
+    s = re.sub(r'<(div|p)\s*>\s*<br\s*/?>\s*</\1>', '<br>', s, flags=re.I)
+    s = re.sub(r'</(div|p)>', '', s, flags=re.I)
+    s = re.sub(r'<(div|p)(\s+[^>]*)?>', '<br>', s, flags=re.I)
+    s = re.sub(r'\r\n|\r|\n', '<br>', s)
+
+    # 2. Whitelist and preserve allowed tags
+    tokens = []
+    def save_token(m):
+        tokens.append(m.group(0))
+        return f"__SAFE_HTML_TOKEN_{len(tokens)-1}__"
+
+    allowed_pattern = re.compile(
+        r'</?(?:b|strong|i|em|u|s|strike|del|code|br\s*/?)>'
+        r'|<span\s+style=["\']color:\s*(?:#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\));?["\']>|</span>'
+        r'|<font\s+color=["\']?(?:#[0-9a-fA-F]{3,6}|[a-zA-Z]+|rgb\(\d+,\s*\d+,\s*\d+\))["\']?>|</font>',
+        re.I
+    )
+    s = allowed_pattern.sub(save_token, s)
+
+    # 3. Strip all other HTML tags
+    s = re.sub(r'<[^>]+>', '', s)
+
+    # 4. Restore allowed tags
+    for i, token in enumerate(tokens):
+        s = s.replace(f"__SAFE_HTML_TOKEN_{i}__", token)
+
+    # 5. Normalize consecutive breaks and trim
+    s = re.sub(r'(<br\s*/?>){3,}', '<br><br>', s, flags=re.I)
+    s = re.sub(r'^(<br\s*/?>)+', '', s, flags=re.I)
+    s = re.sub(r'(<br\s*/?>)+$', '', s, flags=re.I)
+    return s.strip()
+
+
+def strip_html_for_notification(text):
+    """
+    Strips all HTML tags and collapses whitespace to create clean plain text
+    for browser notifications, push alerts, and sidebar/reply previews.
+    """
+    if not text:
+        return ""
+    import re, html
+    s = str(text)
+    # Replace line breaks and block separators with a space
+    s = re.sub(r'<(?:br|div|p)\s*/?>|</(?:div|p)>', ' ', s, flags=re.I)
+    # Strip all remaining tags
+    s = re.sub(r'<[^>]+>', '', s)
+    # Unescape HTML entities
+    s = html.unescape(s)
+    # Collapse multiple whitespace
+    s = re.sub(r'\s+', ' ', s).strip()
+    return s
+
+
+
 
