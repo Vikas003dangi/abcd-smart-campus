@@ -7312,6 +7312,14 @@
 
   // ── NOTEBOOK FUNCTIONS ────────────────────────────────────────────────
   let savedNoteCursorRange = null;
+  const NOTE_FORMAT_COMMANDS = ['bold', 'italic', 'underline', 'strikeThrough'];
+  const activeNoteFormats = {
+    bold: false,
+    italic: false,
+    underline: false,
+    strikeThrough: false
+  };
+  let noteTypingCarrier = null;
 
   function saveNoteEditorSelection() {
     const sel = window.getSelection();
@@ -7321,62 +7329,152 @@
     }
   }
 
-  const pendingNoteFormats = {
-    bold: false,
-    italic: false,
-    underline: false,
-    strikeThrough: false
-  };
+  function updateNoteToolbarButtonUI() {
+    const btnBold = document.getElementById('btnNoteBold');
+    const btnItalic = document.getElementById('btnNoteItalic');
+    const btnUnderline = document.getElementById('btnNoteUnderline');
+    const btnStrike = document.getElementById('btnNoteStrike');
+    const btnUL = document.getElementById('btnNoteUL');
+    const btnOL = document.getElementById('btnNoteOL');
 
-  function updateNoteToolbarActiveStates() {
+    if (btnBold) btnBold.classList.toggle('active', !!activeNoteFormats.bold);
+    if (btnItalic) btnItalic.classList.toggle('active', !!activeNoteFormats.italic);
+    if (btnUnderline) btnUnderline.classList.toggle('active', !!activeNoteFormats.underline);
+    if (btnStrike) btnStrike.classList.toggle('active', !!activeNoteFormats.strikeThrough);
+
     try {
-      const editor = document.getElementById('noteEditorContent');
-      if (!editor) return;
+      if (btnUL) btnUL.classList.toggle('active', document.queryCommandState('insertUnorderedList'));
+      if (btnOL) btnOL.classList.toggle('active', document.queryCommandState('insertOrderedList'));
+    } catch (e) {}
+  }
 
-      const sel = window.getSelection();
-      const inEditor = sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode);
-      const isCollapsed = !inEditor || sel.isCollapsed;
+  function syncNoteFormatsFromCursor() {
+    const editor = document.getElementById('noteEditorContent');
+    if (!editor) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !editor.contains(sel.anchorNode)) return;
 
-      if (inEditor && !isCollapsed) {
-        pendingNoteFormats.bold = document.queryCommandState('bold');
-        pendingNoteFormats.italic = document.queryCommandState('italic');
-        pendingNoteFormats.underline = document.queryCommandState('underline');
-        pendingNoteFormats.strikeThrough = document.queryCommandState('strikeThrough');
-      } else if (inEditor && isCollapsed) {
-        const qBold = document.queryCommandState('bold');
-        const qItalic = document.queryCommandState('italic');
-        const qUnderline = document.queryCommandState('underline');
-        const qStrike = document.queryCommandState('strikeThrough');
-        if (qBold) pendingNoteFormats.bold = true;
-        if (qItalic) pendingNoteFormats.italic = true;
-        if (qUnderline) pendingNoteFormats.underline = true;
-        if (qStrike) pendingNoteFormats.strikeThrough = true;
+    // If text is highlighted / selected:
+    if (!sel.isCollapsed) {
+      NOTE_FORMAT_COMMANDS.forEach(cmd => {
+        try {
+          activeNoteFormats[cmd] = document.queryCommandState(cmd);
+        } catch (e) {}
+      });
+      noteTypingCarrier = null;
+      updateNoteToolbarButtonUI();
+      saveNoteEditorSelection();
+      return;
+    }
+
+    // If user is currently sitting in an un-typed carrier span waiting to type, respect user's toggle choices
+    if (noteTypingCarrier && editor.contains(noteTypingCarrier) && noteTypingCarrier.textContent === '\u200B' && noteTypingCarrier.contains(sel.anchorNode)) {
+      updateNoteToolbarButtonUI();
+      saveNoteEditorSelection();
+      return;
+    }
+
+    // If typing carrier has text, it is no longer pending; reset reference
+    if (noteTypingCarrier && noteTypingCarrier.textContent !== '\u200B') {
+      noteTypingCarrier = null;
+    }
+
+    // Read computed formatting from DOM at cursor:
+    let b = false;
+    let i = false;
+    let u = false;
+    let s = false;
+
+    try {
+      b = document.queryCommandState('bold');
+      i = document.queryCommandState('italic');
+      u = document.queryCommandState('underline');
+      s = document.queryCommandState('strikeThrough');
+    } catch (e) {}
+
+    let el = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
+    while (el && el !== editor) {
+      try {
+        const cs = window.getComputedStyle(el);
+        if (cs.fontWeight === 'bold' || parseInt(cs.fontWeight, 10) >= 700 || el.tagName === 'B' || el.tagName === 'STRONG') b = true;
+        if (cs.fontStyle === 'italic' || el.tagName === 'I' || el.tagName === 'EM') i = true;
+        const td = cs.textDecorationLine || cs.textDecoration || '';
+        if (td.includes('underline') || el.tagName === 'U') u = true;
+        if (td.includes('line-through') || ['STRIKE', 'S', 'DEL'].includes(el.tagName)) s = true;
+      } catch (e) {}
+      el = el.parentElement;
+    }
+
+    activeNoteFormats.bold = !!b;
+    activeNoteFormats.italic = !!i;
+    activeNoteFormats.underline = !!u;
+    activeNoteFormats.strikeThrough = !!s;
+
+    updateNoteToolbarButtonUI();
+    saveNoteEditorSelection();
+  }
+
+  function applyActiveFormatsToTypingPoint() {
+    const editor = document.getElementById('noteEditorContent');
+    if (!editor) return;
+
+    const sel = window.getSelection();
+    let range = sel && sel.rangeCount > 0 ? sel.getRangeAt(0) : null;
+    if (!range || !editor.contains(range.startContainer)) {
+      range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+
+    // If we already have an un-typed typing carrier span at cursor, reuse it
+    if (!noteTypingCarrier || !editor.contains(noteTypingCarrier) || noteTypingCarrier.textContent !== '\u200B') {
+      noteTypingCarrier = document.createElement('span');
+      noteTypingCarrier.className = 'note-typing-carrier';
+      noteTypingCarrier.textContent = '\u200B';
+
+      let node = range.startContainer;
+      while (
+        node &&
+        node.parentElement &&
+        node.parentElement !== editor &&
+        ['B', 'I', 'U', 'STRIKE', 'S', 'DEL', 'STRONG', 'EM', 'SPAN'].includes(node.parentElement.tagName)
+      ) {
+        node = node.parentElement;
       }
 
-      const isBold = inEditor && !isCollapsed ? document.queryCommandState('bold') : pendingNoteFormats.bold;
-      const isItalic = inEditor && !isCollapsed ? document.queryCommandState('italic') : pendingNoteFormats.italic;
-      const isUnderline = inEditor && !isCollapsed ? document.queryCommandState('underline') : pendingNoteFormats.underline;
-      const isStrike = inEditor && !isCollapsed ? document.queryCommandState('strikeThrough') : pendingNoteFormats.strikeThrough;
+      if (node && node !== editor && node.parentNode) {
+        node.parentNode.insertBefore(noteTypingCarrier, node.nextSibling);
+      } else {
+        range.insertNode(noteTypingCarrier);
+      }
 
-      const isUL = document.queryCommandState('insertUnorderedList');
-      const isOL = document.queryCommandState('insertOrderedList');
+      const newRange = document.createRange();
+      newRange.setStart(noteTypingCarrier.firstChild, 1);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
 
-      const btnBold = document.getElementById('btnNoteBold');
-      const btnItalic = document.getElementById('btnNoteItalic');
-      const btnUnderline = document.getElementById('btnNoteUnderline');
-      const btnStrike = document.getElementById('btnNoteStrike');
-      const btnUL = document.getElementById('btnNoteUL');
-      const btnOL = document.getElementById('btnNoteOL');
+    // Apply styles to noteTypingCarrier
+    noteTypingCarrier.style.fontWeight = activeNoteFormats.bold ? 'bold' : 'normal';
+    noteTypingCarrier.style.fontStyle = activeNoteFormats.italic ? 'italic' : 'normal';
 
-      if (btnBold) btnBold.classList.toggle('active', !!isBold);
-      if (btnItalic) btnItalic.classList.toggle('active', !!isItalic);
-      if (btnUnderline) btnUnderline.classList.toggle('active', !!isUnderline);
-      if (btnStrike) btnStrike.classList.toggle('active', !!isStrike);
-      if (btnUL) btnUL.classList.toggle('active', !!isUL);
-      if (btnOL) btnOL.classList.toggle('active', !!isOL);
+    const decs = [];
+    if (activeNoteFormats.underline) decs.push('underline');
+    if (activeNoteFormats.strikeThrough) decs.push('line-through');
+    noteTypingCarrier.style.textDecoration = decs.length > 0 ? decs.join(' ') : 'none';
 
-      saveNoteEditorSelection();
-    } catch (e) {}
+    if (!activeNoteFormats.bold && !activeNoteFormats.italic && decs.length === 0) {
+      noteTypingCarrier.removeAttribute('style');
+    }
+
+    if (noteTypingCarrier.firstChild) {
+      const r = document.createRange();
+      r.setStart(noteTypingCarrier.firstChild, noteTypingCarrier.firstChild.textContent.length);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
   }
 
   function openNoteModal(editTaskId = null) {
@@ -7385,10 +7483,9 @@
     noteIsPinned = false;
     noteCurrentBg = '#fef08a';
 
-    pendingNoteFormats.bold = false;
-    pendingNoteFormats.italic = false;
-    pendingNoteFormats.underline = false;
-    pendingNoteFormats.strikeThrough = false;
+    NOTE_FORMAT_COMMANDS.forEach(cmd => { activeNoteFormats[cmd] = false; });
+    noteTypingCarrier = null;
+    savedNoteCursorRange = null;
 
     // Reset editor
     document.getElementById('noteEditorTitle').value = '';
@@ -7434,6 +7531,7 @@
     applyNoteEditorBg(noteCurrentBg);
     buildNoteBgPalette();
     updateNoteImgBtn();
+    updateNoteToolbarButtonUI();
 
     closeNoteViewModal();
     closeNewModal();
@@ -7443,14 +7541,26 @@
     const editor = document.getElementById('noteEditorContent');
     if (editor && !editor._hasActiveStateListeners) {
       editor._hasActiveStateListeners = true;
-      ['keyup', 'mouseup', 'touchend', 'input', 'click'].forEach(evt => {
+      ['keyup', 'mouseup', 'touchend', 'click'].forEach(evt => {
         editor.addEventListener(evt, () => {
-          saveNoteEditorSelection();
-          updateNoteToolbarActiveStates();
+          syncNoteFormatsFromCursor();
         });
       });
+      editor.addEventListener('input', () => {
+        saveNoteEditorSelection();
+        if (noteTypingCarrier && noteTypingCarrier.textContent !== '\u200B') {
+          noteTypingCarrier = null;
+        }
+      });
+      editor.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+          const key = e.key.toLowerCase();
+          if (key === 'b') { e.preventDefault(); noteCmd('bold'); }
+          else if (key === 'i') { e.preventDefault(); noteCmd('italic'); }
+          else if (key === 'u') { e.preventDefault(); noteCmd('underline'); }
+        }
+      });
     }
-    updateNoteToolbarActiveStates();
     setTimeout(() => document.getElementById('noteEditorTitle').focus(), 120);
   }
 
@@ -7509,6 +7619,7 @@
     const editor = document.getElementById('noteEditorContent');
     if (!editor) return;
     editor.focus();
+
     if (savedNoteCursorRange) {
       try {
         const sel = window.getSelection();
@@ -7521,32 +7632,27 @@
     const inEditor = sel && sel.rangeCount > 0 && editor.contains(sel.anchorNode);
     const isCollapsed = !inEditor || sel.isCollapsed;
 
-    if (command in pendingNoteFormats) {
-      if (isCollapsed) {
-        // Toggle the clicked format
-        pendingNoteFormats[command] = !pendingNoteFormats[command];
-        document.execCommand('styleWithCSS', false, true);
+    if (NOTE_FORMAT_COMMANDS.includes(command)) {
+      if (!isCollapsed) {
         document.execCommand(command, false, value);
-        // Ensure other active pending formats remain active
-        Object.keys(pendingNoteFormats).forEach(fmt => {
-          if (fmt !== command && pendingNoteFormats[fmt]) {
-            if (!document.queryCommandState(fmt)) {
-              document.execCommand(fmt, false, null);
-            }
-          }
+        NOTE_FORMAT_COMMANDS.forEach(f => {
+          try {
+            activeNoteFormats[f] = document.queryCommandState(f);
+          } catch (e) {}
         });
+        noteTypingCarrier = null;
+        updateNoteToolbarButtonUI();
       } else {
-        document.execCommand('styleWithCSS', false, true);
-        document.execCommand(command, false, value);
-        pendingNoteFormats[command] = document.queryCommandState(command);
+        activeNoteFormats[command] = !activeNoteFormats[command];
+        applyActiveFormatsToTypingPoint();
+        updateNoteToolbarButtonUI();
       }
     } else {
-      document.execCommand('styleWithCSS', false, true);
       document.execCommand(command, false, value);
+      updateNoteToolbarButtonUI();
     }
 
     saveNoteEditorSelection();
-    updateNoteToolbarActiveStates();
   }
 
   function toggleNotePin() {
@@ -7893,7 +7999,7 @@
         a.style.fontWeight = '600';
       });
       saveNoteEditorSelection();
-      updateNoteToolbarActiveStates();
+      updateNoteToolbarButtonUI();
     });
   }
 
@@ -7907,32 +8013,34 @@
     const editor = document.getElementById('noteEditorContent');
     const existingImgs = editor ? editor.querySelectorAll('img').length : 0;
     if (existingImgs >= 3) {
-      showModalAlert('Image Limit', 'Maximum 3 images allowed per note.');
+      showModalAlert('Image Limit', 'Maximum 3 images per sticky note.');
       input.value = '';
       return;
     }
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      showModalAlert('File Too Large', 'Image must be under 8MB.');
+
+    if (!file.type.startsWith('image/')) {
+      showModalAlert('Invalid File', 'Please select an image file (PNG, JPG, etc.).');
       input.value = '';
       return;
     }
 
+    // Downscale client-side to max 1280px dimension to prevent lag and optimize payload
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        let w = img.naturalWidth || img.width;
-        let h = img.naturalHeight || img.height;
-        const maxDim = 1280;
-        if (w > maxDim || h > maxDim) {
+        const MAX_DIM = 1280;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX_DIM || h > MAX_DIM) {
           if (w > h) {
-            h = Math.round((h * maxDim) / w);
-            w = maxDim;
+            h = Math.round((h * MAX_DIM) / w);
+            w = MAX_DIM;
           } else {
-            w = Math.round((w * maxDim) / h);
-            h = maxDim;
+            w = Math.round((w * MAX_DIM) / h);
+            h = MAX_DIM;
           }
         }
         const canvas = document.createElement('canvas');
@@ -7940,9 +8048,9 @@
         canvas.height = h;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
-        const base64 = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+        const base64 = canvas.toDataURL('image/jpeg', 0.85);
 
-        // Insert inline
+        // Restore cursor position inside editor
         editor.focus();
         if (savedNoteCursorRange) {
           try {
@@ -7957,7 +8065,7 @@
 
         updateNoteImgBtn();
         saveNoteEditorSelection();
-        updateNoteToolbarActiveStates();
+        updateNoteToolbarButtonUI();
       };
       img.src = e.target.result;
     };
@@ -7979,7 +8087,8 @@
   function saveNote() {
     const title = document.getElementById('noteEditorTitle').value.trim();
     const editor = document.getElementById('noteEditorContent');
-    const rawContent = editor ? editor.innerHTML : '';
+    let rawContent = editor ? editor.innerHTML : '';
+    rawContent = rawContent.replace(/\u200B/g, '').replace(/<span[^>]*class="note-typing-carrier"[^>]*>\s*<\/span>/gi, '');
     const content = rawContent.replace(/<br\s*\/?>/gi, '').replace(/&nbsp;/g, '').trim();
 
     const imgEls = editor ? editor.querySelectorAll('img') : [];
