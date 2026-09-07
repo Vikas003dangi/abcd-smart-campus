@@ -717,10 +717,61 @@
             font-size: 0.95rem;
             font-weight: 700;
             text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+            padding: 6px 10px;
+            border-radius: 10px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .legend-item.clickable {
+            cursor: pointer;
+        }
+
+        .legend-item.clickable:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(4px);
+        }
+
+        .legend-item.clickable:active {
+            transform: scale(0.98);
+        }
+
+        .legend-item.active-filter {
+            background: rgba(102, 126, 234, 0.18) !important;
+            box-shadow: 0 0 0 1.5px #667eea;
+        }
+
+        .legend-left {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-count {
+            font-size: 0.8rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.07);
+            color: #334155;
+            transition: all 0.2s ease;
         }
 
         body.dark-theme .legend-item {
-            color: #cbd5e1;
+            color: #f1f5f9;
+            text-shadow: none;
+        }
+
+        body.dark-theme .legend-item.clickable:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        body.dark-theme .legend-count {
+            background: rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
         }
 
         .legend-box {
@@ -728,6 +779,7 @@
             height: 18px;
             border-radius: 4px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
         }
 
         .legend-box.available { background: #fff; border: 1px solid #ddd; }
@@ -736,6 +788,57 @@
         .legend-box.on_hold { background: #f39c12; }
         .legend-box.shift_occupied { background: #9b59b6; }
         .legend-box.temporary { background: #e91e63; }
+
+        /* Floor Export Action Buttons */
+        .btn-export-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            box-sizing: border-box;
+        }
+
+        .btn-export-pdf {
+            background: linear-gradient(135deg, #fff5f5 0%, #fee2e2 100%);
+            color: #b91c1c;
+            border-color: #fecaca;
+        }
+
+        .btn-export-excel {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #15803d;
+            border-color: #bbf7d0;
+        }
+
+        .btn-export-trigger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-export-trigger:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        body.dark-theme .btn-export-pdf {
+            background: rgba(239, 68, 68, 0.16);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+
+        body.dark-theme .btn-export-excel {
+            background: rgba(16, 185, 129, 0.16);
+            color: #6ee7b7;
+            border-color: rgba(16, 185, 129, 0.35);
+        }
 
         /* Layout Container Stretching */
         .layout-container {
@@ -2649,8 +2752,8 @@
         <aside class="hub-sidebar" id="hubSidebar" data-tour="seat-shift-filter">
             <div class="floor-card">
                 <div class="floor-selector-title">
-                    <i class='bx bx-layer' style='color: #667eea; font-size: 1.4rem;'></i>
-                    <span>Floor Navigation</span>
+                    <i class='bx bx-slider-alt' style='color: #667eea; font-size: 1.4rem;'></i>
+                    <span>Floor Command & Live Overview</span>
                 </div>
                 <div class="floor-navigation" data-tour="floor-dropdown" style="width: 100%; margin-top: 15px;">
                     <select id="floorSelector" class="form-control">
@@ -2660,14 +2763,77 @@
                     <!-- Custom dropdown will be injected here by JS -->
                 </div>
 
-                <div class="legend" style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px;">
-                    <div class="legend-item"><span class="legend-box available"></span> Available</div>
-                    <div class="legend-item"><span class="legend-box occupied"></span> Occupied</div>
-                    <div class="legend-item"><span class="legend-box pending"></span> Pending Admission</div>
-                    <div class="legend-item"><span class="legend-box shift_occupied"></span> Shift Occupied</div>
-                    <div class="legend-item"><span class="legend-box on_hold"></span> On Hold</div>
-                    <div class="legend-item"><span class="legend-box temporary"></span> Temporary Occupied</div>
-                    <div class="legend-item"><span class="legend-box locked" style="background:#64748b;border-color:#475569;"></span> Locked</div>
+                <!-- LIVE INTERACTIVE STATUS INDICATORS -->
+                <div class="legend" style="margin-top: 25px; display: flex; flex-direction: column; gap: 8px;">
+                    <div class="legend-item clickable" data-status="available" title="Click to locate and cycle across Available seats">
+                        <div class="legend-left">
+                            <span class="legend-box available"></span>
+                            <span class="legend-text">Available</span>
+                        </div>
+                        <span class="legend-count" id="count-available">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="occupied" title="Click to locate and cycle across Occupied seats">
+                        <div class="legend-left">
+                            <span class="legend-box occupied"></span>
+                            <span class="legend-text">Occupied</span>
+                        </div>
+                        <span class="legend-count" id="count-occupied">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="pending" title="Click to locate and cycle across Pending Admission requests">
+                        <div class="legend-left">
+                            <span class="legend-box pending"></span>
+                            <span class="legend-text">Pending Admission</span>
+                        </div>
+                        <span class="legend-count" id="count-pending">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="shift_occupied" title="Click to locate and cycle across Shift Occupied seats">
+                        <div class="legend-left">
+                            <span class="legend-box shift_occupied"></span>
+                            <span class="legend-text">Shift Occupied</span>
+                        </div>
+                        <span class="legend-count" id="count-shift_occupied">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="on_hold" title="Click to locate and cycle across On Hold seats">
+                        <div class="legend-left">
+                            <span class="legend-box on_hold"></span>
+                            <span class="legend-text">On Hold</span>
+                        </div>
+                        <span class="legend-count" id="count-on_hold">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="temporary" title="Click to locate and cycle across Temporary Occupied seats">
+                        <div class="legend-left">
+                            <span class="legend-box temporary"></span>
+                            <span class="legend-text">Temporary Occupied</span>
+                        </div>
+                        <span class="legend-count" id="count-temporary">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="locked" title="Click to locate and cycle across Locked seats">
+                        <div class="legend-left">
+                            <span class="legend-box locked" style="background:#64748b;border-color:#475569;"></span>
+                            <span class="legend-text">Locked</span>
+                        </div>
+                        <span class="legend-count" id="count-locked">(0)</span>
+                    </div>
+                </div>
+
+                <!-- EXPORT FLOOR REGISTER CONTROLS -->
+                <div class="floor-export-card" style="margin-top: 22px; padding-top: 16px; border-top: 1px dashed rgba(100, 116, 139, 0.25);">
+                    <div class="floor-export-label" style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                        <i class='bx bx-cloud-download' style='font-size: 1.15rem; color: #667eea;'></i>
+                        <span>Export Floor Register</span>
+                    </div>
+                    <div class="floor-export-actions" style="display: flex; flex-direction: column; gap: 8px;">
+                        <button type="button" class="btn-export-trigger btn-export-pdf" id="btnExportFloorPdf" title="Download official PDF Data Sheet for selected floor">
+                            <i class='bx bxs-file-pdf' style='color: #ef4444; font-size: 1.25rem;'></i>
+                            <span>Download PDF</span>
+                            <i class='bx bx-download' style='margin-left: auto; opacity: 0.6;'></i>
+                        </button>
+                        <button type="button" class="btn-export-trigger btn-export-excel" id="btnExportFloorExcel" title="Download Excel Spreadsheet (.xlsx) for selected floor">
+                            <i class='bx bxs-file-doc' style='color: #10b981; font-size: 1.25rem;'></i>
+                            <span>Download Excel</span>
+                            <i class='bx bx-download' style='margin-left: auto; opacity: 0.6;'></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -2694,6 +2860,7 @@
         const API_GET_SEATS_URL = "{% url 'users:api_get_teacher_seat_status' %}";
         const API_GET_STUDENTS_URL = "{% url 'users:api_get_student_list' %}";
         const API_SEAT_ACTION_URL = "{% url 'users:api_seat_action' %}";
+        const API_EXPORT_FLOOR_DATA_URL = "{% url 'users:export_floor_data' %}";
         // Base URL for student details
         const STUDENT_DETAILS_URL_BASE = "{% url 'users:student_details' 0 %}"; 
 

@@ -35,12 +35,12 @@
           </div>
 
           <div class="seat-modal-footer">
-            <div class="legend">
-                <div class="legend-item"><span class="legend-box available"><i class='bx bxs-chair'></i></span> Available</div>
-                <div class="legend-item"><span class="legend-box occupied"><i class='bx bxs-chair'></i></span> Occupied</div>
-                <div class="legend-item"><span class="legend-box pending"><i class='bx bxs-chair'></i></span> Pending</div>
-                <div class="legend-item"><span class="legend-box on-hold"><i class='bx bxs-chair'></i></span> On Hold</div>
-                <div class="legend-item"><span class="legend-box shift-occupied"><i class='bx bxs-chair'></i></span> Shift (Occupied)</div>
+            <div class="legend" id="admissionSeatLegend">
+                <div class="legend-item clickable" data-status="available" title="Click to cycle through Available seats"><span class="legend-box available"><i class='bx bxs-chair'></i></span> Available <span class="legend-count" id="modal-count-available">(0)</span></div>
+                <div class="legend-item clickable" data-status="occupied" title="Click to cycle through Occupied seats"><span class="legend-box occupied"><i class='bx bxs-chair'></i></span> Occupied <span class="legend-count" id="modal-count-occupied">(0)</span></div>
+                <div class="legend-item clickable" data-status="pending" title="Click to cycle through Pending seats"><span class="legend-box pending"><i class='bx bxs-chair'></i></span> Pending <span class="legend-count" id="modal-count-pending">(0)</span></div>
+                <div class="legend-item clickable" data-status="on_hold" title="Click to cycle through On Hold seats"><span class="legend-box on-hold"><i class='bx bxs-chair'></i></span> On Hold <span class="legend-count" id="modal-count-on_hold">(0)</span></div>
+                <div class="legend-item clickable" data-status="shift_occupied" title="Click to cycle through Shift Occupied seats"><span class="legend-box shift-occupied"><i class='bx bxs-chair'></i></span> Shift Occupied <span class="legend-count" id="modal-count-shift_occupied">(0)</span></div>
             </div>            
           </div>
 

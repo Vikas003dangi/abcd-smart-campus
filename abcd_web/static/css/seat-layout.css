@@ -130,6 +130,50 @@ body.dark-theme .seat-modal-close-btn {
     font-size: 0.9rem;
 }
 
+.legend-item.clickable {
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 999px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.legend-item.clickable:hover {
+    background: rgba(124, 58, 237, 0.08);
+    transform: translateY(-1px);
+}
+
+.legend-item.active-filter {
+    background: rgba(124, 58, 237, 0.18) !important;
+    box-shadow: 0 0 0 1.5px #7c3aed;
+}
+
+.legend-count {
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.07);
+    color: #334155;
+}
+
+.seat.search-match {
+    animation: pulse-highlight 1.5s infinite;
+    z-index: 10;
+}
+
+.seat.active-match {
+    outline: 3px solid #f97316 !important;
+    outline-offset: 2px !important;
+    z-index: 12 !important;
+}
+
+@keyframes pulse-highlight {
+    0% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0.7); transform: scale(1); }
+    50% { box-shadow: 0 0 0 10px rgba(118, 75, 162, 0); transform: scale(1.04); }
+    100% { box-shadow: 0 0 0 0px rgba(118, 75, 162, 0); transform: scale(1); }
+}
+
 .legend-box {
     width: 18px;
     height: 18px;

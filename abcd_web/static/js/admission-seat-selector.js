@@ -371,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const seatData = await response.json();
             updateLayout(floor, seatData.seats);
+            updateModalLegendCounts(floor);
             groundFloorWrapper.style.display = (floor === 'Ground Floor') ? 'block' : 'none';
             firstFloorWrapper.style.display = (floor === '1st Floor') ? 'block' : 'none';
             modalTitle.textContent = `Select Your Seat (${floor})`;
@@ -399,6 +400,13 @@ document.addEventListener('DOMContentLoaded', () => {
             currentlySelectedSeat.classList.remove('selected');
         }
         currentlySelectedSeat = null;
+
+        // Reset legend filter and match highlights
+        modalActiveFilterStatus = null;
+        modalMatchedSeats = [];
+        modalMatchedIndex = 0;
+        document.querySelectorAll('#admissionSeatLegend .legend-item').forEach(i => i.classList.remove('active-filter'));
+        document.querySelectorAll('.seat').forEach(s => s.classList.remove('search-match', 'active-match'));
 
         if (scrollUp) scrollUp.classList.remove('visible');
         if (scrollDown) scrollDown.classList.remove('visible');
@@ -2215,7 +2223,120 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // =========================================================================
+    // MODAL LEGEND COUNTS & CLICK-TO-HIGHLIGHT SEQUENTIAL JUMP
+    // =========================================================================
+    var modalMatchedSeats = [];
+    var modalMatchedIndex = 0;
+    var modalActiveFilterStatus = null;
+
+    function updateModalLegendCounts(floor) {
+        const wrapper = (floor === 'Ground Floor') ? groundFloorWrapper : firstFloorWrapper;
+        if (!wrapper) return;
+
+        const seats = wrapper.querySelectorAll('.seat:not(.special):not(.empty-space)');
+        const counts = {
+            available: 0,
+            occupied: 0,
+            pending: 0,
+            on_hold: 0,
+            shift_occupied: 0
+        };
+
+        seats.forEach(seatEl => {
+            const hasClass = (cls) => seatEl.classList.contains(cls);
+            const status = seatEl.dataset.status || '';
+
+            if (hasClass('shift-seat') && (hasClass('occupied-morning') || hasClass('occupied-evening') || hasClass('occupied-full') || status === 'shift_occupied')) {
+                counts.shift_occupied++;
+            } else if (hasClass('pending') || status === 'pending') {
+                counts.pending++;
+            } else if (hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || status === 'on_hold') {
+                counts.on_hold++;
+            } else if (hasClass('occupied') || hasClass('occupied-full') || status === 'occupied') {
+                counts.occupied++;
+            } else {
+                counts.available++;
+            }
+        });
+
+        for (const [st, num] of Object.entries(counts)) {
+            const el = document.getElementById(`modal-count-${st}`);
+            if (el) el.textContent = `(${num})`;
+        }
+    }
+
+    function initModalLegendClickHandlers() {
+        const legendItems = document.querySelectorAll('#admissionSeatLegend .legend-item.clickable');
+        if (!legendItems.length) return;
+
+        legendItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const status = item.getAttribute('data-status');
+                if (!status) return;
+
+                const activeWrapper = (groundFloorWrapper && groundFloorWrapper.style.display !== 'none') ? groundFloorWrapper : firstFloorWrapper;
+                if (!activeWrapper) return;
+
+                // If clicking the same status that is already active, jump to NEXT match
+                if (modalActiveFilterStatus === status && modalMatchedSeats.length > 0) {
+                    modalMatchedSeats.forEach(s => s.classList.remove('active-match'));
+                    modalMatchedIndex = (modalMatchedIndex + 1) % modalMatchedSeats.length;
+                    const nextSeat = modalMatchedSeats[modalMatchedIndex];
+                    if (nextSeat) {
+                        nextSeat.classList.add('active-match');
+                        nextSeat.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+
+                // If clicking another or activating for first time
+                legendItems.forEach(i => i.classList.remove('active-filter'));
+                activeWrapper.querySelectorAll('.seat').forEach(s => s.classList.remove('search-match', 'active-match'));
+
+                item.classList.add('active-filter');
+                modalActiveFilterStatus = status;
+                modalMatchedSeats = [];
+                modalMatchedIndex = 0;
+
+                const seats = activeWrapper.querySelectorAll('.seat:not(.special):not(.empty-space)');
+                seats.forEach(seatEl => {
+                    const hasClass = (cls) => seatEl.classList.contains(cls);
+                    const seatStatus = seatEl.dataset.status || '';
+
+                    let match = false;
+                    if (status === 'shift_occupied') {
+                        match = hasClass('shift-seat') && (hasClass('occupied-morning') || hasClass('occupied-evening') || hasClass('occupied-full') || seatStatus === 'shift_occupied');
+                    } else if (status === 'pending') {
+                        match = hasClass('pending') || seatStatus === 'pending';
+                    } else if (status === 'on_hold') {
+                        match = hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || seatStatus === 'on_hold';
+                    } else if (status === 'occupied') {
+                        match = (hasClass('occupied') || hasClass('occupied-full') || seatStatus === 'occupied') && !hasClass('shift-seat');
+                    } else if (status === 'available') {
+                        match = hasClass('available') && !hasClass('occupied') && !hasClass('on_hold') && !hasClass('pending');
+                    }
+
+                    if (match) {
+                        seatEl.classList.add('search-match');
+                        modalMatchedSeats.push(seatEl);
+                    }
+                });
+
+                if (modalMatchedSeats.length > 0) {
+                    const firstSeat = modalMatchedSeats[0];
+                    firstSeat.classList.add('active-match');
+                    setTimeout(() => {
+                        firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 50);
+                }
+            });
+        });
+    }
+
     // Call restore immediately
     restoreSelectionState();
+    initModalLegendClickHandlers();
 
 });

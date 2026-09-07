@@ -549,21 +549,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!match && clean.length >= 2) {
               const seatClasses = Array.from(seat.classList).map(c => c.toLowerCase());
               
-              if ('available'.includes(clean) && seatClasses.includes('available')) match = true;
-              
-              if (('occupied'.includes(clean) || 'shift_occupied'.includes(clean) || 'shift occupied'.includes(clean)) && 
-                  (seatClasses.includes('occupied') || seatClasses.includes('shift_occupied'))) {
+              if ('available'.includes(clean) && (seatClasses.includes('available') || seat.getAttribute('data-status') === 'available')) {
                 match = true;
               }
               
-              if ('pending'.includes(clean) && seatClasses.includes('pending')) match = true;
+              if ((clean === 'shift occupied' || clean === 'shift_occupied' || clean === 'shift') && 
+                  (seatClasses.includes('shift_occupied') || seatClasses.includes('shift-occupied') || seatClasses.some(c => c.includes('occupied-')))) {
+                match = true;
+              } else if (clean === 'occupied') {
+                if (seatClasses.includes('occupied') && !seatClasses.includes('shift_occupied')) match = true;
+              } else if ('occupied'.includes(clean) && (seatClasses.includes('occupied') || seatClasses.includes('shift_occupied'))) {
+                match = true;
+              }
+              
+              if ('pending'.includes(clean) && (seatClasses.includes('pending') || seatClasses.some(c => c.includes('pending')))) {
+                match = true;
+              }
               
               if (('on hold'.includes(clean) || 'on_hold'.includes(clean) || 'hold'.includes(clean)) && 
-                  seatClasses.includes('on_hold')) {
+                  (seatClasses.includes('on_hold') || seatClasses.some(c => c.includes('hold')))) {
                 match = true;
               }
               
-              if ('temporary'.includes(clean) && seatClasses.includes('temporary')) match = true;
+              if (('temporary'.includes(clean) || clean === 'temp') && 
+                  (seatClasses.includes('temporary') || seatClasses.some(c => c.includes('temp')))) {
+                match = true;
+              }
 
               // Locked seat & shift search support
               const isLockedSeat = seatClasses.includes('locked') || 
@@ -1466,6 +1477,145 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+
+    // Update dynamic live indicator count badges for the current floor
+    updateLegendIndicatorCounts(floor);
+  }
+
+  // --- Dynamic Live Status Indicator Counters ---
+  function updateLegendIndicatorCounts(floor) {
+    const currentWrapperId = (floor === 'Ground Floor') ? 'ground-floor-wrapper' : 'first-floor-wrapper';
+    const activeFloorWrapper = document.getElementById(currentWrapperId);
+    if (!activeFloorWrapper) return;
+
+    const seats = activeFloorWrapper.querySelectorAll('.seat');
+    const counts = {
+      available: 0,
+      occupied: 0,
+      pending: 0,
+      shift_occupied: 0,
+      on_hold: 0,
+      temporary: 0,
+      locked: 0
+    };
+
+    seats.forEach(seat => {
+      const seatClasses = Array.from(seat.classList).map(c => c.toLowerCase());
+      const isLocked = seatClasses.includes('locked') || 
+                       seatClasses.includes('locked-morning') || 
+                       seatClasses.includes('locked-evening') || 
+                       seat.getAttribute('data-locked') === 'true' ||
+                       seat.querySelector('.locked, .status-locked, .seat-half.locked') !== null;
+
+      if (isLocked) {
+        counts.locked++;
+      }
+
+      if (seatClasses.includes('available') || seat.getAttribute('data-status') === 'available') {
+        counts.available++;
+      } else if (seatClasses.some(c => c.includes('temp'))) {
+        counts.temporary++;
+      } else if (seatClasses.includes('on_hold') || seatClasses.some(c => c.includes('hold'))) {
+        counts.on_hold++;
+      } else if (seatClasses.includes('pending') || seatClasses.some(c => c.includes('pending'))) {
+        counts.pending++;
+      } else if (seatClasses.includes('shift_occupied') || seatClasses.some(c => c.includes('occupied-'))) {
+        counts.shift_occupied++;
+      } else if (seatClasses.includes('occupied')) {
+        counts.occupied++;
+      }
+    });
+
+    Object.keys(counts).forEach(statusKey => {
+      const countEl = document.getElementById(`count-${statusKey}`);
+      if (countEl) {
+        countEl.textContent = `(${counts[statusKey]})`;
+      }
+    });
+  }
+
+  // --- Clickable Legend Handler: Auto-fill Search and Jump Sequence ---
+  function initLegendClickHandlers() {
+    const legendItems = document.querySelectorAll('.legend-item.clickable');
+    legendItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const statusKey = item.getAttribute('data-status');
+        if (!statusKey || !seatSearchInput) return;
+
+        const keywordMap = {
+          'available': 'available',
+          'occupied': 'occupied',
+          'pending': 'pending',
+          'shift_occupied': 'shift occupied',
+          'on_hold': 'on hold',
+          'temporary': 'temporary',
+          'locked': 'locked'
+        };
+
+        const targetKeyword = keywordMap[statusKey] || statusKey;
+
+        // If already active filter, clicking toggles it off
+        if (item.classList.contains('active-filter') && seatSearchInput.value.toLowerCase().trim() === targetKeyword) {
+          legendItems.forEach(el => el.classList.remove('active-filter'));
+          seatSearchInput.value = '';
+          seatSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+
+        legendItems.forEach(el => el.classList.remove('active-filter'));
+        item.classList.add('active-filter');
+
+        seatSearchInput.value = targetKeyword;
+        seatSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        setTimeout(() => {
+          if (matchedSeats && matchedSeats.length > 0) {
+            matchedSeats[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 320);
+      });
+    });
+
+    if (seatSearchInput) {
+      seatSearchInput.addEventListener('input', (e) => {
+        if (!e.target.value.trim()) {
+          document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
+        }
+      });
+    }
+  }
+
+  // --- Export Floor Data Register Handler (PDF / Excel) ---
+  function initFloorExportButtons() {
+    const btnPdf = document.getElementById('btnExportFloorPdf');
+    const btnExcel = document.getElementById('btnExportFloorExcel');
+
+    function triggerFloorExport(format) {
+      const activeFloor = (floorSelector && floorSelector.value) ? floorSelector.value : (currentFloor || 'Ground Floor');
+      const exportBase = (typeof API_EXPORT_FLOOR_DATA_URL !== 'undefined') ? API_EXPORT_FLOOR_DATA_URL : '/teacher/export-floor-data/';
+      const url = `${exportBase}?floor=${encodeURIComponent(activeFloor)}&format=${encodeURIComponent(format)}`;
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', '');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    if (btnPdf) {
+      btnPdf.addEventListener('click', (e) => {
+        e.preventDefault();
+        triggerFloorExport('pdf');
+      });
+    }
+
+    if (btnExcel) {
+      btnExcel.addEventListener('click', (e) => {
+        e.preventDefault();
+        triggerFloorExport('excel');
+      });
+    }
   }
 
   const studentAssignTypeEl = studentAssignType; // keep original name mapping in case used elsewhere
@@ -4453,6 +4603,8 @@ Do you want to switch them to this seat permanently?`,
       floorSelector.value = 'Ground Floor';
     }
     initCustomSelects();
+    initLegendClickHandlers();
+    initFloorExportButtons();
     loadSeatLayout(floorSelector.value);
   }
 });

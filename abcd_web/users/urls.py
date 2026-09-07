@@ -96,6 +96,7 @@ urlpatterns = [
     # Seat Management
     path('teacher/seat-status/', views.teacher_seat_status_view, name='teacher_seat_status'),
     path('teacher/seat-manager/', views.teacher_seat_status_view, name='teacher_seat_manager'),
+    path('teacher/export-floor-data/', views.export_floor_data_view, name='export_floor_data'),
 
     # ---------------------
     # Fee Management

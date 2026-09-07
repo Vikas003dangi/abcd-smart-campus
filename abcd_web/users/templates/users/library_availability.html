@@ -167,6 +167,38 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 999px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .legend-item.clickable {
+            cursor: pointer;
+        }
+
+        .legend-item.clickable:hover {
+            background: rgba(124, 58, 237, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .legend-item.active-filter {
+            background: rgba(124, 58, 237, 0.18) !important;
+            box-shadow: 0 0 0 1.5px #7c3aed;
+        }
+
+        .legend-count {
+            font-size: 0.8rem;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.07);
+            color: #334155;
+        }
+
+        body.dark-theme .legend-count {
+            background: rgba(255, 255, 255, 0.12);
+            color: #f1f5f9;
         }
 
         .legend-box {
@@ -1296,12 +1328,32 @@
 
         <div class="content-body">
 
-            <div class="legend">
-                <div class="legend-item"><span class="legend-box available"></span> Available</div>
-                <div class="legend-item"><span class="legend-box occupied"></span> Occupied</div>
-                <div class="legend-item"><span class="legend-box shift_occupied"></span> Shift Occupied</div>
-                <div class="legend-item"><span class="legend-box on-hold"></span> On Hold</div>
-                <div class="legend-item"><span class="legend-box temporary"></span> Temporary Allotted</div>
+            <div class="legend" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px;">
+                <div class="legend-item clickable" data-status="available" title="Click to locate Available seats">
+                    <span class="legend-box available"></span>
+                    <span class="legend-text">Available</span>
+                    <span class="legend-count" id="lib-count-available">(0)</span>
+                </div>
+                <div class="legend-item clickable" data-status="occupied" title="Click to locate Occupied seats">
+                    <span class="legend-box occupied"></span>
+                    <span class="legend-text">Occupied</span>
+                    <span class="legend-count" id="lib-count-occupied">(0)</span>
+                </div>
+                <div class="legend-item clickable" data-status="shift_occupied" title="Click to locate Shift Occupied seats">
+                    <span class="legend-box shift_occupied"></span>
+                    <span class="legend-text">Shift Occupied</span>
+                    <span class="legend-count" id="lib-count-shift_occupied">(0)</span>
+                </div>
+                <div class="legend-item clickable" data-status="on_hold" title="Click to locate On Hold seats">
+                    <span class="legend-box on-hold"></span>
+                    <span class="legend-text">On Hold</span>
+                    <span class="legend-count" id="lib-count-on_hold">(0)</span>
+                </div>
+                <div class="legend-item clickable" data-status="temporary" title="Click to locate Temporary Allotted seats">
+                    <span class="legend-box temporary"></span>
+                    <span class="legend-text">Temporary Allotted</span>
+                    <span class="legend-count" id="lib-count-temporary">(0)</span>
+                </div>
             </div>
 
             <div class="layout-container">
@@ -1388,9 +1440,94 @@
 
                     const seatData = await response.json();
                     updateLayout(wrapper, seatData.seats);
+                    updateLibLegendCounts();
                 } catch (error) {
                     console.error(error);
                     wrapper.innerHTML = `<p>Error loading layout.</p>`;
+                }
+            }
+
+            function updateLibLegendCounts() {
+                const allSeats = document.querySelectorAll('.seat:not(.special):not(.empty-space)');
+                const counts = {
+                    available: 0,
+                    occupied: 0,
+                    shift_occupied: 0,
+                    on_hold: 0,
+                    temporary: 0
+                };
+
+                allSeats.forEach(seat => {
+                    const hasClass = (cls) => seat.classList.contains(cls);
+                    const labelsText = Array.from(seat.querySelectorAll('.seat-label, .seat-morning-label, .seat-evening-label'))
+                        .map(el => el.textContent.toLowerCase());
+                    const hasLabel = (text) => labelsText.some(t => t.includes(text));
+
+                    if (hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'))) {
+                        counts.shift_occupied++;
+                    } else if (hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold')) {
+                        counts.on_hold++;
+                    } else if (hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp')) {
+                        counts.temporary++;
+                    } else if (hasClass('occupied') || hasClass('occupied-full') || hasLabel('occupied') || hasLabel('you')) {
+                        counts.occupied++;
+                    } else {
+                        counts.available++;
+                    }
+                });
+
+                for (const [status, count] of Object.entries(counts)) {
+                    const el = document.getElementById(`lib-count-${status}`);
+                    if (el) el.textContent = `(${count})`;
+                }
+            }
+
+            function initLibLegendClickHandlers() {
+                const legendItems = document.querySelectorAll('.legend-item.clickable');
+                const searchInput = document.getElementById('seatSearchInput');
+                const searchWrapper = document.getElementById('hubSearchWrapper');
+
+                legendItems.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const status = item.getAttribute('data-status');
+                        if (!status || !searchInput) return;
+
+                        const isAlreadyActive = item.classList.contains('active-filter');
+                        legendItems.forEach(i => i.classList.remove('active-filter'));
+
+                        if (isAlreadyActive) {
+                            searchInput.value = '';
+                            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        } else {
+                            item.classList.add('active-filter');
+                            if (searchWrapper) {
+                                searchWrapper.classList.add('expanded');
+                                const btnIcon = searchWrapper.querySelector('.hub-search-btn i');
+                                if (btnIcon) btnIcon.className = 'bx bx-x';
+                            }
+
+                            const keywordMap = {
+                                'available': 'available',
+                                'occupied': 'occupied',
+                                'shift_occupied': 'shift occupied',
+                                'on_hold': 'on hold',
+                                'temporary': 'temporary'
+                            };
+
+                            searchInput.value = keywordMap[status] || status;
+                            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    });
+                });
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => {
+                        const val = searchInput.value.trim().toLowerCase();
+                        if (!val) {
+                            legendItems.forEach(i => i.classList.remove('active-filter'));
+                        }
+                    });
                 }
             }
 
@@ -2151,6 +2288,7 @@
             addIndicatorInteractivity(scrollDown, scrollToBottom);
 
             initSearch();
+            initLibLegendClickHandlers();
 
             // Initial run
             setTimeout(handlePageScroll, 80);

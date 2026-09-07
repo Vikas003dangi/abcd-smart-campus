@@ -5456,6 +5456,45 @@ def teacher_seat_status_view(request):
     return render(request, 'users/teacher_seat_status.html')
 
 # -------------------------------------------------------------------
+# VIEW: Teacher - Export Floor Data Register (PDF / Excel)
+# -------------------------------------------------------------------
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def export_floor_data_view(request):
+    """
+    Streams in-memory PDF or Excel data sheet for the requested floor.
+    Zero server disk storage.
+    """
+    floor = request.GET.get('floor', 'Ground Floor')
+    if floor not in ['Ground Floor', '1st Floor']:
+        floor = 'Ground Floor'
+    export_format = request.GET.get('format', 'pdf').lower()
+
+    from django.http import HttpResponse
+    from users.utils.floor_export import generate_floor_data_pdf, generate_floor_data_excel
+    clean_floor_slug = floor.replace(' ', '_')
+    date_slug = timezone.localdate().strftime('%d_%m_%Y')
+
+    if export_format in ('excel', 'xlsx', 'xls'):
+        excel_buffer = generate_floor_data_excel(floor)
+        filename = f"ABCD_Library_{clean_floor_slug}_Data_Sheet_{date_slug}.xlsx"
+        response = HttpResponse(
+            excel_buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    else:
+        pdf_buffer = generate_floor_data_pdf(floor)
+        filename = f"ABCD_Library_{clean_floor_slug}_Data_Sheet_{date_slug}.pdf"
+        response = HttpResponse(
+            pdf_buffer.getvalue(),
+            content_type='application/pdf'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+# -------------------------------------------------------------------
 # API VIEW: Teacher API for seat status (includes student names)
 @login_required
 @user_passes_test(lambda u: u.is_staff)

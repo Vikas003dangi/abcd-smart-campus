@@ -615,6 +615,72 @@
         /* Seat Status Highlighting - Let seat-layout.css handle all colors */
         /* Only override what's unique to the student view */
 
+        /* Student Seat Status Legend Styles */
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 999px;
+            transition: all 0.2s ease;
+            user-select: none;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        .legend-item.clickable {
+            cursor: pointer;
+        }
+
+        .legend-item.clickable:hover {
+            background: rgba(124, 58, 237, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .legend-item.active-filter {
+            background: rgba(124, 58, 237, 0.18) !important;
+            box-shadow: 0 0 0 1.5px #7c3aed;
+        }
+
+        .legend-count {
+            font-size: 0.78rem;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.07);
+            color: #334155;
+        }
+
+        body.dark-theme .legend-item {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme #studentSeatLegend {
+            background: rgba(30, 20, 50, 0.6) !important;
+            border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        body.dark-theme .legend-count {
+            background: rgba(255, 255, 255, 0.12);
+            color: #f1f5f9;
+        }
+
+        .legend-box {
+            width: 18px;
+            height: 18px;
+            border: 1.5px solid #000;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .legend-box.available { background: #2ecc71; border-color: #2ecc71; }
+        .legend-box.occupied { background: #7c3aed; border-color: #7c3aed; }
+        .legend-box.on-hold { background: #f39c12; border-color: #f39c12; }
+        .legend-box.shift_occupied { background: #a855f7; border-color: #a855f7; }
+        .legend-box.temporary { background: #ec4899; border-color: #ec4899; }
+        .legend-box.locked { background: #64748b; border-color: #475569; }
+
         /* --- Rotating conic glow border animation for my-seat --- */
         @property --seat-glow-angle {
             syntax: '<angle>';
@@ -2016,6 +2082,39 @@
                     </div>
                 </div>
 
+                <div class="legend" id="studentSeatLegend" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 25px; padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
+                    <div class="legend-item clickable" data-status="available" title="Click to locate Available seats">
+                        <span class="legend-box available"></span>
+                        <span class="legend-text">Available</span>
+                        <span class="legend-count" id="stud-count-available">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="occupied" title="Click to locate Occupied seats">
+                        <span class="legend-box occupied"></span>
+                        <span class="legend-text">Occupied</span>
+                        <span class="legend-count" id="stud-count-occupied">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="shift_occupied" title="Click to locate Shift Occupied seats">
+                        <span class="legend-box shift_occupied"></span>
+                        <span class="legend-text">Shift Occupied</span>
+                        <span class="legend-count" id="stud-count-shift_occupied">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="on_hold" title="Click to locate On Hold seats">
+                        <span class="legend-box on-hold"></span>
+                        <span class="legend-text">On Hold</span>
+                        <span class="legend-count" id="stud-count-on_hold">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="temporary" title="Click to locate Temporary Allotted seats">
+                        <span class="legend-box temporary"></span>
+                        <span class="legend-text">Temporary</span>
+                        <span class="legend-count" id="stud-count-temporary">(0)</span>
+                    </div>
+                    <div class="legend-item clickable" data-status="locked" title="Click to locate Locked seats">
+                        <span class="legend-box locked"></span>
+                        <span class="legend-text">Locked</span>
+                        <span class="legend-count" id="stud-count-locked">(0)</span>
+                    </div>
+                </div>
+
                 <div id="layout-containers-wrapper" class="student-view" style="display: flex; flex-direction: column; gap: 40px;">
                     <div id="top-floor-section">
                         <h4 class="floor-heading" id="top-floor-heading"></h4>
@@ -3283,6 +3382,99 @@
                 loadFloorData('Ground Floor', groundWrapper), 
                 loadFloorData('1st Floor', firstWrapper)
             ]);
+            updateStudentLegendCounts();
+        }
+
+        function updateStudentLegendCounts() {
+            const currentFloor = floorSelector ? floorSelector.value : (CURRENT_FLOOR || 'Ground Floor');
+            const targetWrapper = currentFloor === 'Ground Floor' ? getGroundWrapper() : getFirstWrapper();
+            if (!targetWrapper) return;
+
+            const seats = targetWrapper.querySelectorAll('.seat:not(.special):not(.empty-space)');
+            const counts = {
+                available: 0,
+                occupied: 0,
+                shift_occupied: 0,
+                on_hold: 0,
+                temporary: 0,
+                locked: 0
+            };
+
+            seats.forEach(seat => {
+                const hasClass = (cls) => seat.classList.contains(cls);
+                const labelsText = Array.from(seat.querySelectorAll('.seat-label, .seat-morning-label, .seat-evening-label'))
+                    .map(el => el.textContent.toLowerCase());
+                const hasLabel = (text) => labelsText.some(t => t.includes(text));
+
+                if (hasClass('locked') || hasClass('locked-morning') || hasClass('locked-evening') || seat.dataset.locked === 'true' || hasLabel('locked') || hasLabel('🔒')) {
+                    counts.locked++;
+                } else if (hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'))) {
+                    counts.shift_occupied++;
+                } else if (hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold')) {
+                    counts.on_hold++;
+                } else if (hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp')) {
+                    counts.temporary++;
+                } else if (hasClass('occupied') || hasClass('occupied-full') || hasLabel('occupied') || hasLabel('you')) {
+                    counts.occupied++;
+                } else {
+                    counts.available++;
+                }
+            });
+
+            for (const [status, count] of Object.entries(counts)) {
+                const el = document.getElementById(`stud-count-${status}`);
+                if (el) el.textContent = `(${count})`;
+            }
+        }
+
+        function initStudentLegendClickHandlers() {
+            const legendItems = document.querySelectorAll('#studentSeatLegend .legend-item.clickable');
+            const searchInput = document.getElementById('seatSearchInput');
+            const searchWrapper = document.getElementById('hubSearchWrapper');
+
+            legendItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const status = item.getAttribute('data-status');
+                    if (!status || !searchInput) return;
+
+                    const isAlreadyActive = item.classList.contains('active-filter');
+                    legendItems.forEach(i => i.classList.remove('active-filter'));
+
+                    if (isAlreadyActive) {
+                        searchInput.value = '';
+                        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                        item.classList.add('active-filter');
+                        if (searchWrapper) {
+                            searchWrapper.classList.add('expanded');
+                            const btnIcon = searchWrapper.querySelector('.hub-search-btn i');
+                            if (btnIcon) btnIcon.className = 'bx bx-x';
+                        }
+
+                        const keywordMap = {
+                            'available': 'available',
+                            'occupied': 'occupied',
+                            'shift_occupied': 'shift occupied',
+                            'on_hold': 'on hold',
+                            'temporary': 'temporary',
+                            'locked': 'locked'
+                        };
+
+                        searchInput.value = keywordMap[status] || status;
+                        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+            });
+
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    const val = searchInput.value.trim().toLowerCase();
+                    if (!val) {
+                        legendItems.forEach(i => i.classList.remove('active-filter'));
+                    }
+                });
+            }
         }
 
         async function loadFloorData(floor, wrapper) {
@@ -4168,6 +4360,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initFloorOrder();
             initSearch();
+            initStudentLegendClickHandlers();
             setInterval(refreshGrids, 5000);
 
             floorSelector?.addEventListener('change', (e) => {
