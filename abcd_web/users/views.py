@@ -291,6 +291,16 @@ def contact_view(request):
     return render(request, 'users/contact.html')
 
 
+# Public Privacy Policy page (Google OAuth & Legal Compliance)
+def privacy_policy_view(request):
+    return render(request, 'users/privacy_policy.html')
+
+
+# Public Terms of Service page (Google OAuth & Legal Compliance)
+def terms_of_service_view(request):
+    return render(request, 'users/terms_of_service.html')
+
+
 # --- YOUTUBE VIDEOS FETCHER ---
 def get_latest_youtube_videos(limit=6):
     channel_url = "https://www.youtube.com/@englishekkhoz8279"
@@ -15938,6 +15948,8 @@ def sitemap_xml_view(request):
         {'loc': f"{site_url}/library-availability/", 'priority': '0.9', 'changefreq': 'daily'},
         {'loc': f"{site_url}/courses/", 'priority': '0.9', 'changefreq': 'weekly'},
         {'loc': f"{site_url}/hall-of-fame/", 'priority': '0.8', 'changefreq': 'weekly'},
+        {'loc': f"{site_url}/privacy/", 'priority': '0.5', 'changefreq': 'monthly'},
+        {'loc': f"{site_url}/terms/", 'priority': '0.5', 'changefreq': 'monthly'},
         {'loc': f"{site_url}/resolved-complaints/", 'priority': '0.6', 'changefreq': 'weekly'},
         {'loc': f"{site_url}/login/", 'priority': '0.5', 'changefreq': 'monthly'},
         {'loc': f"{site_url}/register/", 'priority': '0.5', 'changefreq': 'monthly'},

@@ -12,6 +12,10 @@ urlpatterns = [
     path('about/', views.about_us_view, name='about_us'),
     path('services/', views.services_view, name='services'),
     path('contact/', views.contact_view, name='contact'),
+    path('privacy/', views.privacy_policy_view, name='privacy_policy'),
+    path('privacy-policy/', views.privacy_policy_view),
+    path('terms/', views.terms_of_service_view, name='terms_of_service'),
+    path('terms-of-service/', views.terms_of_service_view),
     
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),

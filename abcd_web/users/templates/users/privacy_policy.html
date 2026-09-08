@@ -1,0 +1,190 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Privacy Policy | ABCD Smart Campus Ganj Basoda{% endblock %}
+{% block meta_description %}Privacy Policy for ABCD Coaching & Library, Ganj Basoda. Learn how we protect student data, manage Google Sign-In information, and safeguard your privacy.{% endblock %}
+{% block meta_keywords %}abcd privacy policy, abcd campus privacy, abcd coaching ganj basoda privacy, student data protection{% endblock %}
+{% block og_title %}Privacy Policy - ABCD Smart Campus Ganj Basoda{% endblock %}
+{% block og_desc %}Read our privacy policy regarding student data, Google authentication, and digital safety at ABCD Coaching & Library, Ganj Basoda.{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  .legal-wrapper {
+    max-width: 1000px;
+    margin: 30px auto 70px;
+    padding: 0 20px;
+  }
+  .legal-hero {
+    background: linear-gradient(135deg, #6f7eed, #8b4bb2);
+    border-radius: 18px;
+    padding: 28px 32px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    color: #ffffff;
+    margin-bottom: 24px;
+  }
+  body.dark-theme .legal-hero {
+    background: linear-gradient(135deg, #071656 0%, #32085c 40%, #140347 100%);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  }
+  .legal-hero h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .legal-hero p {
+    font-size: 0.95rem;
+    opacity: 0.92;
+    line-height: 1.6;
+    max-width: 780px;
+    margin-bottom: 0;
+  }
+  .legal-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    color: #333333;
+    line-height: 1.7;
+    font-size: 0.92rem;
+  }
+  body.dark-theme .legal-card {
+    background: linear-gradient(135deg, rgba(30, 24, 76, 0.95) 0%, rgba(48, 35, 105, 0.92) 50%, rgba(26, 20, 64, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55);
+    color: #e2dcff;
+  }
+  .legal-card h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #4a2f86;
+    margin-top: 0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  body.dark-theme .legal-card h2 {
+    color: #ffe7ff;
+  }
+  .legal-card h2 i {
+    color: #6f7eed;
+  }
+  body.dark-theme .legal-card h2 i {
+    color: #c084fc;
+  }
+  .legal-card ul {
+    margin: 10px 0 16px 20px;
+    padding: 0;
+  }
+  .legal-card li {
+    margin-bottom: 8px;
+  }
+  .legal-card a {
+    color: #6f7eed;
+    text-decoration: underline;
+  }
+  body.dark-theme .legal-card a {
+    color: #c084fc;
+  }
+  .meta-tag-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="legal-wrapper">
+  <div class="legal-hero">
+    <h1><i class="fa-solid fa-shield-halved"></i> Privacy Policy</h1>
+    <p>
+      At ABCD Coaching & Library (Basoda, MP), we are committed to safeguarding your personal information, protecting student privacy, and maintaining absolute digital transparency.
+    </p>
+    <div class="meta-tag-badge">
+      <i class="fa-solid fa-calendar-check"></i> Effective & Last Updated: September 2026
+    </div>
+  </div>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-circle-info"></i> 1. Introduction & Scope</h2>
+    <p>
+      This Privacy Policy governs your use of the official web application of <strong>ABCD Coaching & Library</strong> (operating at <strong>https://abcdcampus.in</strong>), founded and directed by Mr. Sandeep Raghuwanshi in Ganj Basoda, Madhya Pradesh, India.
+    </p>
+    <p>
+      This policy applies to all students, faculty, alumni, and prospective visitors who access our digital services, including course learning materials, library desk reservations, student progress records, and our Guidy communication portal.
+    </p>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-database"></i> 2. Information We Collect</h2>
+    <p>We collect only the minimum necessary information required to provide our academic services:</p>
+    <ul>
+      <li><strong>Account Credentials & Authentication:</strong> When you register or sign in using <em>Sign in with Google</em>, we receive your basic public Google profile information (your name, email address, and profile photo URL).</li>
+      <li><strong>Academic & Admission Details:</strong> When applying for library or coaching enrollment, you may provide your full name, father's name, contact phone number, address, date of birth, and educational qualification.</li>
+      <li><strong>Study & Activity Records:</strong> Course progress, test scores, library attendance records, seat allocation preferences, and student queries submitted via our student portal.</li>
+    </ul>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-brands fa-google"></i> 3. Google API Services User Data Policy</h2>
+    <p>
+      ABCD Smart Campus uses Google OAuth 2.0 to offer a safe, one-click sign-in experience. Our adherence to Google's policies includes:
+    </p>
+    <ul>
+      <li><strong>Limited Scope Usage:</strong> We strictly request only the standard non-sensitive scopes: <code>openid</code>, <code>profile</code>, and <code>email</code>. We do NOT request access to your private Google Drive, Gmail, contacts, or calendar.</li>
+      <li><strong>No Data Brokering:</strong> We will never sell, rent, or trade your Google user information or personal student data to any third-party marketing firms, data brokers, or advertisers.</li>
+      <li><strong>Purpose of Data:</strong> Your Google email is used exclusively as your unique account identifier, allowing you to securely log in, receive important academic notices, and manage your library desk status.</li>
+    </ul>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-lock"></i> 4. Data Security & Storage</h2>
+    <p>
+      We implement enterprise-grade security protocols to protect your information from unauthorized access, loss, or misuse:
+    </p>
+    <ul>
+      <li><strong>End-to-End HTTPS Encryption:</strong> All data transmitted between your browser and our servers is encrypted using modern TLS/SSL cryptographic protocols with strict HTTP Strict Transport Security (HSTS).</li>
+      <li><strong>Secure Cloud Infrastructure:</strong> Database records are securely hosted on PostgreSQL with isolated role permissions, automated database connection protection, and zero-knowledge password hashing.</li>
+      <li><strong>Industry-Standard Security Headers:</strong> We enforce strict Content-Security-Policy (CSP), Permissions-Policy, and anti-clickjacking protection across the entire application.</li>
+    </ul>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-user-gear"></i> 5. Data Retention & User Rights</h2>
+    <p>
+      You retain full control over your personal information:
+    </p>
+    <ul>
+      <li><strong>Right to Review & Update:</strong> You can view and edit your profile information directly from your student dashboard anytime.</li>
+      <li><strong>Account & Data Deletion:</strong> You have the right to request permanent deletion of your account and associated records. To request deletion, simply email our administrator at <a href="mailto:abcd2013baq@gmail.com">abcd2013baq@gmail.com</a>.</li>
+    </ul>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-headset"></i> 6. Contact & Grievance Information</h2>
+    <p>
+      If you have questions, feedback, or concerns regarding this Privacy Policy or your personal data, please contact our administrative desk:
+    </p>
+    <p>
+      <strong>ABCD Coaching & Library</strong><br>
+      Director: Sandeep Raghuwanshi<br>
+      Ganj Basoda, District Vidisha, Madhya Pradesh, India - 464221<br>
+      Email: <a href="mailto:abcd2013baq@gmail.com">abcd2013baq@gmail.com</a><br>
+      Phone: <a href="tel:+919827662450">+91 98276 62450</a>
+    </p>
+  </section>
+</main>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

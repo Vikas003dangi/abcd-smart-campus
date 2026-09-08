@@ -1,0 +1,168 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Terms of Service | ABCD Smart Campus Ganj Basoda{% endblock %}
+{% block meta_description %}Terms of Service and Code of Conduct for students, members, and visitors of ABCD Coaching & Library, Ganj Basoda.{% endblock %}
+{% block meta_keywords %}abcd terms of service, abcd campus terms, coaching rules basoda, library rules basoda{% endblock %}
+{% block og_title %}Terms of Service - ABCD Smart Campus Ganj Basoda{% endblock %}
+{% block og_desc %}Read the terms of service, academic rules, and library guidelines for ABCD Coaching & Library, Ganj Basoda.{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  .legal-wrapper {
+    max-width: 1000px;
+    margin: 30px auto 70px;
+    padding: 0 20px;
+  }
+  .legal-hero {
+    background: linear-gradient(135deg, #6f7eed, #8b4bb2);
+    border-radius: 18px;
+    padding: 28px 32px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    color: #ffffff;
+    margin-bottom: 24px;
+  }
+  body.dark-theme .legal-hero {
+    background: linear-gradient(135deg, #071656 0%, #32085c 40%, #140347 100%);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  }
+  .legal-hero h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .legal-hero p {
+    font-size: 0.95rem;
+    opacity: 0.92;
+    line-height: 1.6;
+    max-width: 780px;
+    margin-bottom: 0;
+  }
+  .legal-card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    color: #333333;
+    line-height: 1.7;
+    font-size: 0.92rem;
+  }
+  body.dark-theme .legal-card {
+    background: linear-gradient(135deg, rgba(30, 24, 76, 0.95) 0%, rgba(48, 35, 105, 0.92) 50%, rgba(26, 20, 64, 0.95) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.55);
+    color: #e2dcff;
+  }
+  .legal-card h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #4a2f86;
+    margin-top: 0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  body.dark-theme .legal-card h2 {
+    color: #ffe7ff;
+  }
+  .legal-card h2 i {
+    color: #6f7eed;
+  }
+  body.dark-theme .legal-card h2 i {
+    color: #c084fc;
+  }
+  .legal-card ul {
+    margin: 10px 0 16px 20px;
+    padding: 0;
+  }
+  .legal-card li {
+    margin-bottom: 8px;
+  }
+  .legal-card a {
+    color: #6f7eed;
+    text-decoration: underline;
+  }
+  body.dark-theme .legal-card a {
+    color: #c084fc;
+  }
+  .meta-tag-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="legal-wrapper">
+  <div class="legal-hero">
+    <h1><i class="fa-solid fa-scale-balanced"></i> Terms of Service</h1>
+    <p>
+      Please review these Terms of Service governing enrollment, facility usage, code of conduct, and online platform access at ABCD Coaching & Library, Ganj Basoda.
+    </p>
+    <div class="meta-tag-badge">
+      <i class="fa-solid fa-calendar-check"></i> Effective Date: September 2026
+    </div>
+  </div>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-landmark"></i> 1. Acceptance of Terms</h2>
+    <p>
+      By accessing our campus facilities or utilizing our online portal at <strong>https://abcdcampus.in</strong> (including digital seat reservations, educational video modules, and communication tools), you agree to comply with and be bound by these Terms of Service.
+    </p>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-book-open"></i> 2. Library Study Hall Discipline</h2>
+    <p>To ensure a focused, respectful, and silent environment for competitive exam preparation:</p>
+    <ul>
+      <li><strong>Strict Silence:</strong> Absolute silence must be maintained in all study hall areas. Phone calls, discussions, and audible alerts are strictly prohibited inside study zones.</li>
+      <li><strong>Desk Allocation:</strong> Desks are allocated on a dedicated basis per your registered shift (Morning, Evening, or Full-Day). Unauthorized swapping or occupancy of unassigned desks is not permitted without administrative approval.</li>
+      <li><strong>Facility Amenities:</strong> Students must maintain cleanliness, handle electrical switches and fixtures responsibly, and preserve the quiet environment.</li>
+    </ul>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-chalkboard-user"></i> 3. Academic Coaching & Intellectual Property</h2>
+    <ul>
+      <li>Course materials, lecture recordings, syllabus sheets, and mock test papers provided by ABCD Coaching & Library are the intellectual property of the institute and are licensed solely for the personal educational use of enrolled students.</li>
+      <li>Redistribution, public uploading, or commercial resale of proprietary study materials is prohibited.</li>
+    </ul>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-comments"></i> 4. Guidy & Digital Platform Code of Conduct</h2>
+    <ul>
+      <li>Our digital communication tools (including Guidy chat, batch channels, and question forums) are provided strictly for constructive academic discussions, doubts resolution, and peer mentorship.</li>
+      <li>Harassment, abusive language, inappropriate media sharing, or spamming will result in immediate suspension of digital access.</li>
+    </ul>
+  </section>
+
+  <section class="legal-card">
+    <h2><i class="fa-solid fa-envelope-open-text"></i> 5. Contact Information</h2>
+    <p>
+      For any inquiries regarding these terms, enrollment policies, or campus rules, please contact:
+    </p>
+    <p>
+      <strong>ABCD Coaching & Library</strong><br>
+      Director: Sandeep Raghuwanshi<br>
+      Ganj Basoda, Madhya Pradesh - 464221<br>
+      Email: <a href="mailto:abcd2013baq@gmail.com">abcd2013baq@gmail.com</a><br>
+      Phone: <a href="tel:+919827662450">+91 98276 62450</a>
+    </p>
+  </section>
+</main>
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}
