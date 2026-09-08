@@ -68,7 +68,7 @@ if not DEBUG:
 
 SITE_URL = config(
     "SITE_URL",
-    default="http://127.0.0.1:8000"  # local dev fallback
+    default="http://127.0.0.1:8000" if DEBUG else "https://abcdcampus.in"
 )
 
 # -------------------------------
