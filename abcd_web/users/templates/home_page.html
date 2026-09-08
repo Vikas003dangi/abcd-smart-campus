@@ -26,6 +26,9 @@
 
     {% block extra_css %}{% endblock %}
 
+    <!-- Preload first hero slide for instant LCP -->
+    <link rel="preload" as="image" href="{% static 'data/webp/frame mehenat ki.webp' %}" fetchpriority="high">
+
     <style>
         * {
             margin: 0;
@@ -5248,65 +5251,65 @@
         (function() {
             const heroSlidesData = [
                 {
-                    image: "{% static 'data/frame mehenat ki.jpg' %}",
+                    image: "{% static 'data/webp/frame mehenat ki.webp' %}",
                     heading: "Excellence in Education",
                     subheading: "Your gateway to premium coaching and library services",
                     hClass: "small-heading",
                     pClass: "one-line"
                 },
                 {
-                    image: "{% static 'data/2nd.jpg' %}",
-                    heading: "ABCD’s Alumni & Achievers",
+                    image: "{% static 'data/webp/2nd.webp' %}",
+                    heading: "ABCD's Alumni & Achievers",
                     subheading: "Celebrating the legends who started their journey here.",
                     posClass: "text-center"
                 },
                 {
-                    image: "{% static 'data/3rd.jpg' %}",
+                    image: "{% static 'data/webp/3rd.webp' %}",
                     heading: "Focus. Learn. Succeed.",
                     subheading: "A quiet space for big dreams in our premium library.",
                     pClass: "one-line"
                 },
                 {
-                    image: "{% static 'data/4th.png' %}",
+                    image: "{% static 'data/webp/4th.webp' %}",
                     heading: "Beyond the Books",
                     subheading: "Building confidence and character for a brighter future.",
                     posClass: "text-center",
                     pClass: "one-line"
                 },
                 {
-                    image: "{% static 'data/5th.jpg' %}",
+                    image: "{% static 'data/webp/5th.webp' %}",
                     heading: "Our Wall of Pride",
                     subheading: "Showcasing the faces behind our 100% success stories.",
                     posClass: "text-top-high",
                     pClass: "one-line"
                 },
                 {
-                    image: "{% static 'data/6th.jpg' %}",
+                    image: "{% static 'data/webp/6th.webp' %}",
                     heading: "Where Aspirations Meet Action",
                     subheading: "Empowering the next generation of leaders and thinkers.",
                     posClass: "text-bottom-near",
                     pClass: "one-line"
                 },
                 {
-                    image: "{% static 'data/7th.jpg' %}",
+                    image: "{% static 'data/webp/7th.webp' %}",
                     heading: "The ABCD Advantage",
                     subheading: "Where dedication meets the right environment to grow.",
                     pClass: "one-line"
                 },
                 {
-                    image: "{% static 'data/8th.jpg' %}",
+                    image: "{% static 'data/webp/8th.webp' %}",
                     heading: "Unlock Your Potential",
                     subheading: "Because at ABCD, we believe Anybody Can Do it.",
                     posClass: "text-center"
                 },
                 {
-                    image: "{% static 'data/9th.png' %}",
+                    image: "{% static 'data/webp/9th.webp' %}",
                     heading: "Your Journey, Our Mission",
-                    subheading: "Expert guidance tailored for every student’s potential.",
+                    subheading: "Expert guidance tailored for every student's potential.",
                     posClass: "text-center"
                 },
                 {
-                    image: "{% static 'data/10th.jpg' %}",
+                    image: "{% static 'data/webp/10th.webp' %}",
                     heading: "We Are Family",
                     subheading: "At ABCD, we believe in collective success. Here, we don't just study—<br>we learn, we grow, and we enjoy the journey together. This isn't just a place of education; it's a family of shared dreams.",
                     isLarge: true,
@@ -5329,31 +5332,51 @@
 
             // Create Slides
             function initSlider() {
-                // Add last slide clone to beginning
-                const lastClone = createSlide(heroSlidesData[slideCount - 1]);
+                // Add last slide clone to beginning (eager — visible immediately on wrap-around)
+                const lastClone = createSlide(heroSlidesData[slideCount - 1], true);
                 slider.appendChild(lastClone);
 
-                // Add original slides
-                heroSlidesData.forEach(data => {
-                    slider.appendChild(createSlide(data));
+                // Add all original slides: first two eager, rest lazy
+                heroSlidesData.forEach((data, i) => {
+                    slider.appendChild(createSlide(data, i <= 1));
                 });
 
-                // Add first slide clone to end
-                const firstClone = createSlide(heroSlidesData[0]);
+                // Add first slide clone to end (eager — visible on wrap-around)
+                const firstClone = createSlide(heroSlidesData[0], true);
                 slider.appendChild(firstClone);
 
                 updateSliderPosition(false);
                 updateTextContent(0); // Show first slide text with fade
+                // Pre-load slide 2 (index 2 in DOM = first clone + first real = adjacent)
+                revealSlide(slider.children[2]);
             }
 
-            function createSlide(data) {
+            // Create Slides — eager for first/last (clones), lazy for rest
+            function createSlide(data, eagerLoad) {
                 const div = document.createElement('div');
                 div.className = 'hero-slide';
                 const img = document.createElement('img');
-                img.src = data.image;
                 img.alt = data.heading;
+                if (eagerLoad) {
+                    img.src = data.image;
+                    img.setAttribute('fetchpriority', 'high');
+                } else {
+                    // Lazy: use a transparent placeholder, real src in data-src
+                    img.setAttribute('data-src', data.image);
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    img.style.background = '#1a1a2e'; // dark placeholder bg
+                }
                 div.appendChild(img);
                 return div;
+            }
+
+            // Load the real image for a slide div (reveal on approach)
+            function revealSlide(slideDiv) {
+                const img = slideDiv && slideDiv.querySelector('img[data-src]');
+                if (img) {
+                    img.src = img.getAttribute('data-src');
+                    img.removeAttribute('data-src');
+                }
             }
 
             function updateSliderPosition(animate = true) {
@@ -5411,6 +5434,12 @@
                 if (dataIndex < 0) dataIndex = slideCount - 1;
                 
                 updateTextContent(dataIndex);
+
+                // Lazy-load the upcoming adjacent slide (preload 1 ahead)
+                const nextSlide = slider.children[currentIndex + 1];
+                const prevSlide = slider.children[currentIndex - 1];
+                revealSlide(nextSlide);
+                revealSlide(prevSlide);
             }
 
             slider.addEventListener('transitionend', () => {
