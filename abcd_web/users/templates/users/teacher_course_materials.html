@@ -19,12 +19,12 @@
   /* --- PAGE HERO / HEADER --- */
   .tcm-hero {
     background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-    border-radius: 32px;
-    padding: 30px 42px;
-    margin-bottom: 30px;
+    border-radius: 28px;
+    padding: 24px 36px;
+    margin-bottom: 25px;
     color: white;
     box-shadow: 0 20px 50px rgba(99, 102, 241, 0.15);
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
     position: relative;
     overflow: hidden;
   }
@@ -34,37 +34,41 @@
 
   /* Course thumbnail transparent background in hero */
   .tcm-hero-thumb-bg {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
     border-radius: inherit;
   }
   .tcm-hero-thumb-bg img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center right;
-    opacity: 0.20;
-    filter: saturate(1.15);
-    transition: opacity 0.4s ease;
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center right !important;
+    opacity: 0.22 !important;
+    filter: saturate(1.2) contrast(1.05);
+    display: block !important;
   }
   .tcm-hero-thumb-bg::after {
     content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, rgba(30, 27, 75, 0.48) 0%, rgba(99, 102, 241, 0.16) 50%, rgba(168, 85, 247, 0.24) 100%);
-    pointer-events: none;
+    position: absolute !important;
+    inset: 0 !important;
+    background: linear-gradient(90deg, rgba(30, 27, 75, 0.65) 0%, rgba(99, 102, 241, 0.22) 50%, rgba(168, 85, 247, 0.28) 100%);
+    pointer-events: none !important;
   }
   body.dark-theme .tcm-hero-thumb-bg img {
-    opacity: 0.16;
-    filter: saturate(1.05);
+    opacity: 0.18 !important;
+    filter: saturate(1.1);
   }
   body.dark-theme .tcm-hero-thumb-bg::after {
-    background: linear-gradient(90deg, rgba(15, 23, 42, 0.65) 0%, rgba(30, 27, 75, 0.3) 100%);
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0.78) 0%, rgba(30, 27, 75, 0.35) 100%);
   }
-  .tcm-hero > * {
+  .tcm-hero > *:not(.tcm-hero-thumb-bg) {
     position: relative;
     z-index: 1;
   }
@@ -73,8 +77,8 @@
   .tcm-top-bar {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 16px;
+    gap: 12px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
   }
   .tcm-breadcrumb {
@@ -109,9 +113,9 @@
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.28);
     color: #ffffff;
-    padding: 5px 14px;
+    padding: 4px 12px;
     border-radius: 999px;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     font-weight: 700;
     letter-spacing: -0.2px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
@@ -122,7 +126,7 @@
     border-color: rgba(255, 255, 255, 0.2);
   }
   .tcm-course-pill i {
-    font-size: 1.05rem;
+    font-size: 1rem;
     color: #fbbf24;
     flex-shrink: 0;
   }
@@ -304,14 +308,15 @@
 
   .tcm-hero-content h2 {
     font-weight: 800;
-    font-size: 2rem;
-    margin-bottom: 8px;
+    font-size: 1.8rem;
+    margin-bottom: 4px;
     letter-spacing: -0.5px;
   }
   .tcm-hero-content p {
-    opacity: 0.85;
-    font-size: 1rem;
+    opacity: 0.88;
+    font-size: 0.95rem;
     font-weight: 500;
+    margin: 0;
   }
 
   /* --- STUDIO LAYOUT REFINEMENT --- */
@@ -704,39 +709,34 @@
 
   @media (max-width: 768px) {
     .tcm-hero {
-      padding: 22px 18px;
-      border-radius: 24px;
-      margin-bottom: 22px;
+      padding: 18px 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
     }
     .tcm-top-bar {
       justify-content: center;
       gap: 10px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .tcm-breadcrumb {
       justify-content: center;
     }
     .tcm-course-pill {
-      font-size: 0.84rem;
-      padding: 4px 11px;
-      max-width: 220px;
+      font-size: 0.82rem;
+      padding: 3px 10px;
+      max-width: 210px;
     }
     .tcm-hero-thumb-bg img {
-      opacity: 0.13;
+      opacity: 0.13 !important;
     }
     .tcm-hero-header {
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 20px;
-    }
-    .tcm-hero-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      gap: 16px;
     }
     .tcm-hero-content h2 {
-      font-size: 1.6rem;
+      font-size: 1.45rem;
       white-space: nowrap;
     }
     .tcm-hero-content p {
