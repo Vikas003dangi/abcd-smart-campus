@@ -493,10 +493,6 @@
 
                 playChime('/static/audio/PWA.mp3');
 
-                if (window.CustomPopup) {
-                    CustomPopup.alert('Device notifications are successfully enabled! A confirmation alert was just sent to your device tray.', '🎉 Notifications Active');
-                }
-
                 if (typeof pendingCallback === 'function') {
                     pendingCallback(true);
                     pendingCallback = null;

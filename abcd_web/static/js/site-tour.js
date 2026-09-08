@@ -1496,7 +1496,7 @@
       // Listen for seat layout modals to dismiss tour and hide launcher when seat layout opens
       this.setupSeatModalListener();
 
-      // Auto start tour cards after 10 seconds ONLY if user has NEVER completed or dismissed them
+      // Auto start tour cards after 2.5 minutes (150 seconds) ONLY if user has NEVER completed or dismissed them
       const userIdent = document.body.dataset.username || 'user';
       const userKey = this.getUserStorageKey(pageKey);
 
@@ -1510,11 +1510,22 @@
         return;
       }
 
-      setTimeout(() => {
-        if (!this.isSeatModalOpen()) {
-          this.start(false);
+      if (this.autoStartTimer) {
+        clearTimeout(this.autoStartTimer);
+      }
+
+      this.autoStartTimer = setTimeout(() => {
+        if (!this.isStarted && !this.isSeatModalOpen()) {
+          const freshCheck = (localStorage.getItem(userKey) === 'true') ||
+                             (localStorage.getItem(`abcd_tour_done_${pageKey}`) === 'true') ||
+                             (localStorage.getItem(`abcd_tour_done_global_${pageKey}_${userIdent}`) === 'true') ||
+                             (localStorage.getItem(`abcd_tour_dismissed_${pageKey}_${userIdent}`) === 'true') ||
+                             (localStorage.getItem(`abcd_tour_seen_${pageKey}`) === 'true');
+          if (!freshCheck) {
+            this.start(false);
+          }
         }
-      }, 10000);
+      }, 150000); // 2.5 minutes (150,000ms)
     }
 
     isSeatModalOpen() {
@@ -1681,6 +1692,10 @@
     }
 
     async start(force = false) {
+      if (this.autoStartTimer) {
+        clearTimeout(this.autoStartTimer);
+        this.autoStartTimer = null;
+      }
       if (this.isStarted) return;
       if (!this.steps || this.steps.length === 0) return;
 
@@ -2162,6 +2177,10 @@
     }
 
     stop(markCompleted = true) {
+      if (this.autoStartTimer) {
+        clearTimeout(this.autoStartTimer);
+        this.autoStartTimer = null;
+      }
       if (!this.isStarted) return;
 
       this.isStarted = false;

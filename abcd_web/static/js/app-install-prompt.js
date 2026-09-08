@@ -108,9 +108,6 @@
     window.addEventListener('appinstalled', () => {
         localStorage.setItem(INSTALLED_KEY, 'true');
         hideInstallModal();
-        if (window.CustomPopup) {
-            CustomPopup.alert('Welcome to ABCD Smart Campus App! Enjoy your VIP learning experience.', '🎉 App Installed Successfully');
-        }
     });
 
     // 3. Inject Styles for the VIP Install Modal
