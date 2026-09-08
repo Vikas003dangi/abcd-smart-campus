@@ -3,6 +3,12 @@
 
 {% block title %}Achievement Form - ABCD{% endblock %}
 
+{% block extra_head %}
+{{ block.super }}
+<meta name="disable-permission-prompts" content="true">
+<script>window.__disablePermissionPrompts = true;</script>
+{% endblock %}
+
 {% block extra_css %}
 {{ block.super }}
 <style>

@@ -6,6 +6,56 @@
     const DISMISS_SESSION_KEY = 'abcd_install_dismissed_session';
     const INSTALLED_KEY = 'abcd_app_installed';
 
+    // Check if current page is in the blacklist where NO install popups should EVER show
+    function isPageExcluded() {
+        if (window.__disablePermissionPrompts === true || window.__disableInstallPrompts === true) {
+            return true;
+        }
+        if (document.querySelector('meta[name="disable-permission-prompts"]') ||
+            document.querySelector('meta[name="disable-install-prompts"]')) {
+            return true;
+        }
+        if (document.body && (
+            document.body.dataset.disablePermissionPrompts === 'true' ||
+            document.body.dataset.disableInstallPrompts === 'true' ||
+            document.body.classList.contains('no-permission-prompts')
+        )) {
+            return true;
+        }
+
+        const path = (window.location.pathname || '').toLowerCase();
+        const excludedPaths = [
+            '/register',
+            '/login',
+            '/admission',
+            '/achievement',
+            '/seat',
+        ];
+        for (let i = 0; i < excludedPaths.length; i++) {
+            if (path.includes(excludedPaths[i])) return true;
+        }
+
+        if (document.getElementById('admissionForm') ||
+            document.getElementById('achievementForm') ||
+            document.getElementById('registrationForm') ||
+            document.getElementById('loginForm') ||
+            document.querySelector('.admission-form-container') ||
+            document.querySelector('.achievement-form-container') ||
+            document.querySelector('.form-container') ||
+            document.getElementById('seatModalOverlay') ||
+            document.getElementById('seatModalContainer') ||
+            document.getElementById('seatInterestOverlay')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    if (isPageExcluded()) {
+        window.showABCDInstallPrompt = function () {};
+        return;
+    }
+
     // 1. If already installed or dismissed this session, don't show automatically
     if (localStorage.getItem(INSTALLED_KEY) === 'true') {
         return;

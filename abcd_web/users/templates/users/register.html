@@ -2386,9 +2386,7 @@
         </div>
     </div>
 <script src="{% static 'js/custom-popup.js' %}"></script>
-<script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
-<script src="{% static 'js/push-permission.js' %}"></script>
-<script src="{% static 'js/app-install-prompt.js' %}"></script>
+<script>window.__disablePermissionPrompts = true;</script>
 {% include 'partials/_smart_back_redirect.html' with back_url='users:home_page' %}
 </body>
 </html>

@@ -13,6 +13,57 @@
         return;
     }
 
+    // Check if current page is in the blacklist where NO notification permission popups should EVER show
+    function isPageExcluded() {
+        if (window.__disablePermissionPrompts === true || window.__disablePushPrompts === true) {
+            return true;
+        }
+        if (document.querySelector('meta[name="disable-permission-prompts"]') ||
+            document.querySelector('meta[name="disable-push-prompts"]')) {
+            return true;
+        }
+        if (document.body && (
+            document.body.dataset.disablePermissionPrompts === 'true' ||
+            document.body.dataset.disablePushPrompts === 'true' ||
+            document.body.classList.contains('no-permission-prompts')
+        )) {
+            return true;
+        }
+
+        const path = (window.location.pathname || '').toLowerCase();
+        const excludedPaths = [
+            '/register',
+            '/login',
+            '/admission',
+            '/achievement',
+            '/seat',
+        ];
+        for (let i = 0; i < excludedPaths.length; i++) {
+            if (path.includes(excludedPaths[i])) return true;
+        }
+
+        if (document.getElementById('admissionForm') ||
+            document.getElementById('achievementForm') ||
+            document.getElementById('registrationForm') ||
+            document.getElementById('loginForm') ||
+            document.querySelector('.admission-form-container') ||
+            document.querySelector('.achievement-form-container') ||
+            document.getElementById('seatModalOverlay') ||
+            document.getElementById('seatModalContainer') ||
+            document.getElementById('seatInterestOverlay')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    if (isPageExcluded()) {
+        window.promptNotificationForAction = function () { return Promise.resolve(false); };
+        window.ensureNotificationPermission = window.promptNotificationForAction;
+        window.showABCDNotificationPrompt = function () {};
+        return;
+    }
+
     let bubble = null;
     let pendingCallback = null;
 
@@ -255,6 +306,7 @@
     }
 
     function showBubble(options = {}) {
+        if (isPageExcluded()) return;
         if (window.__abcd_active_prompt && window.__abcd_active_prompt !== 'notification') {
             return;
         }
@@ -270,7 +322,7 @@
     }
 
     function showBrowserPromptGuide() {
-        if (!bubble) return;
+        if (isPageExcluded() || !bubble) return;
         const isApp = isRunningAsApp();
         const guideText = isApp
             ? 'Please tap <strong>"Allow"</strong> on the device permission dialog to activate live notifications.'
@@ -295,6 +347,7 @@
     }
 
     function showDeniedInstructions() {
+        if (isPageExcluded()) return;
         injectStyles();
         if (!bubble) {
             bubble = document.createElement('div');
