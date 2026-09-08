@@ -14,11 +14,11 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: SITE_URL
-        value: "https://abcd2013.online"
+        value: "https://abcdcampus.in"
       - key: ALLOWED_HOSTS
-        value: "abcd2013.online,www.abcd2013.online,abcdcampus.in,www.abcdcampus.in,.onrender.com,abcd-web-platform.onrender.com"
+        value: "abcdcampus.in,www.abcdcampus.in,.onrender.com,abcd-web-platform.onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
-        value: "https://abcd2013.online,https://www.abcd2013.online,https://abcdcampus.in,https://www.abcdcampus.in,https://abcd-web-platform.onrender.com"
+        value: "https://abcdcampus.in,https://www.abcdcampus.in,https://abcd-web-platform.onrender.com"
       # Google OAuth (public client ID safe in yaml; secret must be set in Render dashboard)
       - key: SOCIAL_AUTH_GOOGLE_OAUTH2_KEY
         value: "729497897582-ln9h8cai5ighe13pf624goue4mmp2b1u.apps.googleusercontent.com"

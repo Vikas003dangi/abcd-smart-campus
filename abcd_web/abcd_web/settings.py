@@ -27,7 +27,6 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 DEFAULT_ALLOWED_HOSTS = {
     '127.0.0.1', 'localhost', 'testserver',
     '.onrender.com', 'abcd-web-platform.onrender.com',
-    'abcd2013.online', 'www.abcd2013.online',
     'abcdcampus.in', 'www.abcdcampus.in',
     '.railway.app'
 }
@@ -38,8 +37,6 @@ ALLOWED_HOSTS = list(DEFAULT_ALLOWED_HOSTS.union(env_hosts))
 DEFAULT_CSRF_ORIGINS = {
     'https://*.onrender.com',
     'https://abcd-web-platform.onrender.com',
-    'https://abcd2013.online',
-    'https://www.abcd2013.online',
     'https://abcdcampus.in',
     'https://www.abcdcampus.in',
     'http://127.0.0.1:8000',

@@ -15882,7 +15882,7 @@ def robots_txt_view(request):
     try:
         site_url = f"{request.scheme}://{request.get_host()}".rstrip('/')
     except Exception:
-        site_url = getattr(settings, 'SITE_URL', 'https://abcd2013.online').rstrip('/')
+        site_url = getattr(settings, 'SITE_URL', 'https://abcdcampus.in').rstrip('/')
 
     lines = [
         "User-agent: *",
@@ -15923,7 +15923,7 @@ def sitemap_xml_view(request):
     try:
         site_url = f"{request.scheme}://{request.get_host()}".rstrip('/')
     except Exception:
-        site_url = getattr(settings, 'SITE_URL', 'https://abcd2013.online').rstrip('/')
+        site_url = getattr(settings, 'SITE_URL', 'https://abcdcampus.in').rstrip('/')
 
     now_str = timezone.localdate().strftime('%Y-%m-%d')
 

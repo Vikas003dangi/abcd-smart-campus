@@ -3,7 +3,7 @@
 # 🏛️ ABCD Coaching & Smart Library Management Platform
 ### *An Enterprise-Grade, Real-Time Educational ERP & Digital Library Ecosystem*
 
-[![Live Demo](https://img.shields.io/badge/Live%20Platform-abcd2013.online-00C853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://abcd2013.online)
+[![Live Demo](https://img.shields.io/badge/Live%20Platform-abcdcampus.in-00C853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://abcdcampus.in)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.2+-092E20?style=for-the-badge&logo=django&logoColor=white)](https://djangoproject.com)
 [![Channels](https://img.shields.io/badge/WebSockets-Django_Channels_4.3-blueviolet?style=for-the-badge&logo=socketdotio&logoColor=white)](https://channels.readthedocs.io)
@@ -237,12 +237,12 @@ web: daphne -b 0.0.0.0 -p $PORT abcd_web.asgi:application
 worker: python manage.py run_local_scheduler
 ```
 
-### Option C: Custom Domain & DNS (`abcd2013.online`)
+### Option C: Custom Domain & DNS (`abcdcampus.in`)
 To point your custom domain:
 1. In your domain registrar DNS settings (GoDaddy, Namecheap, Cloudflare), add:
    - **CNAME Record:** `www` pointing to your deployment URL (e.g., `abcd-web-platform.onrender.com`).
    - **A Record:** `@` pointing to your host's IP address.
-2. Ensure `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` include `abcd2013.online`.
+2. Ensure `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` include `abcdcampus.in`.
 
 ---
 
@@ -299,7 +299,7 @@ ABCD/
 
 ## 👥 Authors & Acknowledgements
 - **Lead Developer & Architect:** Vikas
-- **Institution:** ABCD Coaching & Library ([abcd2013.online](https://abcd2013.online))
+- **Institution:** ABCD Coaching & Library ([abcdcampus.in](https://abcdcampus.in))
 - **Dedicated Mentorship:** Sandeep Sir & the ABCD Coaching Faculty
 
 ---
