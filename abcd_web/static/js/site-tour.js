@@ -10,9 +10,18 @@
 (function () {
   'use strict';
 
+  // Strict Home Base Pages Set - ONLY these 5 pages are permitted to introduce the Footer
+  const HOME_BASE_PAGES = new Set([
+    'home_page',
+    'guest_page',
+    'student_dashboard',
+    'teacher_dashboard',
+    'alumni_dashboard'
+  ]);
+
   // Master Tour Definitions for ALL 37 Website Pages
   const TOUR_CONFIGS = {
-    // 1. Home Page
+    // 1. Home Page (Home Base Page - Includes Footer)
     'home_page': [
       {
         target: '[data-tour="navbar-logo"], .brand, .logo, .nav-logo',
@@ -52,7 +61,7 @@
       }
     ],
 
-    // 2. Teacher Dashboard (Ordered Walkthrough)
+    // 2. Teacher Dashboard (Home Base Page - Includes Footer)
     'teacher_dashboard': [
       // 1. Search & Filter
       {
@@ -166,15 +175,34 @@
         title: 'Student Complaints & Resolution Desk',
         description: 'Track student facility issues or course doubt tickets. Mark them as Resolved or In Progress with official resolution notes.',
         position: 'top'
+      },
+      // 19. Footer (Home Base Page)
+      {
+        target: 'footer, .footer, .site-footer',
+        title: 'Footer & Quick Links',
+        description: 'Access quick navigation links, platform services directory, contact numbers, address, and official details.',
+        position: 'top'
       }
     ],
 
-    // 3. Student Dashboard
+    // 3. Student Dashboard (Home Base Page - Includes Footer)
     'student_dashboard': [
       {
-        target: '[data-tour="student-header"], .student-header, header',
+        target: '[data-tour="student-header"], .welcome-card, header',
         title: 'Student Portal Overview',
-        description: 'View your profile, seat allocation, active courses, and personalized updates here.',
+        description: 'Welcome to your student dashboard! Track your admission status, profile details, active courses, and personalized announcements.',
+        position: 'bottom'
+      },
+      {
+        target: '.info-grid, .info-card',
+        title: 'Student Profile & Service Details',
+        description: 'Inspect your registered contact details, student ID, and enrolled coaching batch or library seat information.',
+        position: 'bottom'
+      },
+      {
+        target: '[data-tour="student-quick-actions"], .quick-actions-title, .app-icons-grid',
+        title: 'Quick Actions Hub',
+        description: 'One-tap access to your Coaching Courses, To-Do Hub, Guidy Chat, Complaint Box, and the Hall of Fame.',
         position: 'bottom'
       },
       {
@@ -185,31 +213,73 @@
       },
       {
         target: '[data-tour="student-nav-todo"], a[href*="todo"]',
-        title: 'To-Do Hub',
-        description: 'Organize your daily study goals, track assignments, and view fee reminders.',
+        title: 'To-Do Hub & Study Planner',
+        description: 'Organize your daily study goals, break down complex topics, track assignments, and view fee reminders.',
         position: 'bottom'
       },
       {
-        target: '[data-tour="student-seat-status"], .seat-card, .card, footer, .footer',
-        title: 'Your Seat Status',
-        description: 'Check your current reserved library seat, shift timing, and expiry details.',
+        target: '[data-tour="student-seat-status"], #seatStatusCard, .student-seat-card, .seat-card',
+        title: 'Your Seat & Study Status',
+        description: 'Check your current reserved library seat, shift timing, and expiry or renewal details.',
+        position: 'top'
+      },
+      {
+        target: '[data-tour="student-notif-bell"], #notificationBell, .abcd-notif-btn',
+        title: 'Notifications & Alerts Center',
+        description: 'Receive real-time notifications for class announcements, seat renewals, test notices, and admin messages.',
+        position: 'bottom'
+      },
+      {
+        target: 'footer, .footer, .site-footer',
+        title: 'Footer & Quick Links',
+        description: 'Access campus contact details, official addresses, help desk, and student services links.',
         position: 'top'
       }
     ],
 
-    // 4. Alumni Dashboard
+    // 4. Alumni Dashboard (Home Base Page - Includes Footer)
     'alumni_dashboard': [
       {
-        target: '[data-tour="alumni-header"], .alumni-header, header',
+        target: '[data-tour="alumni-header"], .welcome-card, header',
         title: 'Alumni Network Hub',
-        description: 'Welcome back! Stay connected with current students, showcase your career success, and inspire others.',
+        description: 'Welcome back! Stay connected with current students, showcase your career success, and inspire junior aspirants.',
         position: 'bottom'
       },
       {
-        target: '[data-tour="alumni-profile-card"], .profile-card, .card, footer, .footer',
-        title: 'Your Alumni Profile',
-        description: 'Update your current designation, company, or higher study accomplishments.',
+        target: '[data-tour="alumni-profile-card"], .alumni-profile-card, .info-grid, .profile-card',
+        title: 'Your Career & Profile Details',
+        description: 'View and update your current designation, department, selection year, and verified alumni status.',
         position: 'bottom'
+      },
+      {
+        target: '#achievementChart, .chart-container, .achievements-list, .other-ach-list',
+        title: 'Milestones & Achievement Graph',
+        description: 'Interactive visual chart highlighting your career achievements, competitive selections, and journey progress.',
+        position: 'top'
+      },
+      {
+        target: 'a[href*="achievement"], .marquee-footer-buttons, .add-yours-btn',
+        title: 'Share New Achievements',
+        description: 'Got promoted or cleared a new exam? Submit your latest success story to be featured on the ABCD Hall of Fame wall!',
+        position: 'top'
+      },
+      {
+        target: 'a[href*="guidy"], [data-tour="alumni-guidy"]',
+        title: 'Guidy Mentorship Chat',
+        description: 'Connect directly with aspiring students, answer guidance questions, and mentor the next generation on Guidy.',
+        position: 'bottom'
+      },
+      {
+        target: '.app-icons-grid, .quick-actions-title',
+        title: 'Quick Actions',
+        description: 'Access study courses, your personal study hub, and campus resources anytime.',
+        position: 'top'
+      },
+      {
+        target: 'footer, .footer, .site-footer',
+        title: 'Footer & Quick Links',
+        description: 'Access quick navigation links, platform services directory, contact numbers, address, and official details.',
+        position: 'top'
       }
     ],
 
@@ -411,45 +481,93 @@
       }
     ],
 
-    // 8. Courses Catalogue
+    // 8. Courses Catalogue (Content Page - NO Footer)
     'courses': [
       {
-        target: '[data-tour="courses-header"], .courses-header, header',
+        target: '[data-tour="courses-header"], .courses-page-header, header',
         title: 'Coaching Courses & Programs',
         description: 'Browse all available coaching batches, foundation courses, and competitive exam preparation modules.',
         position: 'bottom'
       },
       {
-        target: '[data-tour="courses-tabs"], .course-tabs, .tabs',
+        target: '[data-tour="courses-tabs"], .courses-tabs, .course-tabs',
         title: 'Filter Courses by Tab',
         description: 'Switch between All Courses, your Favorite saved courses, and Archived courses.',
         position: 'bottom'
       },
       {
-        target: '[data-tour="courses-grid"], .courses-grid, .grid, footer, .footer',
-        title: 'Course Cards',
-        description: 'Click on any course card to view detailed syllabus, video lectures, and study materials.',
+        target: '[data-tour="courses-grid"], .courses-grid',
+        title: 'Course Directory & Modules',
+        description: 'Browse all active course cards with full curriculum details, subject previews, and video lecture series.',
         position: 'top'
+      },
+      {
+        target: '.course-info-card:first-child, .course-info-card',
+        title: 'Course Card & Progress Tracker',
+        description: 'Track your personal completion percentage, check average student ratings, or click anywhere on the card to open the course streaming portal.',
+        position: 'top'
+      },
+      {
+        target: '.leave-rating-link, .live-rating-badge',
+        title: 'Student Ratings & Feedback',
+        description: 'View verified ratings from peers or click "Leave a rating" to submit your review for this course.',
+        position: 'top'
+      },
+      {
+        target: '.card-more-btn, .ud-dropdown',
+        title: 'Bookmark & Share Menu',
+        description: 'Click the three dots to bookmark this course to your favorites, archive it, or copy and share the link with study peers.',
+        position: 'left'
       }
     ],
 
-    // 9. Course Detail Page
+    // 9. Course Detail Page (Content Page - NO Footer)
     'course_detail': [
       {
-        target: '.course-hero, .hero, header',
-        title: 'Course Overview & Details',
-        description: 'View full syllabus, batch timings, instructor notes, and enrolled student count.',
+        target: '[data-tour="course-stream-header"], .course-streaming-header, header',
+        title: 'Course Header & Learning Progress',
+        description: 'Navigate back to your courses, check your trophy completion percentage, leave a star rating, or share with friends.',
         position: 'bottom'
       },
       {
-        target: '.enroll-btn, .action-btn, .btn-primary, footer, .footer',
-        title: 'Enroll / Join Batch',
-        description: 'Enroll in this course to access live classes, downloadable PDFs, and practice tests.',
+        target: '[data-tour="course-player-screen"], #playerWrapper, .main-player-container',
+        title: 'Interactive Video Player & Screen',
+        description: 'Watch lecture lessons, control video playback, switch between previous/next materials, or toggle distraction-free zoom fullscreen mode.',
+        position: 'bottom'
+      },
+      {
+        target: '[data-tour="course-curriculum-sidebar"], aside.sidebar-column, .curriculum-scroll, #curriculumList',
+        title: 'Curriculum & Lecture Outline',
+        description: 'Browse all video lectures, study PDFs, and notes. Search lessons by title and track completed topics with verified checkmarks.',
+        position: 'left'
+      },
+      {
+        target: '[data-target="overview"], #overviewPane, [data-tour="course-info-tabs"], .content-details',
+        title: 'Course Overview & Resources',
+        description: 'Read detailed course descriptions, instructor notes, and download supplementary lesson worksheets and PDFs.',
+        position: 'top'
+      },
+      {
+        target: '[data-target="qa"], #qaPane, .qa-thread',
+        title: 'Student Q&A & Doubts Desk',
+        description: 'Ask questions regarding specific lessons or the entire course, engage in discussions, and receive verified answers from faculty.',
+        position: 'top'
+      },
+      {
+        target: '[data-target="reviews"], #reviewsPane, #starIconInHeader, .rating-badge',
+        title: 'Student Reviews & Star Ratings',
+        description: 'Read verified student feedback, view rating score distributions, and share your own learning experience.',
+        position: 'top'
+      },
+      {
+        target: '[data-target="learning-tools"], #learning-toolsPane, .reminder-item',
+        title: 'Study Reminders & Scheduling',
+        description: 'Schedule personal push notifications and revision reminders to maintain disciplined study habits.',
         position: 'top'
       }
     ],
 
-    // 10. Teacher Courses Management
+    // 10. Teacher Courses Management (Management Page - NO Footer)
     'teacher_courses': [
       {
         target: '[data-tour="tc-hero"], .hero, header',
@@ -460,7 +578,7 @@
       {
         target: '[data-tour="course-create-btn"], .create-btn',
         title: 'Create New Course',
-        description: 'Click here to publish a new course with custom thumbnail, description, and fee details.',
+        description: 'Click here to publish a new course with custom thumbnail, description, and batch accessibility settings.',
         position: 'bottom'
       },
       {
@@ -470,50 +588,112 @@
         position: 'bottom'
       },
       {
-        target: '[data-tour="course-list-grid"], .courses-list, .tc-grid, footer, .footer',
-        title: 'Course Directory & Chapters',
-        description: 'Manage active courses, toggle student visibility, edit chapters, and upload study materials.',
+        target: '[data-tour="course-list-grid"], .courses-list, .tc-grid',
+        title: 'Course Directory & Cards',
+        description: 'Browse all active and draft courses with video counts, study material counts, and review statistics.',
+        position: 'top'
+      },
+      {
+        target: '.tc-card .tc-card-actions, .tc-card:first-child',
+        title: 'Course Content & Edit Actions',
+        description: 'Click "Materials" to upload lectures, "Edit" to modify metadata and batch visibility, or "Preview" to see the student view.',
+        position: 'top'
+      },
+      {
+        target: '.tc-card .tc-card-admin-actions, .tc-status-badge',
+        title: 'Active Status & Course Controls',
+        description: 'Toggle student accessibility on or off with one click, or delete outdated course modules.',
         position: 'top'
       }
     ],
 
-    // 11. Teacher Course Materials
+    // 11. Teacher Course Materials (Management Page - NO Footer)
     'teacher_course_materials': [
       {
-        target: '[data-tour="material-hero"], .hero, header',
+        target: '[data-tour="material-hero"], .tcm-hero, .hero, header',
         title: 'Course Content Manager',
-        description: 'Upload and organize lecture videos, PDF worksheets, and study notes for students.',
+        description: 'Upload and organize lecture videos, PDF worksheets, and study notes for students with live thumbnail preview.',
         position: 'bottom'
       },
       {
-        target: '[data-tour="material-upload-card"], .upload-card, footer, .footer',
-        title: 'Content Toolbar',
-        description: 'Add new materials or re-order chapters using drag-and-drop.',
+        target: '[data-tour="material-add-btn"], .btn-primary[onclick*="MaterialModal"]',
+        title: 'Add Lecture / Material',
+        description: 'Upload MP4 video lectures, YouTube video links, or downloadable PDF study notes for this course.',
         position: 'bottom'
+      },
+      {
+        target: '[data-tour="material-save-order-btn"], .studio-btn[onclick*="saveNewOrdering"]',
+        title: 'Save Reordered Curriculum',
+        description: 'After dragging and re-ordering lessons into sequence, click "Save Ordering" to persist the curriculum.',
+        position: 'bottom'
+      },
+      {
+        target: '.studio-table, #materialBody, .studio-layout',
+        title: 'Interactive Curriculum Table',
+        description: 'Use the drag handles on the left to reorder lessons, toggle visibility for students, or edit and delete individual materials.',
+        position: 'top'
       }
     ],
 
-    // 12. Teacher Course Preview
+    // 12. Teacher Course Preview (Preview Page - NO Footer)
     'teacher_course_preview': [
       {
-        target: '.preview-container, .hero, header, footer, .footer',
-        title: 'Student View Preview',
-        description: 'This is how your course and chapters will appear to enrolled students.',
-        position: 'bottom'
-      }
-    ],
-
-    // 13. Teacher Broadcast Center
-    'teacher_broadcast': [
-      {
-        target: '[data-tour="broadcast-compose"], form, .card',
-        title: 'Compose Broadcast Notice',
-        description: 'Draft announcements or urgent updates for your students.',
+        target: '.tp-header, .course-streaming-header, header',
+        title: 'Teacher Preview Bar',
+        description: 'This preview reproduces the exact student learning view. Use the back button to return to Course Management anytime.',
         position: 'bottom'
       },
       {
-        target: '[data-tour="broadcast-send-btn"], button[type="submit"], footer, .footer',
-        title: 'Send Notice',
+        target: '#playerWrapper, .main-player-container',
+        title: 'Student Video Player Screen',
+        description: 'Inspect lecture video streaming quality, player controls, and fullscreen mode as students experience it.',
+        position: 'bottom'
+      },
+      {
+        target: '.tp-info-area, .content-details',
+        title: 'Course Details & Insights Tab',
+        description: 'Review course description, enrolled student questions, feedback reviews, and performance insights.',
+        position: 'top'
+      },
+      {
+        target: '.tp-sidebar, aside.sidebar-column',
+        title: 'Curriculum & Lecture Outline',
+        description: 'Verify your chapter ordering, material titles, and instant search functionality.',
+        position: 'left'
+      }
+    ],
+
+    // 13. Teacher Broadcast Center (Management Page - NO Footer)
+    'teacher_broadcast': [
+      {
+        target: '.broadcast-tabs, #tabBtnBroadcast',
+        title: 'Broadcast vs Ads Banner Switcher',
+        description: 'Switch between sending instant alert notifications or configuring promotional website popup banners.',
+        position: 'bottom'
+      },
+      {
+        target: '#draftSelector, .draft-selector-container',
+        title: 'Saved Broadcast Drafts',
+        description: 'Quickly load, reuse, or manage previously saved announcement drafts.',
+        position: 'bottom'
+      },
+      {
+        target: '#broadcastDetailsGroup, [data-tour="broadcast-compose"], form',
+        title: 'Compose Announcement & Attachments',
+        description: 'Draft the subject and body text, and attach photos, video clips, or PDF documents (up to 10MB each).',
+        position: 'bottom'
+      },
+      {
+        target: '#audienceGroup, .audience-section, [data-tour="broadcast-audience"], #broadcastForm',
+        title: 'Target Audience Selection',
+        description: 'Direct your announcement to specific coaching batches, library floor students, verified alumni, or all users.',
+        position: 'top'
+      },
+      {
+        target: '#sendBroadcastBtn, [data-tour="broadcast-send-btn"], button[type="submit"]',
+        title: 'Send or Schedule Notice',
+        description: 'Publish your announcement immediately or schedule it for automated delivery.',
+        position: 'top'
       }
     ],
 
@@ -633,50 +813,80 @@
       }
     ],
 
-    // 16. Student Complaints
+    // 16. Student Complaints (Form & Tracker - NO Footer)
     'student_complaints': [
       {
-        target: '.complaint-container, .card, form, footer, .footer',
-        title: 'Submit & Track Complaints',
-        description: 'Lodge issues or request assistance regarding facilities, fees, or study environment.',
+        target: '.complaints-welcome-card, .welcome-card, header',
+        title: 'Student Complaint Box & Help Desk',
+        description: 'Lodge issues or request assistance regarding facilities, study environment, coaching doubts, or fees.',
         position: 'bottom'
+      },
+      {
+        target: '.complaint-form-card, form',
+        title: 'Lodge a Complaint Ticket',
+        description: 'Select the service category (Library / Coaching / General), describe your issue in detail, and attach supporting photos.',
+        position: 'top'
+      },
+      {
+        target: 'button[type="submit"], .btn-submit, .submit-btn',
+        title: 'Submit Ticket',
+        description: 'Submit your ticket for immediate administrative review. You will receive real-time notifications on resolution progress.',
+        position: 'top'
       }
     ],
 
     'student_complaint_rate': [
       {
-        target: 'form, .card, footer, .footer',
+        target: '.rating-container, form, .card',
         title: 'Rate Complaint Resolution',
-        description: 'Give feedback on how quickly and satisfactorily your issue was resolved.',
+        description: 'Give feedback on how quickly and satisfactorily your issue was resolved by the administration.',
         position: 'bottom'
       }
     ],
 
     'student_complaint_success': [
       {
-        target: '.success-card, .card, footer, .footer',
+        target: '.success-card, .card',
         title: 'Complaint Submitted Successfully',
-        description: 'Your complaint token has been registered. You will receive notifications on progress.',
+        description: 'Your complaint token has been registered. You will receive notifications on resolution progress.',
         position: 'bottom'
       }
     ],
 
     'resolved_complaints_public': [
       {
-        target: '.complaints-list, .grid, .card, footer, .footer',
-        title: 'Public Resolved Complaints',
-        description: 'Browse past resolved student complaints and transparency reports.',
+        target: '.hero-card, .page-container header',
+        title: 'Public Resolved Complaints & Transparency',
+        description: 'Browse campus resolution transparency reports showing resolved student feedback, facilities maintenance, and actions taken.',
         position: 'bottom'
+      },
+      {
+        target: '.complaint-card:first-child, .complaint-card',
+        title: 'Complaint Case & Official Resolution',
+        description: 'Inspect the reported issue, student feedback rating, and the official administration resolution note.',
+        position: 'top'
       }
     ],
 
-    // 17. Fee Calendar & Fee Record
+    // 17. Fee Calendar & Fee Record (Financial Hub - NO Footer)
     'fee_calendar': [
       {
-        target: '.calendar-container, .fee-calendar, .card, footer, .footer',
-        title: 'Fee Due Calendar',
-        description: 'Visual calendar highlighting payment due dates, upcoming renewals, and paid months.',
+        target: '.container .header, .header',
+        title: 'Student Fee Due Calendar',
+        description: 'Visual calendar highlighting payment due dates, upcoming renewals, paid months, and pending dues.',
         position: 'bottom'
+      },
+      {
+        target: '.year-picker-trigger, .year-selector-form',
+        title: 'Select Academic Year',
+        description: 'Switch between academic years to inspect historical payments or current fee schedules.',
+        position: 'bottom'
+      },
+      {
+        target: '.calendar-grid, .month-card',
+        title: '12-Month Payment Ledger',
+        description: 'Click on any month card to view verified payment dates, recorded receipts, or clear pending monthly dues.',
+        position: 'top'
       }
     ],
 
@@ -707,17 +917,35 @@
       }
     ],
 
-    // 18. Hall of Fame & Achievements
+    // 18. Hall of Fame & Achievements (NO Footer)
     'hall_of_fame': [
       {
-        target: '.hall-of-fame-container, .achievements-section, .hero, footer, .footer',
+        target: '.hall-header-section, header',
         title: 'ABCD Hall of Fame',
-        description: 'Celebrating top rankers, competitive exam toppers, and student success achievements.',
+        description: 'Celebrating top rankers, competitive exam toppers, and inspirational student success achievements.',
         position: 'bottom'
+      },
+      {
+        target: '.marquee-section, .marquee-container',
+        title: 'Top Rankers Showcase',
+        description: 'Continuous spotlight marquee highlighting selected students, job designations, and competitive scores.',
+        position: 'bottom'
+      },
+      {
+        target: '.hall-actions-bar, .hall-back-btn, .hall-edit-btn, a[href*="achievement"]',
+        title: 'Share Your Success Story',
+        description: 'Submit your own exam selection or competitive rank to be featured permanently on the Hall of Fame wall.',
+        position: 'bottom'
+      },
+      {
+        target: '.hall-cards-grid, .achievement-card:first-child, .achievement-card',
+        title: 'Achiever Profiles & Testimonials',
+        description: 'Read the full preparation journey, motivation quotes, and study experience of each featured student.',
+        position: 'top'
       }
     ],
 
-    // 18. Achievement Form (Field-by-Field Detailed Walkthrough)
+    // 18. Achievement Form (Field-by-Field Detailed Walkthrough - NO Footer)
     'achievement_form': [
       {
         target: '#id_first_name, [name="first_name"]',
@@ -807,36 +1035,78 @@
 
     'achievement_detail': [
       {
-        target: '.achievement-card, .card, footer, .footer',
-        title: 'Student Achievement Detail',
-        description: 'Read the full story, rank, and exam score of this featured student.',
+        target: '.back-btn-container, .hall-back-btn',
+        title: 'Navigation & Actions',
+        description: 'Return to the Hall of Fame wall or edit your achievement details.',
         position: 'bottom'
+      },
+      {
+        target: '.cv-container, .achievement-detail-container, .achievement-card',
+        title: 'Student Success Story',
+        description: 'Read the full story, competitive exam selection details, preparation journey, and inspirational review.',
+        position: 'top'
       }
     ],
 
-    // 19. Library Availability & Seat Status
+    // 19. Library Availability & Seat Status (NO Footer)
     'library_availability': [
       {
-        target: '.library-container, .seat-grid, .card, footer, .footer',
+        target: '.hub-navbar, .header, header',
         title: 'Live Library Seat Availability',
-        description: 'Check real-time seat layout across Morning, Afternoon, Evening, and Full-Day shifts.',
+        description: 'Check real-time seat availability across Ground Floor and 1st Floor silent study halls.',
         position: 'bottom'
+      },
+      {
+        target: '.floor-selector, .floor-tabs, [data-tour="floor-dropdown"]',
+        title: 'Select Floor & Level',
+        description: 'Toggle between Ground Floor and 1st Floor study halls to inspect seat layouts.',
+        position: 'bottom'
+      },
+      {
+        target: '.shift-selector, .shift-tabs, .shift-filter',
+        title: 'Shift Availability Filter',
+        description: 'Filter seats by Morning, Afternoon, Evening, or Full-Day shift to find an open desk.',
+        position: 'bottom'
+      },
+      {
+        target: '.legend, .legend-item',
+        title: 'Seat Status Legend',
+        description: 'Color-coded indicators for Available, Occupied, On Hold, or Shift-Occupied desks.',
+        position: 'bottom'
+      },
+      {
+        target: '.layout-container, .seat-grid, .seat-layout-wrapper',
+        title: 'Interactive 2D Seat Layout Grid',
+        description: 'Explore desk locations, charging points, and quiet zones on the real-time library floor map.',
+        position: 'top'
       }
     ],
 
     'your_seat_status': [
       {
-        target: '.seat-card, .card, footer, .footer',
-        title: 'Your Allocated Seat Details',
-        description: 'View your current reserved seat number, shift timing, and renewal information.',
+        target: '.hub-navbar, .header, header',
+        title: 'Your Allocated Seat Status',
+        description: 'View real-time information on your reserved study desk, shift timings, and seat holding privileges.',
         position: 'bottom'
+      },
+      {
+        target: '.seat-info-card, .seat-card, .card',
+        title: 'Seat Allocation & Desk Number',
+        description: 'Check your assigned seat number, floor level, shift hours, and fee renewal deadline.',
+        position: 'bottom'
+      },
+      {
+        target: '.seat-actions, .hold-seat-btn, .switch-seat-btn',
+        title: 'Seat Hold & Switch Options',
+        description: 'Submit a seat hold request if taking leave, or request a seat switch to another desk.',
+        position: 'top'
       }
     ],
 
-    // 20. Student Details & Profiles
+    // 20. Student Details & Profiles (NO Footer)
     'student_details': [
       {
-        target: '.student-profile-card, .card, .profile-header, footer, .footer',
+        target: '.student-profile-card, .card, .profile-header',
         title: 'Student Profile & Academic Records',
         description: 'Inspect enrolled courses, attendance, library seat shift, and fee history.',
         position: 'bottom'
@@ -845,7 +1115,7 @@
 
     'student_details_S': [
       {
-        target: '.student-card, .card, footer, .footer',
+        target: '.student-card, .card',
         title: 'Student Summary Details',
         description: 'Quick student overview and contact profile.',
         position: 'bottom'
@@ -854,7 +1124,7 @@
 
     'edit_student': [
       {
-        target: 'form, .edit-form-container, .card, footer, .footer',
+        target: 'form, .edit-form-container, .card',
         title: 'Edit Student Information',
         description: 'Update student contact details, batch assignment, or profile photo.',
         position: 'bottom'
@@ -863,7 +1133,7 @@
 
     'edit_alumni': [
       {
-        target: 'form, .edit-form-container, .card, footer, .footer',
+        target: 'form, .edit-form-container, .card',
         title: 'Edit Alumni Profile',
         description: 'Update current job title, company, exam rank, or higher education status.',
         position: 'bottom'
@@ -932,7 +1202,7 @@
 
     'guest_profile_details': [
       {
-        target: '.profile-container, .card, footer, .footer',
+        target: '.profile-container, .card',
         title: 'Guest Profile Overview',
         description: 'View saved inquiries, bookmark courses, and check admission status.',
         position: 'bottom'
@@ -941,17 +1211,17 @@
 
     'register': [
       {
-        target: 'form, .register-card, .card, footer, .footer',
+        target: 'form, .register-card, .card',
         title: 'Create an Account',
         description: 'Register for a new student or guest account to access coaching and library booking.',
         position: 'bottom'
       }
     ],
 
-    // 21. Services, About Us & Contact
+    // 21. Services, About Us & Contact (NO Footer)
     'contact': [
       {
-        target: '.contact-container, form, .card, footer, .footer',
+        target: '.contact-container, form, .card',
         title: 'Get in Touch',
         description: 'Contact us via phone, WhatsApp, email, or send us a quick inquiry message.',
         position: 'bottom'
@@ -1093,6 +1363,20 @@
 
       let stepsToUse = [...this.steps];
 
+      // Strict Home Base Footer rule: Only home base pages may EVER introduce the footer!
+      if (!HOME_BASE_PAGES.has(this.currentTourKey)) {
+        stepsToUse = stepsToUse.filter(s => {
+          const t = (s.target || '').toLowerCase().trim();
+          return !(
+            t === 'footer' ||
+            t === '.footer' ||
+            t === '.site-footer' ||
+            t.includes('footer, .footer') ||
+            t.includes('.site-footer')
+          );
+        });
+      }
+
       // Dynamic filtering for admission_form based on selected service
       if (this.currentTourKey === 'admission_form') {
         const serviceSelect = document.getElementById('id_service_type') || document.querySelector('[name="service_type"]');
@@ -1120,6 +1404,16 @@
             if (libraryElem && window.getComputedStyle(libraryElem).display === 'none') {
               libraryElem.style.display = 'block';
               tempShown = libraryElem;
+            }
+          }
+        } else if (this.currentTourKey === 'course_detail') {
+          // In course_detail, tab panes are dynamically activated during showStep
+          if (s.target.includes('#qaPane') || s.target.includes('#reviewsPane') || s.target.includes('#learning-toolsPane') || s.target.includes('#overviewPane')) {
+            const paneId = s.target.includes('#qaPane') ? 'qaPane' : (s.target.includes('#reviewsPane') ? 'reviewsPane' : (s.target.includes('#learning-toolsPane') ? 'learning-toolsPane' : 'overviewPane'));
+            const paneEl = document.getElementById(paneId);
+            if (paneEl) {
+              validSteps.push(s);
+              continue;
             }
           }
         }
@@ -1203,7 +1497,21 @@
     resolveTarget(step) {
       if (!step || !step.target) return null;
 
-      const selectors = step.target.split(',').map(s => s.trim());
+      const isHomeBase = HOME_BASE_PAGES.has(this.currentTourKey);
+      const selectors = step.target
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => {
+          if (!isHomeBase) {
+            const sLower = s.toLowerCase();
+            if (sLower === 'footer' || sLower.startsWith('.footer') || sLower.startsWith('.site-footer')) {
+              return false;
+            }
+          }
+          return true;
+        });
+
+      if (selectors.length === 0) return null;
 
       for (const sel of selectors) {
         const els = document.querySelectorAll(sel);
@@ -1325,6 +1633,24 @@
         }
         if (tabToClick) {
           tabToClick.click();
+        }
+      }
+
+      // Dynamic tab activation for course_detail
+      if (this.currentTourKey === 'course_detail') {
+        let tabToClick = null;
+        if (step.target.includes('qa')) {
+          tabToClick = document.querySelector('.tab-trigger[data-target="qa"]');
+        } else if (step.target.includes('reviews')) {
+          tabToClick = document.querySelector('.tab-trigger[data-target="reviews"]');
+        } else if (step.target.includes('learning-tools')) {
+          tabToClick = document.querySelector('.tab-trigger[data-target="learning-tools"]');
+        } else if (step.target.includes('overview')) {
+          tabToClick = document.querySelector('.tab-trigger[data-target="overview"]');
+        }
+        if (tabToClick && !tabToClick.classList.contains('active')) {
+          tabToClick.click();
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
 

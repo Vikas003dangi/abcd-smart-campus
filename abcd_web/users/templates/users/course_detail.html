@@ -1397,7 +1397,7 @@
 {% block content %}
 <div class="udemy-full-wrapper">
     <!-- Header -->
-    <header class="course-streaming-header">
+    <header class="course-streaming-header" data-tour="course-stream-header">
         <div class="header-left">
             <a href="{% url 'users:courses' %}" class="ud-btn-ghost">
                 <i class='bx bx-chevron-left' style="font-size: 1.5rem;"></i>
@@ -1445,6 +1445,10 @@
                         <i class='bx {% if interaction.is_archived %}bxs-folder-open arch-active{% else %}bx-folder{% endif %}' id="archiveIcon"></i>
                         <span id="archiveText">{% if interaction.is_archived %}Archived (Restore){% else %}Archive this course{% endif %}</span>
                     </a>
+                    <a href="javascript:void(0)" onclick="if(window.ABCDTour){window.ABCDTour.start(true);}" class="ud-dropdown-item" id="courseTourLink">
+                        <i class='bx bx-compass' style="color: var(--accent);"></i>
+                        <span>Course Tour</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -1453,7 +1457,7 @@
     <div class="streaming-layout">
         <!-- Main Player Area -->
         <main class="player-column">
-            <div class="main-player-container" id="playerWrapper">
+            <div class="main-player-container" id="playerWrapper" data-tour="course-player-screen">
                 {% if is_locked %}
                     <div class="locked-overlay" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; color: white; padding: 40px 20px;">
                         <div class="lock-icon-circle {% if is_pending_student or is_pending_alumni %}lock-amber{% else %}lock-red{% endif %}">
@@ -1530,7 +1534,7 @@
                     </h1>
                 </div>
 
-                <div class="info-tabs">
+                <div class="info-tabs" data-tour="course-info-tabs">
                     <div data-target="search" class="tab-trigger"><i class='bx bx-search' style="font-size: 1.2rem;"></i></div>
                     <div data-target="overview" class="tab-trigger active">Overview</div>
                     <div data-target="qa" class="tab-trigger">Q&A</div>
@@ -1825,7 +1829,7 @@
         </main>
 
         <!-- Sidebar Area -->
-        <aside class="sidebar-column">
+        <aside class="sidebar-column" data-tour="course-curriculum-sidebar">
             <div class="sidebar-header">
                 <h3>Course Content</h3>
                 <div class="search-wrapper">
