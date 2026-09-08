@@ -7,29 +7,69 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script>
+    // Immediate early theme detection to prevent flash of wrong theme
+    (function() {
+      try {
+        const saved = localStorage.getItem('theme');
+        if (saved === 'dark' || saved === 'dark-theme' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark-theme');
+        } else {
+          document.documentElement.classList.remove('dark-theme');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
   <style>
     :root {
       --primary: #f59e0b;
       --primary-dark: #d97706;
       --secondary: #ef4444;
-      --bg-dark: #0b0f19;
-      --card-dark: rgba(255, 255, 255, 0.05);
-      --border-dark: rgba(255, 255, 255, 0.1);
-      --text: #f8fafc;
+      --bg: radial-gradient(circle at 50% 15%, #fef3c7 0%, #fffbeb 60%, #f8fafc 100%);
+      --card-bg: rgba(255, 255, 255, 0.92);
+      --card-border: rgba(245, 158, 11, 0.2);
+      --card-shadow: 0 25px 50px -12px rgba(217, 119, 6, 0.16), 0 10px 25px -5px rgba(0, 0, 0, 0.04);
+      --text-title: #0f172a;
+      --text-muted: #475569;
+      --btn-sec-bg: #f1f5f9;
+      --btn-sec-color: #1e293b;
+      --btn-sec-border: #cbd5e1;
+      --btn-sec-hover: #e2e8f0;
+      --brand-tag: #64748b;
+      --theme-btn-bg: rgba(0, 0, 0, 0.05);
+      --theme-btn-color: #334155;
+    }
+
+    .dark-theme, body.dark-theme {
+      --bg: radial-gradient(circle at 50% 20%, #451a03 0%, #0b0f19 80%);
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --card-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      --text-title: #f8fafc;
       --text-muted: #94a3b8;
+      --btn-sec-bg: rgba(255, 255, 255, 0.08);
+      --btn-sec-color: #f8fafc;
+      --btn-sec-border: rgba(255, 255, 255, 0.12);
+      --btn-sec-hover: rgba(255, 255, 255, 0.14);
+      --brand-tag: #64748b;
+      --theme-btn-bg: rgba(255, 255, 255, 0.1);
+      --theme-btn-color: #f8fafc;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       min-height: 100vh;
-      background: radial-gradient(circle at 50% 20%, #451a03 0%, #0b0f19 80%);
-      color: var(--text);
+      background: var(--bg);
+      color: var(--text-title);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -40,14 +80,14 @@
     .error-container {
       max-width: 600px;
       width: 100%;
-      background: var(--card-dark);
-      border: 1px solid var(--border-dark);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-radius: 24px;
       padding: 48px 36px;
       text-align: center;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      box-shadow: var(--card-shadow);
       position: relative;
       animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -55,6 +95,28 @@
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    .theme-toggle-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+      background: var(--theme-btn-bg);
+      color: var(--theme-btn-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.25s ease;
+    }
+
+    .theme-toggle-btn:hover {
+      transform: scale(1.08);
     }
 
     .badge-code {
@@ -73,7 +135,7 @@
       font-size: 1.75rem;
       font-weight: 700;
       margin-bottom: 12px;
-      color: #fff;
+      color: var(--text-title);
     }
 
     p {
@@ -105,7 +167,7 @@
 
     .btn-primary {
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: #fff;
+      color: #ffffff;
       box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.5);
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
@@ -116,26 +178,30 @@
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      border: 1px solid var(--border-dark);
+      background: var(--btn-sec-bg);
+      color: var(--btn-sec-color);
+      border: 1px solid var(--btn-sec-border);
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.14);
+      background: var(--btn-sec-hover);
       transform: translateY(-2px);
     }
 
     .brand-tag {
       margin-top: 36px;
       font-size: 0.82rem;
-      color: #64748b;
+      color: var(--brand-tag);
       letter-spacing: 0.5px;
     }
   </style>
 </head>
 <body>
   <div class="error-container">
+    <button id="themeToggle" class="theme-toggle-btn" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+      <span id="themeIcon">🌙</span>
+    </button>
+
     <div class="badge-code">500</div>
     <h1>Something Went Wrong</h1>
     <p>
@@ -157,5 +223,38 @@
       ABCD Coaching & Smart Library Management Platform
     </div>
   </div>
+
+  <script>
+    const root = document.documentElement;
+    const body = document.body;
+    const btn = document.getElementById('themeToggle');
+    const icon = document.getElementById('themeIcon');
+
+    function syncIcon() {
+      const isDark = root.classList.contains('dark-theme') || body.classList.contains('dark-theme');
+      if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    }
+
+    // Apply saved or system theme on DOM ready
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'dark-theme' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      root.classList.add('dark-theme');
+      body.classList.add('dark-theme');
+    } else {
+      root.classList.remove('dark-theme');
+      body.classList.remove('dark-theme');
+    }
+    syncIcon();
+
+    // Toggle button handler
+    if (btn) {
+      btn.addEventListener('click', function() {
+        const isDark = root.classList.toggle('dark-theme');
+        body.classList.toggle('dark-theme', isDark);
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        syncIcon();
+      });
+    }
+  </script>
 </body>
 </html>
