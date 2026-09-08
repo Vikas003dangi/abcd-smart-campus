@@ -163,6 +163,32 @@
                 background: rgba(255, 255, 255, 0.15);
                 color: #ffffff;
             }
+            .abcd-push-guide-callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                background: rgba(102, 126, 234, 0.08);
+                border: 1px dashed rgba(102, 126, 234, 0.3);
+                border-radius: 14px;
+                padding: 12px 14px;
+                font-size: 0.88rem;
+                line-height: 1.5;
+                color: #334155;
+            }
+            body.dark-theme .abcd-push-guide-callout {
+                background: rgba(168, 85, 247, 0.1);
+                border-color: rgba(168, 85, 247, 0.3);
+                color: #e2e8f0;
+            }
+            .abcd-push-arrow-up {
+                font-size: 1.4rem;
+                line-height: 1;
+                animation: floatUp 1.2s infinite ease-in-out alternate;
+            }
+            @keyframes floatUp {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(-4px); }
+            }
             @media (max-width: 480px) {
                 .abcd-push-bubble {
                     bottom: 18px;
@@ -220,8 +246,73 @@
         buildBubble();
         window.__abcd_active_prompt = 'notification';
         requestAnimationFrame(() => {
-            bubble.classList.add('show');
+            if (bubble) bubble.classList.add('show');
         });
+    }
+
+    function showBrowserPromptGuide() {
+        if (!bubble) return;
+        bubble.innerHTML = `
+            <div class="abcd-push-header">
+                <div class="abcd-push-title">
+                    <div class="abcd-push-bell-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); animation: none;">
+                        <i class='bx bx-check-circle'></i>
+                    </div>
+                    <span>Confirm in Browser</span>
+                </div>
+            </div>
+            <div class="abcd-push-body" style="margin-bottom: 0;">
+                <div class="abcd-push-guide-callout">
+                    <span class="abcd-push-arrow-up">👆</span>
+                    <div>
+                        Please click <strong>"Allow"</strong> on the browser prompt at the top-left to activate live notifications on this device.
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function showDeniedInstructions() {
+        injectStyles();
+        if (!bubble) {
+            bubble = document.createElement('div');
+            bubble.className = 'abcd-push-bubble';
+            bubble.id = 'abcdPushBubble';
+            document.body.appendChild(bubble);
+        }
+        window.__abcd_active_prompt = 'notification';
+        bubble.innerHTML = `
+            <div class="abcd-push-header">
+                <div class="abcd-push-title">
+                    <div class="abcd-push-bell-icon" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); animation: none;">
+                        <i class='bx bx-bell-off'></i>
+                    </div>
+                    <span>Notifications Blocked</span>
+                </div>
+                <button class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close">&times;</button>
+            </div>
+            <div class="abcd-push-body">
+                Notifications are currently blocked in your browser settings. To enable them on this device:
+                <ol style="margin: 8px 0 0 16px; padding: 0; font-size: 0.85rem; line-height: 1.6;">
+                    <li>Click the <strong>tune / lock icon (🔒)</strong> in your address bar next to the URL.</li>
+                    <li>Switch <strong>Notifications</strong> to <strong>Allow</strong>.</li>
+                    <li>Refresh the page to start receiving alerts.</li>
+                </ol>
+            </div>
+            <div class="abcd-push-actions">
+                <button class="abcd-push-btn-allow" id="abcdPushDeniedCloseBtn" style="background: #475569;">
+                    Got It
+                </button>
+            </div>
+        `;
+        requestAnimationFrame(() => {
+            if (bubble) bubble.classList.add('show');
+        });
+
+        const closeBtn = document.getElementById('abcdPushCloseBtn');
+        const gotItBtn = document.getElementById('abcdPushDeniedCloseBtn');
+        if (closeBtn) closeBtn.addEventListener('click', () => dismissPrompt(true));
+        if (gotItBtn) gotItBtn.addEventListener('click', () => dismissPrompt(true));
     }
 
     function dismissPrompt(isSessionDismiss = true) {
@@ -240,17 +331,73 @@
         }
     }
 
-    // 4. Permission Request ONLY triggered on user click
+    // Sound chime helper
+    function playChime(src) {
+        try {
+            const audio = new Audio(src || '/static/audio/PWA.mp3');
+            audio.volume = 0.85;
+            audio.play().catch(function () {});
+        } catch (e) {}
+    }
+
+    // Direct OS Device Notification Trigger
+    async function triggerDeviceTestNotification(reg, title, body) {
+        try {
+            if (!reg) {
+                reg = await navigator.serviceWorker.ready;
+            }
+            if (reg && 'showNotification' in reg) {
+                await reg.showNotification(title || 'ABCD Smart Campus', {
+                    body: body || '🔔 Live device notifications are working properly!',
+                    icon: '/static/data/favicon/web-app-manifest-192x192.png',
+                    badge: '/static/data/favicon/favicon-96x96.png',
+                    tag: 'abcd-device-alert-' + Date.now(),
+                    renotify: true,
+                    requireInteraction: false,
+                    vibrate: [200, 100, 200],
+                    data: {
+                        url: window.location.href,
+                        timestamp: Date.now()
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Direct device notification display issue:', e);
+        }
+    }
+
+    // 4. Permission Request Triggered on User Action
     async function requestNotificationPermission() {
         try {
+            if (Notification.permission === 'denied') {
+                showDeniedInstructions();
+                return;
+            }
+
+            // Guide user to the browser prompt at top-left
+            showBrowserPromptGuide();
+
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 localStorage.setItem(ALLOWED_KEY, 'true');
                 dismissPrompt(false);
-                await registerServiceWorkerAndSync();
+
+                const reg = await registerServiceWorkerAndSync({ sendWelcome: true });
+
+                // Fire real device notification immediately
+                await triggerDeviceTestNotification(
+                    reg,
+                    '🎉 Notifications Activated!',
+                    'Your device is now connected for instant library seat & campus alerts.'
+                );
+
+                playChime('/static/audio/PWA.mp3');
+
                 if (window.CustomPopup) {
-                    CustomPopup.alert('Notifications are successfully enabled! You will receive important campus updates.', '🎉 Notifications Active');
+                    CustomPopup.alert('Device notifications are successfully enabled! A confirmation alert was just sent to your device tray.', '🎉 Notifications Active');
                 }
+            } else if (permission === 'denied') {
+                showDeniedInstructions();
             } else {
                 dismissPrompt(true);
             }
@@ -260,8 +407,12 @@
         }
     }
 
-    async function registerServiceWorkerAndSync() {
+    async function registerServiceWorkerAndSync(options = {}) {
         try {
+            if (Notification.permission !== 'granted') {
+                return null;
+            }
+
             let reg;
             try {
                 reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
@@ -287,7 +438,7 @@
 
             if (!vapidPublicKey) {
                 console.warn('VAPID public key missing. Web Push subscription postponed.');
-                return;
+                return reg;
             }
 
             let sub = await reg.pushManager.getSubscription();
@@ -300,32 +451,70 @@
                     });
                 } catch (subErr) {
                     console.warn('Subscription with converted key failed, retrying with raw key:', subErr);
-                    sub = await reg.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: vapidPublicKey
-                    });
+                    try {
+                        sub = await reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: vapidPublicKey
+                        });
+                    } catch (rawErr) {
+                        console.warn('Raw key subscribe failed:', rawErr);
+                    }
                 }
             }
 
             if (sub) {
                 const csrfToken = getCsrfToken();
+                const payload = sub.toJSON ? sub.toJSON() : JSON.parse(JSON.stringify(sub));
+                if (options.sendWelcome) {
+                    payload.send_welcome = true;
+                }
                 await fetch('/api/save-push-subscription/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify(sub)
+                    body: JSON.stringify(payload)
                 });
             }
+
+            return reg;
         } catch (err) {
             console.error('Failed to register Web Push Subscription:', err);
+            return null;
         }
     }
 
-    // Global manual trigger
+    // Global manual triggers
     window.showABCDNotificationPrompt = function () {
-        showBubble();
+        if (Notification.permission === 'denied') {
+            showDeniedInstructions();
+        } else if (Notification.permission === 'granted') {
+            window.testDeviceNotification();
+        } else {
+            showBubble();
+        }
+    };
+
+    window.testDeviceNotification = async function () {
+        if (Notification.permission !== 'granted') {
+            window.showABCDNotificationPrompt();
+            return;
+        }
+        try {
+            const reg = await registerServiceWorkerAndSync();
+            await triggerDeviceTestNotification(
+                reg,
+                '⚡ ABCD Device Alert',
+                'Live notifications are connected and working on this device!'
+            );
+            playChime('/static/audio/PWA.mp3');
+            if (window.CustomPopup) {
+                CustomPopup.alert('Test alert delivered to your device notification tray!', '🔔 Device Alert Verified');
+            }
+        } catch (e) {
+            console.error('Test notification failed:', e);
+        }
     };
 
     window.updateAppBadge = function (count) {
@@ -339,17 +528,22 @@
         }
     };
 
-    // If already granted, ensure service worker is registered in the background
-    if (Notification.permission === 'granted' || localStorage.getItem(ALLOWED_KEY) === 'true') {
+    // Initialization:
+    // Only background sync if ALREADY granted by browser
+    if (Notification.permission === 'granted') {
+        localStorage.setItem(ALLOWED_KEY, 'true');
         registerServiceWorkerAndSync();
-    } else if (Notification.permission !== 'denied' && sessionStorage.getItem(DISMISS_SESSION_KEY) !== 'true') {
-        // Auto-show prompt after 2.2s
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
+    } else {
+        localStorage.removeItem(ALLOWED_KEY);
+        // Only show soft primer prompt if permission is 'default' and not dismissed in this session
+        if (Notification.permission === 'default' && sessionStorage.getItem(DISMISS_SESSION_KEY) !== 'true') {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(showBubble, 2200);
+                });
+            } else {
                 setTimeout(showBubble, 2200);
-            });
-        } else {
-            setTimeout(showBubble, 2200);
+            }
         }
     }
 

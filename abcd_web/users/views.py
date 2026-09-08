@@ -9600,13 +9600,29 @@ def save_push_subscription(request):
         if not endpoint or not keys:
             return JsonResponse({'status': 'error', 'message': 'Missing endpoint or keys'}, status=400)
 
-        PushSubscription.objects.update_or_create(
+        sub, created = PushSubscription.objects.update_or_create(
             endpoint=endpoint,
             defaults={
                 'user': request.user,
                 'keys': keys
             }
         )
+
+        # Optional welcome push notification from server
+        send_welcome = data.get('send_welcome') or request.GET.get('test') == '1'
+        if send_welcome:
+            try:
+                from .notifications import send_push
+                send_push(
+                    request.user,
+                    title="ABCD Smart Campus",
+                    body="🔔 Device connected! You will receive live updates for seat status and classes.",
+                    url="/",
+                    category="system"
+                )
+            except Exception:
+                pass
+
         return JsonResponse({'status': 'ok', 'message': 'Push subscription saved successfully'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
