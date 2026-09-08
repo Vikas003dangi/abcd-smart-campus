@@ -1,4 +1,4 @@
-/* static/js/push-permission.js - Non-intrusive Custom PWA Web Push Permission UI */
+/* static/js/push-permission.js - Non-intrusive Custom PWA/TWA Web Push Permission UI */
 
 (function () {
     'use strict';
@@ -14,6 +14,15 @@
     }
 
     let bubble = null;
+    let pendingCallback = null;
+
+    // Detect if running as standalone PWA or TWA (Play Store app container)
+    function isRunningAsApp() {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+               window.navigator.standalone === true ||
+               document.referrer.includes('android-app://') ||
+               window.matchMedia('(display-mode: fullscreen)').matches;
+    }
 
     // 2. Inject CSS styles for the notification prompt (dual-theme supported)
     function injectStyles() {
@@ -204,10 +213,14 @@
         document.head.appendChild(style);
     }
 
-    // 3. Build and attach HTML bubble element
-    function buildBubble() {
+    // 3. Build and attach HTML bubble element with optional custom text
+    function buildBubble(options = {}) {
         if (bubble) return;
         injectStyles();
+
+        const title = options.title || 'Enable Notifications';
+        const body = options.body || 'Get instant alerts for class updates, live library seat availability, and Guidy study support.';
+        const allowBtnText = options.allowBtnText || 'Allow Alerts';
 
         bubble = document.createElement('div');
         bubble.className = 'abcd-push-bubble';
@@ -218,16 +231,16 @@
                     <div class="abcd-push-bell-icon">
                         <i class="bx bxs-bell-ring"></i>
                     </div>
-                    <span>Enable Notifications</span>
+                    <span>${title}</span>
                 </div>
                 <button class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close">&times;</button>
             </div>
             <div class="abcd-push-body">
-                Get instant alerts for class updates, live library seat availability, and Guidy study support.
+                ${body}
             </div>
             <div class="abcd-push-actions">
                 <button class="abcd-push-btn-allow" id="abcdPushAllowBtn">
-                    <i class='bx bx-check-shield'></i> Allow Alerts
+                    <i class='bx bx-check-shield'></i> ${allowBtnText}
                 </button>
                 <button class="abcd-push-btn-later" id="abcdPushLaterBtn">Not Now</button>
             </div>
@@ -241,11 +254,15 @@
         document.getElementById('abcdPushCloseBtn').addEventListener('click', () => dismissPrompt(true));
     }
 
-    function showBubble() {
+    function showBubble(options = {}) {
         if (window.__abcd_active_prompt && window.__abcd_active_prompt !== 'notification') {
             return;
         }
-        buildBubble();
+        if (bubble && bubble.parentNode) {
+            bubble.parentNode.removeChild(bubble);
+            bubble = null;
+        }
+        buildBubble(options);
         window.__abcd_active_prompt = 'notification';
         requestAnimationFrame(() => {
             if (bubble) bubble.classList.add('show');
@@ -254,21 +271,24 @@
 
     function showBrowserPromptGuide() {
         if (!bubble) return;
+        const isApp = isRunningAsApp();
+        const guideText = isApp
+            ? 'Please tap <strong>"Allow"</strong> on the device permission dialog to activate live notifications.'
+            : 'Please click <strong>"Allow"</strong> on the browser prompt at the top-left to activate live notifications on this device.';
+
         bubble.innerHTML = `
             <div class="abcd-push-header">
                 <div class="abcd-push-title">
                     <div class="abcd-push-bell-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); animation: none;">
                         <i class='bx bx-check-circle'></i>
                     </div>
-                    <span>Confirm in Browser</span>
+                    <span>Confirm Permission</span>
                 </div>
             </div>
             <div class="abcd-push-body" style="margin-bottom: 0;">
                 <div class="abcd-push-guide-callout">
                     <span class="abcd-push-arrow-up">👆</span>
-                    <div>
-                        Please click <strong>"Allow"</strong> on the browser prompt at the top-left to activate live notifications on this device.
-                    </div>
+                    <div>${guideText}</div>
                 </div>
             </div>
         `;
@@ -283,23 +303,35 @@
             document.body.appendChild(bubble);
         }
         window.__abcd_active_prompt = 'notification';
+
+        const isApp = isRunningAsApp();
+        const stepsHtml = isApp ? `
+            <ol style="margin: 8px 0 0 16px; padding: 0; font-size: 0.85rem; line-height: 1.6;">
+                <li>Open your device <strong>Settings</strong>.</li>
+                <li>Tap <strong>Apps</strong> &gt; <strong>ABCD Smart Campus</strong>.</li>
+                <li>Tap <strong>Notifications</strong> and switch to <strong>Allowed</strong>.</li>
+            </ol>
+        ` : `
+            <ol style="margin: 8px 0 0 16px; padding: 0; font-size: 0.85rem; line-height: 1.6;">
+                <li>Click the <strong>tune / lock icon (🔒)</strong> in your address bar next to the URL.</li>
+                <li>Switch <strong>Notifications</strong> to <strong>Allow</strong>.</li>
+                <li>Refresh the page to start receiving alerts.</li>
+            </ol>
+        `;
+
         bubble.innerHTML = `
             <div class="abcd-push-header">
                 <div class="abcd-push-title">
                     <div class="abcd-push-bell-icon" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); animation: none;">
                         <i class='bx bx-bell-off'></i>
                     </div>
-                    <span>Notifications Blocked</span>
+                    <span>${isApp ? 'App Notifications Disabled' : 'Notifications Blocked'}</span>
                 </div>
                 <button class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close">&times;</button>
             </div>
             <div class="abcd-push-body">
-                Notifications are currently blocked in your browser settings. To enable them on this device:
-                <ol style="margin: 8px 0 0 16px; padding: 0; font-size: 0.85rem; line-height: 1.6;">
-                    <li>Click the <strong>tune / lock icon (🔒)</strong> in your address bar next to the URL.</li>
-                    <li>Switch <strong>Notifications</strong> to <strong>Allow</strong>.</li>
-                    <li>Refresh the page to start receiving alerts.</li>
-                </ol>
+                Notifications are currently turned off on your device. To enable them:
+                ${stepsHtml}
             </div>
             <div class="abcd-push-actions">
                 <button class="abcd-push-btn-allow" id="abcdPushDeniedCloseBtn" style="background: #475569;">
@@ -324,6 +356,10 @@
                 // Snooze for 3 days so it reappears occasionally (not too fast, not too late)
                 localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_DURATION_MS));
             } catch (e) {}
+        }
+        if (typeof pendingCallback === 'function') {
+            pendingCallback(false);
+            pendingCallback = null;
         }
         if (bubble) {
             bubble.classList.remove('show');
@@ -377,10 +413,14 @@
         try {
             if (Notification.permission === 'denied') {
                 showDeniedInstructions();
+                if (typeof pendingCallback === 'function') {
+                    pendingCallback(false);
+                    pendingCallback = null;
+                }
                 return;
             }
 
-            // Guide user to the browser prompt at top-left
+            // Guide user to the browser/device prompt
             showBrowserPromptGuide();
 
             const permission = await Notification.requestPermission();
@@ -403,8 +443,17 @@
                 if (window.CustomPopup) {
                     CustomPopup.alert('Device notifications are successfully enabled! A confirmation alert was just sent to your device tray.', '🎉 Notifications Active');
                 }
+
+                if (typeof pendingCallback === 'function') {
+                    pendingCallback(true);
+                    pendingCallback = null;
+                }
             } else if (permission === 'denied') {
                 showDeniedInstructions();
+                if (typeof pendingCallback === 'function') {
+                    pendingCallback(false);
+                    pendingCallback = null;
+                }
             } else {
                 dismissPrompt(true);
             }
@@ -492,7 +541,46 @@
         }
     }
 
-    // Global manual triggers
+    // 5. Contextual Action Prompting & Manual Triggers
+    window.promptNotificationForAction = function (actionType = 'general', customMessage = null) {
+        if (Notification.permission === 'granted') {
+            return Promise.resolve(true);
+        }
+
+        if (Notification.permission === 'denied') {
+            showDeniedInstructions();
+            return Promise.resolve(false);
+        }
+
+        let title = 'Enable Notifications';
+        let body = 'Get instant live alerts on your device.';
+
+        const act = (actionType || '').toLowerCase();
+        if (act.includes('seat') || act.includes('hold') || act.includes('switch')) {
+            title = 'Live Seat Alerts';
+            body = customMessage || 'Enable device notifications to receive instant updates when your seat, shift, or hold status changes.';
+        } else if (act.includes('guidy') || act.includes('chat') || act.includes('message')) {
+            title = 'Guidy Study Alerts';
+            body = customMessage || 'Enable notifications to get instant alerts when teachers or study mentors reply to your questions.';
+        } else if (act.includes('reminder') || act.includes('alarm')) {
+            title = 'Class & Study Reminders';
+            body = customMessage || 'Enable notifications so you never miss scheduled study alarms and class timings.';
+        } else if (customMessage) {
+            body = customMessage;
+        }
+
+        return new Promise((resolve) => {
+            pendingCallback = resolve;
+            showBubble({
+                title: title,
+                body: body,
+                allowBtnText: 'Allow Alerts'
+            });
+        });
+    };
+
+    window.ensureNotificationPermission = window.promptNotificationForAction;
+
     window.showABCDNotificationPrompt = function () {
         if (Notification.permission === 'denied') {
             showDeniedInstructions();
@@ -535,6 +623,38 @@
         }
     };
 
+    // 6. Permission State Sync & Tracking
+    function syncPermissionState() {
+        if (Notification.permission === 'granted') {
+            localStorage.setItem(ALLOWED_KEY, 'true');
+            try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
+            registerServiceWorkerAndSync();
+        } else {
+            // User turned off or revoked permission in device settings or browser!
+            localStorage.removeItem(ALLOWED_KEY);
+            sessionStorage.removeItem(DISMISS_SESSION_KEY);
+        }
+    }
+
+    // Listen on window focus & visibility changes (e.g. user toggled settings in Android settings and resumed app)
+    window.addEventListener('focus', syncPermissionState);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            syncPermissionState();
+        }
+    });
+
+    // Dynamic Permission Tracking: detect if permission was revoked in browser settings
+    if ('permissions' in navigator && navigator.permissions.query) {
+        try {
+            navigator.permissions.query({ name: 'notifications' }).then(function (permStatus) {
+                permStatus.onchange = function () {
+                    syncPermissionState();
+                };
+            }).catch(function () {});
+        } catch (e) {}
+    }
+
     function shouldShowPrompt() {
         if (Notification.permission === 'granted' || Notification.permission === 'denied') {
             return false;
@@ -551,27 +671,17 @@
         return true;
     }
 
-    // Dynamic Permission Tracking: detect if permission was revoked in browser settings
-    if ('permissions' in navigator && navigator.permissions.query) {
-        try {
-            navigator.permissions.query({ name: 'notifications' }).then(function (permStatus) {
-                permStatus.onchange = function () {
-                    if (permStatus.state === 'granted') {
-                        localStorage.setItem(ALLOWED_KEY, 'true');
-                        try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
-                        dismissPrompt(false);
-                        registerServiceWorkerAndSync();
-                    } else {
-                        // User revoked permission in browser settings!
-                        localStorage.removeItem(ALLOWED_KEY);
-                        sessionStorage.removeItem(DISMISS_SESSION_KEY);
-                    }
-                };
-            }).catch(function () {});
-        } catch (e) {}
-    }
+    // Event delegation: auto-prompt when user interacts with elements that push notifications
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('[data-needs-notification], [data-push-action], .js-prompt-notification');
+        if (trigger && Notification.permission !== 'granted') {
+            const actionType = trigger.getAttribute('data-push-action') || 'general';
+            const msg = trigger.getAttribute('data-push-message') || null;
+            window.promptNotificationForAction(actionType, msg);
+        }
+    }, true);
 
-    // Initialization:
+    // 7. Initialization
     if (Notification.permission === 'granted') {
         localStorage.setItem(ALLOWED_KEY, 'true');
         try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
