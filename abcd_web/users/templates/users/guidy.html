@@ -77,13 +77,15 @@ html, body {
 .g-msg-row.mine .g-audio-fill { background: white; }
 
 /* Jumbo Emoji Bubble */
-.jumbo-emoji-bubble {
+.jumbo-emoji-bubble,
+.jumbo-emoji-bubble .g-msg-text {
   background: transparent !important;
   box-shadow: none !important;
+  border: none !important;
   padding: 0 !important;
-  font-size: 4rem;
-  line-height: 1.1;
-  display: inline-block;
+  font-size: 3.2rem !important;
+  line-height: 1.15 !important;
+  display: inline-block !important;
   position: relative !important;
 }
 .g-msg-row.mine .jumbo-emoji-bubble .msg-chevron,
@@ -2228,7 +2230,10 @@ body.dark-theme .nc-gradient-title {
     .g-bubble { font-size: 0.95rem; padding: 8px 12px; }
     
     /* Ensure the Jumbo Emoji doesn't break the screen */
-    .jumbo-emoji-bubble { font-size: 2.5rem !important; }
+    .jumbo-emoji-bubble,
+    .jumbo-emoji-bubble .g-msg-text {
+        font-size: 2.5rem !important;
+    }
     .g-msg-row:has(.jumbo-emoji-bubble) { max-width: 60% !important; }
 }
 
