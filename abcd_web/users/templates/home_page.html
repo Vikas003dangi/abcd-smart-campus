@@ -22,9 +22,18 @@
 
     <title>{% block title %}ABCD (coaching and library){% endblock %}</title>
 
+    <!-- Canonical URL Declaration for Google Indexing -->
+    <link rel="canonical" href="https://abcdcampus.in{{ request.path }}" />
+
+    <!-- Googlebot & Search Engine Indexing Directives -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="description" content="{% block meta_description %}ABCD Coaching & Smart Library Management Platform - Premier coaching, digital library with real-time seat booking, student progress analytics, and academic portal.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}ABCD coaching, ABCD library, abcd campus, smart library, library seat booking, competitive exams coaching, student portal{% endblock %}">
+
     <!-- OpenGraph & Social Sharing Previews (WhatsApp, LinkedIn, X, Facebook) -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://abcdcampus.in/">
+    <meta property="og:url" content="https://abcdcampus.in{{ request.path }}">
     <meta property="og:title" content="{% block og_title %}ABCD Coaching & Smart Library Management Platform{% endblock %}">
     <meta property="og:description" content="{% block og_desc %}Premier coaching, modern digital library with live seat management, academic analytics, and student portal.{% endblock %}">
     <meta property="og:image" content="https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}">
@@ -33,6 +42,30 @@
     <meta name="twitter:title" content="ABCD Coaching & Smart Library">
     <meta name="twitter:description" content="Premier coaching, modern digital library with live seat management, and academic portal.">
     <meta name="twitter:image" content="https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}">
+
+    <!-- Google Structured Data (JSON-LD) for Rich Results & Top Search Ranking -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "ABCD Coaching & Smart Library",
+      "alternateName": "ABCD Smart Campus",
+      "url": "https://abcdcampus.in/",
+      "logo": "https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}",
+      "description": "Leading coaching institute and smart digital library with real-time seat management, test series, and comprehensive student tracking.",
+      "telephone": "+919827662450",
+      "email": "abcd2013baq@gmail.com",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Baghpat",
+        "addressRegion": "Uttar Pradesh",
+        "addressCountry": "IN"
+      },
+      "sameAs": [
+        "https://www.youtube.com/channel/UCA2H6hQBD3h4Oi2vhnWWi5Q"
+      ]
+    }
+    </script>
 
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">

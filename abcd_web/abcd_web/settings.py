@@ -118,6 +118,7 @@ else:
 # -------------------------------
 MIDDLEWARE = [
     'users.db_utils.GlobalCrashPreventionMiddleware',
+    'users.db_utils.CanonicalDomainRedirectMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise static middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -388,7 +389,11 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    # SECURE_PROXY_SSL_HEADER already set unconditionally above (line 42)
+    SECURE_HSTS_SECONDS = 31536000  # 1 year HSTS
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
 
 
 

@@ -15877,12 +15877,16 @@ def robots_txt_view(request):
     """
     SEO robots.txt view allowing search engine indexation of public pages
     while protecting authenticated and administrative routes.
+    Blocks indexing on .onrender.com to prevent duplicate content flags.
     """
     from django.http import HttpResponse
-    try:
-        site_url = f"{request.scheme}://{request.get_host()}".rstrip('/')
-    except Exception:
-        site_url = getattr(settings, 'SITE_URL', 'https://abcdcampus.in').rstrip('/')
+    host = request.get_host().lower()
+
+    # Block Googlebot completely on *.onrender.com to prevent duplicate indexing
+    if host.endswith('.onrender.com'):
+        return HttpResponse("User-agent: *\nDisallow: /\n", content_type="text/plain")
+
+    site_url = 'https://abcdcampus.in'
 
     lines = [
         "User-agent: *",
@@ -15920,10 +15924,7 @@ def sitemap_xml_view(request):
     from django.utils import timezone
     from users.models import Course
 
-    try:
-        site_url = f"{request.scheme}://{request.get_host()}".rstrip('/')
-    except Exception:
-        site_url = getattr(settings, 'SITE_URL', 'https://abcdcampus.in').rstrip('/')
+    site_url = 'https://abcdcampus.in'
 
     now_str = timezone.localdate().strftime('%Y-%m-%d')
 

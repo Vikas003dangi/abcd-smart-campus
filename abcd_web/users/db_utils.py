@@ -408,3 +408,30 @@ class GlobalCrashPreventionMiddleware:
             return redirect(referer)
         return redirect('/')
 
+
+class CanonicalDomainRedirectMiddleware:
+    """
+    SEO Middleware to force canonical domain https://abcdcampus.in.
+    Redirects *.onrender.com to https://abcdcampus.in (except for health pings)
+    so Google Search Console never flags duplicate content.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        host = request.get_host().lower()
+        path = request.path_info
+
+        # Allow keep-alive pings without redirection
+        if path in ['/healthz/', '/health/', '/ping/', '/healthz', '/health', '/ping']:
+            return self.get_response(request)
+
+        # 301 Permanent Redirect any .onrender.com traffic to official https://abcdcampus.in
+        if host.endswith('.onrender.com'):
+            from django.http import HttpResponsePermanentRedirect
+            target_url = f"https://abcdcampus.in{request.get_full_path()}"
+            return HttpResponsePermanentRedirect(target_url)
+
+        return self.get_response(request)
+
+
