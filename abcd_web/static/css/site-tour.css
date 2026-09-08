@@ -39,7 +39,12 @@ body.dark-theme {
               0 0 22px 6px rgba(2, 132, 199, 0.75),
               inset 0 0 12px rgba(255, 255, 255, 0.12);
   pointer-events: none;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: top 0.2s cubic-bezier(0.2, 0, 0, 1),
+              left 0.2s cubic-bezier(0.2, 0, 0, 1),
+              width 0.2s cubic-bezier(0.2, 0, 0, 1),
+              height 0.2s cubic-bezier(0.2, 0, 0, 1),
+              opacity 0.15s ease;
+  will-change: top, left, width, height;
   outline: 2.5px solid var(--tour-primary);
   backdrop-filter: brightness(1.28) contrast(1.08);
   -webkit-backdrop-filter: brightness(1.28) contrast(1.08);
@@ -68,7 +73,11 @@ body.dark-theme {
   font-family: inherit;
   opacity: 0;
   transform: scale(0.95);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: top 0.2s cubic-bezier(0.2, 0, 0, 1),
+              left 0.2s cubic-bezier(0.2, 0, 0, 1),
+              opacity 0.15s ease,
+              transform 0.15s ease;
+  will-change: top, left;
   pointer-events: auto;
 }
 

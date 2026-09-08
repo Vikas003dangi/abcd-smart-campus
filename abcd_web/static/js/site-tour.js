@@ -1917,18 +1917,28 @@
 
       if (isInsideSidebar) {
         const hubSidebar = document.getElementById('hubSidebar') || document.querySelector('.hub-sidebar');
-        if (hubSidebar) hubSidebar.classList.add('active');
-        if (sidebarContainer) sidebarContainer.classList.add('active', 'open');
-        if (sidebar) sidebar.classList.add('active', 'open');
-        if (overlay) overlay.classList.add('active', 'open');
-        if (hamburgerBtn) {
-          hamburgerBtn.classList.add('open', 'active');
+        const isAlreadyOpen = (hubSidebar && hubSidebar.classList.contains('active')) ||
+                              (sidebarContainer && sidebarContainer.classList.contains('active')) ||
+                              (sidebar && sidebar.classList.contains('active'));
+        if (!isAlreadyOpen) {
+          if (hubSidebar) hubSidebar.classList.add('active');
+          if (sidebarContainer) sidebarContainer.classList.add('active', 'open');
+          if (sidebar) sidebar.classList.add('active', 'open');
+          if (overlay) overlay.classList.add('active', 'open');
+          if (hamburgerBtn) hamburgerBtn.classList.add('open', 'active');
+          await new Promise(resolve => setTimeout(resolve, 150));
         }
-        await new Promise(resolve => setTimeout(resolve, 400));
       } else {
-        // Target is outside navigation drawers - close all navigation sidebars cleanly!
-        this.closeAllDrawers();
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Target is outside navigation drawers - only close if any drawer is currently open!
+        const openDrawer = document.querySelector(
+          '#hubSidebar.active, .hub-sidebar.active, #sidebar.active, #sidebar.open, ' +
+          '#mobileNav.active, #mobileNav.open, #guestMobileNav.active, #guestMobileNav.open, ' +
+          '.sidebar-wrapper.active, #sidebarWrapper.active, .sidebar-overlay.active'
+        );
+        if (openDrawer) {
+          this.closeAllDrawers();
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
     }
 
@@ -1940,6 +1950,30 @@
 
       this.currentIndex = index;
       const step = this.validSteps[index];
+
+      // 1. Immediate, synchronous UI text & control update (instant user feedback on click)
+      const titleEl = this.popover.querySelector('.abcd-tour-title');
+      const descEl = this.popover.querySelector('.abcd-tour-description, .abcd-tour-content');
+      const stepsCountEl = this.popover.querySelector('.abcd-tour-steps-count, .abcd-tour-steps');
+
+      if (titleEl) titleEl.textContent = step.title;
+      if (descEl) descEl.textContent = step.description;
+      if (stepsCountEl) stepsCountEl.textContent = `Step ${index + 1} of ${this.validSteps.length}`;
+
+      const prevBtn = this.popover.querySelector('.abcd-tour-btn-prev, .abcd-tour-prev');
+      const nextBtn = this.popover.querySelector('.abcd-tour-btn-next, .abcd-tour-next');
+
+      if (prevBtn) prevBtn.disabled = (index === 0);
+
+      if (nextBtn) {
+        if (index === this.validSteps.length - 1) {
+          nextBtn.textContent = 'Finish ✓';
+          nextBtn.className = 'abcd-tour-btn abcd-tour-btn-finish';
+        } else {
+          nextBtn.innerHTML = 'Next <i class="bx bx-chevron-right"></i>';
+          nextBtn.className = 'abcd-tour-btn abcd-tour-btn-next';
+        }
+      }
 
       // Reset temporary display overrides from previous steps for admission_form
       if (this.currentTourKey === 'admission_form') {
@@ -1954,6 +1988,7 @@
           libraryElem.style.display = 'block';
         }
       }
+
       // Dynamic tab activation for teacher_dashboard
       if (this.currentTourKey === 'teacher_dashboard') {
         let tabToClick = null;
@@ -1990,7 +2025,7 @@
         }
         if (tabToClick && !tabToClick.classList.contains('active')) {
           tabToClick.click();
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 80));
         }
       }
 
@@ -2003,16 +2038,28 @@
 
       await this.handleDrawerState(targetElem);
 
-      targetElem.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-      await new Promise(resolve => setTimeout(resolve, 400));
-
       const style = window.getComputedStyle(targetElem);
-      const rect = targetElem.getBoundingClientRect();
-
       if (style.display === 'none' || style.visibility === 'hidden') {
         console.warn('[ABCDTour] Skipping unrendered target:', step.target);
         this.next();
         return;
+      }
+
+      // Check if target is already comfortably within the screen viewport
+      const rectBefore = targetElem.getBoundingClientRect();
+      const isComfortablyInView = (
+        rectBefore.top >= 60 &&
+        rectBefore.bottom <= (window.innerHeight - 60) &&
+        rectBefore.left >= 10 &&
+        rectBefore.right <= (window.innerWidth - 10) &&
+        rectBefore.width > 0 &&
+        rectBefore.height > 0
+      );
+
+      // Only scroll if the target is off-screen!
+      if (!isComfortablyInView) {
+        targetElem.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        await new Promise(resolve => setTimeout(resolve, 140));
       }
 
       if (this.activeTarget) {
@@ -2021,33 +2068,10 @@
       this.activeTarget = targetElem;
       this.activeTarget.classList.add('abcd-tour-target-active');
 
-      const titleEl = this.popover.querySelector('.abcd-tour-title');
-      const descEl = this.popover.querySelector('.abcd-tour-description, .abcd-tour-content');
-      const stepsCountEl = this.popover.querySelector('.abcd-tour-steps-count, .abcd-tour-steps');
-
-      if (titleEl) titleEl.textContent = step.title;
-      if (descEl) descEl.textContent = step.description;
-      if (stepsCountEl) stepsCountEl.textContent = `Step ${index + 1} of ${this.validSteps.length}`;
-
-      const prevBtn = this.popover.querySelector('.abcd-tour-btn-prev, .abcd-tour-prev');
-      const nextBtn = this.popover.querySelector('.abcd-tour-btn-next, .abcd-tour-next');
-
-      if (prevBtn) prevBtn.disabled = (index === 0);
-
-      if (nextBtn) {
-        if (index === this.validSteps.length - 1) {
-          nextBtn.textContent = 'Finish ✓';
-          nextBtn.className = 'abcd-tour-btn abcd-tour-btn-finish';
-        } else {
-          nextBtn.innerHTML = 'Next <i class="bx bx-chevron-right"></i>';
-          nextBtn.className = 'abcd-tour-btn abcd-tour-btn-next';
-        }
-      }
-
-      setTimeout(() => {
-        this.updatePosition();
-        this.popover.classList.add('abcd-tour-visible');
-      }, 100);
+      // Instant positioning without artificial setTimeout delays
+      this.updatePosition();
+      this.popover.classList.add('abcd-tour-visible');
+      requestAnimationFrame(() => this.updatePosition());
     }
 
     updatePosition() {
