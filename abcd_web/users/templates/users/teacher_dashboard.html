@@ -8451,6 +8451,9 @@
       });
 
       // notif-jump-btn: jump to section and close panel
+      // Works from ANY teacher page — if the tab DOM exists we switch inline,
+      // otherwise we navigate to /teacher/?tab=<target> so the dashboard opens
+      // on the correct tab.
       document.addEventListener('click', (e) => {
         const btn = e.target.closest('.notif-jump-btn');
         if (!btn) return;
@@ -8461,9 +8464,14 @@
         const overlay = document.getElementById('teacherNotifOverlay');
         if (panel) panel.classList.remove('active');
         if (overlay) overlay.classList.remove('active');
-        // Show the tab
-        showTab(target);
-        document.getElementById(target + '-tab')?.scrollIntoView({ behavior: 'smooth' });
+        // If the tab element exists in the DOM we are on the dashboard → switch inline
+        if (document.getElementById(target + '-tab')) {
+          showTab(target);
+          document.getElementById(target + '-tab').scrollIntoView({ behavior: 'smooth' });
+        } else {
+          // We are on a different teacher page → navigate to the dashboard with ?tab=
+          window.location.href = '/teacher/?tab=' + encodeURIComponent(target);
+        }
       });
 
       // Hamburger toggle is handled by hamburgerBtn.addEventListener below
