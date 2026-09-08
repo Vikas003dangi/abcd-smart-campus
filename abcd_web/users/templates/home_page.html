@@ -20,7 +20,7 @@
         href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap"
         rel="stylesheet">
 
-    <title>{% block title %}ABCD (coaching and library){% endblock %}</title>
+    <title>{% block title %}ABCD Coaching & Library | Best Coaching & Self Study Library in Ganj Basoda{% endblock %}</title>
 
     <!-- Canonical URL Declaration for Google Indexing -->
     <link rel="canonical" href="https://abcdcampus.in{{ request.path }}" />
@@ -28,39 +28,46 @@
     <!-- Googlebot & Search Engine Indexing Directives -->
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow" />
-    <meta name="description" content="{% block meta_description %}ABCD Coaching & Smart Library Management Platform - Premier coaching, digital library with real-time seat booking, student progress analytics, and academic portal.{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}ABCD coaching, ABCD library, abcd campus, smart library, library seat booking, competitive exams coaching, student portal{% endblock %}">
+    <meta name="description" content="{% block meta_description %}ABCD Coaching & Library, Ganj Basoda - Best coaching and self-study library in Ganj Basoda. Top English coaching, competitive exam preparation, live digital library seat booking, free courses, student progress analytics, and Guidy closed chatting platform.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}ABCD, abcd coaching, abcd library, acbd library, abcd coachign and library, abcd ganj basoda, Best library in ganj basoda, ganj basoda library, library for selft study in ganj basoda, library for self study in ganj basoda, English Coaching in ganj basoda, Best coaching ganj basoda, Best coaching in ganj basoda, Coaching and library in ganj basoda, Guidy, best chatting plateform, best chatting platform, Closed Chatting platform, ABCD - chatting platform, Guidy chats, free english courses, free courses, library seat booking ganj basoda{% endblock %}">
 
     <!-- OpenGraph & Social Sharing Previews (WhatsApp, LinkedIn, X, Facebook) -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://abcdcampus.in{{ request.path }}">
-    <meta property="og:title" content="{% block og_title %}ABCD Coaching & Smart Library Management Platform{% endblock %}">
-    <meta property="og:description" content="{% block og_desc %}Premier coaching, modern digital library with live seat management, academic analytics, and student portal.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}ABCD Coaching & Library - Best Coaching & Library in Ganj Basoda{% endblock %}">
+    <meta property="og:description" content="{% block og_desc %}Best coaching and self-study library in Ganj Basoda. Offering English coaching, competitive exam prep, real-time library seat booking, free courses, and Guidy closed chat platform.{% endblock %}">
     <meta property="og:image" content="https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}">
-    <meta property="og:site_name" content="ABCD Smart Campus">
+    <meta property="og:site_name" content="ABCD Smart Campus Ganj Basoda">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ABCD Coaching & Smart Library">
-    <meta name="twitter:description" content="Premier coaching, modern digital library with live seat management, and academic portal.">
+    <meta name="twitter:title" content="ABCD Coaching & Library | Ganj Basoda">
+    <meta name="twitter:description" content="Best coaching, English courses, self-study library with live seat booking, and Guidy chat platform in Ganj Basoda.">
     <meta name="twitter:image" content="https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}">
 
-    <!-- Google Structured Data (JSON-LD) for Rich Results & Top Search Ranking -->
+    <!-- Google Structured Data (JSON-LD) for Local Ranking & Rich Cards -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "EducationalOrganization",
-      "name": "ABCD Coaching & Smart Library",
-      "alternateName": "ABCD Smart Campus",
+      "@type": ["EducationalOrganization", "Library", "LocalBusiness"],
+      "name": "ABCD Coaching & Library",
+      "alternateName": [
+        "ABCD",
+        "ABCD Ganj Basoda",
+        "ABCD Coaching Ganj Basoda",
+        "ABCD Library Ganj Basoda",
+        "ABCD Smart Campus"
+      ],
       "url": "https://abcdcampus.in/",
       "logo": "https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}",
-      "description": "Leading coaching institute and smart digital library with real-time seat management, test series, and comprehensive student tracking.",
+      "description": "Best coaching and self-study library in Ganj Basoda. Offering English coaching, competitive exam preparation, live library seat booking, student progress analytics, and Guidy closed chat platform.",
       "telephone": "+919827662450",
       "email": "abcd2013baq@gmail.com",
       "address": {
         "@type": "PostalAddress",
-        "addressLocality": "Baghpat",
-        "addressRegion": "Uttar Pradesh",
+        "addressLocality": "Ganj Basoda",
+        "addressRegion": "Madhya Pradesh",
         "addressCountry": "IN"
       },
+      "areaServed": "Ganj Basoda",
       "sameAs": [
         "https://www.youtube.com/channel/UCA2H6hQBD3h4Oi2vhnWWi5Q"
       ]
