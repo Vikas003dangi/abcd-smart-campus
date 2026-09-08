@@ -20,11 +20,11 @@
   .tcm-hero {
     background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
     border-radius: 32px;
-    padding: 35px 45px;
-    margin-bottom: 35px;
+    padding: 30px 42px;
+    margin-bottom: 30px;
     color: white;
     box-shadow: 0 20px 50px rgba(99, 102, 241, 0.15);
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.12);
     position: relative;
     overflow: hidden;
   }
@@ -38,47 +38,98 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
+    overflow: hidden;
+    border-radius: inherit;
   }
   .tcm-hero-thumb-bg img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.13;
-    filter: saturate(0.6) blur(1px);
-    border-radius: 32px;
+    object-position: center right;
+    opacity: 0.20;
+    filter: saturate(1.15);
     transition: opacity 0.4s ease;
+  }
+  .tcm-hero-thumb-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(30, 27, 75, 0.48) 0%, rgba(99, 102, 241, 0.16) 50%, rgba(168, 85, 247, 0.24) 100%);
+    pointer-events: none;
+  }
+  body.dark-theme .tcm-hero-thumb-bg img {
+    opacity: 0.16;
+    filter: saturate(1.05);
+  }
+  body.dark-theme .tcm-hero-thumb-bg::after {
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0.65) 0%, rgba(30, 27, 75, 0.3) 100%);
   }
   .tcm-hero > * {
     position: relative;
     z-index: 1;
   }
 
-  /* Big-screen: course name overlay in hero center */
-  .tcm-course-name-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
+  /* Top Navigation & Course Title Pill */
+  .tcm-top-bar {
     display: flex;
     align-items: center;
-    justify-content: center;
-    pointer-events: none;
+    gap: 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
   }
-  .tcm-course-name-overlay-text {
-    font-size: clamp(1.8rem, 4vw, 3.5rem);
-    font-weight: 900;
-    letter-spacing: -1px;
-    color: rgba(255,255,255,0.1);
-    text-align: center;
-    padding: 0 60px;
-    line-height: 1.15;
-    white-space: nowrap;
+  .tcm-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+    flex-wrap: wrap;
+  }
+  .tcm-crumb-link {
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .tcm-crumb-link:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+  .tcm-crumb-sep {
+    font-size: 1.05rem;
+    opacity: 0.65;
+  }
+  .tcm-course-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    max-width: clamp(200px, 50vw, 480px);
+  }
+  body.dark-theme .tcm-course-pill {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .tcm-course-pill i {
+    font-size: 1.05rem;
+    color: #fbbf24;
+    flex-shrink: 0;
+  }
+  .tcm-course-pill-text {
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
-    text-shadow: 0 2px 20px rgba(0,0,0,0.1);
-  }
-  @media (max-width: 999px) {
-    .tcm-course-name-overlay { display: none; }
+    white-space: nowrap;
   }
 
   /* --- STYLED FILE UPLOAD ZONE IN MODAL --- */
@@ -262,18 +313,6 @@
     font-size: 1rem;
     font-weight: 500;
   }
-
-  .tcm-breadcrumb {
-    font-size: 0.85rem;
-    font-weight: 700;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    opacity: 0.9;
-  }
-  .tcm-breadcrumb a { color: white; text-decoration: none; }
-  .tcm-breadcrumb a:hover { text-decoration: underline; }
 
   /* --- STUDIO LAYOUT REFINEMENT --- */
   .studio-layout {
@@ -665,9 +704,25 @@
 
   @media (max-width: 768px) {
     .tcm-hero {
-      padding: 25px 20px;
+      padding: 22px 18px;
       border-radius: 24px;
-      margin-bottom: 25px;
+      margin-bottom: 22px;
+    }
+    .tcm-top-bar {
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .tcm-breadcrumb {
+      justify-content: center;
+    }
+    .tcm-course-pill {
+      font-size: 0.84rem;
+      padding: 4px 11px;
+      max-width: 220px;
+    }
+    .tcm-hero-thumb-bg img {
+      opacity: 0.13;
     }
     .tcm-hero-header {
       flex-direction: column;
@@ -814,8 +869,13 @@
       margin: 20px auto 40px;
     }
     .tcm-hero {
-      padding: 20px 15px;
-      gap: 15px;
+      padding: 18px 14px;
+      gap: 12px;
+    }
+    .tcm-course-pill {
+      font-size: 0.8rem;
+      padding: 3px 10px;
+      max-width: 175px;
     }
     .tcm-hero-content h2 {
       font-size: 1.35rem;
@@ -905,6 +965,9 @@
       font-size: 1.12rem;
       white-space: nowrap;
     }
+    .tcm-course-pill {
+      max-width: 130px;
+    }
     .tc-back-btn {
       width: 36px;
       height: 36px;
@@ -940,25 +1003,24 @@
     <!-- Page Hero -->
     <section class="tcm-hero" data-tour="material-hero">
 
-      {% if course.thumbnail %}
-      <!-- Transparent thumbnail background -->
-      <div class="tcm-hero-thumb-bg">
-        <img src="{{ course.thumbnail_display_url }}" alt="">
-      </div>
-      <!-- Big-screen: course name overlay (>= 1000px) -->
-      <div class="tcm-course-name-overlay">
-        <span class="tcm-course-name-overlay-text">{{ course.title }}</span>
+      {% if course.thumbnail_display_url %}
+      <!-- Course thumbnail transparent background -->
+      <div class="tcm-hero-thumb-bg" aria-hidden="true">
+        <img src="{{ course.thumbnail_display_url }}" alt="" loading="lazy">
       </div>
       {% endif %}
 
-      <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 18px;">
+      <div class="tcm-top-bar">
         <a href="{% url 'users:teacher_courses' %}" class="tc-back-btn" title="Back to Courses">
           <i class='bx bx-left-arrow-alt'></i>
         </a>
-        <div class="tcm-breadcrumb" style="margin-bottom: 0;">
-          <a href="{% url 'users:teacher_courses' %}">Courses</a>
-          <i class='bx bx-chevron-right'></i>
-          <span style="font-size: 1rem; font-weight: 800;">{{ course.title }}</span>
+        <div class="tcm-breadcrumb">
+          <a href="{% url 'users:teacher_courses' %}" class="tcm-crumb-link">Courses</a>
+          <i class='bx bx-chevron-right tcm-crumb-sep'></i>
+          <span class="tcm-course-pill" title="{{ course.title }}">
+            <i class='bx bx-book-bookmark'></i>
+            <span class="tcm-course-pill-text">{{ course.title }}</span>
+          </span>
         </div>
       </div>
       <div class="tcm-hero-header">
