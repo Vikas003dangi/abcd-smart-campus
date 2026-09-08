@@ -828,9 +828,15 @@
         position: 'top'
       },
       {
-        target: 'button[type="submit"], .btn-submit, .submit-btn',
+        target: 'button[type="submit"], .btn-primary-animated, .submit-btn',
         title: 'Submit Ticket',
         description: 'Submit your ticket for immediate administrative review. You will receive real-time notifications on resolution progress.',
+        position: 'top'
+      },
+      {
+        target: '.complaint-history, .complaint-table',
+        title: 'Your Complaint Tracker',
+        description: 'Track your submitted tickets, official response from administration, and rate the resolution once closed.',
         position: 'top'
       }
     ],
@@ -1036,14 +1042,32 @@
     'achievement_detail': [
       {
         target: '.back-btn-container, .hall-back-btn',
-        title: 'Navigation & Actions',
-        description: 'Return to the Hall of Fame wall or edit your achievement details.',
+        title: 'Hall of Fame Navigation',
+        description: 'Return to the main Hall of Fame wall or view other top rankers.',
         position: 'bottom'
       },
       {
-        target: '.cv-container, .achievement-detail-container, .achievement-card',
-        title: 'Student Success Story',
-        description: 'Read the full story, competitive exam selection details, preparation journey, and inspirational review.',
+        target: '.cv-header, .cv-name',
+        title: 'Officer Name & Selection Post',
+        description: 'View the achiever\'s current designation, competitive exam selection, and posting city.',
+        position: 'bottom'
+      },
+      {
+        target: '.cv-photo-wrapper, .cv-photo',
+        title: 'Verified Student Portrait',
+        description: 'Official verified photo of the student from their study tenure at ABCD.',
+        position: 'right'
+      },
+      {
+        target: '.experience-box, .cv-content',
+        title: 'Success Journey & Study Experience',
+        description: 'Read the detailed preparation journey, challenges overcome, and how ABCD faculty guided them to success.',
+        position: 'top'
+      },
+      {
+        target: 'button[onclick*="openGuidyModal"], .guidy-btn, .seek-guidance-btn, .hall-back-btn',
+        title: 'Seek Guidance via Guidy',
+        description: 'Connect directly with this alumni mentor through Guidy 1-to-1 chat for preparation tips and guidance.',
         position: 'top'
       }
     ],
@@ -1106,37 +1130,121 @@
     // 20. Student Details & Profiles (NO Footer)
     'student_details': [
       {
-        target: '.student-profile-card, .card, .profile-header',
-        title: 'Student Profile & Academic Records',
-        description: 'Inspect enrolled courses, attendance, library seat shift, and fee history.',
+        target: '.photo-container, #profile-img-main',
+        title: 'Student Profile Photo',
+        description: 'Click the photo to view it in high resolution, or click the pencil icon to crop and update the student photo.',
         position: 'bottom'
+      },
+      {
+        target: '.student-name',
+        title: 'Student Identity & Full Name',
+        description: 'Full name and admission identity of the enrolled student.',
+        position: 'bottom'
+      },
+      {
+        target: '.details-list',
+        title: 'Academic & Seating Records',
+        description: 'Check active status, service type, coaching batch, allocated library seat, and verified mobile/WhatsApp numbers.',
+        position: 'bottom'
+      },
+      {
+        target: '.footer-actions',
+        title: 'Teacher Management Controls',
+        description: 'Quickly edit student profile information, reassign batches/desks, or manage administrative records.',
+        position: 'top'
       }
     ],
 
     'student_details_S': [
       {
-        target: '.student-card, .card',
-        title: 'Student Summary Details',
-        description: 'Quick student overview and contact profile.',
+        target: '.photo-container, #profile-img-main',
+        title: 'Your Profile Photo',
+        description: 'Click your photo to preview it, or tap the pencil icon to crop and upload a new profile picture.',
         position: 'bottom'
+      },
+      {
+        target: '.student-name',
+        title: 'Your Student Profile',
+        description: 'Your registered name and verified membership in ABCD Smart Campus.',
+        position: 'bottom'
+      },
+      {
+        target: '.details-list',
+        title: 'Service & Enrollment Details',
+        description: 'View your admission status, coaching batch or library seat allocation, and registered contact information.',
+        position: 'bottom'
+      },
+      {
+        target: '.footer-actions, button[onclick*="openChgPwdModal"]',
+        title: 'Account Security & Actions',
+        description: 'Change your account password securely or manage your personal settings.',
+        position: 'top'
       }
     ],
 
     'edit_student': [
       {
-        target: 'form, .edit-form-container, .card',
-        title: 'Edit Student Information',
-        description: 'Update student contact details, batch assignment, or profile photo.',
+        target: '#photoPreviewContainerCustom, .form-group:first-child',
+        title: 'Student Profile Photo',
+        description: 'Upload, crop, and adjust the student\'s official profile photo (JPG/PNG up to 2MB).',
         position: 'bottom'
+      },
+      {
+        target: 'input[name="full_name"]',
+        title: 'Personal Information',
+        description: 'Update the student\'s full name, registered email address, date of birth, and gender.',
+        position: 'bottom'
+      },
+      {
+        target: 'select[name="status"], select[name="service_type"]',
+        title: 'Enrollment Status & Services',
+        description: 'Manage admission status (Active / On Hold / Pending) and assign coaching batches or library services.',
+        position: 'bottom'
+      },
+      {
+        target: 'input[name="mobile_number"], input[name="whatsapp_number"]',
+        title: 'Contact Information',
+        description: 'Update primary mobile number and WhatsApp number for instant campus notices and fee alerts.',
+        position: 'bottom'
+      },
+      {
+        target: '.btn-save, button[type="submit"]',
+        title: 'Save Student Changes',
+        description: 'Save and persist the updated student record to the central database.',
+        position: 'top'
       }
     ],
 
     'edit_alumni': [
       {
-        target: 'form, .edit-form-container, .card',
-        title: 'Edit Alumni Profile',
-        description: 'Update current job title, company, exam rank, or higher education status.',
+        target: '#photoPreviewContainerCustom, .photo-frame, .form-group:first-child',
+        title: 'Alumni Portrait',
+        description: 'Upload and crop your official portrait photo for the Hall of Fame wall.',
         position: 'bottom'
+      },
+      {
+        target: 'input[name="first_name"], input[name="last_name"]',
+        title: 'Personal Information',
+        description: 'Update your first name, last name, gender, and inspiring personal bio quote.',
+        position: 'bottom'
+      },
+      {
+        target: 'input[name="current_post"], input[name="short_achievement"]',
+        title: 'Career & Designation',
+        description: 'Update your current post, designation, selection exam, and selection year.',
+        position: 'bottom'
+      },
+      {
+        target: 'textarea[name="experience_feedback"], textarea[name="abcd_feedback"]',
+        title: 'Experience & Public Review',
+        description: 'Share your preparation story at ABCD and advice for junior aspirants.',
+        position: 'top'
+      },
+      {
+        target: '.btn-save, button[type="submit"]',
+        title: 'Save Alumni Profile',
+        description: 'Click to publish your updated career details to the ABCD Hall of Fame.',
+        position: 'top'
       }
     ],
 
@@ -1202,10 +1310,22 @@
 
     'guest_profile_details': [
       {
-        target: '.profile-container, .card',
-        title: 'Guest Profile Overview',
-        description: 'View saved inquiries, bookmark courses, and check admission status.',
+        target: '.profile-pic-container, .profile-title',
+        title: 'Guest Account Profile',
+        description: 'Your guest learner profile on ABCD Smart Campus.',
         position: 'bottom'
+      },
+      {
+        target: '.detail-grid',
+        title: 'Registered Contact Details',
+        description: 'View your registered mobile number, email, and guest account status.',
+        position: 'bottom'
+      },
+      {
+        target: '.action-btn, a[href*="admission-form"], .profile-details-card',
+        title: 'Apply for Admission',
+        description: 'Ready to join? Submit your admission form to enroll in coaching batches or reserve a library desk.',
+        position: 'top'
       }
     ],
 
@@ -1218,13 +1338,129 @@
       }
     ],
 
-    // 21. Services, About Us & Contact (NO Footer)
+    // 21. About Us (NO Footer)
+    'about_us': [
+      {
+        target: '.hero-card',
+        title: 'About ABCD Coaching & Library',
+        description: 'Learn about ABCD\'s journey since 2013: focused English coaching, serious exam discipline, and full-day library study halls.',
+        position: 'bottom'
+      },
+      {
+        target: '.about-layout > div:first-child .card:first-child, .card',
+        title: 'Our Story & Philosophy',
+        description: '"Any Body Can Do" — concept-based grammar teaching combined with a quiet, disciplined environment for serious self-study.',
+        position: 'bottom'
+      },
+      {
+        target: '.story-list, .split-columns',
+        title: 'Coaching & Library Dual Wings',
+        description: 'Explore our comprehensive offerings: grammar foundation batches and peaceful 8:00 AM - 8:30 PM library reading halls.',
+        position: 'top'
+      },
+      {
+        target: '.founder-photo-wrapper, .about-layout > div:last-child .card:first-child',
+        title: 'Meet the Founder: Sandeep Raghuwanshi',
+        description: 'Head Faculty with 10+ years of teaching expertise in English grammar, spoken fluency, and competitive guidance.',
+        position: 'left'
+      },
+      {
+        target: '.contact-list, .about-layout > div:last-child .card:last-child',
+        title: 'Campus Location & Timings',
+        description: 'Located in Basoda, Madhya Pradesh. Open daily from 8:00 AM to 8:30 PM for students.',
+        position: 'top'
+      }
+    ],
+
+    // 22. Platform Services (NO Footer)
+    'services': [
+      {
+        target: '.hero-card',
+        title: 'Campus Services & Digital Platform',
+        description: 'Comprehensive overview of all educational facilities and smart digital tools offered at ABCD Smart Campus.',
+        position: 'bottom'
+      },
+      {
+        target: '#coaching',
+        title: 'English Coaching Wing',
+        description: 'Concept-first teaching covering English grammar, voice, narration, spoken fluency, and competitive exam preparation.',
+        position: 'bottom'
+      },
+      {
+        target: '#library',
+        title: 'Dedicated Quiet Library',
+        description: 'Peaceful air-ventilated study hall with filtered water, high-speed connectivity, and daily 8:00 AM to 8:30 PM study hours.',
+        position: 'bottom'
+      },
+      {
+        target: '#seats',
+        title: 'Digital Seat Management',
+        description: 'Live seat vacancy floor maps, reservation shifts (Morning/Afternoon/Evening/Full Day), and seat hold privileges.',
+        position: 'top'
+      },
+      {
+        target: '#helpdesk',
+        title: 'Student Helpdesk & Grievances',
+        description: 'Instant student ticket submission, transparent resolution tracking, and administrative feedback ratings.',
+        position: 'top'
+      },
+      {
+        target: '#todo',
+        title: 'Master To-Do & Learning Hub',
+        description: 'Smart personal task planner with exam milestones, breakdown checklists, revision reminders, and fee alerts.',
+        position: 'top'
+      },
+      {
+        target: '#guidy',
+        title: 'Guidy Mentorship Network',
+        description: 'Private 1-to-1 encrypted chat connecting students directly with verified alumni officers and faculty mentors.',
+        position: 'top'
+      },
+      {
+        target: '#courses',
+        title: 'Digital Courses & Video Lectures',
+        description: 'Online video lessons, downloadable chapter PDF worksheets, interactive Q&A doubts, and student feedback reviews.',
+        position: 'top'
+      }
+    ],
+
+    // 23. Contact Us (NO Footer)
     'contact': [
       {
-        target: '.contact-container, form, .card',
-        title: 'Get in Touch',
-        description: 'Contact us via phone, WhatsApp, email, or send us a quick inquiry message.',
+        target: '.contact-header',
+        title: 'Reach Out to ABCD',
+        description: 'We are always here to help you grow. Connect with our admissions and guidance team anytime.',
         position: 'bottom'
+      },
+      {
+        target: '.card-phone',
+        title: 'Direct Phone Call',
+        description: 'Speak directly with our counseling team for immediate course or library seat assistance (+91 98276 62450).',
+        position: 'bottom'
+      },
+      {
+        target: '.card-whatsapp',
+        title: 'WhatsApp Help Desk',
+        description: 'Instant support, fee inquiries, and live seat reservation updates directly on WhatsApp.',
+        position: 'bottom'
+      },
+      {
+        target: '.card-email',
+        title: 'Official Email Support',
+        description: 'Send formal inquiries or document submissions to abcd2013baq@gmail.com or support@abcd2013.online.',
+        position: 'top'
+      },
+      {
+        target: '.social-section',
+        title: 'Connect on Social Media',
+        description: 'Follow our Instagram for daily campus updates, and subscribe to our official YouTube channel for lessons.',
+        position: 'top'
+      },
+      {
+        target: '.map-container',
+        title: 'Visit Our Campus',
+        description: 'Interactive map directions to our campus infront of Block Office, Bareth Road, Ganj Basoda, Madhya Pradesh.',
+        position: 'top'
       }
     ]
   };
@@ -1257,7 +1493,7 @@
       // Inject floating launcher button
       this.createLauncher();
 
-      // Auto start tour cards after 5 seconds ONLY if user has NEVER completed or dismissed them
+      // Auto start tour cards after 10 seconds ONLY if user has NEVER completed or dismissed them
       const userIdent = document.body.dataset.username || 'user';
       const userKey = this.getUserStorageKey(pageKey);
 
@@ -1273,21 +1509,20 @@
 
       setTimeout(() => {
         this.start(false);
-      }, 5000);
+      }, 10000);
     }
 
     detectPageKey() {
       const path = window.location.pathname.toLowerCase();
 
-      // Explicitly suppress site tour and launcher button on Contact & Profile pages
-      if (path.includes('/contact') || path.includes('/profile') || path.includes('/my-details') || path.includes('/student/details')) return null;
-      if (path.includes('/services') || path.includes('/about')) return null;
-
+      // Home & Core Hubs
+      if (path === '/' || path.endsWith('/home/') || path.includes('home_page')) return 'home_page';
+      if (path.includes('/guest-home')) return 'guest_page';
       if (path.includes('/alumni/dashboard')) return 'alumni_dashboard';
       if (path.includes('/alumni/edit')) return 'edit_alumni';
-      if (path.includes('/guest-home')) return 'guest_page';
-      if (path.includes('/guest/profile')) return 'guest_profile_details';
+      if (path.includes('/dashboard')) return 'student_dashboard';
 
+      // Teacher Management Pages
       if (path.includes('/teacher/courses/') && path.includes('/materials')) return 'teacher_course_materials';
       if (path.includes('/teacher/courses/') && path.includes('/preview')) return 'teacher_course_preview';
       if (path.includes('/teacher/courses')) return 'teacher_courses';
@@ -1296,32 +1531,35 @@
       if (path.includes('/teacher/fees-record')) return 'fees_record';
       if (path.includes('/teacher/progress')) return 'student_progress';
       if (path.includes('/teacher/visitor-insights')) return 'visitor_insights';
-      if (path.includes('/teacher/student/edit')) return 'edit_student';
+      if (path.includes('/teacher/student/') && path.includes('/fees')) return 'fee_calendar';
+      if (path.includes('/teacher/student/') && path.includes('/edit')) return 'edit_student';
       if (path.includes('/teacher/student/')) return 'student_details';
       if (path.includes('/teacher')) return 'teacher_dashboard';
 
-      if (path === '/' || path.endsWith('/home/') || path.includes('home_page')) return 'home_page';
-      if (path.includes('/dashboard')) return 'student_dashboard';
-
+      // Academic, Mentorship, and Student Tools
       if (path.includes('/guidy')) return 'guidy';
       if (path.includes('/todo')) return 'todo';
       if (path.includes('/admission-form')) return 'admission_form';
-      if (path.includes('/complaints/resolved')) return 'resolved_complaints_public';
+      if (path.includes('/complaints/resolved') || path.includes('/resolved-complaints')) return 'resolved_complaints_public';
       if (path.includes('/complaints/rate')) return 'student_complaint_rate';
       if (path.includes('/complaints/success')) return 'student_complaint_success';
       if (path.includes('/complaints')) return 'student_complaints';
       if (path.includes('/fee/calendar') || path.includes('/fees/')) return 'fee_calendar';
       if (path.includes('/hall-of-fame')) return 'hall_of_fame';
-      if (path.includes('/achievement/add') || path.includes('/achievement/create')) return 'achievement_form';
+      if (path.includes('/achievement-form') || path.includes('/achievement/add') || path.includes('/achievement/create')) return 'achievement_form';
       if (path.includes('/achievement/')) return 'achievement_detail';
       if (path.includes('/achievement')) return 'achievement_form';
       if (path.includes('/courses/') && !path.endsWith('/courses/')) return 'course_detail';
       if (path.includes('/courses')) return 'courses';
-      if (path.includes('/contact') || path.includes('/profile') || path.includes('/my-details')) return null;
       if (path.includes('/library-availability')) return 'library_availability';
       if (path.includes('/my-seat')) return 'your_seat_status';
-      if (path.includes('/student/details-s')) return null;
-      if (path.includes('/student/details')) return null;
+
+      // Profiles & Informational Pages
+      if (path.includes('/profile/guest')) return 'guest_profile_details';
+      if (path.includes('/my-details') || path.includes('/student/details-s') || path.includes('/profile')) return 'student_details_S';
+      if (path.includes('/services')) return 'services';
+      if (path.includes('/about')) return 'about_us';
+      if (path.includes('/contact')) return 'contact';
       if (path.includes('/register')) return 'register';
 
       if (document.body.dataset.pageKey) {
