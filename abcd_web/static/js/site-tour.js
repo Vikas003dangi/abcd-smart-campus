@@ -1447,7 +1447,7 @@
       {
         target: '.card-email',
         title: 'Official Email Support',
-        description: 'Send formal inquiries or document submissions to abcd2013baq@gmail.com or support@abcd2013.online.',
+        description: 'Send formal inquiries or document submissions to abcd2013baq@gmail.com.',
         position: 'top'
       },
       {
