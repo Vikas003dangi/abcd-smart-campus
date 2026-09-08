@@ -402,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentlySelectedSeat = null;
 
         // Reset legend filter and match highlights
+        clearModalInactivityTimer();
         modalActiveFilterStatus = null;
         modalMatchedSeats = [];
         modalMatchedIndex = 0;
@@ -2266,6 +2267,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    let modalInactivityTimer = null;
+
+    function clearModalInactivityTimer() {
+        if (modalInactivityTimer) {
+            clearTimeout(modalInactivityTimer);
+            modalInactivityTimer = null;
+        }
+    }
+
+    function startModalInactivityTimer() {
+        clearModalInactivityTimer();
+        modalInactivityTimer = setTimeout(() => {
+            modalActiveFilterStatus = null;
+            modalMatchedSeats = [];
+            modalMatchedIndex = 0;
+            document.querySelectorAll('#admissionSeatLegend .legend-item').forEach(i => i.classList.remove('active-filter'));
+            const activeWrapper = (groundFloorWrapper && groundFloorWrapper.style.display !== 'none') ? groundFloorWrapper : firstFloorWrapper;
+            if (activeWrapper) {
+                activeWrapper.querySelectorAll('.seat').forEach(s => s.classList.remove('search-match', 'active-match'));
+            }
+            clearModalInactivityTimer();
+        }, 30000); // 30s auto-reset
+    }
+
     function initModalLegendClickHandlers() {
         const legendItems = document.querySelectorAll('#admissionSeatLegend .legend-item.clickable');
         if (!legendItems.length) return;
@@ -2279,8 +2304,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const activeWrapper = (groundFloorWrapper && groundFloorWrapper.style.display !== 'none') ? groundFloorWrapper : firstFloorWrapper;
                 if (!activeWrapper) return;
 
-                // If clicking the same status that is already active, jump to NEXT match
+                // Extract count from indicator badge
+                const countSpan = item.querySelector('.legend-count');
+                const countText = countSpan ? countSpan.textContent.replace(/[^0-9]/g, '') : '0';
+                const countVal = parseInt(countText, 10) || 0;
+
+                // Auto-close drawer if screen is small and drawer open
+                const sidebar = document.getElementById('hubSidebar');
+                if (countVal > 0 && sidebar && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                }
+
+                // If clicking the same status that is already active, jump to NEXT match and refresh 30s timer
                 if (modalActiveFilterStatus === status && modalMatchedSeats.length > 0) {
+                    startModalInactivityTimer();
                     modalMatchedSeats.forEach(s => s.classList.remove('active-match'));
                     modalMatchedIndex = (modalMatchedIndex + 1) % modalMatchedSeats.length;
                     const nextSeat = modalMatchedSeats[modalMatchedIndex];
@@ -2299,6 +2336,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 modalActiveFilterStatus = status;
                 modalMatchedSeats = [];
                 modalMatchedIndex = 0;
+
+                startModalInactivityTimer();
 
                 const seats = activeWrapper.querySelectorAll('.seat:not(.special):not(.empty-space)');
                 seats.forEach(seatEl => {

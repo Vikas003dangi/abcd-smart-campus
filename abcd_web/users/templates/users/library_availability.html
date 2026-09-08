@@ -1499,8 +1499,21 @@
                         if (isAlreadyActive) {
                             searchInput.value = '';
                             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            window._clearSearchInactivityTimer?.();
                         } else {
                             item.classList.add('active-filter');
+
+                            // Extract count from indicator badge
+                            const countSpan = item.querySelector('.legend-count');
+                            const countText = countSpan ? countSpan.textContent.replace(/[^0-9]/g, '') : '0';
+                            const countVal = parseInt(countText, 10) || 0;
+
+                            // If a drawer/sidebar exists on small screen, auto-close if result >= 1
+                            const sidebar = document.getElementById('hubSidebar');
+                            if (countVal > 0 && sidebar && sidebar.classList.contains('active')) {
+                                sidebar.classList.remove('active');
+                            }
+
                             if (searchWrapper) {
                                 searchWrapper.classList.add('expanded');
                                 const btnIcon = searchWrapper.querySelector('.hub-search-btn i');
@@ -1517,6 +1530,7 @@
 
                             searchInput.value = keywordMap[status] || status;
                             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            window._startSearchInactivityTimer?.();
                         }
                     });
                 });
@@ -1526,6 +1540,7 @@
                         const val = searchInput.value.trim().toLowerCase();
                         if (!val) {
                             legendItems.forEach(i => i.classList.remove('active-filter'));
+                            window._clearSearchInactivityTimer?.();
                         }
                     });
                 }
@@ -1888,6 +1903,34 @@
                 let matchedSeats = [];
                 let matchedIndex = 0;
                 let searchTimer = null;
+                let searchInactivityTimer = null;
+
+                function clearSearchInactivityTimer() {
+                    if (searchInactivityTimer) {
+                        clearTimeout(searchInactivityTimer);
+                        searchInactivityTimer = null;
+                    }
+                }
+
+                function startSearchInactivityTimer() {
+                    clearSearchInactivityTimer();
+                    searchInactivityTimer = setTimeout(() => {
+                        if (input) {
+                            input.value = '';
+                        }
+                        clearSeatSearchHighlights();
+                        if (wrapper) {
+                            wrapper.classList.remove('expanded');
+                            const icon = btn?.querySelector('i');
+                            if (icon) icon.className = 'bx bx-search';
+                        }
+                        document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
+                        clearSearchInactivityTimer();
+                    }, 30000); // 30s auto-reset
+                }
+
+                window._startSearchInactivityTimer = startSearchInactivityTimer;
+                window._clearSearchInactivityTimer = clearSearchInactivityTimer;
 
                 function wordsToNumber(str) {
                     const cleanStr = str.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
@@ -2011,6 +2054,8 @@
                 function navigateMatch(direction) {
                     if (matchedSeats.length === 0) return;
 
+                    startSearchInactivityTimer();
+
                     matchedSeats.forEach(seat => {
                         seat.classList.remove('active-match');
                     });
@@ -2065,7 +2110,9 @@
                             }
                         } else {
                             input.value = '';
+                            clearSearchInactivityTimer();
                             clearSeatSearchHighlights();
+                            document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
                             if (autocompleteDiv) autocompleteDiv.style.display = 'none';
                         }
                     });
@@ -2094,7 +2141,9 @@
 
                     if (clean.length === 0) {
                         clearTimeout(searchTimer);
+                        clearSearchInactivityTimer();
                         clearSeatSearchHighlights();
+                        document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
                         return;
                     }
 
@@ -2238,6 +2287,7 @@
                                 firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                             }, 50);
                         }
+                        startSearchInactivityTimer();
                     }, isAccordionTrigger ? 0 : 300); // Trigger immediately if called from accordion click
                 }
 

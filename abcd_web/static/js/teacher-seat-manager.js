@@ -304,6 +304,36 @@ document.addEventListener('DOMContentLoaded', () => {
       return total > 0 ? total : null;
     }
 
+    // 30-Second Inactivity Auto-Reset Timer for Search & Highlights
+    let searchInactivityTimer = null;
+
+    function clearSearchInactivityTimer() {
+      if (searchInactivityTimer) {
+        clearTimeout(searchInactivityTimer);
+        searchInactivityTimer = null;
+      }
+    }
+
+    function startSearchInactivityTimer() {
+      clearSearchInactivityTimer();
+      searchInactivityTimer = setTimeout(() => {
+        if (seatSearchInput) {
+          seatSearchInput.value = '';
+        }
+        clearSeatSearchHighlights();
+        if (hubSearchWrapper) {
+          hubSearchWrapper.classList.remove('expanded');
+          const icon = hubSearchBtn?.querySelector('i');
+          if (icon) icon.className = 'bx bx-search';
+        }
+        document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
+        clearSearchInactivityTimer();
+      }, 30000); // 30 seconds auto-reset
+    }
+
+    window._startSearchInactivityTimer = startSearchInactivityTimer;
+    window._clearSearchInactivityTimer = clearSearchInactivityTimer;
+
     // Helper to clear highlights and hide popup
     function clearSeatSearchHighlights() {
       document.querySelectorAll('.seat').forEach(seat => {
@@ -373,7 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
           icon.className = 'bx bx-search';
         }
         keywordPopup.style.display = 'none';
+        clearSearchInactivityTimer();
         clearSeatSearchHighlights();
+        document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
       }
     });
 
@@ -410,6 +442,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function navigateMatch(direction) {
       if (matchedSeats.length === 0) return;
+
+      startSearchInactivityTimer();
 
       matchedSeats.forEach(seat => {
         seat.classList.remove('active-match');
@@ -462,7 +496,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // If empty query, reset search UI
       if (clean.length === 0) {
         clearTimeout(searchTimer);
+        clearSearchInactivityTimer();
         clearSeatSearchHighlights();
+        document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
         return;
       }
 
@@ -482,9 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Debounce the general search by 300ms
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => {
+      function executeSearch(isBackgroundRefresh = false) {
         // Clear all previous highlight classes
         document.querySelectorAll('.seat').forEach(seat => {
           seat.classList.remove('search-match', 'active-match');
@@ -637,9 +671,22 @@ document.addEventListener('DOMContentLoaded', () => {
           const firstSeat = matchedSeats[0];
           if (firstSeat) {
             firstSeat.classList.add('active-match');
-            firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            if (!isBackgroundRefresh) {
+              firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
           }
         }
+        if (!isBackgroundRefresh) {
+          startSearchInactivityTimer();
+        }
+      }
+
+      window._reapplyCurrentSearch = () => executeSearch(true);
+
+      // Debounce the general search by 300ms
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        executeSearch(false);
       }, 300);
     });
   }
@@ -1480,6 +1527,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update dynamic live indicator count badges for the current floor
     updateLegendIndicatorCounts(floor);
+
+    // If search is active, re-apply highlight classes preserved across background refresh
+    if (seatSearchInput && seatSearchInput.value.trim().length > 0 && typeof window._reapplyCurrentSearch === 'function') {
+      window._reapplyCurrentSearch();
+    }
   }
 
   // --- Dynamic Live Status Indicator Counters ---
@@ -1559,18 +1611,41 @@ document.addEventListener('DOMContentLoaded', () => {
           legendItems.forEach(el => el.classList.remove('active-filter'));
           seatSearchInput.value = '';
           seatSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          window._clearSearchInactivityTimer?.();
           return;
         }
 
         legendItems.forEach(el => el.classList.remove('active-filter'));
         item.classList.add('active-filter');
 
+        // Extract count from indicator badge (e.g. "(53)")
+        const countSpan = item.querySelector('.legend-count');
+        const countText = countSpan ? countSpan.textContent.replace(/[^0-9]/g, '') : '0';
+        const countVal = parseInt(countText, 10) || 0;
+
+        // On small screen / mobile drawer, auto-close floor card if indicator has >= 1 result
+        const sidebar = document.getElementById('hubSidebar');
+        if (countVal > 0 && sidebar && sidebar.classList.contains('active')) {
+          sidebar.classList.remove('active');
+        }
+
+        // Expand search wrapper if not open so user sees current search & counter
+        if (hubSearchWrapper && !hubSearchWrapper.classList.contains('expanded')) {
+          hubSearchWrapper.classList.add('expanded');
+          const icon = hubSearchBtn?.querySelector('i');
+          if (icon) icon.className = 'bx bx-x';
+        }
+
         seatSearchInput.value = targetKeyword;
         seatSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
 
+        // Start/refresh 30-second inactivity auto-reset timer
+        window._startSearchInactivityTimer?.();
+
         setTimeout(() => {
-          if (matchedSeats && matchedSeats.length > 0) {
-            matchedSeats[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const firstMatch = document.querySelector('.seat.active-match') || document.querySelector('.seat.search-match');
+          if (firstMatch) {
+            firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }, 320);
       });
@@ -1580,6 +1655,7 @@ document.addEventListener('DOMContentLoaded', () => {
       seatSearchInput.addEventListener('input', (e) => {
         if (!e.target.value.trim()) {
           document.querySelectorAll('.legend-item.clickable').forEach(el => el.classList.remove('active-filter'));
+          window._clearSearchInactivityTimer?.();
         }
       });
     }
