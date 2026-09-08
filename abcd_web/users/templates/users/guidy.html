@@ -4885,49 +4885,12 @@ async function sendMessage() {
   }
 }
 
-
-// Detect if the user is on a touch device with an on-screen keyboard (mobile / tablet)
-// Returns true for touch-screen phones and tablets where Shift key is absent.
-// Returns false for laptops and desktops with physical keyboards.
-function isMobileOrTouchKeyboard() {
-  // Primary: check if primary input is touch (not mouse/pointer)
-  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
-    return true;
-  }
-  // Fallback: UA check for common mobile/tablet tokens
-  const ua = navigator.userAgent || '';
-  return /android|iphone|ipad|ipod|mobile|tablet/i.test(ua);
-}
-
-// Insert a real newline (\n) at the current cursor position in the contenteditable gInput div
-function insertNewlineAtCursor() {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return;
-  const range = sel.getRangeAt(0);
-  range.deleteContents();
-
-  // Insert <br> + a zero-width space to ensure cursor lands after the break
-  const br = document.createElement('br');
-  range.insertNode(br);
-
-  // Move cursor after the <br>
-  const after = document.createRange();
-  after.setStartAfter(br);
-  after.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(after);
-
-  // Scroll input to bottom so the new line is visible
-  const inp = document.getElementById('gInput');
-  if (inp) inp.scrollTop = inp.scrollHeight;
-}
-
 function handleInputKey(e) {
   if (e.key === 'Enter' || e.keyCode === 13) {
     const isTouchMobile = isMobileOrTouchKeyboard();
     if (isTouchMobile) {
       // Touch screen (mobile / tablet with on-screen keyboard):
-      // Enter always creates a new line — there is no Shift key available
+      // Enter always creates a new line — there is no Shift key available on screen keyboards
       e.preventDefault();
       insertNewlineAtCursor();
       toggleSendBtn();
