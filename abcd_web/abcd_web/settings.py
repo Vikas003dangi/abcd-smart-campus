@@ -117,6 +117,7 @@ else:
 # MIDDLEWARE
 # -------------------------------
 MIDDLEWARE = [
+    'users.db_utils.SecurityHeadersMiddleware',
     'users.db_utils.GlobalCrashPreventionMiddleware',
     'users.db_utils.CanonicalDomainRedirectMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -385,6 +386,8 @@ CACHES = {
 # PRODUCTION SECURITY HEADERS
 # -------------------------------
 if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_REDIRECT_EXEMPT = [r'^(?:healthz|health|ping)/?$']
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SESSION_COOKIE_SECURE = True

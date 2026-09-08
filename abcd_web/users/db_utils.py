@@ -435,3 +435,63 @@ class CanonicalDomainRedirectMiddleware:
         return self.get_response(request)
 
 
+class SecurityHeadersMiddleware:
+    """
+    Production-grade Security Headers Middleware.
+    Enforces Content-Security-Policy, Permissions-Policy, Referrer-Policy,
+    X-Content-Type-Options, X-Frame-Options, and HSTS across all responses
+    (including 301/302 redirects) to achieve an A+ grade on securityheaders.com.
+    """
+    CSP_POLICY = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.youtube.com https://s.ytimg.com https://accounts.google.com https://apis.google.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://cdn.boxicons.com; "
+        "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://cdn.boxicons.com; "
+        "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com https://ui-avatars.com https://files.catbox.moe; "
+        "media-src 'self' blob: data: https://res.cloudinary.com; "
+        "frame-src 'self' https://res.cloudinary.com https://www.youtube.com https://www.youtube-nocookie.com https://accounts.google.com https://maps.google.com https://www.google.com; "
+        "connect-src 'self' https://res.cloudinary.com https://api.cloudinary.com https://www.googleapis.com https://fcm.googleapis.com https://accounts.google.com; "
+        "worker-src 'self' blob:; "
+        "manifest-src 'self'; "
+        "base-uri 'self'; "
+        "form-action 'self' https://accounts.google.com; "
+        "object-src 'none';"
+    )
+
+    PERMISSIONS_POLICY = (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=(), "
+        "vr=(), accelerometer=(), gyroscope=()"
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+
+        # 1. Content-Security-Policy
+        if 'Content-Security-Policy' not in response:
+            response['Content-Security-Policy'] = self.CSP_POLICY
+
+        # 2. Permissions-Policy
+        if 'Permissions-Policy' not in response:
+            response['Permissions-Policy'] = self.PERMISSIONS_POLICY
+
+        # 3. Defensive Fallbacks for Redirects & Error Responses
+        if 'Referrer-Policy' not in response:
+            response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        if 'X-Content-Type-Options' not in response:
+            response['X-Content-Type-Options'] = 'nosniff'
+        if 'X-Frame-Options' not in response:
+            response['X-Frame-Options'] = 'SAMEORIGIN'
+
+        # 4. Strict-Transport-Security (HSTS) on secure requests or HTTPS forward
+        proto = request.META.get('HTTP_X_FORWARDED_PROTO', '').lower()
+        if request.is_secure() or proto == 'https':
+            if 'Strict-Transport-Security' not in response:
+                response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+
+        return response
+
+
+
