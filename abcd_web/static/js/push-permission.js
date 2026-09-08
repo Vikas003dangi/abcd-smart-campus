@@ -5,6 +5,8 @@
 
     const ALLOWED_KEY = 'abcd_push_allowed';
     const DISMISS_SESSION_KEY = 'abcd_push_prompt_dismissed_session';
+    const SNOOZE_KEY = 'abcd_push_snooze_until';
+    const SNOOZE_DURATION_MS = 3 * 24 * 60 * 60 * 1000; // 3 days (occasional reminder)
 
     // 1. Check feature support
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
@@ -315,9 +317,13 @@
         if (gotItBtn) gotItBtn.addEventListener('click', () => dismissPrompt(true));
     }
 
-    function dismissPrompt(isSessionDismiss = true) {
-        if (isSessionDismiss) {
+    function dismissPrompt(isUserAction = true) {
+        if (isUserAction) {
             sessionStorage.setItem(DISMISS_SESSION_KEY, 'true');
+            try {
+                // Snooze for 3 days so it reappears occasionally (not too fast, not too late)
+                localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_DURATION_MS));
+            } catch (e) {}
         }
         if (bubble) {
             bubble.classList.remove('show');
@@ -380,6 +386,7 @@
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 localStorage.setItem(ALLOWED_KEY, 'true');
+                try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
                 dismissPrompt(false);
 
                 const reg = await registerServiceWorkerAndSync({ sendWelcome: true });
@@ -528,15 +535,50 @@
         }
     };
 
+    function shouldShowPrompt() {
+        if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+            return false;
+        }
+        if (sessionStorage.getItem(DISMISS_SESSION_KEY) === 'true') {
+            return false;
+        }
+        try {
+            const snoozeUntil = parseInt(localStorage.getItem(SNOOZE_KEY) || '0', 10);
+            if (snoozeUntil && Date.now() < snoozeUntil) {
+                return false;
+            }
+        } catch (e) {}
+        return true;
+    }
+
+    // Dynamic Permission Tracking: detect if permission was revoked in browser settings
+    if ('permissions' in navigator && navigator.permissions.query) {
+        try {
+            navigator.permissions.query({ name: 'notifications' }).then(function (permStatus) {
+                permStatus.onchange = function () {
+                    if (permStatus.state === 'granted') {
+                        localStorage.setItem(ALLOWED_KEY, 'true');
+                        try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
+                        dismissPrompt(false);
+                        registerServiceWorkerAndSync();
+                    } else {
+                        // User revoked permission in browser settings!
+                        localStorage.removeItem(ALLOWED_KEY);
+                        sessionStorage.removeItem(DISMISS_SESSION_KEY);
+                    }
+                };
+            }).catch(function () {});
+        } catch (e) {}
+    }
+
     // Initialization:
-    // Only background sync if ALREADY granted by browser
     if (Notification.permission === 'granted') {
         localStorage.setItem(ALLOWED_KEY, 'true');
+        try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
         registerServiceWorkerAndSync();
     } else {
         localStorage.removeItem(ALLOWED_KEY);
-        // Only show soft primer prompt if permission is 'default' and not dismissed in this session
-        if (Notification.permission === 'default' && sessionStorage.getItem(DISMISS_SESSION_KEY) !== 'true') {
+        if (shouldShowPrompt()) {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(showBubble, 2200);
