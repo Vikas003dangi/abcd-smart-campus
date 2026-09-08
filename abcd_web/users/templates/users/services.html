@@ -423,42 +423,53 @@
     <!-- Card 5: Master To-Do -->
     <div class="card" id="todo">
       <div>
-        <h3><i class="fa-solid fa-list-check"></i> Master To-Do & Productivity Hub</h3>
+        <h3><i class="fa-solid fa-list-check"></i> Master To-Do Hub & Study Planner</h3>
         <p>
-          Organize daily study goals, fee renewal alerts, task breakdowns, digital study notes, and personal checklists in one place.
+          Organize daily study goals, competitive exam revision targets, task breakdowns, fee renewal alerts, and digital study notes in one unified student productivity hub.
         </p>
         <ul class="feature-list">
-          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Task Breakdown & Priority Tags:</strong> Organize study goals with sub-tasks, category folders, and priority flags.</span></li>
-          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Automated Fee & Goal Reminders:</strong> Get timely fee payment reminders and daily study schedule notifications.</span></li>
-          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Digital Notebooks & Trash Recovery:</strong> Create formatted study notes with fast search and trash restore protection.</span></li>
+          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Daily Task Breakdown & Study Goals:</strong> Organize daily homework, syllabus milestones, sub-tasks, and priority flags.</span></li>
+          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Automated Fee & Schedule Reminders:</strong> Never miss a fee deadline or important test date with instant alert notifications.</span></li>
+          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Digital Study Notebook:</strong> Keep quick subject formulas, vocabulary lists, and revision notes with instant search.</span></li>
         </ul>
       </div>
-      <div class="badge-row">
-        <span class="badge"><i class="fa-solid fa-tag"></i> Priority Tags</span>
-        <span class="badge"><i class="fa-solid fa-diagram-project"></i> Sub-Tasks</span>
-        <span class="badge"><i class="fa-solid fa-bell"></i> Fee Alerts</span>
-        <span class="badge"><i class="fa-solid fa-note-sticky"></i> Digital Notes</span>
+      <div class="badge-row" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <span class="badge"><i class="fa-solid fa-tag"></i> Study Goals</span>
+          <span class="badge"><i class="fa-solid fa-diagram-project"></i> Sub-Tasks</span>
+          <span class="badge"><i class="fa-solid fa-bell"></i> Fee Alerts</span>
+          <span class="badge"><i class="fa-solid fa-note-sticky"></i> Digital Notes</span>
+        </div>
+        <a href="{% url 'users:todo_hub' %}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: #6f7eed; text-decoration: none; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(111, 126, 237, 0.3); transition: all 0.2s;">
+          <span>Open To-Do</span> <i class="fa-solid fa-arrow-right"></i>
+        </a>
       </div>
     </div>
 
     <!-- Card 6: Guidy Chat -->
     <div class="card" id="guidy">
       <div>
-        <h3><i class="fa-solid fa-comments"></i> Guidy Chatting Platform</h3>
+        <h3><i class="fa-solid fa-comments"></i> Guidy - Closed Chatting Platform & Chats</h3>
         <p>
-          ABCD's private, encrypted chatting platform for student doubt resolution, peer discussions, and official batch announcements.
+          <strong>Guidy</strong> is ABCD's best closed chatting platform and academic messaging hub designed exclusively for registered students and faculty. Experience distraction-free Guidy chats, peer discussion groups, and mentor guidance without phone number exposure.
         </p>
         <ul class="feature-list">
-          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Private & Encrypted Chat:</strong> Safe 1-on-1 direct messaging with batchmates and official batch broadcast channels.</span></li>
-          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Rich File & Media Sharing:</strong> Share study photos, videos, voice notes, and PDF worksheets instantly.</span></li>
-          <li><i class="fa-solid fa-circle-check"></i> <span><strong>In-Chat Search & Reactions:</strong> Fast message history search, emoji reactions, and customizable student profiles.</span></li>
+          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Closed Chatting Platform:</strong> Secure, private, and distraction-free academic communication between ABCD students, teachers, and alumni mentors.</span></li>
+          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Guidy Chats & 1-on-1 Guidance:</strong> Fast 1-on-1 direct doubt resolution with batchmates and faculty without sharing personal mobile numbers.</span></li>
+          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Rich Media & File Sharing:</strong> Share study notes, assignment images, voice notes, and PDF worksheets directly in chat.</span></li>
+          <li><i class="fa-solid fa-circle-check"></i> <span><strong>Batch Broadcasts & Channels:</strong> Official coaching batch announcements, exam alerts, and real-time updates.</span></li>
         </ul>
       </div>
-      <div class="badge-row">
-        <span class="badge"><i class="fa-solid fa-lock"></i> Encrypted Chat</span>
-        <span class="badge"><i class="fa-solid fa-folder-open"></i> File Sharing</span>
-        <span class="badge"><i class="fa-solid fa-users"></i> Batch Groups</span>
-        <span class="badge"><i class="fa-solid fa-microphone"></i> Voice Notes</span>
+      <div class="badge-row" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <span class="badge"><i class="fa-solid fa-lock"></i> Closed Platform</span>
+          <span class="badge"><i class="fa-solid fa-comments"></i> Guidy Chats</span>
+          <span class="badge"><i class="fa-solid fa-folder-open"></i> File Sharing</span>
+          <span class="badge"><i class="fa-solid fa-microphone"></i> Voice Notes</span>
+        </div>
+        <a href="{% url 'users:guidy_home' %}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; color: #6f7eed; text-decoration: none; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(111, 126, 237, 0.3); transition: all 0.2s;">
+          <span>Open Guidy</span> <i class="fa-solid fa-arrow-right"></i>
+        </a>
       </div>
     </div>
 
