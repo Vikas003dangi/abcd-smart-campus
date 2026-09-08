@@ -8450,24 +8450,26 @@
         // Nothing to close — dropdown removed, panel has its own overlay
       });
 
-      // notif-jump-btn: jump to section and close panel
+      // notif-jump-btn & [data-tab-target]: jump to section and close panel
       // Works from ANY teacher page — if the tab DOM exists we switch inline,
       // otherwise we navigate to /teacher/?tab=<target> so the dashboard opens
       // on the correct tab.
       document.addEventListener('click', (e) => {
-        const btn = e.target.closest('.notif-jump-btn');
-        if (!btn) return;
-        const target = btn.dataset.tabTarget;
+        const btn = e.target.closest('.notif-jump-btn, [data-tab-target]');
+        if (!btn || !btn.closest('#teacherNotifPanel')) return;
+        const target = btn.dataset.tabTarget || btn.getAttribute('data-tab-target');
         if (!target) return;
+        e.preventDefault();
         // Close notification panel
         const panel = document.getElementById('teacherNotifPanel');
         const overlay = document.getElementById('teacherNotifOverlay');
         if (panel) panel.classList.remove('active');
         if (overlay) overlay.classList.remove('active');
         // If the tab element exists in the DOM we are on the dashboard → switch inline
-        if (document.getElementById(target + '-tab')) {
-          showTab(target);
-          document.getElementById(target + '-tab').scrollIntoView({ behavior: 'smooth' });
+        const targetTabEl = document.getElementById(target + '-tab');
+        if (targetTabEl && typeof window.showTab === 'function') {
+          window.showTab(target);
+          targetTabEl.scrollIntoView({ behavior: 'smooth' });
         } else {
           // We are on a different teacher page → navigate to the dashboard with ?tab=
           window.location.href = '/teacher/?tab=' + encodeURIComponent(target);
@@ -8577,14 +8579,17 @@
 
       // --- 4. RUN INITIAL SETUP CODE ---
 
-      // Set initial tab — honor section_filter from URL if present
+      // Set initial tab — honor section_filter or tab or hash from URL if present
       const urlParams = new URLSearchParams(window.location.search);
       const sectionFilter = urlParams.get('section_filter');
       const tabParam = urlParams.get('tab');
+      const hashParam = window.location.hash ? window.location.hash.replace('#', '') : null;
       if (sectionFilter) {
         showTab(sectionFilter);
       } else if (tabParam) {
         showTab(tabParam);
+      } else if (hashParam && document.getElementById(hashParam + '-tab')) {
+        showTab(hashParam);
       } else {
         const initialTabButton = document.querySelector('.tab-btn.active');
         if (initialTabButton) {
@@ -11774,6 +11779,24 @@
             }
             html += `</div></div>`;
           } else {
+            let actionHtml = '';
+            if (n.link) {
+              let href = n.link;
+              let targetTab = null;
+              if (href.startsWith('#')) {
+                targetTab = href.replace('#', '');
+              } else if (href.includes('/teacher/dashboard/#') || href.includes('/teacher/#')) {
+                targetTab = href.split('#')[1];
+              } else if (href.includes('tab=') || href.includes('section_filter=')) {
+                const match = href.match(/[?&](?:tab|section_filter)=([^&#]+)/);
+                if (match) targetTab = decodeURIComponent(match[1]);
+              }
+              if (targetTab) {
+                actionHtml = `<div style="display:flex; gap:6px; margin-top:6px;"><a href="/teacher/?tab=${encodeURIComponent(targetTab)}" data-tab-target="${targetTab}" class="notif-action-pill pill-blue"><i class='bx bx-show-alt'></i> View</a></div>`;
+              } else {
+                actionHtml = `<div style="display:flex; gap:6px; margin-top:6px;"><a href="${href}" class="notif-action-pill pill-blue"><i class='bx bx-show-alt'></i> View</a></div>`;
+              }
+            }
             html += `
               <div style="flex: 1;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -11781,6 +11804,7 @@
                   <small style="color: #94a3b8; font-size: 0.65rem;">${n.created_at_date}</small>
                 </div>
                 <div class="notif-message-inline" style="margin-top: 2px;">${n.message}</div>
+                ${actionHtml}
               </div>
             `;
           }
@@ -11818,9 +11842,14 @@
         link.addEventListener('click', function(e) {
           e.preventDefault();
           const target = this.getAttribute('data-tab-target');
-          if (target && typeof window.showTab === 'function') {
+          if (!target) return;
+          toggleTeacherNotifPanel();
+          const targetTabEl = document.getElementById(target + '-tab');
+          if (targetTabEl && typeof window.showTab === 'function') {
             window.showTab(target);
-            toggleTeacherNotifPanel();
+            targetTabEl.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            window.location.href = '/teacher/?tab=' + encodeURIComponent(target);
           }
         });
       });
