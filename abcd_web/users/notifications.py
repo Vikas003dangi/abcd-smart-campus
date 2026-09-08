@@ -684,18 +684,17 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
 
     formatted_title = format_push_title(title, category=category, source=source)
 
+    cat_lower = (category or "").lower()
+    src_lower = (source or "").lower()
+    title_lower = (title or "").lower()
+    tag_lower = (tag or "").lower()
+    is_alarm = (cat_lower in ('reminder', 'alarm') or src_lower in ('reminder', 'alarm') or
+                'alarm' in title_lower or 'reminder' in title_lower or
+                'alarm' in tag_lower or 'reminder' in tag_lower)
+
     # Determine default sound based on alarm/reminder category
     if not sound:
-        cat_lower = (category or "").lower()
-        src_lower = (source or "").lower()
-        title_lower = (title or "").lower()
-        tag_lower = (tag or "").lower()
-        if (cat_lower in ('reminder', 'alarm') or src_lower in ('reminder', 'alarm') or
-                'alarm' in title_lower or 'reminder' in title_lower or
-                'alarm' in tag_lower or 'reminder' in tag_lower):
-            sound = "/static/audio/alarms and reminders.mp3"
-        else:
-            sound = "/static/audio/PWA.mp3"
+        sound = "/static/audio/alarms and reminders.mp3" if is_alarm else "/static/audio/PWA.mp3"
 
     # Calculate or get badge count (Guidy unread messages + active alerts)
     if badge_count is None:
@@ -705,6 +704,9 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         except Exception:
             badge_count = 1
 
+    import time
+    unique_tag = tag or (f"abcd-alarm-{int(time.time())}" if is_alarm else "abcd-notification")
+
     payload = {
         "title": formatted_title,
         "body": body,
@@ -713,9 +715,10 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         "badge": badge or "/static/data/favicon/favicon-96x96.png",
         "sound": sound,
         "badge_count": max(1, badge_count or 1),
-        "tag": tag or "abcd-notification",
+        "tag": unique_tag,
         "category": category,
         "source": source,
+        "is_alarm": is_alarm,
     }
 
     from pywebpush import webpush, WebPushException
@@ -732,7 +735,12 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
                 vapid_private_key=settings.VAPID_PRIVATE_KEY,
                 vapid_claims={
                     "sub": "mailto:admin@abcd.com"
-                }
+                },
+                headers={
+                    "Urgency": "high",
+                },
+                ttl=86400,
+                timeout=10
             )
             delivered = True
         except WebPushException as ex:

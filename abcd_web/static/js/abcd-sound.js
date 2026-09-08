@@ -201,10 +201,310 @@
         }
     }, true);
 
+    // -------------------------------------------------------------
+    // Continuous Alarm Engine & Full-Screen Ringing Modal
+    // -------------------------------------------------------------
+    let activeAlarmAudio = null;
+    let activeAlarmModal = null;
+    let alarmAutoStopTimer = null;
+    let alarmClockInterval = null;
+
+    function ensureAlarmStyles() {
+        if (document.getElementById('abcd-alarm-modal-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'abcd-alarm-modal-styles';
+        style.textContent = `
+            @keyframes abcdAlarmBellRing {
+                0% { transform: rotate(0deg) scale(1); }
+                15% { transform: rotate(18deg) scale(1.15); }
+                30% { transform: rotate(-18deg) scale(1.15); }
+                45% { transform: rotate(14deg) scale(1.1); }
+                60% { transform: rotate(-14deg) scale(1.1); }
+                75% { transform: rotate(8deg) scale(1.05); }
+                100% { transform: rotate(0deg) scale(1); }
+            }
+            @keyframes abcdAlarmGlow {
+                0%, 100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.4), 0 0 50px rgba(245, 158, 11, 0.2); }
+                50% { box-shadow: 0 0 45px rgba(239, 68, 68, 0.75), 0 0 85px rgba(245, 158, 11, 0.45); }
+            }
+            @keyframes abcdAlarmOverlayFade {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes abcdAlarmCardPop {
+                from { opacity: 0; transform: scale(0.85) translateY(20px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            .abcd-alarm-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483647;
+                background: rgba(10, 15, 30, 0.88);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                animation: abcdAlarmOverlayFade 0.3s ease-out;
+            }
+            .abcd-alarm-card {
+                background: linear-gradient(145deg, #1e1b4b, #0f172a);
+                border: 2px solid rgba(245, 158, 11, 0.5);
+                border-radius: 28px;
+                padding: 32px 28px;
+                width: 100%;
+                max-width: 440px;
+                text-align: center;
+                color: #ffffff;
+                animation: abcdAlarmCardPop 0.35s cubic-bezier(0.16, 1, 0.3, 1), abcdAlarmGlow 2s infinite ease-in-out;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            }
+            .abcd-alarm-bell-icon {
+                width: 84px;
+                height: 84px;
+                background: linear-gradient(135deg, #ef4444, #f59e0b);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 2.8rem;
+                margin: 0 auto 18px;
+                animation: abcdAlarmBellRing 1.2s infinite ease-in-out;
+                box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5);
+            }
+            .abcd-alarm-clock {
+                font-size: 2.2rem;
+                font-weight: 900;
+                letter-spacing: 2px;
+                color: #fde047;
+                margin-bottom: 8px;
+                font-variant-numeric: tabular-nums;
+            }
+            .abcd-alarm-title {
+                font-size: 1.35rem;
+                font-weight: 800;
+                color: #ffffff;
+                margin-bottom: 8px;
+                line-height: 1.3;
+                word-break: break-word;
+            }
+            .abcd-alarm-note {
+                font-size: 0.95rem;
+                color: #94a3b8;
+                margin-bottom: 26px;
+                line-height: 1.5;
+                max-height: 80px;
+                overflow-y: auto;
+            }
+            .abcd-alarm-btn-stop {
+                background: linear-gradient(135deg, #ef4444, #dc2626);
+                color: #ffffff;
+                border: none;
+                border-radius: 16px;
+                padding: 16px 28px;
+                font-size: 1.15rem;
+                font-weight: 800;
+                width: 100%;
+                cursor: pointer;
+                box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+                transition: transform 0.15s, opacity 0.15s;
+                letter-spacing: 0.5px;
+            }
+            .abcd-alarm-btn-stop:hover {
+                transform: scale(1.02);
+                opacity: 0.95;
+            }
+            .abcd-alarm-btn-stop:active {
+                transform: scale(0.98);
+            }
+            .abcd-alarm-btn-snooze {
+                margin-top: 12px;
+                background: rgba(255, 255, 255, 0.1);
+                color: #cbd5e1;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 14px;
+                padding: 12px 20px;
+                font-size: 0.95rem;
+                font-weight: 600;
+                width: 100%;
+                cursor: pointer;
+                transition: background 0.2s, color 0.2s;
+            }
+            .abcd-alarm-btn-snooze:hover {
+                background: rgba(255, 255, 255, 0.18);
+                color: #ffffff;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function formatCurrentTime() {
+        const now = new Date();
+        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    }
+
+    /**
+     * Start continuous alarm sound & full-screen ringing UI
+     * @param {string} title
+     * @param {string} body
+     */
+    function startABCDAlarm(title, body) {
+        stopABCDAlarm();
+        if (!isSoundEnabled()) return;
+
+        ensureAlarmStyles();
+
+        // 1. Play alarm audio on loop at 100% volume
+        try {
+            const alarmSrc = SOUND_PATHS['alarm'] || '/static/audio/alarms and reminders.mp3';
+            activeAlarmAudio = new Audio(alarmSrc);
+            activeAlarmAudio.loop = true;
+            activeAlarmAudio.volume = 1.0;
+            const p = activeAlarmAudio.play();
+            if (p !== undefined) {
+                p.catch(function (err) {
+                    console.debug('Alarm audio autoplay waiting for user touch:', err.message);
+                });
+            }
+        } catch (e) {
+            console.error('Failed to init alarm audio:', e);
+        }
+
+        // 2. Auto-stop safety timeout (2 minutes) to prevent indefinite drain
+        alarmAutoStopTimer = setTimeout(function () {
+            stopABCDAlarm();
+        }, 120000);
+
+        // 3. Build full-screen interactive Alarm UI
+        const overlay = document.createElement('div');
+        overlay.className = 'abcd-alarm-overlay';
+        overlay.id = 'abcdActiveAlarmModal';
+
+        const safeTitle = (title || '⏰ Reminder Alarm').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeBody = (body || 'Your scheduled reminder is ringing now!').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        overlay.innerHTML = `
+            <div class="abcd-alarm-card">
+                <div class="abcd-alarm-bell-icon">🔔</div>
+                <div class="abcd-alarm-clock" id="abcdAlarmClockDisplay">${formatCurrentTime()}</div>
+                <div class="abcd-alarm-title">${safeTitle}</div>
+                <div class="abcd-alarm-note">${safeBody}</div>
+                <button type="button" class="abcd-alarm-btn-stop" id="abcdStopAlarmBtn">
+                    STOP ALARM 🔔
+                </button>
+                <button type="button" class="abcd-alarm-btn-snooze" id="abcdSnoozeAlarmBtn">
+                    Snooze 5 Min ⏳
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        activeAlarmModal = overlay;
+
+        // Clock updater
+        alarmClockInterval = setInterval(function () {
+            const clockEl = document.getElementById('abcdAlarmClockDisplay');
+            if (clockEl) clockEl.textContent = formatCurrentTime();
+        }, 1000);
+
+        // Wire Stop button
+        const stopBtn = document.getElementById('abcdStopAlarmBtn');
+        if (stopBtn) {
+            stopBtn.addEventListener('click', function () {
+                stopABCDAlarm();
+            });
+        }
+
+        // Wire Snooze button
+        const snoozeBtn = document.getElementById('abcdSnoozeAlarmBtn');
+        if (snoozeBtn) {
+            snoozeBtn.addEventListener('click', function () {
+                stopABCDAlarm();
+                if (window.CustomPopup) {
+                    CustomPopup.alert('Alarm snoozed for 5 minutes.', '⏳ Snooze Active');
+                }
+            });
+        }
+    }
+
+    /**
+     * Stop continuous alarm audio & dismiss modal
+     */
+    function stopABCDAlarm() {
+        if (alarmAutoStopTimer) {
+            clearTimeout(alarmAutoStopTimer);
+            alarmAutoStopTimer = null;
+        }
+        if (alarmClockInterval) {
+            clearInterval(alarmClockInterval);
+            alarmClockInterval = null;
+        }
+        if (activeAlarmAudio) {
+            try {
+                activeAlarmAudio.pause();
+                activeAlarmAudio.currentTime = 0;
+            } catch (e) {}
+            activeAlarmAudio = null;
+        }
+        if (activeAlarmModal) {
+            try {
+                if (activeAlarmModal.parentNode) {
+                    activeAlarmModal.parentNode.removeChild(activeAlarmModal);
+                }
+            } catch (e) {}
+            activeAlarmModal = null;
+        }
+    }
+
+    // Keyboard shortcut (Escape stops active alarm)
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && activeAlarmModal) {
+            stopABCDAlarm();
+        }
+    });
+
+    // Check URL parameters for instant tap-to-ring when opened via push notification
+    function checkUrlAlarmTrigger() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('ring_alarm') === '1') {
+                const alarmTitle = urlParams.get('alarm_title') || '⏰ Scheduled Reminder';
+                // Clean the URL param so refresh doesn't re-ring
+                urlParams.delete('ring_alarm');
+                urlParams.delete('alarm_title');
+                const cleanSearch = urlParams.toString();
+                const cleanUrl = window.location.pathname + (cleanSearch ? '?' + cleanSearch : '') + window.location.hash;
+                window.history.replaceState({}, document.title, cleanUrl);
+
+                setTimeout(function () {
+                    startABCDAlarm(alarmTitle, 'Your scheduled reminder is ringing now!');
+                }, 200);
+            }
+        } catch (e) {}
+    }
+
+    // Service Worker message listener for instant audio playback in open/minimized tabs
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'ABCD_ALARM_PUSH') {
+                if (event.data.isAlarm) {
+                    startABCDAlarm(event.data.title, event.data.body);
+                } else {
+                    playABCDSound('pwa');
+                }
+            }
+        });
+    }
+
     // Listen for custom global events
     window.addEventListener('abcd:sound', function (e) {
         if (e && e.detail && e.detail.sound) {
-            playABCDSound(e.detail.sound, e.detail.volume || 1.0);
+            if (e.detail.sound === 'alarm' && e.detail.isRinging) {
+                startABCDAlarm(e.detail.title, e.detail.body);
+            } else {
+                playABCDSound(e.detail.sound, e.detail.volume || 1.0);
+            }
         }
     });
 
@@ -213,13 +513,19 @@
     window.playDoneSound = function () { playABCDSound('done'); };
     window.playErrorSound = function () { playABCDSound('error'); };
     window.playButtonSound = function () { playABCDSound('button', 0.45); };
+    window.startABCDAlarm = startABCDAlarm;
+    window.stopABCDAlarm = stopABCDAlarm;
     window.setABCDSoundEnabled = setSoundEnabled;
     window.isABCDSoundEnabled = isSoundEnabled;
 
-    // Initialize preloading on DOM load or immediate
+    // Initialize preloading and URL trigger on DOM load or immediate
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAudioPool);
+        document.addEventListener('DOMContentLoaded', function () {
+            initAudioPool();
+            checkUrlAlarmTrigger();
+        });
     } else {
         initAudioPool();
+        checkUrlAlarmTrigger();
     }
 })();

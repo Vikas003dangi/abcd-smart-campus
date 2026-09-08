@@ -205,25 +205,47 @@ def run_scheduler_cycle(force_daily=False, mode='all'):
     return cycle_report
 
 
+def execute_urgent_reminder_checks():
+    """
+    Ultra-low latency checker (ticks every 5s):
+    Checks and fires due TodoTask reminders/alarms with near-zero latency
+    instead of waiting for the periodic 60s background loop.
+    """
+    close_old_connections()
+    try:
+        from users.utils import process_todo_notifications
+        process_todo_notifications()
+    except Exception as e:
+        logger.error(f"Scheduler Error [execute_urgent_reminder_checks]: {e}", exc_info=True)
+    finally:
+        close_old_connections()
+
+
 def _scheduler_loop():
     """
     Background worker loop that runs continuously.
-    Ticks every 60 seconds.
+    Ticks urgent alarms every 5 seconds, and full maintenance cycle every 60 seconds.
     """
-    logger.info(">>> ABCD Embedded 24/7 Background Scheduler Active <<<")
+    logger.info(">>> ABCD Embedded 24/7 Background Scheduler Active (5s Alarm Precision) <<<")
     # Initial sleep of 10s to let Daphne / Django boot cleanly and complete startup migrations
     time.sleep(10)
 
+    tick_count = 0
     while True:
         try:
-            run_scheduler_cycle(force_daily=False, mode='all')
+            # 1. Ultra-responsive 5-second check for due To-Do reminders & alarms
+            execute_urgent_reminder_checks()
+
+            # 2. Run full 60-second maintenance cycle every 12 ticks (~60 seconds)
+            if tick_count % 12 == 0:
+                run_scheduler_cycle(force_daily=False, mode='all')
         except Exception as e:
             logger.error(f"Unexpected error in background scheduler loop: {e}", exc_info=True)
         finally:
             close_old_connections()
 
-        # Sleep for 60 seconds
-        time.sleep(60)
+        tick_count += 1
+        time.sleep(5)
 
 
 def start_background_scheduler():

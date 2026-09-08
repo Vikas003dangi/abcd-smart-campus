@@ -3201,13 +3201,17 @@
         <!-- Alarm -->
         <div class="rem-toggle-row" style="margin-bottom:0;">
           <div>
-            <div class="rem-toggle-label">🔔 Alarm</div>
-            <div class="rem-toggle-note">Rings in browser when tab is open</div>
+            <div class="rem-toggle-label">🔔 Alarm & Device Ring</div>
+            <div class="rem-toggle-note">Plays full alarm sound on device & sends high-priority alert</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="reminderAlarmToggle" checked>
             <span class="slider"></span>
           </label>
+        </div>
+        <div style="margin-top: 8px; font-size: 0.78rem; color: #64748b; display: flex; align-items: center; justify-content: space-between;">
+          <span>Sound: <strong>alarms and reminders.mp3</strong></span>
+          <a href="/static/audio/alarms and reminders.mp3" download="ABCD_Alarm.mp3" style="color: #7b61ff; text-decoration: underline; font-weight: 600;">Download Ringtone</a>
         </div>
       </div>
 
@@ -12699,12 +12703,37 @@
     } catch(e) {}
   }
 
-  function playAlarmSound() {
-    if (window.playABCDSound) {
-      window.playABCDSound('alarm');
+  const scheduledAlarmTimeoutIds = new Map();
+
+  function triggerAlarmNow(task, meta) {
+    if (firedAlarmIds.has(task.id)) return;
+    firedAlarmIds.add(task.id);
+    sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(firedAlarmIds)));
+
+    const title = task.title || meta.title || 'Reminder';
+    const note = meta.note || '';
+
+    if (window.startABCDAlarm) {
+      window.startABCDAlarm(title, note);
+    } else if (window.playABCDSound) {
+      window.playABCDSound('alarm', 1.0);
     } else {
       try {
         const audio = new Audio('/static/audio/alarms and reminders.mp3');
+        audio.volume = 1.0;
+        audio.play().catch(function () {});
+      } catch (e) {}
+    }
+    showReminderToast(title, note);
+  }
+
+  function playAlarmSound() {
+    if (window.playABCDSound) {
+      window.playABCDSound('alarm', 1.0);
+    } else {
+      try {
+        const audio = new Audio('/static/audio/alarms and reminders.mp3');
+        audio.volume = 1.0;
         audio.play().catch(function () {});
       } catch (e) {}
     }
@@ -12760,12 +12789,14 @@
         const tasks = data.tasks || [];
         const istP = getISTNowComponents();
         const istNowMs = new Date(istP.year, istP.month - 1, istP.day, istP.hour, istP.minute, istP.second).getTime();
+        const nowMs = Date.now();
         
         tasks.forEach(task => {
           if (task.is_done || task.is_trash) return;
           
           const meta = task.metadata || task.reminder_meta || {};
-          if (meta.alarm_enabled !== true) return;
+          const isAlarmEnabled = meta.alarm_enabled !== false && meta.alarm_enabled !== 'false';
+          if (!isAlarmEnabled) return;
           
           if (firedAlarmIds.has(task.id)) return;
           
@@ -12774,33 +12805,53 @@
           
           if (rec === 'once' && meta.fire_at) {
             const fireDt = new Date(meta.fire_at);
-            const diffSec = Math.abs(Date.now() - fireDt.getTime()) / 1000;
-            if (diffSec <= 90) {
+            const fireMs = fireDt.getTime();
+            const elapsedSec = (nowMs - fireMs) / 1000;
+            
+            // If due now or within the last 5 minutes (and not fired yet)
+            if (elapsedSec >= 0 && elapsedSec <= 300) {
               isDueNow = true;
+            } else if (elapsedSec < 0 && Math.abs(elapsedSec) <= 86400) {
+              // Upcoming within 24 hours: schedule exact timer to trigger at exact millisecond
+              if (!scheduledAlarmTimeoutIds.has(task.id)) {
+                const delayMs = fireMs - nowMs;
+                const tid = setTimeout(() => {
+                  scheduledAlarmTimeoutIds.delete(task.id);
+                  triggerAlarmNow(task, meta);
+                }, delayMs);
+                scheduledAlarmTimeoutIds.set(task.id, tid);
+              }
             }
           } else if (meta.time_str) {
             const [th, tm] = meta.time_str.split(':').map(Number);
             const todayFireDt = new Date(istP.year, istP.month - 1, istP.day, th, tm, 0);
-            const diffSec = Math.abs(istNowMs - todayFireDt.getTime()) / 1000;
+            const elapsedSec = (istNowMs - todayFireDt.getTime()) / 1000;
             
-            if (diffSec <= 90) {
+            if (elapsedSec >= 0 && elapsedSec <= 300) {
               isDueNow = true;
+            } else if (elapsedSec < 0 && Math.abs(elapsedSec) <= 86400) {
+              if (!scheduledAlarmTimeoutIds.has(task.id)) {
+                const delayMs = todayFireDt.getTime() - istNowMs;
+                const tid = setTimeout(() => {
+                  scheduledAlarmTimeoutIds.delete(task.id);
+                  triggerAlarmNow(task, meta);
+                }, delayMs);
+                scheduledAlarmTimeoutIds.set(task.id, tid);
+              }
             }
           }
           
           if (isDueNow) {
-            firedAlarmIds.add(task.id);
-            sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(firedAlarmIds)));
-            playAlarmSound();
-            showReminderToast(task.title || 'Reminder', meta.note || '');
+            triggerAlarmNow(task, meta);
           }
         });
       })
       .catch(err => console.error('Error checking due alarms:', err));
   }
 
-  setInterval(checkDueAlarms, 60000);
-  setTimeout(checkDueAlarms, 2000);
+  // Check every 3 seconds for low latency, plus immediately on load
+  setInterval(checkDueAlarms, 3000);
+  setTimeout(checkDueAlarms, 1000);
 
   // --- WIRE DESKTOP NAVBAR SEARCH ENGINE ---
   document.addEventListener('DOMContentLoaded', function () {
@@ -13027,5 +13078,6 @@
   </div>
 </div>
 <script src="{% static 'js/abcd-sound.js' %}"></script>
+<script src="{% static 'js/push-permission.js' %}"></script>
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

@@ -990,15 +990,21 @@ def process_expired_holds():
 
 
 def _fire_reminder(task, title, email_notify):
-    """Module-level helper: fires a 'reminder' category notification and,
+    """Module-level helper: fires an 'alarm' or 'reminder' category notification and,
     when email_notify is True, sends a typed HTML email to the task owner."""
+    meta = task.metadata if isinstance(task.metadata, dict) else {}
+    alarm_enabled = meta.get('alarm_enabled', True)
+    is_alarm = alarm_enabled is True or str(alarm_enabled).lower() == 'true' or alarm_enabled == 1
+    category = 'alarm' if is_alarm else 'reminder'
+
     create_notification(
         user=task.user,
         title=f"⏰ Reminder: {title}",
         message=f"Your reminder '{title}' is due now.",
         link='/todo/',
-        category='reminder',
-        sound='/static/audio/alarms and reminders.mp3'
+        category=category,
+        sound='/static/audio/alarms and reminders.mp3' if is_alarm else '/static/audio/PWA.mp3',
+        meta={'is_alarm': is_alarm, 'note': meta.get('note', '')}
     )
     if email_notify and task.user:
         target_email = get_user_notification_email(task.user)
