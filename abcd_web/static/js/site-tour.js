@@ -1493,6 +1493,9 @@
       // Inject floating launcher button
       this.createLauncher();
 
+      // Listen for seat layout modals to dismiss tour and hide launcher when seat layout opens
+      this.setupSeatModalListener();
+
       // Auto start tour cards after 10 seconds ONLY if user has NEVER completed or dismissed them
       const userIdent = document.body.dataset.username || 'user';
       const userKey = this.getUserStorageKey(pageKey);
@@ -1508,12 +1511,93 @@
       }
 
       setTimeout(() => {
-        this.start(false);
+        if (!this.isSeatModalOpen()) {
+          this.start(false);
+        }
       }, 10000);
+    }
+
+    isSeatModalOpen() {
+      const seatModal = document.getElementById('seatModalOverlay');
+      if (seatModal) {
+        const isVisible = (seatModal.style.display && seatModal.style.display !== 'none') ||
+                          seatModal.classList.contains('visible') ||
+                          (window.getComputedStyle && window.getComputedStyle(seatModal).display !== 'none');
+        if (isVisible) return true;
+      }
+      const seatContainer = document.getElementById('seatModalContainer');
+      if (seatContainer) {
+        const isVisible = (seatContainer.style.display && seatContainer.style.display !== 'none') ||
+                          seatContainer.classList.contains('visible') ||
+                          (window.getComputedStyle && window.getComputedStyle(seatContainer).display !== 'none');
+        if (isVisible) return true;
+      }
+      const seatInterest = document.getElementById('seatInterestOverlay');
+      if (seatInterest && !seatInterest.classList.contains('hidden') && (window.getComputedStyle && window.getComputedStyle(seatInterest).display !== 'none')) {
+        return true;
+      }
+      return false;
+    }
+
+    setupSeatModalListener() {
+      const handleModalChange = () => {
+        if (this.isSeatModalOpen()) {
+          if (this.isStarted) {
+            this.stop(false);
+          }
+          if (this.launcher) {
+            this.launcher.style.display = 'none';
+          }
+        } else {
+          if (this.launcher) {
+            this.launcher.style.display = '';
+          }
+        }
+      };
+
+      const seatModal = document.getElementById('seatModalOverlay');
+      if (seatModal) {
+        const observer = new MutationObserver(handleModalChange);
+        observer.observe(seatModal, { attributes: true, attributeFilter: ['style', 'class'] });
+      }
+
+      const seatContainer = document.getElementById('seatModalContainer');
+      if (seatContainer) {
+        const observer = new MutationObserver(handleModalChange);
+        observer.observe(seatContainer, { attributes: true, attributeFilter: ['style', 'class'] });
+      }
+
+      const seatInterest = document.getElementById('seatInterestOverlay');
+      if (seatInterest) {
+        const observer = new MutationObserver(handleModalChange);
+        observer.observe(seatInterest, { attributes: true, attributeFilter: ['style', 'class'] });
+      }
+
+      // Also listen on click triggers that open the seat modal in admission form
+      document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('#openSeatModalBtn, .select-seat-btn, #selectedSeatPreview, [name="floor_radio"]');
+        if (trigger) {
+          setTimeout(handleModalChange, 50);
+          setTimeout(handleModalChange, 250);
+        }
+      }, true);
     }
 
     detectPageKey() {
       const path = window.location.pathname.toLowerCase();
+
+      // Explicitly suppressed pages as requested by user
+      if (
+        path.includes('/teacher/seat-status') ||
+        path.includes('/teacher/seat-manager') ||
+        path.includes('/about') ||
+        path.includes('/services') ||
+        path.includes('/library-availability') ||
+        path.includes('/my-seat') ||
+        path.includes('/your-seat-status')
+      ) {
+        return null;
+      }
 
       // Home & Core Hubs
       if (path === '/' || path.endsWith('/home/') || path.includes('home_page')) return 'home_page';
@@ -1527,7 +1611,6 @@
       if (path.includes('/teacher/courses/') && path.includes('/preview')) return 'teacher_course_preview';
       if (path.includes('/teacher/courses')) return 'teacher_courses';
       if (path.includes('/teacher/broadcast')) return 'teacher_broadcast';
-      if (path.includes('/teacher/seat-status') || path.includes('/teacher/seat-manager')) return 'teacher_seat_status';
       if (path.includes('/teacher/fees-record')) return 'fees_record';
       if (path.includes('/teacher/progress')) return 'student_progress';
       if (path.includes('/teacher/visitor-insights')) return 'visitor_insights';
@@ -1551,19 +1634,25 @@
       if (path.includes('/achievement')) return 'achievement_form';
       if (path.includes('/courses/') && !path.endsWith('/courses/')) return 'course_detail';
       if (path.includes('/courses')) return 'courses';
-      if (path.includes('/library-availability')) return 'library_availability';
-      if (path.includes('/my-seat')) return 'your_seat_status';
 
       // Profiles & Informational Pages
       if (path.includes('/profile/guest')) return 'guest_profile_details';
       if (path.includes('/my-details') || path.includes('/student/details-s') || path.includes('/profile')) return 'student_details_S';
-      if (path.includes('/services')) return 'services';
-      if (path.includes('/about')) return 'about_us';
       if (path.includes('/contact')) return 'contact';
       if (path.includes('/register')) return 'register';
 
       if (document.body.dataset.pageKey) {
-        return document.body.dataset.pageKey;
+        const pk = document.body.dataset.pageKey;
+        if (
+          pk === 'teacher_seat_status' ||
+          pk === 'about_us' ||
+          pk === 'services' ||
+          pk === 'library_availability' ||
+          pk === 'your_seat_status'
+        ) {
+          return null;
+        }
+        return pk;
       }
 
       return null;
@@ -1594,6 +1683,9 @@
     async start(force = false) {
       if (this.isStarted) return;
       if (!this.steps || this.steps.length === 0) return;
+
+      // Never start tour if a seat modal or seat layout is currently open
+      if (this.isSeatModalOpen()) return;
 
       // Autoclose any open navigation sidebars before starting tour
       this.closeAllDrawers();
@@ -1758,6 +1850,12 @@
           const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
           const rect = el.getBoundingClientRect();
           const isInsideDrawer = !!el.closest('.hub-sidebar, #hubSidebar, .sidebar-wrapper, #sidebar, #mobileNav, #guestMobileNav');
+
+          // Never target elements inside seat layout modals
+          if (el.closest('#seatModalOverlay, #seatModalContainer, #seatModalBody, #seatInterestOverlay')) {
+            continue;
+          }
+
           if (isVisible && (rect.width > 0 || rect.height > 0 || isInsideDrawer)) {
             return el;
           }
@@ -1781,13 +1879,17 @@
           `.mobile-nav ${sel}, #guestMobileNav ${sel}, #mobileNav ${sel}, .sidebar-wrapper ${sel}, .nav-sidebar ${sel}, .bottom-nav-menu ${sel}, .guest-bottom-nav ${sel}, ${sel}`
         );
         for (const cand of candidates) {
-          if (cand) {
+          if (cand && !cand.closest('#seatModalOverlay, #seatModalContainer, #seatModalBody, #seatInterestOverlay')) {
             return cand;
           }
         }
       }
 
-      return document.querySelector(step.target);
+      const finalCandidate = document.querySelector(step.target);
+      if (finalCandidate && !finalCandidate.closest('#seatModalOverlay, #seatModalContainer, #seatModalBody, #seatInterestOverlay')) {
+        return finalCandidate;
+      }
+      return null;
     }
 
     async handleDrawerState(targetElem) {
