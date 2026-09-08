@@ -138,10 +138,21 @@ WSGI_APPLICATION = 'abcd_web.wsgi.application'
 # -------------------------------
 DATABASE_URL = config('DATABASE_URL', default=None)
 if DATABASE_URL:
+    # Auto-detect Neon PostgreSQL and ensure pooled connection is used (-pooler host)
+    # This prevents exhausting Neon's direct connection limits during worker restarts
+    if 'neon.tech' in DATABASE_URL and '-pooler' not in DATABASE_URL:
+        import re
+        DATABASE_URL = re.sub(r'(@[a-zA-Z0-9\-_]+)(\.[a-zA-Z0-9\-_\.]*neon\.tech)', r'\1-pooler\2', DATABASE_URL)
+
+    # When using transaction pooling (Neon PgBouncer), conn_max_age=0 prevents Django
+    # from holding persistent connections that tie up pooler backend slots.
+    is_pooled = '-pooler' in DATABASE_URL or 'neon.tech' in DATABASE_URL
+    conn_age = 0 if is_pooled else 600
+
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
-            conn_max_age=600,
+            conn_max_age=conn_age,
             ssl_require=not DEBUG,
         )
     }

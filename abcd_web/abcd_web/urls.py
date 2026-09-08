@@ -49,9 +49,9 @@ urlpatterns = [
     # VAPID Public Key API endpoint
     path('api/vapid-public-key/', vapid_public_key_api, name='vapid_public_key_api'),
 
-    # 24/7 Keep-Alive & Health Check Endpoints (Lightweight ~30 bytes)
-    path('ping/', ping_view, name='ping'),
-    path('healthz/', ping_view, name='healthz'),
+    # 24/7 Keep-Alive & Light Health Check Endpoints (Zero-DB, ~30 bytes)
+    re_path(r'^(?:healthz|health|ping)/?$', ping_view, name='healthz'),
+
 
     # 24/7 Dedicated External Cron Maintenance Webhook (cron-job.org / Admin)
     path('api/cron/maintenance/', cron_maintenance_view, name='cron_maintenance'),

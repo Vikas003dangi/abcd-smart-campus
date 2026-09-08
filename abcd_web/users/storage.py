@@ -44,10 +44,22 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
         # 3. Default fallback for standard media in Django is 'image' (MediaCloudinaryStorage default)
         return 'image'
 
+    def _get_url(self, name):
+        name = self._prepend_prefix(name)
+        rtype = self._get_resource_type(name)
+        cloudinary_resource = cloudinary.CloudinaryResource(name, default_resource_type=rtype)
+        # Automatic format & quality optimization for images:
+        # f_auto: delivers WebP / AVIF based on browser support
+        # q_auto: smart compression saving 60-80% of Cloudinary free credit bandwidth
+        if rtype == 'image':
+            return cloudinary_resource.build_url(fetch_format='auto', quality='auto')
+        return cloudinary_resource.url
+
     def url(self, name):
         if not name:
             return ''
         name_str = str(name)
         if name_str.startswith(('http://', 'https://', '//')):
             return name_str
-        return super().url(name)
+        return self._get_url(name)
+
