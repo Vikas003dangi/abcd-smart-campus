@@ -37,6 +37,13 @@
             '/admission',
             '/achievement',
             '/seat',
+            '/dashboard',
+            '/student-dashboard',
+            '/teacher-dashboard',
+            '/alumni-dashboard',
+            '/student_dashboard',
+            '/teacher_dashboard',
+            '/alumni_dashboard',
         ];
         for (let i = 0; i < excludedPaths.length; i++) {
             if (path.includes(excludedPaths[i])) return true;
@@ -479,6 +486,8 @@
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
                 localStorage.setItem(ALLOWED_KEY, 'true');
+                localStorage.setItem('abcd_push_user_consented', 'true');
+                sessionStorage.setItem(DISMISS_SESSION_KEY, 'true');
                 try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
                 dismissPrompt(false);
 
@@ -676,13 +685,17 @@
     function syncPermissionState() {
         if (Notification.permission === 'granted') {
             localStorage.setItem(ALLOWED_KEY, 'true');
+            localStorage.setItem('abcd_push_user_consented', 'true');
             try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
             registerServiceWorkerAndSync();
-        } else {
-            // User turned off or revoked permission in device settings or browser!
+        } else if (Notification.permission === 'denied') {
+            // Only clear consent if user has actively DENIED (not just 'default' during navigation)
             localStorage.removeItem(ALLOWED_KEY);
+            localStorage.removeItem('abcd_push_user_consented');
             sessionStorage.removeItem(DISMISS_SESSION_KEY);
         }
+        // If permission is 'default', do NOT wipe existing consent — browser may
+        // temporarily report 'default' during page navigation even when user already allowed.
     }
 
     // Listen on window focus & visibility changes (e.g. user toggled settings in Android settings and resumed app)
@@ -706,6 +719,10 @@
 
     function shouldShowPrompt() {
         if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+            return false;
+        }
+        // Once the user has ever allowed (even if browser forgets state temporarily during navigation)
+        if (localStorage.getItem(ALLOWED_KEY) === 'true' || localStorage.getItem('abcd_push_user_consented') === 'true') {
             return false;
         }
         if (sessionStorage.getItem(DISMISS_SESSION_KEY) === 'true') {
@@ -733,10 +750,12 @@
     // 7. Initialization
     if (Notification.permission === 'granted') {
         localStorage.setItem(ALLOWED_KEY, 'true');
+        localStorage.setItem('abcd_push_user_consented', 'true');
         try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
         registerServiceWorkerAndSync();
     } else {
-        localStorage.removeItem(ALLOWED_KEY);
+        // DO NOT wipe ALLOWED_KEY here — permission may temporarily read as 'default'
+        // during page navigation even when the user has previously granted it.
         if (shouldShowPrompt()) {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
