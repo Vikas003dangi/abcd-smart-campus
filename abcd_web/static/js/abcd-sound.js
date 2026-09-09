@@ -377,7 +377,8 @@
 
     /**
      * Start continuous alarm sound & full-screen ringing UI
-     * @param {string} title
+     */
+
     let currentAlarmTaskId = null;
 
     function getCsrfToken() {
@@ -405,9 +406,9 @@
      * @param {string} [customSoundSrc]
      */
     function startABCDAlarm(title, body, taskId, isAlarm, customSoundSrc) {
-        // If an alarm or reminder is ALREADY playing and modal is visible, do not re-trigger or restart sound!
-        if (activeAlarmAudio && !activeAlarmAudio.paused && activeAlarmModal) {
-            console.debug('Alarm/reminder is already actively playing; skipping duplicate trigger.');
+        // If an alarm or reminder modal is ALREADY visible, do not re-trigger or tear down modal!
+        if (activeAlarmModal && document.getElementById('abcdActiveAlarmModal')) {
+            console.debug('Alarm modal is already visible; keeping active modal.');
             return;
         }
 
@@ -455,10 +456,10 @@
                         activeAlarmAudio = new Audio(soundSrc);
                         audioPool[soundKey] = activeAlarmAudio;
                     }
-                    activeAlarmAudio.loop = false; // NEVER loop indefinitely!
+                    activeAlarmAudio.loop = false;
                     activeAlarmAudio.volume = 1.0;
                     activeAlarmAudio.onended = function () {
-                        activeAlarmAudio = null;
+                        // Keep reference active so volume/stop can still control if needed
                     };
                 }
                 activeAlarmAudio.currentTime = 0;
@@ -479,13 +480,14 @@
         }
         tryPlayAlarmAudio();
 
-        // 2. Auto-dismiss safety timeout:
-        // - Alarm: 30 seconds if unattended (audio finishes at 9s)
-        // - Simple Reminder: 15 seconds if unattended (silences after 9s audio completes)
-        const autoDismissMs = isAlarmMode ? 30000 : 15000;
-        alarmAutoStopTimer = setTimeout(function () {
-            stopABCDAlarm();
-        }, autoDismissMs);
+        // 2. Auto-dismiss timeout:
+        // - Alarms: DO NOT auto-dismiss! The modal must remain on screen with STOP & SNOOZE buttons until acknowledged.
+        // - Simple Reminders: 20 seconds auto-dismiss if unattended.
+        if (!isAlarmMode) {
+            alarmAutoStopTimer = setTimeout(function () {
+                stopABCDAlarm();
+            }, 20000);
+        }
 
         // 3. Build full-screen interactive UI (ALWAYS displayed, regardless of audio state)
         const overlay = document.createElement('div');
@@ -525,11 +527,15 @@
             </div>
         `;
 
-        // Allow tapping unmute banner or card to unlock audio if autoplay blocked it
+        // Allow tapping unmute banner or card on desktop or mobile touch to unlock audio if autoplay blocked it
         overlay.addEventListener('click', function (e) {
             if (e.target.closest('#abcdStopAlarmBtn') || e.target.closest('#abcdSnoozeAlarmBtn')) return;
             tryPlayAlarmAudio();
         });
+        overlay.addEventListener('touchstart', function (e) {
+            if (e.target.closest('#abcdStopAlarmBtn') || e.target.closest('#abcdSnoozeAlarmBtn')) return;
+            tryPlayAlarmAudio();
+        }, { passive: true });
 
         document.body.appendChild(overlay);
         activeAlarmModal = overlay;
@@ -547,10 +553,22 @@
                 const targetId = currentAlarmTaskId;
                 stopABCDAlarm(); // Immediately pauses audio & resets currentTime = 0
                 if (targetId) {
+                    locallyStoppedAlarmIds.add(targetId);
                     globalFiredAlarmIds.add(targetId);
                     try {
+                        sessionStorage.setItem('locallyStoppedAlarmIds', JSON.stringify(Array.from(locallyStoppedAlarmIds)));
                         sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
                     } catch (e) {}
+
+                    // Immediately mutate cached reminders so alarm_status is never ringing locally
+                    if (window.__abcdCachedReminders && Array.isArray(window.__abcdCachedReminders)) {
+                        window.__abcdCachedReminders.forEach(function (t) {
+                            if (t && t.id == targetId) {
+                                if (t.metadata) t.metadata.alarm_status = 'stopped';
+                                if (t.reminder_meta) t.reminder_meta.alarm_status = 'stopped';
+                            }
+                        });
+                    }
 
                     fetch(`/todo/reminder/${targetId}/action/`, {
                         method: 'POST',
@@ -573,10 +591,22 @@
                 const targetId = currentAlarmTaskId;
                 stopABCDAlarm();
                 if (targetId) {
-                    globalFiredAlarmIds.delete(targetId);
+                    locallyStoppedAlarmIds.add(targetId);
+                    globalFiredAlarmIds.add(targetId);
                     try {
+                        sessionStorage.setItem('locallyStoppedAlarmIds', JSON.stringify(Array.from(locallyStoppedAlarmIds)));
                         sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
                     } catch (e) {}
+
+                    // Clear local stop after snooze expires (14 mins) so it can ring again
+                    setTimeout(function () {
+                        locallyStoppedAlarmIds.delete(targetId);
+                        globalFiredAlarmIds.delete(targetId);
+                        try {
+                            sessionStorage.setItem('locallyStoppedAlarmIds', JSON.stringify(Array.from(locallyStoppedAlarmIds)));
+                            sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
+                        } catch (e) {}
+                    }, 14 * 60 * 1000);
 
                     fetch(`/todo/reminder/${targetId}/action/`, {
                         method: 'POST',
@@ -629,10 +659,15 @@
     // GLOBAL IN-APP DUE ALARM CHECKER (Runs Across All Pages of ABCD)
     // ═════════════════════════════════════════════════════════════════════
     const globalFiredAlarmIds = new Set();
+    const locallyStoppedAlarmIds = new Set();
     try {
         const stored = sessionStorage.getItem('firedAlarmIds');
         if (stored) {
             JSON.parse(stored).forEach(function (id) { globalFiredAlarmIds.add(id); });
+        }
+        const storedStopped = sessionStorage.getItem('locallyStoppedAlarmIds');
+        if (storedStopped) {
+            JSON.parse(storedStopped).forEach(function (id) { locallyStoppedAlarmIds.add(id); });
         }
     } catch (e) {}
 
@@ -648,14 +683,21 @@
         tasks.forEach(function (task) {
             if (task.is_done || task.is_trash) return;
 
+            // DO NOT reopen an alarm after a local stop action!
+            if (locallyStoppedAlarmIds.has(task.id)) return;
+
             const meta = task.metadata || task.reminder_meta || {};
             if (meta.alarm_status === 'stopped') return;
-            if (globalFiredAlarmIds.has(task.id)) return;
+            const isRinging = (meta.alarm_status === 'ringing');
+            if (globalFiredAlarmIds.has(task.id) && !isRinging) return;
 
             let isDueNow = false;
             const rec = meta.recurrence || 'once';
 
-            if (rec === 'once') {
+            if (isRinging) {
+                // Backend scheduler already marked it as ringing; ensure in-app modal is visible
+                isDueNow = true;
+            } else if (rec === 'once') {
                 const fireTarget = meta.fire_at || task.delete_at;
                 if (fireTarget) {
                     const fireDt = new Date(fireTarget);
