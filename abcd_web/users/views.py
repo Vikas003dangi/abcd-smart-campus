@@ -776,7 +776,7 @@ def create_dashboard_notification(user, reminder):
         message=f"Time to study {reminder.course.title}!",
         link=f"/courses/{reminder.course.id}/",
         category="reminder",
-        sound="/static/audio/alarms and reminders.mp3",
+        sound="/static/audio/PWA.mp3",
         meta={'is_alarm': False, 'reminder_id': reminder.id},
         tag=f"abcd-learning-reminder-{reminder.id}"
     )

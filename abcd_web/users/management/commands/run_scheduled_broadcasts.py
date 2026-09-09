@@ -97,13 +97,15 @@ class Command(BaseCommand):
                         })
 
                     failed_ids = []
+                    from users.notifications import create_notification
                     for user in users:
-                        Notification.objects.create(
+                        create_notification(
                             user=user,
                             title=broadcast.subject,
                             message=broadcast.message,
-                            category="general",
-                            is_read=False
+                            category="broadcast" if broadcast.is_popup or broadcast.message_type == 'banner' else "general",
+                            link="/student/dashboard/",
+                            tag=f"broadcast-{broadcast.id}"
                         )
 
                         if broadcast.send_email and user.email:

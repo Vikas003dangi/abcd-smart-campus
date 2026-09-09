@@ -208,13 +208,23 @@ def run_scheduler_cycle(force_daily=False, mode='all'):
 def execute_urgent_reminder_checks():
     """
     Ultra-low latency checker (ticks every 5s):
-    Checks and fires due TodoTask reminders/alarms with near-zero latency
+    Checks and fires due TodoTask reminders/alarms, offline course learning reminders,
+    and due scheduled broadcasts/banners with near-zero latency (within 5 seconds of due time)
     instead of waiting for the periodic 60s background loop.
     """
     close_old_connections()
     try:
-        from users.utils import process_todo_notifications
+        from users.utils import process_todo_notifications, process_offline_learning_reminders
+        # 1. Todo Hub alarms and reminders (atomic claiming)
         process_todo_notifications()
+
+        # 2. Course learning reminders (atomic claiming)
+        process_offline_learning_reminders()
+
+        # 3. Scheduled Broadcasts & Ads Banners (if any due, trigger immediately)
+        from users.models import BroadcastMessage
+        if BroadcastMessage.objects.filter(status="scheduled", send_at__lte=timezone.now(), is_draft=False).exists():
+            call_command('run_scheduled_broadcasts')
     except Exception as e:
         logger.error(f"Scheduler Error [execute_urgent_reminder_checks]: {e}", exc_info=True)
     finally:

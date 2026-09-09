@@ -106,9 +106,9 @@ def process_scheduled_broadcasts():
     )
     for b in due_broadcasts:
         try:
-            b.status = "sent"
-            b.is_sent = True
-            b.save(update_fields=["status", "is_sent"])
+            claimed = BroadcastMessage.objects.filter(id=b.id, status="scheduled").update(status="sent", is_sent=True)
+            if not claimed:
+                continue
 
             recipient_qs = User.objects.none()
             target_group = b.target_group
@@ -157,13 +157,15 @@ def process_scheduled_broadcasts():
                         banner_img_url = u
                         break
 
+            from .notifications import create_notification
             for user in users:
-                Notification.objects.create(
+                create_notification(
                     user=user,
                     title=b.subject,
                     message=b.message,
-                    category="general",
-                    is_read=False
+                    category="broadcast" if b.is_popup or b.message_type == 'banner' else "general",
+                    link="/student/dashboard/",
+                    tag=f"broadcast-{b.id}"
                 )
                 if b.send_email:
                     target_email = get_user_notification_email(user)
@@ -1323,17 +1325,17 @@ def process_offline_learning_reminders():
     ).select_related('user', 'course')
 
     for r in due_once:
-        r.is_sent = True
-        r.last_sent_at = now
-        r.save(update_fields=['is_sent', 'last_sent_at'])
-        
+        claimed = LearningReminder.objects.filter(id=r.id, is_sent=False).update(is_sent=True, last_sent_at=now)
+        if not claimed:
+            continue
+
         create_notification(
             user=r.user,
             title=f"⏰ Study Reminder: {r.course.title}",
             message=f"Time to study {r.course.title}!",
-            link=f"{settings.SITE_URL}/courses/{r.course.id}/",
+            link=f"/courses/{r.course.id}/",
             category="reminder",
-            sound="/static/audio/alarms and reminders.mp3",
+            sound="/static/audio/PWA.mp3",
             meta={'is_alarm': False, 'reminder_id': r.id},
             tag=f"abcd-learning-reminder-{r.id}"
         )
@@ -1357,10 +1359,11 @@ def process_offline_learning_reminders():
                 logger.error(f"[Learning Reminder] Email failed for user {r.user.username}: {e}", exc_info=True)
 
     # 2. Recurring reminders
+    start_of_today = timezone.make_aware(datetime.combine(today_date, datetime.min.time()), timezone.get_current_timezone())
     recurring = LearningReminder.objects.exclude(recurrence_type='once').filter(
         reminder_time_daily__lte=current_time
     ).filter(
-        Q(last_sent_at__isnull=True) | Q(last_sent_at__lt=timezone.make_aware(datetime.combine(today_date, datetime.min.time())))
+        Q(last_sent_at__isnull=True) | Q(last_sent_at__lt=start_of_today)
     ).select_related('user', 'course')
 
     for r in recurring:
@@ -1375,16 +1378,19 @@ def process_offline_learning_reminders():
                 should_send = True
 
         if should_send:
-            r.last_sent_at = now
-            r.save(update_fields=['last_sent_at'])
-            
+            claimed = LearningReminder.objects.filter(id=r.id).filter(
+                Q(last_sent_at__isnull=True) | Q(last_sent_at__lt=start_of_today)
+            ).update(last_sent_at=now)
+            if not claimed:
+                continue
+
             create_notification(
                 user=r.user,
                 title=f"⏰ Daily Study Reminder: {r.course.title}",
                 message=f"Time for your scheduled study session on {r.course.title}!",
-                link=f"{settings.SITE_URL}/courses/{r.course.id}/",
+                link=f"/courses/{r.course.id}/",
                 category="reminder",
-                sound="/static/audio/alarms and reminders.mp3",
+                sound="/static/audio/PWA.mp3",
                 meta={'is_alarm': False, 'reminder_id': r.id},
                 tag=f"abcd-learning-reminder-{r.id}"
             )

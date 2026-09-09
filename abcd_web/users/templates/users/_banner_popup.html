@@ -370,9 +370,15 @@ async function dismissStudentBanner() {
     }
 }
 
-// Show banner only after 10-second gap on base page
+// Show banner on base page (initial 8s gap) and check periodically for newly maturing scheduled banners
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(checkAndDisplayStudentBanner, 10000);
+    setTimeout(checkAndDisplayStudentBanner, 8000);
+    setInterval(function() {
+        const modal = document.getElementById('studentBannerModal');
+        if (!modal || modal.style.display !== 'flex') {
+            checkAndDisplayStudentBanner();
+        }
+    }, 20000);
 });
 
 // ── Global Real-Time Notification & Broadcast WebSocket Client ──

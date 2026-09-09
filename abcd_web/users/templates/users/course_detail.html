@@ -2931,7 +2931,7 @@
                         if (window.startABCDAlarm) {
                             window.startABCDAlarm(r.title, r.message, null, false);
                         } else if (window.playABCDSound) {
-                            window.playABCDSound('alarm', 1.0);
+                            window.playABCDSound('reminder', 1.0);
                         }
                         if (Notification.permission === "granted") {
                             try {
@@ -2950,10 +2950,14 @@
             .catch(err => console.error('Error checking due course reminders:', err));
     }
 
-    // Check every 1 minute
-    setInterval(checkDueReminders, 60000);
-    // Initial check
-    setTimeout(checkDueReminders, 5000);
+    // Check every 10 seconds for real-time responsiveness
+    setInterval(checkDueReminders, 10000);
+    // Initial check after 1.5 seconds
+    setTimeout(checkDueReminders, 1500);
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') checkDueReminders();
+    });
 
     const isAuthenticated = "{{ is_authenticated }}" === "True";
     const courseId = "{{ course.id }}";
