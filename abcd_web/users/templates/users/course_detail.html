@@ -2917,33 +2917,37 @@
 
     // --- SERVICE WORKER & POLLING ---
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/js/abcd-sw.js')
+        navigator.serviceWorker.register('/sw.js')
             .then(reg => console.log('SW Registered', reg.scope))
             .catch(err => console.log('SW Failed', err));
     }
 
     function checkDueReminders() {
-        if (Notification.permission === "granted") {
-            fetch('/api/reminders/due/')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.reminders && data.reminders.length > 0) {
-                        data.reminders.forEach(r => {
-                            new Notification(r.title, {
-                                body: r.message,
-                                icon: '/static/data/favicon/favicon.ico'
-                            }).onclick = () => {
-                                window.focus();
-                                location.href = r.url;
-                            };
-                        });
-                        // Refresh the UI if we are on the reminders pane
-                        if (document.getElementById('learning-toolsPane').style.display !== 'none') {
-                            // Optionally reload or fetch list
+        fetch('/api/reminders/due/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.reminders && data.reminders.length > 0) {
+                    data.reminders.forEach(r => {
+                        if (window.startABCDAlarm) {
+                            window.startABCDAlarm(r.title, r.message, null, false);
+                        } else if (window.playABCDSound) {
+                            window.playABCDSound('alarm', 1.0);
                         }
-                    }
-                });
-        }
+                        if (Notification.permission === "granted") {
+                            try {
+                                new Notification(r.title, {
+                                    body: r.message,
+                                    icon: '/static/data/favicon/favicon.ico'
+                                }).onclick = () => {
+                                    window.focus();
+                                    location.href = r.url;
+                                };
+                            } catch(e) {}
+                        }
+                    });
+                }
+            })
+            .catch(err => console.error('Error checking due course reminders:', err));
     }
 
     // Check every 1 minute
@@ -3390,4 +3394,5 @@
     </style>
 {% url 'users:courses' as course_list_url %}
 {% include 'partials/_smart_back_redirect.html' with back_url_path=course_list_url %}
+<script src="{% static 'js/abcd-sound.js' %}"></script>
 {% endblock %}

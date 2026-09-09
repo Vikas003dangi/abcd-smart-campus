@@ -770,12 +770,15 @@ def get_due_reminders(request):
     return JsonResponse({'success': True, 'reminders': data})
 
 def create_dashboard_notification(user, reminder):
-    Notification.objects.create(
+    create_notification(
         user=user,
-        title=reminder.title,
-        message=f"Scheduled reminder for {reminder.course.title}",
+        title=f"⏰ Study Reminder: {reminder.course.title}",
+        message=f"Time to study {reminder.course.title}!",
         link=f"/courses/{reminder.course.id}/",
-        category="course"
+        category="reminder",
+        sound="/static/audio/alarms and reminders.mp3",
+        meta={'is_alarm': False, 'reminder_id': reminder.id},
+        tag=f"abcd-learning-reminder-{reminder.id}"
     )
 
 @require_POST

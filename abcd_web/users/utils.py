@@ -1311,16 +1311,19 @@ def process_offline_learning_reminders():
         
         create_notification(
             user=r.user,
-            title="Study Reminder",
+            title=f"⏰ Study Reminder: {r.course.title}",
             message=f"Time to study {r.course.title}!",
             link=f"{settings.SITE_URL}/courses/{r.course.id}/",
-            category="general"
+            category="reminder",
+            sound="/static/audio/alarms and reminders.mp3",
+            meta={'is_alarm': False, 'reminder_id': r.id},
+            tag=f"abcd-learning-reminder-{r.id}"
         )
         target_email = get_user_notification_email(r.user)
         if target_email:
             try:
                 send_html_email(
-                    subject=f"Study Reminder: {r.course.title}",
+                    subject=f"⏰ Study Reminder: {r.course.title}",
                     to_email=target_email,
                     template="emails/learning_reminder_email.html",
                     context={
@@ -1329,10 +1332,11 @@ def process_offline_learning_reminders():
                         "course": r.course,
                         "course_url": f"{settings.SITE_URL}/courses/{r.course.id}/"
                     },
-                    fail_silently=True
+                    fail_silently=True,
+                    run_async=True
                 )
             except Exception as e:
-                print(f"Learning reminder email failed: {e}")
+                logger.error(f"[Learning Reminder] Email failed for user {r.user.username}: {e}", exc_info=True)
 
     # 2. Recurring reminders
     recurring = LearningReminder.objects.exclude(recurrence_type='once').filter(
@@ -1358,16 +1362,19 @@ def process_offline_learning_reminders():
             
             create_notification(
                 user=r.user,
-                title="Daily Study Reminder",
+                title=f"⏰ Daily Study Reminder: {r.course.title}",
                 message=f"Time for your scheduled study session on {r.course.title}!",
                 link=f"{settings.SITE_URL}/courses/{r.course.id}/",
-                category="general"
+                category="reminder",
+                sound="/static/audio/alarms and reminders.mp3",
+                meta={'is_alarm': False, 'reminder_id': r.id},
+                tag=f"abcd-learning-reminder-{r.id}"
             )
             target_email = get_user_notification_email(r.user)
             if target_email:
                 try:
                     send_html_email(
-                        subject=f"Scheduled Study Reminder: {r.course.title}",
+                        subject=f"⏰ Scheduled Study Reminder: {r.course.title}",
                         to_email=target_email,
                         template="emails/learning_reminder_email.html",
                         context={
@@ -1376,10 +1383,11 @@ def process_offline_learning_reminders():
                             "course": r.course,
                             "course_url": f"{settings.SITE_URL}/courses/{r.course.id}/"
                         },
-                        fail_silently=True
+                        fail_silently=True,
+                        run_async=True
                     )
                 except Exception as e:
-                    print(f"Recurring learning reminder email failed: {e}")
+                    logger.error(f"[Learning Reminder] Recurring email failed for user {r.user.username}: {e}", exc_info=True)
 
 
 def process_birthday_wishes():
