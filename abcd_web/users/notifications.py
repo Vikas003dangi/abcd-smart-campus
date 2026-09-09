@@ -584,61 +584,62 @@ from .models import Notification
 
 def format_push_title(raw_title, category=None, source=None):
     """
-    Standardizes push notification and alert titles to strict branding rules:
-    - Guidy: "Guidy | ABCD"
-    - ToDo: "ToDo | ABCD"
-    - Course / Library / Admission / etc: "ABCD | <Topic>"
+    Standardizes push notification and alert titles to clean, spam-safe branding rules.
+    Avoids pipes '|' and emojis which trigger Chrome Android's on-device spam detection.
     """
     if not raw_title and not category and not source:
-        return "ABCD | Notification"
+        return "ABCD Campus"
 
     raw_clean = str(raw_title or "").strip()
     cat_clean = str(category or "").strip().lower()
     src_clean = str(source or "").strip().lower()
 
-    # Already formatted properly
-    if raw_clean.startswith("Guidy | ABCD") or raw_clean.startswith("ToDo | ABCD"):
-        return raw_clean
-    if re.match(r'^ABCD\s*\|\s*.+', raw_clean, re.IGNORECASE):
-        parts = raw_clean.split('|', 1)
-        return f"ABCD | {parts[1].strip().title()}"
+    # Strip any leading branding prefixes (e.g., 'ABCD |', 'Guidy | ABCD', 'ToDo | ABCD')
+    clean_text = re.sub(r'^(?:ABCD\s*\|\s*|Guidy\s*\|\s*(?:ABCD)?\s*|ToDo\s*\|\s*(?:ABCD)?\s*)+', '', raw_clean, flags=re.IGNORECASE).strip()
+    # Strip leading emojis / non-alphanumeric symbols
+    clean_text = re.sub(r'^[^\w\s]+', '', clean_text).strip()
 
     # Guidy check
     if src_clean == 'guidy' or cat_clean == 'guidy' or 'guidy' in raw_clean.lower():
-        return "Guidy | ABCD"
+        return "Guidy Assistant"
 
     # ToDo check
     if src_clean == 'todo' or cat_clean == 'todo' or 'todo' in raw_clean.lower():
-        return "ToDo | ABCD"
+        if cat_clean in ['alarm', 'reminder'] or 'alarm' in raw_clean.lower() or 'reminder' in raw_clean.lower():
+            pass  # Fall through to alarm/reminder handling below
+        else:
+            return "To-Do Hub"
+
+    # Alarm and Reminder checks: produce clean, non-spam titles like "Alarm: Math Quiz" or "Reminder: Math Quiz"
+    if cat_clean in ['alarm', 'reminder'] or 'alarm' in raw_clean.lower() or 'reminder' in raw_clean.lower():
+        # Remove redundant leading "Alarm:" or "Reminder:" words so we can format uniformly
+        sub_title = re.sub(r'^(?:Alarm|Reminder)\s*:\s*', '', clean_text, flags=re.IGNORECASE).strip()
+        prefix = "Alarm" if (cat_clean == 'alarm' or 'alarm' in raw_clean.lower()) else "Reminder"
+        return f"{prefix}: {sub_title}" if sub_title else prefix
 
     # Specific topic checks
     lower_title = raw_clean.lower()
     if cat_clean in ['course', 'lecture', 'quiz'] or 'course' in lower_title or 'lecture' in lower_title or 'material' in lower_title:
-        return "ABCD | Course"
+        return "Course Update"
     if cat_clean in ['hold', 'seat', 'library'] or 'seat' in lower_title or 'library' in lower_title:
-        return "ABCD | Library Seat"
+        return "Library Seat"
     if cat_clean == 'broadcast' or 'broadcast' in lower_title:
-        return "ABCD | Broadcast"
+        return "Campus Notice"
     if cat_clean in ['announcement', 'notice'] or 'announcement' in lower_title or 'notice' in lower_title:
-        return "ABCD | Announcement"
+        return "Announcement"
     if cat_clean in ['admission', 'enrollment'] or 'admission' in lower_title or 'enrolled' in lower_title:
-        return "ABCD | Admission"
+        return "Admission Notice"
     if cat_clean == 'complaint' or 'complaint' in lower_title:
-        return "ABCD | Complaint"
+        return "Complaint Update"
     if cat_clean in ['fee', 'payment', 'fee_teacher'] or 'fee' in lower_title or 'payment' in lower_title or 'receipt' in lower_title:
-        return "ABCD | Fees"
-    if cat_clean in ['alarm', 'reminder'] or 'alarm' in lower_title or 'reminder' in lower_title:
-        # Preserve full title for alarms and reminders so task title is not truncated
-        return f"ABCD | {raw_clean}"
+        return "Fee Receipt"
 
     # Clean text fallback
-    clean_text = re.sub(r'^[^\w\s]+', '', raw_clean).strip()
     if clean_text:
         words = clean_text.split()
-        topic = " ".join(words[:3]).title()
-        return f"ABCD | {topic}"
+        return " ".join(words[:4]).title()
 
-    return "ABCD | Notification"
+    return "ABCD Campus"
 
 
 def create_notification(user, title, message, link=None, category="general", meta=None, sound=None, tag=None):

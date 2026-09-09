@@ -1001,11 +1001,13 @@ def _fire_reminder(task, title, email_notify):
     is_alarm = alarm_enabled is True or str(alarm_enabled).lower() == 'true' or alarm_enabled == 1
     category = 'alarm' if is_alarm else 'reminder'
 
+    clean_task_title = re.sub(r'^(?:ABCD\s*\|\s*|⏰\s*|🚨\s*|Alarm:\s*|Reminder:\s*)+', '', str(title or 'Reminder'), flags=re.IGNORECASE).strip() or "Reminder"
+
     try:
         create_notification(
             user=task.user,
-            title=f"⏰ Alarm: {title}" if is_alarm else f"⏰ Reminder: {title}",
-            message=f"Your alarm '{title}' is ringing now." if is_alarm else f"Your reminder '{title}' is due now.",
+            title=f"Alarm: {clean_task_title}" if is_alarm else f"Reminder: {clean_task_title}",
+            message=f"{clean_task_title} is due now • Tap to view" if is_alarm else f"{clean_task_title} is scheduled for now",
             link='/todo/',
             category=category,
             sound='/static/audio/alarm.mp3' if is_alarm else '/static/audio/PWA.mp3',
@@ -1020,14 +1022,14 @@ def _fire_reminder(task, title, email_notify):
             target_email = get_user_notification_email(task.user)
             if target_email:
                 user_display = get_user_display_name(task.user) or getattr(task.user, 'first_name', '') or task.user.username
-                logger.info(f"[To-Do Reminder] Dispatching due alert email for '{title}' to {target_email} (user: {task.user.username})")
+                logger.info(f"[To-Do Reminder] Dispatching due alert email for '{clean_task_title}' to {target_email} (user: {task.user.username})")
                 send_html_email(
-                    subject=f"⏰ Alarm: {title}" if is_alarm else f"⏰ Reminder: {title}",
+                    subject=f"Alarm: {clean_task_title}" if is_alarm else f"Reminder: {clean_task_title}",
                     to_email=target_email,
                     template="emails/todo_reminder.html",
                     context={
                         "user_name": user_display,
-                        "title": title,
+                        "title": clean_task_title,
                         "note": meta.get('note', ''),
                         "recurrence": meta.get('recurrence', 'once'),
                         "todo_url": f"{settings.SITE_URL}/todo/",
@@ -1037,7 +1039,7 @@ def _fire_reminder(task, title, email_notify):
                     run_async=True
                 )
             else:
-                logger.warning(f"[To-Do Reminder] Email notify requested for '{title}', but no valid email found for user '{task.user.username}'")
+                logger.warning(f"[To-Do Reminder] Email notify requested for '{clean_task_title}', but no valid email found for user '{task.user.username}'")
         except Exception as email_err:
             logger.error(f"[To-Do Reminder] Error dispatching email for task {task.id}: {email_err}", exc_info=True)
 
@@ -1121,19 +1123,19 @@ def process_todo_notifications():
                         _fire_reminder(task, title, email_notify)
                         continue
                     else:
-                        # Unacknowledged 30-min rotation
+                        # Unacknowledged 45-min rotation (max 1 retry to prevent spam flagging)
                         retry_count = int(meta.get('retry_count', 0))
-                        if retry_count < 3:
+                        if retry_count < 1:
                             retry_count += 1
                             meta['retry_count'] = retry_count
-                            meta['next_retry_at'] = (now + timedelta(minutes=30)).isoformat()
+                            meta['next_retry_at'] = (now + timedelta(minutes=45)).isoformat()
                             task.metadata = meta
                             task.last_notified_at = now
                             task.save(update_fields=['metadata', 'last_notified_at'])
                             _fire_reminder(task, title, email_notify)
                             continue
                         else:
-                            # 3 unacknowledged 30-min rotations finished: stop forever!
+                            # Unattended retry finished: stop alarm to avoid notification fatigue
                             meta['alarm_status'] = 'stopped'
                             meta['next_retry_at'] = None
                             task.metadata = meta
@@ -1213,7 +1215,7 @@ def process_todo_notifications():
                 if is_alarm:
                     meta['alarm_status'] = 'ringing'
                     meta['retry_count'] = 0
-                    meta['next_retry_at'] = (now + timedelta(minutes=30)).isoformat()
+                    meta['next_retry_at'] = (now + timedelta(minutes=45)).isoformat()
                     task.metadata = meta
                     task.save(update_fields=['metadata'])
                 else:
@@ -1331,7 +1333,7 @@ def process_offline_learning_reminders():
 
         create_notification(
             user=r.user,
-            title=f"⏰ Study Reminder: {r.course.title}",
+            title=f"Study Reminder: {r.course.title}",
             message=f"Time to study {r.course.title}!",
             link=f"/courses/{r.course.id}/",
             category="reminder",
@@ -1343,7 +1345,7 @@ def process_offline_learning_reminders():
         if target_email:
             try:
                 send_html_email(
-                    subject=f"⏰ Study Reminder: {r.course.title}",
+                    subject=f"Study Reminder: {r.course.title}",
                     to_email=target_email,
                     template="emails/learning_reminder_email.html",
                     context={
@@ -1386,7 +1388,7 @@ def process_offline_learning_reminders():
 
             create_notification(
                 user=r.user,
-                title=f"⏰ Daily Study Reminder: {r.course.title}",
+                title=f"Daily Study Reminder: {r.course.title}",
                 message=f"Time for your scheduled study session on {r.course.title}!",
                 link=f"/courses/{r.course.id}/",
                 category="reminder",
@@ -1398,7 +1400,7 @@ def process_offline_learning_reminders():
             if target_email:
                 try:
                     send_html_email(
-                        subject=f"⏰ Scheduled Study Reminder: {r.course.title}",
+                        subject=f"Scheduled Study Reminder: {r.course.title}",
                         to_email=target_email,
                         template="emails/learning_reminder_email.html",
                         context={

@@ -772,7 +772,7 @@ def get_due_reminders(request):
 def create_dashboard_notification(user, reminder):
     create_notification(
         user=user,
-        title=f"⏰ Study Reminder: {reminder.course.title}",
+        title=f"Study Reminder: {reminder.course.title}",
         message=f"Time to study {reminder.course.title}!",
         link=f"/courses/{reminder.course.id}/",
         category="reminder",
@@ -14222,7 +14222,7 @@ def todo_add_reminder(request):
                         schedule_info = f"Every {metadata.get('interval_days', 1)} days at {metadata.get('time_str', '00:00')}"
 
                     send_html_email(
-                        subject=f"⏰ Reminder Scheduled: {title}",
+                        subject=f"Reminder Scheduled: {title}",
                         to_email=target_email,
                         template="emails/todo_reminder_scheduled.html",
                         context={
@@ -14344,7 +14344,7 @@ def todo_update_reminder(request, task_id):
                         schedule_info = f"Every {current_meta.get('interval_days', 1)} days at {current_meta.get('time_str', '00:00')}"
 
                     send_html_email(
-                        subject=f"⏰ Reminder Updated: {current_meta.get('title', 'Reminder')}",
+                        subject=f"Reminder Updated: {current_meta.get('title', 'Reminder')}",
                         to_email=target_email,
                         template="emails/todo_reminder_scheduled.html",
                         context={

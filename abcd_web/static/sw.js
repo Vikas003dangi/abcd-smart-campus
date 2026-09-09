@@ -30,7 +30,9 @@ self.addEventListener('push', function (event) {
         }
     }
 
-    const title = data.title || 'ABCD | Notification';
+    let rawTitle = data.title || 'ABCD Campus';
+    rawTitle = rawTitle.replace(/^ABCD\s*\|\s*/i, '').replace(/^[^\w\s]+\s*/, '').trim();
+    const title = rawTitle || 'ABCD Campus';
     const icon = data.icon || '/static/data/favicon/web-app-manifest-192x192.png';
     const badge = data.badge || '/static/data/favicon/favicon-96x96.png';
 
@@ -61,7 +63,7 @@ self.addEventListener('push', function (event) {
         }
     }
 
-    const alarmVibratePattern = [400, 200, 400];
+    const alarmVibratePattern = [500, 200, 500, 200, 500];
     const reminderVibratePattern = [300, 150, 300];
     const defaultVibratePattern = [200, 100, 200];
 
@@ -69,7 +71,6 @@ self.addEventListener('push', function (event) {
         body: data.body || 'You have a new update.',
         icon: icon,
         badge: badge,
-        sound: sound,
         tag: data.tag || (data.task_id ? 'abcd-reminder-' + data.task_id : (isAlarm ? 'abcd-alarm-active' : 'abcd-notification')),
         renotify: false,
         requireInteraction: isAlarm ? true : false,
@@ -88,12 +89,12 @@ self.addEventListener('push', function (event) {
         },
         actions: isAlarm
             ? [
-                { action: 'open_alarm', title: 'Open Alarm' },
+                { action: 'open_alarm', title: 'Open' },
                 { action: 'dismiss', title: 'Dismiss' }
               ]
             : (isReminder
                 ? [
-                    { action: 'open_reminder', title: 'Open Reminder' },
+                    { action: 'open_reminder', title: 'Open' },
                     { action: 'dismiss', title: 'Dismiss' }
                   ]
                 : [
@@ -224,6 +225,9 @@ self.addEventListener('notificationclick', function (event) {
                                     taskId: notifData.taskId || null
                                 });
                             } catch (e) {}
+                            if ('navigate' in client && !client.url.includes('ring_alarm=1')) {
+                                client.navigate(targetUrl).catch(function () {});
+                            }
                         }
                         return client.focus();
                     }

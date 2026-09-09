@@ -1,7 +1,12 @@
 {
   "name": "ABCD Coaching & Library",
   "short_name": "ABCD Campus",
+  "id": "/",
+  "scope": "/",
   "start_url": "/",
+  "description": "ABCD Coaching & Library Smart Campus Platform",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "icons": [
     {
       "src": "/static/data/favicon/favicon-96x96.png",

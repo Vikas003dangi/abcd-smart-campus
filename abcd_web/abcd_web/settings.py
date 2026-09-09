@@ -372,6 +372,7 @@ YOUTUBE_CHANNEL_ID = config('YOUTUBE_CHANNEL_ID', default='').strip().strip("'")
 # WEB PUSH NOTIFICATION SETTINGS
 VAPID_PUBLIC_KEY = config('VAPID_PUBLIC_KEY', default='')
 VAPID_PRIVATE_KEY = config('VAPID_PRIVATE_KEY', default='')
+VAPID_CLAIM_EMAIL = config('VAPID_CLAIM_EMAIL', default='mailto:abcd2013baq@gmail.com')
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
