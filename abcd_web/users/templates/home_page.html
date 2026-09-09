@@ -21,7 +21,7 @@
         href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap"
         rel="stylesheet">
 
-    <title>{% block title %}ABCD Coaching & Library | Best Coaching & Self Study Library in Ganj Basoda{% endblock %}</title>
+    <title>{% block title %}ABCD Campus | Best Coaching & Self Study Library in Ganj Basoda{% endblock %}</title>
 
     <!-- Canonical URL Declaration for Google Indexing -->
     <link rel="canonical" href="https://abcdcampus.in{{ request.path }}" />
@@ -29,59 +29,77 @@
     <!-- Googlebot & Search Engine Indexing Directives -->
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow" />
-    <meta name="description" content="{% block meta_description %}ABCD Coaching & Library, Ganj Basoda - Best coaching and self-study library in Ganj Basoda. Top English coaching, competitive exam preparation, live digital library seat booking, free courses, student progress analytics, and Guidy closed chatting platform.{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}ABCD, abcd campus, abcd coaching, abcd library, acbd library, abcd coachign and library, abcd ganj basoda, Best library in ganj basoda, ganj basoda library, library for selft study in ganj basoda, library for self study in ganj basoda, English Coaching in ganj basoda, Best coaching ganj basoda, Best coaching in ganj basoda, coaching campus ganj basoda, Coaching and library in ganj basoda, Guidy, best chatting plateform, best chatting platform, Closed Chatting platform, ABCD - chatting platform, Guidy chats, free english courses, free courses, library seat booking ganj basoda{% endblock %}">
+    <meta name="description" content="{% block meta_description %}ABCD Campus, Ganj Basoda - Premier coaching campus and digital self-study library in Ganj Basoda. Offering English coaching, competitive exam preparation, live library seat booking, and free courses.{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}ABCD Campus, abcd campus ganj basoda, ABCD, abcd coaching, abcd library, acbd library, abcd coachign and library, abcd ganj basoda, Best library in ganj basoda, ganj basoda library, library for selft study in ganj basoda, library for self study in ganj basoda, English Coaching in ganj basoda, Best coaching ganj basoda, Best coaching in ganj basoda, coaching campus ganj basoda, Coaching and library in ganj basoda, Guidy, best chatting plateform, best chatting platform, Closed Chatting platform, ABCD - chatting platform, Guidy chats, free english courses, free courses, library seat booking ganj basoda{% endblock %}">
 
     <!-- OpenGraph & Social Sharing Previews (WhatsApp, LinkedIn, X, Facebook) -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://abcdcampus.in{{ request.path }}">
-    <meta property="og:title" content="{% block og_title %}ABCD Coaching & Library - Best Coaching & Library in Ganj Basoda{% endblock %}">
-    <meta property="og:description" content="{% block og_desc %}Best coaching and self-study library in Ganj Basoda. Offering English coaching, competitive exam prep, real-time library seat booking, free courses, and Guidy closed chat platform.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}ABCD Campus - Best Coaching & Library in Ganj Basoda{% endblock %}">
+    <meta property="og:description" content="{% block og_desc %}ABCD Campus, Ganj Basoda - Leading coaching campus for English, competitive exam prep, real-time library seat booking, and free courses.{% endblock %}">
     <meta property="og:image" content="https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}">
-    <meta property="og:site_name" content="ABCD Smart Campus Ganj Basoda">
+    <meta property="og:site_name" content="ABCD Campus">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ABCD Coaching & Library | Ganj Basoda">
-    <meta name="twitter:description" content="Best coaching, English courses, self-study library with live seat booking, and Guidy chat platform in Ganj Basoda.">
+    <meta name="twitter:title" content="ABCD Campus | Ganj Basoda">
+    <meta name="twitter:description" content="ABCD Campus - Best coaching, English courses, self-study library with live seat booking in Ganj Basoda.">
     <meta name="twitter:image" content="https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}">
 
-    <!-- Google Structured Data (JSON-LD) for Local Ranking & Rich Cards -->
+    <!-- Google Structured Data (JSON-LD) for Local Ranking, Brand Identity & Sitelinks -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": ["EducationalOrganization", "Library", "LocalBusiness"],
-      "name": "ABCD Coaching & Library",
-      "alternateName": [
-        "ABCD",
-        "ABCD Campus",
-        "ABCD Smart Campus",
-        "ABCD Ganj Basoda",
-        "ABCD Coaching Ganj Basoda",
-        "ABCD Library Ganj Basoda",
-        "Coaching Campus Ganj Basoda",
-        "Best Coaching in Ganj Basoda"
-      ],
-      "url": "https://abcdcampus.in/",
-      "logo": "https://abcdcampus.in/static/data/favicon/web-app-manifest-512x512.png",
-      "image": "https://abcdcampus.in/static/data/favicon/web-app-manifest-512x512.png",
-      "description": "Best coaching and self-study library in Ganj Basoda. Offering English coaching, competitive exam preparation, live library seat booking, student progress analytics, and Guidy closed chat platform.",
-      "telephone": "+919827662450",
-      "email": "abcd2013baq@gmail.com",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "04, Basoda",
-        "addressLocality": "Ganj Basoda",
-        "postalCode": "464221",
-        "addressRegion": "Madhya Pradesh",
-        "addressCountry": "IN"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": "23.85",
-        "longitude": "77.93"
-      },
-      "areaServed": "Ganj Basoda",
-      "sameAs": [
-        "https://www.youtube.com/channel/UCA2H6hQBD3h4Oi2vhnWWi5Q"
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://abcdcampus.in/#website",
+          "name": "ABCD Campus",
+          "alternateName": [
+            "ABCD Campus Ganj Basoda",
+            "ABCD Coaching & Library",
+            "ABCD Smart Campus"
+          ],
+          "url": "https://abcdcampus.in/",
+          "description": "ABCD Campus - Best Coaching and Self Study Library in Ganj Basoda"
+        },
+        {
+          "@type": ["EducationalOrganization", "Library", "LocalBusiness"],
+          "@id": "https://abcdcampus.in/#organization",
+          "name": "ABCD Campus",
+          "alternateName": [
+            "ABCD",
+            "ABCD Campus Ganj Basoda",
+            "ABCD Smart Campus",
+            "ABCD Coaching & Library",
+            "ABCD Ganj Basoda",
+            "ABCD Coaching Ganj Basoda",
+            "ABCD Library Ganj Basoda",
+            "Coaching Campus Ganj Basoda",
+            "Best Coaching in Ganj Basoda"
+          ],
+          "url": "https://abcdcampus.in/",
+          "logo": "https://abcdcampus.in/static/data/favicon/web-app-manifest-512x512.png",
+          "image": "https://abcdcampus.in/static/data/favicon/web-app-manifest-512x512.png",
+          "description": "ABCD Campus in Ganj Basoda. Offering English coaching, competitive exam preparation, live library seat booking, student progress analytics, and Guidy closed chat platform.",
+          "telephone": "+919827662450",
+          "email": "abcd2013baq@gmail.com",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "04, Basoda",
+            "addressLocality": "Ganj Basoda",
+            "postalCode": "464221",
+            "addressRegion": "Madhya Pradesh",
+            "addressCountry": "IN"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": "23.85",
+            "longitude": "77.93"
+          },
+          "areaServed": "Ganj Basoda",
+          "sameAs": [
+            "https://www.youtube.com/channel/UCA2H6hQBD3h4Oi2vhnWWi5Q"
+          ]
+        }
       ]
     }
     </script>
@@ -90,6 +108,7 @@
     <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
     <link rel="stylesheet" href="{% static 'css/site-tour.css' %}">
 
+    {% block extra_head %}{% endblock %}
     {% block extra_css %}{% endblock %}
 
     <!-- Preload first hero slide for instant LCP -->

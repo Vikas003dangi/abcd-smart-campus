@@ -1,11 +1,34 @@
 {% extends base_template %}
 {% load static %}
 
-{% block title %}Coaching, Library & Guidy Closed Chatting Platform | ABCD Ganj Basoda{% endblock %}
-{% block meta_description %}Discover ABCD Ganj Basoda services: English coaching, self-study library with live seat booking, and Guidy - best closed chatting and academic mentorship platform.{% endblock %}
-{% block meta_keywords %}Guidy, best chatting plateform, best chatting platform, Closed Chatting platform, ABCD - chatting platform, Guidy chats, Coaching and library in ganj basoda, English Coaching in ganj basoda, Best library in ganj basoda, abcd ganj basoda{% endblock %}
-{% block og_title %}Coaching, Library & Guidy Chatting Platform - ABCD Ganj Basoda{% endblock %}
-{% block og_desc %}Explore Guidy closed academic chat platform, self-study library with seat booking, and English coaching at ABCD Ganj Basoda.{% endblock %}
+{% block title %}Services - ABCD Campus Ganj Basoda | Coaching, Library & Guidy{% endblock %}
+{% block meta_description %}Discover ABCD Campus Ganj Basoda services: English coaching, digital self-study library with live seat booking, and Guidy closed chatting platform.{% endblock %}
+{% block meta_keywords %}abcd campus, abcd campus ganj basoda, Guidy, best chatting platform, Coaching and library in ganj basoda, English Coaching in ganj basoda, Best library in ganj basoda, abcd ganj basoda{% endblock %}
+{% block og_title %}Services - ABCD Campus Ganj Basoda{% endblock %}
+{% block og_desc %}Explore Guidy closed academic chat platform, self-study library with seat booking, and English coaching at ABCD Campus Ganj Basoda.{% endblock %}
+
+{% block extra_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "ABCD Campus",
+      "item": "https://abcdcampus.in/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Services",
+      "item": "https://abcdcampus.in/services/"
+    }
+  ]
+}
+</script>
+{% endblock %}
 
 
 {% block extra_css %}
