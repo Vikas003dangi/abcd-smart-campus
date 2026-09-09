@@ -61,7 +61,7 @@ self.addEventListener('push', function (event) {
         }
     }
 
-    const alarmVibratePattern = [500, 200, 500, 200, 500, 200, 1000, 500, 1000];
+    const alarmVibratePattern = [400, 200, 400];
     const reminderVibratePattern = [300, 150, 300];
     const defaultVibratePattern = [200, 100, 200];
 
@@ -71,7 +71,7 @@ self.addEventListener('push', function (event) {
         badge: badge,
         sound: sound,
         tag: data.tag || (data.task_id ? 'abcd-reminder-' + data.task_id : (isAlarm ? 'abcd-alarm-active' : 'abcd-notification')),
-        renotify: true,
+        renotify: false,
         requireInteraction: isAlarm ? true : false,
         silent: false,
         vibrate: isAlarm ? alarmVibratePattern : (isReminder ? reminderVibratePattern : defaultVibratePattern),
@@ -88,13 +88,13 @@ self.addEventListener('push', function (event) {
         },
         actions: isAlarm
             ? [
-                { action: 'open_alarm', title: '⏰ Open & Dismiss' },
-                { action: 'dismiss', title: 'Close' }
+                { action: 'open_alarm', title: 'Open Alarm' },
+                { action: 'dismiss', title: 'Dismiss' }
               ]
             : (isReminder
                 ? [
-                    { action: 'open_reminder', title: '⏰ Open Reminder' },
-                    { action: 'dismiss', title: 'Close' }
+                    { action: 'open_reminder', title: 'Open Reminder' },
+                    { action: 'dismiss', title: 'Dismiss' }
                   ]
                 : [
                     { action: 'open', title: 'Open' }

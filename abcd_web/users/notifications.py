@@ -746,8 +746,19 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
 
     from pywebpush import webpush, WebPushException
 
+    # Deduplicate subscriptions: keep newest active subscriptions, avoid duplicate endpoints
+    seen_endpoints = set()
+    unique_subs = []
+    for sub in subscriptions.order_by('-id'):
+        if sub.endpoint and sub.endpoint not in seen_endpoints:
+            seen_endpoints.add(sub.endpoint)
+            unique_subs.append(sub)
+
+    # Clean topic for RFC 8030 push collapsing (alphanumeric and dashes, max 32 chars)
+    topic_header = re.sub(r'[^a-zA-Z0-9_-]', '-', str(unique_tag))[:32].strip('-')
+
     delivered = False
-    for sub in subscriptions:
+    for sub in unique_subs:
         try:
             webpush(
                 subscription_info={
@@ -757,10 +768,11 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
                 data=json.dumps(payload),
                 vapid_private_key=settings.VAPID_PRIVATE_KEY,
                 vapid_claims={
-                    "sub": "mailto:admin@abcd.com"
+                    "sub": getattr(settings, "VAPID_CLAIM_EMAIL", "mailto:admin@abcdcampus.in")
                 },
                 headers={
-                    "Urgency": "high",
+                    "Urgency": "high" if is_alarm else "normal",
+                    "Topic": topic_header or "abcd-alert"
                 },
                 ttl=86400,
                 timeout=10

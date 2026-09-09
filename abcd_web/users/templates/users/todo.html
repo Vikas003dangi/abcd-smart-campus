@@ -12419,7 +12419,7 @@
     if (!fireMs || isNaN(fireMs)) return '';
 
     const diffSec = Math.round((fireMs - nowMs) / 1000);
-    if (diffSec <= 0 && diffSec >= -900) {
+    if (diffSec <= 0 && diffSec >= -30 && meta.alarm_status !== 'stopped') {
       return '<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#ffffff;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:800;margin-left:6px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 2px 8px rgba(239,68,68,0.4);"><i class="bx bxs-bell-ring bx-tada"></i> Ringing Now!</span>';
     } else if (diffSec > 0 && diffSec <= 60) {
       return `<span style="background:rgba(245,158,11,0.18);color:#d97706;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:700;margin-left:6px;display:inline-flex;align-items:center;gap:3px;"><i class="bx bx-time"></i> in ${diffSec}s</span>`;
@@ -12818,11 +12818,15 @@
 
   // ═══ REMINDER ALARM ENGINE ═══
   const firedAlarmIds = new Set();
-  if (sessionStorage.getItem('firedAlarmIds')) {
-    try {
+  const locallyStoppedAlarmIds = new Set();
+  try {
+    if (sessionStorage.getItem('firedAlarmIds')) {
       JSON.parse(sessionStorage.getItem('firedAlarmIds')).forEach(id => firedAlarmIds.add(id));
-    } catch(e) {}
-  }
+    }
+    if (sessionStorage.getItem('locallyStoppedAlarmIds')) {
+      JSON.parse(sessionStorage.getItem('locallyStoppedAlarmIds')).forEach(id => locallyStoppedAlarmIds.add(id));
+    }
+  } catch(e) {}
 
   const scheduledAlarmTimeoutIds = new Map();
 
@@ -12849,12 +12853,15 @@
     }
     showReminderToast(title, note);
 
-    // Update live badge on screen immediately
+    // Update live badge on screen immediately during active ring
     const card = document.querySelector(`.task-card[data-id="${task.id}"][data-category="REMINDER"]`);
     if (card) {
       const badgeEl = card.querySelector('.rem-live-badge');
       if (badgeEl) {
         badgeEl.innerHTML = '<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#ffffff;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:800;margin-left:6px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 2px 8px rgba(239,68,68,0.4);"><i class="bx bxs-bell-ring bx-tada"></i> Ringing Now!</span>';
+        setTimeout(() => {
+          if (badgeEl) badgeEl.innerHTML = getLiveReminderBadge(task);
+        }, 30000);
       }
     }
   }
@@ -12930,14 +12937,18 @@
       }
 
       if (task.is_done || task.is_trash) return;
+      if (locallyStoppedAlarmIds.has(task.id)) return;
       const meta = task.metadata || task.reminder_meta || {};
       if (meta.alarm_status === 'stopped') return;
-      if (firedAlarmIds.has(task.id)) return;
+      const isRinging = (meta.alarm_status === 'ringing');
+      if (firedAlarmIds.has(task.id) && !isRinging) return;
 
       let isDueNow = false;
       const rec = meta.recurrence || 'once';
 
-      if (rec === 'once') {
+      if (isRinging) {
+        isDueNow = true;
+      } else if (rec === 'once') {
         const fireTarget = meta.fire_at || task.delete_at;
         if (fireTarget) {
           const fireDt = new Date(fireTarget);

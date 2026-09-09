@@ -22,7 +22,7 @@ from django.http import JsonResponse
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.views.static import serve
-from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view, service_worker_view, vapid_public_key_api
+from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view, service_worker_view, vapid_public_key_api, assetlinks_json_view
 
 def ping_view(request):
     """
@@ -48,6 +48,9 @@ urlpatterns = [
 
     # VAPID Public Key API endpoint
     path('api/vapid-public-key/', vapid_public_key_api, name='vapid_public_key_api'),
+
+    # Android TWA & Google Play Store Digital Asset Links
+    path('.well-known/assetlinks.json', assetlinks_json_view, name='assetlinks_json'),
 
     # 24/7 Keep-Alive & Light Health Check Endpoints (Zero-DB, ~30 bytes)
     re_path(r'^(?:healthz|health|ping)/?$', ping_view, name='healthz'),

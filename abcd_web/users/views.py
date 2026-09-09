@@ -9623,6 +9623,13 @@ def save_push_subscription(request):
             }
         )
 
+        # Prune old subscriptions for this user to keep database clean and prevent duplicates,
+        # but ALWAYS protect and keep the subscription that this request just saved/updated!
+        user_subs = PushSubscription.objects.filter(user=request.user).exclude(id=sub.id).order_by('-id')
+        if user_subs.count() > 2:
+            old_ids = list(user_subs.values_list('id', flat=True)[2:])
+            PushSubscription.objects.filter(id__in=old_ids).delete()
+
         # Optional welcome push notification from server
         send_welcome = data.get('send_welcome') or request.GET.get('test') == '1'
         if send_welcome:
@@ -16156,3 +16163,35 @@ def vapid_public_key_api(request):
         'status': 'ok',
         'vapid_public_key': getattr(settings, 'VAPID_PUBLIC_KEY', '')
     })
+
+
+def assetlinks_json_view(request):
+    """
+    Serves Digital Asset Links (/.well-known/assetlinks.json) for Android TWA (Trusted Web Activity)
+    and Play Store app verification.
+    """
+    import json
+    from django.http import HttpResponse
+    from django.conf import settings
+
+    default_fingerprint = getattr(
+        settings,
+        'TWA_SHA256_FINGERPRINT',
+        '3E:D0:6F:09:A1:39:5A:F3:D5:7B:A2:3E:68:5A:91:DE:3C:A9:39:E6:9E:EE:48:88:65:6B:42:DE:3E:9F:8B:71'
+    )
+    assetlinks = [
+        {
+            "relation": [
+                "delegate_permission/common.handle_all_urls",
+                "delegate_permission/common.get_login_creds"
+            ],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "in.abcdcampus.app",
+                "sha256_cert_fingerprints": [default_fingerprint]
+            }
+        }
+    ]
+    response = HttpResponse(json.dumps(assetlinks, indent=2), content_type="application/json")
+    response['Cache-Control'] = 'public, max-age=86400'
+    return response
