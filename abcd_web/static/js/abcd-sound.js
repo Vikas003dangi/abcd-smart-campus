@@ -380,30 +380,40 @@
         }
 
         stopABCDAlarm();
-        if (!isSoundEnabled()) return;
 
         const isAlarmMode = (isAlarm !== false && isAlarm !== 'false' && isAlarm !== 0);
         currentAlarmTaskId = taskId || null;
         ensureAlarmStyles();
 
         // 1. Play 9-second audio ONCE at 100% volume (loop = false)
-        try {
-            const soundSrc = SOUND_PATHS['alarm'] || '/static/audio/alarms and reminders.mp3';
-            activeAlarmAudio = new Audio(soundSrc);
-            activeAlarmAudio.loop = false; // NEVER loop indefinitely! Plays 9 seconds once.
-            activeAlarmAudio.volume = 1.0;
-            activeAlarmAudio.onended = function () {
-                activeAlarmAudio = null;
-            };
-            const p = activeAlarmAudio.play();
-            if (p !== undefined) {
-                p.catch(function (err) {
-                    console.debug('Audio autoplay waiting for user interaction:', err.message);
-                });
+        function tryPlayAlarmAudio() {
+            if (!isSoundEnabled()) return;
+            try {
+                if (!activeAlarmAudio) {
+                    const soundSrc = SOUND_PATHS['alarm'] || '/static/audio/alarms and reminders.mp3';
+                    activeAlarmAudio = new Audio(soundSrc);
+                    activeAlarmAudio.loop = false; // NEVER loop indefinitely! Plays 9 seconds once.
+                    activeAlarmAudio.volume = 1.0;
+                    activeAlarmAudio.onended = function () {
+                        activeAlarmAudio = null;
+                    };
+                }
+                const p = activeAlarmAudio.play();
+                if (p !== undefined) {
+                    p.then(function () {
+                        const banner = document.getElementById('abcdUnmuteBanner');
+                        if (banner) banner.style.display = 'none';
+                    }).catch(function (err) {
+                        console.debug('Audio autoplay blocked by browser policy:', err.message);
+                        const banner = document.getElementById('abcdUnmuteBanner');
+                        if (banner) banner.style.display = 'flex';
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to init alarm/reminder audio:', e);
             }
-        } catch (e) {
-            console.error('Failed to init alarm/reminder audio:', e);
         }
+        tryPlayAlarmAudio();
 
         // 2. Auto-dismiss safety timeout:
         // - Alarm: 30 seconds if unattended (audio finishes at 9s)
@@ -413,7 +423,7 @@
             stopABCDAlarm();
         }, autoDismissMs);
 
-        // 3. Build full-screen interactive UI
+        // 3. Build full-screen interactive UI (ALWAYS displayed, regardless of audio state)
         const overlay = document.createElement('div');
         overlay.className = 'abcd-alarm-overlay';
         overlay.id = 'abcdActiveAlarmModal';
@@ -439,12 +449,21 @@
                 <div class="abcd-alarm-clock" id="abcdAlarmClockDisplay">${formatCurrentTime()}</div>
                 <div class="abcd-alarm-title">${safeTitle}</div>
                 <div class="abcd-alarm-note">${safeBody}</div>
+                <div id="abcdUnmuteBanner" style="display:none; margin:10px 0; padding:10px 14px; background:rgba(99,102,241,0.12); border:1.5px dashed #6366f1; border-radius:10px; color:#4f46e5; font-size:0.88rem; font-weight:800; cursor:pointer; align-items:center; justify-content:center; gap:8px; text-align:center;">
+                    🔊 Tap here to play alarm sound 🔔
+                </div>
                 <button type="button" class="abcd-alarm-btn-stop" id="abcdStopAlarmBtn">
                     ${stopBtnLabel}
                 </button>
                 ${snoozeBtnHtml}
             </div>
         `;
+
+        // Allow tapping unmute banner or card to unlock audio if autoplay blocked it
+        overlay.addEventListener('click', function (e) {
+            if (e.target.closest('#abcdStopAlarmBtn') || e.target.closest('#abcdSnoozeAlarmBtn')) return;
+            tryPlayAlarmAudio();
+        });
 
         document.body.appendChild(overlay);
         activeAlarmModal = overlay;
@@ -460,8 +479,13 @@
         if (stopBtn) {
             stopBtn.addEventListener('click', function () {
                 const targetId = currentAlarmTaskId;
-                stopABCDAlarm(); // Immediately pauses audio & resets currentTime = 0 (stops at that exact point)
+                stopABCDAlarm(); // Immediately pauses audio & resets currentTime = 0
                 if (targetId) {
+                    globalFiredAlarmIds.add(targetId);
+                    try {
+                        sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
+                    } catch (e) {}
+
                     fetch(`/todo/reminder/${targetId}/action/`, {
                         method: 'POST',
                         headers: {
@@ -483,6 +507,11 @@
                 const targetId = currentAlarmTaskId;
                 stopABCDAlarm();
                 if (targetId) {
+                    globalFiredAlarmIds.delete(targetId);
+                    try {
+                        sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
+                    } catch (e) {}
+
                     fetch(`/todo/reminder/${targetId}/action/`, {
                         method: 'POST',
                         headers: {
@@ -529,6 +558,100 @@
             activeAlarmModal = null;
         }
     }
+
+    // ═════════════════════════════════════════════════════════════════════
+    // GLOBAL IN-APP DUE ALARM CHECKER (Runs Across All Pages of ABCD)
+    // ═════════════════════════════════════════════════════════════════════
+    const globalFiredAlarmIds = new Set();
+    try {
+        const stored = sessionStorage.getItem('firedAlarmIds');
+        if (stored) {
+            JSON.parse(stored).forEach(function (id) { globalFiredAlarmIds.add(id); });
+        }
+    } catch (e) {}
+
+    let isCheckingGlobalAlarms = false;
+
+    function checkGlobalDueAlarms() {
+        if (isCheckingGlobalAlarms) return;
+        isCheckingGlobalAlarms = true;
+
+        fetch('/todo/get-tasks/?category=REMINDER')
+            .then(function (r) {
+                if (!r || !r.ok || r.redirected) {
+                    return null;
+                }
+                return r.json();
+            })
+            .then(function (data) {
+                isCheckingGlobalAlarms = false;
+                if (!data || !data.tasks || !Array.isArray(data.tasks)) return;
+
+                const nowMs = Date.now();
+                data.tasks.forEach(function (task) {
+                    if (task.is_done || task.is_trash) return;
+
+                    const meta = task.metadata || task.reminder_meta || {};
+                    if (meta.alarm_status === 'stopped') return;
+
+                    if (globalFiredAlarmIds.has(task.id)) return;
+
+                    let isDueNow = false;
+                    const rec = meta.recurrence || 'once';
+
+                    if (rec === 'once') {
+                        const fireTarget = meta.fire_at || task.delete_at;
+                        if (fireTarget) {
+                            const fireDt = new Date(fireTarget);
+                            const fireMs = fireDt.getTime();
+                            const elapsedSec = (nowMs - fireMs) / 1000;
+
+                            // If due now or within the last 15 minutes (and not fired yet)
+                            if (elapsedSec >= 0 && elapsedSec <= 900) {
+                                isDueNow = true;
+                            }
+                        }
+                    } else if (meta.time_str) {
+                        const parts = String(meta.time_str).split(':').map(Number);
+                        const now = new Date();
+                        const todayFireDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
+                        const elapsedSec = (nowMs - todayFireDt.getTime()) / 1000;
+
+                        if (elapsedSec >= 0 && elapsedSec <= 900) {
+                            isDueNow = true;
+                        }
+                    }
+
+                    if (isDueNow) {
+                        globalFiredAlarmIds.add(task.id);
+                        try {
+                            sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
+                        } catch (e) {}
+
+                        const title = task.title || meta.title || 'Reminder';
+                        const note = meta.note || '';
+                        const isAlarm = (meta.alarm_enabled !== false && meta.alarm_enabled !== 'false' && meta.alarm_enabled !== 0);
+
+                        startABCDAlarm(title, note, task.id, isAlarm);
+                    }
+                });
+            })
+            .catch(function () {
+                isCheckingGlobalAlarms = false;
+            });
+    }
+
+    // Run global check every 15 seconds, plus immediately on load
+    setInterval(checkGlobalDueAlarms, 15000);
+    setTimeout(checkGlobalDueAlarms, 1500);
+
+    // Also run immediately on page visibility change or tab focus (e.g. mobile phone unlocked / tab resumed)
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+            checkGlobalDueAlarms();
+        }
+    });
+    window.addEventListener('focus', checkGlobalDueAlarms);
 
     // Keyboard shortcut (Escape stops active alarm)
     document.addEventListener('keydown', function (e) {

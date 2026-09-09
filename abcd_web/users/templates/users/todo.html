@@ -3215,6 +3215,17 @@
         </div>
       </div>
 
+      <!-- Notification Permission Prompt Banner (dynamically shown if alarm ON and permission not granted) -->
+      <div id="reminderNotificationNotice" style="display:none; margin-top:14px; padding:12px 14px; background:rgba(245,158,11,0.12); border:1.5px dashed rgba(245,158,11,0.45); border-radius:12px; font-size:0.84rem; color:#b45309;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class='bx bx-bell-off' style="font-size:1.3rem; flex-shrink:0;"></i>
+            <span>Enable notifications so your alarm rings even when your screen is locked.</span>
+          </div>
+          <button type="button" id="enableAlarmNotifBtn" onclick="enableAlarmNotificationsNow()" style="background:#f59e0b; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:0.8rem; font-weight:700; cursor:pointer; white-space:nowrap; box-shadow:0 2px 8px rgba(245,158,11,0.3);">Enable</button>
+        </div>
+      </div>
+
       <!-- F) Save button -->
       <div style="display:flex; gap:10px; margin-top:20px;">
         <button type="button" onclick="closeReminderModal()" class="btn-secondary" style="flex:1; padding:13px; border-radius:12px; font-weight:700; font-size:1rem; cursor:pointer;">
@@ -11837,6 +11848,50 @@
   let reminderUntilDate = null;
   let currentPickerContext = 'breakdown';
 
+  function updateReminderPermissionNotice() {
+    const notice = document.getElementById('reminderNotificationNotice');
+    if (!notice) return;
+    const alarmOn = document.getElementById('reminderAlarmToggle')?.checked;
+    if (alarmOn && ('Notification' in window) && Notification.permission !== 'granted') {
+      notice.style.display = 'block';
+    } else {
+      notice.style.display = 'none';
+    }
+  }
+
+  window.enableAlarmNotificationsNow = async function () {
+    const btn = document.getElementById('enableAlarmNotifBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Enabling...';
+    }
+    try {
+      if (typeof window.requestAlarmNotificationPermission === 'function') {
+        const granted = await window.requestAlarmNotificationPermission();
+        updateReminderPermissionNotice();
+        if (granted) {
+          showSuccessToast('Notifications activated! Alarms will ring reliably.');
+        }
+      } else if ('Notification' in window) {
+        const perm = await Notification.requestPermission();
+        updateReminderPermissionNotice();
+        if (perm === 'granted') {
+          if (typeof window.registerServiceWorkerAndSync === 'function') {
+            await window.registerServiceWorkerAndSync();
+          }
+          showSuccessToast('Notifications activated! Alarms will ring reliably.');
+        }
+      }
+    } catch (e) {
+      console.error('Error enabling notifications:', e);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Enable';
+      }
+    }
+  };
+
   function openReminderModal(taskData = null) {
     closeNewModal();
     document.getElementById('reminderModal').classList.add('active');
@@ -11846,6 +11901,13 @@
     const saveBtnText = document.getElementById('saveReminderBtnText');
     if (titleEl) titleEl.textContent = taskData ? 'Edit Reminder' : 'Set Reminder';
     if (saveBtnText) saveBtnText.textContent = taskData ? '💾 Save Changes' : '🔔 Set Reminder';
+
+    // Hook alarm toggle change to update permission notice
+    const alarmTog = document.getElementById('reminderAlarmToggle');
+    if (alarmTog && !alarmTog._noticeHooked) {
+      alarmTog.addEventListener('change', updateReminderPermissionNotice);
+      alarmTog._noticeHooked = true;
+    }
 
     if (!taskData) {
       document.getElementById('reminderTitle').value = '';
@@ -11862,6 +11924,7 @@
       reminderPickedDate = null;
       reminderPickedTime = null;
       reminderUntilDate = null;
+      updateReminderPermissionNotice();
       
       document.getElementById('reminderDateLabel').textContent = 'Pick Date';
       document.getElementById('reminderTimeLabel').textContent = 'Pick Time';
@@ -12146,7 +12209,7 @@
     return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
   }
 
-  function saveReminder() {
+  async function saveReminder() {
     const title = document.getElementById('reminderTitle').value.trim();
     if (!title) {
       showModalAlert('Error', 'Please enter a reminder title.');
@@ -12157,6 +12220,28 @@
     const recurrence = getReminderSelectedRecurrence();
     const email_notify = document.getElementById('reminderEmailToggle').checked;
     const alarm_enabled = document.getElementById('reminderAlarmToggle').checked;
+
+    // Direct User Gesture: If alarm is requested and permission hasn't been asked yet, prompt now!
+    if (alarm_enabled && ('Notification' in window) && Notification.permission === 'default') {
+      try {
+        if (typeof window.requestAlarmNotificationPermission === 'function') {
+          await window.requestAlarmNotificationPermission();
+        } else {
+          const perm = await Notification.requestPermission();
+          if (perm === 'granted' && typeof window.registerServiceWorkerAndSync === 'function') {
+            await window.registerServiceWorkerAndSync();
+          }
+        }
+        updateReminderPermissionNotice();
+      } catch (permErr) {
+        console.warn('Notification permission request error:', permErr);
+      }
+    }
+
+    // Ensure service worker push subscription is registered on server for active user
+    if (('Notification' in window) && Notification.permission === 'granted' && typeof window.registerServiceWorkerAndSync === 'function') {
+      window.registerServiceWorkerAndSync().catch(function () {});
+    }
     
     const payload = {
       title: title,
@@ -12802,23 +12887,26 @@
           let isDueNow = false;
           const rec = meta.recurrence || 'once';
           
-          if (rec === 'once' && meta.fire_at) {
-            const fireDt = new Date(meta.fire_at);
-            const fireMs = fireDt.getTime();
-            const elapsedSec = (nowMs - fireMs) / 1000;
-            
-            // If due now or within the last 5 minutes (and not fired yet)
-            if (elapsedSec >= 0 && elapsedSec <= 300) {
-              isDueNow = true;
-            } else if (elapsedSec < 0 && Math.abs(elapsedSec) <= 86400) {
-              // Upcoming within 24 hours: schedule exact timer to trigger at exact millisecond
-              if (!scheduledAlarmTimeoutIds.has(task.id)) {
-                const delayMs = fireMs - nowMs;
-                const tid = setTimeout(() => {
-                  scheduledAlarmTimeoutIds.delete(task.id);
-                  triggerAlarmNow(task, meta);
-                }, delayMs);
-                scheduledAlarmTimeoutIds.set(task.id, tid);
+          if (rec === 'once') {
+            const fireTarget = meta.fire_at || task.delete_at;
+            if (fireTarget) {
+              const fireDt = new Date(fireTarget);
+              const fireMs = fireDt.getTime();
+              const elapsedSec = (nowMs - fireMs) / 1000;
+              
+              // If due now or within the last 15 minutes (and not fired yet)
+              if (elapsedSec >= 0 && elapsedSec <= 900) {
+                isDueNow = true;
+              } else if (elapsedSec < 0 && Math.abs(elapsedSec) <= 86400) {
+                // Upcoming within 24 hours: schedule exact timer to trigger at exact millisecond
+                if (!scheduledAlarmTimeoutIds.has(task.id)) {
+                  const delayMs = fireMs - nowMs;
+                  const tid = setTimeout(() => {
+                    scheduledAlarmTimeoutIds.delete(task.id);
+                    triggerAlarmNow(task, meta);
+                  }, delayMs);
+                  scheduledAlarmTimeoutIds.set(task.id, tid);
+                }
               }
             }
           } else if (meta.time_str) {
@@ -12826,7 +12914,7 @@
             const todayFireDt = new Date(istP.year, istP.month - 1, istP.day, th, tm, 0);
             const elapsedSec = (istNowMs - todayFireDt.getTime()) / 1000;
             
-            if (elapsedSec >= 0 && elapsedSec <= 300) {
+            if (elapsedSec >= 0 && elapsedSec <= 900) {
               isDueNow = true;
             } else if (elapsedSec < 0 && Math.abs(elapsedSec) <= 86400) {
               if (!scheduledAlarmTimeoutIds.has(task.id)) {
@@ -12851,6 +12939,14 @@
   // Check every 15 seconds for low latency, plus immediately on load
   setInterval(checkDueAlarms, 15000);
   setTimeout(checkDueAlarms, 1000);
+
+  // Re-check immediately when tab or mobile device is resumed/unlocked
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      checkDueAlarms();
+    }
+  });
+  window.addEventListener('focus', checkDueAlarms);
 
   // --- WIRE DESKTOP NAVBAR SEARCH ENGINE ---
   document.addEventListener('DOMContentLoaded', function () {

@@ -638,6 +638,37 @@
     };
 
     window.ensureNotificationPermission = window.promptNotificationForAction;
+    window.registerServiceWorkerAndSync = registerServiceWorkerAndSync;
+
+    window.requestAlarmNotificationPermission = async function () {
+        if (!('Notification' in window)) return false;
+        if (Notification.permission === 'granted') {
+            await registerServiceWorkerAndSync();
+            return true;
+        }
+        if (Notification.permission === 'denied') {
+            showDeniedInstructions();
+            return false;
+        }
+        try {
+            const perm = await Notification.requestPermission();
+            if (perm === 'granted') {
+                localStorage.setItem(ALLOWED_KEY, 'true');
+                localStorage.setItem('abcd_push_user_consented', 'true');
+                try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
+                await registerServiceWorkerAndSync({ sendWelcome: false });
+                playChime('/static/audio/PWA.mp3');
+                return true;
+            } else if (perm === 'denied') {
+                showDeniedInstructions();
+                return false;
+            }
+            return false;
+        } catch (e) {
+            console.error('Error requesting alarm notification permission:', e);
+            return false;
+        }
+    };
 
     window.showABCDNotificationPrompt = function () {
         if (Notification.permission === 'denied') {
