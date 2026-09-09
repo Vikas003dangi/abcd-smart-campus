@@ -366,28 +366,30 @@
     }
 
     /**
-     * Start alarm sound (plays 9s once) & interactive full-screen ringing UI
+     * Start alarm sound or reminder sound (plays 9s once) & interactive full-screen UI
      * @param {string} title
      * @param {string} body
      * @param {number|string|null} taskId
+     * @param {boolean} [isAlarm=true]
      */
-    function startABCDAlarm(title, body, taskId) {
-        // If an alarm is ALREADY playing and modal is visible, do not re-trigger or restart sound!
+    function startABCDAlarm(title, body, taskId, isAlarm) {
+        // If an alarm or reminder is ALREADY playing and modal is visible, do not re-trigger or restart sound!
         if (activeAlarmAudio && !activeAlarmAudio.paused && activeAlarmModal) {
-            console.debug('Alarm is already actively playing; skipping duplicate trigger.');
+            console.debug('Alarm/reminder is already actively playing; skipping duplicate trigger.');
             return;
         }
 
         stopABCDAlarm();
         if (!isSoundEnabled()) return;
 
+        const isAlarmMode = (isAlarm !== false && isAlarm !== 'false' && isAlarm !== 0);
         currentAlarmTaskId = taskId || null;
         ensureAlarmStyles();
 
-        // 1. Play 9-second alarm audio ONCE at 100% volume (loop = false)
+        // 1. Play 9-second audio ONCE at 100% volume (loop = false)
         try {
-            const alarmSrc = SOUND_PATHS['alarm'] || '/static/audio/alarms and reminders.mp3';
-            activeAlarmAudio = new Audio(alarmSrc);
+            const soundSrc = SOUND_PATHS['alarm'] || '/static/audio/alarms and reminders.mp3';
+            activeAlarmAudio = new Audio(soundSrc);
             activeAlarmAudio.loop = false; // NEVER loop indefinitely! Plays 9 seconds once.
             activeAlarmAudio.volume = 1.0;
             activeAlarmAudio.onended = function () {
@@ -396,38 +398,51 @@
             const p = activeAlarmAudio.play();
             if (p !== undefined) {
                 p.catch(function (err) {
-                    console.debug('Alarm audio autoplay waiting for user touch:', err.message);
+                    console.debug('Audio autoplay waiting for user interaction:', err.message);
                 });
             }
         } catch (e) {
-            console.error('Failed to init alarm audio:', e);
+            console.error('Failed to init alarm/reminder audio:', e);
         }
 
-        // 2. Auto-dismiss safety timeout: 30 seconds if unattended (audio finishes at 9s)
+        // 2. Auto-dismiss safety timeout:
+        // - Alarm: 30 seconds if unattended (audio finishes at 9s)
+        // - Simple Reminder: 15 seconds if unattended (silences after 9s audio completes)
+        const autoDismissMs = isAlarmMode ? 30000 : 15000;
         alarmAutoStopTimer = setTimeout(function () {
             stopABCDAlarm();
-        }, 30000);
+        }, autoDismissMs);
 
-        // 3. Build full-screen interactive Alarm UI
+        // 3. Build full-screen interactive UI
         const overlay = document.createElement('div');
         overlay.className = 'abcd-alarm-overlay';
         overlay.id = 'abcdActiveAlarmModal';
 
-        const safeTitle = (title || '⏰ Reminder Alarm').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const safeBody = (body || 'Your scheduled reminder is ringing now!').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const defaultTitle = isAlarmMode ? '⏰ Reminder Alarm' : '⏰ Reminder';
+        const safeTitle = (title || defaultTitle).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const safeBody = (body || (isAlarmMode ? 'Your scheduled alarm is ringing now!' : 'Your scheduled reminder is due now!')).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        const stopBtnLabel = isAlarmMode ? 'STOP ALARM 🛑' : 'STOP REMINDER 🛑';
+        const snoozeBtnHtml = isAlarmMode ? `
+                <button type="button" class="abcd-alarm-btn-snooze" id="abcdSnoozeAlarmBtn">
+                    Snooze 15 Min ⏳
+                </button>
+        ` : '';
+
+        const iconHtml = isAlarmMode
+            ? '<div class="abcd-alarm-bell-icon">🔔</div>'
+            : '<div class="abcd-alarm-bell-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);">⏰</div>';
 
         overlay.innerHTML = `
             <div class="abcd-alarm-card">
-                <div class="abcd-alarm-bell-icon">🔔</div>
+                ${iconHtml}
                 <div class="abcd-alarm-clock" id="abcdAlarmClockDisplay">${formatCurrentTime()}</div>
                 <div class="abcd-alarm-title">${safeTitle}</div>
                 <div class="abcd-alarm-note">${safeBody}</div>
                 <button type="button" class="abcd-alarm-btn-stop" id="abcdStopAlarmBtn">
-                    STOP ALARM 🛑
+                    ${stopBtnLabel}
                 </button>
-                <button type="button" class="abcd-alarm-btn-snooze" id="abcdSnoozeAlarmBtn">
-                    Snooze 15 Min ⏳
-                </button>
+                ${snoozeBtnHtml}
             </div>
         `;
 
@@ -440,12 +455,12 @@
             if (clockEl) clockEl.textContent = formatCurrentTime();
         }, 1000);
 
-        // Wire Stop button: stop audio, dismiss modal, notify backend to stop permanently
+        // Wire Stop button: stop audio immediately, dismiss modal, notify backend to stop permanently
         const stopBtn = document.getElementById('abcdStopAlarmBtn');
         if (stopBtn) {
             stopBtn.addEventListener('click', function () {
                 const targetId = currentAlarmTaskId;
-                stopABCDAlarm();
+                stopABCDAlarm(); // Immediately pauses audio & resets currentTime = 0 (stops at that exact point)
                 if (targetId) {
                     fetch(`/todo/reminder/${targetId}/action/`, {
                         method: 'POST',
@@ -455,13 +470,13 @@
                         },
                         body: JSON.stringify({ action: 'stop' })
                     }).catch(function (err) {
-                        console.error('Failed to notify server of alarm stop:', err);
+                        console.error('Failed to notify server of stop action:', err);
                     });
                 }
             });
         }
 
-        // Wire Snooze button: stop audio, dismiss modal, notify backend to snooze 15 min
+        // Wire Snooze button (only present in Alarm mode)
         const snoozeBtn = document.getElementById('abcdSnoozeAlarmBtn');
         if (snoozeBtn) {
             snoozeBtn.addEventListener('click', function () {
@@ -529,16 +544,19 @@
             if (urlParams.get('ring_alarm') === '1') {
                 const alarmTitle = urlParams.get('alarm_title') || '⏰ Scheduled Reminder';
                 const alarmTaskId = urlParams.get('task_id');
+                const isAlarmParam = urlParams.get('is_alarm');
+                const isAlarm = (isAlarmParam === null || isAlarmParam === '1' || isAlarmParam === 'true');
                 // Clean the URL param so refresh doesn't re-ring
                 urlParams.delete('ring_alarm');
                 urlParams.delete('alarm_title');
                 urlParams.delete('task_id');
+                urlParams.delete('is_alarm');
                 const cleanSearch = urlParams.toString();
                 const cleanUrl = window.location.pathname + (cleanSearch ? '?' + cleanSearch : '') + window.location.hash;
                 window.history.replaceState({}, document.title, cleanUrl);
 
                 setTimeout(function () {
-                    startABCDAlarm(alarmTitle, 'Your scheduled reminder is ringing now!', alarmTaskId);
+                    startABCDAlarm(alarmTitle, 'Your scheduled reminder is ringing now!', alarmTaskId, isAlarm);
                 }, 200);
             }
         } catch (e) {}
@@ -548,11 +566,7 @@
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'ABCD_ALARM_PUSH') {
-                if (event.data.isAlarm) {
-                    startABCDAlarm(event.data.title, event.data.body, event.data.taskId);
-                } else {
-                    playABCDSound('pwa');
-                }
+                startABCDAlarm(event.data.title, event.data.body, event.data.taskId, event.data.isAlarm !== false);
             }
         });
     }
@@ -561,7 +575,7 @@
     window.addEventListener('abcd:sound', function (e) {
         if (e && e.detail && e.detail.sound) {
             if (e.detail.sound === 'alarm' && e.detail.isRinging) {
-                startABCDAlarm(e.detail.title, e.detail.body, e.detail.taskId);
+                startABCDAlarm(e.detail.title, e.detail.body, e.detail.taskId, e.detail.isAlarm !== false);
             } else {
                 playABCDSound(e.detail.sound, e.detail.volume || 1.0);
             }

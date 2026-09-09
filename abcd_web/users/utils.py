@@ -1002,11 +1002,11 @@ def _fire_reminder(task, title, email_notify):
     try:
         create_notification(
             user=task.user,
-            title=f"⏰ Reminder: {title}",
-            message=f"Your reminder '{title}' is due now.",
+            title=f"⏰ Alarm: {title}" if is_alarm else f"⏰ Reminder: {title}",
+            message=f"Your alarm '{title}' is ringing now." if is_alarm else f"Your reminder '{title}' is due now.",
             link='/todo/',
             category=category,
-            sound='/static/audio/alarms and reminders.mp3' if is_alarm else '/static/audio/PWA.mp3',
+            sound='/static/audio/alarms and reminders.mp3',
             meta={'is_alarm': is_alarm, 'note': meta.get('note', ''), 'task_id': task.id},
             tag=f"abcd-reminder-{task.id}"
         )
@@ -1017,16 +1017,19 @@ def _fire_reminder(task, title, email_notify):
         try:
             target_email = get_user_notification_email(task.user)
             if target_email:
+                user_display = get_user_display_name(task.user) or getattr(task.user, 'first_name', '') or task.user.username
                 logger.info(f"[To-Do Reminder] Dispatching due alert email for '{title}' to {target_email} (user: {task.user.username})")
                 send_html_email(
-                    subject=f"⏰ Reminder: {title}",
+                    subject=f"⏰ Alarm: {title}" if is_alarm else f"⏰ Reminder: {title}",
                     to_email=target_email,
                     template="emails/todo_reminder.html",
                     context={
+                        "user_name": user_display,
                         "title": title,
                         "note": meta.get('note', ''),
                         "recurrence": meta.get('recurrence', 'once'),
                         "todo_url": f"{settings.SITE_URL}/todo/",
+                        "is_alarm": is_alarm,
                     },
                     fail_silently=True,
                     run_async=True
@@ -1194,12 +1197,15 @@ def process_todo_notifications():
                     task.metadata = meta
                     task.save(update_fields=['initial_notified', 'last_notified_at', 'metadata'])
                 else:
-                    # Simple reminder: fire once, complete if once recurrence
+                    # Simple reminder: fire once, complete if once recurrence, never retry
+                    meta['alarm_status'] = 'stopped'
+                    meta['next_retry_at'] = None
+                    task.metadata = meta
                     if recurrence == 'once':
                         task.is_done = True
-                        task.save(update_fields=['initial_notified', 'last_notified_at', 'is_done'])
+                        task.save(update_fields=['initial_notified', 'last_notified_at', 'metadata', 'is_done'])
                     else:
-                        task.save(update_fields=['initial_notified', 'last_notified_at'])
+                        task.save(update_fields=['initial_notified', 'last_notified_at', 'metadata'])
 
                 _fire_reminder(task, title, email_notify)
 

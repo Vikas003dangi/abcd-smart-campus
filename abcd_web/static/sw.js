@@ -37,19 +37,27 @@ self.addEventListener('push', function (event) {
     const catLower = (data.category || '').toLowerCase();
     const titleLower = (title || '').toLowerCase();
     const tagLower = (data.tag || '').toLowerCase();
-    const isAlarm = (data.is_alarm === true ||
-                     catLower === 'reminder' || catLower === 'alarm' ||
-                     titleLower.includes('reminder') || titleLower.includes('alarm') ||
-                     tagLower.includes('reminder') || tagLower.includes('alarm'));
+
+    // Distinguish alarm vs simple reminder cleanly
+    let isAlarm = false;
+    if (typeof data.is_alarm === 'boolean') {
+        isAlarm = data.is_alarm;
+    } else {
+        isAlarm = (catLower === 'alarm' || titleLower.includes('alarm') || tagLower.includes('alarm'));
+    }
+
+    const isReminder = !isAlarm && (catLower === 'reminder' || titleLower.includes('reminder') || tagLower.includes('reminder'));
+    const isAudioAlert = isAlarm || isReminder;
 
     let sound = data.sound;
     if (!sound) {
-        sound = isAlarm ? '/static/audio/alarms and reminders.mp3' : '/static/audio/PWA.mp3';
-    } else if (isAlarm && sound === '/static/audio/PWA.mp3') {
+        sound = isAudioAlert ? '/static/audio/alarms and reminders.mp3' : '/static/audio/PWA.mp3';
+    } else if (isAudioAlert && sound === '/static/audio/PWA.mp3') {
         sound = '/static/audio/alarms and reminders.mp3';
     }
 
     const alarmVibratePattern = [500, 200, 500, 200, 500, 200, 1000, 500, 1000];
+    const reminderVibratePattern = [300, 150, 300];
     const defaultVibratePattern = [200, 100, 200];
 
     const options = {
@@ -61,12 +69,13 @@ self.addEventListener('push', function (event) {
         renotify: true,
         requireInteraction: isAlarm ? true : false,
         silent: false,
-        vibrate: isAlarm ? alarmVibratePattern : defaultVibratePattern,
+        vibrate: isAlarm ? alarmVibratePattern : (isReminder ? reminderVibratePattern : defaultVibratePattern),
         data: {
             url: data.url || '/',
             timestamp: data.timestamp || Date.now(),
             badge_count: data.badge_count || 1,
             isAlarm: isAlarm,
+            isReminder: isReminder,
             sound: sound,
             title: title,
             body: data.body || '',
@@ -77,9 +86,15 @@ self.addEventListener('push', function (event) {
                 { action: 'open_alarm', title: '⏰ Open & Dismiss' },
                 { action: 'dismiss', title: 'Close' }
               ]
-            : [
-                { action: 'open', title: 'Open' }
-              ]
+            : (isReminder
+                ? [
+                    { action: 'open_reminder', title: '⏰ Open Reminder' },
+                    { action: 'dismiss', title: 'Close' }
+                  ]
+                : [
+                    { action: 'open', title: 'Open' }
+                  ]
+            )
     };
 
     // Update Launcher Icon Badge on Android PWA / Desktop (e.g. 999+ or 1)
@@ -174,10 +189,15 @@ self.addEventListener('notificationclick', function (event) {
     const notifData = (event.notification && event.notification.data) ? event.notification.data : {};
     let targetUrl = notifData.url || '/';
 
-    // When opening an alarm or clicking open_alarm action, attach ring_alarm=1 param so audio plays instantly
-    if (notifData.isAlarm || event.action === 'open_alarm') {
+    const isAlarmClick = notifData.isAlarm || event.action === 'open_alarm';
+    const isReminderClick = notifData.isReminder || event.action === 'open_reminder';
+
+    // When opening an alarm or reminder, attach ring_alarm=1 param with is_alarm=1 or is_alarm=0
+    if (isAlarmClick || isReminderClick) {
         const sep = targetUrl.includes('?') ? '&' : '?';
-        targetUrl = targetUrl + sep + 'ring_alarm=1&alarm_title=' + encodeURIComponent(notifData.title || 'Alarm');
+        const isAlarmVal = isAlarmClick ? '1' : '0';
+        const taskParam = notifData.taskId ? `&task_id=${encodeURIComponent(notifData.taskId)}` : '';
+        targetUrl = `${targetUrl}${sep}ring_alarm=1&alarm_title=${encodeURIComponent(notifData.title || 'Reminder')}&is_alarm=${isAlarmVal}${taskParam}`;
     }
 
     event.waitUntil(
@@ -188,14 +208,15 @@ self.addEventListener('notificationclick', function (event) {
                     const clientBase = client.url.split('?')[0];
                     const targetBase = targetUrl.split('?')[0];
                     if (clientBase.includes(targetBase) || client.url.includes('/todo') || targetUrl.startsWith('/')) {
-                        if (notifData.isAlarm) {
+                        if (isAlarmClick || isReminderClick) {
                             try {
                                 client.postMessage({
                                     type: 'ABCD_ALARM_PUSH',
                                     title: notifData.title,
                                     body: notifData.body,
-                                    isAlarm: true,
-                                    sound: notifData.sound
+                                    isAlarm: Boolean(isAlarmClick),
+                                    sound: notifData.sound,
+                                    taskId: notifData.taskId || null
                                 });
                             } catch (e) {}
                         }

@@ -26,7 +26,7 @@
         font-weight: 700;
         color: #ffffff;
         letter-spacing: 0.3px;
-      ">Your Reminder is Due!</h1>
+      ">{% if is_alarm %}Your Alarm is Ringing!{% else %}Your Reminder is Due!{% endif %}</h1>
     </td>
   </tr>
 
@@ -35,7 +35,7 @@
     <td style="padding: 32px 28px 8px;">
 
       <p style="margin: 0 0 20px; font-size: 15px; color: #374151; line-height: 1.7;">
-        Hi there 👋 — here is a reminder you set on the
+        Hi {{ user_name|default:"there" }} 👋 — here is a {% if is_alarm %}reminder alarm{% else %}reminder{% endif %} you set on the
         <strong style="color: #7b61ff;">ABCD To-Do Hub</strong>.
         It is scheduled to fire now.
       </p>

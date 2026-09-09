@@ -14383,6 +14383,11 @@ def todo_reminder_action(request, task_id):
             return JsonResponse({'success': True, 'action': 'stop', 'message': 'Alarm stopped permanently.'})
 
         elif action == 'snooze':
+            alarm_enabled = meta.get('alarm_enabled', True)
+            is_alarm = alarm_enabled is True or str(alarm_enabled).lower() == 'true' or alarm_enabled == 1
+            if not is_alarm:
+                return JsonResponse({'success': False, 'error': 'Simple reminders cannot be snoozed.'}, status=400)
+
             minutes = int(data.get('minutes', 15) or 15)
             snooze_until = now + timedelta(minutes=minutes)
             meta['alarm_status'] = 'snoozed'

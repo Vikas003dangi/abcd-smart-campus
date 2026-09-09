@@ -47,6 +47,7 @@ from users._utils_flat import (  # type: ignore[import]  # noqa: F401
     get_admin_and_teacher_emails,
     clean_guidy_message_content,
     strip_html_for_notification,
+    _fire_reminder,
 )
 
 

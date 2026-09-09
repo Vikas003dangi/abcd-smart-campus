@@ -688,13 +688,20 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     src_lower = (source or "").lower()
     title_lower = (title or "").lower()
     tag_lower = (tag or "").lower()
-    is_alarm = (cat_lower in ('reminder', 'alarm') or src_lower in ('reminder', 'alarm') or
-                'alarm' in title_lower or 'reminder' in title_lower or
-                'alarm' in tag_lower or 'reminder' in tag_lower)
+
+    meta_is_alarm = meta.get('is_alarm') if isinstance(meta, dict) else None
+    if meta_is_alarm is not None:
+        is_alarm = bool(meta_is_alarm)
+    else:
+        is_alarm = (cat_lower == 'alarm' or src_lower == 'alarm' or
+                    'alarm' in title_lower or 'alarm' in tag_lower)
+
+    is_reminder = (not is_alarm) and (cat_lower == 'reminder' or src_lower == 'reminder' or
+                                       'reminder' in title_lower or 'reminder' in tag_lower)
 
     # Determine default sound based on alarm/reminder category
     if not sound:
-        sound = "/static/audio/alarms and reminders.mp3" if is_alarm else "/static/audio/PWA.mp3"
+        sound = "/static/audio/alarms and reminders.mp3" if (is_alarm or is_reminder) else "/static/audio/PWA.mp3"
 
     # Calculate or get badge count (Guidy unread messages + active alerts)
     if badge_count is None:
@@ -706,7 +713,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
 
     task_id = meta.get('task_id') if isinstance(meta, dict) else None
     fallback_alarm_tag = f"abcd-reminder-{task_id}" if task_id else f"abcd-alarm-{user.id}"
-    unique_tag = tag or (fallback_alarm_tag if is_alarm else "abcd-notification")
+    unique_tag = tag or (fallback_alarm_tag if (is_alarm or is_reminder) else "abcd-notification")
 
     payload = {
         "title": formatted_title,

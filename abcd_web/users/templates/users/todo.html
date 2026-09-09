@@ -12712,9 +12712,10 @@
 
     const title = task.title || meta.title || 'Reminder';
     const note = meta.note || '';
+    const isAlarm = meta.alarm_enabled !== false && meta.alarm_enabled !== 'false' && meta.alarm_enabled !== 0;
 
     if (window.startABCDAlarm) {
-      window.startABCDAlarm(title, note, task.id);
+      window.startABCDAlarm(title, note, task.id, isAlarm);
     } else if (window.playABCDSound) {
       window.playABCDSound('alarm', 1.0);
     } else {
@@ -12795,8 +12796,6 @@
           if (task.is_done || task.is_trash) return;
           
           const meta = task.metadata || task.reminder_meta || {};
-          const isAlarmEnabled = meta.alarm_enabled !== false && meta.alarm_enabled !== 'false';
-          if (!isAlarmEnabled) return;
           
           if (firedAlarmIds.has(task.id)) return;
           
