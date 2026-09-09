@@ -10,14 +10,21 @@
                            cleanPath === '/guest-home' ||
                            cleanPath === '/dashboard' || 
                            cleanPath === '/alumni/dashboard' || 
-                           cleanPath === '/teacher' ||
-                           cleanPath === '/profile/guest';
+                           cleanPath === '/teacher';
 
         if (!isHomeBase) {
-            // Push history trap state immediately so browser back button triggers popstate
-            try {
-                window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
-            } catch(e) {}
+            // Push history trap state only if not already pushed (prevents duplicate state stacking)
+            function ensureTrap() {
+                try {
+                    if (!history.state || !history.state.abcd_back_trap) {
+                        window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
+                    }
+                } catch(e) {}
+            }
+
+            ensureTrap();
+            // User interaction reinforces trap for mobile/desktop browsers (satisfies user-gesture requirements)
+            window.addEventListener('pointerdown', ensureTrap, { once: true, passive: true });
             
             window.addEventListener('popstate', async function(event) {
                 // 1. Check custom page back hook (e.g. Guidy mobile chat close)
@@ -55,14 +62,24 @@
                     'users:student_dashboard': "{% url 'users:student_dashboard' %}",
                     'users:teacher_dashboard': "{% url 'users:teacher_dashboard' %}",
                     'users:alumni_dashboard': "{% url 'users:alumni_dashboard' %}",
-                    'users:home_page': "{% url 'users:home_page' %}"
+                    'users:home_page': "{% url 'users:home_page' %}",
+                    'users:guest_page': "{% url 'users:guest_page' %}",
+                    'users:student_complaints': "{% url 'users:student_complaints' %}",
+                    'users:hall_of_fame': "{% url 'users:hall_of_fame' %}"
                 };
 
                 if (routeNameMap[targetUrl]) {
                     targetUrl = routeNameMap[targetUrl];
                 }
 
-                // 3. Fallback: Path hierarchy detection for courses & teacher courses
+                // 3. Fallback: Context-aware referrer detection (e.g. Hall of Fame)
+                {% if context_aware %}
+                if (!targetUrl && document.referrer && document.referrer.includes('/hall-of-fame')) {
+                    targetUrl = "{% url 'users:hall_of_fame' %}";
+                }
+                {% endif %}
+
+                // 4. Fallback: Path hierarchy detection for courses & teacher courses
                 if (!targetUrl) {
                     if (cleanPath.startsWith('/courses/') && cleanPath !== '/courses') {
                         targetUrl = "{% url 'users:courses' %}";
@@ -77,14 +94,15 @@
                 }
 
                 // Default behavior for all other sub-pages: Redirect directly to user's Home Base!
-                window.location.replace("{% url 'users:smart_back_router' %}");
+                const directHomeBase = "{{ user_home_base_url|default:'' }}" || "{% url 'users:smart_back_router' %}";
+                window.location.replace(directHomeBase);
             });
 
-            // Re-push history trap state on page visibility / focus / user interaction
-            window.addEventListener('pageshow', function() {
-                try {
-                    window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
-                } catch(e) {}
+            // Re-push history trap state on page visibility / focus
+            window.addEventListener('pageshow', function(e) {
+                if (e.persisted) {
+                    ensureTrap();
+                }
             });
         }
     })();

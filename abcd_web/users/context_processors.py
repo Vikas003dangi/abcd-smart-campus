@@ -20,6 +20,7 @@ def student_context(request):
         'has_pending_coaching': False,
         'has_pending_library': False,
         'has_pending_alumni': False,
+        'user_home_base_url': '/',
     }
 
     try:
@@ -41,6 +42,7 @@ def student_context(request):
             'unread_count': 0,
             'guidy_badge_count': 0,
             'base_template': 'home_page.html',
+            'user_home_base_url': '/',
             'VAPID_PUBLIC_KEY': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
         }
         
@@ -58,6 +60,14 @@ def student_context(request):
             'guest':   'users/guest_page.html',
         }
         context['base_template'] = mapping.get(dtype, 'home_page.html')
+
+        home_base_mapping = {
+            'teacher': '/teacher/',
+            'student': '/dashboard/',
+            'alumni':  '/alumni/dashboard/',
+            'guest':   '/guest-home/',
+        }
+        context['user_home_base_url'] = home_base_mapping.get(dtype, '/')
 
         try:
             from users.views import get_guidy_badge_count

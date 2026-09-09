@@ -1,25 +1,31 @@
 {% load static %}
 <script>
     (function() {
-        const path = window.location.pathname;
-        const isHomeBase = path === '/' || 
-                           path === '/guest-home/' || 
-                           path === '/guest-home' ||
-                           path === '/dashboard/' || 
-                           path === '/dashboard' ||
-                           path === '/alumni/dashboard/' || 
-                           path === '/alumni/dashboard' ||
-                           path === '/teacher/' ||
-                           path === '/teacher';
+        const cleanPath = window.location.pathname.replace(/\/$/, '') || '/';
+        const isHomeBase = cleanPath === '/' || 
+                           cleanPath === '/home' ||
+                           cleanPath === '/guest-home' || 
+                           cleanPath === '/dashboard' || 
+                           cleanPath === '/alumni/dashboard' || 
+                           cleanPath === '/teacher';
 
         if (!isHomeBase) return;
 
+        function ensureHomeTrap() {
+            try {
+                if (history.state !== 'home_trap') {
+                    window.history.pushState('home_trap', document.title, window.location.href);
+                }
+            } catch(e) {}
+        }
+
         // 1. Push a state immediately to create the wall
-        window.history.pushState('home_trap', document.title, window.location.href);
+        ensureHomeTrap();
+        window.addEventListener('pointerdown', ensureHomeTrap, { once: true, passive: true });
         
         // 2. The Invisible Wall: If they press back, just push the wall back up. Do nothing else.
         window.addEventListener('popstate', function(event) {
-            window.history.pushState('home_trap', document.title, window.location.href);
+            ensureHomeTrap();
         });
     })();
 
