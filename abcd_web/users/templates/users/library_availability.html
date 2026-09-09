@@ -1372,9 +1372,9 @@
     <!-- Unified Premium Header -->
     <nav class="hub-navbar">
         <div class="hub-nav-left">
-            <a href="{% url 'users:student_dashboard' %}" class="back-btn">
+            <a href="{% if user.is_authenticated %}{% url 'users:student_dashboard' %}{% else %}{% url 'users:home_page' %}{% endif %}" class="back-btn" title="Back to ABCD Campus">
                 <i class='bx bx-left-arrow-alt'></i>
-                <span>Dashboard</span>
+                <span>{% if user.is_authenticated %}Dashboard{% else %}ABCD Campus{% endif %}</span>
             </a>
         </div>
         
