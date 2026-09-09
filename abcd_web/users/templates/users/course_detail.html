@@ -2929,9 +2929,9 @@
                 if (data.success && data.reminders && data.reminders.length > 0) {
                     data.reminders.forEach(r => {
                         if (window.startABCDAlarm) {
-                            window.startABCDAlarm(r.title, r.message, null, false);
+                            window.startABCDAlarm(r.title, r.message, null, false, '/static/audio/alarms and reminders.mp3');
                         } else if (window.playABCDSound) {
-                            window.playABCDSound('reminder', 1.0);
+                            window.playABCDSound('alarms and reminders', 1.0);
                         }
                         if (Notification.permission === "granted") {
                             try {

@@ -1335,8 +1335,8 @@ def process_offline_learning_reminders():
             message=f"Time to study {r.course.title}!",
             link=f"/courses/{r.course.id}/",
             category="reminder",
-            sound="/static/audio/PWA.mp3",
-            meta={'is_alarm': False, 'reminder_id': r.id},
+            sound="/static/audio/alarms and reminders.mp3",
+            meta={'is_alarm': False, 'reminder_id': r.id, 'source': 'course'},
             tag=f"abcd-learning-reminder-{r.id}"
         )
         target_email = get_user_notification_email(r.user)
@@ -1390,8 +1390,8 @@ def process_offline_learning_reminders():
                 message=f"Time for your scheduled study session on {r.course.title}!",
                 link=f"/courses/{r.course.id}/",
                 category="reminder",
-                sound="/static/audio/PWA.mp3",
-                meta={'is_alarm': False, 'reminder_id': r.id},
+                sound="/static/audio/alarms and reminders.mp3",
+                meta={'is_alarm': False, 'reminder_id': r.id, 'source': 'course'},
                 tag=f"abcd-learning-reminder-{r.id}"
             )
             target_email = get_user_notification_email(r.user)

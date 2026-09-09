@@ -660,9 +660,13 @@ def create_notification(user, title, message, link=None, category="general", met
     if not sound:
         cat_lower = (category or "").lower()
         title_lower = (title or "").lower()
+        is_todo = (isinstance(meta, dict) and meta.get('source') == 'todo') or ('/todo' in (link or '').lower())
         if cat_lower == 'alarm' or 'alarm' in title_lower:
             sound = "/static/audio/alarm.mp3"
         elif cat_lower == 'reminder' or 'reminder' in title_lower:
+            # Inside To-Do Hub reminder without alarm uses PWA.mp3; outside To-Do Hub uses alarms and reminders.mp3
+            sound = "/static/audio/PWA.mp3" if is_todo else "/static/audio/alarms and reminders.mp3"
+        else:
             sound = "/static/audio/PWA.mp3"
 
     # 🔔 Send device push notification
@@ -700,9 +704,18 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     is_reminder = (not is_alarm) and (cat_lower == 'reminder' or src_lower == 'reminder' or
                                        'reminder' in title_lower or 'reminder' in tag_lower)
 
-    # Distinct sounds: alarm uses alarm.mp3, simple reminder uses PWA.mp3
+    # Distinct sounds:
+    # 1. Inside To-Do Hub: alarm uses alarm.mp3, reminder without alarm uses PWA.mp3
+    # 2. Outside To-Do Hub: reminder uses 'alarms and reminders.mp3'
+    # 3. Standard general notification: PWA.mp3
+    is_todo = (isinstance(meta, dict) and meta.get('source') == 'todo') or (src_lower == 'todo') or ('/todo' in (url or '').lower())
     if not sound:
-        sound = "/static/audio/alarm.mp3" if is_alarm else ("/static/audio/PWA.mp3" if is_reminder else "/static/audio/PWA.mp3")
+        if is_alarm:
+            sound = "/static/audio/alarm.mp3"
+        elif is_reminder:
+            sound = "/static/audio/PWA.mp3" if is_todo else "/static/audio/alarms and reminders.mp3"
+        else:
+            sound = "/static/audio/PWA.mp3"
 
     # Calculate or get badge count (Guidy unread messages + active alerts)
     if badge_count is None:

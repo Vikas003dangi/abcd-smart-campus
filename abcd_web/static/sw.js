@@ -48,12 +48,17 @@ self.addEventListener('push', function (event) {
 
     const isReminder = !isAlarm && (catLower === 'reminder' || titleLower.includes('reminder') || tagLower.includes('reminder'));
     const isAudioAlert = isAlarm || isReminder;
+    const isTodo = (data.source === 'todo') || (data.url && data.url.includes('/todo'));
 
     let sound = data.sound;
     if (!sound) {
-        sound = isAudioAlert ? '/static/audio/alarms and reminders.mp3' : '/static/audio/PWA.mp3';
-    } else if (isAudioAlert && sound === '/static/audio/PWA.mp3') {
-        sound = '/static/audio/alarms and reminders.mp3';
+        if (isAlarm) {
+            sound = '/static/audio/alarm.mp3';
+        } else if (isReminder) {
+            sound = isTodo ? '/static/audio/PWA.mp3' : '/static/audio/alarms and reminders.mp3';
+        } else {
+            sound = '/static/audio/PWA.mp3';
+        }
     }
 
     const alarmVibratePattern = [500, 200, 500, 200, 500, 200, 1000, 500, 1000];

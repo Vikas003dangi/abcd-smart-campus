@@ -23,13 +23,25 @@
         'error': '/static/audio/error.mp3',
         'alarm': '/static/audio/alarm.mp3',
         'reminder': '/static/audio/PWA.mp3',
-        'pwa': '/static/audio/PWA.mp3'
+        'pwa': '/static/audio/PWA.mp3',
+        'alarms and reminders': '/static/audio/alarms and reminders.mp3',
+        'course_reminder': '/static/audio/alarms and reminders.mp3'
     };
 
     // Cached Audio objects pool
     const audioPool = {};
     let isAudioUnlocked = false;
     let lastButtonSoundTime = 0;
+
+    // Check if an alarm or loud reminder is actively ringing
+    function isAlarmOrLoudAlertPlaying() {
+        if (activeAlarmAudio && !activeAlarmAudio.paused && !activeAlarmAudio.ended) return true;
+        const poolAlarm = audioPool['alarm'];
+        if (poolAlarm && !poolAlarm.paused && !poolAlarm.ended) return true;
+        const poolAr = audioPool['alarms and reminders'];
+        if (poolAr && !poolAr.paused && !poolAr.ended) return true;
+        return false;
+    }
 
     // Check user preference (enabled by default)
     function isSoundEnabled() {
@@ -59,7 +71,7 @@
 
         try {
             // Prime essential audio elements so subsequent playback is permitted by browser policy
-            ['button', 'alarm', 'reminder'].forEach(function (key) {
+            ['button', 'alarm', 'reminder', 'alarms and reminders'].forEach(function (key) {
                 const primer = audioPool[key] || new Audio(SOUND_PATHS[key]);
                 audioPool[key] = primer;
                 primer.volume = 0.001;
@@ -88,7 +100,7 @@
 
     /**
      * Play an ABCD sound effect by name
-     * @param {string} soundName - 'button' | 'send' | 'receive' | 'done' | 'error' | 'alarm' | 'pwa'
+     * @param {string} soundName - 'button' | 'send' | 'receive' | 'done' | 'error' | 'alarm' | 'reminder' | 'pwa' | 'alarms and reminders'
      * @param {number} [volume=1.0] - Volume between 0.0 and 1.0
      */
     function playABCDSound(soundName, volume) {
@@ -98,6 +110,28 @@
         const normalizedName = (soundName || '').toLowerCase().trim();
         const soundSrc = SOUND_PATHS[normalizedName];
         if (!soundSrc) return;
+
+        // ZERO OVERLAP & AUDIO PRIORITY RULE:
+        // If an alarm or reminder alert is actively playing, MUTE/SUPPRESS all gentle notification chimes (PWA, receive, reminder)
+        if (isAlarmOrLoudAlertPlaying()) {
+            if (['pwa', 'reminder', 'receive'].includes(normalizedName)) {
+                console.debug('Muting/suppressing PWA sound because an alarm or reminder alert is actively playing.');
+                return;
+            }
+        }
+
+        // If an alarm or reminder alert is starting, immediately silence and reset any active gentle chimes
+        if (['alarm', 'alarms and reminders', 'course_reminder'].includes(normalizedName)) {
+            ['pwa', 'reminder', 'receive'].forEach(function (k) {
+                const a = audioPool[k];
+                if (a) {
+                    try {
+                        a.pause();
+                        a.currentTime = 0;
+                    } catch (e) {}
+                }
+            });
+        }
 
         try {
             const poolAudio = audioPool[normalizedName];
@@ -368,8 +402,9 @@
      * @param {string} body
      * @param {number|string|null} taskId
      * @param {boolean} [isAlarm=true]
+     * @param {string} [customSoundSrc]
      */
-    function startABCDAlarm(title, body, taskId, isAlarm) {
+    function startABCDAlarm(title, body, taskId, isAlarm, customSoundSrc) {
         // If an alarm or reminder is ALREADY playing and modal is visible, do not re-trigger or restart sound!
         if (activeAlarmAudio && !activeAlarmAudio.paused && activeAlarmModal) {
             console.debug('Alarm/reminder is already actively playing; skipping duplicate trigger.');
@@ -378,14 +413,37 @@
 
         stopABCDAlarm();
 
+        // ZERO OVERLAP RULE: Immediately mute/stop any active gentle chimes
+        ['pwa', 'reminder', 'receive'].forEach(function (k) {
+            const a = audioPool[k];
+            if (a) {
+                try {
+                    a.pause();
+                    a.currentTime = 0;
+                } catch (e) {}
+            }
+        });
+
         const isAlarmMode = (isAlarm !== false && isAlarm !== 'false' && isAlarm !== 0);
         currentAlarmTaskId = taskId || null;
         ensureAlarmStyles();
 
-        // 1. Play appropriate sound: Alarm plays alarm.mp3 (loud 9s), Simple Reminder plays PWA.mp3 (gentle chime)
-        // If Alarm is enabled, ONLY the alarm sound plays (never overlap both)
-        const soundKey = isAlarmMode ? 'alarm' : 'reminder';
-        const soundSrc = SOUND_PATHS[soundKey] || (isAlarmMode ? '/static/audio/alarm.mp3' : '/static/audio/PWA.mp3');
+        // Determine sound:
+        // - customSoundSrc if specified (e.g. '/static/audio/alarms and reminders.mp3')
+        // - To-Do Alarm: alarm.mp3
+        // - To-Do Reminder without alarm: PWA.mp3
+        let soundKey;
+        let soundSrc;
+        if (customSoundSrc) {
+            soundSrc = SOUND_PATHS[customSoundSrc] || customSoundSrc;
+            soundKey = customSoundSrc.includes('alarms and reminders') ? 'alarms and reminders' : 'alarm';
+        } else if (isAlarmMode) {
+            soundKey = 'alarm';
+            soundSrc = SOUND_PATHS['alarm'] || '/static/audio/alarm.mp3';
+        } else {
+            soundKey = 'reminder';
+            soundSrc = SOUND_PATHS['reminder'] || '/static/audio/PWA.mp3';
+        }
 
         function tryPlayAlarmAudio() {
             if (!isSoundEnabled()) return;
@@ -734,6 +792,7 @@
     window.playButtonSound = function () { playABCDSound('button', 0.45); };
     window.startABCDAlarm = startABCDAlarm;
     window.stopABCDAlarm = stopABCDAlarm;
+    window.isABCDAlarmPlaying = isAlarmOrLoudAlertPlaying;
     window.setABCDSoundEnabled = setSoundEnabled;
     window.isABCDSoundEnabled = isSoundEnabled;
     window.unlockABCDAudio = unlockAudio;
