@@ -627,10 +627,9 @@ def format_push_title(raw_title, category=None, source=None):
         return "ABCD | Complaint"
     if cat_clean in ['fee', 'payment', 'fee_teacher'] or 'fee' in lower_title or 'payment' in lower_title or 'receipt' in lower_title:
         return "ABCD | Fees"
-    if cat_clean == 'achievement' or 'achievement' in lower_title or 'alumni' in lower_title:
-        return "ABCD | Achievement"
-    if cat_clean == 'reminder' or 'reminder' in lower_title:
-        return "ABCD | Reminder"
+    if cat_clean in ['alarm', 'reminder'] or 'alarm' in lower_title or 'reminder' in lower_title:
+        # Preserve full title for alarms and reminders so task title is not truncated
+        return f"ABCD | {raw_clean}"
 
     # Clean text fallback
     clean_text = re.sub(r'^[^\w\s]+', '', raw_clean).strip()
@@ -661,8 +660,10 @@ def create_notification(user, title, message, link=None, category="general", met
     if not sound:
         cat_lower = (category or "").lower()
         title_lower = (title or "").lower()
-        if cat_lower in ('reminder', 'alarm') or 'alarm' in title_lower or 'reminder' in title_lower:
-            sound = "/static/audio/alarms and reminders.mp3"
+        if cat_lower == 'alarm' or 'alarm' in title_lower:
+            sound = "/static/audio/alarm.mp3"
+        elif cat_lower == 'reminder' or 'reminder' in title_lower:
+            sound = "/static/audio/PWA.mp3"
 
     # 🔔 Send device push notification
     send_push(user, formatted_title, message, url=link or "/", category=category, sound=sound, tag=tag, meta=meta)
@@ -699,9 +700,9 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     is_reminder = (not is_alarm) and (cat_lower == 'reminder' or src_lower == 'reminder' or
                                        'reminder' in title_lower or 'reminder' in tag_lower)
 
-    # Determine default sound based on alarm/reminder category
+    # Distinct sounds: alarm uses alarm.mp3, simple reminder uses PWA.mp3
     if not sound:
-        sound = "/static/audio/alarms and reminders.mp3" if (is_alarm or is_reminder) else "/static/audio/PWA.mp3"
+        sound = "/static/audio/alarm.mp3" if is_alarm else ("/static/audio/PWA.mp3" if is_reminder else "/static/audio/PWA.mp3")
 
     # Calculate or get badge count (Guidy unread messages + active alerts)
     if badge_count is None:

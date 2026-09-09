@@ -21,8 +21,8 @@
         'done': '/static/audio/done.mp3',
         'success': '/static/audio/done.mp3',
         'error': '/static/audio/error.mp3',
-        'alarm': '/static/audio/alarms and reminders.mp3',
-        'reminder': '/static/audio/alarms and reminders.mp3',
+        'alarm': '/static/audio/alarm.mp3',
+        'reminder': '/static/audio/PWA.mp3',
         'pwa': '/static/audio/PWA.mp3'
     };
 
@@ -58,27 +58,24 @@
         if (isAudioUnlocked) return;
 
         try {
-            const primer = audioPool['button'] || new Audio(SOUND_PATHS['button']);
-            primer.volume = 0.01;
-            const promise = primer.play();
-            if (promise !== undefined) {
-                promise.then(function () {
-                    primer.pause();
-                    primer.currentTime = 0;
-                    primer.volume = 1.0;
-                    isAudioUnlocked = true;
-                    ['click', 'touchstart', 'keydown'].forEach(function (evt) {
-                        document.removeEventListener(evt, unlockAudio, { capture: true });
-                    });
-                }).catch(function () {
-                    // Keep listeners attached to retry on next user interaction
-                });
-            } else {
-                isAudioUnlocked = true;
-                ['click', 'touchstart', 'keydown'].forEach(function (evt) {
-                    document.removeEventListener(evt, unlockAudio, { capture: true });
-                });
-            }
+            // Prime essential audio elements so subsequent playback is permitted by browser policy
+            ['button', 'alarm', 'reminder'].forEach(function (key) {
+                const primer = audioPool[key] || new Audio(SOUND_PATHS[key]);
+                audioPool[key] = primer;
+                primer.volume = 0.001;
+                const promise = primer.play();
+                if (promise !== undefined) {
+                    promise.then(function () {
+                        primer.pause();
+                        primer.currentTime = 0;
+                        primer.volume = 1.0;
+                    }).catch(function () {});
+                }
+            });
+            isAudioUnlocked = true;
+            ['click', 'touchstart', 'keydown'].forEach(function (evt) {
+                document.removeEventListener(evt, unlockAudio, { capture: true });
+            });
         } catch (e) {
             // Keep listeners attached to retry on next user interaction
         }
@@ -385,19 +382,28 @@
         currentAlarmTaskId = taskId || null;
         ensureAlarmStyles();
 
-        // 1. Play 9-second audio ONCE at 100% volume (loop = false)
+        // 1. Play appropriate sound: Alarm plays alarm.mp3 (loud 9s), Simple Reminder plays PWA.mp3 (gentle chime)
+        // If Alarm is enabled, ONLY the alarm sound plays (never overlap both)
+        const soundKey = isAlarmMode ? 'alarm' : 'reminder';
+        const soundSrc = SOUND_PATHS[soundKey] || (isAlarmMode ? '/static/audio/alarm.mp3' : '/static/audio/PWA.mp3');
+
         function tryPlayAlarmAudio() {
             if (!isSoundEnabled()) return;
             try {
                 if (!activeAlarmAudio) {
-                    const soundSrc = SOUND_PATHS['alarm'] || '/static/audio/alarms and reminders.mp3';
-                    activeAlarmAudio = new Audio(soundSrc);
-                    activeAlarmAudio.loop = false; // NEVER loop indefinitely! Plays 9 seconds once.
+                    if (audioPool[soundKey]) {
+                        activeAlarmAudio = audioPool[soundKey];
+                    } else {
+                        activeAlarmAudio = new Audio(soundSrc);
+                        audioPool[soundKey] = activeAlarmAudio;
+                    }
+                    activeAlarmAudio.loop = false; // NEVER loop indefinitely!
                     activeAlarmAudio.volume = 1.0;
                     activeAlarmAudio.onended = function () {
                         activeAlarmAudio = null;
                     };
                 }
+                activeAlarmAudio.currentTime = 0;
                 const p = activeAlarmAudio.play();
                 if (p !== undefined) {
                     p.then(function () {
@@ -443,14 +449,16 @@
             ? '<div class="abcd-alarm-bell-icon">🔔</div>'
             : '<div class="abcd-alarm-bell-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);">⏰</div>';
 
+        const unmuteLabel = isAlarmMode ? '🔊 Tap anywhere to play alarm sound 🔔' : '🔊 Tap anywhere to play reminder sound 🔔';
+
         overlay.innerHTML = `
             <div class="abcd-alarm-card">
                 ${iconHtml}
                 <div class="abcd-alarm-clock" id="abcdAlarmClockDisplay">${formatCurrentTime()}</div>
                 <div class="abcd-alarm-title">${safeTitle}</div>
                 <div class="abcd-alarm-note">${safeBody}</div>
-                <div id="abcdUnmuteBanner" style="display:none; margin:10px 0; padding:10px 14px; background:rgba(99,102,241,0.12); border:1.5px dashed #6366f1; border-radius:10px; color:#4f46e5; font-size:0.88rem; font-weight:800; cursor:pointer; align-items:center; justify-content:center; gap:8px; text-align:center;">
-                    🔊 Tap here to play alarm sound 🔔
+                <div id="abcdUnmuteBanner" style="display:none; margin:10px 0; padding:12px 14px; background:rgba(239,68,68,0.15); border:2px dashed #ef4444; border-radius:12px; color:#f87171; font-size:0.92rem; font-weight:800; cursor:pointer; align-items:center; justify-content:center; gap:8px; text-align:center;">
+                    ${unmuteLabel}
                 </div>
                 <button type="button" class="abcd-alarm-btn-stop" id="abcdStopAlarmBtn">
                     ${stopBtnLabel}
@@ -570,7 +578,62 @@
         }
     } catch (e) {}
 
+    window.__abcdCachedReminders = [];
     let isCheckingGlobalAlarms = false;
+
+    // High-precision 1-second in-memory checker: fires on the exact second with 0 latency
+    function tickGlobalDueAlarmsInMemory() {
+        const tasks = window.__abcdCachedReminders;
+        if (!tasks || !Array.isArray(tasks) || tasks.length === 0) return;
+
+        const nowMs = Date.now();
+        tasks.forEach(function (task) {
+            if (task.is_done || task.is_trash) return;
+
+            const meta = task.metadata || task.reminder_meta || {};
+            if (meta.alarm_status === 'stopped') return;
+            if (globalFiredAlarmIds.has(task.id)) return;
+
+            let isDueNow = false;
+            const rec = meta.recurrence || 'once';
+
+            if (rec === 'once') {
+                const fireTarget = meta.fire_at || task.delete_at;
+                if (fireTarget) {
+                    const fireDt = new Date(fireTarget);
+                    const fireMs = fireDt.getTime();
+                    const elapsedSec = (nowMs - fireMs) / 1000;
+
+                    // If due now or within the last 15 minutes (and not fired yet)
+                    if (elapsedSec >= 0 && elapsedSec <= 900) {
+                        isDueNow = true;
+                    }
+                }
+            } else if (meta.time_str) {
+                const parts = String(meta.time_str).split(':').map(Number);
+                const now = new Date();
+                const todayFireDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
+                const elapsedSec = (nowMs - todayFireDt.getTime()) / 1000;
+
+                if (elapsedSec >= 0 && elapsedSec <= 900) {
+                    isDueNow = true;
+                }
+            }
+
+            if (isDueNow) {
+                globalFiredAlarmIds.add(task.id);
+                try {
+                    sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
+                } catch (e) {}
+
+                const title = task.title || meta.title || 'Reminder';
+                const note = meta.note || '';
+                const isAlarm = (meta.alarm_enabled !== false && meta.alarm_enabled !== 'false' && meta.alarm_enabled !== 0);
+
+                startABCDAlarm(title, note, task.id, isAlarm);
+            }
+        });
+    }
 
     function checkGlobalDueAlarms() {
         if (isCheckingGlobalAlarms) return;
@@ -587,71 +650,30 @@
                 isCheckingGlobalAlarms = false;
                 if (!data || !data.tasks || !Array.isArray(data.tasks)) return;
 
-                const nowMs = Date.now();
-                data.tasks.forEach(function (task) {
-                    if (task.is_done || task.is_trash) return;
-
-                    const meta = task.metadata || task.reminder_meta || {};
-                    if (meta.alarm_status === 'stopped') return;
-
-                    if (globalFiredAlarmIds.has(task.id)) return;
-
-                    let isDueNow = false;
-                    const rec = meta.recurrence || 'once';
-
-                    if (rec === 'once') {
-                        const fireTarget = meta.fire_at || task.delete_at;
-                        if (fireTarget) {
-                            const fireDt = new Date(fireTarget);
-                            const fireMs = fireDt.getTime();
-                            const elapsedSec = (nowMs - fireMs) / 1000;
-
-                            // If due now or within the last 15 minutes (and not fired yet)
-                            if (elapsedSec >= 0 && elapsedSec <= 900) {
-                                isDueNow = true;
-                            }
-                        }
-                    } else if (meta.time_str) {
-                        const parts = String(meta.time_str).split(':').map(Number);
-                        const now = new Date();
-                        const todayFireDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
-                        const elapsedSec = (nowMs - todayFireDt.getTime()) / 1000;
-
-                        if (elapsedSec >= 0 && elapsedSec <= 900) {
-                            isDueNow = true;
-                        }
-                    }
-
-                    if (isDueNow) {
-                        globalFiredAlarmIds.add(task.id);
-                        try {
-                            sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
-                        } catch (e) {}
-
-                        const title = task.title || meta.title || 'Reminder';
-                        const note = meta.note || '';
-                        const isAlarm = (meta.alarm_enabled !== false && meta.alarm_enabled !== 'false' && meta.alarm_enabled !== 0);
-
-                        startABCDAlarm(title, note, task.id, isAlarm);
-                    }
-                });
+                window.__abcdCachedReminders = data.tasks;
+                tickGlobalDueAlarmsInMemory();
             })
             .catch(function () {
                 isCheckingGlobalAlarms = false;
             });
     }
 
-    // Run global check every 15 seconds, plus immediately on load
-    setInterval(checkGlobalDueAlarms, 15000);
-    setTimeout(checkGlobalDueAlarms, 1500);
+    // High precision: Check memory every 1 second, fetch server every 10 seconds
+    setInterval(tickGlobalDueAlarmsInMemory, 1000);
+    setInterval(checkGlobalDueAlarms, 10000);
+    setTimeout(checkGlobalDueAlarms, 1000);
 
     // Also run immediately on page visibility change or tab focus (e.g. mobile phone unlocked / tab resumed)
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
             checkGlobalDueAlarms();
+            tickGlobalDueAlarmsInMemory();
         }
     });
-    window.addEventListener('focus', checkGlobalDueAlarms);
+    window.addEventListener('focus', function () {
+        checkGlobalDueAlarms();
+        tickGlobalDueAlarmsInMemory();
+    });
 
     // Keyboard shortcut (Escape stops active alarm)
     document.addEventListener('keydown', function (e) {
@@ -714,6 +736,7 @@
     window.stopABCDAlarm = stopABCDAlarm;
     window.setABCDSoundEnabled = setSoundEnabled;
     window.isABCDSoundEnabled = isSoundEnabled;
+    window.unlockABCDAudio = unlockAudio;
 
     // Initialize preloading and URL trigger on DOM load or immediate
     if (document.readyState === 'loading') {

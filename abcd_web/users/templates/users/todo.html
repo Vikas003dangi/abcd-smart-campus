@@ -12210,6 +12210,11 @@
   }
 
   async function saveReminder() {
+    // Prime and unlock audio context immediately from user gesture
+    if (window.unlockABCDAudio) {
+      try { window.unlockABCDAudio(); } catch (e) {}
+    }
+
     const title = document.getElementById('reminderTitle').value.trim();
     if (!title) {
       showModalAlert('Error', 'Please enter a reminder title.');
@@ -12394,6 +12399,37 @@
     return `At ${t}`;
   }
 
+  function getLiveReminderBadge(task) {
+    if (!task) return '';
+    const meta = task.metadata || task.reminder_meta || {};
+    if (task.is_done) {
+      return '<span style="background:rgba(16,185,129,0.12);color:#10b981;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:700;margin-left:6px;display:inline-flex;align-items:center;gap:3px;"><i class="bx bx-check-circle"></i> Completed</span>';
+    }
+    const fireTarget = meta.fire_at || task.delete_at;
+    const nowMs = Date.now();
+    let fireMs = null;
+    if (fireTarget) {
+      fireMs = new Date(fireTarget).getTime();
+    } else if (meta.time_str) {
+      const istP = getISTNowComponents();
+      const [th, tm] = meta.time_str.split(':').map(Number);
+      const todayFireDt = new Date(istP.year, istP.month - 1, istP.day, th, tm, 0);
+      fireMs = todayFireDt.getTime();
+    }
+    if (!fireMs || isNaN(fireMs)) return '';
+
+    const diffSec = Math.round((fireMs - nowMs) / 1000);
+    if (diffSec <= 0 && diffSec >= -900) {
+      return '<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#ffffff;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:800;margin-left:6px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 2px 8px rgba(239,68,68,0.4);"><i class="bx bxs-bell-ring bx-tada"></i> Ringing Now!</span>';
+    } else if (diffSec > 0 && diffSec <= 60) {
+      return `<span style="background:rgba(245,158,11,0.18);color:#d97706;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:700;margin-left:6px;display:inline-flex;align-items:center;gap:3px;"><i class="bx bx-time"></i> in ${diffSec}s</span>`;
+    } else if (diffSec > 60 && diffSec <= 3600) {
+      const mins = Math.floor(diffSec / 60);
+      return `<span style="background:rgba(99,102,241,0.14);color:#6366f1;padding:2px 7px;border-radius:10px;font-size:0.72rem;font-weight:700;margin-left:6px;display:inline-flex;align-items:center;gap:3px;"><i class="bx bx-time"></i> in ${mins}m</span>`;
+    }
+    return '';
+  }
+
   function renderReminderCard(task) {
     const meta = task.metadata || task.reminder_meta || {};
     const title = task.title || '';
@@ -12456,9 +12492,9 @@
           ${emailBadge}
           ${alarmBadge}
         </div>
-        <div style="font-size:0.78rem;color:var(--text-muted,#64748b);">
-          <div><i class='bx bx-calendar-event' style="margin-right:4px;"></i><strong>Next:</strong> ${nextFire}</div>
-          <div style="margin-top:3px;color:${task.last_notified_at ? 'var(--text-muted,#64748b)' : '#94a3b8'};"><i class='bx bx-history' style="margin-right:4px;"></i>${task.last_notified_at ? `Last fired: ${lastNotified}` : 'Not yet fired'}</div>
+        <div class="rem-card-timing" data-task-id="${task.id}" style="font-size:0.78rem;color:var(--text-muted,#64748b);">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;"><i class='bx bx-calendar-event' style="margin-right:2px;"></i><strong>Next:</strong> <span class="rem-next-val">${nextFire}</span> <span class="rem-live-badge">${getLiveReminderBadge(task)}</span></div>
+          <div style="margin-top:3px;color:${task.last_notified_at ? 'var(--text-muted,#64748b)' : '#94a3b8'};"><i class='bx bx-history' style="margin-right:4px;"></i><span class="rem-last-val">${task.last_notified_at ? `Last fired: ${lastNotified}` : 'Not yet fired'}</span></div>
         </div>
       </div>
     `;
@@ -12799,18 +12835,28 @@
     const note = meta.note || '';
     const isAlarm = meta.alarm_enabled !== false && meta.alarm_enabled !== 'false' && meta.alarm_enabled !== 0;
 
+    // Single distinct sound: Alarm plays alarm.mp3, Simple Reminder plays PWA.mp3 (never overlap both)
     if (window.startABCDAlarm) {
       window.startABCDAlarm(title, note, task.id, isAlarm);
     } else if (window.playABCDSound) {
-      window.playABCDSound('alarm', 1.0);
+      window.playABCDSound(isAlarm ? 'alarm' : 'reminder', 1.0);
     } else {
       try {
-        const audio = new Audio('/static/audio/alarms and reminders.mp3');
+        const audio = new Audio(isAlarm ? '/static/audio/alarm.mp3' : '/static/audio/PWA.mp3');
         audio.volume = 1.0;
         audio.play().catch(function () {});
       } catch (e) {}
     }
     showReminderToast(title, note);
+
+    // Update live badge on screen immediately
+    const card = document.querySelector(`.task-card[data-id="${task.id}"][data-category="REMINDER"]`);
+    if (card) {
+      const badgeEl = card.querySelector('.rem-live-badge');
+      if (badgeEl) {
+        badgeEl.innerHTML = '<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#ffffff;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:800;margin-left:6px;display:inline-flex;align-items:center;gap:3px;box-shadow:0 2px 8px rgba(239,68,68,0.4);"><i class="bx bxs-bell-ring bx-tada"></i> Ringing Now!</span>';
+      }
+    }
   }
 
   function playAlarmSound() {
@@ -12818,7 +12864,7 @@
       window.playABCDSound('alarm', 1.0);
     } else {
       try {
-        const audio = new Audio('/static/audio/alarms and reminders.mp3');
+        const audio = new Audio('/static/audio/alarm.mp3');
         audio.volume = 1.0;
         audio.play().catch(function () {});
       } catch (e) {}
@@ -12868,85 +12914,118 @@
     return p;
   }
 
+  // 1-second live ticker: dynamically updates badges and triggers due alarms with 0ms latency
+  function updateReminderLiveTick() {
+    const tasks = currentTasks || [];
+    if (!Array.isArray(tasks) || tasks.length === 0) return;
+    const nowMs = Date.now();
+
+    tasks.forEach(task => {
+      const card = document.querySelector(`.task-card[data-id="${task.id}"][data-category="REMINDER"]`);
+      if (card) {
+        const badgeEl = card.querySelector('.rem-live-badge');
+        if (badgeEl) {
+          badgeEl.innerHTML = getLiveReminderBadge(task);
+        }
+      }
+
+      if (task.is_done || task.is_trash) return;
+      const meta = task.metadata || task.reminder_meta || {};
+      if (meta.alarm_status === 'stopped') return;
+      if (firedAlarmIds.has(task.id)) return;
+
+      let isDueNow = false;
+      const rec = meta.recurrence || 'once';
+
+      if (rec === 'once') {
+        const fireTarget = meta.fire_at || task.delete_at;
+        if (fireTarget) {
+          const fireDt = new Date(fireTarget);
+          const fireMs = fireDt.getTime();
+          const elapsedSec = (nowMs - fireMs) / 1000;
+          if (elapsedSec >= 0 && elapsedSec <= 900) {
+            isDueNow = true;
+          }
+        }
+      } else if (meta.time_str) {
+        const parts = String(meta.time_str).split(':').map(Number);
+        const now = new Date();
+        const todayFireDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
+        const elapsedSec = (nowMs - todayFireDt.getTime()) / 1000;
+        if (elapsedSec >= 0 && elapsedSec <= 900) {
+          isDueNow = true;
+        }
+      }
+
+      if (isDueNow) {
+        triggerAlarmNow(task, meta);
+      }
+    });
+  }
+
   function checkDueAlarms() {
     fetch('/todo/get-tasks/?category=REMINDER')
       .then(r => r.json())
       .then(data => {
-        const tasks = data.tasks || [];
-        const istP = getISTNowComponents();
-        const istNowMs = new Date(istP.year, istP.month - 1, istP.day, istP.hour, istP.minute, istP.second).getTime();
-        const nowMs = Date.now();
-        
-        tasks.forEach(task => {
-          if (task.is_done || task.is_trash) return;
-          
-          const meta = task.metadata || task.reminder_meta || {};
-          
-          if (firedAlarmIds.has(task.id)) return;
-          
-          let isDueNow = false;
-          const rec = meta.recurrence || 'once';
-          
-          if (rec === 'once') {
-            const fireTarget = meta.fire_at || task.delete_at;
-            if (fireTarget) {
-              const fireDt = new Date(fireTarget);
-              const fireMs = fireDt.getTime();
-              const elapsedSec = (nowMs - fireMs) / 1000;
-              
-              // If due now or within the last 15 minutes (and not fired yet)
-              if (elapsedSec >= 0 && elapsedSec <= 900) {
-                isDueNow = true;
-              } else if (elapsedSec < 0 && Math.abs(elapsedSec) <= 86400) {
-                // Upcoming within 24 hours: schedule exact timer to trigger at exact millisecond
-                if (!scheduledAlarmTimeoutIds.has(task.id)) {
-                  const delayMs = fireMs - nowMs;
-                  const tid = setTimeout(() => {
-                    scheduledAlarmTimeoutIds.delete(task.id);
-                    triggerAlarmNow(task, meta);
-                  }, delayMs);
-                  scheduledAlarmTimeoutIds.set(task.id, tid);
-                }
-              }
-            }
-          } else if (meta.time_str) {
-            const [th, tm] = meta.time_str.split(':').map(Number);
-            const todayFireDt = new Date(istP.year, istP.month - 1, istP.day, th, tm, 0);
-            const elapsedSec = (istNowMs - todayFireDt.getTime()) / 1000;
-            
-            if (elapsedSec >= 0 && elapsedSec <= 900) {
-              isDueNow = true;
-            } else if (elapsedSec < 0 && Math.abs(elapsedSec) <= 86400) {
-              if (!scheduledAlarmTimeoutIds.has(task.id)) {
-                const delayMs = todayFireDt.getTime() - istNowMs;
-                const tid = setTimeout(() => {
-                  scheduledAlarmTimeoutIds.delete(task.id);
-                  triggerAlarmNow(task, meta);
-                }, delayMs);
-                scheduledAlarmTimeoutIds.set(task.id, tid);
-              }
-            }
-          }
-          
-          if (isDueNow) {
-            triggerAlarmNow(task, meta);
-          }
-        });
+        if (!data || !data.tasks) return;
+        currentTasks = data.tasks;
+        updateReminderLiveTick();
       })
       .catch(err => console.error('Error checking due alarms:', err));
   }
 
-  // Check every 15 seconds for low latency, plus immediately on load
-  setInterval(checkDueAlarms, 15000);
+  // Silent background sync: refreshes card statuses every 10 seconds without page reload or scroll jump
+  function silentlySyncReminders() {
+    const remTab = document.querySelector('.todo-category-tab[data-category="REMINDER"]');
+    if (!remTab || !remTab.classList.contains('active')) return;
+
+    fetch('/todo/get-tasks/?category=REMINDER')
+      .then(r => r.json())
+      .then(data => {
+        if (!data || !data.tasks) return;
+        const newTasks = data.tasks;
+        let needsRerender = false;
+
+        if (newTasks.length !== currentTasks.length) {
+          needsRerender = true;
+        } else {
+          for (let i = 0; i < newTasks.length; i++) {
+            if (newTasks[i].id !== currentTasks[i].id ||
+                Boolean(newTasks[i].is_done) !== Boolean(currentTasks[i].is_done) ||
+                newTasks[i].last_notified_at !== currentTasks[i].last_notified_at) {
+              needsRerender = true;
+              break;
+            }
+          }
+        }
+
+        currentTasks = newTasks;
+        if (needsRerender) {
+          const container = document.getElementById('tabContent');
+          if (container) {
+            renderReminderGrid(currentTasks, container);
+          }
+        }
+      })
+      .catch(function () {});
+  }
+
+  // 1-second live clock precision + 10-second background fetch
+  setInterval(updateReminderLiveTick, 1000);
+  setInterval(silentlySyncReminders, 10000);
   setTimeout(checkDueAlarms, 1000);
 
   // Re-check immediately when tab or mobile device is resumed/unlocked
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') {
       checkDueAlarms();
+      updateReminderLiveTick();
     }
   });
-  window.addEventListener('focus', checkDueAlarms);
+  window.addEventListener('focus', function () {
+    checkDueAlarms();
+    updateReminderLiveTick();
+  });
 
   // --- WIRE DESKTOP NAVBAR SEARCH ENGINE ---
   document.addEventListener('DOMContentLoaded', function () {

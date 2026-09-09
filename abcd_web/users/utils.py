@@ -1006,7 +1006,7 @@ def _fire_reminder(task, title, email_notify):
             message=f"Your alarm '{title}' is ringing now." if is_alarm else f"Your reminder '{title}' is due now.",
             link='/todo/',
             category=category,
-            sound='/static/audio/alarms and reminders.mp3',
+            sound='/static/audio/alarm.mp3' if is_alarm else '/static/audio/PWA.mp3',
             meta={'is_alarm': is_alarm, 'note': meta.get('note', ''), 'task_id': task.id},
             tag=f"abcd-reminder-{task.id}"
         )
@@ -1186,16 +1186,34 @@ def process_todo_notifications():
                         should_fire = True
 
             if should_fire:
-                # Defensive update first: ensures scheduler never loops into infinite calls
-                task.last_notified_at = now
-                task.initial_notified = True
+                # Concurrency & race-condition lock:
+                # Atomically claim this task so only one worker/thread dispatches notifications
+                if recurrence == 'once':
+                    claimed = TodoTask.objects.filter(id=task.id, initial_notified=False, is_done=False).update(
+                        initial_notified=True,
+                        last_notified_at=now
+                    )
+                    if claimed == 0:
+                        continue
+                else:
+                    if _fired_today(task, now):
+                        continue
+                    claimed = TodoTask.objects.filter(id=task.id).exclude(
+                        last_notified_at__date=now.date()
+                    ).update(
+                        initial_notified=True,
+                        last_notified_at=now
+                    )
+                    if claimed == 0:
+                        continue
 
+                task.refresh_from_db()
                 if is_alarm:
                     meta['alarm_status'] = 'ringing'
                     meta['retry_count'] = 0
                     meta['next_retry_at'] = (now + timedelta(minutes=30)).isoformat()
                     task.metadata = meta
-                    task.save(update_fields=['initial_notified', 'last_notified_at', 'metadata'])
+                    task.save(update_fields=['metadata'])
                 else:
                     # Simple reminder: fire once, complete if once recurrence, never retry
                     meta['alarm_status'] = 'stopped'
@@ -1203,9 +1221,9 @@ def process_todo_notifications():
                     task.metadata = meta
                     if recurrence == 'once':
                         task.is_done = True
-                        task.save(update_fields=['initial_notified', 'last_notified_at', 'metadata', 'is_done'])
+                        task.save(update_fields=['metadata', 'is_done'])
                     else:
-                        task.save(update_fields=['initial_notified', 'last_notified_at', 'metadata'])
+                        task.save(update_fields=['metadata'])
 
                 _fire_reminder(task, title, email_notify)
 
