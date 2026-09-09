@@ -9,6 +9,7 @@
 
 
     <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
+    <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
     <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
     <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'data/favicon/apple-touch-icon.png' %}" />
@@ -29,7 +30,7 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow" />
     <meta name="description" content="{% block meta_description %}ABCD Coaching & Library, Ganj Basoda - Best coaching and self-study library in Ganj Basoda. Top English coaching, competitive exam preparation, live digital library seat booking, free courses, student progress analytics, and Guidy closed chatting platform.{% endblock %}">
-    <meta name="keywords" content="{% block meta_keywords %}ABCD, abcd coaching, abcd library, acbd library, abcd coachign and library, abcd ganj basoda, Best library in ganj basoda, ganj basoda library, library for selft study in ganj basoda, library for self study in ganj basoda, English Coaching in ganj basoda, Best coaching ganj basoda, Best coaching in ganj basoda, Coaching and library in ganj basoda, Guidy, best chatting plateform, best chatting platform, Closed Chatting platform, ABCD - chatting platform, Guidy chats, free english courses, free courses, library seat booking ganj basoda{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}ABCD, abcd campus, abcd coaching, abcd library, acbd library, abcd coachign and library, abcd ganj basoda, Best library in ganj basoda, ganj basoda library, library for selft study in ganj basoda, library for self study in ganj basoda, English Coaching in ganj basoda, Best coaching ganj basoda, Best coaching in ganj basoda, coaching campus ganj basoda, Coaching and library in ganj basoda, Guidy, best chatting plateform, best chatting platform, Closed Chatting platform, ABCD - chatting platform, Guidy chats, free english courses, free courses, library seat booking ganj basoda{% endblock %}">
 
     <!-- OpenGraph & Social Sharing Previews (WhatsApp, LinkedIn, X, Facebook) -->
     <meta property="og:type" content="website">
@@ -51,21 +52,32 @@
       "name": "ABCD Coaching & Library",
       "alternateName": [
         "ABCD",
+        "ABCD Campus",
+        "ABCD Smart Campus",
         "ABCD Ganj Basoda",
         "ABCD Coaching Ganj Basoda",
         "ABCD Library Ganj Basoda",
-        "ABCD Smart Campus"
+        "Coaching Campus Ganj Basoda",
+        "Best Coaching in Ganj Basoda"
       ],
       "url": "https://abcdcampus.in/",
-      "logo": "https://abcdcampus.in{% static 'data/favicon/web-app-manifest-512x512.png' %}",
+      "logo": "https://abcdcampus.in/static/data/favicon/web-app-manifest-512x512.png",
+      "image": "https://abcdcampus.in/static/data/favicon/web-app-manifest-512x512.png",
       "description": "Best coaching and self-study library in Ganj Basoda. Offering English coaching, competitive exam preparation, live library seat booking, student progress analytics, and Guidy closed chat platform.",
       "telephone": "+919827662450",
       "email": "abcd2013baq@gmail.com",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": "04, Basoda",
         "addressLocality": "Ganj Basoda",
+        "postalCode": "464221",
         "addressRegion": "Madhya Pradesh",
         "addressCountry": "IN"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "23.85",
+        "longitude": "77.93"
       },
       "areaServed": "Ganj Basoda",
       "sameAs": [

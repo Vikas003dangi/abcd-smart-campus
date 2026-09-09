@@ -58,8 +58,15 @@ urlpatterns = [
 
     path('admin/', admin.site.urls),
 
-    # Browser default favicon & SEO
+    # Browser default favicon & SEO icons
     path('favicon.ico', RedirectView.as_view(url='/static/data/favicon/favicon.ico', permanent=True)),
+    path('favicon.png', RedirectView.as_view(url='/static/data/favicon/favicon-96x96.png', permanent=True)),
+    path('apple-touch-icon.png', RedirectView.as_view(url='/static/data/favicon/apple-touch-icon.png', permanent=True)),
+    path('apple-touch-icon-precomposed.png', RedirectView.as_view(url='/static/data/favicon/apple-touch-icon.png', permanent=True)),
+    path('site.webmanifest', RedirectView.as_view(url='/static/data/favicon/site.webmanifest', permanent=True)),
+    path('manifest.json', RedirectView.as_view(url='/static/data/favicon/site.webmanifest', permanent=True)),
+    path('web-app-manifest-192x192.png', RedirectView.as_view(url='/static/data/favicon/web-app-manifest-192x192.png', permanent=True)),
+    path('web-app-manifest-512x512.png', RedirectView.as_view(url='/static/data/favicon/web-app-manifest-512x512.png', permanent=True)),
     path('robots.txt', robots_txt_view, name='robots_txt'),
     path('sitemap.xml', sitemap_xml_view, name='sitemap_xml'),
 
