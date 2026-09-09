@@ -325,4 +325,5 @@ urlpatterns = [
     path('todo/bulk-action/', views.todo_bulk_action, name='todo_bulk_action'),
     path('todo/add-reminder/', views.todo_add_reminder, name='todo_add_reminder'),
     path('todo/update-reminder/<int:task_id>/', views.todo_update_reminder, name='todo_update_reminder'),
+    path('todo/reminder/<int:task_id>/action/', views.todo_reminder_action, name='todo_reminder_action'),
 ]

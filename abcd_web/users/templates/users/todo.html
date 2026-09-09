@@ -12714,7 +12714,7 @@
     const note = meta.note || '';
 
     if (window.startABCDAlarm) {
-      window.startABCDAlarm(title, note);
+      window.startABCDAlarm(title, note, task.id);
     } else if (window.playABCDSound) {
       window.playABCDSound('alarm', 1.0);
     } else {
@@ -12849,8 +12849,8 @@
       .catch(err => console.error('Error checking due alarms:', err));
   }
 
-  // Check every 3 seconds for low latency, plus immediately on load
-  setInterval(checkDueAlarms, 3000);
+  // Check every 15 seconds for low latency, plus immediately on load
+  setInterval(checkDueAlarms, 15000);
   setTimeout(checkDueAlarms, 1000);
 
   // --- WIRE DESKTOP NAVBAR SEARCH ENGINE ---

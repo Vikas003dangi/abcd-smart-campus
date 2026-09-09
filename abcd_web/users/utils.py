@@ -1,6 +1,8 @@
 # users/utils.py
 
 import os
+import logging
+logger = logging.getLogger(__name__)
 from django.utils import timezone
 from datetime import timedelta
 
@@ -997,34 +999,42 @@ def _fire_reminder(task, title, email_notify):
     is_alarm = alarm_enabled is True or str(alarm_enabled).lower() == 'true' or alarm_enabled == 1
     category = 'alarm' if is_alarm else 'reminder'
 
-    create_notification(
-        user=task.user,
-        title=f"⏰ Reminder: {title}",
-        message=f"Your reminder '{title}' is due now.",
-        link='/todo/',
-        category=category,
-        sound='/static/audio/alarms and reminders.mp3' if is_alarm else '/static/audio/PWA.mp3',
-        meta={'is_alarm': is_alarm, 'note': meta.get('note', '')}
-    )
+    try:
+        create_notification(
+            user=task.user,
+            title=f"⏰ Reminder: {title}",
+            message=f"Your reminder '{title}' is due now.",
+            link='/todo/',
+            category=category,
+            sound='/static/audio/alarms and reminders.mp3' if is_alarm else '/static/audio/PWA.mp3',
+            meta={'is_alarm': is_alarm, 'note': meta.get('note', ''), 'task_id': task.id},
+            tag=f"abcd-reminder-{task.id}"
+        )
+    except Exception as notif_err:
+        logger.error(f"[To-Do Reminder] Error creating notification for task {task.id}: {notif_err}", exc_info=True)
+
     if email_notify and task.user:
-        target_email = get_user_notification_email(task.user)
-        if target_email:
-            logger.info(f"[To-Do Reminder] Dispatching due alert email for '{title}' to {target_email} (user: {task.user.username})")
-            send_html_email(
-                subject=f"⏰ Reminder: {title}",
-                to_email=target_email,
-                template="emails/todo_reminder.html",
-                context={
-                    "title": title,
-                    "note": task.metadata.get('note', '') if isinstance(task.metadata, dict) else '',
-                    "recurrence": task.metadata.get('recurrence', 'once') if isinstance(task.metadata, dict) else 'once',
-                    "todo_url": f"{settings.SITE_URL}/todo/",
-                },
-                fail_silently=False,
-                run_async=True
-            )
-        else:
-            logger.warning(f"[To-Do Reminder] Email notify requested for '{title}', but no valid email found for user '{task.user.username}'")
+        try:
+            target_email = get_user_notification_email(task.user)
+            if target_email:
+                logger.info(f"[To-Do Reminder] Dispatching due alert email for '{title}' to {target_email} (user: {task.user.username})")
+                send_html_email(
+                    subject=f"⏰ Reminder: {title}",
+                    to_email=target_email,
+                    template="emails/todo_reminder.html",
+                    context={
+                        "title": title,
+                        "note": meta.get('note', ''),
+                        "recurrence": meta.get('recurrence', 'once'),
+                        "todo_url": f"{settings.SITE_URL}/todo/",
+                    },
+                    fail_silently=True,
+                    run_async=True
+                )
+            else:
+                logger.warning(f"[To-Do Reminder] Email notify requested for '{title}', but no valid email found for user '{task.user.username}'")
+        except Exception as email_err:
+            logger.error(f"[To-Do Reminder] Error dispatching email for task {task.id}: {email_err}", exc_info=True)
 
 
 def process_todo_notifications():
@@ -1051,10 +1061,15 @@ def process_todo_notifications():
         if task.category == 'REMINDER':
             meta = task.metadata if isinstance(task.metadata, dict) else {}
 
-            # ── Read all meta fields ──────────────────────────────────
+            # If task is already marked stopped, completed, or trashed, skip
+            if task.is_done or task.is_trash or meta.get('alarm_status') == 'stopped':
+                continue
+
             title          = meta.get('title', 'Reminder')
             recurrence     = meta.get('recurrence', 'once')
-            email_notify   = meta.get('email_notify', False)
+            email_notify   = bool(meta.get('email_notify', False))
+            alarm_enabled  = meta.get('alarm_enabled', True)
+            is_alarm       = alarm_enabled is True or str(alarm_enabled).lower() == 'true' or alarm_enabled == 1
             time_str       = meta.get('time_str', '00:00')
             until_date_str = meta.get('until_date', None)
 
@@ -1085,50 +1100,78 @@ def process_todo_notifications():
                     and timezone.localtime(task.last_notified_at).date() >= now_local.date()
                 )
 
-            # ── Recurrence dispatch ───────────────────────────────────
+            # ── Check active snooze or 30-min unacknowledged retry ──
+            next_retry_str = meta.get('next_retry_at')
+            if is_alarm and task.initial_notified and next_retry_str:
+                next_retry_dt = parse_flexible_datetime(next_retry_str)
+                if next_retry_dt and now >= next_retry_dt:
+                    alarm_status = meta.get('alarm_status', 'ringing')
+                    if alarm_status == 'snoozed':
+                        # Snooze expired: Ring again and set next 30m unattended retry
+                        meta['alarm_status'] = 'ringing'
+                        meta['next_retry_at'] = (now + timedelta(minutes=30)).isoformat()
+                        task.metadata = meta
+                        task.last_notified_at = now
+                        task.save(update_fields=['metadata', 'last_notified_at'])
+                        _fire_reminder(task, title, email_notify)
+                        continue
+                    else:
+                        # Unacknowledged 30-min rotation
+                        retry_count = int(meta.get('retry_count', 0))
+                        if retry_count < 3:
+                            retry_count += 1
+                            meta['retry_count'] = retry_count
+                            meta['next_retry_at'] = (now + timedelta(minutes=30)).isoformat()
+                            task.metadata = meta
+                            task.last_notified_at = now
+                            task.save(update_fields=['metadata', 'last_notified_at'])
+                            _fire_reminder(task, title, email_notify)
+                            continue
+                        else:
+                            # 3 unacknowledged 30-min rotations finished: stop forever!
+                            meta['alarm_status'] = 'stopped'
+                            meta['next_retry_at'] = None
+                            task.metadata = meta
+                            if recurrence == 'once':
+                                task.is_done = True
+                                task.save(update_fields=['metadata', 'is_done'])
+                            else:
+                                task.save(update_fields=['metadata'])
+                            continue
+
+            # ── Initial trigger dispatch ──────────────────────────────
+            should_fire = False
             if recurrence == 'once':
                 fire_dt = task.delete_at
                 if not fire_dt and meta.get('fire_at'):
                     fire_dt = parse_flexible_datetime(meta.get('fire_at'))
                 if not task.initial_notified and fire_dt and now >= fire_dt:
-                    _fire_reminder(task, title, email_notify)
-                    task.is_done = True
-                    task.initial_notified = True
-                    task.save(update_fields=['is_done', 'initial_notified'])
+                    should_fire = True
 
             elif recurrence == 'daily':
                 target = _get_target_time(now, time_str)
                 created_local = timezone.localtime(task.created_at) if task.created_at else now
-                if created_local.date() == now.date() and created_local > target:
-                    pass
-                elif now >= target and not _fired_today(task, now):
-                    _fire_reminder(task, title, email_notify)
-                    task.last_notified_at = now
-                    task.save(update_fields=['last_notified_at'])
+                if not (created_local.date() == now.date() and created_local > target):
+                    if now >= target and not _fired_today(task, now):
+                        should_fire = True
 
             elif recurrence == 'weekly':
                 days_of_week = meta.get('days_of_week', [])
                 if now.weekday() in days_of_week:
                     target = _get_target_time(now, time_str)
                     created_local = timezone.localtime(task.created_at) if task.created_at else now
-                    if created_local.date() == now.date() and created_local > target:
-                        pass
-                    elif now >= target and not _fired_today(task, now):
-                        _fire_reminder(task, title, email_notify)
-                        task.last_notified_at = now
-                        task.save(update_fields=['last_notified_at'])
+                    if not (created_local.date() == now.date() and created_local > target):
+                        if now >= target and not _fired_today(task, now):
+                            should_fire = True
 
             elif recurrence == 'monthly':
                 day_of_month = meta.get('day_of_month', 1)
                 if now.day == day_of_month:
                     target = _get_target_time(now, time_str)
                     created_local = timezone.localtime(task.created_at) if task.created_at else now
-                    if created_local.date() == now.date() and created_local > target:
-                        pass
-                    elif now >= target and not _fired_today(task, now):
-                        _fire_reminder(task, title, email_notify)
-                        task.last_notified_at = now
-                        task.save(update_fields=['last_notified_at'])
+                    if not (created_local.date() == now.date() and created_local > target):
+                        if now >= target and not _fired_today(task, now):
+                            should_fire = True
 
             elif recurrence == 'every_n_days':
                 interval_days = int(meta.get('interval_days', 1) or 1)
@@ -1137,9 +1180,28 @@ def process_todo_notifications():
                 if days_since >= interval_days:
                     target = _get_target_time(now, time_str)
                     if now >= target and not _fired_today(task, now):
-                        _fire_reminder(task, title, email_notify)
-                        task.last_notified_at = now
-                        task.save(update_fields=['last_notified_at'])
+                        should_fire = True
+
+            if should_fire:
+                # Defensive update first: ensures scheduler never loops into infinite calls
+                task.last_notified_at = now
+                task.initial_notified = True
+
+                if is_alarm:
+                    meta['alarm_status'] = 'ringing'
+                    meta['retry_count'] = 0
+                    meta['next_retry_at'] = (now + timedelta(minutes=30)).isoformat()
+                    task.metadata = meta
+                    task.save(update_fields=['initial_notified', 'last_notified_at', 'metadata'])
+                else:
+                    # Simple reminder: fire once, complete if once recurrence
+                    if recurrence == 'once':
+                        task.is_done = True
+                        task.save(update_fields=['initial_notified', 'last_notified_at', 'is_done'])
+                    else:
+                        task.save(update_fields=['initial_notified', 'last_notified_at'])
+
+                _fire_reminder(task, title, email_notify)
 
             continue
 

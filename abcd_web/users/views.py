@@ -1,4 +1,6 @@
 # users/views.py
+import logging
+logger = logging.getLogger(__name__)
 import requests, os, re, datetime, json, random, threading, time
 from django.db.models import F, Q, Avg, Count
 from django.views.decorators.csrf import csrf_exempt
@@ -13361,12 +13363,6 @@ def _get_base_template(user):
 @login_required
 def todo_hub_page(request):
     """Renders the main To-Do Hub container."""
-    try:
-        from .utils import process_todo_notifications
-        process_todo_notifications()
-    except Exception:
-        pass
-
     user = request.user
     dashboard_type = get_user_dashboard_type(user)
     if dashboard_type is None and user.is_authenticated:
@@ -13560,12 +13556,6 @@ def todo_add_fee_reminder(request):
 @login_required
 def todo_get_tasks(request):
     """Returns tasks for the current user based on category, with search filtering."""
-    try:
-        from .utils import process_todo_notifications
-        process_todo_notifications()
-    except Exception:
-        pass
-
     is_trash = request.GET.get('is_trash', 'false') == 'true'
     category = request.GET.get('category', 'FEES')
     q = request.GET.get('q', '').strip()
@@ -14233,7 +14223,7 @@ def todo_add_reminder(request):
                             "recurrence": recurrence,
                             "todo_url": f"{settings.SITE_URL}/todo/",
                         },
-                        fail_silently=False,
+                        fail_silently=True,
                         run_async=True
                     )
                     logger.info(f"[To-Do Reminder] Sent scheduled confirmation email for '{title}' to {target_email}")
@@ -14355,7 +14345,7 @@ def todo_update_reminder(request, task_id):
                             "recurrence": rec_val,
                             "todo_url": f"{settings.SITE_URL}/todo/",
                         },
-                        fail_silently=False,
+                        fail_silently=True,
                         run_async=True
                     )
             except Exception as email_err:
@@ -14363,6 +14353,53 @@ def todo_update_reminder(request, task_id):
 
         return JsonResponse({'success': True})
     except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_POST
+def todo_reminder_action(request, task_id):
+    """
+    Handles user interaction from Alarm UI modal, notification actions, or To-Do Hub:
+    - 'stop': Stops the alarm immediately and permanently. Clears retries and marks task complete.
+    - 'snooze': Snoozes the alarm for requested minutes (default 15 mins).
+    """
+    task = get_object_or_404(TodoTask, id=task_id, user=request.user, category='REMINDER')
+    try:
+        data = json.loads(request.body) if request.body else {}
+        action = str(data.get('action', 'stop')).lower()
+        now = timezone.localtime(timezone.now())
+        meta = task.metadata if isinstance(task.metadata, dict) else {}
+
+        if action == 'stop':
+            meta['alarm_status'] = 'stopped'
+            meta['next_retry_at'] = None
+            task.metadata = meta
+            rec = meta.get('recurrence', 'once')
+            if rec == 'once':
+                task.is_done = True
+            task.save()
+            logger.info(f"[To-Do Reminder] Alarm permanently stopped for task {task.id} ('{meta.get('title')}') by user {request.user.username}")
+            return JsonResponse({'success': True, 'action': 'stop', 'message': 'Alarm stopped permanently.'})
+
+        elif action == 'snooze':
+            minutes = int(data.get('minutes', 15) or 15)
+            snooze_until = now + timedelta(minutes=minutes)
+            meta['alarm_status'] = 'snoozed'
+            meta['next_retry_at'] = snooze_until.isoformat()
+            task.metadata = meta
+            task.save()
+            logger.info(f"[To-Do Reminder] Alarm snoozed for {minutes} min until {snooze_until} for task {task.id} by user {request.user.username}")
+            return JsonResponse({
+                'success': True,
+                'action': 'snooze',
+                'snooze_until': snooze_until.isoformat(),
+                'message': f'Alarm snoozed for {minutes} minutes.'
+            })
+
+        return JsonResponse({'success': False, 'error': f'Unknown action: {action}'})
+    except Exception as e:
+        logger.error(f"[To-Do Reminder] Error in todo_reminder_action for task {task_id}: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': str(e)})
 
 

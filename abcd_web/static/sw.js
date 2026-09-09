@@ -57,7 +57,7 @@ self.addEventListener('push', function (event) {
         icon: icon,
         badge: badge,
         sound: sound,
-        tag: data.tag || (isAlarm ? 'abcd-alarm-' + Date.now() : 'abcd-notification'),
+        tag: data.tag || (data.task_id ? 'abcd-reminder-' + data.task_id : (isAlarm ? 'abcd-alarm-active' : 'abcd-notification')),
         renotify: true,
         requireInteraction: isAlarm ? true : false,
         silent: false,
@@ -69,7 +69,8 @@ self.addEventListener('push', function (event) {
             isAlarm: isAlarm,
             sound: sound,
             title: title,
-            body: data.body || ''
+            body: data.body || '',
+            taskId: data.task_id || null
         },
         actions: isAlarm
             ? [
@@ -99,6 +100,7 @@ self.addEventListener('push', function (event) {
                             body: data.body,
                             sound: sound,
                             isAlarm: isAlarm,
+                            taskId: data.task_id || null,
                             url: data.url
                         });
                     } catch (err) {}

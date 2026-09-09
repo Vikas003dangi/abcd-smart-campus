@@ -347,20 +347,52 @@
     /**
      * Start continuous alarm sound & full-screen ringing UI
      * @param {string} title
+    let currentAlarmTaskId = null;
+
+    function getCsrfToken() {
+        if (window.CSRF_TOKEN) return window.CSRF_TOKEN;
+        const el = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (el && el.value) return el.value;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith('csrftoken=')) {
+                    return decodeURIComponent(cookie.substring(10));
+                }
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Start alarm sound (plays 9s once) & interactive full-screen ringing UI
+     * @param {string} title
      * @param {string} body
+     * @param {number|string|null} taskId
      */
-    function startABCDAlarm(title, body) {
+    function startABCDAlarm(title, body, taskId) {
+        // If an alarm is ALREADY playing and modal is visible, do not re-trigger or restart sound!
+        if (activeAlarmAudio && !activeAlarmAudio.paused && activeAlarmModal) {
+            console.debug('Alarm is already actively playing; skipping duplicate trigger.');
+            return;
+        }
+
         stopABCDAlarm();
         if (!isSoundEnabled()) return;
 
+        currentAlarmTaskId = taskId || null;
         ensureAlarmStyles();
 
-        // 1. Play alarm audio on loop at 100% volume
+        // 1. Play 9-second alarm audio ONCE at 100% volume (loop = false)
         try {
             const alarmSrc = SOUND_PATHS['alarm'] || '/static/audio/alarms and reminders.mp3';
             activeAlarmAudio = new Audio(alarmSrc);
-            activeAlarmAudio.loop = true;
+            activeAlarmAudio.loop = false; // NEVER loop indefinitely! Plays 9 seconds once.
             activeAlarmAudio.volume = 1.0;
+            activeAlarmAudio.onended = function () {
+                activeAlarmAudio = null;
+            };
             const p = activeAlarmAudio.play();
             if (p !== undefined) {
                 p.catch(function (err) {
@@ -371,10 +403,10 @@
             console.error('Failed to init alarm audio:', e);
         }
 
-        // 2. Auto-stop safety timeout (2 minutes) to prevent indefinite drain
+        // 2. Auto-dismiss safety timeout: 30 seconds if unattended (audio finishes at 9s)
         alarmAutoStopTimer = setTimeout(function () {
             stopABCDAlarm();
-        }, 120000);
+        }, 30000);
 
         // 3. Build full-screen interactive Alarm UI
         const overlay = document.createElement('div');
@@ -391,10 +423,10 @@
                 <div class="abcd-alarm-title">${safeTitle}</div>
                 <div class="abcd-alarm-note">${safeBody}</div>
                 <button type="button" class="abcd-alarm-btn-stop" id="abcdStopAlarmBtn">
-                    STOP ALARM 🔔
+                    STOP ALARM 🛑
                 </button>
                 <button type="button" class="abcd-alarm-btn-snooze" id="abcdSnoozeAlarmBtn">
-                    Snooze 5 Min ⏳
+                    Snooze 15 Min ⏳
                 </button>
             </div>
         `;
@@ -408,21 +440,47 @@
             if (clockEl) clockEl.textContent = formatCurrentTime();
         }, 1000);
 
-        // Wire Stop button
+        // Wire Stop button: stop audio, dismiss modal, notify backend to stop permanently
         const stopBtn = document.getElementById('abcdStopAlarmBtn');
         if (stopBtn) {
             stopBtn.addEventListener('click', function () {
+                const targetId = currentAlarmTaskId;
                 stopABCDAlarm();
+                if (targetId) {
+                    fetch(`/todo/reminder/${targetId}/action/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: JSON.stringify({ action: 'stop' })
+                    }).catch(function (err) {
+                        console.error('Failed to notify server of alarm stop:', err);
+                    });
+                }
             });
         }
 
-        // Wire Snooze button
+        // Wire Snooze button: stop audio, dismiss modal, notify backend to snooze 15 min
         const snoozeBtn = document.getElementById('abcdSnoozeAlarmBtn');
         if (snoozeBtn) {
             snoozeBtn.addEventListener('click', function () {
+                const targetId = currentAlarmTaskId;
                 stopABCDAlarm();
+                if (targetId) {
+                    fetch(`/todo/reminder/${targetId}/action/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken()
+                        },
+                        body: JSON.stringify({ action: 'snooze', minutes: 15 })
+                    }).catch(function (err) {
+                        console.error('Failed to notify server of alarm snooze:', err);
+                    });
+                }
                 if (window.CustomPopup) {
-                    CustomPopup.alert('Alarm snoozed for 5 minutes.', '⏳ Snooze Active');
+                    CustomPopup.alert('Alarm snoozed for 15 minutes. It will ring again in 15 minutes.', '⏳ Snooze Active');
                 }
             });
         }
@@ -470,15 +528,17 @@
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('ring_alarm') === '1') {
                 const alarmTitle = urlParams.get('alarm_title') || '⏰ Scheduled Reminder';
+                const alarmTaskId = urlParams.get('task_id');
                 // Clean the URL param so refresh doesn't re-ring
                 urlParams.delete('ring_alarm');
                 urlParams.delete('alarm_title');
+                urlParams.delete('task_id');
                 const cleanSearch = urlParams.toString();
                 const cleanUrl = window.location.pathname + (cleanSearch ? '?' + cleanSearch : '') + window.location.hash;
                 window.history.replaceState({}, document.title, cleanUrl);
 
                 setTimeout(function () {
-                    startABCDAlarm(alarmTitle, 'Your scheduled reminder is ringing now!');
+                    startABCDAlarm(alarmTitle, 'Your scheduled reminder is ringing now!', alarmTaskId);
                 }, 200);
             }
         } catch (e) {}
@@ -489,7 +549,7 @@
         navigator.serviceWorker.addEventListener('message', function (event) {
             if (event.data && event.data.type === 'ABCD_ALARM_PUSH') {
                 if (event.data.isAlarm) {
-                    startABCDAlarm(event.data.title, event.data.body);
+                    startABCDAlarm(event.data.title, event.data.body, event.data.taskId);
                 } else {
                     playABCDSound('pwa');
                 }
@@ -501,7 +561,7 @@
     window.addEventListener('abcd:sound', function (e) {
         if (e && e.detail && e.detail.sound) {
             if (e.detail.sound === 'alarm' && e.detail.isRinging) {
-                startABCDAlarm(e.detail.title, e.detail.body);
+                startABCDAlarm(e.detail.title, e.detail.body, e.detail.taskId);
             } else {
                 playABCDSound(e.detail.sound, e.detail.volume || 1.0);
             }

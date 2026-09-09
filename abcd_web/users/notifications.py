@@ -642,7 +642,7 @@ def format_push_title(raw_title, category=None, source=None):
     return "ABCD | Notification"
 
 
-def create_notification(user, title, message, link=None, category="general", meta=None, sound=None):
+def create_notification(user, title, message, link=None, category="general", meta=None, sound=None, tag=None):
     if not user:
         return
 
@@ -665,12 +665,12 @@ def create_notification(user, title, message, link=None, category="general", met
             sound = "/static/audio/alarms and reminders.mp3"
 
     # 🔔 Send device push notification
-    send_push(user, formatted_title, message, url=link or "/", category=category, sound=sound)
+    send_push(user, formatted_title, message, url=link or "/", category=category, sound=sound, tag=tag, meta=meta)
     return notif
 # ---------------------------------------------------------
 
 # push notifications for students
-def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound=None, badge_count=None, category=None, source=None):
+def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound=None, badge_count=None, category=None, source=None, meta=None):
     """
     Send browser/device push notification to all
     subscribed devices of the user with custom sound, vibration, and app badging.
@@ -704,8 +704,9 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         except Exception:
             badge_count = 1
 
-    import time
-    unique_tag = tag or (f"abcd-alarm-{int(time.time())}" if is_alarm else "abcd-notification")
+    task_id = meta.get('task_id') if isinstance(meta, dict) else None
+    fallback_alarm_tag = f"abcd-reminder-{task_id}" if task_id else f"abcd-alarm-{user.id}"
+    unique_tag = tag or (fallback_alarm_tag if is_alarm else "abcd-notification")
 
     payload = {
         "title": formatted_title,
@@ -719,6 +720,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         "category": category,
         "source": source,
         "is_alarm": is_alarm,
+        "task_id": task_id,
     }
 
     from pywebpush import webpush, WebPushException
