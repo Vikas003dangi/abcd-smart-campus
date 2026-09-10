@@ -4264,10 +4264,10 @@ def submit_complaint_rating(request, complaint_id):
 # API VIEW: Handles the "Update Complaint Status" request / {Teacher – change complaint status (AJAX-friendly)}
 # --------------------------------------------------------------------------------------------------------------
 @login_required
+@require_POST
 def update_complaint_status_view(request, complaint_id):
-    # wrap with your teacher-only decorator if needed
-    if request.method != "POST":
-        return HttpResponseForbidden("POST only")
+    if not is_teacher(request.user):
+        return JsonResponse({"ok": False, "error": "Permission denied. Only teachers can update complaint status."}, status=403)
 
     complaint = get_object_or_404(Complaint, id=complaint_id)
 
@@ -10390,9 +10390,10 @@ def purge_group_chat_session(group):
                     msg.file.delete(save=False)
                 except Exception:
                     try:
-                        if hasattr(msg.file, 'path') and os.path.isfile(msg.file.path):
-                            os.remove(msg.file.path)
-                    except Exception:
+                        p = getattr(msg.file, 'path', None)
+                        if p and os.path.isfile(p):
+                            os.remove(p)
+                    except (NotImplementedError, AttributeError, ValueError, OSError):
                         pass
         # 2. Delete group avatar
         if group.photo:
@@ -10400,9 +10401,10 @@ def purge_group_chat_session(group):
                 group.photo.delete(save=False)
             except Exception:
                 try:
-                    if hasattr(group.photo, 'path') and os.path.isfile(group.photo.path):
-                        os.remove(group.photo.path)
-                except Exception:
+                    p = getattr(group.photo, 'path', None)
+                    if p and os.path.isfile(p):
+                        os.remove(p)
+                except (NotImplementedError, AttributeError, ValueError, OSError):
                     pass
         group.messages.all().delete()
         group.delete()
@@ -10425,9 +10427,10 @@ def purge_1on1_chat_session(session):
                     msg.file.delete(save=False)
                 except Exception:
                     try:
-                        if hasattr(msg.file, 'path') and os.path.isfile(msg.file.path):
-                            os.remove(msg.file.path)
-                    except Exception:
+                        p = getattr(msg.file, 'path', None)
+                        if p and os.path.isfile(p):
+                            os.remove(p)
+                    except (NotImplementedError, AttributeError, ValueError, OSError):
                         pass
         session.messages.all().delete()
         session.delete()
@@ -13419,8 +13422,11 @@ def todo_hub_page(request):
 def todo_search_students(request):
     """
     Search students and alumni for the 'To Add Fee' picker.
+    Restricted to teachers/staff to prevent institutional data scraping.
     Returns: id, name, type, photo_url, detail (service info).
     """
+    if not is_teacher(request.user):
+        return JsonResponse({'students': [], 'error': 'Permission denied. Teacher access required.'}, status=403)
     q = request.GET.get('q', '').strip()
     
     # Fetch all if q=all
@@ -14740,9 +14746,10 @@ def guidy_update_teacher_profile(request):
                 except Exception:
                     try:
                         import os
-                        if hasattr(profile.photo, 'path') and os.path.isfile(profile.photo.path):
-                            os.remove(profile.photo.path)
-                    except Exception:
+                        p = getattr(profile.photo, 'path', None)
+                        if p and os.path.isfile(p):
+                            os.remove(p)
+                    except (NotImplementedError, AttributeError, ValueError, OSError):
                         pass
             profile.photo = None
         elif 'photo' in request.FILES:
@@ -15803,7 +15810,7 @@ def approve_seat_switch(request, pk):
 
     from django.db import transaction
     from users.models import SeatSwitchRequest, SeatAssignment
-    from users.utils import create_notification
+    from users.notifications import create_notification
     
     try:
         with transaction.atomic():
@@ -15901,7 +15908,7 @@ def reject_seat_switch(request, pk):
         return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
 
     from users.models import SeatSwitchRequest
-    from users.utils import create_notification
+    from users.notifications import create_notification
 
     try:
         req = SeatSwitchRequest.objects.get(pk=pk, status='pending')
@@ -16078,19 +16085,17 @@ def cron_maintenance_view(request):
     """
     from django.conf import settings
     from decouple import config
+    from django.conf import settings
 
-    provided_key = request.GET.get('key') or request.headers.get('X-Cron-Key', '')
-    expected_cron_secret = getattr(settings, 'CRON_SECRET', config('CRON_SECRET', default=''))
-    valid_keys = {
-        'abcd_smart_campus_cron_2026',
-        settings.SECRET_KEY,
-    }
-    if expected_cron_secret:
-        valid_keys.add(expected_cron_secret)
+    # Enforce token validation via Authorization header, X-Cron-Key, or key query param
+    auth_header = request.headers.get('Authorization', '')
+    bearer_token = auth_header.removeprefix('Bearer ').strip() if auth_header.startswith('Bearer ') else ''
+    provided_key = bearer_token or request.headers.get('X-Cron-Key', '') or request.GET.get('key', '')
+    expected_cron_secret = getattr(settings, 'CRON_SECRET', config('CRON_SECRET', default='abcd_smart_campus_cron_2026'))
 
     is_authenticated = (
         (request.user and request.user.is_authenticated and request.user.is_staff)
-        or (provided_key in valid_keys)
+        or (bool(expected_cron_secret) and provided_key == expected_cron_secret)
     )
 
     if not is_authenticated:

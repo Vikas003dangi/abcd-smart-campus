@@ -19,36 +19,15 @@ if _flat_name not in _sys.modules:
     _sys.modules[_flat_name] = _mod
     _spec.loader.exec_module(_mod)
 
-# Re-export every public name from the flat utils.py
-from users._utils_flat import (  # type: ignore[import]  # noqa: F401
-    parse_flexible_datetime,
-    process_scheduled_broadcasts,
-    sync_courses_from_youtube,
-    get_playlist_videos_for_course,
-    get_individual_videos_for_course,
-    track_visitor_intent,
-    sync_active_holds,
-    process_visitor_reminders,
-    process_seat_availability_reminders,
-    process_expired_seat_holds,
-    process_seat_hold_lifecycle,
-    process_expired_holds,
-    process_todo_notifications,
-    purge_todo_trash,
-    send_todo_notification,
-    process_offline_learning_reminders,
-    process_birthday_wishes,
-    get_user_dashboard_type,
-    get_reminder_subject,
-    INTENT_DELAYS,
-    get_profile_photo_url,
-    get_user_display_name,
-    get_user_notification_email,
-    get_admin_and_teacher_emails,
-    clean_guidy_message_content,
-    strip_html_for_notification,
-    _fire_reminder,
-)
+else:
+    _mod = _sys.modules[_flat_name]
+
+# Dynamic symbol forwarding: Expose all public symbols and functions from the flat utils.py
+for _attr in dir(_mod):
+    if not _attr.startswith('_'):
+        globals()[_attr] = getattr(_mod, _attr)
+
+__all__ = [attr for attr in dir(_mod) if not attr.startswith('_')]
 
 
 

@@ -297,6 +297,7 @@ WHATSAPP_PHONE_NUMBER_ID = config('WHATSAPP_PHONE_NUMBER_ID', default='')
 ADMIN_EMAIL = 'abcd2013baq@gmail.com'
 ADMIN_MOBILE_NUMBER = '9827662450' # Include country code, no +
 ADMIN_SUPERUSER_NAME = 'Sandeepananda' # For the message template
+SANDEEP_SIR_PHONE = config('SANDEEP_SIR_PHONE', default=ADMIN_MOBILE_NUMBER)
 
 
 # -------------------------------

@@ -759,7 +759,23 @@ def process_expired_holds():
     from django.contrib.auth import get_user_model
     User = get_user_model()
     staff_users = list(User.objects.filter(is_staff=True, is_active=True))
-    teacher_phone = "9827662450"
+    teacher_phone = str(getattr(settings, 'SANDEEP_SIR_PHONE', getattr(settings, 'ADMIN_MOBILE_NUMBER', '9827662450'))).strip()
+    try:
+        from .models import TeacherProfile
+        sandeep_prof = TeacherProfile.objects.filter(
+            models.Q(user__email__iexact='abcd2013baq@gmail.com') |
+            models.Q(user__username__iexact='sandeepananda') |
+            models.Q(display_name__icontains='Sandeep')
+        ).first()
+        if sandeep_prof:
+            prof_phone = (sandeep_prof.whatsapp_numbers or sandeep_prof.mobile_numbers or sandeep_prof.mobile_number or '').strip()
+            for num in prof_phone.replace('\n', ',').split(','):
+                num_clean = re.sub(r'[^0-9]', '', num)
+                if len(num_clean) >= 10:
+                    teacher_phone = num_clean
+                    break
+    except Exception:
+        pass
 
     today = timezone.localtime(timezone.now()).date()
     now_dt = timezone.now()
@@ -918,7 +934,8 @@ def process_expired_holds():
                     except Exception as e:
                         print(f"Failed teacher grace email: {e}")
 
-                send_hold_warning_whatsapp_teacher(staff, student.full_name, seat_desc)
+            # WhatsApp hold warning alert sent strictly to Sandeep Sir's number
+            send_hold_warning_whatsapp_teacher(teacher_phone, student.full_name, seat_desc)
 
             print(f" > Fired 3-day grace period warnings (Email, WA, In-App) for {student.full_name}")
 
@@ -988,8 +1005,7 @@ def process_expired_holds():
             special_req = SeatSpecialRequest.objects.filter(
                 seat=seat,
                 requested_shift=shift,
-                status='pending',
-                is_temporary=True
+                status='pending'
             ).first()
 
             if special_req:

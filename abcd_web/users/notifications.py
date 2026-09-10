@@ -539,13 +539,17 @@ def send_hold_warning_whatsapp_student(student, seat_details, teacher_phone="982
         logger.error(f"Error sending WhatsApp hold warning to student: {e}")
 
 
-def send_hold_warning_whatsapp_teacher(teacher_user, student_name, seat_details):
+def send_hold_warning_whatsapp_teacher(teacher_user_or_phone, student_name, seat_details):
     """
     Sends WhatsApp Hold Info Alert to teacher using 'hold_warning_3day_teacher' template.
     Body params: {{1}} = student name, {{2}} = seat details
+    Accepts either a User model instance or a direct phone number string (e.g. Sandeep Sir's phone).
     """
-    profile = getattr(teacher_user, 'profile', None)
-    phone = getattr(profile, 'whatsapp_number', None) or getattr(profile, 'mobile_number', None) or getattr(teacher_user, 'username', None)
+    if isinstance(teacher_user_or_phone, str) and teacher_user_or_phone.replace('+', '').isdigit():
+        phone = teacher_user_or_phone
+    else:
+        profile = getattr(teacher_user_or_phone, 'profile', None)
+        phone = getattr(profile, 'whatsapp_number', None) or getattr(profile, 'mobile_number', None) or getattr(teacher_user_or_phone, 'username', None)
     clean_number = sanitize_whatsapp_number(phone)
     if not clean_number:
         return
@@ -567,11 +571,12 @@ def send_hold_warning_whatsapp_teacher(teacher_user, student_name, seat_details)
                 ]}]
             }
         }
+        teacher_label = getattr(teacher_user_or_phone, 'username', str(clean_number))
         res = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
         if res.status_code != 200:
-            logger.warning(f"WhatsApp hold warning error for teacher {teacher_user.username}: {res.text}")
+            logger.warning(f"WhatsApp hold warning error for teacher {teacher_label}: {res.text}")
         else:
-            logger.info(f"Sent WhatsApp hold warning to teacher {teacher_user.username}.")
+            logger.info(f"Sent WhatsApp hold warning to teacher {teacher_label}.")
     except Exception as e:
         logger.error(f"Error sending WhatsApp hold warning to teacher: {e}")
 

@@ -20,6 +20,32 @@ def abcd_format_name(name):
     return " ".join(p.strip().capitalize() for p in name.split())
 
 
+def safe_delete_file_field(field_file):
+    """
+    Safely deletes a file from its storage backend (Local or Cloudinary).
+    Avoids evaluating field_file.path on remote storages which raises NotImplementedError.
+    """
+    if not field_file:
+        return
+    try:
+        field_file.delete(save=False)
+    except Exception:
+        pass
+
+    try:
+        from django.core.files.storage import FileSystemStorage
+        storage = getattr(field_file, 'storage', None)
+        if isinstance(storage, FileSystemStorage):
+            file_path = getattr(field_file, 'path', None)
+            if file_path and os.path.isfile(file_path):
+                os.remove(file_path)
+    except (NotImplementedError, AttributeError, ValueError, OSError):
+        pass
+    except Exception:
+        pass
+
+
+
 # -------------------------------------------------------------------
 # SEAT MODEL
 # -------------------------------------------------------------------
@@ -244,9 +270,16 @@ class StudentProfile(models.Model):
         """
         if self.photo:
             try:
-                import os
-                if os.path.exists(self.photo.path):
-                    return f"{self.photo.url}?v={int(os.path.getmtime(self.photo.path))}"
+                from django.core.files.storage import FileSystemStorage
+                storage = getattr(self.photo, 'storage', None)
+                if isinstance(storage, FileSystemStorage):
+                    try:
+                        f_path = self.photo.path
+                        import os
+                        if f_path and os.path.exists(f_path):
+                            return f"{self.photo.url}?v={int(os.path.getmtime(f_path))}"
+                    except (NotImplementedError, AttributeError, ValueError, OSError):
+                        pass
                 return self.photo.url
             except Exception:
                 return self.photo.url
@@ -255,10 +288,20 @@ class StudentProfile(models.Model):
             from .models import StudentAchievement
             achievement = StudentAchievement.objects.filter(user=self.user).first()
             if achievement and achievement.photo:
-                import os
-                if os.path.exists(achievement.photo.path):
-                    return f"{achievement.photo.url}?v={int(os.path.getmtime(achievement.photo.path))}"
-                return achievement.photo.url
+                try:
+                    from django.core.files.storage import FileSystemStorage
+                    storage = getattr(achievement.photo, 'storage', None)
+                    if isinstance(storage, FileSystemStorage):
+                        try:
+                            f_path = achievement.photo.path
+                            import os
+                            if f_path and os.path.exists(f_path):
+                                return f"{achievement.photo.url}?v={int(os.path.getmtime(f_path))}"
+                        except (NotImplementedError, AttributeError, ValueError, OSError):
+                            pass
+                    return achievement.photo.url
+                except Exception:
+                    return achievement.photo.url
         except Exception:
             pass
             
@@ -494,15 +537,7 @@ class Complaint(models.Model):
 def auto_delete_complaint_images_on_delete(sender, instance, **kwargs):
     """Deletes image files from storage (Local / Cloudinary) when Complaint is deleted."""
     for image_field in [instance.image1, instance.image2, instance.image3]:
-        if image_field:
-            try:
-                image_field.delete(save=False)
-            except Exception:
-                try:
-                    if hasattr(image_field, 'path') and os.path.isfile(image_field.path):
-                        os.remove(image_field.path)
-                except Exception:
-                    pass
+        safe_delete_file_field(image_field)
 
 
 # -------------------------------------------------------------------
@@ -776,15 +811,7 @@ class BroadcastAttachment(models.Model):
 @receiver(post_delete, sender=BroadcastAttachment)
 def auto_delete_broadcast_attachment_on_delete(sender, instance, **kwargs):
     """Deletes file from storage (Local / Cloudinary) when BroadcastAttachment is deleted."""
-    if instance.file:
-        try:
-            instance.file.delete(save=False)
-        except Exception:
-            try:
-                if hasattr(instance.file, 'path') and os.path.isfile(instance.file.path):
-                    os.remove(instance.file.path)
-            except Exception:
-                pass
+    safe_delete_file_field(instance.file)
 
 # -------------------------------------------------------------------
 # PAYMENT MODEL
@@ -1706,9 +1733,16 @@ class StudentAchievement(models.Model):
         """
         if self.photo:
             try:
-                import os
-                if os.path.exists(self.photo.path):
-                    return f"{self.photo.url}?v={int(os.path.getmtime(self.photo.path))}"
+                from django.core.files.storage import FileSystemStorage
+                storage = getattr(self.photo, 'storage', None)
+                if isinstance(storage, FileSystemStorage):
+                    try:
+                        f_path = self.photo.path
+                        import os
+                        if f_path and os.path.exists(f_path):
+                            return f"{self.photo.url}?v={int(os.path.getmtime(f_path))}"
+                    except (NotImplementedError, AttributeError, ValueError, OSError):
+                        pass
                 return self.photo.url
             except Exception:
                 return self.photo.url
@@ -1717,10 +1751,20 @@ class StudentAchievement(models.Model):
             from .models import StudentProfile
             profile = StudentProfile.objects.filter(user=self.user).first()
             if profile and profile.photo:
-                import os
-                if os.path.exists(profile.photo.path):
-                    return f"{profile.photo.url}?v={int(os.path.getmtime(profile.photo.path))}"
-                return profile.photo.url
+                try:
+                    from django.core.files.storage import FileSystemStorage
+                    storage = getattr(profile.photo, 'storage', None)
+                    if isinstance(storage, FileSystemStorage):
+                        try:
+                            f_path = profile.photo.path
+                            import os
+                            if f_path and os.path.exists(f_path):
+                                return f"{profile.photo.url}?v={int(os.path.getmtime(f_path))}"
+                        except (NotImplementedError, AttributeError, ValueError, OSError):
+                            pass
+                    return profile.photo.url
+                except Exception:
+                    return profile.photo.url
         except Exception:
             pass
             
@@ -2261,6 +2305,12 @@ class TodoTask(models.Model):
     class Meta:
         ordering = ['-created_at']
         app_label = 'users'
+        indexes = [
+            models.Index(fields=['user', 'category', 'is_trash', '-created_at'], name='todo_u_cat_tr_cr_idx'),
+            models.Index(fields=['user', 'is_trash', '-created_at'], name='todo_u_tr_cr_idx'),
+            models.Index(fields=['is_done', 'is_trash'], name='todo_done_trash_idx'),
+            models.Index(fields=['auto_delete', 'delete_at'], name='todo_del_auto_idx'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} | {self.category} | {self.created_at.date()}"
@@ -2313,15 +2363,7 @@ def send_welcome_email_on_registration(sender, instance, created, **kwargs):
 @receiver(post_delete, sender=GroupMessage)
 def auto_delete_chat_media_on_delete(sender, instance, **kwargs):
     """Physically deletes the file from storage (Local / Cloudinary) when the message row is deleted."""
-    if instance.file:
-        try:
-            instance.file.delete(save=False)
-        except Exception:
-            try:
-                if hasattr(instance.file, 'path') and os.path.isfile(instance.file.path):
-                    os.remove(instance.file.path)
-            except Exception:
-                pass
+    safe_delete_file_field(instance.file)
 
 
 class TeacherProfile(models.Model):
@@ -2392,14 +2434,7 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
         old_file = getattr(old_instance, field_name, None)
         new_file = getattr(instance, field_name, None)
         if old_file and old_file != new_file:
-            try:
-                old_file.delete(save=False)
-            except Exception:
-                try:
-                    if hasattr(old_file, 'path') and os.path.isfile(old_file.path):
-                        os.remove(old_file.path)
-                except Exception:
-                    pass
+            safe_delete_file_field(old_file)
 
 
 @receiver(post_delete, sender=StudentProfile)
@@ -2414,40 +2449,17 @@ def auto_delete_file_on_delete(sender, instance, **kwargs):
     for field_name in file_fields:
         file = getattr(instance, field_name, None)
         if file:
-            try:
-                file.delete(save=False)
-            except Exception:
-                try:
-                    if hasattr(file, 'path') and os.path.isfile(file.path):
-                        os.remove(file.path)
-                except Exception:
-                    pass
+            safe_delete_file_field(file)
 
 
 @receiver(post_delete, sender=Course)
 def auto_delete_course_files_on_delete(sender, instance, **kwargs):
     """Deletes course thumbnail and all associated study material files from storage (Local / Cloudinary)."""
-    if instance.thumbnail:
-        try:
-            instance.thumbnail.delete(save=False)
-        except Exception:
-            try:
-                if hasattr(instance.thumbnail, 'path') and os.path.isfile(instance.thumbnail.path):
-                    os.remove(instance.thumbnail.path)
-            except Exception:
-                pass
+    safe_delete_file_field(instance.thumbnail)
 
     for mat in instance.materials.all():
         for field in [mat.file, mat.thumbnail]:
-            if field:
-                try:
-                    field.delete(save=False)
-                except Exception:
-                    try:
-                        if hasattr(field, 'path') and os.path.isfile(field.path):
-                            os.remove(field.path)
-                    except Exception:
-                        pass
+            safe_delete_file_field(field)
 
 
 class GuidyBlock(models.Model):
