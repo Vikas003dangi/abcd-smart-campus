@@ -582,6 +582,27 @@ def send_hold_warning_whatsapp_teacher(teacher_user, student_name, seat_details)
 # dashboard_notifications for students
 from .models import Notification
 
+EMOJI_AND_SPECIAL_PATTERN = re.compile(
+    r'[\U00010000-\U0010ffff\u2600-\u27ff\u2300-\u23ff\u2b50\u200d\ufe0f\u2000-\u206f]'
+)
+
+def strip_emojis_and_pipes(text):
+    """
+    Strips pipe characters, emojis, and spam trigger symbols from notification strings.
+    """
+    if not text:
+        return ""
+    # Replace all pipe characters with a space or dash
+    cleaned = re.sub(r'\s*\|\s*', ' - ', str(text))
+    # Strip any leading branding prefixes like "ABCD - ", "Guidy - ", "ToDo - "
+    cleaned = re.sub(r'^(?:ABCD\s*-\s*|Guidy\s*-\s*|ToDo\s*-\s*)+', '', cleaned, flags=re.IGNORECASE)
+    # Remove all unicode emojis and special pictogram symbols
+    cleaned = EMOJI_AND_SPECIAL_PATTERN.sub('', cleaned)
+    # Normalize punctuation and whitespace
+    cleaned = re.sub(r'[!?]{2,}', '!', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned
+
 def format_push_title(raw_title, category=None, source=None):
     """
     Standardizes push notification and alert titles to clean, spam-safe branding rules.
@@ -590,14 +611,9 @@ def format_push_title(raw_title, category=None, source=None):
     if not raw_title and not category and not source:
         return "ABCD Campus"
 
-    raw_clean = str(raw_title or "").strip()
+    raw_clean = strip_emojis_and_pipes(raw_title)
     cat_clean = str(category or "").strip().lower()
     src_clean = str(source or "").strip().lower()
-
-    # Strip any leading branding prefixes (e.g., 'ABCD |', 'Guidy | ABCD', 'ToDo | ABCD')
-    clean_text = re.sub(r'^(?:ABCD\s*\|\s*|Guidy\s*\|\s*(?:ABCD)?\s*|ToDo\s*\|\s*(?:ABCD)?\s*)+', '', raw_clean, flags=re.IGNORECASE).strip()
-    # Strip leading emojis / non-alphanumeric symbols
-    clean_text = re.sub(r'^[^\w\s]+', '', clean_text).strip()
 
     # Guidy check
     if src_clean == 'guidy' or cat_clean == 'guidy' or 'guidy' in raw_clean.lower():
@@ -613,31 +629,33 @@ def format_push_title(raw_title, category=None, source=None):
     # Alarm and Reminder checks: produce clean, non-spam titles like "Alarm: Math Quiz" or "Reminder: Math Quiz"
     if cat_clean in ['alarm', 'reminder'] or 'alarm' in raw_clean.lower() or 'reminder' in raw_clean.lower():
         # Remove redundant leading "Alarm:" or "Reminder:" words so we can format uniformly
-        sub_title = re.sub(r'^(?:Alarm|Reminder)\s*:\s*', '', clean_text, flags=re.IGNORECASE).strip()
+        sub_title = re.sub(r'^(?:Alarm|Reminder)\s*[:-]\s*', '', raw_clean, flags=re.IGNORECASE).strip()
         prefix = "Alarm" if (cat_clean == 'alarm' or 'alarm' in raw_clean.lower()) else "Reminder"
         return f"{prefix}: {sub_title}" if sub_title else prefix
 
     # Specific topic checks
     lower_title = raw_clean.lower()
-    if cat_clean in ['course', 'lecture', 'quiz'] or 'course' in lower_title or 'lecture' in lower_title or 'material' in lower_title:
+    if cat_clean in ['course', 'lecture', 'quiz'] or any(k in lower_title for k in ['course', 'lecture', 'material', 'quiz']):
         return "Course Update"
-    if cat_clean in ['hold', 'seat', 'library'] or 'seat' in lower_title or 'library' in lower_title:
+    if cat_clean in ['hold', 'seat', 'library'] or any(k in lower_title for k in ['seat', 'library', 'hold']):
         return "Library Seat"
     if cat_clean == 'broadcast' or 'broadcast' in lower_title:
         return "Campus Notice"
-    if cat_clean in ['announcement', 'notice'] or 'announcement' in lower_title or 'notice' in lower_title:
+    if cat_clean in ['announcement', 'notice'] or any(k in lower_title for k in ['announcement', 'notice']):
         return "Announcement"
-    if cat_clean in ['admission', 'enrollment'] or 'admission' in lower_title or 'enrolled' in lower_title:
+    if cat_clean in ['admission', 'enrollment'] or any(k in lower_title for k in ['admission', 'enrolled', 'enrollment']):
         return "Admission Notice"
     if cat_clean == 'complaint' or 'complaint' in lower_title:
         return "Complaint Update"
-    if cat_clean in ['fee', 'payment', 'fee_teacher'] or 'fee' in lower_title or 'payment' in lower_title or 'receipt' in lower_title:
+    if cat_clean in ['fee', 'payment', 'fee_teacher'] or any(k in lower_title for k in ['fee', 'payment', 'receipt']):
         return "Fee Receipt"
 
     # Clean text fallback
-    if clean_text:
-        words = clean_text.split()
-        return " ".join(words[:4]).title()
+    if raw_clean:
+        clean_words = raw_clean.strip(' -:;,.')
+        words = clean_words.split()
+        if words:
+            return " ".join(words[:4]).title()
 
     return "ABCD Campus"
 
@@ -646,12 +664,13 @@ def create_notification(user, title, message, link=None, category="general", met
     if not user:
         return
 
+    clean_message = strip_emojis_and_pipes(message) or "You have a new update."
     formatted_title = format_push_title(title, category=category)
 
     notif = Notification.objects.create(
         user=user,
         title=formatted_title,
-        message=message,
+        message=clean_message,
         link=link,
         category=category,
         meta=meta
@@ -670,8 +689,8 @@ def create_notification(user, title, message, link=None, category="general", met
         else:
             sound = "/static/audio/PWA.mp3"
 
-    # 🔔 Send device push notification
-    send_push(user, formatted_title, message, url=link or "/", category=category, sound=sound, tag=tag, meta=meta)
+    # Send device push notification
+    send_push(user, formatted_title, clean_message, url=link or "/", category=category, sound=sound, tag=tag, meta=meta)
     return notif
 # ---------------------------------------------------------
 
@@ -689,6 +708,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         return
 
     formatted_title = format_push_title(title, category=category, source=source)
+    clean_body = strip_emojis_and_pipes(body) or "You have a new update."
 
     cat_lower = (category or "").lower()
     src_lower = (source or "").lower()
@@ -732,7 +752,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
 
     payload = {
         "title": formatted_title,
-        "body": body,
+        "body": clean_body,
         "url": url,
         "icon": icon or "/static/data/favicon/web-app-manifest-192x192.png",
         "badge": badge or "/static/data/favicon/favicon-96x96.png",
@@ -769,7 +789,9 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
                 data=json.dumps(payload),
                 vapid_private_key=settings.VAPID_PRIVATE_KEY,
                 vapid_claims={
-                    "sub": getattr(settings, "VAPID_CLAIM_EMAIL", "mailto:admin@abcdcampus.in")
+                    "sub": (
+                        f"mailto:{str(getattr(settings, 'VAPID_CLAIM_EMAIL', 'abcd2013baq@gmail.com')).strip().strip('\'\"').removeprefix('mailto:')}"
+                    )
                 },
                 headers={
                     "Urgency": "high" if is_alarm else "normal",
@@ -821,10 +843,10 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
             elif isinstance(att, str):
                 att_links.append(f"• Attachment: {att}")
         if att_links:
-            full_message += "\n\n📎 Attached Documents:\n" + "\n".join(att_links)
+            full_message += "\n\nAttached Documents:\n" + "\n".join(att_links)
 
     if buttons and isinstance(buttons, list) and len(buttons) > 0:
-        btn_links = "\n\n🔗 Links:\n" + "\n".join([f"• {b.get('label', 'Link')}: {b.get('url', '')}" for b in buttons if b.get('url')])
+        btn_links = "\n\nLinks:\n" + "\n".join([f"- {b.get('label', 'Link')}: {b.get('url', '')}" for b in buttons if b.get('url')])
         full_message += btn_links
 
     safe_subject = (subject or "Announcement")[:90]
@@ -953,7 +975,7 @@ def send_student_progress_email(student, topic, marks, total_marks):
             percentage = round((marks / total_marks) * 100, 1) if total_marks > 0 else 0
             custom_msg = f"Your performance marks for topic '{topic}' have been recorded: {marks} / {total_marks} ({percentage}%)."
             send_html_email(
-                subject=f"📊 Exam Progress Update: {topic}",
+                subject=f"Exam Progress Update: {topic}",
                 to_email=email,
                 template="emails/seat_update.html",
                 context={

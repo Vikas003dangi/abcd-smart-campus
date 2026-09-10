@@ -73,6 +73,27 @@ class Command(BaseCommand):
                 stats["sent"] += 1
                 logger.info(f"SENT: General reminder to {intent.user.email} for {intent.intent_type}")
 
+                # Notify Teacher & Admin Accounts
+                try:
+                    from users.utils import get_admin_and_teacher_emails
+                    teacher_emails = get_admin_and_teacher_emails()
+                    for t_email in teacher_emails:
+                        send_html_email(
+                            subject=f"Visitor Follow-Up Alert: {intent.user.email} ({intent.intent_type})",
+                            to_email=t_email,
+                            template="emails/visitor_reminder.html",
+                            context={
+                                "intent": intent,
+                                "dashboard_url": settings.SITE_URL,
+                                "action_url": f"{settings.SITE_URL}/teacher/visitor-insights/",
+                                "action_text": "View Visitor Insights",
+                            },
+                            fail_silently=True,
+                            run_async=True
+                        )
+                except Exception as t_err:
+                    logger.debug(f"Failed to alert teacher about general reminder: {t_err}")
+
             except Exception as e:
                 logger.error(f"FAILURE: General intent ID {intent.id} failed: {str(e)}", exc_info=True)
                 stats["failed"] += 1
@@ -121,6 +142,28 @@ class Command(BaseCommand):
                     intent.mark_reminder_sent()
                     stats["sent"] += 1
                     logger.info(f"SENT: Seat availability reminder to {intent.user.email} for Seat {seat.seat_number}")
+
+                    # Notify Teacher & Admin Accounts
+                    try:
+                        from users.utils import get_admin_and_teacher_emails
+                        teacher_emails = get_admin_and_teacher_emails()
+                        for t_email in teacher_emails:
+                            send_html_email(
+                                subject=f"Seat Available Alert: Seat {seat.seat_number} ({seat.get_floor_display()}) - {intent.user.email} Notified",
+                                to_email=t_email,
+                                template="emails/visitor_reminder.html",
+                                context={
+                                    "intent": intent,
+                                    "seat": seat,
+                                    "dashboard_url": settings.SITE_URL,
+                                    "action_url": f"{settings.SITE_URL}/teacher/seat-status/",
+                                    "action_text": "View Teacher Seat Manager",
+                                },
+                                fail_silently=True,
+                                run_async=True
+                            )
+                    except Exception as t_err:
+                        logger.debug(f"Failed to alert teacher about seat availability: {t_err}")
 
                 except Exception as e:
                     logger.error(f"FAILURE: Seat availability intent ID {intent.id} failed: {str(e)}", exc_info=True)

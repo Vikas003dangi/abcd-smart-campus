@@ -123,7 +123,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                 delivered_marked = False
                 try:
                     sender_name = get_user_display_name(sender)
-                    push_title = "Guidy | ABCD"
+                    push_title = "Guidy Assistant"
                     clean_msg_content = strip_html_for_notification(message_obj.content)
                     if c_type == 'group':
                         grp = GroupChatSession.objects.filter(id=s_id).first()
@@ -162,7 +162,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                             try:
                                 notif = Notification.objects.filter(user=r, category='guidy', is_read=False).first()
                                 if notif:
-                                    notif.title = 'Guidy | ABCD'
+                                    notif.title = 'Guidy Assistant'
                                     notif.message = push_body[:80]
                                     notif.link = push_url
                                     notif.save()
@@ -171,7 +171,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                                         user=r,
                                         category='guidy',
                                         is_read=False,
-                                        title='Guidy | ABCD',
+                                        title='Guidy Assistant',
                                         message=push_body[:80],
                                         link=push_url
                                     )

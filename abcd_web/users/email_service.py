@@ -153,13 +153,23 @@ def send_html_email(
 
         html_content = render_to_string(template, context)
         
+        # Sanitize subject: Strip emojis and pipe characters to guarantee deliverability
+        clean_subject = re.sub(r'[\U00010000-\U0010ffff\u2600-\u27ff\u2300-\u23ff\u2b50\u200d\ufe0f\u2000-\u206f]', '', str(subject or '')).replace('|', '-').strip()
+        clean_subject = re.sub(r'\s+', ' ', clean_subject)
+        if not clean_subject:
+            clean_subject = "ABCD Coaching & Library Update"
+
         if not text_content:
-            # Generate plain text by stripping HTML tags to prevent spam filtering
-            import re
-            clean_text = re.sub(r'<(script|style)\b[^>]*>([\s\S]*?)</\1>', '', html_content)
-            clean_text = re.sub(r'<[^>]+>', ' ', clean_text)
-            clean_text = re.sub(r'\s+', ' ', clean_text).strip()
-            text_content = clean_text
+            # Generate high-quality human-readable plain text by converting block tags to newlines
+            import html as py_html
+            text = re.sub(r'<(script|style)\b[^>]*>([\s\S]*?)</\1>', '', html_content, flags=re.IGNORECASE)
+            text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+            text = re.sub(r'</(p|div|tr|li|h[1-6])>', '\n', text, flags=re.IGNORECASE)
+            text = re.sub(r'<[^>]+>', ' ', text)
+            text = py_html.unescape(text)
+            text = re.sub(r'[ \t]+', ' ', text)
+            text = re.sub(r'\n\s*\n+', '\n\n', text).strip()
+            text_content = text
 
         # Use a connection with an explicit timeout to prevent command freezing
         connection = get_connection(timeout=timeout)
@@ -168,13 +178,15 @@ def send_html_email(
         headers = {
             'Auto-Submitted': 'auto-generated',
             'X-Auto-Response-Suppress': 'All',
+            'X-Mailer': 'ABCD Campus Mailer',
+            'Feedback-ID': 'system:transactional:abcd',
         }
 
         reply_to_addr = getattr(settings, 'ADMIN_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
         reply_to_list = [reply_to_addr] if reply_to_addr else None
 
         email = EmailMultiAlternatives(
-            subject=subject,
+            subject=clean_subject,
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[to_email],

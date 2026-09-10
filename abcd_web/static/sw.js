@@ -26,13 +26,23 @@ self.addEventListener('push', function (event) {
         try {
             data = event.data.json();
         } catch (e) {
-            data = { title: 'ABCD | Notification', body: event.data.text() };
+            data = { title: 'ABCD Campus', body: event.data.text() };
         }
     }
 
-    let rawTitle = data.title || 'ABCD Campus';
-    rawTitle = rawTitle.replace(/^ABCD\s*\|\s*/i, '').replace(/^[^\w\s]+\s*/, '').trim();
-    const title = rawTitle || 'ABCD Campus';
+    function sanitizeText(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/[|]/g, ' - ')
+            .replace(/^(?:ABCD\s*-\s*|Guidy\s*-\s*|ToDo\s*-\s*)+/i, '')
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{200D}\u{FE0F}]/gu, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    let rawTitle = sanitizeText(data.title) || 'ABCD Campus';
+    const title = rawTitle;
+    const bodyText = sanitizeText(data.body) || 'You have a new update.';
     const icon = data.icon || '/static/data/favicon/web-app-manifest-192x192.png';
     const badge = data.badge || '/static/data/favicon/favicon-96x96.png';
 
@@ -68,11 +78,11 @@ self.addEventListener('push', function (event) {
     const defaultVibratePattern = [200, 100, 200];
 
     const options = {
-        body: data.body || 'You have a new update.',
+        body: bodyText,
         icon: icon,
         badge: badge,
         tag: data.tag || (data.task_id ? 'abcd-reminder-' + data.task_id : (isAlarm ? 'abcd-alarm-active' : 'abcd-notification')),
-        renotify: false,
+        renotify: (isAlarm || isReminder) ? true : false,
         requireInteraction: isAlarm ? true : false,
         silent: false,
         vibrate: isAlarm ? alarmVibratePattern : (isReminder ? reminderVibratePattern : defaultVibratePattern),

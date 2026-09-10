@@ -453,6 +453,25 @@ def process_visitor_reminders():
 
             intent.mark_reminder_sent()
 
+            # Notify Teacher & Admin Accounts
+            try:
+                for t_email in get_admin_and_teacher_emails():
+                    send_html_email(
+                        subject=f"Visitor Follow-Up Alert: {intent.user.email} ({intent.intent_type})",
+                        to_email=t_email,
+                        template="emails/visitor_reminder.html",
+                        context={
+                            "intent": intent,
+                            "dashboard_url": settings.SITE_URL,
+                            "action_url": f"{settings.SITE_URL}/teacher/visitor-insights/",
+                            "action_text": "View Visitor Insights",
+                        },
+                        fail_silently=True,
+                        run_async=True
+                    )
+            except Exception:
+                pass
+
 # -------------------------------------------------------------------
 # SEAT AVAILABILITY REMINDERS
 
@@ -500,6 +519,26 @@ def process_seat_availability_reminders():
             )
 
             intent.mark_reminder_sent()
+
+            # Notify Teacher & Admin Accounts
+            try:
+                for t_email in get_admin_and_teacher_emails():
+                    send_html_email(
+                        subject=f"Seat Available Alert: Seat {seat.seat_number} ({seat.get_floor_display()}) - {intent.user.email} Notified",
+                        to_email=t_email,
+                        template="emails/visitor_reminder.html",
+                        context={
+                            "intent": intent,
+                            "seat": seat,
+                            "dashboard_url": settings.SITE_URL,
+                            "action_url": f"{settings.SITE_URL}/teacher/seat-status/",
+                            "action_text": "View Teacher Seat Manager",
+                        },
+                        fail_silently=True,
+                        run_async=True
+                    )
+            except Exception:
+                pass
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
@@ -810,16 +849,16 @@ def process_expired_holds():
             # 1. Student In-App Notification with CTA Meta Buttons
             create_notification(
                 user=student.user,
-                title="⚠️ URGENT: 3-Day Seat Hold Grace Period",
+                title="Seat Hold Grace Period",
                 message=f"Your hold on {seat_desc} ended today ({today.strftime('%d %b %Y')}). You have 3 days to contact your teacher! Otherwise, your seat will be automatically freed and lost.",
                 link=f"{settings.SITE_URL}{reverse('users:your_seat_status')}",
                 category="seat",
                 meta={
                     "cooldown_key": cooldown_key,
                     "actions": [
-                        {"label": "📞 Call Teacher", "url": f"tel:{teacher_phone}", "type": "call"},
-                        {"label": "💬 Message WhatsApp", "url": f"https://wa.me/91{teacher_phone}?text=Hello%20Teacher,%20regarding%20my%20seat%20hold%20on%20{seat_desc}", "type": "whatsapp"},
-                        {"label": "🛑 End Hold", "url": f"{settings.SITE_URL}{reverse('users:your_seat_status')}", "type": "end_hold"}
+                        {"label": "Call Teacher", "url": f"tel:{teacher_phone}", "type": "call"},
+                        {"label": "Message WhatsApp", "url": f"https://wa.me/91{teacher_phone}?text=Hello%20Teacher,%20regarding%20my%20seat%20hold%20on%20{seat_desc}", "type": "whatsapp"},
+                        {"label": "End Hold", "url": f"{settings.SITE_URL}{reverse('users:your_seat_status')}", "type": "end_hold"}
                     ]
                 }
             )
@@ -858,7 +897,7 @@ def process_expired_holds():
                     category="seat_teacher",
                     meta={
                         "actions": [
-                            {"label": "🛑 Open Dashboard / End Hold", "url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"}
+                            {"label": "Open Dashboard / End Hold", "url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"}
                         ]
                     }
                 )
@@ -939,7 +978,7 @@ def process_expired_holds():
 
             create_notification(
                 user=tenant_student.user,
-                title="🎉 Permanent Seat Allotted!",
+                title="Permanent Seat Allotted!",
                 message=f"The hold on Seat {seat.seat_number} ({shift}) has ended! You have been automatically promoted from temporary allotment to permanent occupant of this seat.",
                 link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
                 category="seat"
@@ -975,7 +1014,7 @@ def process_expired_holds():
 
                 create_notification(
                     user=req_student.user,
-                    title="🎉 Permanent Seat Allotted!",
+                    title="Permanent Seat Allotted!",
                     message=f"Your temporary request for Seat {seat.seat_number} ({shift}) has been automatically approved as permanent allotment!",
                     link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
                     category="seat"
@@ -1445,8 +1484,8 @@ def process_birthday_wishes():
         if not already_sent:
             create_notification(
                 user=student.user,
-                title=f"🎂 Happy Birthday, {student.full_name}! 🎉",
-                message=f"Team ABCD wishes you a very Happy Birthday! May your day be filled with joy and your year with grand success! 🎈🎁",
+                title=f"Happy Birthday, {student.full_name}!",
+                message=f"Team ABCD wishes you a very Happy Birthday! May your day be filled with joy and your year with grand success!",
                 link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
                 category="general",
                 meta={"cooldown_key": cooldown_key}
@@ -1456,7 +1495,7 @@ def process_birthday_wishes():
             if student_email:
                 try:
                     send_html_email(
-                        subject=f"🎂 Happy Birthday from Team ABCD, {student.full_name}! 🎉",
+                        subject=f"Happy Birthday from Team ABCD, {student.full_name}!",
                         to_email=student_email,
                         template="emails/birthday_wish_email.html",
                         context={

@@ -29,5 +29,11 @@
   ],
   "theme_color": "#e09fd5",
   "background_color": "#854c7a",
-  "display": "standalone"
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "/static/data/favicon/site.webmanifest",
+      "id": "/"
+    }
+  ]
 }

@@ -787,7 +787,7 @@
         try {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('ring_alarm') === '1') {
-                const alarmTitle = urlParams.get('alarm_title') || '⏰ Scheduled Reminder';
+                const alarmTitle = urlParams.get('alarm_title') || 'Scheduled Reminder';
                 const alarmTaskId = urlParams.get('task_id');
                 const isAlarmParam = urlParams.get('is_alarm');
                 const isAlarm = (isAlarmParam === null || isAlarmParam === '1' || isAlarmParam === 'true');

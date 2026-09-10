@@ -8550,7 +8550,7 @@ def send_receipt_notifications_async(transaction_id, student_id):
         stud_email = get_user_notification_email(stud)
         if stud_email:
             student_email_success = send_html_email(
-                subject=f"Fee_Receipt_{trans.receipt_number}",
+                subject=f"Fee Receipt: ABCD Campus #{trans.receipt_number}",
                 to_email=stud_email,
                 template="emails/student_fee_receipt.html",
                 context={
@@ -8567,7 +8567,7 @@ def send_receipt_notifications_async(transaction_id, student_id):
         # 3. Email to Teacher & Admin
         pdf_buffer.seek(0)
         send_admin_alert_email(
-            subject=f"Fee_Receipt_{trans.receipt_number}",
+            subject=f"Fee Receipt Alert: {stud.full_name} #{trans.receipt_number}",
             template="emails/teacher_fee_receipt_alert.html",
             context={
                 "student_name": stud.full_name,
@@ -9638,7 +9638,7 @@ def save_push_subscription(request):
                 send_push(
                     request.user,
                     title="ABCD Smart Campus",
-                    body="🔔 Device connected! You will receive live updates for seat status and classes.",
+                    body="Device connected. You will receive live updates for seat status and classes.",
                     url="/",
                     category="system"
                 )
@@ -10089,7 +10089,7 @@ def student_progress_view(request):
                     # 🔔 Notify the student about their updated progress
                     create_notification(
                         user=student.user,
-                        title="📊 Progress Updated",
+                        title="Progress Updated",
                         message=f"Your marks for '{record.topic}' have been recorded: {marks}/{record.total_marks}.",
                         link="/dashboard/",
                         category="general"
@@ -10273,7 +10273,7 @@ def guidy_seek_guidance(request, alumni_pk):
         # Notify the alumni about the re-engagement
         create_notification(
             user=alumni.user,
-            title="🔄 Chat Re-activated",
+            title="Chat Reactivated",
             message=f"{request.user.get_full_name() or request.user.username} has re-activated the chat session.",
             link="/guidy/",
             category="general"
@@ -10296,11 +10296,11 @@ def guidy_seek_guidance(request, alumni_pk):
         req.message = request.POST.get('message', '').strip()
         req.save()
 
-    # 🔔 Notify the alumni about the new/renewed guidance request
+    # Notify the alumni about the new/renewed guidance request
     if created or req.status == 'pending':
         create_notification(
             user=alumni.user,
-            title="📩 New Guidance Request",
+            title="New Guidance Request",
             message=f"{request.user.get_full_name() or request.user.username} has sent you a guidance request.",
             link="/guidy/",
             category="general"
@@ -11157,24 +11157,24 @@ def guidy_respond(request, request_pk):
         guidance_req.status = 'accepted'
         guidance_req.save()
         session, _ = ChatSession.objects.get_or_create(request=guidance_req)
-        # 🔔 Notify student that guidance was accepted
+        # Notify student that guidance was accepted
         create_notification(
             user=guidance_req.student,
-            title="🎓 Guidance Accepted",
+            title="Guidance Accepted",
             message=f"{alumni_profile.first_name} has accepted your guidance request. You can now start chatting!",
             link="/guidy/",
             category="general"
         )
         send_realtime_notification(guidance_req.student.id, {
-            'title': "🎓 Guidance Accepted",
+            'title': "Guidance Accepted",
             'message': f"{alumni_profile.first_name} has accepted your guidance request. Click to open chat!",
             'category': 'guidy',
             'link': "/guidy/"
         })
-        # 🔔 Notify alumni about new incoming guidance request (for context in their dashboard)
+        # Notify alumni about new incoming guidance request (for context in their dashboard)
         create_notification(
             user=guidance_req.alumni.user,
-            title="💬 Chat Started",
+            title="Chat Started",
             message=f"You accepted a guidance request from {guidance_req.student.get_full_name()}. Chat is now active.",
             link="/guidy/",
             category="general"
@@ -11363,7 +11363,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
             push_url = f"/guidy/?{'direct=' + str(direct_session.id) if direct_session else 'session=' + str(session.id)}"
             notif = Notification.objects.filter(user=other_user, category='guidy', is_read=False).first()
             if notif:
-                notif.title = '💬 New Guidy Messages'
+                notif.title = 'New Guidy Messages'
                 notif.message = f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.'
                 notif.link = push_url
                 notif.save()
@@ -11372,7 +11372,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
                     user=other_user,
                     category='guidy',
                     is_read=False,
-                    title='💬 New Guidy Messages',
+                    title='New Guidy Messages',
                     message=f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.',
                     link=push_url
                 )
@@ -11383,13 +11383,13 @@ def guidy_send_message(request, session_id=None, direct_id=None):
                 clean_content = strip_html_for_notification(msg.content)
                 push_body = clean_content[:80] + '...' if len(clean_content) > 80 else clean_content
             elif msg.message_type == 'image':
-                push_body = "📷 Photo"
+                push_body = "Photo"
             elif msg.message_type == 'audio':
-                push_body = "🎵 Audio"
+                push_body = "Audio"
             elif msg.message_type == 'video':
-                push_body = "🎥 Video"
+                push_body = "Video"
             else:
-                push_body = "📎 Document"
+                push_body = "Document"
                 
             push_icon = get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
             push_tag = f"guidy-direct-{direct_session.id}" if direct_session else f"guidy-session-{session.id}"
@@ -12755,7 +12755,7 @@ def guidy_group_send_message(request, group_id):
                 # Safe update or create to avoid MultipleObjectsReturned
                 notif = Notification.objects.filter(user=member, category='guidy', is_read=False).first()
                 if notif:
-                    notif.title = '💬 New Guidy Messages'
+                    notif.title = 'New Guidy Messages'
                     notif.message = f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.'
                     notif.link = push_url
                     notif.save()
@@ -12764,7 +12764,7 @@ def guidy_group_send_message(request, group_id):
                         user=member,
                         category='guidy',
                         is_read=False,
-                        title='💬 New Guidy Messages',
+                        title='New Guidy Messages',
                         message=f'You have {unread_count} unread message{"s" if unread_count != 1 else ""} in Guidy.',
                         link=push_url
                     )
@@ -12777,13 +12777,13 @@ def guidy_group_send_message(request, group_id):
                     msg_text = clean_content[:80] + '...' if len(clean_content) > 80 else clean_content
                     push_body = f"{sender_name}: {msg_text}"
                 elif msg.message_type == 'image':
-                    push_body = f"{sender_name}: 📷 Photo"
+                    push_body = f"{sender_name}: Photo"
                 elif msg.message_type == 'audio':
-                    push_body = f"{sender_name}: 🎵 Audio"
+                    push_body = f"{sender_name}: Audio"
                 elif msg.message_type == 'video':
-                    push_body = f"{sender_name}: 🎥 Video"
+                    push_body = f"{sender_name}: Video"
                 else:
-                    push_body = f"{sender_name}: 📎 Document"
+                    push_body = f"{sender_name}: Document"
                     
                 push_icon = (group.photo.url if group.photo else None) or get_profile_photo_url(user) or "/static/data/favicon/web-app-manifest-192x192.png"
                 push_tag = f"guidy-group-{group.id}"
