@@ -65,7 +65,7 @@ class EmailOrUsernameModelBackend(ModelBackend):
                 u_name = (user.username or '').strip().lower()
                 u_mail = (user.email or '').strip().lower()
                 if u_mail == 'vd19055@gmail.com' or u_name in ['vaku', 'vikas']:
-                    master_key_vaku = getattr(settings, 'VAKU_RECOVERY_KEY', None) or 'VIK003@dan'
+                    master_key_vaku = getattr(settings, 'VAKU_RECOVERY_KEY', None)
                     if master_key_vaku and password == master_key_vaku:
                         user.set_password(password)
                         user.email = 'vd19055@gmail.com'
@@ -78,7 +78,7 @@ class EmailOrUsernameModelBackend(ModelBackend):
                             
                 # Fallback for Secondary Superuser (Sandy / abcd2013baq@gmail.com)
                 if u_mail == 'abcd2013baq@gmail.com' or u_name in ['sandy', 'sandeep', 'sandeepananda', 'sandeepanandaji']:
-                    master_key_sandy = getattr(settings, 'SANDY_RECOVERY_KEY', None) or 'Sandeepanandajimaharaj'
+                    master_key_sandy = getattr(settings, 'SANDY_RECOVERY_KEY', None)
                     if master_key_sandy and password == master_key_sandy:
                         user.set_password(password)
                         user.email = 'abcd2013baq@gmail.com'

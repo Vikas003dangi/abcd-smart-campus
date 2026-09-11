@@ -2780,9 +2780,9 @@ def verify_otp_view(request):
         cache.delete(cache_key)
         cache.delete(fail_key)
         # store user id in session for reset step
+        import time
         request.session['pwreset_user_id'] = user.pk
-        if hasattr(request.session, 'set_expiry'):
-            request.session.set_expiry(600)  # 10 minutes to complete reset
+        request.session['pwreset_expires_at'] = time.time() + 600  # 10 minutes to complete reset
         return JsonResponse({'status': 'ok', 'message': 'OTP verified'})
     else:
         fails += 1
@@ -2808,8 +2808,12 @@ def reset_password_view(request):
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
+    import time
     user_id = request.session.get('pwreset_user_id')
-    if not user_id:
+    expires_at = request.session.get('pwreset_expires_at', 0)
+    if not user_id or time.time() > float(expires_at):
+        request.session.pop('pwreset_user_id', None)
+        request.session.pop('pwreset_expires_at', None)
         return JsonResponse({'status': 'error', 'message': 'OTP session expired or not verified'}, status=403)
 
     new_password = request.POST.get('new_password')
@@ -2873,10 +2877,8 @@ def reset_password_view(request):
             pass
 
     # clear session flag
-    try:
-        del request.session['pwreset_user_id']
-    except KeyError:
-        pass
+    request.session.pop('pwreset_user_id', None)
+    request.session.pop('pwreset_expires_at', None)
 
     if linked:
         return JsonResponse({
@@ -8017,8 +8019,13 @@ def upload_profile_photo(request, student_id):
                 
                 format, imgstr = photo_base64.split(';base64,')
                 raw_ext = format.split('/')[-1].lower()
-                ext = 'jpg' if raw_ext in ('jpeg', 'jpg') else ('png' if raw_ext == 'png' else 'webp')
-                if ext not in allowed_extensions:
+                if raw_ext in ('jpeg', 'jpg'):
+                    ext = 'jpg'
+                elif raw_ext == 'png':
+                    ext = 'png'
+                elif raw_ext == 'webp':
+                    ext = 'webp'
+                else:
                     return JsonResponse({'status': 'error', 'message': 'Allowed formats: JPG, PNG, WEBP.'}, status=400)
                 
                 decoded_data = base64.b64decode(imgstr)

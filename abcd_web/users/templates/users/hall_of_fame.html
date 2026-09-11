@@ -781,7 +781,7 @@
                 <div class="delete-overlay">
                     <form action="{% url 'users:delete_achievement' ach.pk %}" method="post">
                         {% csrf_token %}
-                        <button type="submit" class="del-btn delete-confirm-btn" title="Delete Alumni Record"
+                        <button type="submit" class="del-btn action-confirm-btn" title="Delete Alumni Record"
                             data-student-name="{{ ach.first_name }} {{ ach.last_name }}"
                             data-confirm-title="Delete Alumni Record"
                             data-confirm-msg="Are you sure you want to delete the alumni achievement record for {{ ach.first_name }} {{ ach.last_name }}? This will remove their story from the Hall of Fame.">
@@ -855,7 +855,7 @@
                 <div class="mod-overlay">
                     <form action="{% url 'users:approve_achievement' ach.pk %}" method="post" style="width:100%">
                         {% csrf_token %}
-                        <button type="submit" class="mod-btn mod-approve delete-confirm-btn"
+                        <button type="submit" class="mod-btn mod-approve action-confirm-btn"
                             data-confirm-title="Approve Request"
                             data-confirm-msg="Are you sure you want to approve the achievement request for {{ ach.first_name }} {{ ach.last_name }}?">
                             <i class='bx bx-check'></i> Approve
@@ -863,7 +863,7 @@
                     </form>
                     <form action="{% url 'users:delete_achievement' ach.pk %}" method="post" style="width:100%">
                         {% csrf_token %}
-                        <button type="submit" class="mod-btn mod-reject delete-confirm-btn" style="background:#ef4444;"
+                        <button type="submit" class="mod-btn mod-reject action-confirm-btn" style="background:#ef4444;"
                             data-confirm-title="Delete Request"
                             data-confirm-msg="Are you sure you want to delete the achievement request for {{ ach.first_name }} {{ ach.last_name }}? The user will be able to submit a new request later.">
                             <i class='bx bx-trash'></i> Delete
@@ -1016,7 +1016,7 @@
     }
 
     document.addEventListener('click', async function (e) {
-        const btn = e.target.closest('.delete-confirm-btn');
+        const btn = e.target.closest('.action-confirm-btn, .delete-confirm-btn');
         if (!btn) return;
         e.preventDefault();
         const form = btn.closest('form');
