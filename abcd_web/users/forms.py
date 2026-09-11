@@ -126,7 +126,6 @@ class StudentProfileForm(forms.ModelForm):
         if user:
             # Check if user already has an achievement profile or existing student profile
             # to lock common fields
-            from .models import StudentAchievement, StudentProfile
             existing_ach = StudentAchievement.objects.filter(user=user).first()
             existing_prof = StudentProfile.objects.filter(user=user).first()
             
@@ -161,7 +160,6 @@ class StudentProfileForm(forms.ModelForm):
             if self.instance and getattr(self.instance, 'email', None):
                 self.initial['email'] = self.instance.email
             elif user:
-                from .models import StudentAchievement, StudentProfile
                 existing_prof = StudentProfile.objects.filter(user=user).first()
                 existing_ach = StudentAchievement.objects.filter(user=user).first()
                 self.initial['email'] = (existing_prof.email if existing_prof and existing_prof.email else None) or \

@@ -2106,7 +2106,6 @@ def register(request):
                 counter_key = f"reg_otp_count_{user_ip}"
                 cooldown_key = f"reg_otp_cooldown_{user_ip}"
 
-                import time
                 cooldown_expiry = cache.get(cooldown_key)
                 if cooldown_expiry:
                     remaining = int(max(0, cooldown_expiry - time.time()))
@@ -2194,7 +2193,6 @@ def register(request):
             counter_key = f"reg_otp_count_{user_ip}"
             cooldown_key = f"reg_otp_cooldown_{user_ip}"
 
-            import time
             cooldown_expiry = cache.get(cooldown_key)
             if cooldown_expiry:
                 remaining = int(max(0, cooldown_expiry - time.time()))
@@ -2262,7 +2260,6 @@ def register(request):
             if not pending:
                 return JsonResponse({'status': 'error', 'message': 'Verification session expired. Please register again.'}, status=400)
 
-            import time
             if time.time() > pending.get('expires', 0):
                 return JsonResponse({'status': 'error', 'message': 'OTP has expired. Please request a new one.'}, status=400)
 
@@ -2443,7 +2440,6 @@ def login_view(request):
     ip_lock_key = f"login_lock_until_ip_{user_ip}"
     ip_lock_expiry = cache.get(ip_lock_key)
     if ip_lock_expiry:
-        import time
         remaining = int(max(0, ip_lock_expiry - time.time()))
         if remaining > 0:
             minutes = remaining // 60
@@ -2481,7 +2477,6 @@ def login_view(request):
         user_lock_key = f"login_lock_until_user_{username_key}"
         user_lock_expiry = cache.get(user_lock_key)
         if user_lock_expiry:
-            import time
             remaining = int(max(0, user_lock_expiry - time.time()))
             if remaining > 0:
                 minutes = remaining // 60
@@ -3007,7 +3002,6 @@ def profile_view(request):
     if active_dash == 'student':
         return redirect('users:student_details_S')
     elif active_dash == 'alumni':
-        from .models import StudentAchievement
         ach = StudentAchievement.objects.filter(user=request.user).first()
         if ach:
             return redirect('users:achievement_detail', pk=ach.pk)
@@ -3018,7 +3012,6 @@ def profile_view(request):
     if dtype == 'student':
         return redirect('users:student_details_S')
     elif dtype == 'alumni':
-        from .models import StudentAchievement
         ach = StudentAchievement.objects.filter(user=request.user).first()
         if ach:
             return redirect('users:achievement_detail', pk=ach.pk)
@@ -4681,7 +4674,6 @@ def request_seat_hold_api(request):
             hold_req.cancel_requested = True
             hold_req.save(update_fields=['cancel_requested'])
             
-            from django.contrib.auth.models import User
             teachers = User.objects.filter(is_staff=True)
             for teacher in teachers:
                 create_notification(
@@ -4712,7 +4704,6 @@ def request_seat_hold_api(request):
             hold_req.save(update_fields=['cancel_requested'])
             
             # Notify teachers
-            from django.contrib.auth.models import User
             teachers = User.objects.filter(is_staff=True)
             for teacher in teachers:
                 create_notification(
@@ -4751,7 +4742,6 @@ def request_seat_hold_api(request):
             hold_req.save(update_fields=['cancel_requested'])
 
             # Notify teachers to review
-            from django.contrib.auth.models import User
             teachers = User.objects.filter(is_staff=True)
             for teacher in teachers:
                 create_notification(
@@ -4849,7 +4839,6 @@ def request_seat_hold_api(request):
             user=profile.user, title="Hold Requested",
             message="Request sent for approval.", category="seat"
         )
-        from django.contrib.auth.models import User
         for teacher in User.objects.filter(is_staff=True):
             create_notification(
                 user=teacher, title="New Hold Request",
@@ -8069,12 +8058,12 @@ def upload_profile_photo(request, student_id):
         photo_file = request.FILES.get('photo')
         photo_base64 = request.POST.get('photo_base64')
         allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
+        from PIL import Image
         
         if photo_base64:
             try:
                 import base64
                 import io
-                from PIL import Image
                 from django.core.files.base import ContentFile
                 
                 if ';base64,' not in photo_base64:
@@ -8109,7 +8098,6 @@ def upload_profile_photo(request, student_id):
                 
         elif photo_file:
             try:
-                from PIL import Image
                 ext = (photo_file.name.split('.')[-1] if '.' in photo_file.name else '').lower()
                 if ext not in allowed_extensions:
                     return JsonResponse({'status': 'error', 'message': 'Allowed formats: JPG, PNG, WEBP.'}, status=400)
@@ -11301,7 +11289,6 @@ def guidy_home(request):
         else:
             group_deleted_by_name = "Admin/Teacher"
         if active_group.deleted_at:
-            from datetime import timedelta
             delta = timezone.now() - active_group.deleted_at
             group_days_left = max(0, 5 - delta.days)
 
@@ -12711,7 +12698,6 @@ def guidy_profile_info(request, entity_type, entity_id):
 
     # 4. Student (either by user_id or StudentProfile id)
     if entity_type == 'student':
-        from .models import StudentProfile
         profile = StudentProfile.objects.filter(DQ(user_id=entity_id) | DQ(id=entity_id)).first()
         if profile:
             batch_floor = ""
@@ -12741,7 +12727,6 @@ def guidy_profile_info(request, entity_type, entity_id):
     if fallback_user:
         # Check if the fallback user is actually a teacher/staff
         if fallback_user.is_staff or fallback_user.is_superuser:
-            from users.models import TeacherProfile
             profile, _ = TeacherProfile.objects.get_or_create(user=fallback_user)
             photo_url = get_profile_photo_url(fallback_user)
             name = get_user_display_name(fallback_user)
@@ -12793,9 +12778,10 @@ def guidy_create_group(request):
     - Students and alumni can only add users with whom they have an active ChatSession (connection).
     """
     user = request.user
+    from django.contrib.auth import get_user_model
+    UserModel = get_user_model()
     is_teacher = user.is_staff or user.is_superuser
     is_alumni = StudentAchievement.objects.filter(user=user, status='approved').exists()
-    from .models import StudentProfile
     is_student = StudentProfile.objects.filter(user=user).exists()
 
     if not (is_teacher or is_alumni or is_student):
@@ -12827,8 +12813,6 @@ def guidy_create_group(request):
     
     # Validation for non-teachers
     if not is_teacher:
-        from django.contrib.auth import get_user_model
-        UserModel = get_user_model()
         for uid in ids:
             if uid not in allowed_member_ids:
                 return JsonResponse({'success': False, 'error': 'Cannot add dummy or unconnected members'}, status=400)
@@ -12864,8 +12848,6 @@ def guidy_create_group(request):
             message_type='system'
         )
 
-        from django.contrib.auth import get_user_model
-        UserModel = get_user_model()
         added_names = []
         
         for uid in ids:
@@ -15246,7 +15228,6 @@ def guidy_group_manage_members(request, group_id):
                     if target_user.is_staff or target_user.is_superuser:
                         continue
             group.members.add(target_user)
-            from users.utils import get_user_display_name
             added_names.append(get_user_display_name(target_user))
         
         if added_names:
@@ -15275,7 +15256,6 @@ def guidy_group_manage_members(request, group_id):
                 continue
             if target_user in group.members.all():
                 group.members.remove(target_user)
-                from users.utils import get_user_display_name
                 removed_names.append(get_user_display_name(target_user))
         
         if removed_names:
@@ -15503,6 +15483,8 @@ def guidy_load_chat_api(request):
         from django.core.cache import cache
         from .models import ChatSession, DirectChatSession, GroupChatSession, StudentAchievement, GuidyBlock
         from users.utils import get_user_display_name, get_profile_photo_url, get_user_dashboard_type
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
 
         chat_type = request.GET.get('type')
         chat_id = request.GET.get('id')
@@ -15585,8 +15567,6 @@ def guidy_load_chat_api(request):
                 if unr_ids:
                     unr_qs.update(is_read=True, is_delivered=True)
                     try:
-                        from channels.layers import get_channel_layer
-                        from asgiref.sync import async_to_sync
                         cl = get_channel_layer()
                         if cl and other_u:
                             r_payload = {
@@ -15643,8 +15623,6 @@ def guidy_load_chat_api(request):
                 if unr_ids:
                     unr_qs.update(is_read=True, is_delivered=True)
                     try:
-                        from channels.layers import get_channel_layer
-                        from asgiref.sync import async_to_sync
                         cl = get_channel_layer()
                         if cl and other_u:
                             r_payload = {
@@ -15809,8 +15787,6 @@ def guidy_load_chat_api(request):
         cache.delete(f"guidy_badge_count_{user.id}")
         new_badge_count = get_guidy_badge_count(user)
         try:
-            from asgiref.sync import async_to_sync
-            from channels.layers import get_channel_layer
             cl = get_channel_layer()
             if cl:
                 async_to_sync(cl.group_send)(

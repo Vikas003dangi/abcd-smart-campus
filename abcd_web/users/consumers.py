@@ -10,9 +10,16 @@ _guidy_notify_pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="guidy
 def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None, client_msg_id=None):
     try:
         from django.contrib.auth.models import User
-        from users.models import Message, ChatSession, DirectChatSession, GroupChatSession, GroupMessage, GuidyBlock
+        from users.models import Message, ChatSession, DirectChatSession, GroupChatSession, GroupMessage, GuidyBlock, Notification
         from django.utils.timezone import localtime
+        from django.core.cache import cache
+        from django.db import close_old_connections
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        from users.notifications import send_push
+        from users.views import get_guidy_badge_count
         from users.utils import get_user_display_name, get_profile_photo_url, clean_guidy_message_content, strip_html_for_notification
+        import threading
 
         user = User.objects.filter(id=user_id).first()
         content = clean_guidy_message_content(content)
@@ -105,7 +112,6 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
 
         # Initial delivery check: if recipient is currently online, mark delivered immediately
         try:
-            from django.core.cache import cache
             for r in recipients:
                 if r and cache.get(f"guidy_presence_{r.id}"):
                     msg.is_delivered = True
@@ -116,11 +122,6 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
 
         # Trigger background web push and database notifications to recipient(s)
         try:
-            import threading
-            from django.db import close_old_connections
-            from users.notifications import send_push
-            from users.models import Notification
-
             def _notify_bg(recipients_list, sender, message_obj, c_type, s_id):
                 close_old_connections()
                 delivered_marked = False
@@ -145,7 +146,6 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
 
                     for r in recipients_list:
                         try:
-                            from django.core.cache import cache
                             # If recipient currently has this exact chat open live, do not spam push or DB unread notifications
                             active_in_chat = cache.get(f"guidy_active_chat_{r.id}")
                             is_reading_live = (active_in_chat == f"{c_type}_{s_id}")
@@ -153,9 +153,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                             is_reading_live = False
 
                         try:
-                            from django.core.cache import cache
                             cache.delete(f"guidy_badge_count_{r.id}")
-                            from users.views import get_guidy_badge_count
                             new_badge_val = get_guidy_badge_count(r)
                         except Exception:
                             new_badge_val = 1
@@ -199,7 +197,6 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                                 push_delivered = False
 
                         try:
-                            from django.core.cache import cache
                             recipient_online = bool(cache.get(f"guidy_presence_{r.id}") or is_reading_live)
                         except Exception:
                             recipient_online = False
@@ -214,12 +211,8 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                                 pass
 
                         try:
-                            from django.core.cache import cache
                             cache.delete(f"guidy_badge_count_{r.id}")
-                            from users.views import get_guidy_badge_count
                             new_badge_val = get_guidy_badge_count(r)
-                            from asgiref.sync import async_to_sync
-                            from channels.layers import get_channel_layer
                             c_layer = get_channel_layer()
                             if c_layer:
                                 async_to_sync(c_layer.group_send)(
@@ -235,8 +228,6 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                     # Real-time tick upgrade from single check to double check
                     if delivered_marked:
                         try:
-                            from asgiref.sync import async_to_sync
-                            from channels.layers import get_channel_layer
                             c_layer = get_channel_layer()
                             if c_layer:
                                 d_payload = {

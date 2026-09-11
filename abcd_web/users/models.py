@@ -4,6 +4,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import os
+from django.apps import apps
+from django.core.files.storage import FileSystemStorage
 from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
@@ -270,12 +272,10 @@ class StudentProfile(models.Model):
         """
         if self.photo:
             try:
-                from django.core.files.storage import FileSystemStorage
                 storage = getattr(self.photo, 'storage', None)
                 if isinstance(storage, FileSystemStorage):
                     try:
                         f_path = self.photo.path
-                        import os
                         if f_path and os.path.exists(f_path):
                             return f"{self.photo.url}?v={int(os.path.getmtime(f_path))}"
                     except (NotImplementedError, AttributeError, ValueError, OSError):
@@ -285,16 +285,14 @@ class StudentProfile(models.Model):
                 return self.photo.url
         
         try:
-            from .models import StudentAchievement
+            StudentAchievement = apps.get_model('users', 'StudentAchievement')
             achievement = StudentAchievement.objects.filter(user=self.user).first()
             if achievement and achievement.photo:
                 try:
-                    from django.core.files.storage import FileSystemStorage
                     storage = getattr(achievement.photo, 'storage', None)
                     if isinstance(storage, FileSystemStorage):
                         try:
                             f_path = achievement.photo.path
-                            import os
                             if f_path and os.path.exists(f_path):
                                 return f"{achievement.photo.url}?v={int(os.path.getmtime(f_path))}"
                         except (NotImplementedError, AttributeError, ValueError, OSError):
@@ -387,8 +385,7 @@ class StudentProfile(models.Model):
              return
 
         # Find active or latest assignment for this student
-        # Note: SeatAssignment is defined later in the file, so we use a local import
-        from .models import SeatAssignment
+        SeatAssignment = apps.get_model('users', 'SeatAssignment')
         assignment = SeatAssignment.objects.filter(student=self, is_active=True).first()
         if not assignment:
             assignment = SeatAssignment.objects.filter(student=self).order_by('-created_at').first()
@@ -421,7 +418,6 @@ class StudentProfile(models.Model):
                                 seat.recalc_status()
 
                             # Deactivate partial tenants
-                            from .models import SeatAssignment
                             temps = SeatAssignment.objects.filter(
                                 seat=seat, 
                                 is_active=True, 
@@ -1770,12 +1766,10 @@ class StudentAchievement(models.Model):
         """
         if self.photo:
             try:
-                from django.core.files.storage import FileSystemStorage
                 storage = getattr(self.photo, 'storage', None)
                 if isinstance(storage, FileSystemStorage):
                     try:
                         f_path = self.photo.path
-                        import os
                         if f_path and os.path.exists(f_path):
                             return f"{self.photo.url}?v={int(os.path.getmtime(f_path))}"
                     except (NotImplementedError, AttributeError, ValueError, OSError):
@@ -1785,16 +1779,13 @@ class StudentAchievement(models.Model):
                 return self.photo.url
         
         try:
-            from .models import StudentProfile
             profile = StudentProfile.objects.filter(user=self.user).first()
             if profile and profile.photo:
                 try:
-                    from django.core.files.storage import FileSystemStorage
                     storage = getattr(profile.photo, 'storage', None)
                     if isinstance(storage, FileSystemStorage):
                         try:
                             f_path = profile.photo.path
-                            import os
                             if f_path and os.path.exists(f_path):
                                 return f"{profile.photo.url}?v={int(os.path.getmtime(f_path))}"
                         except (NotImplementedError, AttributeError, ValueError, OSError):
