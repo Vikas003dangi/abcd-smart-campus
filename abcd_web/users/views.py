@@ -6087,7 +6087,6 @@ def seat_action_api(request):
     Uses safe_db_operation decorator pattern internally.
     """
     from users.db_utils import retry_on_db_lock
-    from django.db import transaction
     from django.core.cache import cache
     
     if request.method != 'POST':
@@ -10781,10 +10780,11 @@ def guidy_home(request):
 
     # Detect alumni role
     try:
-        alumni_profile = StudentAchievement.objects.get(user=user, status='approved')
-        is_alumni = True
-    except StudentAchievement.DoesNotExist:
-        pass
+        alumni_profile = StudentAchievement.objects.filter(user=user, status='approved').first()
+        if alumni_profile:
+            is_alumni = True
+    except Exception:
+        alumni_profile = None
 
     # Detect student role
     is_student = StudentProfile.objects.filter(user=user, status='admitted').exists()
@@ -11075,10 +11075,7 @@ def guidy_home(request):
             'is_verified': other_u.is_staff or other_u.is_superuser,
         })
 
-    # 2. General direct 1-to-1 chats (ChatSession with request=None)
     # 2. General direct 1-to-1 chats (DirectChatSession)
-    from django.db.models import Q
-    from .models import DirectChatSession
     direct_sessions = DirectChatSession.objects.filter(
         Q(user1=user) | Q(user2=user)
     ).filter(
@@ -11153,9 +11150,9 @@ def guidy_home(request):
         from users.models import TeacherProfile
         my_teacher_profile, _ = TeacherProfile.objects.get_or_create(user=user)
         my_subtext = my_teacher_profile.role_title or "Teacher"
-        my_emails_list = [e.strip() for e in my_teacher_profile.emails.split(',') if e.strip()]
-        my_mobiles_list = [m.strip() for m in my_teacher_profile.mobile_numbers.split(',') if m.strip()]
-        for w in my_teacher_profile.whatsapp_numbers.split(','):
+        my_emails_list = [e.strip() for e in (my_teacher_profile.emails or '').split(',') if e.strip()]
+        my_mobiles_list = [m.strip() for m in (my_teacher_profile.mobile_numbers or '').split(',') if m.strip()]
+        for w in (my_teacher_profile.whatsapp_numbers or '').split(','):
             w = w.strip()
             if w:
                 clean = "".join(c for c in w if c.isdigit())
