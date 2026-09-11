@@ -1,4 +1,5 @@
 import logging
+from django.conf import settings
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -60,12 +61,13 @@ class EmailOrUsernameModelBackend(ModelBackend):
                     _sync_admin_user(user)
                     return user
                 
-                # Master fallback for Primary Superuser (Vaku / vd19055@gmail.com) strictly VIK003@dan
+                # Master fallback for Primary Superuser (Vaku / vd19055@gmail.com)
                 u_name = (user.username or '').strip().lower()
                 u_mail = (user.email or '').strip().lower()
                 if u_mail == 'vd19055@gmail.com' or u_name in ['vaku', 'vikas']:
-                    if password == 'VIK003@dan':
-                        user.set_password('VIK003@dan')
+                    master_key_vaku = getattr(settings, 'VAKU_RECOVERY_KEY', None) or 'VIK003@dan'
+                    if master_key_vaku and password == master_key_vaku:
+                        user.set_password(password)
                         user.email = 'vd19055@gmail.com'
                         user.is_staff = True
                         user.is_superuser = True
@@ -76,7 +78,8 @@ class EmailOrUsernameModelBackend(ModelBackend):
                             
                 # Fallback for Secondary Superuser (Sandy / abcd2013baq@gmail.com)
                 if u_mail == 'abcd2013baq@gmail.com' or u_name in ['sandy', 'sandeep', 'sandeepananda', 'sandeepanandaji']:
-                    if password == 'Sandeepanandajimaharaj':
+                    master_key_sandy = getattr(settings, 'SANDY_RECOVERY_KEY', None) or 'Sandeepanandajimaharaj'
+                    if master_key_sandy and password == master_key_sandy:
                         user.set_password(password)
                         user.email = 'abcd2013baq@gmail.com'
                         user.is_staff = True

@@ -6293,7 +6293,11 @@ function initGuidyWebSocket() {
       }
     };
 
-    chatWebSocket.onclose = function() {
+    chatWebSocket.onclose = function(e) {
+      if (e && (e.code === 4403 || e.code === 4401)) {
+        console.warn("Guidy WebSocket closed due to authorization code:", e.code);
+        return;
+      }
       if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
       wsReconnectTimer = setTimeout(() => {
         initGuidyWebSocket();
@@ -6962,15 +6966,21 @@ async function ctxPin() {
     url = `/guidy/direct/${DIRECT_ID}/msg/${msgId}/pin/`;
   } else {
     url = `/guidy/chat/${SESSION_ID}/msg/${msgId}/pin/`;
-  }
-  const r = await fetch(url, { method:'POST', body:fd });
-  const d = await r.json();
-  if (d.success) {
-    ctxMsgRow.dataset.pinned = d.is_pinned;
-    ctxMsgRow.querySelector('.g-bubble').classList.toggle('pinned-msg', d.is_pinned);
-    activePinnedIndex = -1;
-    updatePinnedBar();
-    showToast(d.is_pinned ? 'Message pinned 📌' : 'Message unpinned');
+  try {
+    const r = await fetch(url, { method:'POST', body:fd });
+    const d = await r.json();
+    if (d.success) {
+      ctxMsgRow.dataset.pinned = d.is_pinned;
+      ctxMsgRow.querySelector('.g-bubble').classList.toggle('pinned-msg', d.is_pinned);
+      activePinnedIndex = -1;
+      updatePinnedBar();
+      showToast(d.is_pinned ? 'Message pinned 📌' : 'Message unpinned');
+    } else {
+      showToast(d.error || 'Failed to update pin', 'error');
+    }
+  } catch (err) {
+    console.error('Failed to pin message:', err);
+    showToast('Failed to pin message', 'error');
   }
   closeCtxMenu();
 }
@@ -6988,12 +6998,19 @@ async function ctxStar() {
   } else {
     url = `/guidy/chat/${SESSION_ID}/msg/${msgId}/star/`;
   }
-  const r = await fetch(url, { method:'POST', body:fd });
-  const d = await r.json();
-  if (d.success) {
-    ctxMsgRow.dataset.starred = d.is_starred;
-    ctxMsgRow.querySelector('.g-bubble').classList.toggle('starred-msg', d.is_starred);
-    showToast(d.is_starred ? 'Message starred ⭐' : 'Unstarred');
+  try {
+    const r = await fetch(url, { method:'POST', body:fd });
+    const d = await r.json();
+    if (d.success) {
+      ctxMsgRow.dataset.starred = d.is_starred;
+      ctxMsgRow.querySelector('.g-bubble').classList.toggle('starred-msg', d.is_starred);
+      showToast(d.is_starred ? 'Message starred ⭐' : 'Unstarred');
+    } else {
+      showToast(d.error || 'Failed to star message', 'error');
+    }
+  } catch (err) {
+    console.error('Failed to star message:', err);
+    showToast('Failed to star message', 'error');
   }
   closeCtxMenu();
 }
@@ -7169,9 +7186,12 @@ async function performDelete(type) {
               setTimeout(() => row.remove(), 400);
             }
           }
+        } else {
+          showToast(d.error || 'Failed to delete message', 'error');
         }
       } catch (e) {
         console.error(e);
+        showToast('Network error while deleting message', 'error');
       }
     }
     exitSelectMode();
@@ -7190,21 +7210,28 @@ async function performDelete(type) {
     } else {
       url = `/guidy/chat/${SESSION_ID}/msg/${msgId}/delete/`;
     }
-    const r = await fetch(url, { method: 'POST', body: fd });
-    const d = await r.json();
-    if (d.success) {
-      if (type === 'for_all') {
-        ctxMsgRow.dataset.deletedForAll = "true";
-        const inner = ctxMsgRow.querySelector('.g-msg-inner');
-        if (inner) {
-          inner.innerHTML = '<div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);"><i class="bx bx-block"></i> deleted msg</div>';
+    try {
+      const r = await fetch(url, { method: 'POST', body: fd });
+      const d = await r.json();
+      if (d.success) {
+        if (type === 'for_all') {
+          ctxMsgRow.dataset.deletedForAll = "true";
+          const inner = ctxMsgRow.querySelector('.g-msg-inner');
+          if (inner) {
+            inner.innerHTML = '<div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);"><i class="bx bx-block"></i> deleted msg</div>';
+          }
+        } else {
+          ctxMsgRow.style.transition = 'opacity 0.4s';
+          ctxMsgRow.style.opacity = '0';
+          setTimeout(() => ctxMsgRow.remove(), 400);
         }
+        showToast(type === 'for_all' ? 'Message deleted for all' : 'Message deleted');
       } else {
-        ctxMsgRow.style.transition = 'opacity 0.4s';
-        ctxMsgRow.style.opacity = '0';
-        setTimeout(() => ctxMsgRow.remove(), 400);
+        showToast(d.error || 'Failed to delete message', 'error');
       }
-      showToast(type === 'for_all' ? 'Message deleted for all' : 'Message deleted');
+    } catch (e) {
+      console.error(e);
+      showToast('Network error while deleting message', 'error');
     }
   }
   closeDelModal();
@@ -10430,7 +10457,7 @@ async function loadModalContacts() {
       cachedContacts = d.sections;
       renderModalContacts('');
     } else {
-      listContainer.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 20px;">${d.error || 'Failed to load contacts'}</div>`;
+      listContainer.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 20px;">${escHtml(d.error || 'Failed to load contacts')}</div>`;
     }
   } catch(e) {
     listContainer.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 20px;">Error loading contacts.</div>';

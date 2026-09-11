@@ -779,13 +779,12 @@
                 onclick="handleAchClick(this)">
                 {% if is_teacher %}
                 <div class="delete-overlay">
-                    <form action="{% url 'users:delete_student' ach.user.id %}" method="post">
+                    <form action="{% url 'users:delete_achievement' ach.pk %}" method="post">
                         {% csrf_token %}
                         <button type="submit" class="del-btn delete-confirm-btn" title="Delete Alumni Record"
                             data-student-name="{{ ach.first_name }} {{ ach.last_name }}"
-                            data-has-admission="{% if ach.has_profile %}true{% else %}false{% endif %}"
-                            data-has-alumni="true" data-confirm-title="Delete Alumni Record"
-                            data-confirm-msg="Are you sure you want to delete the alumni record for {{ ach.first_name }} {{ ach.last_name }}?">
+                            data-confirm-title="Delete Alumni Record"
+                            data-confirm-msg="Are you sure you want to delete the alumni achievement record for {{ ach.first_name }} {{ ach.last_name }}? This will remove their story from the Hall of Fame.">
                             <i class='bx bx-trash'></i>
                         </button>
                     </form>

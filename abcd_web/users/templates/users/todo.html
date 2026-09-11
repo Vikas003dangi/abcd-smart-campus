@@ -4948,13 +4948,25 @@
   }
 
   function getCsrfToken() {
-    return '{{ csrf_token }}';
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '{{ csrf_token }}';
+  }
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   let allStudentsData = [];
   let currentTab = 'breakdown';
 
   let currentTasks = [];
+  let currentReminders = [];
   let selectionMode = false;
   var selectedNotes = new Set();
 
@@ -6001,7 +6013,7 @@
 
       cardContent = `
             <div class="card-click-area" onclick="handleCardClick(event, ${task.id})">
-                <h4>${task.title}</h4>
+                <h4>${escapeHtml(task.title)}</h4>
                 ${task.delete_at ? `
                     <div class="task-card-meta">
                         <i class='bx bx-calendar-event'></i> Due: ${new Date(task.delete_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -6078,7 +6090,7 @@
           </div>`;
 
       cardContent = `
-          <div class="card-click-area" onclick="if(typeof selectionMode !== 'undefined' && selectionMode){handleCardClick(event, ${task.id})}else{openReminderDetailModal(${JSON.stringify(task).replace(/"/g, '&quot;')})}">
+          <div class="card-click-area" onclick="if(typeof selectionMode !== 'undefined' && selectionMode){handleCardClick(event, ${task.id})}else{openReminderDetailModal(${task.id})}">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                   <h4 style="margin: 0; font-size: 1.1rem; color: var(--text-main, #1e293b); display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
                       ${escapeHtml(task.title)}
@@ -11443,8 +11455,10 @@
     const startTab = isStaff ? 'fees' : 'breakdown';
     switchTab(startTab);
 
-    // Preload student photos/details silently in the background
-    preloadAllStudentsData();
+    // Preload student photos/details silently in the background (only for staff/teachers)
+    if (isStaff) {
+      preloadAllStudentsData();
+    }
 
     // Start Master Breakdown Ticker
     startMasterTicker();
@@ -12458,12 +12472,9 @@
     const alarmBadge = meta.alarm_enabled !== false ? `<span style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;"><i class='bx bx-bell'></i> Alarm</span>` : '';
     const doneBadge = isDone ? `<span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;"><i class='bx bx-check-circle'></i> Fired</span>` : '';
 
-    // Always encode task data for safe inline JS passing
-    const taskJson = JSON.stringify(task).replace(/"/g, '&quot;');
-
     return `
       <div class="task-card" data-id="${task.id}" data-category="REMINDER"
-           onclick="if(selectionMode){handleCardClick(event, ${task.id})}else{openReminderDetailModal(${taskJson})}"
+           onclick="if(selectionMode){handleCardClick(event, ${task.id})}else{openReminderDetailModal(${task.id})}"
            style="position: relative; opacity: ${isDone ? '0.6' : '1'}; padding: 15px; cursor: pointer;">
         <input type="checkbox" class="task-bulk-checkbox"
             data-id="${task.id}"
@@ -12507,6 +12518,7 @@
       .then(r => r.json())
       .then(data => {
         currentTasks = data.tasks || [];
+        currentReminders = currentTasks;
         renderReminderGrid(currentTasks, container);
       })
       .catch(err => {
@@ -12520,6 +12532,11 @@
 
   function openReminderDetailModal(task) {
     if (!task) return;
+    if (typeof task === 'number' || typeof task === 'string') {
+      const found = (currentTasks || []).find(t => t.id == task) || (currentReminders || []).find(t => t.id == task);
+      if (!found) return;
+      task = found;
+    }
     _reminderDetailTask = task;
     const meta = task.reminder_meta || task.metadata || {};
     const isDone = !!task.is_done;
@@ -12923,7 +12940,7 @@
 
   // 1-second live ticker: dynamically updates badges and triggers due alarms with 0ms latency
   function updateReminderLiveTick() {
-    const tasks = currentTasks || [];
+    const tasks = currentReminders.length > 0 ? currentReminders : (currentTab === 'reminders' ? (currentTasks || []) : []);
     if (!Array.isArray(tasks) || tasks.length === 0) return;
     const nowMs = Date.now();
 
@@ -12979,7 +12996,10 @@
       .then(r => r.json())
       .then(data => {
         if (!data || !data.tasks) return;
-        currentTasks = data.tasks;
+        currentReminders = data.tasks;
+        if (currentTab === 'reminders') {
+          currentTasks = data.tasks;
+        }
         updateReminderLiveTick();
       })
       .catch(err => console.error('Error checking due alarms:', err));
@@ -12995,6 +13015,7 @@
       .then(data => {
         if (!data || !data.tasks) return;
         const newTasks = data.tasks;
+        currentReminders = newTasks;
         let needsRerender = false;
 
         if (newTasks.length !== currentTasks.length) {

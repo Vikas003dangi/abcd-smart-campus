@@ -683,6 +683,18 @@
     <h3>Raise a new complaint</h3>
     <form id="raiseComplaintForm" method="post" enctype="multipart/form-data">
       {% csrf_token %}
+      {% if form.errors %}
+      <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid #ef4444; color: #dc2626; padding: 14px 18px; border-radius: 12px; margin-bottom: 20px;">
+        <div style="font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <i class='bx bx-error-circle' style="font-size: 1.2rem;"></i> Please fix the following errors:
+        </div>
+        <ul style="margin: 0; padding-left: 20px; font-size: 0.9rem; line-height: 1.5;">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}<li>{% if field != '__all__' %}<strong>{{ field|title }}:</strong> {% endif %}{{ error }}</li>{% endfor %}
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
       <div class="complaint-form-grid">
         <div class="complaint-field">
           <label for="{{ form.subject.id_for_label }}">Complaint type</label>
@@ -795,17 +807,17 @@
               <div class="complaint-thumbs" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                 <span style="font-size:0.8rem; font-weight:600; color:#64748b;">Attached Photos:</span>
                 {% if c.image1 %}
-                <a href="{{ c.image1.url }}" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="1" title="Complaint #{{ c.code }} Photo 1">
+                <a href="{{ c.image1.url }}" target="_blank" rel="noopener noreferrer" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="1" title="Complaint #{{ c.code }} Photo 1">
                   <img src="{{ c.image1.url }}" alt="Photo 1" class="complaint-thumb" loading="lazy" style="height:60px; width:60px; border-radius:8px; border:1.5px solid #e2e8f0; object-fit:cover; cursor:pointer; transition:transform 0.18s ease; box-shadow:0 2px 6px rgba(0,0,0,0.06);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 </a>
                 {% endif %}
                 {% if c.image2 %}
-                <a href="{{ c.image2.url }}" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="2" title="Complaint #{{ c.code }} Photo 2">
+                <a href="{{ c.image2.url }}" target="_blank" rel="noopener noreferrer" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="2" title="Complaint #{{ c.code }} Photo 2">
                   <img src="{{ c.image2.url }}" alt="Photo 2" class="complaint-thumb" loading="lazy" style="height:60px; width:60px; border-radius:8px; border:1.5px solid #e2e8f0; object-fit:cover; cursor:pointer; transition:transform 0.18s ease; box-shadow:0 2px 6px rgba(0,0,0,0.06);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 </a>
                 {% endif %}
                 {% if c.image3 %}
-                <a href="{{ c.image3.url }}" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="3" title="Complaint #{{ c.code }} Photo 3">
+                <a href="{{ c.image3.url }}" target="_blank" rel="noopener noreferrer" class="complaint-thumb-link" data-complaint-id="{{ c.id }}" data-img-index="3" title="Complaint #{{ c.code }} Photo 3">
                   <img src="{{ c.image3.url }}" alt="Photo 3" class="complaint-thumb" loading="lazy" style="height:60px; width:60px; border-radius:8px; border:1.5px solid #e2e8f0; object-fit:cover; cursor:pointer; transition:transform 0.18s ease; box-shadow:0 2px 6px rgba(0,0,0,0.06);" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                 </a>
                 {% endif %}
@@ -970,6 +982,9 @@
     if (raiseForm) {
       let isSubmitting = false;
       raiseForm.addEventListener('submit', function(e) {
+        if (!raiseForm.checkValidity()) {
+          return;
+        }
         if (isSubmitting) {
           e.preventDefault();
           return false;

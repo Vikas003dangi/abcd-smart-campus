@@ -1052,6 +1052,11 @@
                         <td style="font-weight: 600;">{{ tx.payment_date|date:"d M Y" }}</td>
                         <td><span class="amount-success">₹{{ tx.total_amount }}</span></td>
                         <td style="text-align: right;">
+                            {% with script_id=tx.id|stringformat:"s" %}
+                            {% with full_id="tx-months-"|add:script_id %}
+                            {{ tx.months_snapshot|json_script:full_id }}
+                            {% endwith %}
+                            {% endwith %}
                             <button class="btn-action-ghost" 
                                     data-tx-id="{{ tx.id }}"
                                     data-receipt="{{ tx.receipt_number }}"
@@ -1063,7 +1068,6 @@
                                     data-service="{{ tx.service_snapshot }}"
                                     data-email="{{ tx.email_sent|yesno:'true,false' }}"
                                     data-whatsapp="{{ tx.whatsapp_sent|yesno:'true,false' }}"
-                                    data-months='{{ tx.months_snapshot|json_script:"temp"|safe }}'
                                     onclick="prepareAndOpenModal(this)">
                                 <i class='bx bx-list-ul'></i> View Details
                             </button>
@@ -1285,14 +1289,11 @@
         const emailSent = btn.getAttribute('data-email') === 'true';
         const whatsappSent = btn.getAttribute('data-whatsapp') === 'true';
         
-        const monthsHtml = btn.getAttribute('data-months');
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(monthsHtml, 'text/html');
-        const scriptTag = doc.querySelector('script');
         let months = [];
-        if (scriptTag) {
+        const scriptEl = document.getElementById('tx-months-' + txId);
+        if (scriptEl) {
             try {
-                months = JSON.parse(scriptTag.textContent);
+                months = JSON.parse(scriptEl.textContent);
             } catch (e) {
                 console.error("Error parsing months snapshot", e);
             }

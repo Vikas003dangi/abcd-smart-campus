@@ -1832,14 +1832,14 @@
                 element.disabled = true;
                 
                 let secondsLeft = seconds;
-                element.textContent = `Resend OTP (${attempt_count} of 3) in ${secondsLeft}s`;
+                element.textContent = `Resend OTP (${attempt_count} of 5) in ${secondsLeft}s`;
                 
                 fpResendInterval = setInterval(() => {
                     secondsLeft--;
                     if (secondsLeft <= 0) {
                         clearInterval(fpResendInterval);
-                        if (attempt_count >= 3) {
-                            element.textContent = `Resend OTP (3 of 3 attempts used)`;
+                        if (attempt_count >= 5) {
+                            element.textContent = `Resend OTP (5 of 5 attempts used)`;
                             element.style.pointerEvents = 'none';
                             element.style.opacity = '0.5';
                             element.disabled = true;
@@ -1850,12 +1850,12 @@
                             element.disabled = false;
                         }
                     } else {
-                        element.textContent = `Resend OTP (${attempt_count} of 3) in ${secondsLeft}s`;
+                        element.textContent = `Resend OTP (${attempt_count} of 5) in ${secondsLeft}s`;
                     }
                 }, 1000);
             } else {
-                if (attempt_count >= 3) {
-                    element.textContent = `Resend OTP (3 of 3 attempts used)`;
+                if (attempt_count >= 5) {
+                    element.textContent = `Resend OTP (5 of 5 attempts used)`;
                     element.style.pointerEvents = 'none';
                     element.style.opacity = '0.5';
                     element.disabled = true;

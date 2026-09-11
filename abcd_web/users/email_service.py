@@ -1,6 +1,7 @@
 # users/email_service.py
 
 import os
+import re
 import logging
 from email.mime.image import MIMEImage
 from django.core.mail import EmailMultiAlternatives, get_connection

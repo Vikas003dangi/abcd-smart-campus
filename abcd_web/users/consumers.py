@@ -1,6 +1,9 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+
+_guidy_notify_pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="guidy_notify")
 
 
 @database_sync_to_async
@@ -249,11 +252,10 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                 finally:
                     close_old_connections()
 
-            threading.Thread(
-                target=_notify_bg,
-                args=(recipients, user, msg, chat_type, session_id),
-                daemon=True
-            ).start()
+            _guidy_notify_pool.submit(
+                _notify_bg,
+                recipients, user, msg, chat_type, session_id
+            )
         except Exception:
             pass
 
@@ -375,6 +377,45 @@ def delete_chat_message(user_id, chat_type, message_id):
         return None
 
 
+@database_sync_to_async
+def check_guidy_chat_authorization(user_id, chat_type, session_id):
+    try:
+        from django.contrib.auth.models import User
+        from users.models import ChatSession, DirectChatSession, GroupChatSession
+        user = User.objects.filter(id=user_id).first()
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_staff or user.is_superuser:
+            return True
+        if chat_type == 'group':
+            group = GroupChatSession.objects.filter(id=session_id).first()
+            if not group or not group.is_active or getattr(group, 'deleted_at', None):
+                return False
+            return bool(user in group.members.all() or group.created_by_id == user.id)
+        elif chat_type == 'direct':
+            direct = DirectChatSession.objects.filter(id=session_id).first()
+            if not direct or not direct.is_active:
+                return False
+            return bool(direct.user1_id == user.id or direct.user2_id == user.id)
+        elif chat_type == 'guidance':
+            guidance = ChatSession.objects.filter(id=session_id).first()
+            if not guidance or not guidance.is_active:
+                return False
+            if guidance.user_one_id == user.id or guidance.user_two_id == user.id:
+                return True
+            if guidance.request:
+                if guidance.request.student_id == user.id:
+                    return True
+                if guidance.request.alumni and getattr(guidance.request.alumni, 'user_id', None) == user.id:
+                    return True
+            return False
+        return False
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("check_guidy_chat_authorization error: %s", e)
+        return False
+
+
 class GuidyChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_user_presence(self, is_online):
@@ -415,7 +456,13 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         self.user = self.scope.get("user")
 
         if not self.user or not self.user.is_authenticated:
-            await self.close()
+            await self.close(code=4401)
+            return
+
+        # IDOR Protection: Verify participant membership before joining group
+        is_authorized = await check_guidy_chat_authorization(self.user.id, self.chat_type, self.session_id)
+        if not is_authorized:
+            await self.close(code=4403)
             return
 
         self.user_group = f"user_{self.user.id}"

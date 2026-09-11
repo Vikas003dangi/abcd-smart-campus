@@ -645,7 +645,7 @@ function goBackOrHomeBase(event) {
         </a>
 
         {% if can_edit %}
-            <a href="{% url 'users:edit_alumni' %}" class="edit-btn-action">
+            <a href="{% url 'users:edit_alumni_pk' achievement.pk %}" class="edit-btn-action">
                 <i class='bx bx-edit-alt'></i> <span class="edit-btn-text">Edit Profile</span>
             </a>
         {% endif %}

@@ -593,7 +593,7 @@
         </div>
 
         <div class="complaint-msg">
-          {{ c.message }}
+          {{ c.message|linebreaksbr }}
         </div>
 
         {% if c.rating %}
@@ -625,17 +625,17 @@
         {% if c.image1 or c.image2 or c.image3 %}
           <div class="images-grid">
             {% if c.image1 %}
-              <a href="{{ c.image1.url }}" class="complaint-img-link" title="Zoom image">
+              <a href="{{ c.image1.url }}" target="_blank" rel="noopener noreferrer" class="complaint-img-link" title="Zoom image">
                 <img src="{{ c.image1.url }}" alt="Complaint Image 1">
               </a>
             {% endif %}
             {% if c.image2 %}
-              <a href="{{ c.image2.url }}" class="complaint-img-link" title="Zoom image">
+              <a href="{{ c.image2.url }}" target="_blank" rel="noopener noreferrer" class="complaint-img-link" title="Zoom image">
                 <img src="{{ c.image2.url }}" alt="Complaint Image 2">
               </a>
             {% endif %}
             {% if c.image3 %}
-              <a href="{{ c.image3.url }}" class="complaint-img-link" title="Zoom image">
+              <a href="{{ c.image3.url }}" target="_blank" rel="noopener noreferrer" class="complaint-img-link" title="Zoom image">
                 <img src="{{ c.image3.url }}" alt="Complaint Image 3">
               </a>
             {% endif %}
@@ -669,6 +669,44 @@
     {% endif %}
 
 </div>
+
+<!-- Image Lightbox Modal -->
+<div id="complaintLightbox" class="image-lightbox" onclick="closeLightbox(event)">
+  <button class="lb-close" onclick="closeLightbox(event)" title="Close">&times;</button>
+  <div class="lb-card" onclick="event.stopPropagation()">
+    <img id="lbTargetImg" class="lb-img" src="" alt="Enlarged complaint photo">
+  </div>
+</div>
+
+<script>
+  function openLightbox(url) {
+    const lb = document.getElementById('complaintLightbox');
+    const img = document.getElementById('lbTargetImg');
+    if (lb && img) {
+      img.src = url;
+      lb.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+  function closeLightbox(e) {
+    const lb = document.getElementById('complaintLightbox');
+    if (lb) {
+      lb.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.complaint-img-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        openLightbox(this.href);
+      });
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  });
+</script>
 
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

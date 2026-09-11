@@ -533,6 +533,7 @@
         <form action="{% url 'users:delete_student' student.id %}" method="post" style="margin: 0;">
             {% csrf_token %}
             <input type="hidden" name="next" value="{% url 'users:teacher_dashboard' %}">
+            <input type="hidden" name="delete_scope" value="complete">
             <button type="submit" class="pill-btn" style="background: #ef4444; color: white;">
                 Yes, Delete Everything
             </button>
@@ -757,6 +758,16 @@
             };
         } else {
             // Standard single-service delete UI
+            form.onsubmit = null;
+            let hiddenInput = form.querySelector('input[name="delete_scope"]');
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'delete_scope';
+                form.appendChild(hiddenInput);
+            }
+            hiddenInput.value = 'complete';
+
             modal.querySelector('h3').innerHTML = "<i class='bx bxs-error-circle'></i> Delete Student Profile?";
             warningDiv.innerHTML = `
                 <strong>CRITICAL ACTION:</strong> This will permanently delete <b>${studentName}</b> from the database.
@@ -764,7 +775,6 @@
                 • All login credentials will be destroyed.<br>
                 • All seat assignments will be cleared.<br>
                 • This action <b>cannot</b> be undone.
-                <input type="hidden" name="delete_scope" value="complete">
             `;
         }
 

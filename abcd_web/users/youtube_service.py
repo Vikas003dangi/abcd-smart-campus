@@ -44,11 +44,26 @@ def fetch_playlist_videos(playlist_id, max_results=50):
 def fetch_channel_videos(channel_id, max_results=50):
     """
     Fetch all uploaded videos from a YouTube channel.
-    Uses the 'search' endpoint to list videos by date.
+    Retrieves the channel's 'uploads' playlist directly via channels.list(part='contentDetails').
+    This uses playlistItems.list (costs 1 quota unit) instead of search.list (costs 100 quota units),
+    reducing YouTube API quota consumption by 99%.
     """
     if not channel_id:
         raise ValueError("YOUTUBE_CHANNEL_ID is missing or not configured.")
     yt = get_youtube_client()
+
+    try:
+        ch_response = yt.channels().list(
+            part="contentDetails",
+            id=channel_id
+        ).execute()
+        items = ch_response.get("items", [])
+        if items:
+            uploads_playlist_id = items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
+            return fetch_playlist_videos(uploads_playlist_id, max_results=max_results)
+    except Exception:
+        pass
+
     all_videos = []
     next_page = None
 

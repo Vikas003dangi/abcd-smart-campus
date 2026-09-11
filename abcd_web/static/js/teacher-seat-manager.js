@@ -3712,7 +3712,7 @@ document.addEventListener('DOMContentLoaded', () => {
         message: `
           <div style="background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #ff9800;">
             <p style="font-size: 1.05rem; margin-bottom: 12px; color: #e65100; font-weight: 600;">
-              <strong>${studentName}</strong> already has Seat ${existingSeat}
+              <strong>${escapeHTML(studentName)}</strong> already has Seat ${escapeHTML(String(existingSeat))}
             </p>
             <p style="font-size: 0.95rem; line-height: 1.6; color: #5d4037; margin-bottom: 8px;">
               Do you want to remove their current seat and assign them to this new seat?
@@ -3752,7 +3752,7 @@ document.addEventListener('DOMContentLoaded', () => {
         message: `
           <div style="background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); padding: 20px; border-radius: 12px; border-left: 4px solid #f44336;">
             <p style="font-size: 1.05rem; margin-bottom: 12px; color: #c62828; font-weight: 600;">
-              Seat ${seatNum} is already occupied by <strong>${occupierName}</strong>
+              Seat ${escapeHTML(String(seatNum))} is already occupied by <strong>${escapeHTML(occupierName)}</strong>
             </p>
             <p style="font-size: 0.95rem; line-height: 1.6; color: #5d4037; margin-bottom: 8px;">
               Would you like to remove them and assign this seat to the new student?

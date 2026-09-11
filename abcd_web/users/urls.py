@@ -230,6 +230,7 @@ urlpatterns = [
     # STUDENT ACHIEVEMENTS & ALUMNI (HALL OF FAME)
     # ======================================================
     path('alumni/edit/', views.edit_alumni_view, name='edit_alumni'),
+    path('alumni/edit/<int:pk>/', views.edit_alumni_view, name='edit_alumni_pk'),
     path('achievement-form/', views.achievement_form_view, name='achievement_form'),
     path('hall-of-fame/', views.hall_of_fame_view, name='hall_of_fame'),
     path('achievement/<int:pk>/', views.achievement_detail_view, name='achievement_detail'),

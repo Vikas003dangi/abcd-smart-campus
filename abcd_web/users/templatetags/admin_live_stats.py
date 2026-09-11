@@ -38,7 +38,7 @@ def get_admin_live_stats():
         total_materials = StudyMaterial.objects.count()
 
         # Complaints & Support
-        pending_complaints = Complaint.objects.filter(status='pending').count()
+        pending_complaints = Complaint.objects.filter(status__in=[Complaint.STATUS_NEW, Complaint.STATUS_IN_PROGRESS]).count()
         total_complaints = Complaint.objects.count()
 
         # Comprehensive Chat & Messaging System (Direct 1-to-1, Group, Alumni Guidance)

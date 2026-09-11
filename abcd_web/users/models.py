@@ -524,6 +524,8 @@ class Complaint(models.Model):
     @property
     def code(self) -> str:
         # human-friendly complaint ID
+        if not self.id:
+            return "C-----"
         return f"C{self.id:05d}"
 
     @property

@@ -528,14 +528,20 @@
   </div>
 
   <script>
-    // Force clear any cached/auto-filled password on initial render
+    // Force clear any cached/auto-filled password on initial render safely
     function clearAutoPassword() {
       const pwd = document.getElementById('id_password');
-      if (pwd && pwd.value === 'Vaku@2026Admin!') {
+      if (pwd && !pwd.dataset.userInteracted) {
         pwd.value = '';
       }
     }
-    window.addEventListener('DOMContentLoaded', clearAutoPassword);
+    window.addEventListener('DOMContentLoaded', () => {
+      const pwd = document.getElementById('id_password');
+      if (pwd) {
+        pwd.addEventListener('input', () => { pwd.dataset.userInteracted = 'true'; });
+      }
+      clearAutoPassword();
+    });
     setTimeout(clearAutoPassword, 150);
     setTimeout(clearAutoPassword, 400);
 

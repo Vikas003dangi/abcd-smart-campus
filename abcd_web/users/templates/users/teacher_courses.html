@@ -2348,9 +2348,13 @@
 
     // ── Background fetch ──
     try {
+      const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value || (typeof csrfToken !== 'undefined' ? csrfToken : '');
       const resp = await fetch(url, {
-        method: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': token
+        }
       });
       if (!resp.ok) throw new Error('Server error');
       const data = await resp.json();

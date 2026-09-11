@@ -2,7 +2,7 @@
 import logging
 logger = logging.getLogger(__name__)
 import requests, os, re, datetime, json, random, threading, time
-from django.db.models import F, Q, Avg, Count
+from django.db.models import F, Q, Avg, Count, Prefetch
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -20,6 +20,7 @@ from .models import (
     StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification,
     BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview,
     CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, StudentCourseInteraction,
+    PerformanceRecord, StudentScore,
     abcd_format_name,
     # Guidy Mentorship & Group Chat Models
     Message, ChatSession, DirectChatSession, GroupChatSession, GroupMessage,
@@ -223,9 +224,6 @@ def home_page_view(request):
     """
     Renders the main landing page of the site.
     """
-    youtube_videos = get_latest_youtube_videos()
-    preview_courses = get_accessible_courses(request.user)[:3]    
-    
     # If user is already logged in, send them where they belong
     if request.user.is_authenticated:
         if request.user.is_staff:
@@ -257,6 +255,8 @@ def home_page_view(request):
 
         return redirect('users:guest_page')
         
+    youtube_videos = get_latest_youtube_videos()
+    preview_courses = get_accessible_courses(request.user)[:3]
     _ach_pool = list(
         StudentAchievement.objects.filter(status='approved')
         .order_by('-id')[:50]
@@ -499,7 +499,8 @@ def courses_view(request):
     # We display all active courses in the catalog, tagging locked ones for pending/guest users
     courses = Course.objects.filter(is_active=True).exclude(target_private=True).annotate(
         avg_rating=Avg('reviews__rating'),
-        total_reviews=Count('reviews')
+        total_reviews=Count('reviews', distinct=True),
+        materials_count=Count('materials', distinct=True)
     ).order_by("-created_at")
 
     accessible_course_ids = set(get_accessible_courses(request.user, dashboard_type=dashboard_type).values_list('id', flat=True))
@@ -518,16 +519,24 @@ def courses_view(request):
             # 'all' tab should hide archived courses unless explicitly in 'archived' tab
             courses = courses.exclude(id__in=archived_ids)
 
-        # Calculate progress and attach interaction & lock flags
+        # Batch lookup completed material access counts for all courses in 1 single query
+        completed_counts = dict(
+            StudentMaterialAccess.objects.filter(student=student, material__course__in=courses)
+            .values('material__course_id')
+            .annotate(cnt=Count('material_id', distinct=True))
+            .values_list('material__course_id', 'cnt')
+        )
+
+        # Attach interaction flags and progress in memory
         for course in courses:
             course.is_favorite = course.id in fav_ids
             course.is_archived = course.id in archived_ids
             course.has_access = course.id in accessible_course_ids
             course.is_locked = not course.has_access
 
-            total_materials = StudyMaterial.objects.filter(course=course).count()
+            total_materials = getattr(course, 'materials_count', 0)
             if total_materials > 0:
-                completed = StudentMaterialAccess.objects.filter(student=student, material__course=course).count()
+                completed = completed_counts.get(course.id, 0)
                 course.progress_percent = int((completed / total_materials) * 100)
             else:
                 course.progress_percent = 0
@@ -978,7 +987,6 @@ def upvote_qa_api(request):
 # DOWNLOAD STUDY MATERIAL
 # ============================
 def download_study_material_view(request, material_id):
-
     material = get_object_or_404(StudyMaterial, id=material_id)
     course = material.course
 
@@ -987,9 +995,26 @@ def download_study_material_view(request, material_id):
         messages.warning(request, "You do not have access to this study material.")
         return redirect("users:courses")
 
+    # Guard: Videos are stream-only (No direct raw video downloads to device)
+    if material.material_type == 'video':
+        messages.info(request, "Video lectures are available for online streaming only and cannot be downloaded to your device.")
+        return redirect("users:course_detail", course_id=course.id)
+
+    # Guard: External links / web resources
+    if material.material_type == 'link' or not material.file:
+        if getattr(material, 'external_url', None):
+            return redirect(material.external_url)
+        messages.info(request, "This resource is available online and cannot be downloaded.")
+        return redirect("users:course_detail", course_id=course.id)
+
     # ✅ Teacher / staff → full access
-    if request.user.is_authenticated and request.user.is_staff:
-        return FileResponse(material.file.open(), as_attachment=True)
+    if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser or is_teacher(request.user)):
+        try:
+            filename = material.get_file_name() if hasattr(material, 'get_file_name') else material.file.name.split('/')[-1]
+            return FileResponse(material.file.open(), as_attachment=True, filename=filename)
+        except (FileNotFoundError, ValueError):
+            messages.error(request, "The requested study notes file is temporarily unavailable.")
+            return redirect("users:course_detail", course_id=course.id)
 
     # ❌ Guest user
     if not request.user.is_authenticated:
@@ -997,9 +1022,8 @@ def download_study_material_view(request, material_id):
         return redirect("users:login")
 
     # Logged in → check admission safely
-    try:
-        student = request.user.profile  # ✅ correct
-    except (StudentProfile.DoesNotExist, AttributeError):
+    student = getattr(request.user, 'profile', None) or StudentProfile.objects.filter(user=request.user).first()
+    if not student:
         messages.warning(
             request,
             "Please complete your admission to access this material."
@@ -1013,8 +1037,13 @@ def download_study_material_view(request, material_id):
         )
         return redirect("users:course_detail", course_id=course.id)
 
-    # ✅ Admitted student → allow download
-    return FileResponse(material.file.open(), as_attachment=True)
+    # ✅ Admitted student → allow download of notes/documents
+    try:
+        filename = material.get_file_name() if hasattr(material, 'get_file_name') else material.file.name.split('/')[-1]
+        return FileResponse(material.file.open(), as_attachment=True, filename=filename)
+    except (FileNotFoundError, ValueError):
+        messages.error(request, "The requested study notes file is temporarily unavailable.")
+        return redirect("users:course_detail", course_id=course.id)
 
 # -------------------------------------------------------------------
 # TEACHER – COURSE MANAGEMENT VIEWS
@@ -1038,10 +1067,12 @@ def teacher_courses_view(request):
 @user_passes_test(is_teacher)
 def teacher_course_preview_view(request, course_id):
     course = get_object_or_404(Course, id=course_id)
-    curriculum = StudyMaterial.objects.filter(course=course).order_by('order', 'created_at')
+    curriculum = StudyMaterial.objects.filter(course=course).annotate(
+        unique_students=Count('student_access', distinct=True)
+    ).order_by('order', 'created_at')
     
-    questions = CourseQuestion.objects.filter(course=course).order_by('-created_at')
-    reviews = CourseReview.objects.filter(course=course).order_by('-created_at')
+    questions = CourseQuestion.objects.filter(course=course).prefetch_related('answers__user', 'user').order_by('-created_at')
+    reviews = CourseReview.objects.filter(course=course).select_related('student__user').order_by('-created_at')
     
     avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
     enrolled_count = StudentProfile.objects.filter(status='admitted').count() # Simple count for now
@@ -1049,20 +1080,12 @@ def teacher_course_preview_view(request, course_id):
     # --- REAL ENGAGEMENT METRICS ---
     share_count = course.shares.count()
     
-    # Calculate unique student access per material
-    # We'll attach a 'unique_students' attribute to each item in curriculum
-    leaderboard_data = []
-    max_students = 0
-    
-    for item in curriculum:
-        count = StudentMaterialAccess.objects.filter(material=item).count()
-        item.unique_students = count
-        leaderboard_data.append(item)
-        if count > max_students:
-            max_students = count
+    # Calculate unique student access per material in memory
+    leaderboard_data = list(curriculum)
+    max_students = max([getattr(item, 'unique_students', 0) for item in leaderboard_data], default=0)
     
     # Sort leaderboard by students descending
-    leaderboard_data.sort(key=lambda x: x.unique_students, reverse=True)
+    leaderboard_data.sort(key=lambda x: getattr(x, 'unique_students', 0), reverse=True)
     
     first_video = curriculum.filter(material_type='video').first()
 
@@ -1089,7 +1112,6 @@ def teacher_course_preview_view(request, course_id):
     })
 
 @csrf_exempt
-@login_required
 def track_engagement_api(request):
     """API endpoint to track course shares and material access."""
     if request.method != "POST":
@@ -1097,11 +1119,13 @@ def track_engagement_api(request):
     
     try:
         data = json.loads(request.body)
-        action = data.get("action") # 'share' or 'access'
+        action = (data.get("action") or "").strip().lower()
+        if action == 'share_intent':
+            action = 'share'
         
         student = None
-        if hasattr(request.user, 'profile'):
-            student = request.user.profile
+        if request.user.is_authenticated:
+            student = getattr(request.user, 'profile', None) or StudentProfile.objects.filter(user=request.user).first()
 
         if action == 'share':
             course_id = data.get("course_id")
@@ -1114,11 +1138,14 @@ def track_engagement_api(request):
             return JsonResponse({"success": True})
             
         elif action == 'access':
+            if not request.user.is_authenticated:
+                return JsonResponse({"error": "Authentication required"}, status=401)
+
             material_id = data.get("material_id")
             material = get_object_or_404(StudyMaterial, id=material_id)
             
             if not student:
-                return JsonResponse({"error": "Only students can track access"}, status=403)
+                return JsonResponse({"error": "Only admitted students can track access"}, status=403)
                 
             # unique_together ensures we only have one record per student-material
             StudentMaterialAccess.objects.get_or_create(
@@ -1356,9 +1383,15 @@ def _send_new_course_notifications_bg(course_id, course_title):
 
 # TOGGLE COURSE ACTIVE/INACTIVE STATUS VIEW
 @login_required
+@require_POST
 @user_passes_test(is_teacher)
 def toggle_course_status(request, course_id):
     course = get_object_or_404(Course, id=course_id)
+
+    # Permission check: course creator or staff/superuser
+    if not (request.user.is_staff or request.user.is_superuser or course.created_by == request.user):
+        return JsonResponse({"success": False, "error": "Permission denied."}, status=403)
+
     course.is_active = not course.is_active
     course.save()
 
@@ -1370,7 +1403,7 @@ def toggle_course_status(request, course_id):
     ).start()
 
     # AJAX request → JSON response (no page reload)
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or 'application/json' in request.headers.get('Accept', ''):
         return JsonResponse({"success": True, "is_active": course.is_active})
 
     return redirect("users:teacher_courses")
@@ -1782,16 +1815,19 @@ def delete_course(request, course_id):
 
 # Delete Study Materials
 @login_required
+@require_POST
 @user_passes_test(is_teacher)
 def delete_study_material(request, material_id):
-    if not (request.user.is_staff or request.user.is_superuser or is_teacher(request.user)):
+    material = get_object_or_404(StudyMaterial, id=material_id)
+    course_id = material.course.id
+
+    # Check ownership: course creator, material uploader, or staff/superuser
+    if not (request.user.is_staff or request.user.is_superuser or material.course.created_by == request.user or material.uploaded_by == request.user):
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
             return JsonResponse({"error": "Permission denied."}, status=403)
         messages.error(request, "Permission denied.")
-        return redirect("users:teacher_courses")
+        return redirect("users:teacher_course_materials", course_id=course_id)
 
-    material = get_object_or_404(StudyMaterial, id=material_id)
-    course_id = material.course.id
     if material.file:
         try:
             material.file.delete(save=False)  # deletes file physically from storage
@@ -2519,15 +2555,18 @@ def forgot_password_request(request):
 
     user = None
     try:
-        user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            prof = StudentProfile.objects.filter(email__iexact=email).select_related('user').first()
-            if prof and prof.user:
-                user = prof.user
-            else:
-                ach = StudentAchievement.objects.filter(email__iexact=email).select_related('user').first()
-                if ach and ach.user:
-                    user = ach.user
+        if request.user.is_authenticated and (not email or (request.user.email and request.user.email.lower() == email.lower())):
+            user = request.user
+        elif email:
+            user = User.objects.filter(email__iexact=email).first()
+            if not user:
+                prof = StudentProfile.objects.filter(email__iexact=email).select_related('user').first()
+                if prof and prof.user:
+                    user = prof.user
+                else:
+                    ach = StudentAchievement.objects.filter(email__iexact=email).select_related('user').first()
+                    if ach and ach.user:
+                        user = ach.user
         if not user and request.user.is_authenticated:
             user = request.user
     except Exception as e:
@@ -2599,6 +2638,7 @@ def forgot_password_request(request):
     otp = f"{random.randint(100000, 999999)}"
     cache_key = f"pwreset_otp_{user.pk}"
     cache.set(cache_key, otp, timeout=300)  # 5 minutes
+    cache.delete(f"pwreset_otp_fails_{user.pk}")
 
     try:
         success = send_html_email(
@@ -2681,24 +2721,83 @@ def verify_otp_view(request):
     email = (request.POST.get('email') or "").strip()
     otp = (request.POST.get('otp') or "").strip()
 
-    if not email or not otp:
+    if not email and request.user.is_authenticated:
+        email = (request.user.email or "").strip()
+        if not email:
+            prof = StudentProfile.objects.filter(user=request.user).first()
+            if prof and prof.email:
+                email = prof.email.strip()
+            else:
+                ach = StudentAchievement.objects.filter(user=request.user).first()
+                if ach and ach.email:
+                    email = ach.email.strip()
+
+    if not otp:
+        return JsonResponse({'status': 'error', 'message': 'OTP code is required'}, status=400)
+    if not email and not request.user.is_authenticated:
         return JsonResponse({'status': 'error', 'message': 'Email and OTP are required'}, status=400)
 
+    user = None
     try:
-        user = User.objects.get(email__iexact=email)
-    except User.DoesNotExist:
+        if request.user.is_authenticated and (not email or (request.user.email and request.user.email.lower() == email.lower())):
+            user = request.user
+        elif email:
+            user = User.objects.filter(email__iexact=email).first()
+            if not user:
+                prof = StudentProfile.objects.filter(email__iexact=email).select_related('user').first()
+                if prof and prof.user:
+                    user = prof.user
+                else:
+                    ach = StudentAchievement.objects.filter(email__iexact=email).select_related('user').first()
+                    if ach and ach.user:
+                        user = ach.user
+        if not user and request.user.is_authenticated:
+            user = request.user
+    except Exception as e:
+        logger.error(f"Error looking up user for OTP verification ({email}): {e}")
+
+    if not user:
         return JsonResponse({'status': 'error', 'message': 'No account found with this email.'}, status=404)
 
     cache_key = f"pwreset_otp_{user.pk}"
-    stored = cache.get(cache_key)
-    if stored and stored == otp:
+    fail_key = f"pwreset_otp_fails_{user.pk}"
+
+    fails = cache.get(fail_key, 0)
+    if fails >= 5:
         cache.delete(cache_key)
+        cache.delete(fail_key)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Too many failed OTP attempts. For security, this code has been invalidated. Please request a new one.'
+        }, status=429)
+
+    stored = cache.get(cache_key)
+    if not stored:
+        return JsonResponse({'status': 'error', 'message': 'Invalid or expired OTP. Please request a new code.'}, status=400)
+
+    import hmac
+    if hmac.compare_digest(str(stored), str(otp)):
+        cache.delete(cache_key)
+        cache.delete(fail_key)
         # store user id in session for reset step
         request.session['pwreset_user_id'] = user.pk
-        request.session.set_expiry(600)  # 10 minutes to complete reset
+        if hasattr(request.session, 'set_expiry'):
+            request.session.set_expiry(600)  # 10 minutes to complete reset
         return JsonResponse({'status': 'ok', 'message': 'OTP verified'})
     else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid or expired OTP'}, status=400)
+        fails += 1
+        cache.set(fail_key, fails, timeout=300)
+        remaining = 5 - fails
+        if remaining > 0:
+            err_msg = f"Invalid OTP code. {remaining} attempt{'s' if remaining != 1 else ''} remaining."
+            return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
+        else:
+            cache.delete(cache_key)
+            cache.delete(fail_key)
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Too many failed OTP attempts. For security, this code has been invalidated. Please request a new one.'
+            }, status=429)
 
 
 def reset_password_view(request):
@@ -2739,6 +2838,11 @@ def reset_password_view(request):
 
     user.set_password(new_password)
     user.save()
+
+    # Update session auth hash to maintain active session for logged-in users
+    if request.user.is_authenticated and request.user.pk == user.pk:
+        from django.contrib.auth import update_session_auth_hash
+        update_session_auth_hash(request, user)
 
     # Update password_last_updated
     from django.utils import timezone
@@ -2918,6 +3022,9 @@ def change_password_view(request):
     Verifies current password (if set) and changes user's password.
     Updates the session to prevent logout.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Authentication required.'}, status=401)
+
     current_password = request.POST.get('current_password')
     new_password = request.POST.get('new_password')
     confirm_password = request.POST.get('confirm_password')
@@ -3266,6 +3373,13 @@ def admission_form_view(request):
                                 defaults={'status': 'available'}
                             )
                         
+                        # Seat Lock Validation
+                        if seat.is_locked:
+                            raise ValidationError(f"Seat {seat.seat_number} is currently locked by administration and cannot be selected.")
+                        locked_shifts_list = [s.strip().lower() for s in (seat.locked_shifts or '').split(',') if s.strip()]
+                        if selected_shift.lower() in locked_shifts_list:
+                            raise ValidationError(f"The {selected_shift} shift for Seat {seat.seat_number} is currently locked.")
+                        
                         # Shift enforcement
                         is_strict_shift_seat = (selected_floor == 'Ground Floor' and 40 <= int(selected_seat_num) <= 53)
                         if seat.is_shift_enabled != is_strict_shift_seat:
@@ -3317,8 +3431,8 @@ def admission_form_view(request):
                                             "dashboard_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"
                                         }
                                     ))
-                                    submission_success_message = 'Temporary seat request submitted! Teacher will review it. Please log in again to check status.'
-                                    final_redirect = 'users:login'
+                                    submission_success_message = 'Temporary seat request submitted! Teacher will review it.' if has_profile else 'Temporary seat request submitted! Teacher will review it. Please log in again to check status.'
+                                    final_redirect = 'users:student_dashboard' if has_profile else 'users:login'
                                 else:
                                     raise ValidationError(f"A temporary request for Seat {seat.seat_number} ({selected_shift}) is already pending.")
                             else:
@@ -3365,8 +3479,8 @@ def admission_form_view(request):
                                     "dashboard_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"
                                 }
                             ))
-                            submission_success_message = 'Admission form submitted successfully! Your library seat request is pending approval. Log in again to access your dashboard once approved.'
-                            final_redirect = 'users:login'
+                            submission_success_message = 'Admission form submitted successfully! Your library seat request is pending approval.' if has_profile else 'Admission form submitted successfully! Your library seat request is pending approval. Log in again to access your dashboard once approved.'
+                            final_redirect = 'users:student_dashboard' if has_profile else 'users:login'
 
                     # 4. Coaching Logic
                     else:
@@ -3385,8 +3499,8 @@ def admission_form_view(request):
                                 "dashboard_url": f"{settings.SITE_URL}{reverse('users:teacher_dashboard')}"
                             }
                         ))
-                        submission_success_message = 'Admission form submitted successfully! Please wait for teacher approval. Log in again to access your dashboard once approved.'
-                        final_redirect = 'users:login'
+                        submission_success_message = 'Admission form submitted successfully! Please wait for teacher approval.' if has_profile else 'Admission form submitted successfully! Please wait for teacher approval. Log in again to access your dashboard once approved.'
+                        final_redirect = 'users:student_dashboard' if has_profile else 'users:login'
 
                     # Link any user-level special seat requests to the new student profile
                     SeatSpecialRequest.objects.filter(user=request.user, student__isnull=True).update(student=student_profile)
@@ -3398,10 +3512,10 @@ def admission_form_view(request):
                     except Exception as e:
                         logger.error(f"Admission Form Post-Action Email Error: {e}")
 
-                if final_redirect == 'users:login':
+                if final_redirect == 'users:login' and not has_profile:
                     from django.contrib.auth import logout
                     logout(request)
-                    messages.success(request, submission_success_message)
+                messages.success(request, submission_success_message)
                 
                 if is_ajax:
                     return JsonResponse({
@@ -3439,7 +3553,6 @@ def admission_form_view(request):
     
 # -------------------------------------------------------------------
 # API VIEW: Records interest in an occupied seat
-@login_required
 @require_POST
 def seat_interest_api(request):
     """
@@ -3455,15 +3568,16 @@ def seat_interest_api(request):
         if not seat_number or not floor:
             return JsonResponse({"error": "Invalid data"}, status=400)
 
-        track_visitor_intent(
-            request.user,
-            "selected_library_seat",
-            metadata={
-                "seat_number": str(seat_number),
-                "floor": floor,
-                "intent_scope": "specific"
-            }
-        )
+        if request.user.is_authenticated:
+            track_visitor_intent(
+                request.user,
+                "selected_library_seat",
+                metadata={
+                    "seat_number": str(seat_number),
+                    "floor": floor,
+                    "intent_scope": "specific"
+                }
+            )
 
         return JsonResponse({"status": "ok"})
 
@@ -3784,8 +3898,7 @@ def get_public_seat_status_api(request):
             'morning_hold_remaining_days': morning_hold_remaining_days,
             'evening_hold_remaining_days': evening_hold_remaining_days,
             'full_day_hold_remaining_days': full_day_hold_remaining_days,
-            'morning_hold_student_id': morning_hold_student_id,
-            'evening_hold_student_id': evening_hold_student_id,
+            'same_hold_owner': bool(morning_hold_student_id and morning_hold_student_id == evening_hold_student_id),
             'morning_temp_allotted': morning_temp_allotted,
             'evening_temp_allotted': evening_temp_allotted,
             'has_pending_temp_request': has_pending_temp_request,
@@ -3810,7 +3923,7 @@ def student_dashboard_view(request):
     try:
         profile = StudentProfile.objects.select_related('seat').get(user=request.user)
         # If student profile is just an empty skeleton (no DOB and not admitted), send to guest page or alumni
-        if not profile.is_admitted and not profile.dob and not profile.father_name:
+        if not profile.is_admitted and not profile.dob:
             achievement = StudentAchievement.objects.filter(user=request.user).first()
             if achievement:
                 return redirect('users:alumni_dashboard')
@@ -3864,13 +3977,17 @@ def student_dashboard_view(request):
 
         # --- LEADERBOARD LOGIC ---
         if profile.service_type == 'Coaching' and profile.batch:
-            from .models import PerformanceRecord
-            records = PerformanceRecord.objects.filter(batch=profile.batch).order_by('-created_at')[:5]
+            records = PerformanceRecord.objects.filter(batch=profile.batch).prefetch_related(
+                Prefetch(
+                    'scores',
+                    queryset=StudentScore.objects.select_related('student').order_by('-marks_obtained')
+                )
+            ).order_by('-created_at')[:5]
             
             records_list = []
             for r in records:
                 scores = []
-                for s in r.scores.all().order_by('-marks_obtained'):
+                for s in r.scores.all():
                     s_photo_url = None
                     if s.student and s.student.photo:
                         try:
@@ -4029,7 +4146,7 @@ def your_seat_status_view(request):
     # Access the seat via ForeignKey
     seat = profile.seat
 
-    if profile.service_type != 'Library' or not seat:
+    if profile.service_type not in ['Library', 'Both'] or not seat:
         messages.error(request, "This page is only for admitted library students with an assigned seat.")
         return redirect('users:student_dashboard')
 
@@ -4106,31 +4223,38 @@ def your_seat_status_view(request):
     }
     return render(request, 'users/your_seat_status.html', context)
 
+def _get_or_create_complainant_profile(user):
+    """Safely resolve or provision a StudentProfile for students and alumni."""
+    if not user.is_authenticated:
+        return None
+    student = getattr(user, 'profile', None) or StudentProfile.objects.filter(user=user).first()
+    if student:
+        return student
+    if hasattr(user, 'achievements') and user.achievements.exists():
+        ach = user.achievements.first()
+        student, _ = StudentProfile.objects.get_or_create(
+            user=user,
+            defaults={
+                'full_name': abcd_format_name(f"{ach.first_name} {ach.last_name}"),
+                'mobile_number': ach.mobile_number or "N/A",
+                'whatsapp_number': ach.whatsapp_number or "N/A",
+                'sex': ach.gender or 'Other',
+                'service_type': ach.services_used.capitalize() if ach.services_used in ['library', 'coaching'] else 'Coaching',
+                'status': 'pending',
+                'is_admitted': False,
+            }
+        )
+        return student
+    return None
+
 # -------------------------------------------------------------------
 # VIEW: Renders the "Student Complaints" page
 # -------------------------------------------------------------------
 @login_required
 def student_complaints_view(request):
-    # each user has one StudentProfile linked as user.profile
-    try:
-        student = request.user.profile  # StudentProfile instance
-    except Exception:
-        # If no profile, check if they are an Alumni (have an achievement)
-        if hasattr(request.user, 'achievements') and request.user.achievements.exists():
-            ach = request.user.achievements.first()
-            # Create a student profile for the alumni so they can use the complaints system
-            student = StudentProfile.objects.create(
-                user=request.user,
-                full_name=abcd_format_name(f"{ach.first_name} {ach.last_name}"),
-                mobile_number=ach.mobile_number or "N/A",
-                whatsapp_number=ach.whatsapp_number or "N/A",
-                sex=ach.gender,
-                service_type=ach.services_used.capitalize() if ach.services_used in ['library', 'coaching'] else 'Coaching',
-                status='pending', 
-                is_admitted=False
-            )
-        else:
-            return HttpResponseForbidden("You are not linked to a student profile.")
+    student = _get_or_create_complainant_profile(request.user)
+    if not student:
+        return HttpResponseForbidden("You are not linked to a student profile.")
 
     # Get current role from session (default to student)
     current_role = request.session.get('active_dashboard', 'student')
@@ -4171,6 +4295,8 @@ def student_complaints_view(request):
                 "users:student_complaints_success",
                 complaint_id=complaint.id,
             )
+        else:
+            messages.error(request, "Please correct the highlighted errors in your complaint submission.")
     else:
         form = ComplaintForm()
 
@@ -4190,17 +4316,9 @@ def student_complaints_view(request):
 # -------------------------------------------------------------------
 @login_required
 def student_complaints_success_view(request, complaint_id):
-    try:
-        student = request.user.profile
-    except Exception:
-        # Check if they are an alumni with a freshly created profile
-        if hasattr(request.user, 'achievements') and request.user.achievements.exists():
-            from .models import StudentProfile
-            student = StudentProfile.objects.filter(user=request.user).first()
-            if not student:
-                return HttpResponseForbidden("You are not linked to a student profile.")
-        else:
-            return HttpResponseForbidden("You are not linked to a student profile.")
+    student = _get_or_create_complainant_profile(request.user)
+    if not student:
+        return HttpResponseForbidden("You are not linked to a student profile.")
 
     complaint = get_object_or_404(Complaint, id=complaint_id, student=student)
 
@@ -4223,17 +4341,9 @@ def student_complaints_success_view(request, complaint_id):
 # -------------------------------------------------------------------
 @login_required
 def submit_complaint_rating(request, complaint_id):
-    try:
-        student = request.user.profile  # StudentProfile
-    except Exception:
-        # Check if they are an alumni with a freshly created profile
-        if hasattr(request.user, 'achievements') and request.user.achievements.exists():
-            from .models import StudentProfile
-            student = StudentProfile.objects.filter(user=request.user).first()
-            if not student:
-                return HttpResponseForbidden("You are not linked to a student profile.")
-        else:
-            return HttpResponseForbidden("You are not linked to a student profile.")
+    student = _get_or_create_complainant_profile(request.user)
+    if not student:
+        return HttpResponseForbidden("You are not linked to a student profile.")
 
     complaint = get_object_or_404(
         Complaint, id=complaint_id, student=student
@@ -4414,14 +4524,10 @@ def humanize_duration(td):
 # -------------------------------------------------------------------
 # VIEW: Renders the public "Resolved Complaints" page
 def public_resolved_complaints(request):
-    # Filter for resolved AND rating >= 3
-    complaints = Complaint.objects.filter(status='resolved', rating__gte=3).order_by('-updated_at')
-  
-    for c in complaints:
-        if c.updated_at and c.created_at:
-            c.resolution_time = humanize_duration(c.updated_at - c.created_at)
-        else:
-            c.resolution_time = None
+    # Filter for resolved AND rating >= 3, with student profile joined
+    complaints = Complaint.objects.filter(
+        status='resolved', rating__gte=3
+    ).select_related('student').order_by('-updated_at')
 
     paginator = Paginator(complaints, 5)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -4432,6 +4538,7 @@ def public_resolved_complaints(request):
 # -------------------------------------------------------------------
 # VIEW: Handles "Delete Complaint" (teacher only)
 @login_required
+@require_POST
 @user_passes_test(lambda u: u.is_staff)
 def delete_complaint(request, complaint_id):
     complaint = get_object_or_404(Complaint, id=complaint_id)
@@ -4443,6 +4550,10 @@ def delete_complaint(request, complaint_id):
             except Exception:
                 pass
     complaint.delete()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({"success": True, "message": "Complaint deleted permanently."})
+
     messages.success(request, "Complaint deleted permanently.")
     return redirect('users:teacher_dashboard')
 # -------------------------------------------------------------------
@@ -5921,6 +6032,7 @@ def get_student_list_api(request):
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
+@transaction.atomic
 def seat_action_api(request):
     """
     API endpoint for seat actions (allot, free, approve, etc.)
@@ -5974,20 +6086,13 @@ def seat_action_api(request):
                 status=400
             )
 
-        # Execute within atomic transaction - with retry on database lock
-        @retry_on_db_lock(max_retries=5, initial_delay=0.1)
-        def execute_seat_action():
-            with transaction.atomic():
-                # Lock the row to prevent race conditions
-                seat, created = Seat.objects.select_for_update().get_or_create(
-                    floor=floor, 
-                    seat_number=seat_number,
-                    defaults={'status': 'available'}
-                )
-                return seat, created
-
+        # Lock the row to prevent race conditions across the entire mutation
         try:
-            seat, created = execute_seat_action()
+            seat, created = Seat.objects.select_for_update().get_or_create(
+                floor=floor, 
+                seat_number=seat_number,
+                defaults={'status': 'available'}
+            )
         except OperationalError as e:
             if 'database is locked' in str(e).lower():
                 return JsonResponse({
@@ -7898,36 +8003,63 @@ def upload_profile_photo(request, student_id):
     if request.method == 'POST':
         photo_file = request.FILES.get('photo')
         photo_base64 = request.POST.get('photo_base64')
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
         
         if photo_base64:
-            print("DEBUG: Processing base64 photo")
             try:
                 import base64
+                import io
+                from PIL import Image
                 from django.core.files.base import ContentFile
+                
+                if ';base64,' not in photo_base64:
+                    return JsonResponse({'status': 'error', 'message': 'Invalid photo payload.'}, status=400)
+                
                 format, imgstr = photo_base64.split(';base64,')
-                ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=f"profile_{student_id}.{ext}")
+                raw_ext = format.split('/')[-1].lower()
+                ext = 'jpg' if raw_ext in ('jpeg', 'jpg') else ('png' if raw_ext == 'png' else 'webp')
+                if ext not in allowed_extensions:
+                    return JsonResponse({'status': 'error', 'message': 'Allowed formats: JPG, PNG, WEBP.'}, status=400)
+                
+                decoded_data = base64.b64decode(imgstr)
+                if len(decoded_data) > 5 * 1024 * 1024:
+                    return JsonResponse({'status': 'error', 'message': 'Image exceeds 5MB limit.'}, status=400)
+                
+                image = Image.open(io.BytesIO(decoded_data))
+                image.verify()
+                
+                data = ContentFile(decoded_data, name=f"profile_{student_id}.{ext}")
+                if student.photo:
+                    student.photo.delete(save=False)
                 student.photo = data
                 student.save()
-                print("DEBUG: Base64 student saved successfully")
                 return JsonResponse({'status': 'success'})
             except Exception as e:
-                print(f"DEBUG: Base64 error: {str(e)}")
-                return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+                return JsonResponse({'status': 'error', 'message': f'Invalid image data: {str(e)}'}, status=400)
                 
         elif photo_file:
-            print(f"DEBUG: File received: {photo_file.name}, size: {photo_file.size}")
             try:
+                from PIL import Image
+                ext = (photo_file.name.split('.')[-1] if '.' in photo_file.name else '').lower()
+                if ext not in allowed_extensions:
+                    return JsonResponse({'status': 'error', 'message': 'Allowed formats: JPG, PNG, WEBP.'}, status=400)
+                    
+                if photo_file.size > 5 * 1024 * 1024:
+                    return JsonResponse({'status': 'error', 'message': 'File size exceeds 5MB limit.'}, status=400)
+                
+                image = Image.open(photo_file)
+                image.verify()
+                photo_file.seek(0)
+                
+                if student.photo:
+                    student.photo.delete(save=False)
                 student.photo = photo_file
                 student.save()
-                print("DEBUG: Student saved successfully")
                 return JsonResponse({'status': 'success'})
             except Exception as e:
-                print(f"DEBUG: Save error: {str(e)}")
-                return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+                return JsonResponse({'status': 'error', 'message': f'Invalid image file: {str(e)}'}, status=400)
     
-    print("DEBUG: No file received or not POST")
-    return JsonResponse({'status': 'error', 'message': 'No file received'}, status=400)
+        return JsonResponse({'status': 'error', 'message': 'No file received'}, status=400)
 
 
 @login_required
@@ -8633,265 +8765,274 @@ def process_fees_view(request, student_id):
         if not explicit_day:
             explicit_day = timezone.localdate().day
 
-        for action_data in actions:
-            action_type = action_data.get('action')
-            
-            if action_type == 'clear_expiry':
-                student.fee_expiry_date = None
-                student.save(update_fields=['fee_expiry_date'])
-                return JsonResponse({'status': 'success', 'message': 'Expiry date cleared successfully.'})
+        trans_record = None
+        with transaction.atomic():
+            for action_data in actions:
+                action_type = action_data.get('action')
+                
+                if action_type == 'clear_expiry':
+                    student.fee_expiry_date = None
+                    student.save(update_fields=['fee_expiry_date'])
+                    return JsonResponse({'status': 'success', 'message': 'Expiry date cleared successfully.'})
 
-            month = action_data.get('month')
-            year = action_data.get('year')
-            
-            year_int = int(year)
-            month_num = month_map.get(month, 1)
-            
-            if year_int > latest_year or (year_int == latest_year and month_num > latest_month_num):
-                latest_year = year_int
-                latest_month_num = month_num
+                month = action_data.get('month')
+                year = action_data.get('year')
+                
+                year_int = int(year)
+                month_num = month_map.get(month, 1)
+                
+                if year_int > latest_year or (year_int == latest_year and month_num > latest_month_num):
+                    latest_year = year_int
+                    latest_month_num = month_num
 
-            if selected_year_for_notification is None:
-                selected_year_for_notification = year
+                if selected_year_for_notification is None:
+                    selected_year_for_notification = year
 
-            # If we are only building notification details on final dispatch (payments already saved):
-            if final_dispatch:
-                if action_type in ['add_fee', 'edit_fee']:
-                    amount_val = int(action_data.get('amount', 0))
-                    payment_date_str = action_data.get('payment_date')
-                    payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
-                    
-                    notification_details.append(
-                        f"{month} (₹{amount_val} on {payment_date.strftime('%d-%b-%Y')})"
-                    )
-                    details_list_dicts.append({
-                        "month": month,
-                        "year": year,
-                        "amount": amount_val,
-                        "date": payment_date.strftime('%d %b %Y'),
-                        "type": "paid"
-                    })
-                elif action_type == 'mark_as_paid':
-                    payment = Payment.objects.filter(student=student, month=month, year=year).first()
-                    p_date = payment.date_paid if payment and payment.date_paid else timezone.localdate()
-                    notification_details.append(
-                        f"{month} marked as paid on {p_date.strftime('%d %b %Y')}"
-                    )
-                    details_list_dicts.append({
-                        "month": month,
-                        "year": year,
-                        "amount": 0,
-                        "date": p_date.strftime('%d %b %Y'),
-                        "type": "marked"
-                    })
-                elif action_type == 'delete_fee':
-                    notification_details.append(
-                        f"{month} payment cleared"
-                    )
-                    details_list_dicts.append({
-                        "month": month,
-                        "year": year,
-                        "amount": 0,
-                        "date": "",
-                        "type": "deleted"
-                    })
-            else:
-                # Ordinary processing or save_only
-                if action_type == 'delete_fee':
-                    Payment.objects.filter(student=student, month=month, year=year).delete()
-                    notification_details.append(
-                        f"{month} payment cleared"
-                    )
-                    details_list_dicts.append({
-                        "month": month,
-                        "year": year,
-                        "amount": 0,
-                        "date": "",
-                        "type": "deleted"
-                    })
-                else:
-                    payment, created = Payment.objects.get_or_create(
-                        student=student, month=month, year=year, defaults={'amount': 0}
-                    )
-
-                    if action_type == 'add_fee':
-                        amount_to_add = int(action_data.get('amount', 0))
+                # If we are only building notification details on final dispatch (payments already saved):
+                if final_dispatch:
+                    if action_type in ['add_fee', 'edit_fee']:
+                        amount_val = int(action_data.get('amount', 0))
                         payment_date_str = action_data.get('payment_date')
                         payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
                         
-                        payment.date_paid = payment_date
-                        payment.amount = F('amount') + amount_to_add
-                        payment.save()
-                        
-                        payment.refresh_from_db()
                         notification_details.append(
-                            f"{month} (Added ₹{amount_to_add}, Total: ₹{payment.amount} on {payment_date.strftime('%d-%b-%Y')})"
+                            f"{month} (₹{amount_val} on {payment_date.strftime('%d-%b-%Y')})"
                         )
                         details_list_dicts.append({
                             "month": month,
                             "year": year,
-                            "amount": amount_to_add,
+                            "amount": amount_val,
                             "date": payment_date.strftime('%d %b %Y'),
                             "type": "paid"
                         })
-
-                    elif action_type == 'edit_fee':
-                        amount_to_edit = int(action_data.get('amount', 0))
-                        payment_date_str = action_data.get('payment_date')
-                        payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
-                        
-                        payment.date_paid = payment_date
-                        payment.amount = amount_to_edit
-                        payment.save()
-                        
-                        payment.refresh_from_db()
-                        notification_details.append(
-                            f"{month} (Edited to ₹{payment.amount} on {payment_date.strftime('%d-%b-%Y')})"
-                        )
-                        details_list_dicts.append({
-                            "month": month,
-                            "year": year,
-                            "amount": amount_to_edit,
-                            "date": payment_date.strftime('%d %b %Y'),
-                            "type": "paid"
-                        })
-
                     elif action_type == 'mark_as_paid':
-                        if created:
-                            import calendar
-                            _, last_day = calendar.monthrange(year_int, month_num)
-                            day_to_use = min(explicit_day, last_day)
-                            payment.date_paid = datetime(year_int, month_num, day_to_use).date()
-                            payment.save()
+                        payment = Payment.objects.filter(student=student, month=month, year=year).first()
+                        p_date = payment.date_paid if payment and payment.date_paid else timezone.localdate()
                         notification_details.append(
-                            f"{month} marked as paid on {payment.date_paid.strftime('%d %b %Y')}"
+                            f"{month} marked as paid on {p_date.strftime('%d %b %Y')}"
                         )
                         details_list_dicts.append({
                             "month": month,
                             "year": year,
                             "amount": 0,
-                            "date": payment.date_paid.strftime('%d %b %Y'),
+                            "date": p_date.strftime('%d %b %Y'),
                             "type": "marked"
                         })
-        
-        is_clear_expiry = any(a.get('action') == 'clear_expiry' for a in actions)
-        
-        # Calculate and update fee_expiry_date
-        if actions and not is_clear_expiry:
-            from dateutil.relativedelta import relativedelta
-            import calendar
-            
-            # 1. Run the chain rule to sync all dates properly
-            base_year, base_month, base_day = sync_student_fee_chain(student)
-            
-            if use_default_expiry:
-                if base_year is not None:
-                    next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
-                    _, last_day = calendar.monthrange(next_month_date.year, next_month_date.month)
-                    final_day = min(base_day, last_day)
-                    
-                    student.fee_expiry_date = datetime(next_month_date.year, next_month_date.month, final_day).date()
-                    
-                    # Extend expiry by actual hold days
-                    hold_days = calculate_hold_extension_days(student)
-                    if hold_days > 0 and student.fee_expiry_date:
-                        student.fee_expiry_date += timedelta(days=hold_days)
+                    elif action_type == 'delete_fee':
+                        notification_details.append(
+                            f"{month} payment cleared"
+                        )
+                        details_list_dicts.append({
+                            "month": month,
+                            "year": year,
+                            "amount": 0,
+                            "date": "",
+                            "type": "deleted"
+                        })
                 else:
-                    student.fee_expiry_date = None
+                    # Ordinary processing or save_only
+                    if action_type == 'delete_fee':
+                        Payment.objects.filter(student=student, month=month, year=year).delete()
+                        notification_details.append(
+                            f"{month} payment cleared"
+                        )
+                        details_list_dicts.append({
+                            "month": month,
+                            "year": year,
+                            "amount": 0,
+                            "date": "",
+                            "type": "deleted"
+                        })
+                    else:
+                        payment, created = Payment.objects.get_or_create(
+                            student=student, month=month, year=year, defaults={'amount': 0}
+                        )
+
+                        if action_type == 'add_fee':
+                            amount_to_add = int(action_data.get('amount', 0))
+                            payment_date_str = action_data.get('payment_date')
+                            payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+                            
+                            payment.date_paid = payment_date
+                            payment.amount = F('amount') + amount_to_add
+                            payment.save()
+                            
+                            payment.refresh_from_db()
+                            notification_details.append(
+                                f"{month} (Added ₹{amount_to_add}, Total: ₹{payment.amount} on {payment_date.strftime('%d-%b-%Y')})"
+                            )
+                            details_list_dicts.append({
+                                "month": month,
+                                "year": year,
+                                "amount": amount_to_add,
+                                "date": payment_date.strftime('%d %b %Y'),
+                                "type": "paid"
+                            })
+
+                        elif action_type == 'edit_fee':
+                            amount_to_edit = int(action_data.get('amount', 0))
+                            payment_date_str = action_data.get('payment_date')
+                            payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+                            
+                            payment.date_paid = payment_date
+                            payment.amount = amount_to_edit
+                            payment.save()
+                            
+                            payment.refresh_from_db()
+                            notification_details.append(
+                                f"{month} (Edited to ₹{payment.amount} on {payment_date.strftime('%d-%b-%Y')})"
+                            )
+                            details_list_dicts.append({
+                                "month": month,
+                                "year": year,
+                                "amount": amount_to_edit,
+                                "date": payment_date.strftime('%d %b %Y'),
+                                "type": "paid"
+                            })
+
+                        elif action_type == 'mark_as_paid':
+                            if created:
+                                import calendar
+                                _, last_day = calendar.monthrange(year_int, month_num)
+                                day_to_use = min(explicit_day, last_day)
+                                payment.date_paid = datetime(year_int, month_num, day_to_use).date()
+                                payment.save()
+                            notification_details.append(
+                                f"{month} marked as paid on {payment.date_paid.strftime('%d %b %Y')}"
+                            )
+                            details_list_dicts.append({
+                                "month": month,
+                                "year": year,
+                                "amount": 0,
+                                "date": payment.date_paid.strftime('%d %b %Y'),
+                                "type": "marked"
+                            })
+            
+            is_clear_expiry = any(a.get('action') == 'clear_expiry' for a in actions)
+            
+            # Calculate and update fee_expiry_date
+            if actions and not is_clear_expiry:
+                from dateutil.relativedelta import relativedelta
+                import calendar
                 
-                student.save()
-            elif expiry_date_str:
-                student.fee_expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
-                student.save()
-        else:
-            # Direct edit of expiry date without fee actions
-            if expiry_date_str:
-                student.fee_expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
-                student.save()
-                if save_only:
-                    return JsonResponse({
-                        'status': 'success',
-                        'message': 'Expiry date updated successfully!',
-                        'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
-                    })
-                return JsonResponse({'status': 'success', 'message': 'Expiry date updated successfully!'})
+                # 1. Run the chain rule to sync all dates properly
+                base_year, base_month, base_day = sync_student_fee_chain(student)
+                
+                if use_default_expiry:
+                    if base_year is not None:
+                        next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
+                        _, last_day = calendar.monthrange(next_month_date.year, next_month_date.month)
+                        final_day = min(base_day, last_day)
+                        
+                        student.fee_expiry_date = datetime(next_month_date.year, next_month_date.month, final_day).date()
+                        
+                        # Extend expiry by actual hold days
+                        hold_days = calculate_hold_extension_days(student)
+                        if hold_days > 0 and student.fee_expiry_date:
+                            student.fee_expiry_date += timedelta(days=hold_days)
+                    else:
+                        student.fee_expiry_date = None
+                    
+                    student.save()
+                elif expiry_date_str:
+                    student.fee_expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
+                    student.save()
+            else:
+                # Direct edit of expiry date without fee actions
+                if expiry_date_str:
+                    student.fee_expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
+                    student.save()
+                    if save_only:
+                        return JsonResponse({
+                            'status': 'success',
+                            'message': 'Expiry date updated successfully!',
+                            'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
+                        })
+                    return JsonResponse({'status': 'success', 'message': 'Expiry date updated successfully!'})
 
-        # If it's a save_only AJAX call from a single month card:
-        if save_only:
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Saved successfully',
-                'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
-            })
+            # If it's a save_only AJAX call from a single month card:
+            if save_only:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Saved successfully',
+                    'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
+                })
 
-        if notification_details:
-            teacher_name = request.user.username 
+            if notification_details:
+                teacher_name = request.user.username 
 
-            # STUDENT DASHBOARD NOTIFICATION
-            today_str = timezone.localdate().strftime("%d %b %Y")
-            details_text = "\n".join(notification_details)
+                # STUDENT DASHBOARD NOTIFICATION
+                today_str = timezone.localdate().strftime("%d %b %Y")
+                details_text = "\n".join(notification_details)
 
-            msg = "Your fee has been submitted successfully.\nCheck your email/WhatsApp to download receipt."
-            if not student.user.email:
-                msg += "\n\nAdd your email in profile settings to receive receipts."
-            if not student.whatsapp_number:
-                msg += "\nAdd your WhatsApp number in profile settings to receive receipts."
+                msg = "Your fee has been submitted successfully.\nCheck your email/WhatsApp to download receipt."
+                if student.user:
+                    if not getattr(student.user, 'email', None):
+                        msg += "\n\nAdd your email in profile settings to receive receipts."
+                    if not student.whatsapp_number:
+                        msg += "\nAdd your WhatsApp number in profile settings to receive receipts."
 
-            create_notification(
-                user=student.user,
-                title="Fee Submitted Successfully",
-                message=msg,
-                category="payment",
-                link="/dashboard/"
+                    create_notification(
+                        user=student.user,
+                        title="Fee Submitted Successfully",
+                        message=msg,
+                        category="payment",
+                        link="/dashboard/"
+                    )
+
+                # --- ABCD NEW ACCOUNTING INTEGRATION ---
+                try:
+                    # 1. Build immutable month snapshots
+                    fee_snapshots = []
+                    total_trans_amount = 0
+                    
+                    for item in details_list_dicts:
+                        # Skip cleared/deleted months from receipt snapshots
+                        if item.get("type") == "deleted":
+                            continue
+
+                        # Deriving year suffix (e.g. 2026 -> 26)
+                        y_suffix = str(item.get("year"))[-2:]
+                        m_display = f"({y_suffix}) {item.get('month')}"
+                        amt = item.get("amount")
+                        
+                        # Requirement: If amount is 0 but marked paid, show "Paid" text in snapshot
+                        amt_display = amt if amt > 0 else "Paid"
+                        
+                        fee_snapshots.append({
+                            "month": m_display,
+                            "amount": amt_display,
+                            "status": "paid"
+                        })
+                        if isinstance(amt, (int, float)):
+                            total_trans_amount += amt
+
+                    # 2. Capture snapshots and create transaction
+                    if fee_snapshots:
+                        trans_record = FeeTransaction.objects.create(
+                            student=student,
+                            teacher=request.user,
+                            receipt_number=FeeTransaction.generate_receipt_number(),
+                            payment_date=timezone.localdate(),
+                            expiry_date=student.fee_expiry_date,
+                            service_snapshot=get_student_service_details(student),
+                            months_snapshot=fee_snapshots,
+                            total_amount=total_trans_amount
+                        )
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).error(f"CRITICAL: FeeTransaction creation failed: {e}")
+
+        # Start thread after transaction commits
+        if trans_record:
+            # --- ABCD RECEIPT DISPATCH IN BACKGROUND THREAD ---
+            import threading
+            t = threading.Thread(
+                target=send_receipt_notifications_async,
+                args=(trans_record.id, student.id)
             )
-
-            # --- ABCD NEW ACCOUNTING INTEGRATION ---
-            try:
-                # 1. Build immutable month snapshots
-                fee_snapshots = []
-                total_trans_amount = 0
-                
-                for item in details_list_dicts:
-                    # Deriving year suffix (e.g. 2026 -> 26)
-                    y_suffix = str(item.get("year"))[-2:]
-                    m_display = f"({y_suffix}) {item.get('month')}"
-                    amt = item.get("amount")
-                    
-                    # Requirement: If amount is 0 but marked paid, show "Paid" text in snapshot
-                    amt_display = amt if amt > 0 else "Paid"
-                    
-                    fee_snapshots.append({
-                        "month": m_display,
-                        "amount": amt_display,
-                        "status": "paid"
-                    })
-                    if isinstance(amt, (int, float)):
-                        total_trans_amount += amt
-
-                # 2. Capture snapshots and create transaction
-                if fee_snapshots:
-                    transaction = FeeTransaction.objects.create(
-                        student=student,
-                        teacher=request.user,
-                        receipt_number=FeeTransaction.generate_receipt_number(),
-                        payment_date=timezone.localdate(),
-                        expiry_date=student.fee_expiry_date,
-                        service_snapshot=get_student_service_details(student),
-                        months_snapshot=fee_snapshots,
-                        total_amount=total_trans_amount
-                    )
-
-                    # --- ABCD RECEIPT DISPATCH IN BACKGROUND THREAD ---
-                    import threading
-                    t = threading.Thread(
-                        target=send_receipt_notifications_async,
-                        args=(transaction.id, student.id)
-                    )
-                    t.daemon = True
-                    t.start()
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(f"CRITICAL: FeeTransaction creation failed: {e}")
+            t.daemon = True
+            t.start()
 
         return JsonResponse({
             'status': 'success',
@@ -8910,50 +9051,52 @@ def delete_payment_view(request, student_id, year, month_name):
         return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
     
     try:
-        payment = get_object_or_404(
-            Payment,
-            student_id=student_id,
-            year=year,
-            month=month_name
-        )
-        student = payment.student
-        payment.delete()
-        
-        # Recalculate expiry date
-        from dateutil.relativedelta import relativedelta
-        import calendar
-        from django.utils import timezone
-        
-        base_year, base_month, base_day = sync_student_fee_chain(student)
-        
-        if base_year is not None:
-            next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
-            _, last_day = calendar.monthrange(next_month_date.year, next_month_date.month)
-            final_day = min(base_day, last_day)
-            
-            student.fee_expiry_date = datetime(next_month_date.year, next_month_date.month, final_day).date()
-            # Extend expiry by actual hold days
-            hold_days = calculate_hold_extension_days(student)
-            if hold_days > 0:
-                student.fee_expiry_date += timedelta(days=hold_days)
-        else:
-            student.fee_expiry_date = None
-            
-        student.save()
-        
-        student.save()
+        with transaction.atomic():
+            payment = Payment.objects.filter(
+                student_id=student_id,
+                year=year,
+                month=month_name
+            ).first()
 
-        return JsonResponse({
-            'status': 'success',
-            'message': f'{month_name} {year} has been cleared.'
-        })
+            if not payment:
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f'No payment record found to clear for {month_name} {year}.'
+                })
+
+            student = payment.student
+            payment.delete()
+            
+            # Recalculate expiry date
+            from dateutil.relativedelta import relativedelta
+            import calendar
+            from django.utils import timezone
+            
+            base_year, base_month, base_day = sync_student_fee_chain(student)
+            
+            if base_year is not None:
+                next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
+                _, last_day = calendar.monthrange(next_month_date.year, next_month_date.month)
+                final_day = min(base_day, last_day)
+                
+                student.fee_expiry_date = datetime(next_month_date.year, next_month_date.month, final_day).date()
+                # Extend expiry by actual hold days
+                hold_days = calculate_hold_extension_days(student)
+                if hold_days > 0:
+                    student.fee_expiry_date += timedelta(days=hold_days)
+            else:
+                student.fee_expiry_date = None
+                
+            student.save()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f'{month_name} {year} has been cleared.'
+            })
     
-    except Payment.DoesNotExist:
-        return JsonResponse({
-            'status': 'success',
-            'message': 'No payment record found to clear.'
-        })
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception(f"Error in delete_payment_view: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
 # ======================================================
@@ -9651,19 +9794,18 @@ def save_push_subscription(request):
 # ======================================================
 
 @login_required
+@require_POST
 def toggle_material_privacy(request, material_id):
-    if request.method == 'POST':
-        try:
-            material = StudyMaterial.objects.get(id=material_id)
-            # Check if user is the teacher of the course
-            if request.user.user_type == 'teacher':
-                material.is_public = not material.is_public
-                material.save()
-                return JsonResponse({'success': True, 'is_public': material.is_public})
-            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
-        except StudyMaterial.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Material not found'}, status=404)
-    return JsonResponse({'success': False, 'error': 'Invalid method'}, status=400)
+    try:
+        material = StudyMaterial.objects.get(id=material_id)
+        # Check permissions: course creator, uploader, or staff/superuser
+        if request.user.is_staff or request.user.is_superuser or material.course.created_by == request.user or material.uploaded_by == request.user:
+            material.is_public = not material.is_public
+            material.save()
+            return JsonResponse({'success': True, 'is_public': material.is_public})
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+    except StudyMaterial.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Material not found'}, status=404)
 
 # ======================================================
 # STUDENT ACHIEVEMENTS & ALUMNI SYSTEM VIEWS
@@ -9801,11 +9943,18 @@ def achievement_form_view(request):
     })
 
 @login_required
-def edit_alumni_view(request):
+def edit_alumni_view(request, pk=None):
     """Edit profile page for alumni — edits personal details on the
     StudentAchievement without resetting approval status."""
     request.session['active_dashboard'] = 'alumni'
-    achievement = StudentAchievement.objects.filter(user=request.user).first()
+    if pk:
+        if request.user.is_staff:
+            achievement = get_object_or_404(StudentAchievement, pk=pk)
+        else:
+            achievement = get_object_or_404(StudentAchievement, pk=pk, user=request.user)
+    else:
+        achievement = StudentAchievement.objects.filter(user=request.user).first()
+
     if not achievement:
         messages.error(request, "No alumni profile found.")
         return redirect('users:alumni_dashboard')
@@ -9832,11 +9981,13 @@ def edit_alumni_view(request):
 
     other_achievements_data = achievement.other_achievements if achievement and achievement.other_achievements else []
 
+    base_template = 'users/teacher_dashboard.html' if request.user.is_staff else 'users/alumni_dashboard.html'
+
     return render(request, 'users/edit_alumni.html', {
         'form': form,
         'achievement': achievement,
         'other_achievements_data': other_achievements_data,
-        'base_template': 'users/alumni_dashboard.html',
+        'base_template': base_template,
     })
 
 def hall_of_fame_view(request):
@@ -10048,58 +10199,77 @@ def student_progress_view(request):
         # Save or Update
         record_id = request.POST.get('record_id')
         topic = request.POST.get('topic')
-        total_marks = int(request.POST.get('total_marks', 100))
+        try:
+            total_marks = int(float(str(request.POST.get('total_marks', 100)).strip()))
+            if total_marks <= 0:
+                total_marks = 100
+        except (ValueError, TypeError):
+            total_marks = 100
+
         show_in_percentage = request.POST.get('show_in_percentage') == 'on'
         show_in_marks = request.POST.get('show_in_marks') == 'on'
         post_group = request.POST.get('record_group')
 
-        if record_id:
-            record = PerformanceRecord.objects.get(id=record_id)
-            record.topic = topic
-            record.total_marks = total_marks
-            record.show_in_percentage = show_in_percentage
-            record.show_in_marks = show_in_marks
-            record.save()
-            # Clear existing scores for update
-            record.scores.all().delete()
-        else:
-            record = PerformanceRecord.objects.create(
-                batch=post_group,
-                topic=topic,
-                total_marks=total_marks,
-                show_in_percentage=show_in_percentage,
-                show_in_marks=show_in_marks
-            )
-            # Auto-cleanup: Keep only 5 latest records for this group
-            old_records = PerformanceRecord.objects.filter(batch=post_group).order_by('-created_at')[5:]
-            for old in old_records:
-                old.delete()
-
-        for key, value in request.POST.items():
-            if key.startswith('marks_') and value.strip():
-                student_id = key.split('_')[1]
-                marks = int(value)
+        with transaction.atomic():
+            if record_id:
                 try:
-                    student = StudentProfile.objects.get(id=student_id)
-                    StudentScore.objects.create(
-                        record=record,
-                        student=student,
-                        marks_obtained=marks
+                    record = PerformanceRecord.objects.get(id=record_id)
+                    record.topic = topic
+                    record.total_marks = total_marks
+                    record.show_in_percentage = show_in_percentage
+                    record.show_in_marks = show_in_marks
+                    record.save()
+                    # Clear existing scores for update
+                    record.scores.all().delete()
+                except PerformanceRecord.DoesNotExist:
+                    record = PerformanceRecord.objects.create(
+                        batch=post_group,
+                        topic=topic,
+                        total_marks=total_marks,
+                        show_in_percentage=show_in_percentage,
+                        show_in_marks=show_in_marks
                     )
-                    # 🔔 Notify the student about their updated progress
-                    create_notification(
-                        user=student.user,
-                        title="Progress Updated",
-                        message=f"Your marks for '{record.topic}' have been recorded: {marks}/{record.total_marks}.",
-                        link="/dashboard/",
-                        category="general"
-                    )
+            else:
+                record = PerformanceRecord.objects.create(
+                    batch=post_group,
+                    topic=topic,
+                    total_marks=total_marks,
+                    show_in_percentage=show_in_percentage,
+                    show_in_marks=show_in_marks
+                )
+                # Auto-cleanup: Keep only 5 latest records for this group
+                old_records = PerformanceRecord.objects.filter(batch=post_group).order_by('-created_at')[5:]
+                for old in old_records:
+                    old.delete()
+
+            for key, value in request.POST.items():
+                if key.startswith('marks_') and value.strip():
+                    student_id = key.split('_')[1]
                     try:
-                        notifications.send_student_progress_email(student, record.topic, marks, record.total_marks)
-                    except Exception:
+                        marks = int(round(float(value.strip())))
+                    except (ValueError, TypeError):
+                        continue
+                    try:
+                        student = StudentProfile.objects.get(id=student_id)
+                        StudentScore.objects.create(
+                            record=record,
+                            student=student,
+                            marks_obtained=marks
+                        )
+                        # 🔔 Notify the student about their updated progress
+                        create_notification(
+                            user=student.user,
+                            title="Progress Updated",
+                            message=f"Your marks for '{record.topic}' have been recorded: {marks}/{record.total_marks}.",
+                            link="/dashboard/",
+                            category="general"
+                        )
+                        try:
+                            notifications.send_student_progress_email(student, record.topic, marks, record.total_marks)
+                        except Exception:
+                            pass
+                    except StudentProfile.DoesNotExist:
                         pass
-                except StudentProfile.DoesNotExist:
-                    pass
 
         msg = "Progress updated successfully!" if record_id else "New progress update saved!"
         messages.success(request, msg)
@@ -10134,10 +10304,14 @@ def student_progress_view(request):
         ).order_by('full_name')
 
     # Fetch records for the visual leaderboard
+    score_prefetch = Prefetch(
+        'scores',
+        queryset=StudentScore.objects.select_related('student').order_by('-marks_obtained')
+    )
     if selected_service == 'All':
-        records = PerformanceRecord.objects.all().order_by('-created_at')[:5]
+        records = PerformanceRecord.objects.all().prefetch_related(score_prefetch).order_by('-created_at')[:5]
     else:
-        records = PerformanceRecord.objects.filter(batch=record_group).order_by('-created_at')[:5]
+        records = PerformanceRecord.objects.filter(batch=record_group).prefetch_related(score_prefetch).order_by('-created_at')[:5]
 
     today = timezone.localdate()
 
@@ -10146,7 +10320,7 @@ def student_progress_view(request):
     records_list = []
     for r in records:
         scores = []
-        for s in r.scores.all().order_by('-marks_obtained'):
+        for s in r.scores.all():
             st_name = "Unknown"
             if s.student:
                 if hasattr(s.student, 'full_name') and s.student.full_name:
@@ -10527,23 +10701,8 @@ def guidy_home(request):
     Handles ?session=<id> to open a specific chat.
     """
     cache.set(f'guidy_presence_{request.user.id}', True, timeout=35)
-    purge_expired_media()
-    purge_expired_group_chats()
-
-    # 5-day Auto-Purge of ended sessions
-    from django.db.models import Q
-    from .models import ChatSession, DirectChatSession
-    ended_sessions = ChatSession.objects.filter(is_active=False, session_ended_at__isnull=False)
-    for s in ended_sessions:
-        days_passed = (timezone.now() - s.session_ended_at).days
-        if days_passed >= 5:
-            purge_1on1_chat_session(s)
-
-    ended_direct_sessions = DirectChatSession.objects.filter(is_active=False, session_ended_at__isnull=False)
-    for s in ended_direct_sessions:
-        days_passed = (timezone.now() - s.session_ended_at).days
-        if days_passed >= 5:
-            purge_1on1_chat_session(s)
+    # Background daily scheduler (users.scheduler.execute_daily_tasks) handles
+    # media expiration and ended chat archiving; removed from synchronous request cycle.
 
     from users.utils import get_profile_photo_url, get_user_dashboard_type, get_user_display_name
     user = request.user
@@ -12022,12 +12181,12 @@ def guidy_delete_message(request, session_id=None, msg_id=None, direct_id=None, 
     delete_type = request.POST.get('delete_type', 'for_me')  # 'for_me' or 'for_all'
 
     if delete_type == 'for_all':
-        # Only allow within 60 minutes of sending
-        age = tz.now() - msg.timestamp
-        if age > datetime.timedelta(minutes=60) and msg.sender != user:
-            return JsonResponse({'success': False, 'error': 'Time limit exceeded'}, status=400)
         if msg.sender != user:
             return JsonResponse({'success': False, 'error': 'Can only delete your own messages for all'}, status=403)
+        # Only allow within 4 hours of sending (240 minutes)
+        age = tz.now() - msg.timestamp
+        if age > datetime.timedelta(hours=4):
+            return JsonResponse({'success': False, 'error': 'Messages can only be deleted for everyone within 4 hours of sending'}, status=400)
         if msg.file:
             msg.file.delete(save=False) # Physically deletes file from hard drive to free space
         msg.content = "" # Wipe the text from the database
@@ -12397,6 +12556,9 @@ def guidy_profile_info(request, entity_type, entity_id):
     if entity_type == 'group':
         from .models import GroupChatSession
         group = get_object_or_404(GroupChatSession, pk=entity_id)
+        is_authorized = (request.user in group.members.all() or group.created_by == request.user or request.user.is_staff or request.user.is_superuser)
+        if not is_authorized:
+            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
         members_data = []
         has_teacher_member = False
         for m in group.members.all():
@@ -12921,7 +13083,7 @@ def guidy_group_poll(request, group_id):
             'is_pinned': m.is_pinned,
             'is_deleted_for_all': m.is_deleted_for_all,
             'media_expired': m.media_expired,
-            'is_verified': (m.sender.is_staff or m.sender.is_superuser),
+            'is_verified': bool(m.sender and (m.sender.is_staff or m.sender.is_superuser)),
             'reply_to': reply_preview,
         })
 
@@ -13437,14 +13599,18 @@ def todo_search_students(request):
         students = students.filter(full_name__icontains=q)
         alumni = alumni.filter(Q(first_name__icontains=q) | Q(last_name__icontains=q))
     
+    # Prefetch active seat assignments to prevent N+1 query explosion
+    active_assignments = SeatAssignment.objects.filter(is_active=True).select_related('seat')
+    seat_map = {sa.student_id: sa.seat for sa in active_assignments}
+
     results = []
     for s in students:
         # One-line service detail: Floor/Seat for library, Batch for coaching
         service_info = s.service_type
         if s.service_type == 'Library':
-            seat = SeatAssignment.objects.filter(student=s, is_active=True).first()
+            seat = seat_map.get(s.id)
             if seat:
-                service_info = f"Library - {seat.seat.floor}/{seat.seat.seat_number}"
+                service_info = f"Library - {seat.floor}/{seat.seat_number}"
             else:
                 service_info = "Library (No Seat)"
         elif s.service_type == 'Coaching':
@@ -13453,7 +13619,7 @@ def todo_search_students(request):
         s_photo_url = None
         if s and s.photo:
             try:
-                s_photo_url = s.photo.url
+                s_photo_url = s.photo_url if hasattr(s, 'photo_url') else s.photo.url
             except (ValueError, AttributeError):
                 s_photo_url = None
 
@@ -13503,24 +13669,39 @@ def todo_add_fee_reminder(request):
             return JsonResponse({'success': False, 'error': 'No students selected'})
             
         enriched_metadata = []
+        # Pre-gather IDs to bulk fetch
+        student_ids = []
+        alumni_ids = []
+        for sel in student_selections:
+            sid_raw = str(sel.get('id', ''))
+            if sid_raw.startswith('s_'):
+                student_ids.append(sid_raw[2:])
+            elif sid_raw.startswith('a_'):
+                alumni_ids.append(sid_raw[2:])
+            elif not sid_raw.startswith('m_'):
+                student_ids.append(sid_raw)
+
+        students_map = {str(s.id): s for s in StudentProfile.objects.filter(id__in=student_ids)} if student_ids else {}
+        alumni_map = {str(a.id): a for a in StudentAchievement.objects.filter(id__in=alumni_ids)} if alumni_ids else {}
+
         for sel in student_selections:
             sid_raw = str(sel.get('id'))
             amount = sel.get('amount')
             
             if sid_raw.startswith('s_'):
                 sid = sid_raw[2:]
-                student = StudentProfile.objects.filter(id=sid).first()
+                student = students_map.get(sid)
                 name = student.full_name if student else "Unknown"
                 service = student.service_type if student else "Library"
                 photo_url = None
                 if student and student.photo:
                     try:
-                        photo_url = student.photo.url
+                        photo_url = student.photo_url if hasattr(student, 'photo_url') else student.photo.url
                     except (ValueError, AttributeError):
                         photo_url = None
             elif sid_raw.startswith('a_'):
                 sid = sid_raw[2:]
-                alumni = StudentAchievement.objects.filter(id=sid).first()
+                alumni = alumni_map.get(sid)
                 name = alumni.full_name if alumni else "Unknown"
                 service = "Alumni"
                 photo_url = None
@@ -13537,13 +13718,13 @@ def todo_add_fee_reminder(request):
             else:
                 # Fallback for old data or direct IDs
                 sid = sid_raw
-                student = StudentProfile.objects.filter(id=sid).first()
+                student = students_map.get(sid)
                 name = student.full_name if student else "Unknown"
                 service = student.service_type if student else "Library"
                 photo_url = None
                 if student and student.photo:
                     try:
-                        photo_url = student.photo.url
+                        photo_url = student.photo_url if hasattr(student, 'photo_url') else student.photo.url
                     except (ValueError, AttributeError):
                         photo_url = None
                 
@@ -13813,8 +13994,8 @@ def todo_update_task(request, task_id):
                     'photo_url': photo_url
                 })
             task.metadata = enriched_metadata
-        else:
-            task.metadata = data.get('students', task.metadata)
+        elif 'metadata' in data:
+            task.metadata = data.get('metadata')
         
         # Change 4: Breakdown tasks have fixed auto_delete=True
         if task.category == 'BREAKDOWN':
@@ -15459,15 +15640,19 @@ def guidy_load_chat_api(request):
                 member_names.insert(0, "You")
             group_members_str = ", ".join(member_names)
 
-            # Mark group messages as read
-            for gm in group.messages.exclude(sender=user):
-                gm.read_by.add(user)
+            # Efficiently mark unread group messages as read in bulk
+            unread_msg_ids = list(group.messages.exclude(sender=user).exclude(read_by=user).values_list('id', flat=True))
+            if unread_msg_ids:
+                ThroughModel = GroupMessage.read_by.through
+                ThroughModel.objects.bulk_create([
+                    ThroughModel(groupmessage_id=mid, user_id=user.id) for mid in unread_msg_ids
+                ], ignore_conflicts=True)
 
             messages_qs = list(reversed(group.messages.exclude(
                 deleted_by=user
             ).exclude(
                 is_deleted_for_all=True, deleted_at__lt=ten_days_ago
-            ).select_related('sender', 'reply_to__sender').order_by('-timestamp')[:50]))
+            ).select_related('sender', 'reply_to__sender').prefetch_related('read_by', 'starred_by').order_by('-timestamp')[:50]))
 
         else:
             return JsonResponse({'success': False, 'error': 'Invalid chat type'}, status=400)

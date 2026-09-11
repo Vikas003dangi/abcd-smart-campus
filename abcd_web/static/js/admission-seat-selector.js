@@ -1616,9 +1616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    const sameHoldOwner = seatInfo.morning_hold_student_id && seatInfo.evening_hold_student_id
-                        ? seatInfo.morning_hold_student_id === seatInfo.evening_hold_student_id
-                        : false;
+                    const sameHoldOwner = Boolean(seatInfo.same_hold_owner);
 
                     // Allow the full 3-option popup whether or not owners match.
                     showTemporaryPopup(seatNumber, currentFloor, {

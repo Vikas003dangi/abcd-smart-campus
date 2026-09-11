@@ -110,9 +110,10 @@ class Command(BaseCommand):
                 'users_directchatsession', 'users_groupchatsession', 'users_guidancerequest',
                 'users_blockedguidance', 'users_restrictedstudent'
             ]
-            with connection.cursor() as cursor:
-                for table in tables_to_reset:
-                    cursor.execute(f"DELETE FROM sqlite_sequence WHERE name = '{table}';")
-            self.stdout.write("Database auto-increment sequences reset to 0.")
+            if connection.vendor == 'sqlite':
+                with connection.cursor() as cursor:
+                    for table in tables_to_reset:
+                        cursor.execute(f"DELETE FROM sqlite_sequence WHERE name = '{table}';")
+                self.stdout.write("Database auto-increment sequences reset to 0.")
 
         self.stdout.write(self.style.SUCCESS("\nCLEANUP COMPLETE! System is ready for fresh start."))

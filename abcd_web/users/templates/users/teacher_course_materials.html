@@ -1451,7 +1451,29 @@
         );
         
         if (confirmed) {
-            window.location.href = btn.href;
+            btn.style.pointerEvents = 'none';
+            btn.style.opacity = '0.5';
+            try {
+                const res = await fetch(btn.href, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    location.reload();
+                } else {
+                    window.showStyledAlert('Delete Error', data.error || 'Failed to delete material.');
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.opacity = '1';
+                }
+            } catch (err) {
+                window.showStyledAlert('Network Error', 'A network error occurred while deleting.');
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+            }
         }
     });
 </script>

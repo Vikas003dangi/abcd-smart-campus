@@ -963,7 +963,7 @@
         </div>
 
         <div class="sms-submit-container">
-            <button class="sms-btn" id="submit-all-fees-btn"><i class='bx bx-send' style="vertical-align:middle;margin-right:6px;"></i>Submit and Send SMS</button>
+            <button class="sms-btn" id="submit-all-fees-btn"><i class='bx bx-send' style="vertical-align:middle;margin-right:6px;"></i>Submit & Send Fee Receipt</button>
         </div>
     </div>
 
@@ -1640,9 +1640,9 @@
         const submitBtn = document.getElementById('submit-all-fees-btn');
         if (submitBtn) {
             if (sessionSavedActions.length > 0) {
-                submitBtn.innerHTML = `<i class='bx bx-send' style='vertical-align:middle;margin-right:6px;'></i>Submit and Send SMS (${sessionSavedActions.length} saved)`;
+                submitBtn.innerHTML = `<i class='bx bx-send' style='vertical-align:middle;margin-right:6px;'></i>Submit & Send Fee Receipt (${sessionSavedActions.length} saved)`;
             } else {
-                submitBtn.innerHTML = `<i class='bx bx-send' style='vertical-align:middle;margin-right:6px;'></i>Submit and Send SMS`;
+                submitBtn.innerHTML = `<i class='bx bx-send' style='vertical-align:middle;margin-right:6px;'></i>Submit & Send Fee Receipt`;
             }
         }
     }
@@ -2255,7 +2255,7 @@
             return null;
         }
 
-        // Submit and Send SMS Action
+        // Submit & Send Fee Receipt Action
         submitBtn.addEventListener('click', async function() {
             // 1. Check for unsaved changes in any open/dirty card
             const unsavedCard = getUnsavedCard();
@@ -2335,6 +2335,10 @@
                 if (!manualExpiryDate) return;
                 payload = { actions: [], expiry_date: manualExpiryDate, use_default_expiry: false };
             } else {
+                if (!sessionSavedActions || sessionSavedActions.length === 0) {
+                    await window.showStyledAlert('No Changes', 'There are no saved fee actions to submit.');
+                    return;
+                }
                 payload = { actions: sessionSavedActions, expiry_date: manualExpiryDate, use_default_expiry: chk.checked, final_dispatch: true };
             }
             

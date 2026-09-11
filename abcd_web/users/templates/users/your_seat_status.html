@@ -4416,7 +4416,6 @@
             initFloorOrder();
             initSearch();
             initStudentLegendClickHandlers();
-            setInterval(refreshGrids, 5000);
 
             floorSelector?.addEventListener('change', (e) => {
                 updateFloorDisplay(e.target.value);
@@ -4981,11 +4980,12 @@
                 };
             } catch (e) {}
 
+            // Fallback sync every 30s when active in foreground (WebSocket handles real-time events)
             setInterval(() => {
                 if (!document.hidden && typeof refreshGrids === 'function') {
                     refreshGrids();
                 }
-            }, 5000);
+            }, 30000);
         })();
     </script>
 <script src="{% static 'js/custom-popup.js' %}"></script>

@@ -450,6 +450,18 @@ class ComplaintRatingForm(forms.ModelForm):
             ),
         }
 
+    def clean_rating(self):
+        rating = self.cleaned_data.get("rating")
+        if rating is None:
+            raise forms.ValidationError("Please provide a rating between 1 and 5.")
+        try:
+            rating_int = int(rating)
+            if not (1 <= rating_int <= 5):
+                raise forms.ValidationError("Rating must be between 1 and 5 stars.")
+            return rating_int
+        except (ValueError, TypeError):
+            raise forms.ValidationError("Invalid rating value.")
+
 class StudentAchievementForm(forms.ModelForm):
     class Meta:
         model = StudentAchievement
