@@ -5,6 +5,7 @@
 
     const DISMISS_INSTALL_SESSION_KEY = 'abcd_install_dismissed_session';
     const DISMISS_OPEN_APP_SESSION_KEY = 'abcd_open_app_dismissed_session';
+    const DISMISS_BANNER_SESSION_KEY = 'abcd_smart_banner_dismissed_session';
     const INSTALLED_KEY = 'abcd_app_installed';
 
     // Check if current page is in the blacklist where NO popups should show
@@ -78,13 +79,159 @@
     let pwaOverlay = null;
     let installModal = null;
     let openInAppModal = null;
+    let smartBanner = null;
 
-    // 1. Inject Styles for the VIP Modals
+    // 1. Inject Styles for the VIP Modals and Smart Banner
     function injectStyles() {
         if (document.getElementById('abcd-pwa-styles')) return;
         const style = document.createElement('style');
         style.id = 'abcd-pwa-styles';
         style.textContent = `
+            /* ═══ VIP SMART APP BANNER (Mobile Only) ═══ */
+            .abcd-smart-banner {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                height: 54px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                padding: 6px 14px !important;
+                background: rgba(255, 255, 255, 0.94) !important;
+                backdrop-filter: blur(16px) !important;
+                -webkit-backdrop-filter: blur(16px) !important;
+                border-bottom: 1px solid rgba(124, 58, 237, 0.14) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+                z-index: 1000000 !important;
+                transform: translateY(-100%);
+                opacity: 0;
+                transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+                box-sizing: border-box !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            }
+            .abcd-smart-banner.visible {
+                transform: translateY(0) !important;
+                opacity: 1 !important;
+            }
+            body.dark-theme .abcd-smart-banner {
+                background: rgba(22, 16, 40, 0.94) !important;
+                border-bottom: 1px solid rgba(168, 85, 247, 0.22) !important;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+            }
+            @media (min-width: 769px) {
+                .abcd-smart-banner {
+                    display: none !important;
+                }
+            }
+            body.has-abcd-smart-banner {
+                padding-top: 54px !important;
+                transition: padding-top 0.35s ease;
+            }
+            @media (min-width: 769px) {
+                body.has-abcd-smart-banner {
+                    padding-top: 0 !important;
+                }
+            }
+            body.has-abcd-smart-banner .top-nav-menu {
+                top: 68px !important;
+            }
+            .abcd-banner-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 0;
+                flex: 1;
+            }
+            .abcd-banner-close {
+                background: none !important;
+                border: none !important;
+                color: #94a3b8 !important;
+                font-size: 1.25rem !important;
+                line-height: 1 !important;
+                padding: 2px !important;
+                cursor: pointer !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-shrink: 0 !important;
+                width: 22px !important;
+                height: 22px !important;
+                border-radius: 50% !important;
+                transition: background 0.2s ease;
+            }
+            .abcd-banner-close:hover {
+                background: rgba(0, 0, 0, 0.05) !important;
+            }
+            body.dark-theme .abcd-banner-close:hover {
+                background: rgba(255, 255, 255, 0.1) !important;
+            }
+            .abcd-banner-icon {
+                width: 38px !important;
+                height: 38px !important;
+                border-radius: 9px !important;
+                object-fit: cover !important;
+                flex-shrink: 0 !important;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+            }
+            .abcd-banner-text {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                overflow: hidden;
+            }
+            .abcd-banner-title {
+                font-size: 0.84rem !important;
+                font-weight: 700 !important;
+                color: #0f172a !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                line-height: 1.2 !important;
+            }
+            body.dark-theme .abcd-banner-title {
+                color: #f8fafc !important;
+            }
+            .abcd-banner-subtitle {
+                font-size: 0.68rem !important;
+                color: #64748b !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                line-height: 1.2 !important;
+            }
+            body.dark-theme .abcd-banner-subtitle {
+                color: #94a3b8 !important;
+            }
+            .abcd-banner-stars {
+                color: #f59e0b !important;
+                font-size: 0.65rem !important;
+                letter-spacing: -0.5px !important;
+            }
+            .abcd-banner-action-btn {
+                background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%) !important;
+                color: #ffffff !important;
+                border: none !important;
+                border-radius: 16px !important;
+                padding: 6px 14px !important;
+                font-size: 0.74rem !important;
+                font-weight: 700 !important;
+                letter-spacing: 0.4px !important;
+                text-transform: uppercase !important;
+                cursor: pointer !important;
+                white-space: nowrap !important;
+                flex-shrink: 0 !important;
+                box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35) !important;
+                transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+            }
+            .abcd-banner-action-btn:active {
+                transform: scale(0.95) !important;
+            }
+
             .abcd-pwa-overlay {
                 position: fixed !important;
                 inset: 0 !important;
@@ -441,37 +588,12 @@
                     launchTip.style.display = 'block';
                 }
 
-                const currentUrl = window.location.href;
-                const launchProtocolUrl = 'web+abcd://launch?url=' + encodeURIComponent(currentUrl);
+                openInNativeApp();
 
-                // 1. Try launching through the registered protocol handler via an invisible iframe
-                try {
-                    const iframe = document.createElement('iframe');
-                    iframe.style.display = 'none';
-                    iframe.src = launchProtocolUrl;
-                    document.body.appendChild(iframe);
-                    setTimeout(() => {
-                        try { iframe.remove(); } catch(e) {}
-                    }, 3000);
-                } catch(e) {}
-
-                // 2. On Android/Chrome mobile, trigger protocol directly
-                const isAndroid = /android/i.test(navigator.userAgent);
-                if (isAndroid) {
-                    try {
-                        window.location.href = launchProtocolUrl;
-                    } catch(e) {}
-                }
-
-                // 3. For Desktop Chromium: launch_handler focus-existing routes window.open to existing PWA window
-                try {
-                    window.open(currentUrl, '_blank');
-                } catch(e) {}
-
-                // 4. Close modal gracefully after giving feedback
+                // Close modal gracefully after giving feedback
                 setTimeout(() => {
                     hideActiveModal();
-                }, 2200);
+                }, 1800);
             });
         }
 
@@ -614,63 +736,148 @@
         return isInstalled;
     }
 
+    // 5. Open in Native App (Android Intent + PWA Protocol)
+    function openInNativeApp() {
+        const host = window.location.host;
+        const path = window.location.pathname + window.location.search;
+        const isAndroid = /android/i.test(navigator.userAgent);
+
+        if (isAndroid) {
+            // Android Intent URI (targeting verified package in.abcdcampus.app with fallback)
+            const intentUri = `intent://${host}${path}#Intent;scheme=https;package=in.abcdcampus.app;S.browser_fallback_url=${encodeURIComponent(window.location.href)};end`;
+            window.location.href = intentUri;
+        } else {
+            // PWA protocol handler or fallback
+            const pwaUrl = `web+abcd://launch?url=${encodeURIComponent(window.location.href)}`;
+            try {
+                window.location.href = pwaUrl;
+            } catch (e) {}
+        }
+    }
+
+    // 6. Trigger 1-Tap Install or Fallback to VIP Modal
+    async function triggerInstallFlow() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const choice = await deferredPrompt.userChoice;
+            if (choice && choice.outcome === 'accepted') {
+                localStorage.setItem(INSTALLED_KEY, 'true');
+                hideSmartBanner();
+            }
+            deferredPrompt = null;
+            window.deferredInstallPrompt = null;
+        } else {
+            showInstallModal();
+        }
+    }
+
+    // 7. Build and Show Smart App Banner (Mobile Only, 100% Non-Intrusive)
+    function buildAndShowSmartBanner(isInstalled) {
+        if (sessionStorage.getItem(DISMISS_BANNER_SESSION_KEY) === 'true') return;
+        if (window.innerWidth > 768) return;
+        if (isPageExcluded()) return;
+
+        injectStyles();
+
+        if (!smartBanner) {
+            smartBanner = document.createElement('div');
+            smartBanner.className = 'abcd-smart-banner';
+            smartBanner.id = 'abcdSmartBanner';
+
+            const actionText = isInstalled ? 'OPEN' : 'INSTALL';
+            const actionAria = isInstalled ? 'Open in ABCD App' : 'Install ABCD App';
+
+            smartBanner.innerHTML = `
+                <div class="abcd-banner-left">
+                    <button class="abcd-banner-close" id="abcdBannerCloseBtn" aria-label="Dismiss Banner">&times;</button>
+                    <img src="/static/data/favicon/web-app-manifest-192x192.png" alt="ABCD Logo" class="abcd-banner-icon" />
+                    <div class="abcd-banner-text">
+                        <span class="abcd-banner-title">ABCD Campus</span>
+                        <span class="abcd-banner-subtitle">
+                            <span class="abcd-banner-stars">★★★★★</span> Faster • Offline
+                        </span>
+                    </div>
+                </div>
+                <button class="abcd-banner-action-btn" id="abcdBannerActionBtn" aria-label="${actionAria}">
+                    ${actionText}
+                </button>
+            `;
+            document.body.prepend(smartBanner);
+
+            document.getElementById('abcdBannerCloseBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideSmartBanner();
+            });
+
+            document.getElementById('abcdBannerActionBtn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                checkDeviceAppStatus().then((installedNow) => {
+                    if (installedNow) {
+                        openInNativeApp();
+                    } else {
+                        triggerInstallFlow();
+                    }
+                });
+            });
+        } else {
+            const btn = document.getElementById('abcdBannerActionBtn');
+            if (btn) {
+                btn.textContent = isInstalled ? 'OPEN' : 'INSTALL';
+            }
+        }
+
+        requestAnimationFrame(() => {
+            if (smartBanner) smartBanner.classList.add('visible');
+            document.body.classList.add('has-abcd-smart-banner');
+        });
+    }
+
+    function hideSmartBanner() {
+        if (smartBanner) {
+            smartBanner.classList.remove('visible');
+            document.body.classList.remove('has-abcd-smart-banner');
+            sessionStorage.setItem(DISMISS_BANNER_SESSION_KEY, 'true');
+        }
+    }
+
     // Intercept native beforeinstallprompt
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         window.deferredInstallPrompt = e;
 
-        // If not installed and not dismissed, show install prompt after short delay
         checkDeviceAppStatus().then((isInstalled) => {
-            if (isInstalled) {
-                // User already installed! Show Open in App instead
-                if (sessionStorage.getItem(DISMISS_OPEN_APP_SESSION_KEY) !== 'true') {
-                    setTimeout(showOpenInAppModal, 3000);
-                }
-            } else {
-                if (sessionStorage.getItem(DISMISS_INSTALL_SESSION_KEY) !== 'true') {
-                    setTimeout(() => {
-                        if (window.__abcd_active_prompt) {
-                            const checkInterval = setInterval(() => {
-                                if (!window.__abcd_active_prompt) {
-                                    clearInterval(checkInterval);
-                                    setTimeout(showInstallModal, 2000);
-                                }
-                            }, 1000);
-                        } else {
-                            showInstallModal();
-                        }
-                    }, 3500);
-                }
-            }
+            buildAndShowSmartBanner(isInstalled);
         });
     });
 
     // Detect appinstalled event
     window.addEventListener('appinstalled', () => {
         localStorage.setItem(INSTALLED_KEY, 'true');
+        hideSmartBanner();
         hideActiveModal();
     });
 
-    // Device check on load for browsers that do not fire beforeinstallprompt (e.g. already installed or iOS)
+    // Device check on load (2.5 seconds)
     setTimeout(async () => {
         const isInstalled = await checkDeviceAppStatus();
-        if (isInstalled) {
-            if (sessionStorage.getItem(DISMISS_OPEN_APP_SESSION_KEY) !== 'true') {
-                if (!window.__abcd_active_prompt) {
-                    showOpenInAppModal();
-                }
+        buildAndShowSmartBanner(isInstalled);
+
+        // If user already installed app, also show VIP Open in App modal after 4s (once per session)
+        if (isInstalled && sessionStorage.getItem(DISMISS_OPEN_APP_SESSION_KEY) !== 'true') {
+            if (!window.__abcd_active_prompt) {
+                setTimeout(showOpenInAppModal, 2000);
             }
         }
-    }, 4000);
+    }, 2500);
 
     // Global manual triggers
     window.showABCDInstallPrompt = function () {
-        showInstallModal();
+        triggerInstallFlow();
     };
 
     window.showABCDOpenInAppPrompt = function () {
-        showOpenInAppModal();
+        openInNativeApp();
     };
 
 })();

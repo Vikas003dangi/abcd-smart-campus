@@ -38,7 +38,13 @@
       "url": "/?pwa_app=1&launch=%s"
     }
   ],
+  "prefer_related_applications": false,
   "related_applications": [
+    {
+      "platform": "play",
+      "id": "in.abcdcampus.app",
+      "url": "https://play.google.com/store/apps/details?id=in.abcdcampus.app"
+    },
     {
       "platform": "webapp",
       "url": "/static/data/favicon/site.webmanifest",
