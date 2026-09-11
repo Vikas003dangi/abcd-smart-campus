@@ -32,7 +32,8 @@ def sanitize_whatsapp_number(phone):
     """
     Sanitizes phone numbers for Meta API: 
     - Removes spaces, dashes, +, and non-digits
-    - Ensures 91 prefix without doubling it
+    - Strips leading 0 (e.g. 09827662450 -> 9827662450) or 00 prefix
+    - Ensures 91 prefix without doubling it (standard 12-digit Indian format)
     """
     if not phone:
         return None
@@ -40,13 +41,27 @@ def sanitize_whatsapp_number(phone):
     # Extract only digits
     digits = "".join(re.findall(r'\d+', str(phone)))
     
-    # Logic for 10-digit or 12-digit (with 91) numbers
+    # Strip international 00 prefix
+    if digits.startswith("00"):
+        digits = digits[2:]
+        
+    # Strip single leading zero (common in Indian domestic mobile input)
+    if len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+    
+    # Standard 10-digit Indian mobile -> prepend 91
     if len(digits) == 10:
         return f"91{digits}"
     elif len(digits) == 12 and digits.startswith("91"):
         return digits
     
     return digits
+
+
+def has_whatsapp_configured():
+    """Checks if Meta WhatsApp Cloud API credentials are configured in settings."""
+    return bool(getattr(settings, 'WHATSAPP_API_TOKEN', None) and getattr(settings, 'WHATSAPP_PHONE_NUMBER_ID', None))
+
 
 # --- FEE RECEIPT WHATSAPP (DOCUMENT API) ---
 def send_fee_receipt_whatsapp(student, transaction, pdf_content):
@@ -55,6 +70,10 @@ def send_fee_receipt_whatsapp(student, transaction, pdf_content):
     Uses 'fee_receipt_v2' template with document header parameter.
     Fallback to direct document message if template is pending.
     """
+    if not has_whatsapp_configured():
+        logger.info("WhatsApp Dispatch SKIPPED: Meta Cloud API credentials not configured.")
+        return
+
     raw_number = getattr(student, 'whatsapp_number', None) or getattr(student, 'mobile_number', None)
     clean_number = sanitize_whatsapp_number(raw_number)
 
@@ -239,6 +258,10 @@ def send_approval_email(student, seat, service_details):
 
 def send_approval_whatsapp(student, service_details):
     """Sends an admission approval WhatsApp message to the student using template admission_approved_v2."""
+    if not has_whatsapp_configured():
+        logger.info("WhatsApp Dispatch SKIPPED: Meta Cloud API credentials not configured.")
+        return
+
     phone = getattr(student, 'whatsapp_number', None) or getattr(student, 'mobile_number', None)
     clean_number = sanitize_whatsapp_number(phone)
     if not clean_number:
@@ -256,7 +279,7 @@ def send_approval_whatsapp(student, service_details):
                 "language": {"code": "en_US"},
                 "components": [{"type": "body", "parameters": [
                     {"type": "text", "text": student.full_name},
-                    {"type": "text", "text": service_details},
+                    {"type": "text", "text": str(service_details)[:100]},
                 ]}]
             }
         }
@@ -271,6 +294,10 @@ def send_approval_whatsapp(student, service_details):
 
 def send_alumni_approval_whatsapp(student_or_ach, achievement_title):
     """Sends WhatsApp message to approved alumni using template alumni_approval_v2 (Utility category)."""
+    if not has_whatsapp_configured():
+        logger.info("WhatsApp Dispatch SKIPPED: Meta Cloud API credentials not configured.")
+        return
+
     phone = getattr(student_or_ach, 'whatsapp_number', None) or getattr(student_or_ach, 'mobile_number', None)
     clean_number = sanitize_whatsapp_number(phone)
     if not clean_number:
@@ -447,6 +474,10 @@ def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str):
     - 'pre_5': 5 days before expiry (Template: fee_reminder_5day)
     - 'warning_1day': 1 day after expiry warning (Template: fee_warning_overdue)
     """
+    if not has_whatsapp_configured():
+        logger.info("WhatsApp fee reminder SKIPPED: Meta Cloud API not configured.")
+        return
+
     phone = getattr(student, 'whatsapp_number', None) or getattr(student, 'mobile_number', None)
     clean_number = sanitize_whatsapp_number(phone)
     if not clean_number:
@@ -465,6 +496,10 @@ def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str):
         whatsapp_url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
         headers = { "Authorization": f"Bearer {settings.WHATSAPP_API_TOKEN}", "Content-Type": "application/json" }
 
+        safe_student_name = (getattr(student, 'full_name', '') or "Student")[:90]
+        safe_service = str(service_details)[:100]
+        safe_expiry = str(expiry_date_str)[:50]
+
         payload = {
             "messaging_product": "whatsapp",
             "to": clean_number,
@@ -473,9 +508,9 @@ def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str):
                 "name": template_name,
                 "language": {"code": "en_US"},
                 "components": [{"type": "body", "parameters": [
-                    {"type": "text", "text": student.full_name},
-                    {"type": "text", "text": service_details},
-                    {"type": "text", "text": expiry_date_str}
+                    {"type": "text", "text": safe_student_name},
+                    {"type": "text", "text": safe_service},
+                    {"type": "text", "text": safe_expiry}
                 ]}]
             }
         }
@@ -483,7 +518,7 @@ def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str):
         if res.status_code != 200:
             logger.warning(f"WhatsApp fee reminder template '{template_name}' error ({res.text})")
         else:
-            logger.info(f"Sent WhatsApp fee reminder '{reminder_type}' to {student.full_name}.")
+            logger.info(f"Sent WhatsApp fee reminder '{reminder_type}' to {safe_student_name}.")
     except Exception as e:
         logger.error(f"Error sending WhatsApp fee reminder ({reminder_type}): {e}")
 
@@ -507,6 +542,10 @@ def send_hold_warning_whatsapp_student(student, seat_details, teacher_phone="982
     Sends WhatsApp Hold Grace Period Warning to student using 'hold_warning_3day_student' template.
     Body params: {{1}} = student name, {{2}} = seat details, {{3}} = teacher phone number
     """
+    if not has_whatsapp_configured():
+        logger.info("WhatsApp student hold warning SKIPPED: Meta Cloud API not configured.")
+        return
+
     phone = getattr(student, 'whatsapp_number', None) or getattr(student, 'mobile_number', None)
     clean_number = sanitize_whatsapp_number(phone)
     if not clean_number:
@@ -516,6 +555,10 @@ def send_hold_warning_whatsapp_student(student, seat_details, teacher_phone="982
         whatsapp_url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
         headers = { "Authorization": f"Bearer {settings.WHATSAPP_API_TOKEN}", "Content-Type": "application/json" }
 
+        safe_student_name = (getattr(student, 'full_name', '') or "Student")[:90]
+        safe_seat = str(seat_details)[:100]
+        safe_phone = str(teacher_phone)[:30]
+
         payload = {
             "messaging_product": "whatsapp",
             "to": clean_number,
@@ -524,17 +567,17 @@ def send_hold_warning_whatsapp_student(student, seat_details, teacher_phone="982
                 "name": "hold_warning_3day_student",
                 "language": {"code": "en_US"},
                 "components": [{"type": "body", "parameters": [
-                    {"type": "text", "text": student.full_name},
-                    {"type": "text", "text": seat_details},
-                    {"type": "text", "text": teacher_phone}
+                    {"type": "text", "text": safe_student_name},
+                    {"type": "text", "text": safe_seat},
+                    {"type": "text", "text": safe_phone}
                 ]}]
             }
         }
         res = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
         if res.status_code != 200:
-            logger.warning(f"WhatsApp hold warning error for student {student.full_name}: {res.text}")
+            logger.warning(f"WhatsApp hold warning error for student {safe_student_name}: {res.text}")
         else:
-            logger.info(f"Sent WhatsApp hold warning to student {student.full_name}.")
+            logger.info(f"Sent WhatsApp hold warning to student {safe_student_name}.")
     except Exception as e:
         logger.error(f"Error sending WhatsApp hold warning to student: {e}")
 
@@ -545,11 +588,28 @@ def send_hold_warning_whatsapp_teacher(teacher_user_or_phone, student_name, seat
     Body params: {{1}} = student name, {{2}} = seat details
     Accepts either a User model instance or a direct phone number string (e.g. Sandeep Sir's phone).
     """
+    if not has_whatsapp_configured():
+        logger.info("WhatsApp teacher hold warning SKIPPED: Meta Cloud API not configured.")
+        return
+
     if isinstance(teacher_user_or_phone, str) and teacher_user_or_phone.replace('+', '').isdigit():
         phone = teacher_user_or_phone
     else:
-        profile = getattr(teacher_user_or_phone, 'profile', None)
-        phone = getattr(profile, 'whatsapp_number', None) or getattr(profile, 'mobile_number', None) or getattr(teacher_user_or_phone, 'username', None)
+        # Check TeacherProfile, then StudentProfile, then username fallback
+        t_prof = getattr(teacher_user_or_phone, 'teacher_profile', None)
+        s_prof = getattr(teacher_user_or_phone, 'profile', None)
+        phone = None
+        if t_prof:
+            raw_w = (getattr(t_prof, 'whatsapp_numbers', '') or '').strip()
+            if raw_w:
+                phone = [w.strip() for w in raw_w.split(',') if w.strip()][0]
+            else:
+                phone = getattr(t_prof, 'mobile_number', None)
+        if not phone and s_prof:
+            phone = getattr(s_prof, 'whatsapp_number', None) or getattr(s_prof, 'mobile_number', None)
+        if not phone:
+            phone = getattr(teacher_user_or_phone, 'username', None)
+
     clean_number = sanitize_whatsapp_number(phone)
     if not clean_number:
         return
@@ -557,6 +617,9 @@ def send_hold_warning_whatsapp_teacher(teacher_user_or_phone, student_name, seat
     try:
         whatsapp_url = f"https://graph.facebook.com/v19.0/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages"
         headers = { "Authorization": f"Bearer {settings.WHATSAPP_API_TOKEN}", "Content-Type": "application/json" }
+
+        safe_student_name = str(student_name)[:90]
+        safe_seat_details = str(seat_details)[:100]
 
         payload = {
             "messaging_product": "whatsapp",
@@ -566,8 +629,8 @@ def send_hold_warning_whatsapp_teacher(teacher_user_or_phone, student_name, seat
                 "name": "hold_warning_3day_teacher",
                 "language": {"code": "en_US"},
                 "components": [{"type": "body", "parameters": [
-                    {"type": "text", "text": student_name},
-                    {"type": "text", "text": seat_details}
+                    {"type": "text", "text": safe_student_name},
+                    {"type": "text", "text": safe_seat_details}
                 ]}]
             }
         }
@@ -825,6 +888,10 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
     Send broadcast/banner/document WhatsApp messages using Meta templates.
     Supports attached documents/files and formats clickable download links.
     """
+    if not has_whatsapp_configured():
+        logger.info("WhatsApp broadcast SKIPPED: Meta Cloud API not configured.")
+        return
+
     from django.conf import settings
     import requests
 
@@ -859,6 +926,16 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
     if len(safe_message) > 950:
         safe_message = safe_message[:945] + "..."
 
+    # Ensure banner URL is an absolute http/https URL if provided
+    valid_banner_url = None
+    if banner_image_url and isinstance(banner_image_url, str):
+        b_url = banner_image_url.strip()
+        if not b_url.startswith(('http://', 'https://')):
+            site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+            b_url = f"{site_url}/{b_url.lstrip('/')}"
+        if b_url.startswith(('http://', 'https://')):
+            valid_banner_url = b_url
+
     for student in students:
         phone = getattr(student, "whatsapp_number", None) or getattr(student, "mobile_number", None)
         if not phone:
@@ -869,7 +946,8 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
             continue
 
         try:
-            if banner_image_url:
+            sent_successfully = False
+            if valid_banner_url:
                 payload = {
                     "messaging_product": "whatsapp",
                     "to": clean_num,
@@ -882,7 +960,7 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
                                 "type": "header",
                                 "parameters": [{
                                     "type": "image",
-                                    "image": {"link": banner_image_url}
+                                    "image": {"link": valid_banner_url}
                                 }]
                             },
                             {
@@ -895,7 +973,14 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
                         ]
                     }
                 }
-            else:
+                response = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
+                if response.status_code == 200:
+                    sent_successfully = True
+                else:
+                    logger.warning(f"WhatsApp broadcast_banner template failed ({response.text}); falling back to text message...")
+
+            # Fallback to text template if no banner or banner failed
+            if not sent_successfully:
                 payload = {
                     "messaging_product": "whatsapp",
                     "to": clean_num,
@@ -912,10 +997,9 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
                         }]
                     }
                 }
-
-            response = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
-            if response.status_code != 200:
-                logger.warning(f"WhatsApp API error for {getattr(student, 'full_name', 'Student')}: {response.text}")
+                response = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
+                if response.status_code != 200:
+                    logger.warning(f"WhatsApp API error for {getattr(student, 'full_name', 'Student')}: {response.text}")
 
         except Exception as e:
             logger.error(f"Broadcast WhatsApp failed for {getattr(student, 'full_name', 'Student')}: {e}")

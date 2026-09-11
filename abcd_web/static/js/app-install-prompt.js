@@ -86,33 +86,33 @@
         style.id = 'abcd-pwa-styles';
         style.textContent = `
             .abcd-pwa-overlay {
-                position: fixed;
-                inset: 0;
-                background: rgba(10, 15, 30, 0.68);
-                backdrop-filter: blur(10px);
-                -webkit-backdrop-filter: blur(10px);
-                z-index: 999998;
+                position: fixed !important;
+                inset: 0 !important;
+                background: rgba(10, 15, 30, 0.75) !important;
+                backdrop-filter: blur(16px) !important;
+                -webkit-backdrop-filter: blur(16px) !important;
+                z-index: 3000000 !important;
                 opacity: 0;
                 visibility: hidden;
                 transition: opacity 0.35s ease, visibility 0.35s ease;
             }
             .abcd-pwa-overlay.visible {
-                opacity: 1;
-                visibility: visible;
+                opacity: 1 !important;
+                visibility: visible !important;
             }
             .abcd-pwa-modal {
-                position: fixed;
-                top: 50%;
-                left: 50%;
+                position: fixed !important;
+                top: 50% !important;
+                left: 50% !important;
                 transform: translate(-50%, -46%) scale(0.95);
                 width: min(92vw, 480px);
                 background: linear-gradient(145deg, #ffffff 0%, #f8faff 100%);
                 border: 1.5px solid rgba(255, 255, 255, 0.85);
                 border-radius: 28px;
                 padding: 32px 28px;
-                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25), 0 0 40px rgba(108, 99, 255, 0.15);
+                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45), 0 0 50px rgba(108, 99, 255, 0.25);
                 color: #1e293b;
-                z-index: 999999;
+                z-index: 3000001 !important;
                 opacity: 0;
                 visibility: hidden;
                 transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, visibility 0.35s ease;
@@ -120,14 +120,14 @@
                 overflow: hidden;
             }
             .abcd-pwa-modal.visible {
-                opacity: 1;
-                visibility: visible;
-                transform: translate(-50%, -50%) scale(1);
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: translate(-50%, -50%) scale(1) !important;
             }
             body.dark-theme .abcd-pwa-modal {
                 background: linear-gradient(145deg, #1e1533 0%, #110d22 100%);
                 border: 1.5px solid rgba(168, 85, 247, 0.25);
-                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 50px rgba(147, 51, 234, 0.25);
+                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 50px rgba(147, 51, 234, 0.3);
                 color: #f1f5f9;
             }
             .abcd-pwa-ambient-glow {
@@ -360,6 +360,16 @@
             return;
         }
 
+        // Hide lower-priority alert/choice modals if open so they do not collide
+        const existingAlert = document.getElementById('alert-overlay');
+        if (existingAlert && existingAlert.classList.contains('visible')) {
+            existingAlert.classList.remove('visible');
+        }
+        const existingChoice = document.getElementById('admissionChoiceModal');
+        if (existingChoice && existingChoice.style.display === 'flex') {
+            existingChoice.style.display = 'none';
+        }
+
         getOrCreateOverlay();
 
         if (!openInAppModal) {
@@ -400,6 +410,9 @@
                     <button class="abcd-pwa-btn-main" id="abcdLaunchAppBtn">
                         <i class='bx bx-link-external'></i> Open ABCD App Now
                     </button>
+                    <div id="abcdLaunchTip" style="display:none; font-size: 0.82rem; color: #7c3aed; text-align: center; margin-top: 6px; padding: 8px 12px; background: rgba(124, 58, 237, 0.1); border-radius: 12px; line-height: 1.4; border: 1px solid rgba(124, 58, 237, 0.2);">
+                        🚀 Opening ABCD App... If prompted by your browser, click <strong>Open</strong>. On desktop, you can also click the <strong>🖥️ Open in App</strong> icon in your browser address bar above.
+                    </div>
                     <button class="abcd-pwa-btn-sec" id="abcdOpenLaterBtn">
                         Continue in Browser
                     </button>
@@ -417,12 +430,48 @@
                 hideActiveModal();
             });
 
-            document.getElementById('abcdLaunchAppBtn').addEventListener('click', () => {
+            document.getElementById('abcdLaunchAppBtn').addEventListener('click', function () {
                 sessionStorage.setItem(DISMISS_OPEN_APP_SESSION_KEY, 'true');
-                hideActiveModal();
-                // Navigating to current URL or start_url
+                const launchBtn = this;
+                launchBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Opening ABCD App...";
+                launchBtn.style.pointerEvents = 'none';
+
+                const launchTip = document.getElementById('abcdLaunchTip');
+                if (launchTip) {
+                    launchTip.style.display = 'block';
+                }
+
                 const currentUrl = window.location.href;
-                window.location.href = currentUrl;
+                const launchProtocolUrl = 'web+abcd://launch?url=' + encodeURIComponent(currentUrl);
+
+                // 1. Try launching through the registered protocol handler via an invisible iframe
+                try {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = launchProtocolUrl;
+                    document.body.appendChild(iframe);
+                    setTimeout(() => {
+                        try { iframe.remove(); } catch(e) {}
+                    }, 3000);
+                } catch(e) {}
+
+                // 2. On Android/Chrome mobile, trigger protocol directly
+                const isAndroid = /android/i.test(navigator.userAgent);
+                if (isAndroid) {
+                    try {
+                        window.location.href = launchProtocolUrl;
+                    } catch(e) {}
+                }
+
+                // 3. For Desktop Chromium: launch_handler focus-existing routes window.open to existing PWA window
+                try {
+                    window.open(currentUrl, '_blank');
+                } catch(e) {}
+
+                // 4. Close modal gracefully after giving feedback
+                setTimeout(() => {
+                    hideActiveModal();
+                }, 2200);
             });
         }
 
@@ -437,6 +486,16 @@
     function showInstallModal() {
         if (sessionStorage.getItem(DISMISS_INSTALL_SESSION_KEY) === 'true') {
             return;
+        }
+
+        // Hide lower-priority alert/choice modals if open so they do not collide
+        const existingAlert = document.getElementById('alert-overlay');
+        if (existingAlert && existingAlert.classList.contains('visible')) {
+            existingAlert.classList.remove('visible');
+        }
+        const existingChoice = document.getElementById('admissionChoiceModal');
+        if (existingChoice && existingChoice.style.display === 'flex') {
+            existingChoice.style.display = 'none';
         }
 
         getOrCreateOverlay();

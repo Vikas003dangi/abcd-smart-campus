@@ -1933,9 +1933,9 @@
     .no-profile-popup {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         z-index: 3000;
         display: none;
         place-items: center;
@@ -2231,15 +2231,16 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(12px);
-        z-index: 999999;
+        background: rgba(15, 23, 42, 0.78) !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        z-index: 2500000 !important;
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.5s ease;
+        transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .reg-success-overlay.active {
         opacity: 1;
@@ -2248,19 +2249,22 @@
 
     /* Success Card */
     .reg-success-card {
-        background: #ffffff;
-        border-radius: 24px;
-        padding: 40px;
-        width: 90%;
-        max-width: 450px;
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 28px;
+        border: 1.5px solid rgba(255, 255, 255, 0.9);
+        padding: 38px 32px;
+        width: min(90vw, 460px);
         text-align: center;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-        transform: scale(0.8) translateY(20px);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35), 0 0 40px rgba(99, 102, 241, 0.2);
+        transform: scale(0.85) translateY(20px);
         transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        z-index: 2500002;
     }
     body.dark-theme .reg-success-card {
-        background: #1e1e2d;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%);
+        border: 1.5px solid rgba(168, 85, 247, 0.3);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(147, 51, 234, 0.3);
         color: #fff;
     }
     .reg-success-overlay.active .reg-success-card {
@@ -2299,14 +2303,19 @@
         }
     }
 
-    /* Confetti particles */
+    /* Celebration Party Surprise Confetti particles & ribbons */
     .confetti-particle {
-        position: absolute;
-        width: 10px;
-        height: 10px;
-        background-color: #f2d74e;
+        position: fixed;
         opacity: 0;
-        z-index: 999998;
+        z-index: 2500001;
+        pointer-events: none;
+        border-radius: 2px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .confetti-particle.ribbon-string {
+        border-radius: 6px;
+        width: 4px;
+        height: 28px;
     }
 
     /* Content styles */
@@ -2454,9 +2463,9 @@
         left: 0 !important;
         width: 100% !important;
         height: 100% !important;
-        background: rgba(0, 0, 0, 0.75) !important;
-        backdrop-filter: blur(5px) !important;
-        -webkit-backdrop-filter: blur(5px) !important;
+        background: rgba(15, 23, 42, 0.75) !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
         display: none; /* Controlled by JS via sessionStorage */
         justify-content: center !important;
         align-items: center !important;
@@ -3932,16 +3941,19 @@
 <!-- Premium Registration Success Animation Overlay -->
 <div id="regSuccessOverlay" class="reg-success-overlay">
     <div class="reg-success-card">
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: rgba(234, 88, 12, 0.12); color: #ea580c; border: 1px solid rgba(234, 88, 12, 0.25); border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 16px;">
+            🎉 Welcome to ABCD Family
+        </div>
         <!-- SVG Checkmark Animation -->
         <svg class="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
             <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
             <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
         </svg>
         
-        <h2 class="reg-success-title">Registered Successfully!</h2>
-        <p class="reg-success-desc">Welcome to ABCD Coaching & Library.<br>Your account is active and verified.</p>
+        <h2 class="reg-success-title">Welcome, {{ user.first_name|default:user.username }}! 🎓</h2>
+        <p class="reg-success-desc">Your account is ready and verified.<br>We are thrilled to welcome you to ABCD Coaching & Library!</p>
         
-        <button type="button" class="reg-success-btn" id="regSuccessContinueBtn">Get Started</button>
+        <button type="button" class="reg-success-btn" id="regSuccessContinueBtn">Explore Campus ✨</button>
     </div>
 </div>
 
@@ -4209,44 +4221,30 @@ function initChoiceMascotChoreography() {
     }, 3800);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+window.triggerAdmissionChoiceModal = function(delayMs) {
     const modal = document.getElementById('admissionChoiceModal');
     if (!modal) return;
 
-    // 1. Detect if arriving from login, register, or auth redirect
-    const ref = (document.referrer || '').toLowerCase();
-    const href = (window.location.href || '').toLowerCase();
-    const isAuthLanding = ref.includes('/login') || 
-                          ref.includes('/register') || 
-                          ref.includes('logout') ||
-                          href.includes('login') || 
-                          href.includes('registered') ||
-                          href.includes('new_session');
-
-    if (isAuthLanding) {
-        try {
-            sessionStorage.removeItem('abcd_choice_modal_shown');
-        } catch(e) {}
-    }
-
-    // 2. Check if user has already seen choice modal in this tab/browser session
+    // Check if user has already seen choice modal in this tab/browser session
     const hasSeenChoiceModal = sessionStorage.getItem('abcd_choice_modal_shown');
-
-    if (!hasSeenChoiceModal) {
-        // First visit on Guest_page in this session (e.g., logged in / registered / opened browser fresh)
-        sessionStorage.setItem('abcd_choice_modal_shown', 'true');
-        setTimeout(function() {
-            if (modal) {
-                modal.style.display = 'flex';
-                initChoiceMascotChoreography();
-            }
-        }, 3000); // 3 seconds delay as requested
-    } else {
-        // User refreshed guest_page or navigated back to guest_page from another page in same session
+    if (hasSeenChoiceModal) {
         modal.style.display = 'none';
         modal.classList.add('choice-modal-closed');
+        return;
     }
-});
+
+    setTimeout(function showChoiceModal() {
+        if (document.querySelector('.abcd-pwa-modal.visible') || window.__abcd_active_prompt) {
+            setTimeout(showChoiceModal, 2500);
+            return;
+        }
+        sessionStorage.setItem('abcd_choice_modal_shown', 'true');
+        if (modal) {
+            modal.style.display = 'flex';
+            initChoiceMascotChoreography();
+        }
+    }, delayMs || 0);
+};
 
 // Clear session storage keys whenever user clicks logout link anywhere
 document.addEventListener('click', function(e) {
@@ -4984,34 +4982,49 @@ document.addEventListener('click', function(e) {
     }
 
 
-    // --- REGISTRATION SUCCESS ANIMATION & CONFETTI ---
+    // --- CELEBRATION PARTY SURPRISE PAPER BOMB & CONFETTI ---
     function launchConfetti(container) {
-        const colors = ['#f2d74e', '#95c3de', '#e9a8f1', '#6ef1a8', '#f16e6e', '#6e8af1'];
-        for (let i = 0; i < 80; i++) {
+        const colors = [
+            '#ff4757', '#2ed573', '#1e90ff', '#ffa502', 
+            '#9b59b6', '#ff6b81', '#70a1ff', '#7bed9f', 
+            '#eccc68', '#f368e0', '#00d2d3', '#54a0ff'
+        ];
+        // 120 colorful celebration paper pieces & floating ribbon strings
+        for (let i = 0; i < 120; i++) {
             const p = document.createElement('div');
             p.classList.add('confetti-particle');
-            p.style.left = Math.random() * 100 + 'vw';
-            p.style.top = -10 - Math.random() * 20 + 'px';
+            
+            const isRibbon = (i % 3 === 0);
+            if (isRibbon) {
+                p.classList.add('ribbon-string');
+                p.style.width = (Math.random() * 3 + 3) + 'px';
+                p.style.height = (Math.random() * 18 + 20) + 'px';
+            } else {
+                p.style.width = (Math.random() * 8 + 6) + 'px';
+                p.style.height = (Math.random() * 10 + 6) + 'px';
+                if (i % 5 === 0) p.style.borderRadius = '50%';
+            }
+            
             p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            p.style.width = Math.random() * 8 + 6 + 'px';
-            p.style.height = Math.random() * 12 + 6 + 'px';
-            p.style.transform = `rotate(${Math.random() * 360}deg)`;
+            p.style.left = (Math.random() * 96 + 2) + 'vw';
+            p.style.top = (-20 - Math.random() * 50) + 'px';
             
-            const duration = Math.random() * 2 + 2;
-            const drift = (Math.random() - 0.5) * 200;
+            const duration = Math.random() * 2 + 2.5;
+            const drift = (Math.random() - 0.5) * 220;
+            const rotateDeg = Math.random() * 720 - 360;
             
-            p.style.transition = `transform ${duration}s linear, top ${duration}s linear, opacity ${duration}s ease-out`;
+            p.style.transition = `transform ${duration}s cubic-bezier(0.25, 1, 0.5, 1), top ${duration}s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.35s ease`;
             container.appendChild(p);
             
             setTimeout(() => {
-                p.style.top = '105vh';
-                p.style.transform = `translate(${drift}px, 0px) rotate(${Math.random() * 720}deg)`;
                 p.style.opacity = '1';
-            }, 50);
+                p.style.top = '106vh';
+                p.style.transform = `translate(${drift}px, 0px) rotate(${rotateDeg}deg)`;
+            }, 30 + Math.random() * 200);
             
             setTimeout(() => {
-                p.remove();
-            }, duration * 1000 + 100);
+                try { p.remove(); } catch(e) {}
+            }, duration * 1000 + 400);
         }
     }
 
@@ -5025,25 +5038,51 @@ document.addEventListener('click', function(e) {
 
     function showRegisteredSuccessAnimation() {
         const overlay = document.getElementById('regSuccessOverlay');
-        if (!overlay) return;
+        if (!overlay) {
+            if (typeof window.triggerAdmissionChoiceModal === 'function') {
+                window.triggerAdmissionChoiceModal(5000);
+            }
+            return;
+        }
         
         overlay.classList.add('active');
         launchConfetti(overlay);
         
+        let isClosed = false;
         const doClose = () => {
+            if (isClosed) return;
+            isClosed = true;
             overlay.classList.remove('active');
+            setTimeout(() => {
+                try { overlay.remove(); } catch(e) {}
+            }, 500);
+
+            // Delay the admission choice modal by 5 seconds AFTER closing the welcome card
+            if (typeof window.triggerAdmissionChoiceModal === 'function') {
+                window.triggerAdmissionChoiceModal(5000);
+            }
         };
         
-        document.getElementById('regSuccessContinueBtn').onclick = doClose;
-        setTimeout(doClose, 4500);
+        const continueBtn = document.getElementById('regSuccessContinueBtn');
+        if (continueBtn) continueBtn.onclick = doClose;
+        overlay.onclick = (e) => { if (e.target === overlay) doClose(); };
+
+        // Auto close after 2.6 seconds (approx 2s after animations settle)
+        setTimeout(doClose, 2600);
     }
 
     const showRegistrationAnimation = "{{ show_registration_animation }}" === "True" || "{{ show_registration_animation }}" === "true";
-    if (showRegistrationAnimation) {
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(showRegisteredSuccessAnimation, 300);
-        });
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        if (showRegistrationAnimation) {
+            // Newly registered user / new Google sign-in: show celebration paper bomb welcome card first
+            setTimeout(showRegisteredSuccessAnimation, 350);
+        } else {
+            // Regular user: trigger admission choice modal after normal 5s delay if not already seen
+            if (typeof window.triggerAdmissionChoiceModal === 'function') {
+                window.triggerAdmissionChoiceModal(5000);
+            }
+        }
+    });
 </script>
 {% include 'users/_banner_popup.html' %}
 {% include 'partials/_home_base_exit.html' %}

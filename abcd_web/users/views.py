@@ -2965,6 +2965,7 @@ def set_new_user_flag(backend, strategy, details, response, user=None, is_new=Fa
     request = kwargs.get('request') or (strategy.request if strategy and hasattr(strategy, 'request') else None)
     if is_new and request:
         request.session['show_registration_animation'] = True
+        request.session.modified = True
     return
 
 
@@ -3140,6 +3141,22 @@ def guest_page_view(request):
         avail_seats = 0
 
     show_reg_animation = request.session.pop('show_registration_animation', False)
+
+    # Auto-detect newly registered / new Google sign-in users (joined within last 15 mins with no profile)
+    if not show_reg_animation and request.user.is_authenticated:
+        try:
+            from django.utils import timezone
+            time_since_join = (timezone.now() - request.user.date_joined).total_seconds()
+            already_welcomed = request.session.get('abcd_welcomed_user_id') == request.user.id
+            has_profile = StudentProfile.objects.filter(user=request.user).exists()
+            if time_since_join < 900 and not has_profile and not already_welcomed:
+                show_reg_animation = True
+        except Exception:
+            pass
+
+    if show_reg_animation and request.user.is_authenticated:
+        request.session['abcd_welcomed_user_id'] = request.user.id
+        request.session.modified = True
 
     return render(request, 'users/guest_page.html', {
         "youtube_videos": youtube_videos,

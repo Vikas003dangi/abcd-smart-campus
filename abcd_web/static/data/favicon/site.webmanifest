@@ -29,6 +29,15 @@
   ],
   "theme_color": "#e09fd5",
   "background_color": "#854c7a",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+abcd",
+      "url": "/?pwa_app=1&launch=%s"
+    }
+  ],
   "related_applications": [
     {
       "platform": "webapp",

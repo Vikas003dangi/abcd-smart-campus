@@ -160,7 +160,9 @@
 
         /* Dark theme alert */
         body.dark-theme .alert-overlay {
-            background-color: rgba(241, 241, 241, 0.436);
+            background: rgba(10, 15, 30, 0.85) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
         }
 
         /* dark-theme .bottom-nav-menu handled in the Bottom Nav section below */
@@ -1000,9 +1002,9 @@
             width: 100vw;
             height: 100vh;
             z-index: 1000000 !important;
-            background: rgba(15, 23, 42, 0.78);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
             display: none;
             align-items: center;
             justify-content: center;
@@ -5262,6 +5264,11 @@
         }
 
         function showAlert() {
+            // If PWA install/open prompt is active, defer welcome alert so modals do not clash
+            if (document.querySelector('.abcd-pwa-modal.visible') || window.__abcd_active_prompt) {
+                setTimeout(showAlert, 3000);
+                return;
+            }
             if (alertOverlay) {
                 alertOverlay.classList.add('visible');
                 startMascotChoreography();
@@ -5271,46 +5278,24 @@
             if (alertOverlay) alertOverlay.classList.remove('visible');
             if (mascotInterval) clearInterval(mascotInterval);
         }
-        // Show welcome popup ONLY on fresh session visit OR fresh login/registration (NOT on F5 page refresh, NOT when returning from subpages in same session!)
+        if (alertOverlay) {
+            alertOverlay.addEventListener('click', function(e) {
+                if (e.target === alertOverlay) closeAlert();
+            });
+        }
+
+        // Show welcome popup ONLY once per tab session (persists across reloads & internal navigation; never shows again until a new tab or fresh browser launch)
         (function() {
-            // 1. Detect F5 Page Refresh / Reload
-            let isReload = false;
-            try {
-                const perfNav = performance.getEntriesByType('navigation')[0];
-                if (perfNav && perfNav.type === 'reload') {
-                    isReload = true;
-                } else if (window.performance && window.performance.navigation && window.performance.navigation.type === 1) {
-                    isReload = true;
-                }
-            } catch(e) {}
-
-            // 2. Detect Auth Redirects (Login / Register landing)
-            const urlParams = new URLSearchParams(window.location.search);
-            const isAuthRedirect = urlParams.has('login') || urlParams.has('registered') || document.referrer.includes('/login') || document.referrer.includes('/register');
-
-            // 3. Track Session Navigation State
-            const hasSeenPopup = sessionStorage.getItem('abcd_welcome_popup_shown');
-            const isSubpageNav = sessionStorage.getItem('abcd_session_subpage_nav');
-
-            // Mark session active for internal navigation
-            sessionStorage.setItem('abcd_session_subpage_nav', 'true');
-
-            // DO NOT SHOW on page refresh (F5)
-            if (isReload) {
-                sessionStorage.setItem('abcd_welcome_popup_shown', 'true');
+            // If already shown or dismissed in this tab/session, never show again
+            if (sessionStorage.getItem('abcd_welcome_popup_shown') === 'true') {
                 return;
             }
 
-            // DO NOT SHOW if user navigated internally from subpages within same session (unless fresh login/registration)
-            if (isSubpageNav && hasSeenPopup && !isAuthRedirect) {
-                return;
-            }
+            // Immediately mark as seen so reloads or subpage navigations never re-trigger it
+            sessionStorage.setItem('abcd_welcome_popup_shown', 'true');
 
-            // SHOW POPUP: On fresh visit (new tab/session) OR after login/registration
-            if (!hasSeenPopup || isAuthRedirect) {
-                sessionStorage.setItem('abcd_welcome_popup_shown', 'true');
-                setTimeout(showAlert, 5000);
-            }
+            // Delay 8.5 seconds as requested (gives user time to absorb the hero section first)
+            setTimeout(showAlert, 8500);
         })();
 
         // --- DOM DOM CONTENT LOADED ---

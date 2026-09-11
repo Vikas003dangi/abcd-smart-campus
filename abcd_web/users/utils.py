@@ -363,20 +363,67 @@ def get_individual_videos_for_course(video_ids_str, cache_minutes=360):
 # -------------------------------------------------------------------
 # VISITOR INTENT TRACKING
 # -------------------------------------------------------------------
+# VISITOR INTENT TRACKING & EXCLUSION RULES
+# -------------------------------------------------------------------
+EXCLUDED_VISITOR_EMAILS = {'abcd2013baq@gmail.com', 'vd19055@gmail.com'}
+
+def is_excluded_from_visitor_tracking(user_or_email):
+    """
+    Checks if a user or email address must be strictly excluded from visitor
+    tracking, visitor intent records, and visitor reminder emails.
+    Excludes:
+      - Internal founder emails (abcd2013baq@gmail.com, vd19055@gmail.com)
+      - Teachers / Admins / Superusers
+      - Students (any StudentProfile record: admitted, pending, hold, etc.)
+      - Alumni (any StudentAchievement record)
+    """
+    if not user_or_email:
+        return True
+
+    from django.contrib.auth.models import User
+    from .models import StudentProfile, StudentAchievement
+
+    email = ""
+    user = None
+    if isinstance(user_or_email, str):
+        email = user_or_email.strip().lower()
+        try:
+            user = User.objects.filter(email__iexact=email).first()
+        except Exception:
+            user = None
+    elif hasattr(user_or_email, 'email'):
+        user = user_or_email
+        email = (user.email or "").strip().lower()
+
+    if email in EXCLUDED_VISITOR_EMAILS:
+        return True
+
+    if user:
+        if user.is_staff or user.is_superuser:
+            return True
+        try:
+            if user.groups.filter(name='Teacher').exists():
+                return True
+        except Exception:
+            pass
+        if StudentProfile.objects.filter(user=user).exists():
+            return True
+        if StudentAchievement.objects.filter(user=user).exists():
+            return True
+
+    return False
+
+
 def track_visitor_intent(user, intent_type, metadata=None):
-    if not user.is_authenticated:
+    if not user or not user.is_authenticated:
         return
-    
+
+    # Strictly ignore teachers, admins, students, alumni, and internal accounts
+    if is_excluded_from_visitor_tracking(user):
+        return
+
     metadata = metadata or {}
     intent_scope = metadata.get("intent_scope", "general")
-
-    # If user already has a student profile → IGNORE
-    try:
-        profile = StudentProfile.objects.get(user=user)
-        if profile.status in ["admitted", "pending", "hold"]:
-            return
-    except StudentProfile.DoesNotExist:
-        pass
 
     # Prevent duplicates (same intent + same scope)
     if VisitorIntent.objects.filter(
@@ -428,9 +475,15 @@ def process_visitor_reminders():
         reminder_sent=False,
         resolved=False,
         intent_scope="general"
-    )
+    ).select_related('user')
 
     for intent in intents:
+        # Strictly skip if user or email belongs to teachers, students, alumni, or founders
+        if is_excluded_from_visitor_tracking(intent.user):
+            intent.resolved = True
+            intent.save(update_fields=["resolved"])
+            continue
+
         delay = INTENT_DELAYS.get(intent.intent_type)
         if not delay:
             continue
@@ -452,25 +505,7 @@ def process_visitor_reminders():
             )
 
             intent.mark_reminder_sent()
-
-            # Notify Teacher & Admin Accounts
-            try:
-                for t_email in get_admin_and_teacher_emails():
-                    send_html_email(
-                        subject=f"Visitor Follow-Up Alert: {intent.user.email} ({intent.intent_type})",
-                        to_email=t_email,
-                        template="emails/visitor_reminder.html",
-                        context={
-                            "intent": intent,
-                            "dashboard_url": settings.SITE_URL,
-                            "action_url": f"{settings.SITE_URL}/teacher/visitor-insights/",
-                            "action_text": "View Visitor Insights",
-                        },
-                        fail_silently=True,
-                        run_async=True
-                    )
-            except Exception:
-                pass
+            # Do NOT send visitor follow-up alerts to teachers/admins
 
 # -------------------------------------------------------------------
 # SEAT AVAILABILITY REMINDERS
@@ -495,11 +530,13 @@ def process_seat_availability_reminders():
             resolved=False,
             metadata__seat_number=str(seat.seat_number),
             metadata__floor=seat.floor
-        )
+        ).select_related('user')
 
         for intent in intents:
-            # Skip if user later became a student
-            if hasattr(intent.user, 'studentprofile'):
+            # Strictly skip if user belongs to teachers, students, alumni, or founders
+            if is_excluded_from_visitor_tracking(intent.user):
+                intent.resolved = True
+                intent.save(update_fields=["resolved"])
                 continue
 
             subject = "Your preferred library seat is now available"
@@ -519,26 +556,7 @@ def process_seat_availability_reminders():
             )
 
             intent.mark_reminder_sent()
-
-            # Notify Teacher & Admin Accounts
-            try:
-                for t_email in get_admin_and_teacher_emails():
-                    send_html_email(
-                        subject=f"Seat Available Alert: Seat {seat.seat_number} ({seat.get_floor_display()}) - {intent.user.email} Notified",
-                        to_email=t_email,
-                        template="emails/visitor_reminder.html",
-                        context={
-                            "intent": intent,
-                            "seat": seat,
-                            "dashboard_url": settings.SITE_URL,
-                            "action_url": f"{settings.SITE_URL}/teacher/seat-status/",
-                            "action_text": "View Teacher Seat Manager",
-                        },
-                        fail_silently=True,
-                        run_async=True
-                    )
-            except Exception:
-                pass
+            # Do NOT send visitor alerts to teachers/admins
 # -------------------------------------------------------------------
 
 # -------------------------------------------------------------------
@@ -1474,57 +1492,94 @@ def process_offline_learning_reminders():
 def process_birthday_wishes():
     """
     Daily background processor: Checks for students/alumni whose DOB matches today.
-    Dispatches In-App notifications and celebratory HTML Emails.
+    Dispatches In-App notifications and celebratory HTML Emails to every user who has added their DOB.
     """
-    from .models import StudentProfile, Notification
+    from .models import StudentProfile, StudentAchievement, Notification
     from .email_service import send_html_email
 
     today = timezone.localtime(timezone.now()).date()
     print(f"--- Running Daily Birthday Wish Check for {today} ---")
 
-    birthday_students = StudentProfile.objects.filter(
+    # 1. Collect all students with DOB matching today
+    birthday_students = list(StudentProfile.objects.filter(
+        dob__isnull=False,
         dob__month=today.month,
         dob__day=today.day
-    ).select_related('user')
+    ).select_related('user'))
+
+    # 2. Collect all alumni with DOB matching today (who might not have a student profile)
+    birthday_alumni = list(StudentAchievement.objects.filter(
+        dob__isnull=False,
+        dob__month=today.month,
+        dob__day=today.day
+    ).select_related('user'))
+
+    # Merge and deduplicate by user_id
+    recipients = []
+    seen_user_ids = set()
+
+    for s in birthday_students:
+        u_id = getattr(s.user, 'id', None) or s.id
+        if u_id not in seen_user_ids:
+            seen_user_ids.add(u_id)
+            recipients.append((s, s.full_name, s.user, 'student'))
+
+    for a in birthday_alumni:
+        u_id = getattr(a.user, 'id', None) or f"ach_{a.id}"
+        if u_id not in seen_user_ids:
+            seen_user_ids.add(u_id)
+            full_name = getattr(a, 'full_name', '') or f"{getattr(a, 'first_name', '')} {getattr(a, 'last_name', '')}".strip()
+            recipients.append((a, full_name, getattr(a, 'user', None), 'alumni'))
 
     sent_count = 0
-    for student in birthday_students:
-        cooldown_key = f"birthday_{student.id}_{today.year}"
-        already_sent = Notification.objects.filter(
-            user=student.user,
-            category="general",
-            created_at__date=today,
-            meta__cooldown_key=cooldown_key
-        ).exists()
+    for profile_obj, full_name, user, role in recipients:
+        student_email = get_user_notification_email(profile_obj)
+        cooldown_key = f"birthday_{user.id if user else (student_email or profile_obj.id)}_{today.year}"
+
+        already_sent = False
+        if user:
+            already_sent = Notification.objects.filter(
+                user=user,
+                category="general",
+                meta__cooldown_key=cooldown_key
+            ).exists()
+        elif student_email:
+            already_sent = cache.get(cooldown_key) is not None
 
         if not already_sent:
-            create_notification(
-                user=student.user,
-                title=f"Happy Birthday, {student.full_name}!",
-                message=f"Team ABCD wishes you a very Happy Birthday! May your day be filled with joy and your year with grand success!",
-                link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
-                category="general",
-                meta={"cooldown_key": cooldown_key}
-            )
+            dashboard_link = f"{settings.SITE_URL}{reverse('users:alumni_dashboard')}" if role == 'alumni' else f"{settings.SITE_URL}{reverse('users:student_dashboard')}"
 
-            student_email = get_user_notification_email(student)
+            if user:
+                create_notification(
+                    user=user,
+                    title=f"Happy Birthday, {full_name}!",
+                    message=f"Team ABCD wishes you a very Happy Birthday! May your day be filled with joy and your year with grand success!",
+                    link=dashboard_link,
+                    category="general",
+                    meta={"cooldown_key": cooldown_key}
+                )
+
             if student_email:
                 try:
                     send_html_email(
-                        subject=f"Happy Birthday from Team ABCD, {student.full_name}!",
+                        subject=f"Happy Birthday from Team ABCD, {full_name}!",
                         to_email=student_email,
                         template="emails/birthday_wish_email.html",
                         context={
-                            "student": student,
-                            "dashboard_url": f"{settings.SITE_URL}{reverse('users:student_dashboard')}"
+                            "student": profile_obj,
+                            "full_name": full_name,
+                            "dashboard_url": dashboard_link
                         },
                         fail_silently=True
                     )
                 except Exception as e:
-                    print(f"Birthday email failed for {student.full_name}: {e}")
+                    print(f"Birthday email failed for {full_name}: {e}")
+
+            if not user and student_email:
+                cache.set(cooldown_key, True, 86400 * 2)
 
             sent_count += 1
-            print(f" > Sent Birthday Wish to {student.full_name}")
+            print(f" > Sent Birthday Wish to {full_name}")
 
     print(f"--- Birthday Check Complete. Sent {sent_count} wishes. ---")
     return sent_count
