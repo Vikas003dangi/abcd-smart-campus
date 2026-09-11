@@ -26,21 +26,16 @@ from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view
 
 def ping_view(request):
     """
-    Ultra-lightweight keep-alive & health check endpoint for UptimeRobot and cron-job.org.
-    Responds in ~1ms while opportunistically catching up any due tasks in the background.
+    Ultra-lightweight 100% Zero-DB keep-alive & health check endpoint for UptimeRobot.
+    Responds in <1ms from memory without touching PostgreSQL or starting background threads.
+    Allows Render web service to stay 100% awake 24/7 (preventing 50s cold boots)
+    while allowing Neon serverless database to auto-suspend to 0 CU when idle.
     """
-    try:
-        from users.scheduler import last_scheduler_run, run_scheduler_cycle
-        from django.utils import timezone
-        import threading
-        now = timezone.now()
-        # If scheduler hasn't ticked in 15 minutes (e.g. Render server was sleeping), catch up in thread
-        if not last_scheduler_run or (now - last_scheduler_run).total_seconds() > 900:
-            threading.Thread(target=run_scheduler_cycle, kwargs={'mode': 'all'}, daemon=True).start()
-    except Exception:
-        pass
-
-    return JsonResponse({"status": "ok", "service": "ABCD Smart Campus", "uptime": "active"})
+    return JsonResponse({
+        "status": "ok",
+        "service": "ABCD Smart Campus",
+        "uptime": "active"
+    })
 
 urlpatterns = [
     # Root PWA Service Worker (with Service-Worker-Allowed: /)

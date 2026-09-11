@@ -233,21 +233,21 @@ def execute_urgent_reminder_checks():
 
 def _scheduler_loop():
     """
-    Background worker loop that runs continuously.
-    Ticks urgent alarms every 5 seconds, and full maintenance cycle every 60 seconds.
+    Background worker loop for local development / non-serverless environments.
+    Runs gentle periodic checks and daily maintenance.
     """
-    logger.info(">>> ABCD Embedded 24/7 Background Scheduler Active (5s Alarm Precision) <<<")
+    logger.info(">>> ABCD Embedded Background Scheduler Active <<<")
     # Initial sleep of 10s to let Daphne / Django boot cleanly and complete startup migrations
     time.sleep(10)
 
     tick_count = 0
     while True:
         try:
-            # 1. Ultra-responsive 5-second check for due To-Do reminders & alarms
+            # 1. Check for due reminders/alarms & broadcasts
             execute_urgent_reminder_checks()
 
-            # 2. Run full 60-second maintenance cycle every 12 ticks (~60 seconds)
-            if tick_count % 12 == 0:
+            # 2. Run maintenance cycle every ~60 seconds
+            if tick_count % 2 == 0:
                 run_scheduler_cycle(force_daily=False, mode='all')
         except Exception as e:
             logger.error(f"Unexpected error in background scheduler loop: {e}", exc_info=True)
@@ -255,7 +255,7 @@ def _scheduler_loop():
             close_old_connections()
 
         tick_count += 1
-        time.sleep(5)
+        time.sleep(30)
 
 
 def start_background_scheduler():
@@ -263,6 +263,14 @@ def start_background_scheduler():
     Safely starts the embedded background scheduler daemon thread.
     Guaranteed to run only once per process.
     Skips execution during CLI management commands (e.g. migrate, collectstatic, test).
+
+    IMPORTANT FOR SERVERLESS POSTGRES (NEON):
+    On production when using Neon PostgreSQL (or when DISABLE_EMBEDDED_SCHEDULER=true),
+    we do NOT run an aggressive continuous polling thread inside the web container.
+    Continuous polling keeps Neon compute awake 24/7 (burning 180 CU-hrs/month).
+    Instead, background automation is triggered cleanly via external cron-job.org
+    pinging /api/cron/maintenance/?key=... every 4 hours, allowing Neon to auto-suspend
+    to 0 CU (Sleep) whenever no human is browsing the site.
     """
     global _scheduler_started
 
@@ -287,7 +295,15 @@ def start_background_scheduler():
         if is_runserver and os.environ.get('RUN_MAIN') != 'true':
             return
 
-        # 3. Mark started and spawn background daemon thread
+        # 3. On Production with Neon PostgreSQL, disable continuous internal polling to allow Neon scale-to-zero sleep.
+        database_url = os.environ.get('DATABASE_URL', '')
+        disable_embedded = os.environ.get('DISABLE_EMBEDDED_SCHEDULER', '').lower() in ['1', 'true', 'yes']
+        force_embedded = os.environ.get('FORCE_EMBEDDED_SCHEDULER', '').lower() in ['1', 'true', 'yes']
+        if ('neon.tech' in database_url or disable_embedded) and not force_embedded:
+            logger.info("[ABCD] Serverless PostgreSQL (Neon) detected: Embedded background scheduler loop disabled so Neon can scale to 0 CU (Sleep mode) when idle. Scheduled automation runs via external cron-job.org.")
+            return
+
+        # 4. Mark started and spawn background daemon thread (for local dev or non-serverless setups)
         _scheduler_started = True
         thread = threading.Thread(target=_scheduler_loop, name="ABCD-BackgroundScheduler", daemon=True)
         thread.start()
