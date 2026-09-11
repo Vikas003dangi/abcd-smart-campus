@@ -572,6 +572,17 @@
           radial-gradient(circle at 15% 15%, rgba(168, 85, 247, 0.10) 0%, transparent 50%),
           radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
     }
+
+    @media (max-width: 768px) {
+        .premium-services-section::after,
+        .premium-services-section .feature-card.premium-card::after {
+            display: none !important; /* Eliminate expensive 10-15px layer blurs on mobile GPUs */
+        }
+        .premium-services-section::before,
+        .premium-services-section .feature-card.premium-card {
+            animation: none !important; /* Use static gradient borders on mobile without continuous repaint */
+        }
+    }
     
 
 
@@ -4299,12 +4310,12 @@ document.addEventListener('click', function(e) {
               
               <div class="marquee-container" id="marqueeContainer">
                   <div class="marquee-content scrolling" id="marqueeContent">
-                      {# Repeat 16 times to ensure infinite flow without gaps even with 1 student #}
-                      {% for i in "1234567890123456" %}
+                      {# Repeat 2 times for seamless infinite loop without overloading mobile RAM #}
+                      {% for i in "12" %}
                           {% for ach in achievements %}
                           <div class="ach-card-item" data-url="{% url 'users:achievement_detail' ach.id %}" onclick="window.location.href=this.getAttribute('data-url')">
                               <div class="circle-view">
-                                  <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }}">
+                                  <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }}" loading="lazy" decoding="async">
                                   <div class="circle-overlay">
                                       <div class="overlay-name">{{ ach.first_name }}</div>
                                       <div class="overlay-post">{{ ach.short_achievement }}</div>
@@ -4313,7 +4324,7 @@ document.addEventListener('click', function(e) {
                               
                               <div class="expanded-view">
                                   <div class="exp-photo-wrap">
-                                      <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }} {{ ach.last_name }}">
+                                      <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }} {{ ach.last_name }}" loading="lazy" decoding="async">
                                   </div>
                                   <div class="exp-details">
                                       <h4>{{ ach.first_name }} {{ ach.last_name }}</h4>
@@ -4894,12 +4905,23 @@ document.addEventListener('click', function(e) {
     
     let isManual = false;
     let isHovered = false;
+    let isWindowScrolling = false;
+    let scrollPauseTimer = null;
     let scrollSpeed = 0.55; // Adjusted to be "a bit fast" but still gentle
     let animationFrame;
 
+    // Pause horizontal marquee when user is actively scrolling page vertically on mobile
+    window.addEventListener('scroll', () => {
+        isWindowScrolling = true;
+        clearTimeout(scrollPauseTimer);
+        scrollPauseTimer = setTimeout(() => {
+            isWindowScrolling = false;
+        }, 120);
+    }, { passive: true });
+
     let currentScroll = 0;
     function animateMarquee() {
-        if (!isManual && !isHovered && marqueeContainer && marqueeContent) {
+        if (!isManual && !isHovered && !isWindowScrolling && marqueeContainer && marqueeContent) {
             currentScroll += scrollSpeed;
             marqueeContainer.scrollLeft = currentScroll;
             if (currentScroll >= (marqueeContent.scrollWidth / 2)) {
@@ -4944,6 +4966,17 @@ document.addEventListener('click', function(e) {
             isHovered = false;
         });
         
+        // Touch events for mobile to prevent scroll gesture contention
+        marqueeContainer.addEventListener('touchstart', () => {
+            isHovered = true;
+        }, { passive: true });
+        marqueeContainer.addEventListener('touchend', () => {
+            isHovered = false;
+        }, { passive: true });
+        marqueeContainer.addEventListener('touchcancel', () => {
+            isHovered = false;
+        }, { passive: true });
+
         // Robustness fix: detect hover on specific items
         marqueeContainer.addEventListener('mouseover', (e) => {
             if (e.target.closest('.ach-card-item')) isHovered = true;

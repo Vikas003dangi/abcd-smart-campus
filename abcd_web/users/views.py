@@ -149,6 +149,14 @@ def is_teacher(user):
 
 
 def get_available_seats_count():
+    cache_key = "available_seats_count_stat"
+    try:
+        cached_val = cache.get(cache_key)
+        if cached_val is not None:
+            return cached_val
+    except Exception:
+        pass
+
     from .models import Seat
     seats = Seat.objects.prefetch_related('assignments')
     today = timezone.localdate()
@@ -215,6 +223,10 @@ def get_available_seats_count():
         if visual_status == 'available':
             available_count += 1
             
+    try:
+        cache.set(cache_key, available_count, 60)
+    except Exception:
+        pass
     return available_count
 
 
@@ -350,6 +362,13 @@ def get_latest_youtube_videos(limit=6):
     except Exception:
         videos = None
 
+    if not api_key or not channel_id:
+        try:
+            cache.set(cache_key, fallback_videos[:limit], 3600)
+        except Exception:
+            pass
+        return fallback_videos[:limit]
+
     try:
         url = "https://www.googleapis.com/youtube/v3/search"
         params = {
@@ -360,7 +379,7 @@ def get_latest_youtube_videos(limit=6):
             "type": "video",
             "key": api_key,
         }
-        res = requests.get(url, params=params, timeout=4)
+        res = requests.get(url, params=params, timeout=2)
         if res.status_code == 200:
             data = res.json()
             fetched_videos = []
@@ -374,12 +393,22 @@ def get_latest_youtube_videos(limit=6):
                     })
             if fetched_videos:
                 try:
-                    cache.set(cache_key, fetched_videos, 15 * 60)
+                    cache.set(cache_key, fetched_videos, 3600)
                 except Exception:
                     pass
                 return fetched_videos
+
+        # Cache fallback on quota exceeded or non-200 to prevent repeated blocking calls
+        try:
+            cache.set(cache_key, fallback_videos[:limit], 1800)
+        except Exception:
+            pass
         return fallback_videos[:limit]
     except Exception:
+        try:
+            cache.set(cache_key, fallback_videos[:limit], 1800)
+        except Exception:
+            pass
         return fallback_videos[:limit]
 
 # -------------------------------------------------------------------
@@ -3084,9 +3113,12 @@ def guest_page_view(request):
         youtube_videos = []
 
     try:
-        preview_courses = list(get_accessible_courses(request.user)[:3])
+        accessible_courses_qs = get_accessible_courses(request.user)
+        preview_courses = list(accessible_courses_qs[:3])
+        courses_count = accessible_courses_qs.count()
     except Exception:
         preview_courses = []
+        courses_count = 0
 
     try:
         _ach_pool = list(
@@ -3106,11 +3138,6 @@ def guest_page_view(request):
         avail_seats = get_available_seats_count()
     except Exception:
         avail_seats = 0
-
-    try:
-        courses_count = get_accessible_courses(request.user).count()
-    except Exception:
-        courses_count = len(preview_courses)
 
     show_reg_animation = request.session.pop('show_registration_animation', False)
 

@@ -2353,7 +2353,8 @@ def send_welcome_email_on_registration(sender, instance, created, **kwargs):
                     "username": instance.username,
                     "login_url": login_url,
                 },
-                fail_silently=True
+                fail_silently=True,
+                run_async=True
             )
         except Exception as e:
             import logging
