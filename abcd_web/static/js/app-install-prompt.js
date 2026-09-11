@@ -137,6 +137,18 @@
             body.has-abcd-smart-banner .top-nav-menu {
                 top: 68px !important;
             }
+            body.has-abcd-smart-banner .sidebar-wrapper {
+                top: 122px !important;
+                height: calc(100dvh - 132px) !important;
+                max-height: calc(100dvh - 132px) !important;
+            }
+            @media (min-width: 769px) {
+                body.has-abcd-smart-banner .sidebar-wrapper {
+                    top: 75px !important;
+                    height: calc(100dvh - 85px) !important;
+                    max-height: calc(100dvh - 85px) !important;
+                }
+            }
             .abcd-banner-left {
                 display: flex;
                 align-items: center;
@@ -719,16 +731,35 @@
         });
     }
 
+    // Helper to update smart banner button state dynamically
+    function updateSmartBannerBtn(isInstalled) {
+        const btn = document.getElementById('abcdBannerActionBtn');
+        if (btn) {
+            btn.textContent = isInstalled ? 'OPEN' : 'INSTALL';
+            btn.setAttribute('aria-label', isInstalled ? 'Open in ABCD App' : 'Install ABCD App');
+        }
+    }
+
     // 4. Smart Device Detection: Query getInstalledRelatedApps and localStorage
     async function checkDeviceAppStatus() {
+        // If the browser already fired beforeinstallprompt, the app is 100% NOT installed!
+        if (deferredPrompt) {
+            localStorage.removeItem(INSTALLED_KEY);
+            return false;
+        }
+
         let isInstalled = (localStorage.getItem(INSTALLED_KEY) === 'true');
 
-        if (!isInstalled && 'getInstalledRelatedApps' in navigator) {
+        if ('getInstalledRelatedApps' in navigator) {
             try {
                 const relatedApps = await navigator.getInstalledRelatedApps();
                 if (relatedApps && relatedApps.length > 0) {
                     isInstalled = true;
                     localStorage.setItem(INSTALLED_KEY, 'true');
+                } else {
+                    // App is not in installed related apps; clear stale flag
+                    isInstalled = false;
+                    localStorage.removeItem(INSTALLED_KEY);
                 }
             } catch (e) {}
         }
@@ -736,15 +767,21 @@
         return isInstalled;
     }
 
-    // 5. Open in Native App (Android Intent + PWA Protocol)
+    // 5. Open in Native App (Android Intent + PWA Protocol) without reload loops
     function openInNativeApp() {
         const host = window.location.host;
         const path = window.location.pathname + window.location.search;
         const isAndroid = /android/i.test(navigator.userAgent);
 
+        let appOpened = false;
+        const markOpened = () => { appOpened = true; };
+        window.addEventListener('pagehide', markOpened, { once: true });
+        window.addEventListener('blur', markOpened, { once: true });
+
         if (isAndroid) {
-            // Android Intent URI (targeting verified package in.abcdcampus.app with fallback)
-            const intentUri = `intent://${host}${path}#Intent;scheme=https;package=in.abcdcampus.app;S.browser_fallback_url=${encodeURIComponent(window.location.href)};end`;
+            // Android Intent targeting verified package in.abcdcampus.app
+            // Do NOT supply browser_fallback_url=window.location.href which causes an endless page reload loop
+            const intentUri = `intent://${host}${path}#Intent;scheme=https;package=in.abcdcampus.app;end`;
             window.location.href = intentUri;
         } else {
             // PWA protocol handler or fallback
@@ -753,6 +790,19 @@
                 window.location.href = pwaUrl;
             } catch (e) {}
         }
+
+        // If after 1.5 seconds the browser did not blur/hide, the app is not on the device!
+        setTimeout(() => {
+            window.removeEventListener('pagehide', markOpened);
+            window.removeEventListener('blur', markOpened);
+            if (!appOpened && document.visibilityState === 'visible') {
+                console.log("[PWA] App not installed on device. Clearing stale flag and offering installation.");
+                localStorage.removeItem(INSTALLED_KEY);
+                updateSmartBannerBtn(false);
+                hideActiveModal();
+                triggerInstallFlow();
+            }
+        }, 1500);
     }
 
     // 6. Trigger 1-Tap Install or Fallback to VIP Modal
@@ -820,10 +870,7 @@
                 });
             });
         } else {
-            const btn = document.getElementById('abcdBannerActionBtn');
-            if (btn) {
-                btn.textContent = isInstalled ? 'OPEN' : 'INSTALL';
-            }
+            updateSmartBannerBtn(isInstalled);
         }
 
         requestAnimationFrame(() => {
@@ -846,9 +893,11 @@
         deferredPrompt = e;
         window.deferredInstallPrompt = e;
 
-        checkDeviceAppStatus().then((isInstalled) => {
-            buildAndShowSmartBanner(isInstalled);
-        });
+        // Definitive proof the app is NOT installed on this device:
+        localStorage.removeItem(INSTALLED_KEY);
+
+        updateSmartBannerBtn(false);
+        buildAndShowSmartBanner(false);
     });
 
     // Detect appinstalled event

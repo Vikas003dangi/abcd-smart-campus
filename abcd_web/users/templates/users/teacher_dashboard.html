@@ -8451,28 +8451,36 @@
         // Nothing to close — dropdown removed, panel has its own overlay
       });
 
-      // notif-jump-btn & [data-tab-target]: jump to section and close panel
-      // Works from ANY teacher page — if the tab DOM exists we switch inline,
-      // otherwise we navigate to /teacher/?tab=<target> so the dashboard opens
-      // on the correct tab.
+      // notif-jump-btn & [data-tab-target]: jump to section and auto-scroll
+      // Handles stat-cards on dashboard and notification items across pages
       document.addEventListener('click', (e) => {
         const btn = e.target.closest('.notif-jump-btn, [data-tab-target]');
-        if (!btn || !btn.closest('#teacherNotifPanel')) return;
+        if (!btn) return;
+        // Do not intercept links with specific hrefs (e.g. Manage / Open Chat)
+        if (e.target.closest('a') && !e.target.closest('a').classList.contains('notif-jump-btn') && !e.target.closest('a').hasAttribute('data-tab-target')) return;
+
         const target = btn.dataset.tabTarget || btn.getAttribute('data-tab-target');
         if (!target) return;
         e.preventDefault();
-        // Close notification panel
+
+        // Close notification panel if open
         const panel = document.getElementById('teacherNotifPanel');
         const overlay = document.getElementById('teacherNotifOverlay');
         if (panel) panel.classList.remove('active');
         if (overlay) overlay.classList.remove('active');
-        // If the tab element exists in the DOM we are on the dashboard → switch inline
-        const targetTabEl = document.getElementById(target + '-tab');
-        if (targetTabEl && typeof window.showTab === 'function') {
+
+        // If on the dashboard with showTab available, switch tab and scroll to it
+        const targetTabEl = document.getElementById(target + '-tab') || document.getElementById(target);
+        if (typeof window.showTab === 'function') {
           window.showTab(target);
-          targetTabEl.scrollIntoView({ behavior: 'smooth' });
+          setTimeout(() => {
+            const el = document.getElementById(target + '-tab') || document.getElementById(target);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 60);
         } else {
-          // We are on a different teacher page → navigate to the dashboard with ?tab=
+          // Navigate to the dashboard with ?tab=
           window.location.href = '/teacher/?tab=' + encodeURIComponent(target);
         }
       });

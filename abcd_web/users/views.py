@@ -1569,12 +1569,20 @@ def yt_fetch_videos_api(request):
         for v in videos:
             snippet = v.get("snippet", {})
             vid_id = v.get("id", {})
-            if isinstance(vid_id, dict):
-                video_id = vid_id.get("videoId", "")
-            else:
-                video_id = str(vid_id)
+            video_id = ""
+            # When using playlistItems (uploads playlist), videoId is in snippet['resourceId']['videoId']
+            if isinstance(snippet.get("resourceId"), dict) and snippet["resourceId"].get("videoId"):
+                video_id = snippet["resourceId"]["videoId"]
+            elif isinstance(vid_id, dict) and vid_id.get("videoId"):
+                video_id = vid_id["videoId"]
+            elif isinstance(vid_id, str):
+                video_id = vid_id
+
             thumbs = snippet.get("thumbnails", {})
             thumb_url = (thumbs.get("medium") or thumbs.get("default") or {}).get("url", "")
+            if not thumb_url and video_id and len(video_id) == 11:
+                thumb_url = f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+
             data.append({
                 "videoId": video_id,
                 "title": snippet.get("title", ""),
@@ -1862,7 +1870,13 @@ def delete_study_material(request, material_id):
             material.file.delete(save=False)  # deletes file physically from storage
         except Exception as e:
             logger.error(f"Error deleting material file {material.id}: {e}")
+    course_ref = material.course
     material.delete()
+    try:
+        course_ref.video_count = course_ref.materials.filter(material_type='video').count()
+        course_ref.save(update_fields=['video_count'])
+    except Exception as e:
+        logger.error(f"Error updating course video count on delete: {e}")
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
         return JsonResponse({"success": True, "message": "Study material deleted successfully."})
@@ -1981,6 +1995,12 @@ def add_material_view(request, course_id):
 
     else:
         messages.error(request, "Invalid material type.")
+
+    try:
+        course.video_count = course.materials.filter(material_type='video').count()
+        course.save(update_fields=['video_count'])
+    except Exception as e:
+        logger.error(f"Error updating course video count on add: {e}")
 
     messages.success(request, "Material added successfully.")
     return redirect("users:teacher_course_materials", course_id=course.id)
@@ -9154,6 +9174,8 @@ def delete_payment_view(request, student_id, year, month_name):
 @login_required
 @user_passes_test(is_teacher)
 def teacher_broadcast_view(request):
+    from .models import Seat, StudentProfile, StudentAchievement
+
     if request.method == "POST":
 
         # -----------------------------
@@ -9452,8 +9474,6 @@ def teacher_broadcast_view(request):
     # -----------------------------
     # GET REQUEST - PREPARE UI DATA
     # -----------------------------
-    from .models import Seat, StudentProfile, StudentAchievement
-    
     # Dynamic Floors
     floors = Seat.objects.values_list('floor', flat=True).distinct().order_by('floor')
         
@@ -10755,6 +10775,7 @@ def guidy_home(request):
     # media expiration and ended chat archiving; removed from synchronous request cycle.
 
     from users.utils import get_profile_photo_url, get_user_dashboard_type, get_user_display_name
+    from users.models import DirectChatSession, TeacherProfile, GuidyBlock
     user = request.user
 
     # Mark all unread Guidy notifications as read (user is visiting Guidy)
@@ -11072,7 +11093,7 @@ def guidy_home(request):
             'last_timestamp': last_timestamp,
             'unread_count': unread_count,
             'active': (active_session and active_session.id == s.id),
-            'is_verified': other_u.is_staff or other_u.is_superuser,
+            'is_verified': bool(other_u and (other_u.is_staff or other_u.is_superuser)),
         })
 
     # 2. General direct 1-to-1 chats (DirectChatSession)
@@ -11085,6 +11106,8 @@ def guidy_home(request):
     )
     for s in direct_sessions:
         other_u = s.user2 if s.user1 == user else s.user1
+        if not other_u:
+            continue
         other_dashboard_type = get_user_dashboard_type(other_u)
         
         name = get_user_display_name(other_u)
@@ -11113,7 +11136,7 @@ def guidy_home(request):
             is_deleted_for_all=True
         ).exclude(sender=user).count()
 
-        is_verified = other_u.is_staff or other_u.is_superuser
+        is_verified = bool(other_u and (other_u.is_staff or other_u.is_superuser))
         unified_chats.append({
             'id': s.id,
             'is_group_chat': False,
@@ -11147,7 +11170,6 @@ def guidy_home(request):
     my_whatsapps_list = []
     
     if is_teacher:
-        from users.models import TeacherProfile
         my_teacher_profile, _ = TeacherProfile.objects.get_or_create(user=user)
         my_subtext = my_teacher_profile.role_title or "Teacher"
         my_emails_list = [e.strip() for e in (my_teacher_profile.emails or '').split(',') if e.strip()]
@@ -11174,10 +11196,10 @@ def guidy_home(request):
                 other_user = active_session.request.student if active_session.request.alumni.user == request.user else active_session.request.alumni.user
             else:
                 other_user = active_session.user_two if active_session.user_one == request.user else active_session.user_one
-        other_user_active = bool(cache.get(f'guidy_presence_{other_user.id}'))
-        other_is_verified = other_user.is_staff or other_user.is_superuser
-        from .models import GuidyBlock
-        is_blocked = GuidyBlock.objects.filter(blocker=request.user, blocked=other_user).exists()
+        if other_user:
+            other_user_active = bool(cache.get(f'guidy_presence_{other_user.id}'))
+            other_is_verified = bool(other_user.is_staff or other_user.is_superuser)
+            is_blocked = GuidyBlock.objects.filter(blocker=request.user, blocked=other_user).exists()
 
     # Determine if user has any chat history (for welcome vs returning empty state)
     has_any_chat_history = bool(unified_chats) or \
@@ -11188,7 +11210,6 @@ def guidy_home(request):
 
     # Fetch teachers' User IDs for direct chat buttons in procedure popups
     from django.contrib.auth.models import User as DjangoUser
-    from .models import DirectChatSession
     sandeep_user = DjangoUser.objects.filter(email='abcd2013baq@gmail.com').first()
     asst_user = DjangoUser.objects.filter(email='vd19055@gmail.com').first()
     sandeep_id = sandeep_user.id if sandeep_user else None

@@ -606,18 +606,35 @@ class Course(models.Model):
                 return self.thumbnail.url
             except Exception:
                 pass
-        # Direct YouTube CDN fallback for custom / synced courses
+        # 1. Direct YouTube CDN fallback for custom / synced courses with valid video_ids
         if self.video_ids:
-            first_id = self.video_ids.split(',')[0].strip()
-            if first_id:
-                return f"https://img.youtube.com/vi/{first_id}/hqdefault.jpg"
-        first_mat = self.materials.filter(material_type='video').first()
-        if first_mat and first_mat.external_url:
-            import re
-            m = re.search(r'(?:v=|\/embed\/|\/watch\?v=|youtu\.be\/|\/v\/|e\/|watch\?feature=player_embedded&v=)([a-zA-Z0-9_-]{11})', first_mat.external_url)
-            if m:
-                return f"https://img.youtube.com/vi/{m.group(1)}/hqdefault.jpg"
+            for vid in self.video_ids.split(','):
+                vid = vid.strip()
+                if vid and len(vid) == 11 and not vid.startswith(('PL', 'UEx', 'UU', 'FL', 'RD')):
+                    return f"https://img.youtube.com/vi/{vid}/hqdefault.jpg"
+        # 2. Check associated video materials
+        for mat in self.materials.filter(material_type='video'):
+            yt_id = mat.youtube_id
+            if yt_id:
+                return f"https://img.youtube.com/vi/{yt_id}/hqdefault.jpg"
+            if mat.thumbnail:
+                try:
+                    return mat.thumbnail.url
+                except Exception:
+                    pass
         return None
+
+    @property
+    def display_video_count(self):
+        """Returns accurate count of videos in course."""
+        v_count = self.materials.filter(material_type='video').count()
+        if v_count > 0:
+            return v_count
+        if self.video_ids:
+            ids = [x.strip() for x in self.video_ids.split(',') if x.strip()]
+            if ids:
+                return len(ids)
+        return self.video_count or 0
 
     @property
     def average_rating(self):
@@ -659,11 +676,29 @@ class StudyMaterial(models.Model):
 
     @property
     def youtube_id(self):
-        if self.external_url and 'youtu' in self.external_url:
+        if self.external_url and ('youtu.be' in self.external_url or 'youtube.com' in self.external_url):
             import re
-            regex = r'(?:v=|\/)([0-9A-Za-z_-]{11}).*'
-            match = re.search(regex, self.external_url)
-            if match: return match.group(1)
+            patterns = [
+                r'(?:v=|\/v\/|\/embed\/|\/shorts\/)([a-zA-Z0-9_-]{11})',
+                r'youtu\.be\/([a-zA-Z0-9_-]{11})',
+                r'(?:^|[\?&])v=([a-zA-Z0-9_-]{11})',
+            ]
+            for pat in patterns:
+                m = re.search(pat, self.external_url)
+                if m:
+                    return m.group(1)
+        return None
+
+    @property
+    def display_thumbnail_url(self):
+        """Thumbnail URL for the material (custom uploaded or YouTube CDN)."""
+        if self.thumbnail:
+            try:
+                return self.thumbnail.url
+            except Exception:
+                pass
+        if self.youtube_id:
+            return f"https://img.youtube.com/vi/{self.youtube_id}/hqdefault.jpg"
         return None
 
     class Meta:

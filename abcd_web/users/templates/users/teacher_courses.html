@@ -1247,7 +1247,7 @@
           </div>
 
           <div class="tc-card-meta">
-            <span>🎬 {{ course.video_count }} Videos</span>
+            <span>🎬 {{ course.display_video_count }} Videos</span>
             <span>📄 {{ course.materials.count }} Materials</span>
           </div>
 
@@ -1423,7 +1423,7 @@
       <div class="tc-form-group">
         <label class="tc-form-label">Change Thumbnail</label>
         <div class="tc-upload-zone" id="editUploadZone">
-          <input type="file" id="editCourseThumbInput" accept="image/*"
+          <input type="file" id="editCourseThumbInput" name="thumbnail" accept="image/*"
                  onchange="handleThumbSelection(this, 'edit')">
           <input type="hidden" name="cropped_thumbnail" id="editCroppedThumbData">
           <input type="hidden" name="remove_thumbnail" id="editRemoveThumb" value="0">
