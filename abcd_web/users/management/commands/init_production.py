@@ -21,6 +21,7 @@ class Command(BaseCommand):
                 Notification, Complaint, StudentProfile, StudentAchievement,
                 CourseQuestion, CourseAnswer, CourseReview, CourseShare,
                 StudentMaterialAccess, StudentCourseInteraction, LearningReminder,
+                StudyMaterial, Course, CourseCategory,
                 PerformanceRecord, StudentScore, Payment, FeeTransaction,
                 DismissedFeeAlert, VisitorIntent, BannerViewLog, PushSubscription,
                 SeatAssignment, SeatSpecialRequest, SeatHoldRequest, SeatSwitchRequest,
@@ -28,6 +29,7 @@ class Command(BaseCommand):
                 BlockedGuidance, RestrictedStudent, GroupChatSession, GroupMessage,
                 TodoTask, GuidyBlock, Seat, TeacherProfile
             )
+            from django.contrib.sessions.models import Session
 
             Notification.objects.all().delete()
             Complaint.objects.all().delete()
@@ -41,6 +43,9 @@ class Command(BaseCommand):
             StudentMaterialAccess.objects.all().delete()
             StudentCourseInteraction.objects.all().delete()
             LearningReminder.objects.all().delete()
+            StudyMaterial.objects.all().delete()
+            Course.objects.all().delete()
+            CourseCategory.objects.all().delete()
 
             PerformanceRecord.objects.all().delete()
             StudentScore.objects.all().delete()
@@ -67,8 +72,9 @@ class Command(BaseCommand):
             GroupMessage.objects.all().delete()
             TodoTask.objects.all().delete()
             GuidyBlock.objects.all().delete()
+            Session.objects.all().delete()
 
-            self.stdout.write(self.style.SUCCESS('Successfully cleaned all test notifications, admissions, complaints, chats, and requests.'))
+            self.stdout.write(self.style.SUCCESS('Successfully cleaned all test notifications, admissions, courses, complaints, chats, and requests.'))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f'Warning during table purge: {e}'))
 
