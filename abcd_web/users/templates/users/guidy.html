@@ -6966,6 +6966,7 @@ async function ctxPin() {
     url = `/guidy/direct/${DIRECT_ID}/msg/${msgId}/pin/`;
   } else {
     url = `/guidy/chat/${SESSION_ID}/msg/${msgId}/pin/`;
+  }
   try {
     const r = await fetch(url, { method:'POST', body:fd });
     const d = await r.json();
