@@ -104,10 +104,10 @@ html, body {
    LAYOUT SHELL
 ══════════════════════════════════════════════════════ */
 .g-wrap {
-  max-width: 1320px;
-  margin: 25px auto;
-  padding: 0 14px;
-  height: calc(100vh - 115px);
+  max-width: 1400px;
+  margin: 2rem auto;
+  padding: 0 20px;
+  height: calc(100vh - 120px);
   min-height: 540px;
 }
 .g-shell {
@@ -1946,13 +1946,18 @@ body.dark-theme .contact-item-chatted {
   .g-wrap {
     width: 100% !important;
     max-width: 100% !important;
-    margin: 8px auto 85px auto !important;
-    padding: 0 !important;
-    height: calc(100dvh - 155px) !important;
+    margin: 20px auto 85px auto !important;
+    padding: 0 10px !important;
+    height: calc(100dvh - 165px) !important;
     min-height: 480px !important;
     border-radius: 16px !important;
     position: relative !important;
     overflow: hidden !important;
+  }
+
+  /* Ensure sleek app banner never overlaps Guidy header on mobile */
+  body.has-abcd-smart-banner:not(.g-fullscreen-active):not(.chat-active) .g-wrap {
+    margin-top: 28px !important;
   }
 
   .g-shell {
