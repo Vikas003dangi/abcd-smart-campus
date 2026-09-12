@@ -748,8 +748,11 @@ def create_notification(user, title, message, link=None, category="general", met
     if not sound:
         cat_lower = (category or "").lower()
         title_lower = (title or "").lower()
+        is_guidy = (cat_lower == 'guidy') or (tag and 'guidy' in str(tag).lower()) or ('/guidy' in (link or '').lower())
         is_todo = (isinstance(meta, dict) and meta.get('source') == 'todo') or ('/todo' in (link or '').lower())
-        if cat_lower == 'alarm' or 'alarm' in title_lower:
+        if is_guidy:
+            sound = "/static/audio/receive.mp3"
+        elif cat_lower == 'alarm' or 'alarm' in title_lower:
             sound = "/static/audio/alarm.mp3"
         elif cat_lower == 'reminder' or 'reminder' in title_lower:
             # Inside To-Do Hub reminder without alarm uses PWA.mp3; outside To-Do Hub uses alarms and reminders.mp3
@@ -783,23 +786,33 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     title_lower = (title or "").lower()
     tag_lower = (tag or "").lower()
 
-    meta_is_alarm = meta.get('is_alarm') if isinstance(meta, dict) else None
-    if meta_is_alarm is not None:
-        is_alarm = bool(meta_is_alarm)
-    else:
-        is_alarm = (cat_lower == 'alarm' or src_lower == 'alarm' or
-                    'alarm' in title_lower or 'alarm' in tag_lower)
+    # Guidy messages are chat / assistant communication and must NEVER be treated as alarms or reminders
+    is_guidy = (cat_lower == 'guidy' or src_lower == 'guidy' or tag_lower.startswith('guidy-') or '/guidy' in (url or '').lower())
 
-    is_reminder = (not is_alarm) and (cat_lower == 'reminder' or src_lower == 'reminder' or
-                                       'reminder' in title_lower or 'reminder' in tag_lower)
+    if is_guidy:
+        is_alarm = False
+        is_reminder = False
+    else:
+        meta_is_alarm = meta.get('is_alarm') if isinstance(meta, dict) else None
+        if meta_is_alarm is not None:
+            is_alarm = bool(meta_is_alarm)
+        else:
+            is_alarm = (cat_lower == 'alarm' or src_lower == 'alarm' or
+                        'alarm' in title_lower or 'alarm' in tag_lower)
+
+        is_reminder = (not is_alarm) and (cat_lower == 'reminder' or src_lower == 'reminder' or
+                                           'reminder' in title_lower or 'reminder' in tag_lower)
 
     # Distinct sounds:
-    # 1. Inside To-Do Hub: alarm uses alarm.mp3, reminder without alarm uses PWA.mp3
-    # 2. Outside To-Do Hub: reminder uses 'alarms and reminders.mp3'
-    # 3. Standard general notification: PWA.mp3
+    # 1. Guidy chat: receive.mp3
+    # 2. Inside To-Do Hub: alarm uses alarm.mp3, reminder without alarm uses PWA.mp3
+    # 3. Outside To-Do Hub: reminder uses 'alarms and reminders.mp3'
+    # 4. Standard general notification: PWA.mp3
     is_todo = (isinstance(meta, dict) and meta.get('source') == 'todo') or (src_lower == 'todo') or ('/todo' in (url or '').lower())
     if not sound:
-        if is_alarm:
+        if is_guidy:
+            sound = "/static/audio/receive.mp3"
+        elif is_alarm:
             sound = "/static/audio/alarm.mp3"
         elif is_reminder:
             sound = "/static/audio/PWA.mp3" if is_todo else "/static/audio/alarms and reminders.mp3"

@@ -50,15 +50,24 @@ self.addEventListener('push', function (event) {
     const titleLower = (title || '').toLowerCase();
     const tagLower = (data.tag || '').toLowerCase();
 
-    // Distinguish alarm vs simple reminder cleanly
+    // Check if this notification is for a Guidy chat
+    const isGuidy = (data.category === 'guidy') ||
+                    (data.source === 'guidy') ||
+                    (data.tag && String(data.tag).startsWith('guidy-')) ||
+                    (data.url && data.url.includes('/guidy'));
+
+    // Distinguish alarm vs simple reminder cleanly - Guidy is NEVER an alarm or reminder!
     let isAlarm = false;
-    if (typeof data.is_alarm === 'boolean') {
-        isAlarm = data.is_alarm;
-    } else {
-        isAlarm = (catLower === 'alarm' || titleLower.includes('alarm') || tagLower.includes('alarm'));
+    let isReminder = false;
+    if (!isGuidy) {
+        if (typeof data.is_alarm === 'boolean') {
+            isAlarm = data.is_alarm;
+        } else {
+            isAlarm = (catLower === 'alarm' || (data.source === 'todo' && tagLower.includes('alarm')));
+        }
+        isReminder = !isAlarm && ((catLower === 'reminder' && (data.source === 'todo' || data.task_id)) || (data.source === 'todo' && tagLower.includes('reminder')));
     }
 
-    const isReminder = !isAlarm && (catLower === 'reminder' || titleLower.includes('reminder') || tagLower.includes('reminder'));
     const isAudioAlert = isAlarm || isReminder;
     const isTodo = (data.source === 'todo') || (data.url && data.url.includes('/todo'));
 
@@ -68,6 +77,8 @@ self.addEventListener('push', function (event) {
             sound = '/static/audio/alarm.mp3';
         } else if (isReminder) {
             sound = isTodo ? '/static/audio/PWA.mp3' : '/static/audio/alarms and reminders.mp3';
+        } else if (isGuidy) {
+            sound = '/static/audio/receive.mp3';
         } else {
             sound = '/static/audio/PWA.mp3';
         }
@@ -121,29 +132,37 @@ self.addEventListener('push', function (event) {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-            // 1. Broadcast to any open or background tabs so they immediately ring full audio
+            // 1. Broadcast to open tabs: ONLY if it is an actual user alarm or reminder (NEVER for Guidy)!
             if (clientList && clientList.length > 0) {
-                clientList.forEach(function (client) {
-                    try {
-                        client.postMessage({
-                            type: 'ABCD_ALARM_PUSH',
-                            title: title,
-                            body: data.body,
-                            sound: sound,
-                            isAlarm: isAlarm,
-                            taskId: data.task_id || null,
-                            url: data.url
-                        });
-                    } catch (err) {}
-                });
+                if ((isAlarm || isReminder) && !isGuidy && (data.task_id || data.is_alarm || data.source === 'todo')) {
+                    clientList.forEach(function (client) {
+                        try {
+                            client.postMessage({
+                                type: 'ABCD_ALARM_PUSH',
+                                title: title,
+                                body: data.body,
+                                sound: sound,
+                                isAlarm: isAlarm,
+                                taskId: data.task_id || null,
+                                url: data.url
+                            });
+                        } catch (err) {}
+                    });
+                } else if (isGuidy) {
+                    clientList.forEach(function (client) {
+                        try {
+                            client.postMessage({
+                                type: 'ABCD_GUIDY_MESSAGE',
+                                title: title,
+                                body: data.body,
+                                url: data.url
+                            });
+                        } catch (err) {}
+                    });
+                }
             }
 
             // Check if this notification is for a Guidy chat currently open & visible in this browser
-            const isGuidy = (data.category === 'guidy') ||
-                            (data.source === 'guidy') ||
-                            (data.tag && String(data.tag).startsWith('guidy-')) ||
-                            (data.url && data.url.includes('/guidy'));
-
             if (isGuidy && clientList && clientList.length > 0) {
                 let targetParam = '';
                 if (data.url && data.url.includes('?')) {
@@ -205,8 +224,12 @@ self.addEventListener('notificationclick', function (event) {
     const notifData = (event.notification && event.notification.data) ? event.notification.data : {};
     let targetUrl = notifData.url || '/';
 
-    const isAlarmClick = notifData.isAlarm || event.action === 'open_alarm';
-    const isReminderClick = notifData.isReminder || event.action === 'open_reminder';
+    const isNotifGuidy = (notifData.category === 'guidy') ||
+                         (notifData.source === 'guidy') ||
+                         (targetUrl && targetUrl.includes('/guidy'));
+
+    const isAlarmClick = !isNotifGuidy && (notifData.isAlarm || event.action === 'open_alarm') && (notifData.taskId || notifData.source === 'todo');
+    const isReminderClick = !isNotifGuidy && (notifData.isReminder || event.action === 'open_reminder') && (notifData.taskId || notifData.source === 'todo');
 
     // When opening an alarm or reminder, attach ring_alarm=1 param with is_alarm=1 or is_alarm=0
     if (isAlarmClick || isReminderClick) {

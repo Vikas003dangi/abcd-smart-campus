@@ -406,6 +406,14 @@
      * @param {string} [customSoundSrc]
      */
     function startABCDAlarm(title, body, taskId, isAlarm, customSoundSrc) {
+        // STRICT SAFETY GUARD: Guidy messages are chat notifications and NEVER alarms or reminders!
+        const titleStr = String(title || '');
+        const bodyStr = String(body || '');
+        if (titleStr.includes('Guidy') || titleStr.includes('ABCD Asst') || bodyStr.includes('ABCD Asst')) {
+            console.warn('[ABCD Sound] Suppressed invalid alarm modal for Guidy chat message:', title);
+            return;
+        }
+
         // If an alarm or reminder modal is ALREADY visible, do not re-trigger or tear down modal!
         if (activeAlarmModal && document.getElementById('abcdActiveAlarmModal')) {
             console.debug('Alarm modal is already visible; keeping active modal.');
@@ -550,37 +558,7 @@
         const stopBtn = document.getElementById('abcdStopAlarmBtn');
         if (stopBtn) {
             stopBtn.addEventListener('click', function () {
-                const targetId = currentAlarmTaskId;
-                stopABCDAlarm(); // Immediately pauses audio & resets currentTime = 0
-                if (targetId) {
-                    locallyStoppedAlarmIds.add(targetId);
-                    globalFiredAlarmIds.add(targetId);
-                    try {
-                        sessionStorage.setItem('locallyStoppedAlarmIds', JSON.stringify(Array.from(locallyStoppedAlarmIds)));
-                        sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
-                    } catch (e) {}
-
-                    // Immediately mutate cached reminders so alarm_status is never ringing locally
-                    if (window.__abcdCachedReminders && Array.isArray(window.__abcdCachedReminders)) {
-                        window.__abcdCachedReminders.forEach(function (t) {
-                            if (t && t.id == targetId) {
-                                if (t.metadata) t.metadata.alarm_status = 'stopped';
-                                if (t.reminder_meta) t.reminder_meta.alarm_status = 'stopped';
-                            }
-                        });
-                    }
-
-                    fetch(`/todo/reminder/${targetId}/action/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCsrfToken()
-                        },
-                        body: JSON.stringify({ action: 'stop' })
-                    }).catch(function (err) {
-                        console.error('Failed to notify server of stop action:', err);
-                    });
-                }
+                stopABCDAlarm(); // Immediately pauses audio, resets currentTime, persists stop locally & notifies server
             });
         }
 
@@ -593,19 +571,15 @@
                 if (targetId) {
                     locallyStoppedAlarmIds.add(targetId);
                     globalFiredAlarmIds.add(targetId);
-                    try {
-                        sessionStorage.setItem('locallyStoppedAlarmIds', JSON.stringify(Array.from(locallyStoppedAlarmIds)));
-                        sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
-                    } catch (e) {}
+                    saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
+                    saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
 
                     // Clear local stop after snooze expires (14 mins) so it can ring again
                     setTimeout(function () {
                         locallyStoppedAlarmIds.delete(targetId);
                         globalFiredAlarmIds.delete(targetId);
-                        try {
-                            sessionStorage.setItem('locallyStoppedAlarmIds', JSON.stringify(Array.from(locallyStoppedAlarmIds)));
-                            sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
-                        } catch (e) {}
+                        saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
+                        saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
                     }, 14 * 60 * 1000);
 
                     fetch(`/todo/reminder/${targetId}/action/`, {
@@ -627,9 +601,42 @@
     }
 
     /**
+     * Mark an alarm stopped across all browser tabs (localStorage) and persist to server
+     */
+    function markAlarmStoppedLocallyAndRemotely(targetId) {
+        if (!targetId) return;
+        locallyStoppedAlarmIds.add(targetId);
+        globalFiredAlarmIds.add(targetId);
+        saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
+        saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
+
+        // Immediately mutate cached reminders so alarm_status is never ringing locally
+        if (window.__abcdCachedReminders && Array.isArray(window.__abcdCachedReminders)) {
+            window.__abcdCachedReminders.forEach(function (t) {
+                if (t && t.id == targetId) {
+                    if (t.metadata) t.metadata.alarm_status = 'stopped';
+                    if (t.reminder_meta) t.reminder_meta.alarm_status = 'stopped';
+                }
+            });
+        }
+
+        fetch(`/todo/reminder/${targetId}/action/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ action: 'stop' })
+        }).catch(function (err) {
+            console.error('Failed to notify server of stop action:', err);
+        });
+    }
+
+    /**
      * Stop continuous alarm audio & dismiss modal
      */
     function stopABCDAlarm() {
+        const targetId = currentAlarmTaskId;
         if (alarmAutoStopTimer) {
             clearTimeout(alarmAutoStopTimer);
             alarmAutoStopTimer = null;
@@ -653,23 +660,36 @@
             } catch (e) {}
             activeAlarmModal = null;
         }
+        if (targetId) {
+            markAlarmStoppedLocallyAndRemotely(targetId);
+        }
+        currentAlarmTaskId = null;
     }
 
     // ═════════════════════════════════════════════════════════════════════
     // GLOBAL IN-APP DUE ALARM CHECKER (Runs Across All Pages of ABCD)
     // ═════════════════════════════════════════════════════════════════════
-    const globalFiredAlarmIds = new Set();
-    const locallyStoppedAlarmIds = new Set();
-    try {
-        const stored = sessionStorage.getItem('firedAlarmIds');
-        if (stored) {
-            JSON.parse(stored).forEach(function (id) { globalFiredAlarmIds.add(id); });
-        }
-        const storedStopped = sessionStorage.getItem('locallyStoppedAlarmIds');
-        if (storedStopped) {
-            JSON.parse(storedStopped).forEach(function (id) { locallyStoppedAlarmIds.add(id); });
-        }
-    } catch (e) {}
+    function getStoredAlarmSet(key) {
+        const set = new Set();
+        try {
+            const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
+            if (raw) {
+                JSON.parse(raw).forEach(function (id) { set.add(id); });
+            }
+        } catch (e) {}
+        return set;
+    }
+
+    function saveStoredAlarmSet(key, set) {
+        try {
+            const arr = JSON.stringify(Array.from(set));
+            localStorage.setItem(key, arr);
+            sessionStorage.setItem(key, arr);
+        } catch (e) {}
+    }
+
+    const globalFiredAlarmIds = getStoredAlarmSet('firedAlarmIds');
+    const locallyStoppedAlarmIds = getStoredAlarmSet('locallyStoppedAlarmIds');
 
     window.__abcdCachedReminders = [];
     let isCheckingGlobalAlarms = false;
@@ -681,7 +701,7 @@
 
         const nowMs = Date.now();
         tasks.forEach(function (task) {
-            if (task.is_done || task.is_trash) return;
+            if (!task || task.is_done || task.is_trash) return;
 
             // DO NOT reopen an alarm after a local stop action!
             if (locallyStoppedAlarmIds.has(task.id)) return;
@@ -695,8 +715,12 @@
             const rec = meta.recurrence || 'once';
 
             if (isRinging) {
-                // Backend scheduler already marked it as ringing; ensure in-app modal is visible
-                isDueNow = true;
+                // Backend scheduler marked it as ringing: only trigger if ringing was set in last 60 seconds
+                const lastNotif = task.last_notified_at ? new Date(task.last_notified_at).getTime() : 0;
+                const ringingElapsed = lastNotif ? (nowMs - lastNotif) / 1000 : 999;
+                if (ringingElapsed >= 0 && ringingElapsed <= 60) {
+                    isDueNow = true;
+                }
             } else if (rec === 'once') {
                 const fireTarget = meta.fire_at || task.delete_at;
                 if (fireTarget) {
@@ -704,8 +728,8 @@
                     const fireMs = fireDt.getTime();
                     const elapsedSec = (nowMs - fireMs) / 1000;
 
-                    // If due now or within the last 15 minutes (and not fired yet)
-                    if (elapsedSec >= 0 && elapsedSec <= 900) {
+                    // Due right now: user is actively on page when the scheduled time hits (0 to 30 seconds window)
+                    if (elapsedSec >= 0 && elapsedSec <= 30) {
                         isDueNow = true;
                     }
                 }
@@ -715,16 +739,15 @@
                 const todayFireDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
                 const elapsedSec = (nowMs - todayFireDt.getTime()) / 1000;
 
-                if (elapsedSec >= 0 && elapsedSec <= 900) {
+                // Due right now: user is actively on page when the scheduled time hits (0 to 30 seconds window)
+                if (elapsedSec >= 0 && elapsedSec <= 30) {
                     isDueNow = true;
                 }
             }
 
             if (isDueNow) {
                 globalFiredAlarmIds.add(task.id);
-                try {
-                    sessionStorage.setItem('firedAlarmIds', JSON.stringify(Array.from(globalFiredAlarmIds)));
-                } catch (e) {}
+                saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
 
                 const title = task.title || meta.title || 'Reminder';
                 const note = meta.note || '';
@@ -786,7 +809,8 @@
     function checkUrlAlarmTrigger() {
         try {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('ring_alarm') === '1') {
+            const isGuidyPage = window.location.pathname.includes('/guidy');
+            if (urlParams.get('ring_alarm') === '1' && urlParams.get('task_id') && !isGuidyPage) {
                 const alarmTitle = urlParams.get('alarm_title') || 'Scheduled Reminder';
                 const alarmTaskId = urlParams.get('task_id');
                 const isAlarmParam = urlParams.get('is_alarm');
@@ -810,8 +834,23 @@
     // Service Worker message listener for instant audio playback in open/minimized tabs
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('message', function (event) {
-            if (event.data && event.data.type === 'ABCD_ALARM_PUSH') {
-                startABCDAlarm(event.data.title, event.data.body, event.data.taskId, event.data.isAlarm !== false);
+            if (!event.data) return;
+
+            if (event.data.type === 'ABCD_ALARM_PUSH') {
+                // STRICT CHECK: Never fire alarm for Guidy chat or without valid alarm task!
+                if (event.data.isGuidy || (event.data.url && event.data.url.includes('/guidy'))) return;
+                const titleStr = String(event.data.title || '');
+                if (titleStr.includes('Guidy') || titleStr.includes('ABCD Asst')) return;
+
+                if ((event.data.isAlarm || event.data.isReminder) && (event.data.taskId || event.data.isAlarm === true)) {
+                    startABCDAlarm(event.data.title, event.data.body, event.data.taskId, event.data.isAlarm !== false);
+                }
+            } else if (event.data.type === 'ABCD_GUIDY_MESSAGE') {
+                // Subtle Guidy chat chime if user is on any other page
+                const isGuidyPage = window.location.pathname.includes('/guidy');
+                if (!isGuidyPage && window.playABCDSound) {
+                    playABCDSound('receive', 0.6);
+                }
             }
         });
     }
