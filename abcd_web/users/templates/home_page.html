@@ -807,7 +807,18 @@
             font-weight: 600;
             border-radius: 10px;
             text-decoration: none;
-            transition: background 0.25s ease, color 0.25s ease;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .nav-sidebar a i {
+            width: 24px;
+            font-size: 1.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            line-height: 1;
+            text-align: center;
         }
 
         body.dark-theme .nav-sidebar a {
@@ -817,11 +828,25 @@
         .nav-sidebar a:hover {
             background: rgba(123, 97, 255, 0.12);
             color: #7b61ff !important;
+            transform: translateX(3px);
         }
 
         body.dark-theme .nav-sidebar a:hover {
             background: rgba(255, 255, 255, 0.12);
             color: #c084fc !important;
+            transform: translateX(3px);
+        }
+
+        .nav-sidebar a.active {
+            background: rgba(123, 97, 255, 0.14);
+            color: #6d4aff !important;
+            font-weight: 700;
+        }
+
+        body.dark-theme .nav-sidebar a.active {
+            background: rgba(192, 132, 252, 0.18);
+            color: #e9d5ff !important;
+            font-weight: 700;
         }
 
         /* Master Sidebar Auth Buttons (Logout & Sign In) */
@@ -4415,6 +4440,7 @@
 
 <body data-page="public-preview">
     {% include 'partials/_master_loader.html' %}
+    {% if not user.is_authenticated %}
     <div class="alert-overlay" id="alert-overlay">
         <div class="welcome-modal-card">
             <!-- Close Button -->
@@ -4726,6 +4752,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
     <nav class="top-nav-menu">
         <div class="nav-left">
             <div class="logoImage" data-tour="navbar-logo">
@@ -5457,39 +5484,109 @@
             }, 3800);
         }
 
+        // --- WELCOME MODAL CONTROLS ---
+        let welcomeTimer = null;
+
         function showAlert() {
+            // Only if modal element exists and user is not authenticated
+            if (!alertOverlay) return;
+
             // If PWA install/open prompt is active, defer welcome alert so modals do not clash
             if (document.querySelector('.abcd-pwa-modal.visible') || window.__abcd_active_prompt) {
-                setTimeout(showAlert, 3000);
+                welcomeTimer = setTimeout(showAlert, 3000);
                 return;
             }
-            if (alertOverlay) {
-                alertOverlay.classList.add('visible');
-                startMascotChoreography();
-            }
+            alertOverlay.classList.add('visible');
+            startMascotChoreography();
         }
+
         function closeAlert() {
+            if (welcomeTimer) {
+                clearTimeout(welcomeTimer);
+                welcomeTimer = null;
+            }
             if (alertOverlay) alertOverlay.classList.remove('visible');
             if (mascotInterval) clearInterval(mascotInterval);
+            try {
+                sessionStorage.setItem('abcd_welcome_popup_shown', 'true');
+                localStorage.setItem('abcd_welcome_popup_seen', 'true');
+            } catch (e) {}
         }
+
         if (alertOverlay) {
             alertOverlay.addEventListener('click', function(e) {
                 if (e.target === alertOverlay) closeAlert();
             });
         }
 
-        // Show welcome popup ONLY once per tab session (persists across reloads & internal navigation; never shows again until a new tab or fresh browser launch)
+        // Show welcome popup ONLY once for logged-out users on clean first arrival (NEVER on reload, back/forward, or return from other pages)
         (function() {
-            // If already shown or dismissed in this tab/session, never show again
-            if (sessionStorage.getItem('abcd_welcome_popup_shown') === 'true') {
+            {% if user.is_authenticated %}
+            // Never show for authenticated users
+            return;
+            {% endif %}
+
+            // 1. Navigation Type Check: Never show on reload or back/forward
+            let isReload = false;
+            let isBackForward = false;
+            try {
+                const navEntries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+                if (navEntries && navEntries.length > 0) {
+                    const navType = navEntries[0].type;
+                    if (navType === 'reload') isReload = true;
+                    if (navType === 'back_forward') isBackForward = true;
+                } else if (window.performance && window.performance.navigation) {
+                    if (window.performance.navigation.type === 1) isReload = true;
+                    if (window.performance.navigation.type === 2) isBackForward = true;
+                }
+            } catch (e) {}
+
+            if (isReload || isBackForward) {
+                try { sessionStorage.setItem('abcd_welcome_popup_shown', 'true'); } catch (e) {}
                 return;
             }
 
-            // Immediately mark as seen so reloads or subpage navigations never re-trigger it
-            sessionStorage.setItem('abcd_welcome_popup_shown', 'true');
+            // 2. Storage Check (Session or Local)
+            try {
+                if (sessionStorage.getItem('abcd_welcome_popup_shown') === 'true' || localStorage.getItem('abcd_welcome_popup_seen') === 'true') {
+                    return;
+                }
+            } catch (e) {}
+
+            // 3. Referrer Check: If arriving from any internal page (About, Services, Register, Contact, Courses, etc.), DO NOT show
+            const ref = document.referrer || '';
+            const isInternalReferrer = ref && (ref.indexOf(window.location.host) !== -1 || ref.indexOf(window.location.origin) !== -1);
+            if (isInternalReferrer) {
+                try { sessionStorage.setItem('abcd_welcome_popup_shown', 'true'); } catch (e) {}
+                return;
+            }
+
+            // Immediately mark as seen so reloads or subpage navigations within this tab never re-trigger it
+            try { sessionStorage.setItem('abcd_welcome_popup_shown', 'true'); } catch (e) {}
 
             // Delay 8.5 seconds as requested (gives user time to absorb the hero section first)
-            setTimeout(showAlert, 8500);
+            welcomeTimer = setTimeout(showAlert, 8500);
+
+            // Clean up timers on pagehide or bfcache unload
+            window.addEventListener('pagehide', function() {
+                if (welcomeTimer) {
+                    clearTimeout(welcomeTimer);
+                    welcomeTimer = null;
+                }
+            });
+
+            // Prevent BFCache restores from triggering modal
+            window.addEventListener('pageshow', function(e) {
+                if (e.persisted) {
+                    if (welcomeTimer) {
+                        clearTimeout(welcomeTimer);
+                        welcomeTimer = null;
+                    }
+                    if (alertOverlay) {
+                        alertOverlay.classList.remove('visible');
+                    }
+                }
+            });
         })();
 
         // --- DOM DOM CONTENT LOADED ---

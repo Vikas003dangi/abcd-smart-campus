@@ -1163,31 +1163,107 @@
     /* Sidebar variant: icon + text */
     .notification-btn--sidebar {
       width: 100%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .notification-btn--sidebar .sidebar-notif-icon {
+      font-size: 1.25rem;
+      width: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: inherit;
+    }
+
+    .notification-btn--sidebar .notification-label {
+      font-size: 1rem;
+      font-weight: 600;
+      color: inherit;
+      margin: 0;
+    }
+
+    .sidebar-notif-badge {
+      margin-left: auto;
+      background: #ef4444;
+      color: white;
+      border-radius: 999px;
+      padding: 1px 7px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      min-width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Master Admin Panel Link in Sidebar */
+    .sidebar-admin-btn {
       display: flex;
       align-items: center;
-      padding: 12px 15px !important;
-      background: transparent;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      color: #333;
-      font-weight: 600;
-      transition: background 0.3s, color 0.3s;
+      gap: 10px;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(56, 189, 248, 0.12));
+      color: #0284c7;
+      border: 1px solid rgba(2, 132, 199, 0.3);
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
       text-decoration: none;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .notification-label {
-      font-size: 1.1rem;
-      margin-left: 12px;
-      font-weight: 600;
+    .sidebar-admin-btn i {
+      font-size: 20px;
+      color: #0284c7;
+      transition: transform 0.3s ease, color 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    /* Dark theme tweaks */
-    body.dark-theme .notification-btn--sidebar {
-      color: #fff;
+    .sidebar-admin-btn:hover {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff !important;
+      border-color: #0284c7;
+      box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+      transform: translateY(-1px);
     }
 
-    /* Sidebar badge border matches navbar */
+    .sidebar-admin-btn:hover i {
+      color: #ffffff !important;
+      transform: rotate(45deg);
+    }
+
+    body.dark-theme .sidebar-admin-btn {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9));
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    body.dark-theme .sidebar-admin-btn i {
+      color: #38bdf8;
+    }
+
+    body.dark-theme .sidebar-admin-btn:hover {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(14, 165, 233, 0.35));
+      border-color: #38bdf8;
+      color: #ffffff !important;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.3);
+      transform: translateY(-1px);
+    }
+
+    body.dark-theme .sidebar-admin-btn:hover i {
+      color: #ffffff !important;
+    }
 
     /* Dropdown */
     .notification-dropdown {
@@ -6035,21 +6111,17 @@
       </li>
 
       <li class="sidebar-notification">
-        <div class="notification-wrapper" style="width:100%;">
-          <button type="button"
-            class="notification-btn notification-btn--sidebar {% if total_notification_count > 0 %}has-notifications{% endif %}"
-            onclick="toggleTeacherNotifPanel()" aria-label="Notifications (sidebar)">
-            <span class="notification-icon-wrapper">
-              <i class='bx bx-bell'></i>
-              {% if total_notification_count > 0 %}
-              <span class="notification-badge" id="sidebarNotifBadge">{{ total_notification_count }}</span>
-              {% else %}
-              <span class="notification-badge" id="sidebarNotifBadge" style="display: none;">0</span>
-              {% endif %}
-            </span>
-            <span class="notification-label">Notifications</span>
-          </button>
-        </div>
+        <button type="button"
+          class="notification-btn notification-btn--sidebar {% if total_notification_count > 0 %}has-notifications{% endif %}"
+          onclick="toggleTeacherNotifPanel()" aria-label="Notifications (sidebar)">
+          <i class='bx bx-bell sidebar-notif-icon'></i>
+          <span class="notification-label">Notifications</span>
+          {% if total_notification_count > 0 %}
+          <span class="sidebar-notif-badge" id="sidebarNotifBadge">{{ total_notification_count }}</span>
+          {% else %}
+          <span class="sidebar-notif-badge" id="sidebarNotifBadge" style="display: none;">0</span>
+          {% endif %}
+        </button>
       </li>
 
       <!-- Take Tour Item -->
@@ -6062,9 +6134,9 @@
 
       {% if request.user.is_authenticated and request.user.email == 'vd19055@gmail.com' %}
       <li class="sidebar-admin-item" style="margin-top: 10px; margin-bottom: 6px;">
-        <a href="/admin/" class="sidebar-admin-btn" style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9));color:#38bdf8;border:1px solid rgba(56,189,248,0.4);border-radius:12px;font-weight:700;font-size:0.9rem;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.25);transition:all 0.2s ease;">
-          <i class='bx bx-cog' style="font-size:20px;color:#38bdf8;"></i>
-          <span>⚙️ Master Admin Panel</span>
+        <a href="/admin/" class="sidebar-admin-btn">
+          <i class='bx bx-cog'></i>
+          <span>Master Admin Panel</span>
         </a>
       </li>
       {% endif %}

@@ -61,18 +61,12 @@
       background-color: #43345e;
     }
 
-    body.dark-theme .nav-sidebar {
-      background-color: #6453827a;
-    }
-
-    body.dark-theme nav a,
-    body.dark-theme .nav-sidebar a {
+    body.dark-theme nav a {
       color: #ffffff;
     }
 
     body.dark-theme .logout-btn,
-    body.dark-theme nav a:hover,
-    body.dark-theme .nav-sidebar a:hover {
+    body.dark-theme nav a:hover {
       background-color: #7e3fafdd;
       color: #ffffff;
     }
@@ -1175,7 +1169,18 @@
       font-weight: 600;
       border-radius: 10px;
       text-decoration: none;
-      transition: background 0.25s ease, color 0.25s ease;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .nav-sidebar a i {
+      width: 24px;
+      font-size: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      line-height: 1;
+      text-align: center;
     }
 
     body.dark-theme .nav-sidebar a {
@@ -1185,11 +1190,25 @@
     .nav-sidebar a:hover {
       background: rgba(123, 97, 255, 0.12);
       color: #7b61ff !important;
+      transform: translateX(3px);
     }
 
     body.dark-theme .nav-sidebar a:hover {
       background: rgba(255, 255, 255, 0.12);
       color: #c084fc !important;
+      transform: translateX(3px);
+    }
+
+    .nav-sidebar a.active {
+      background: rgba(123, 97, 255, 0.14);
+      color: #6d4aff !important;
+      font-weight: 700;
+    }
+
+    body.dark-theme .nav-sidebar a.active {
+      background: rgba(192, 132, 252, 0.18);
+      color: #e9d5ff !important;
+      font-weight: 700;
     }
 
     .sidebar-overlay {
@@ -2983,16 +3002,9 @@
       .logoImage {
         min-width: 80px;
       }
-
-      .nav-sidebar {
-        width: 100%;
-      }
     }
 
     @media (max-width: 450px) {
-      .nav-sidebar {
-        width: 100%;
-      }
       .admission-modal {
         width: 94% !important;
         max-width: 94% !important;

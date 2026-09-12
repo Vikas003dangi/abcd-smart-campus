@@ -2365,10 +2365,11 @@
             history.replaceState(null, document.title, window.location.href);
         }
 
-        // Always clear choice modal and welcome popup session keys when on login/register page so re-login triggers popup
+        // Ensure visiting register page marks welcome popup as seen so returning/going back to home page never triggers it
         try {
             sessionStorage.removeItem('abcd_choice_modal_shown');
-            sessionStorage.removeItem('abcd_welcome_popup_shown');
+            sessionStorage.setItem('abcd_welcome_popup_shown', 'true');
+            localStorage.setItem('abcd_welcome_popup_seen', 'true');
         } catch(e) {}
     </script>
 
