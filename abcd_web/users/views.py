@@ -15481,7 +15481,7 @@ def guidy_load_chat_api(request):
         from django.utils import timezone
         from django.utils.timezone import localtime
         from django.core.cache import cache
-        from .models import ChatSession, DirectChatSession, GroupChatSession, StudentAchievement, GuidyBlock
+        from .models import ChatSession, DirectChatSession, GroupChatSession, StudentAchievement, GuidyBlock, GroupMessage
         from users.utils import get_user_display_name, get_profile_photo_url, get_user_dashboard_type
         from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
