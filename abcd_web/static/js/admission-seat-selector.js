@@ -299,25 +299,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 3. Modal Open/Close Logic ---
-
-    function positionUpIndicatorBelowHeader() {
-        const header = document.querySelector('.seat-modal-header');
-        const up = document.querySelector('#scrollIndicatorUp');
-        const container = document.querySelector('.seat-modal-container');
-
-        if (!header || !up || !container) return;
-
-        const headerRect = header.getBoundingClientRect();
-        const headerHeight = headerRect.height;
-        const GAP = 12;
-        const topOffset = headerHeight + GAP;
-
-        up.style.top = topOffset + 'px';
-        up.style.transform = 'translateX(-50%) translateY(-6px)';
+    function openOverlaySafely(overlay) {
+        if (!overlay) return;
+        overlay.style.setProperty('z-index', '300000', 'important');
+        const box = overlay.querySelector('.seat-interest-box, .seat-interest-modal');
+        if (box) box.style.setProperty('z-index', '300001', 'important');
+        overlay.classList.remove('hidden');
     }
 
-    window.addEventListener('resize', positionUpIndicatorBelowHeader);
+    function positionScrollIndicators() {
+        const header = document.querySelector('.seat-modal-header');
+        const up = document.querySelector('#scrollIndicatorUp');
+        const down = document.querySelector('#scrollIndicatorDown');
+        const footer = document.querySelector('.seat-modal-container > .seat-modal-footer');
+        const container = document.querySelector('.seat-modal-container');
+
+        if (!container) return;
+
+        if (header && up) {
+            const headerRect = header.getBoundingClientRect();
+            const headerHeight = headerRect.height || 50;
+            const GAP = 12;
+            up.style.top = (headerHeight + GAP) + 'px';
+            up.style.transform = 'translateX(-50%) translateY(-6px)';
+        }
+
+        if (footer && down) {
+            const footerRect = footer.getBoundingClientRect();
+            const footerHeight = footerRect.height || 90;
+            const GAP = 14;
+            down.style.bottom = (footerHeight + GAP) + 'px';
+        }
+    }
+
+    function positionUpIndicatorBelowHeader() {
+        positionScrollIndicators();
+    }
+
+    window.addEventListener('resize', positionScrollIndicators);
 
     async function openSeatModal() {
         const selectedFloorRadio = floorRadioContainer.querySelector('input[name="floor_radio"]:checked');
@@ -1241,7 +1260,7 @@ document.addEventListener('DOMContentLoaded', () => {
             overlay.classList.add('hidden');
         };
 
-        overlay.classList.remove('hidden');
+        openOverlaySafely(overlay);
     }
 
     /**
@@ -1466,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         cancelBtn.onclick = () => overlay.classList.add('hidden');
-        overlay.classList.remove('hidden');
+        openOverlaySafely(overlay);
     }
 
     /**
@@ -1485,7 +1504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (okBtn) okBtn.onclick = close;
         if (backBtn) backBtn.onclick = close;
 
-        overlay.classList.remove('hidden');
+        openOverlaySafely(overlay);
     }
 
     // --- Seat Click Handling ---
@@ -1747,7 +1766,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     overlay.classList.add('hidden');
                 };
 
-                overlay.classList.remove('hidden');
+                openOverlaySafely(overlay);
                 return;
             } else {
                 // If the shift seat is Fully Occupied (even if via temp tenants over holds), we MUST not fall through 
@@ -1760,7 +1779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 text.innerText = `Seat ${seatNumber} is currently fully occupied.\nWould you like an email alert when it becomes available?`;
                 confirmBtn.textContent = 'Yes, Notify Me';
 
-                overlay.classList.remove('hidden');
+                openOverlaySafely(overlay);
 
                 confirmBtn.onclick = () => {
                     sendSeatInterest(seatNumber, currentFloor);
@@ -1828,7 +1847,7 @@ document.addEventListener('DOMContentLoaded', () => {
             buttonsDiv.appendChild(requestBtn);
 
             cancelBtn.onclick = () => overlay.classList.add('hidden');
-            overlay.classList.remove('hidden');
+            openOverlaySafely(overlay);
             return;
         }
 
@@ -1844,7 +1863,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Fix confirm button text in case it was changed by hold logic previously
             confirmBtn.textContent = 'Yes, Notify Me';
 
-            overlay.classList.remove('hidden');
+            openOverlaySafely(overlay);
 
             confirmBtn.onclick = () => {
                 sendSeatInterest(seatNumber, currentFloor);

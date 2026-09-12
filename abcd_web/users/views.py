@@ -2142,7 +2142,8 @@ def register(request):
                             "preheader": "Use this OTP to complete your ABCD registration",
                             "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                         },
-                        fail_silently=False
+                        fail_silently=False,
+                        timeout=5
                     )
                 except Exception as e:
                     return JsonResponse({'status': 'error', 'message': f"Error sending verification email: {e}"}, status=500)
@@ -2223,7 +2224,8 @@ def register(request):
                         "preheader": "Use this OTP to complete your ABCD registration",
                         "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                     },
-                    fail_silently=False
+                    fail_silently=False,
+                    timeout=5
                 )
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': f"Error sending verification email: {e}"}, status=500)

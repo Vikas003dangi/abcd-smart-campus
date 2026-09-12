@@ -97,6 +97,7 @@ var CustomPopup = window.CustomPopup || (function () {
         const selector = [
             '.fees-modal', '.modal', '.custom-modal', '.admission-modal', 
             '.teacher-modal', '.popup', '.custom-popup', '.abcd-modal-overlay',
+            '.seat-interest-overlay',
             'div[id*="Modal"]', 'div[id*="Popup"]', 'div[class*="modal"]',
             'div[class*="popup"]'
         ].join(',');
@@ -109,7 +110,7 @@ var CustomPopup = window.CustomPopup || (function () {
             const elClasses = (el.className || '').toLowerCase();
             const elId = (el.id || '').toLowerCase();
             // Ignore pure backdrop overlays that have no dialog content inside
-            const isPureBackdrop = (elId === 'admissionmodaloverlay' || elId === 'teacherpremiumoverlay' || elId === 'custompopupoverlay' || (elClasses.includes('modal-overlay') && el.children.length === 0));
+            const isPureBackdrop = (elId === 'admissionmodaloverlay' || elId === 'teacherpremiumoverlay' || elId === 'custompopupoverlay' || elId === 'seatmodaloverlay' || (elClasses.includes('modal-overlay') && el.children.length === 0));
             if (isPureBackdrop) return;
 
             const style = window.getComputedStyle(el);
@@ -539,14 +540,14 @@ window.showABCDModal = function (opts) {
 
     function initAutoStacking() {
         const handleVisibilityChange = (el) => {
-            if (el.matches && el.matches('.modal, .fees-modal, .admission-modal, .teacher-modal, .abcd-modal-overlay, [id*="Modal"], [id*="Popup"], div[class*="modal"], div[class*="popup"]')) {
+            if (el.matches && el.matches('.modal, .fees-modal, .admission-modal, .teacher-modal, .abcd-modal-overlay, .seat-interest-overlay, [id*="Modal"], [id*="Popup"], div[class*="modal"], div[class*="popup"]')) {
                 window.enhanceSelectElements(el);
                 if (el.id === 'customPopupOverlay' || el.id === 'customPopup') return;
                 
                 // CRITICAL: Never auto-stack pure backdrop overlays - they must stay below
                 const elClasses = (el.className || '').toLowerCase();
                 const elId = (el.id || '').toLowerCase();
-                const isPureBackdrop = (elId === 'admissionmodaloverlay' || elId === 'teacherpremiumoverlay' || elId === 'custompopupoverlay' || (elClasses.includes('modal-overlay') && el.children.length === 0));
+                const isPureBackdrop = (elId === 'admissionmodaloverlay' || elId === 'teacherpremiumoverlay' || elId === 'custompopupoverlay' || elId === 'seatmodaloverlay' || (elClasses.includes('modal-overlay') && el.children.length === 0));
                 if (isPureBackdrop) return;
 
                 // CRITICAL: On pages with teacher-seat-manager, openSmallModal manages admission-modal & teacher-modal z-indices. Do not override them!
