@@ -124,7 +124,7 @@ def safe_atomic_transaction(max_retries=None, initial_delay=None):
     
     for attempt in range(max_retries + 1):
         try:
-            with transaction.atomic():
+            with transaction.atomic():  # type: ignore
                 yield
                 return  # Success - exit the context manager
                 

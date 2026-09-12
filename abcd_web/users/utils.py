@@ -1,14 +1,19 @@
 # users/utils.py
 
 import os
+import re
 import logging
 logger = logging.getLogger(__name__)
 from django.utils import timezone
 from datetime import timedelta
 
 from django.conf import settings
+from django.db import models
 from django.urls import reverse
-from .models import Seat, Course, VisitorIntent, StudentProfile, SeatAssignment, TodoTask
+from .models import (
+    Seat, Course, VisitorIntent, StudentProfile, SeatAssignment, TodoTask,
+    Notification, SeatSpecialRequest, TeacherProfile, StudentAchievement, LearningReminder
+)
 from .youtube_service import fetch_playlists, fetch_playlist_videos
 from django.core.cache import cache
 from .email_service import send_html_email

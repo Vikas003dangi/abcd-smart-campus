@@ -2443,21 +2443,36 @@
       padding: 5px;
       margin-bottom: 20px;
       box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .section-tabs::-webkit-scrollbar {
+      display: none;
     }
 
     .tab-btn {
       flex: 1;
-      padding: 12px;
+      padding: 11px 14px;
       border: none;
       background: transparent;
       border-radius: 10px;
       cursor: pointer;
       font-weight: 600;
+      font-size: 0.92rem;
       transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .tab-btn i {
+      font-size: 1.15rem;
+      line-height: 1;
+      flex-shrink: 0;
     }
 
     .tab-btn.active {
@@ -6974,7 +6989,7 @@
     <!-- Tabs -->
     <div class="section-tabs" data-tour="teacher-students-section">
       <button class="tab-btn active" data-tab-name="requests"><i class="bx bx-user-plus"></i> Admission Requests <span class="tab-badge" id="tabBadgeRequests" style="{% if pending_students.count == 0 %}display:none;{% endif %}">({{ pending_students.count }})</span></button>
-      <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Achievement Requests (<span id="tabCountAchievements">{{ total_pending_achievements }}</span>)</button>
+      <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Achievement Requests<span id="tabCountAchievements" style="display:none;">{{ total_pending_achievements }}</span></button>
       <button class="tab-btn" data-tab-name="holds"><i class="bx bx-pause-circle"></i> Hold / Switch Requests <span class="tab-badge" id="tabBadgeHolds" style="{% if pending_hold_requests|length|add:seat_switch_requests|length == 0 %}display:none;{% endif %}">({{ pending_hold_requests|length|add:seat_switch_requests|length }})</span></button>
       <button class="tab-btn" data-tab-name="coaching"><i class="bx bxs-graduation"></i> Coaching Students</button>
       <button class="tab-btn" data-tab-name="library"><i class="bx bx-book-open"></i> Library Students</button>

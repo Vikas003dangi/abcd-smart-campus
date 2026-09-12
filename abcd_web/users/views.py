@@ -15473,13 +15473,13 @@ def guidy_load_older(request):
 @login_required
 def guidy_load_chat_api(request):
     import logging
+    from django.http import JsonResponse
     logger = logging.getLogger(__name__)
 
     try:
         from datetime import timedelta
         from django.utils import timezone
         from django.utils.timezone import localtime
-        from django.http import JsonResponse
         from django.core.cache import cache
         from .models import ChatSession, DirectChatSession, GroupChatSession, StudentAchievement, GuidyBlock
         from users.utils import get_user_display_name, get_profile_photo_url, get_user_dashboard_type
