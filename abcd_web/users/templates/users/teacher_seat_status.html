@@ -1238,6 +1238,49 @@
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
 
+        .manual-password-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .manual-password-wrapper .manual-form-control {
+            padding-right: 48px !important;
+        }
+
+        .toggle-manual-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 1.35rem;
+            color: #94a3b8;
+            transition: color 0.2s ease, transform 0.15s ease;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .toggle-manual-password:hover {
+            color: #6366f1;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        body.dark-theme .toggle-manual-password {
+            color: #94a3b8;
+        }
+
+        body.dark-theme .toggle-manual-password:hover {
+            color: #a5b4fc;
+        }
+
         .manual-form-label {
             display: block;
             margin-bottom: 8px;
@@ -2559,7 +2602,10 @@
                         </div>
                         <div class="form-group">
                             <label class="manual-form-label">Password <span class="required-star">*</span></label>
-                            <input id="manualAssignPassword" type="password" class="manual-form-control" placeholder="••••••••">
+                            <div class="manual-password-wrapper">
+                                <input id="manualAssignPassword" type="password" class="manual-form-control" placeholder="••••••••">
+                                <i class='bx bx-eye-slash toggle-manual-password' id="toggleManualPassword" onclick="window.toggleManualAssignPassword(this)" title="Show password"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3364,7 +3410,27 @@
                         closeHoldDateModal();
                     }
                 }
-            });
+            // Toggle show/hide password in Add Manually assign modal
+            window.toggleManualAssignPassword = function(iconElem) {
+                const input = document.getElementById('manualAssignPassword');
+                const icon = iconElem || document.getElementById('toggleManualPassword');
+                if (!input) return;
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    if (icon) {
+                        icon.classList.remove('bx-eye-slash');
+                        icon.classList.add('bx-eye');
+                        icon.setAttribute('title', 'Hide password');
+                    }
+                } else {
+                    input.type = 'password';
+                    if (icon) {
+                        icon.classList.remove('bx-eye');
+                        icon.classList.add('bx-eye-slash');
+                        icon.setAttribute('title', 'Show password');
+                    }
+                }
+            };
         });
     </script>
 

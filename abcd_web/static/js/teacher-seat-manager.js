@@ -132,6 +132,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const manualAssignLastName = document.getElementById('manualAssignLastName');
   const manualAssignUsername = document.getElementById('manualAssignUsername');
   const manualAssignPassword = document.getElementById('manualAssignPassword');
+  const toggleManualPassword = document.getElementById('toggleManualPassword');
+  if (toggleManualPassword && manualAssignPassword) {
+    toggleManualPassword.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (manualAssignPassword.type === 'password') {
+        manualAssignPassword.type = 'text';
+        toggleManualPassword.classList.remove('bx-eye-slash');
+        toggleManualPassword.classList.add('bx-eye');
+        toggleManualPassword.setAttribute('title', 'Hide password');
+      } else {
+        manualAssignPassword.type = 'password';
+        toggleManualPassword.classList.remove('bx-eye');
+        toggleManualPassword.classList.add('bx-eye-slash');
+        toggleManualPassword.setAttribute('title', 'Show password');
+      }
+    });
+  }
   const manualAssignMobile = document.getElementById('manualAssignMobile');
   const manualAssignWhatsapp = document.getElementById('manualAssignWhatsapp');
   const manualAssignWhatsappSame = document.getElementById('manualAssignWhatsappSame');
@@ -4125,7 +4143,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (manualAssignFirstName) manualAssignFirstName.value = '';
     if (manualAssignLastName) manualAssignLastName.value = '';
     if (manualAssignUsername) manualAssignUsername.value = '';
-    if (manualAssignPassword) manualAssignPassword.value = '';
+    if (manualAssignPassword) {
+      manualAssignPassword.value = '';
+      manualAssignPassword.type = 'password';
+    }
+    if (toggleManualPassword) {
+      toggleManualPassword.classList.remove('bx-eye');
+      toggleManualPassword.classList.add('bx-eye-slash');
+      toggleManualPassword.setAttribute('title', 'Show password');
+    }
     if (manualAssignMobile) manualAssignMobile.value = '';
     if (manualAssignWhatsapp) {
       manualAssignWhatsapp.value = '';
