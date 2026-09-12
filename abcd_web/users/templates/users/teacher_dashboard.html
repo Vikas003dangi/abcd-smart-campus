@@ -9329,6 +9329,9 @@
       }
     });
 
+    /* ---------- BROADCAST PANEL CONTROLLER ---------- */
+    let broadcastCloseResetTimer = null;
+
     /* ---------- OPEN PANEL ---------- */
     window.openBroadcastPanel = function (e) {
       if (e && e.preventDefault) e.preventDefault();
@@ -9336,6 +9339,12 @@
       const panel = document.getElementById("broadcastPanel");
       const overlay = document.getElementById("broadcastOverlay");
       if (!panel) return;
+
+      // Cancel any pending close reset timer if reopened quickly
+      if (broadcastCloseResetTimer) {
+        clearTimeout(broadcastCloseResetTimer);
+        broadcastCloseResetTimer = null;
+      }
 
       // Close sidebar if open so they don't conflict
       const sidebar = document.getElementById('sidebar');
@@ -9351,8 +9360,8 @@
       panel.classList.add("open");
       if (overlay) overlay.classList.add("active");
 
-      // Only fetch if not already loaded (instant reuse)
-      if (panel.innerHTML.trim().length > 100) {
+      // Only reuse if successfully loaded previously
+      if (panel.dataset.loaded === 'true') {
         if (window.refreshDrafts) window.refreshDrafts();
         return;
       }
@@ -9360,9 +9369,13 @@
       panel.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;"><div class="spinner-border text-primary" role="status" style="width:2rem;height:2rem;border:0.25em solid #7b61ff;border-right-color:transparent;border-radius:50%;animation:spin 0.75s linear infinite;"></div><p style="color:#64748b;font-size:0.9rem;">Loading broadcast panel...</p></div>';
 
       fetch("{% url 'users:teacher_broadcast' %}")
-        .then(res => res.text())
+        .then(res => {
+          if (!res.ok) throw new Error("Network response was not ok");
+          return res.text();
+        })
         .then(html => {
           panel.innerHTML = html;
+          panel.dataset.loaded = 'true';
 
           // Execute scripts embedded inside fetched HTML safely
           panel.querySelectorAll('script').forEach(oldScript => {
@@ -9387,6 +9400,7 @@
         })
         .catch(err => {
           console.error("Failed to open broadcast panel:", err);
+          panel.dataset.loaded = 'false';
           panel.innerHTML = '<div style="padding:24px;text-align:center;color:#ef4444;"><p>Failed to load broadcast panel. Please try again.</p><button onclick="openBroadcastPanel()" class="btn-secondary" style="margin-top:12px;">Retry</button></div>';
         });
     };
@@ -9398,9 +9412,13 @@
       if (panel) panel.classList.remove("open");
       if (overlay) overlay.classList.remove("active");
 
-      // Reset to form view without wiping cached HTML
-      setTimeout(() => {
+      // Reset to form view without wiping cached HTML, safely tracked with timer
+      if (broadcastCloseResetTimer) {
+        clearTimeout(broadcastCloseResetTimer);
+      }
+      broadcastCloseResetTimer = setTimeout(() => {
         if (window.backToForm) window.backToForm();
+        broadcastCloseResetTimer = null;
       }, 300);
     };
 
