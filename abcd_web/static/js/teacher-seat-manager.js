@@ -133,23 +133,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const manualAssignUsername = document.getElementById('manualAssignUsername');
   const manualAssignPassword = document.getElementById('manualAssignPassword');
   const toggleManualPassword = document.getElementById('toggleManualPassword');
-  if (toggleManualPassword && manualAssignPassword) {
-    toggleManualPassword.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (manualAssignPassword.type === 'password') {
-        manualAssignPassword.type = 'text';
-        toggleManualPassword.classList.remove('bx-eye-slash');
-        toggleManualPassword.classList.add('bx-eye');
-        toggleManualPassword.setAttribute('title', 'Hide password');
-      } else {
-        manualAssignPassword.type = 'password';
-        toggleManualPassword.classList.remove('bx-eye');
-        toggleManualPassword.classList.add('bx-eye-slash');
-        toggleManualPassword.setAttribute('title', 'Show password');
+  window.toggleManualAssignPassword = function(iconElem) {
+    const input = document.getElementById('manualAssignPassword');
+    const icon = iconElem || document.getElementById('toggleManualPassword');
+    if (!input) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (icon) {
+        icon.classList.remove('bx-eye-slash');
+        icon.classList.add('bx-eye');
+        icon.setAttribute('title', 'Hide password');
       }
-    });
-  }
+    } else {
+      input.type = 'password';
+      if (icon) {
+        icon.classList.remove('bx-eye');
+        icon.classList.add('bx-eye-slash');
+        icon.setAttribute('title', 'Show password');
+      }
+    }
+  };
   const manualAssignMobile = document.getElementById('manualAssignMobile');
   const manualAssignWhatsapp = document.getElementById('manualAssignWhatsapp');
   const manualAssignWhatsappSame = document.getElementById('manualAssignWhatsappSame');
