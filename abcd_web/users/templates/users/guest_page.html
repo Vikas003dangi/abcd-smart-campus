@@ -5189,6 +5189,10 @@ document.addEventListener('click', function(e) {
             }
         }
     });
+
+    function toggleNotificationsPanel() {
+        window.location.href = "{% url 'users:student_dashboard' %}";
+    }
 </script>
 {% include 'users/_banner_popup.html' %}
 {% include 'partials/_home_base_exit.html' %}

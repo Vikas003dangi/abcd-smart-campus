@@ -222,17 +222,32 @@
     '.seat-modal-overlay',
     '.seat-interest-overlay',
     '.alert-overlay',
+    '.custom-alert-overlay',
     '.tour-popup',
     '.banner-popup-overlay',
+    '.broadcast-overlay',
+    '.teacher-notif-overlay',
+    '.notif-overlay',
     '[class*="-modal"]',
-    '[class*="-overlay"]',
-    '[class*="-popup"]',
     '[role="dialog"]',
     'dialog'
   ].join(',');
 
   function isElementModalOpen(el) {
     if (!el || !el.isConnected) return false;
+
+    // Never treat sidebar elements, overlays, or top navigation as background-locking modals
+    if (el.classList.contains('sidebar-overlay') ||
+        el.classList.contains('sidebar-wrapper') ||
+        el.classList.contains('nav-sidebar') ||
+        el.classList.contains('mobile-search-overlay') ||
+        el.classList.contains('hero-overlay-static') ||
+        el.id === 'sidebarOverlay' ||
+        el.id === 'sidebar' ||
+        el.closest('.sidebar-wrapper') ||
+        el.closest('.top-nav-menu')) {
+      return false;
+    }
 
     // Check specific class-based activations
     if (el.classList.contains('active') ||
@@ -249,19 +264,8 @@
     }
 
     // Check aria-hidden
-    if (el.getAttribute('aria-hidden') === 'false') {
+    if (el.getAttribute('aria-hidden') === 'false' && el.getAttribute('role') === 'dialog') {
       return true;
-    }
-
-    // Check inline display and computed visibility
-    if (el.style.display && el.style.display !== 'none') {
-      const style = window.getComputedStyle(el);
-      if (style.display !== 'none' && style.visibility !== 'hidden' && parseFloat(style.opacity || '1') > 0.05) {
-        // Must be fixed/absolute or have high z-index overlaying the screen
-        if (style.position === 'fixed' || style.position === 'absolute') {
-          return true;
-        }
-      }
     }
 
     return false;

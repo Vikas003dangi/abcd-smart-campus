@@ -328,7 +328,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 10px 30px;
-      z-index: 1000;
+      z-index: 1002 !important;
       transition: all 0.3s ease;
       background: rgba(253, 252, 248, 0.6);
       backdrop-filter: blur(12px);
@@ -829,7 +829,7 @@
       height: calc(100dvh - 85px);
       max-height: calc(100dvh - 85px);
       overflow: hidden;
-      z-index: 1000;
+      z-index: 1000 !important;
       pointer-events: none;
       border-radius: 0 0 20px 20px;
     }
@@ -838,10 +838,6 @@
     .sidebar-wrapper:has(#sidebar.active),
     .sidebar-wrapper:has(.nav-sidebar.active) {
       pointer-events: auto !important;
-    }
-
-    body.sidebar-open {
-      overflow: hidden !important;
     }
 
     @media (max-width: 768px) {
@@ -1322,13 +1318,14 @@
     .teacher-notif-panel {
       position: fixed;
       top: 0;
-      right: 0;
+      right: 0 !important;
       width: 420px;
       max-width: 100vw;
       height: 100vh;
+      height: 100dvh;
       background: #fff;
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.18);
-      z-index: 99999 !important;
+      z-index: 1000002 !important;
       transform: translate3d(100%, 0, 0);
       will-change: transform;
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1343,14 +1340,15 @@
     }
 
     .teacher-notif-panel.active {
-      transform: translate3d(0, 0, 0);
+      right: 0 !important;
+      transform: translate3d(0, 0, 0) !important;
     }
 
     .teacher-notif-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.45);
-      z-index: 99998 !important;
+      z-index: 1000001 !important;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s ease;
@@ -1360,6 +1358,10 @@
     .teacher-notif-overlay.active {
       opacity: 1;
       pointer-events: auto;
+    }
+
+    body.notif-panel-open {
+      overflow: hidden !important;
     }
 
     .teacher-notif-header {
@@ -1613,8 +1615,14 @@
 
     @media (max-width: 480px) {
       .teacher-notif-panel {
-        width: 100vw;
-        right: -100vw;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        right: 0 !important;
+        transform: translate3d(100%, 0, 0) !important;
+      }
+      .teacher-notif-panel.active {
+        right: 0 !important;
+        transform: translate3d(0, 0, 0) !important;
       }
     }
 
@@ -3628,12 +3636,13 @@
     .broadcast-panel-container {
       position: fixed;
       top: 0;
-      right: 0;
+      right: 0 !important;
       width: 450px;
       max-width: 100vw;
       height: 100vh;
+      height: 100dvh;
       background: #ffffff;
-      z-index: 99999 !important;
+      z-index: 1000002 !important;
       box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
       transform: translate3d(100%, 0, 0);
       will-change: transform;
@@ -3645,7 +3654,21 @@
     }
 
     .broadcast-panel-container.open {
-      transform: translate3d(0, 0, 0);
+      right: 0 !important;
+      transform: translate3d(0, 0, 0) !important;
+    }
+
+    @media (max-width: 480px) {
+      .broadcast-panel-container {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        right: 0 !important;
+        transform: translate3d(100%, 0, 0) !important;
+      }
+      .broadcast-panel-container.open {
+        right: 0 !important;
+        transform: translate3d(0, 0, 0) !important;
+      }
     }
 
     /* Dark theme support */
@@ -3660,7 +3683,7 @@
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.4);
-      z-index: 99998 !important;
+      z-index: 1000001 !important;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s ease;
@@ -8323,15 +8346,17 @@
       // --- Main Sidebar Logic ---
       function toggleSidebar(action) {
         const isActive = action === 'open';
+        const navbar = document.querySelector('.top-nav-menu');
+        if (isActive && navbar) {
+          navbar.style.transform = 'translateY(0)';
+        }
         sidebar.classList[isActive ? 'add' : 'remove']('active');
         sidebarOverlay.classList[isActive ? 'add' : 'remove']('active');
         hamburgerBtn.classList[isActive ? 'add' : 'remove']('open');
         const wrapper = document.querySelector('.sidebar-wrapper');
         if (wrapper) wrapper.classList[isActive ? 'add' : 'remove']('active');
-        if (window.innerWidth <= 768) {
-          document.body.classList[isActive ? 'add' : 'remove']('sidebar-open');
-        }
       }
+      window.toggleSidebar = toggleSidebar;
 
       // --- Mobile Search Overlay Logic (Premium) ---
       let mobSearchOpen = false;
@@ -8632,6 +8657,7 @@
         sidebar.classList.contains('active') ? toggleSidebar('close') : toggleSidebar('open');
       });
       sidebarOverlay.addEventListener('click', () => toggleSidebar('close'));
+      sidebarOverlay.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && sidebar.classList.contains('active')) {
           toggleSidebar('close');
@@ -11686,6 +11712,13 @@
           requestAnimationFrame(() => {
             const navbar = document.querySelector('.top-nav-menu');
             if (navbar) {
+              const sidebar = document.getElementById('sidebar');
+              const isSidebarActive = sidebar && (sidebar.classList.contains('active') || sidebar.closest('.sidebar-wrapper')?.classList.contains('active'));
+              if (isSidebarActive) {
+                navbar.style.transform = 'translateY(0)';
+                navScrollTicking = false;
+                return;
+              }
               let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
               if (scrollTop > lastScrollTop && scrollTop > 100) {
                 navbar.style.transform = 'translateY(-150%)';
@@ -11727,25 +11760,37 @@
       const isOpen = panel.classList.contains('active');
 
       if (!isOpen) {
-        // Close sidebar if open
-        const sidebar = document.getElementById('sidebar');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        const hamburgerBtn = document.getElementById('hamburgerBtn');
-        if (sidebar && sidebar.classList.contains('active')) {
-          sidebar.classList.remove('active');
+        // Close sidebar cleanly if open
+        if (typeof window.toggleSidebar === 'function') {
+          window.toggleSidebar('close');
+        } else {
+          const sidebar = document.getElementById('sidebar');
+          const sidebarOverlay = document.getElementById('sidebarOverlay');
+          const hamburgerBtn = document.getElementById('hamburgerBtn');
+          const wrapper = document.querySelector('.sidebar-wrapper');
+          if (sidebar) sidebar.classList.remove('active');
           if (sidebarOverlay) sidebarOverlay.classList.remove('active');
           if (hamburgerBtn) hamburgerBtn.classList.remove('open');
+          if (wrapper) wrapper.classList.remove('active');
+          document.body.classList.remove('sidebar-open');
+        }
+
+        // Close broadcast panel if open
+        if (typeof window.closeBroadcastPanel === 'function') {
+          window.closeBroadcastPanel();
         }
 
         // Open immediately for 60fps instant response!
         panel.classList.add('active');
         if (overlay) overlay.classList.add('active');
+        document.body.classList.add('notif-panel-open');
 
         // Fetch notifications and tasks via AJAX in background without freezing UI
         loadTeacherNotifications();
       } else {
         panel.classList.remove('active');
         if (overlay) overlay.classList.remove('active');
+        document.body.classList.remove('notif-panel-open');
       }
     }
 
