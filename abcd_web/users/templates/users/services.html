@@ -106,7 +106,12 @@
     }
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   .card {
+    scroll-margin-top: 85px;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 18px;
     padding: 20px 22px;
@@ -585,5 +590,28 @@
     </div>
   </section>
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const heroTags = document.querySelectorAll('.hero-tags a.hero-tag');
+    heroTags.forEach(function(tag) {
+        tag.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                e.preventDefault();
+                const targetEl = document.querySelector(href);
+                if (targetEl) {
+                    const headerOffset = 85;
+                    const elementPos = targetEl.getBoundingClientRect().top;
+                    const targetTop = elementPos + window.pageYOffset - headerOffset;
+                    window.scrollTo({
+                        top: targetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

@@ -491,16 +491,7 @@
                 try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
                 dismissPrompt(false);
 
-                const reg = await registerServiceWorkerAndSync({ sendWelcome: true });
-
-                // Fire real device notification immediately
-                await triggerDeviceTestNotification(
-                    reg,
-                    '🎉 Notifications Activated!',
-                    'Your device is now connected for instant library seat & campus alerts.'
-                );
-
-                playChime('/static/audio/PWA.mp3');
+                const reg = await registerServiceWorkerAndSync({ sendWelcome: false });
 
                 if (typeof pendingCallback === 'function') {
                     pendingCallback(true);

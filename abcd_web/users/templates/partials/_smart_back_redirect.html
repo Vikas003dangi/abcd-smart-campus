@@ -27,6 +27,12 @@
             window.addEventListener('pointerdown', ensureTrap, { once: true, passive: true });
             
             window.addEventListener('popstate', async function(event) {
+                // Ignore in-page hash changes within the same page (do not exit to home base)
+                const currentClean = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+                if (window.location.hash && currentClean === cleanPath) {
+                    return;
+                }
+
                 // 1. Check custom page back hook (e.g. Guidy mobile chat close)
                 if (typeof window.handleCustomSmartBack === 'function') {
                     try {

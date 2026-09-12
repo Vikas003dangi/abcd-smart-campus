@@ -460,7 +460,7 @@ class SecurityHeadersMiddleware:
 
     PERMISSIONS_POLICY = (
         "camera=(), microphone=(), geolocation=(), payment=(), usb=(), "
-        "vr=(), accelerometer=(), gyroscope=()"
+        "xr-spatial-tracking=(), accelerometer=(), gyroscope=()"
     )
 
     def __init__(self, get_response):

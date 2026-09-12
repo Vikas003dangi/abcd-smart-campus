@@ -280,6 +280,9 @@ let currentActiveBannerId = null;
 async function checkAndDisplayStudentBanner() {
     try {
         const response = await fetch("{% url 'users:get_active_student_banner_api' %}");
+        if (!response.ok) return;
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) return;
         const data = await response.json();
         
         if (data.status === 'success' && data.has_banner && data.banner) {
@@ -370,6 +373,7 @@ async function dismissStudentBanner() {
     }
 }
 
+{% if user.is_authenticated %}
 // Show banner on base page (initial 8s gap) and check periodically for newly maturing scheduled banners
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(checkAndDisplayStudentBanner, 8000);
@@ -479,5 +483,6 @@ document.addEventListener('DOMContentLoaded', function() {
         connect();
     }
 })();
+{% endif %}
 </script>
 

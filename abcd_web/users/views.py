@@ -9517,11 +9517,13 @@ def get_drafts_api(request):
     return JsonResponse({"drafts": data})
 
 
-@login_required
 def get_active_student_banner_api(request):
     """
     Returns the latest active, un-dismissed Ads Banner for the logged-in student.
     """
+    if not request.user.is_authenticated:
+        return JsonResponse({"status": "success", "has_banner": False})
+
     from .models import BroadcastMessage, BannerViewLog, StudentProfile, StudentAchievement
     user = request.user
 
