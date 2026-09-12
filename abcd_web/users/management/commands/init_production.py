@@ -6,7 +6,21 @@ from decouple import config
 class Command(BaseCommand):
     help = 'Clean and initialize production database to a brand new state with Vaku and Sandy superusers'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--dangerously-wipe-all-data',
+            action='store_true',
+            help='Explicit safety flag required to execute database reset',
+        )
+
     def handle(self, *args, **options):
+        if not options.get('dangerously_wipe_all_data'):
+            self.stdout.write(self.style.ERROR(
+                "BLOCKED: init_production requires explicit '--dangerously-wipe-all-data' flag "
+                "to prevent accidental deletion of user data and conversation history."
+            ))
+            return
+
         self.stdout.write(self.style.NOTICE('=== Starting Production Database Reset & Initialization ==='))
 
         legit_emails = ['vd19055@gmail.com', 'abcd2013baq@gmail.com']

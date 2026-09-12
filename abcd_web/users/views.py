@@ -10801,7 +10801,15 @@ def guidy_home(request):
     if is_teacher:
         # Teachers don't have pending_requests or restrictions list
         restriction_list = []
-        my_sessions = []
+        # Teachers participate in mentorship sessions as guides or direct participants
+        session_filter = Q(user_one=user) | Q(user_two=user) | Q(request__alumni__user=user)
+        my_sessions = ChatSession.objects.filter(
+            session_filter
+        ).filter(
+            Q(is_active=True) | Q(is_active=False, session_ended_at__isnull=False)
+        ).exclude(
+            is_active=False, ended_by=user
+        ).select_related('request__student', 'request__alumni', 'request__alumni__user').distinct()
         my_groups = GroupChatSession.objects.filter(
             members=user
         ).filter(
@@ -10881,7 +10889,7 @@ def guidy_home(request):
                 days_passed = (timezone.now() - active_session.session_ended_at).days
                 locked_days_left = max(0, 5 - days_passed)
                 
-                # THE AUTO PURGE: If 5 days have passed, permanently delete the session.
+                # THE AUTO PURGE: If 5 days have passed, permanently delete the session so users can start fresh.
                 if locked_days_left == 0:
                     purge_1on1_chat_session(active_session)
                     return redirect('users:guidy_home')
@@ -10944,7 +10952,7 @@ def guidy_home(request):
                 days_passed = (timezone.now() - active_direct.session_ended_at).days
                 locked_days_left = max(0, 5 - days_passed)
 
-                # THE AUTO PURGE: If 5 days have passed, permanently delete the session.
+                # THE AUTO PURGE: If 5 days have passed, permanently delete the session so users can start fresh.
                 if locked_days_left == 0:
                     purge_1on1_chat_session(active_direct)
                     return redirect('users:guidy_home')
@@ -11054,11 +11062,11 @@ def guidy_home(request):
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
 
-        # Do not show empty conversations with 0 messages in the sidebar
-        if not last:
+        # Keep conversation visible if it has messages OR if it is currently open/active
+        if not last and not (active_session and active_session.id == s.id):
             continue
 
-        last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else '')
+        last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
         last_message_type = last.message_type if last else 'text'
         last_timestamp = last.timestamp if last else s.created_at
 
@@ -11108,11 +11116,11 @@ def guidy_home(request):
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
 
-        # Do not show empty direct conversations with 0 messages in the sidebar
-        if not last:
+        # Keep conversation visible if it has messages OR if it is currently open/active
+        if not last and not (active_direct and active_direct.id == s.id):
             continue
 
-        last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else '')
+        last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
         last_message_type = last.message_type if last else 'text'
         last_timestamp = last.timestamp if last else s.created_at
 

@@ -19,8 +19,20 @@ class Command(BaseCommand):
             action='store_true',
             help='Do not prompt for confirmation',
         )
+        parser.add_argument(
+            '--dangerously-wipe-all-data',
+            action='store_true',
+            help='Explicit safety flag required to execute system cleanup',
+        )
 
     def handle(self, *args, **options):
+        if not options.get('dangerously_wipe_all_data'):
+            self.stdout.write(self.style.ERROR(
+                "BLOCKED: cleanup_system requires explicit '--dangerously-wipe-all-data' flag "
+                "to prevent accidental data loss of user chats, todos, and profiles."
+            ))
+            return
+
         self.stdout.write(self.style.WARNING("WARNING: This will DELETE ALL DATA except Superusers."))
 
         if not options['noinput']:

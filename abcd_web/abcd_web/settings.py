@@ -143,6 +143,18 @@ WSGI_APPLICATION = 'abcd_web.wsgi.application'
 # DATABASE
 # -------------------------------
 DATABASE_URL = config('DATABASE_URL', default=None)
+is_render = os.environ.get('RENDER', '').lower() in ('true', '1')
+
+if not DATABASE_URL and (not DEBUG or is_render):
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "CRITICAL DATA PROTECTION ERROR: DATABASE_URL is not configured for production!\n"
+        "Render web service containers have an ephemeral filesystem; using local SQLite in production "
+        "will permanently wipe all user accounts, chats, and records on every deployment or restart.\n"
+        "Please configure DATABASE_URL (your persistent Neon PostgreSQL connection string) in "
+        "Render Dashboard > abcd-web-platform > Environment."
+    )
+
 if DATABASE_URL:
     # Auto-detect Neon PostgreSQL and ensure pooled connection is used (-pooler host)
     # This prevents exhausting Neon's direct connection limits during worker restarts
@@ -163,6 +175,7 @@ if DATABASE_URL:
         )
     }
 else:
+    # Local Development Only: SQLite with lock timeout and concurrency protection
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
