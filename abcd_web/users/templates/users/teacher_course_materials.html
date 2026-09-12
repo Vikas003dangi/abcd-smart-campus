@@ -461,48 +461,82 @@
   }
 
   /* Table actions */
+  .tcm-actions-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
   .btn-action {
-    width: 38px; height: 38px; padding: 0; justify-content: center;
-    background: #f8fafc; color: #64748b; border-radius: 10px;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #f8fafc;
+    color: #64748b;
+    border-radius: 10px;
     border: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer;
+    text-decoration: none !important;
+    line-height: 1 !important;
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+  .btn-action i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.25rem !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    pointer-events: none;
+    text-align: center;
   }
   .btn-action:hover {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(99, 102, 241, 0.12);
     color: #6366f1;
-    border-color: rgba(99, 102, 241, 0.2);
-    transform: scale(1.1);
+    border-color: rgba(99, 102, 241, 0.25);
+    transform: translateY(-1px) scale(1.06);
   }
   body.dark-theme .btn-action {
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(255, 242, 222, 0.6);
-    border-color: rgba(255,255,255,0.05);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 242, 222, 0.7);
+    border-color: rgba(255,255,255,0.08);
   }
   body.dark-theme .btn-action:hover {
-    background: rgba(129, 140, 248, 0.15);
+    background: rgba(129, 140, 248, 0.2);
     color: #818cf8;
-    border-color: rgba(129, 140, 248, 0.3);
-    transform: scale(1.1);
+    border-color: rgba(129, 140, 248, 0.35);
+    transform: translateY(-1px) scale(1.06);
   }
 
   .btn-danger-alt {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.05);
-    border: 1px solid rgba(239, 68, 68, 0.1);
+    color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
   }
   .btn-danger-alt:hover {
     background: #ef4444 !important;
-    color: white !important;
+    color: #ffffff !important;
     border-color: #ef4444 !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
   }
   body.dark-theme .btn-danger-alt {
-    background: rgba(248, 113, 113, 0.1);
-    color: #f87171;
-    border-color: rgba(248, 113, 113, 0.2);
+    background: rgba(248, 113, 113, 0.12) !important;
+    color: #f87171 !important;
+    border-color: rgba(248, 113, 113, 0.25) !important;
   }
   body.dark-theme .btn-danger-alt:hover {
     background: #ef4444 !important;
-    color: white !important;
+    color: #ffffff !important;
     border-color: #ef4444 !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
   }
 
   /* --- BADGES --- */
@@ -836,6 +870,7 @@
       border-top: 1px solid rgba(0,0,0,0.05) !important;
       display: flex;
       justify-content: flex-end;
+      align-items: center;
     }
     body.dark-theme .studio-table tr td:nth-child(6) {
       border-top-color: rgba(255,255,255,0.05) !important;
@@ -1045,7 +1080,7 @@
       <div class="studio-toolbar">
         <div id="selectionInfo" style="display: flex; align-items: center;">
           <input type="checkbox" id="selectAll" onclick="toggleAllSelections(this)" style="width: 20px; height: 20px; cursor: pointer;">
-          <span style="margin-left: 15px; font-weight: 700; color: #64748b;">{{ materials|length }} Items in Curriculum</span>
+          <span id="materialTotalCount" style="margin-left: 15px; font-weight: 700; color: #64748b;">{{ materials|length }} Items in Curriculum</span>
         </div>
         
         <div class="bulk-actions" id="bulkToolbar" style="display: none; background: #6366f1; padding: 10px 25px; border-radius: 16px; color: white; align-items: center; gap: 15px;">
@@ -1117,14 +1152,19 @@
               </button>
             </td>
             <td>
-              <div style="display: flex; gap: 10px;">
-                <button class="btn-action" title="Edit Details" data-id="{{ m.id }}" onclick="openEditModal(this)"><i class='bx bx-edit-alt'></i></button>
+              <div class="tcm-actions-group">
+                <button type="button" class="btn-action" title="Edit Details" data-id="{{ m.id }}" onclick="openEditModal(this)"><i class='bx bx-edit-alt'></i></button>
                 {% if m.file %}
                   <a href="{{ m.file.url }}" target="_blank" class="btn-action" title="View Material"><i class='bx bx-show'></i></a>
                 {% else %}
                   <a href="{{ m.external_url }}" target="_blank" class="btn-action" title="Open Link"><i class='bx bx-link-external'></i></a>
                 {% endif %}
-                <a href="{% url 'users:delete_study_material' m.id %}" class="btn-action btn-danger-alt delete-material-btn" title="Delete Material"><i class='bx bx-trash'></i></a>
+                <button type="button" class="btn-action btn-danger-alt delete-material-btn"
+                        data-delete-url="{% url 'users:delete_study_material' m.id %}"
+                        onclick="confirmDeleteMaterial(this, '{{ m.id }}', '{{ m.title|escapejs }}')"
+                        title="Delete Material">
+                  <i class='bx bx-trash'></i>
+                </button>
               </div>
             </td>
           </tr>
@@ -1440,42 +1480,103 @@
             }
         });
     }
-    document.addEventListener('click', async function(e) {
-        const btn = e.target.closest('.delete-material-btn');
-        if (!btn) return;
-        
-        e.preventDefault();
-        const confirmed = await window.showStyledConfirm(
-            'Delete Material',
-            'Are you sure you want to <b>delete</b> this material permanently?'
-        );
-        
-        if (confirmed) {
-            btn.style.pointerEvents = 'none';
-            btn.style.opacity = '0.5';
-            try {
-                const res = await fetch(btn.href, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    location.reload();
-                } else {
-                    window.showStyledAlert('Delete Error', data.error || 'Failed to delete material.');
-                    btn.style.pointerEvents = 'auto';
-                    btn.style.opacity = '1';
-                }
-            } catch (err) {
-                window.showStyledAlert('Network Error', 'A network error occurred while deleting.');
-                btn.style.pointerEvents = 'auto';
-                btn.style.opacity = '1';
+    function updateMaterialCountUI() {
+        const remainingRows = document.querySelectorAll('#materialBody tr');
+        const countSpan = document.getElementById('materialTotalCount') || document.querySelector('#selectionInfo span');
+        if (countSpan) {
+            countSpan.textContent = `${remainingRows.length} Item${remainingRows.length === 1 ? '' : 's'} in Curriculum`;
+        }
+        if (remainingRows.length === 0) {
+            const layout = document.querySelector('.studio-layout');
+            if (layout) {
+                layout.innerHTML = `
+                  <div class="tcm-empty">
+                    <div class="tcm-empty-illustration">
+                      <div class="tcm-illust-glow"></div>
+                      <i class='bx bx-folder-open tcm-empty-icon'></i>
+                      <div class="tcm-float-item fi-1"><i class='bx bx-play'></i></div>
+                      <div class="tcm-float-item fi-2"><i class='bx bx-file'></i></div>
+                      <div class="tcm-float-item fi-3"><i class='bx bx-link'></i></div>
+                    </div>
+                    <h3>Curriculum is empty</h3>
+                    <p>Start adding videos, documents, or links to build your course content.</p>
+                    <button class="studio-btn btn-primary tcm-empty-btn" onclick="openMaterialModal()">
+                      <i class='bx bx-plus'></i> Add First Content
+                    </button>
+                  </div>`;
+            }
+        } else {
+            if (typeof updateBulkToolbar === 'function') {
+                updateBulkToolbar();
             }
         }
-    });
+    }
+
+    async function confirmDeleteMaterial(btn, materialId, materialTitle) {
+        const titleEscaped = materialTitle ? `"${materialTitle}"` : 'this material';
+        const confirmed = typeof window.showStyledConfirm === 'function'
+            ? await window.showStyledConfirm('Delete Material', `Are you sure you want to <b>delete</b> ${titleEscaped} permanently?`)
+            : confirm(`Are you sure you want to delete ${materialTitle} permanently?`);
+
+        if (!confirmed) return;
+
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.pointerEvents = 'none';
+
+        const deleteUrl = btn.getAttribute('data-delete-url') || `/teacher/courses/materials/delete/${materialId}/`;
+
+        try {
+            const resp = await fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                if (typeof showToast === 'function') {
+                    showToast(data.message || 'Material deleted successfully', 'success');
+                } else if (typeof window.showToast === 'function') {
+                    window.showToast(data.message || 'Material deleted successfully', 'success');
+                }
+
+                // Smoothly animate and remove row from DOM
+                const row = btn.closest('tr') || document.querySelector(`tr[data-id="${materialId}"]`);
+                if (row) {
+                    row.style.transition = 'all 0.3s ease';
+                    row.style.opacity = '0';
+                    row.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        row.remove();
+                        updateMaterialCountUI();
+                    }, 300);
+                } else {
+                    updateMaterialCountUI();
+                }
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+                if (typeof window.showStyledAlert === 'function') {
+                    await window.showStyledAlert('Delete Error', data.error || 'Failed to delete material.');
+                } else {
+                    alert(data.error || 'Failed to delete material.');
+                }
+            }
+        } catch (err) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            if (typeof window.showStyledAlert === 'function') {
+                await window.showStyledAlert('Network Error', 'A network error occurred while deleting.');
+            } else {
+                alert('A network error occurred while deleting.');
+            }
+        }
+    }
 </script>
 {% url 'users:teacher_courses' as teacher_courses_url %}
 {% include 'partials/_smart_back_redirect.html' with back_url_path=teacher_courses_url %}

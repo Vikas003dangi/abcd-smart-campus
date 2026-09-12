@@ -2006,54 +2006,57 @@
     document.getElementById('ytPlaylistForm').style.display = 'block';
   }
 
-  document.getElementById('ytPlFinalBtn').onclick = function() {
-    if (!currentPlaylistId) return;
-    const btn = this;
-    btn.disabled = true; btn.textContent = '⏳ Importing...';
+  const ytPlFinalBtn = document.getElementById('ytPlFinalBtn');
+  if (ytPlFinalBtn) {
+    ytPlFinalBtn.onclick = function() {
+      if (!currentPlaylistId) return;
+      const btn = this;
+      btn.disabled = true; btn.textContent = '⏳ Importing...';
 
-    const container = document.getElementById('ytPlaylistForm');
-    const target_public = container.querySelector('.target-public').checked;
-    const target_coaching = container.querySelector('.target-coaching').checked;
-    const target_alumni = container.querySelector('.target-alumni').checked;
-    const target_library = container.querySelector('.target-library').checked;
-    const target_private = container.querySelector('.target-private').checked;
+      const container = document.getElementById('ytPlaylistForm');
+      const target_public = container.querySelector('.target-public').checked;
+      const target_coaching = container.querySelector('.target-coaching').checked;
+      const target_alumni = container.querySelector('.target-alumni').checked;
+      const target_library = container.querySelector('.target-library').checked;
+      const target_private = container.querySelector('.target-private').checked;
 
-    // Selected batches
-    const coaching_batches = [];
-    if (target_coaching) {
-      container.querySelectorAll('.batch-select-container input[type="checkbox"]:checked').forEach(chk => {
-        coaching_batches.push(chk.value);
+      // Selected batches
+      const coaching_batches = [];
+      if (target_coaching) {
+        container.querySelectorAll('.batch-select-container input[type="checkbox"]:checked').forEach(chk => {
+          coaching_batches.push(chk.value);
+        });
+      }
+
+      // Selected floors
+      const library_floors = [];
+      if (target_library) {
+        container.querySelectorAll('.floor-select-container input[type="checkbox"]:checked').forEach(chk => {
+          library_floors.push(chk.value);
+        });
+      }
+      
+      fetch("{% url 'users:yt_import_playlist' %}", {
+        method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':csrfToken},
+        body: JSON.stringify({
+          playlist_id: currentPlaylistId,
+          use_playlist_thumbnail: document.getElementById('ytPlUseThumb').checked,
+          custom_thumbnail_data: document.getElementById('ytPlCroppedThumbData').value,
+          target_public: target_public,
+          target_coaching: target_coaching,
+          target_alumni: target_alumni,
+          target_library: target_library,
+          target_private: target_private,
+          coaching_batches: coaching_batches,
+          library_floors: library_floors
+        })
+      }).then(r => r.json()).then(data => {
+        if (data.error) { btn.textContent = '❌ ' + data.error; btn.disabled = false; return; }
+        btn.textContent = '✅ Success!';
+        setTimeout(() => location.reload(), 1000);
       });
-    }
-
-    // Selected floors
-    const library_floors = [];
-    if (target_library) {
-      container.querySelectorAll('.floor-select-container input[type="checkbox"]:checked').forEach(chk => {
-        library_floors.push(chk.value);
-      });
-    }
-    
-    fetch("{% url 'users:yt_import_playlist' %}", {
-      method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':csrfToken},
-      body: JSON.stringify({
-        playlist_id: currentPlaylistId,
-        use_playlist_thumbnail: document.getElementById('ytPlUseThumb').checked,
-        custom_thumbnail_data: document.getElementById('ytPlCroppedThumbData').value,
-        target_public: target_public,
-        target_coaching: target_coaching,
-        target_alumni: target_alumni,
-        target_library: target_library,
-        target_private: target_private,
-        coaching_batches: coaching_batches,
-        library_floors: library_floors
-      })
-    }).then(r => r.json()).then(data => {
-      if (data.error) { btn.textContent = '❌ ' + data.error; btn.disabled = false; return; }
-      btn.textContent = '✅ Success!';
-      setTimeout(() => location.reload(), 1000);
-    });
-  };
+    };
+  }
 
   // --- VIDEOS ---
   function loadVideos() {
