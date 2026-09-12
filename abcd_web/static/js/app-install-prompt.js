@@ -99,24 +99,23 @@
                 align-items: center !important;
                 justify-content: space-between !important;
                 padding: 6px 14px !important;
-                background: rgba(255, 255, 255, 0.94) !important;
-                backdrop-filter: blur(16px) !important;
-                -webkit-backdrop-filter: blur(16px) !important;
+                background: #ffffff !important;
                 border-bottom: 1px solid rgba(124, 58, 237, 0.14) !important;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
                 z-index: 1000000 !important;
-                transform: translateY(-100%);
+                transform: translate3d(0, -100%, 0);
                 opacity: 0;
-                transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
                 box-sizing: border-box !important;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                will-change: transform, opacity;
             }
             .abcd-smart-banner.visible {
-                transform: translateY(0) !important;
+                transform: translate3d(0, 0, 0) !important;
                 opacity: 1 !important;
             }
             body.dark-theme .abcd-smart-banner {
-                background: rgba(22, 16, 40, 0.94) !important;
+                background: #150f28 !important;
                 border-bottom: 1px solid rgba(168, 85, 247, 0.22) !important;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
             }
@@ -247,13 +246,12 @@
             .abcd-pwa-overlay {
                 position: fixed !important;
                 inset: 0 !important;
-                background: rgba(10, 15, 30, 0.75) !important;
-                backdrop-filter: blur(16px) !important;
-                -webkit-backdrop-filter: blur(16px) !important;
+                background: rgba(10, 15, 30, 0.8) !important;
                 z-index: 3000000 !important;
                 opacity: 0;
                 visibility: hidden;
-                transition: opacity 0.35s ease, visibility 0.35s ease;
+                transition: opacity 0.2s ease, visibility 0.2s ease;
+                will-change: opacity;
             }
             .abcd-pwa-overlay.visible {
                 opacity: 1 !important;
@@ -274,7 +272,8 @@
                 z-index: 3000001 !important;
                 opacity: 0;
                 visibility: hidden;
-                transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, visibility 0.35s ease;
+                will-change: transform, opacity;
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, visibility 0.2s ease;
                 font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
                 overflow: hidden;
             }
@@ -911,13 +910,6 @@
     setTimeout(async () => {
         const isInstalled = await checkDeviceAppStatus();
         buildAndShowSmartBanner(isInstalled);
-
-        // If user already installed app, also show VIP Open in App modal after 4s (once per session)
-        if (isInstalled && sessionStorage.getItem(DISMISS_OPEN_APP_SESSION_KEY) !== 'true') {
-            if (!window.__abcd_active_prompt) {
-                setTimeout(showOpenInAppModal, 2000);
-            }
-        }
     }, 2500);
 
     // Global manual triggers

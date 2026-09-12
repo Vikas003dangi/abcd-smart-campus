@@ -119,6 +119,8 @@
         window.__bottomNavZoomPreventerAttached = true;
 
         const initialDPR = window.devicePixelRatio || 1;
+        let isZoomApplied = false;
+        let ticking = false;
 
         function updateBottomBarZoom() {
             const bars = document.querySelectorAll('.bottom-nav-menu, .guest-bottom-nav');
@@ -130,16 +132,22 @@
             const pageZoom = currentDPR / initialDPR;
             const totalZoom = scale * pageZoom;
 
-            bars.forEach(bar => {
-                if (totalZoom <= 1.001 && totalZoom >= 0.999) {
-                    bar.style.transform = '';
-                    bar.style.transformOrigin = '';
-                    bar.style.width = '';
-                    bar.style.bottom = '';
-                    bar.style.left = '';
-                    return;
+            if (totalZoom <= 1.001 && totalZoom >= 0.999) {
+                if (isZoomApplied) {
+                    bars.forEach(bar => {
+                        bar.style.transform = '';
+                        bar.style.transformOrigin = '';
+                        bar.style.width = '';
+                        bar.style.bottom = '';
+                        bar.style.left = '';
+                    });
+                    isZoomApplied = false;
                 }
+                return;
+            }
 
+            isZoomApplied = true;
+            bars.forEach(bar => {
                 bar.style.transform = `scale(${1 / totalZoom})`;
                 bar.style.transformOrigin = 'bottom left';
 
@@ -155,12 +163,28 @@
             });
         }
 
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', updateBottomBarZoom);
-            window.visualViewport.addEventListener('scroll', updateBottomBarZoom);
+        function scheduleBottomBarUpdate() {
+            if (!ticking) {
+                ticking = true;
+                requestAnimationFrame(() => {
+                    updateBottomBarZoom();
+                    ticking = false;
+                });
+            }
         }
-        window.addEventListener('resize', updateBottomBarZoom);
-        window.addEventListener('scroll', updateBottomBarZoom);
+
+        function handleScrollUpdate() {
+            const vv = window.visualViewport;
+            if (vv && (vv.scale > 1.01 || vv.scale < 0.99 || isZoomApplied)) {
+                scheduleBottomBarUpdate();
+            }
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', scheduleBottomBarUpdate, { passive: true });
+            window.visualViewport.addEventListener('scroll', handleScrollUpdate, { passive: true });
+        }
+        window.addEventListener('resize', scheduleBottomBarUpdate, { passive: true });
 
         updateBottomBarZoom();
         document.addEventListener('DOMContentLoaded', updateBottomBarZoom);

@@ -104,29 +104,33 @@
             color: var(--text-light);
         }
 
-        /* Blur Effect for Background when Modal is Open */
+        /* Clean Background Dimming (No GPU-choking DOM-tree blur) */
         body.modal-open .hub-layout,
         body.modal-open .hub-navbar,
         body.modal-open .hub-mobile-header {
-            filter: blur(12px);
             pointer-events: none;
-        }
-
-        .hub-layout, .hub-navbar, .hub-mobile-header {
-            transition: filter 0.25s ease;
         }
 
         /* --- DASHBOARD STYLE MODALS --- */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(10, 15, 30, 0.85); /* Deeper, more premium dark blue overlay */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(10, 15, 30, 0.82); /* Rich dark backdrop */
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             display: none;
             z-index: 100000 !important;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;
+            will-change: opacity;
+        }
+
+        @media (max-width: 768px) {
+            .modal-overlay {
+                background: rgba(10, 15, 30, 0.88);
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
         }
 
         .modal-overlay.active {
@@ -1918,13 +1922,13 @@
             border-color: rgba(255, 255, 255, 0.1) !important;
         }
 
-        /* --- STACKED MODALS FOCUS & BLUR --- */
+        /* --- STACKED MODALS FOCUS (GPU-Friendly Dim & Scale) --- */
         .admission-modal.modal-stacked-parent,
         .teacher-modal.modal-stacked-parent {
-            filter: blur(6px) brightness(0.6) !important;
+            opacity: 0.45 !important;
             pointer-events: none !important;
             transform: translate(-50%, -50%) scale(0.96) !important;
-            transition: all 0.25s ease !important;
+            transition: transform 0.2s ease, opacity 0.2s ease !important;
         }
 
         /* --- ACCESSIBLE HIGH-CONTRAST MODAL TEXT --- */

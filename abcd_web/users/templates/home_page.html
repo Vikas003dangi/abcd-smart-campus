@@ -658,12 +658,13 @@
             right: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            transform: translateY(-110%);
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transform: translate3d(0, -105%, 0);
             opacity: 0;
-            transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1), opacity 0.3s ease;
+            will-change: transform, opacity;
+            transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
             padding: 16px 14px 95px 14px !important;
             border-radius: 20px;
@@ -690,9 +691,9 @@
         }
 
         body.dark-theme .nav-sidebar {
-            background: rgba(30, 20, 50, 0.92) !important;
-            backdrop-filter: blur(25px) !important;
-            -webkit-backdrop-filter: blur(25px) !important;
+            background: rgba(24, 15, 42, 0.98) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
             border: 1px solid rgba(255, 255, 255, 0.12) !important;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6) !important;
         }
@@ -702,7 +703,7 @@
         }
 
         .nav-sidebar.active {
-            transform: translateY(0);
+            transform: translate3d(0, 0, 0);
             opacity: 1;
         }
 
@@ -787,12 +788,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.45);
             z-index: 999;
             opacity: 0;
             visibility: hidden;
-            transition: all 0.3s ease;
+            will-change: opacity;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
         }
 
         .sidebar-overlay.active {

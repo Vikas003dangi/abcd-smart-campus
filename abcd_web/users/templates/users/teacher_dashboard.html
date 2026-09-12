@@ -757,12 +757,13 @@
       right: 0;
       width: 100%;
       height: 100%;
-      background: rgba(255, 255, 255, 0.65);
-      backdrop-filter: blur(25px);
-      -webkit-backdrop-filter: blur(25px);
-      transform: translateY(-110%);
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transform: translate3d(0, -105%, 0);
       opacity: 0;
-      transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1), opacity 0.3s ease;
+      will-change: transform, opacity;
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
       padding: 16px 14px 95px 14px !important;
       border-radius: 20px;
@@ -789,9 +790,9 @@
     }
 
     body.dark-theme .nav-sidebar {
-      background: rgba(30, 20, 50, 0.92) !important;
-      backdrop-filter: blur(25px) !important;
-      -webkit-backdrop-filter: blur(25px) !important;
+      background: rgba(24, 15, 42, 0.98) !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
       border: 1px solid rgba(255, 255, 255, 0.12) !important;
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6) !important;
     }
@@ -801,7 +802,7 @@
     }
 
     .nav-sidebar.active {
-      transform: translateY(0);
+      transform: translate3d(0, 0, 0);
       opacity: 1;
     }
 
@@ -822,7 +823,7 @@
       font-weight: 600;
       border-radius: 10px;
       text-decoration: none;
-      transition: background 0.25s ease, color 0.25s ease;
+      transition: background 0.2s ease, color 0.2s ease;
     }
 
     body.dark-theme .nav-sidebar a,
@@ -848,12 +849,12 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.45);
       z-index: 999;
       opacity: 0;
       visibility: hidden;
-      transition: all 0.3s ease;
+      will-change: opacity;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
     }
 
     .sidebar-overlay.active {
@@ -1209,14 +1210,16 @@
     .teacher-notif-panel {
       position: fixed;
       top: 0;
-      right: -420px;
+      right: 0;
       width: 420px;
       max-width: 100vw;
       height: 100vh;
       background: #fff;
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.18);
       z-index: 99999 !important;
-      transition: right 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translate3d(100%, 0, 0);
+      will-change: transform;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -1228,19 +1231,18 @@
     }
 
     .teacher-notif-panel.active {
-      right: 0;
+      transform: translate3d(0, 0, 0);
     }
 
     .teacher-notif-overlay {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
       z-index: 99998 !important;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.25s ease;
+      will-change: opacity;
     }
 
     .teacher-notif-overlay.active {
@@ -3514,14 +3516,16 @@
     .broadcast-panel-container {
       position: fixed;
       top: 0;
-      right: -450px;
+      right: 0;
       width: 450px;
       max-width: 100vw;
       height: 100vh;
       background: #ffffff;
       z-index: 99999 !important;
       box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
-      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+      transform: translate3d(100%, 0, 0);
+      will-change: transform;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -3529,7 +3533,7 @@
     }
 
     .broadcast-panel-container.open {
-      right: 0;
+      transform: translate3d(0, 0, 0);
     }
 
     /* Dark theme support */
@@ -3543,13 +3547,12 @@
     .broadcast-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.3);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      background: rgba(15, 23, 42, 0.4);
       z-index: 99998 !important;
       opacity: 0;
       pointer-events: none;
-      transition: all 0.3s ease;
+      transition: opacity 0.25s ease;
+      will-change: opacity;
     }
 
     .broadcast-overlay.active {
@@ -3570,8 +3573,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 20px 24px;
-      background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: blur(10px);
+      background: #ffffff;
       border-bottom: 1px solid #f1f5f9;
       position: sticky;
       top: 0;
@@ -3579,7 +3581,7 @@
     }
 
     body.dark-theme .broadcast-header {
-      background: rgba(17, 8, 33, 0.8);
+      background: #110821;
       border-bottom-color: #2a1a4a;
     }
 
@@ -9335,11 +9337,28 @@
       const overlay = document.getElementById("broadcastOverlay");
       if (!panel) return;
 
-      // Open side panel immediately
+      // Close sidebar if open so they don't conflict
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebarOverlay');
+      const hamburgerBtn = document.getElementById('hamburgerBtn');
+      if (sidebar && sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+        if (hamburgerBtn) hamburgerBtn.classList.remove('open');
+      }
+
+      // Open side panel immediately with 0ms delay
       panel.classList.add("open");
       if (overlay) overlay.classList.add("active");
 
-      // 🔄 ALWAYS reload HTML (no caching, no guessing)
+      // Only fetch if not already loaded (instant reuse)
+      if (panel.innerHTML.trim().length > 100) {
+        if (window.refreshDrafts) window.refreshDrafts();
+        return;
+      }
+
+      panel.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:12px;"><div class="spinner-border text-primary" role="status" style="width:2rem;height:2rem;border:0.25em solid #7b61ff;border-right-color:transparent;border-radius:50%;animation:spin 0.75s linear infinite;"></div><p style="color:#64748b;font-size:0.9rem;">Loading broadcast panel...</p></div>';
+
       fetch("{% url 'users:teacher_broadcast' %}")
         .then(res => res.text())
         .then(html => {
@@ -9357,9 +9376,8 @@
             }
           });
 
-          // 🔄 ALWAYS initialize AFTER HTML exists
           try {
-            initBroadcastPanelLogic();
+            if (window.initBroadcastPanelLogic) initBroadcastPanelLogic();
             if (window.switchBroadcastTab) window.switchBroadcastTab('broadcast');
           } catch (err) {
             console.warn("initBroadcastPanelLogic error:", err);
@@ -9369,6 +9387,7 @@
         })
         .catch(err => {
           console.error("Failed to open broadcast panel:", err);
+          panel.innerHTML = '<div style="padding:24px;text-align:center;color:#ef4444;"><p>Failed to load broadcast panel. Please try again.</p><button onclick="openBroadcastPanel()" class="btn-secondary" style="margin-top:12px;">Retry</button></div>';
         });
     };
 
@@ -9379,11 +9398,10 @@
       if (panel) panel.classList.remove("open");
       if (overlay) overlay.classList.remove("active");
 
-      // Reset to form view after panel is closed
+      // Reset to form view without wiping cached HTML
       setTimeout(() => {
         if (window.backToForm) window.backToForm();
-        if (panel) panel.innerHTML = "";   // —— clear to avoid stale DOM
-      }, 500);
+      }, 300);
     };
 
     /* ---------- GLOBAL BROADCAST STATUS HELPER ---------- */
@@ -11527,16 +11545,24 @@
 
       // --- 4. NAVBAR SCROLL BEHAVIOR ---
       let lastScrollTop = 0;
+      let navScrollTicking = false;
       window.addEventListener('scroll', function () {
-        const navbar = document.querySelector('.top-nav-menu');
-        if (!navbar) return;
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        if (scrollTop > lastScrollTop && scrollTop > 100) {
-          navbar.style.transform = 'translateY(-150%)';
-        } else {
-          navbar.style.transform = 'translateY(0)';
+        if (!navScrollTicking) {
+          navScrollTicking = true;
+          requestAnimationFrame(() => {
+            const navbar = document.querySelector('.top-nav-menu');
+            if (navbar) {
+              let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              if (scrollTop > lastScrollTop && scrollTop > 100) {
+                navbar.style.transform = 'translateY(-150%)';
+              } else {
+                navbar.style.transform = 'translateY(0)';
+              }
+              lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            }
+            navScrollTicking = false;
+          });
         }
-        lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
       }, { passive: true });
     });
   </script>
@@ -11559,7 +11585,7 @@
 
   <script>
     /* ===== TEACHER NOTIFICATION PANEL TOGGLE ===== */
-    async function toggleTeacherNotifPanel() {
+    function toggleTeacherNotifPanel() {
       const panel = document.getElementById('teacherNotifPanel');
       const overlay = document.getElementById('teacherNotifOverlay');
       if (!panel) return;
@@ -11577,12 +11603,16 @@
           if (hamburgerBtn) hamburgerBtn.classList.remove('open');
         }
 
-        // Fetch notifications and tasks via AJAX
-        await loadTeacherNotifications();
-      }
+        // Open immediately for 60fps instant response!
+        panel.classList.add('active');
+        if (overlay) overlay.classList.add('active');
 
-      panel.classList.toggle('active');
-      if (overlay) overlay.classList.toggle('active');
+        // Fetch notifications and tasks via AJAX in background without freezing UI
+        loadTeacherNotifications();
+      } else {
+        panel.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+      }
     }
 
     async function loadTeacherNotifications() {
