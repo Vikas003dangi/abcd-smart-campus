@@ -102,7 +102,7 @@
                 background: #ffffff !important;
                 border-bottom: 1px solid rgba(124, 58, 237, 0.14) !important;
                 box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
-                z-index: 1000000 !important;
+                z-index: 9990 !important;
                 transform: translate3d(0, -100%, 0);
                 opacity: 0;
                 transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
@@ -123,6 +123,13 @@
                 .abcd-smart-banner {
                     display: none !important;
                 }
+            }
+            /* Ensure mobile search overlay and bubble stay layered above the smart banner */
+            .mob-search-overlay {
+                z-index: 10021 !important;
+            }
+            .mob-search-bubble {
+                z-index: 10020 !important;
             }
             body.has-abcd-smart-banner {
                 padding-top: 54px !important;
