@@ -727,13 +727,30 @@ def format_push_title(raw_title, category=None, source=None):
 
     return "ABCD Campus"
 
+def is_guidy_notification(category=None, source=None, tag=None, url=None):
+    """
+    Unified helper to classify whether a notification belongs to Guidy chat/assistant.
+    Normalizes all inputs to lowercase to prevent classification discrepancies.
+    """
+    cat = str(category or "").lower()
+    src = str(source or "").lower()
+    t = str(tag or "").lower()
+    u = str(url or "").lower()
+    return (
+        cat == 'guidy' or
+        src == 'guidy' or
+        t.startswith('guidy-') or
+        'guidy' in t or
+        '/guidy' in u
+    )
 
+
+# send in-app notification to any user
 def create_notification(user, title, message, link=None, category="general", meta=None, sound=None, tag=None):
     if not user:
-        return
-
-    clean_message = strip_emojis_and_pipes(message) or "You have a new update."
+        return None
     formatted_title = format_push_title(title, category=category)
+    clean_message = strip_emojis_and_pipes(message) or "New update available"
 
     notif = Notification.objects.create(
         user=user,
@@ -748,7 +765,7 @@ def create_notification(user, title, message, link=None, category="general", met
     if not sound:
         cat_lower = (category or "").lower()
         title_lower = (title or "").lower()
-        is_guidy = (cat_lower == 'guidy') or (tag and 'guidy' in str(tag).lower()) or ('/guidy' in (link or '').lower())
+        is_guidy = is_guidy_notification(category=category, tag=tag, url=link)
         is_todo = (isinstance(meta, dict) and meta.get('source') == 'todo') or ('/todo' in (link or '').lower())
         if is_guidy:
             sound = "/static/audio/receive.mp3"
@@ -787,7 +804,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     tag_lower = (tag or "").lower()
 
     # Guidy messages are chat / assistant communication and must NEVER be treated as alarms or reminders
-    is_guidy = (cat_lower == 'guidy' or src_lower == 'guidy' or tag_lower.startswith('guidy-') or '/guidy' in (url or '').lower())
+    is_guidy = is_guidy_notification(category=category, source=source, tag=tag, url=url)
 
     if is_guidy:
         is_alarm = False

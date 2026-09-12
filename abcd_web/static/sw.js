@@ -46,15 +46,29 @@ self.addEventListener('push', function (event) {
     const icon = data.icon || '/static/data/favicon/web-app-manifest-192x192.png';
     const badge = data.badge || '/static/data/favicon/favicon-96x96.png';
 
-    const catLower = (data.category || '').toLowerCase();
-    const titleLower = (title || '').toLowerCase();
-    const tagLower = (data.tag || '').toLowerCase();
+// Normalized helper for robust Guidy classification across push and click events
+function isGuidyPayload(obj, fallbackUrl) {
+    if (!obj && !fallbackUrl) return false;
+    const o = obj || {};
+    const cat = String(o.category || '').toLowerCase().trim();
+    const src = String(o.source || '').toLowerCase().trim();
+    const tag = String(o.tag || '').toLowerCase().trim();
+    const url = String(o.url || fallbackUrl || '').toLowerCase().trim();
+    return (
+        cat === 'guidy' ||
+        src === 'guidy' ||
+        tag.startsWith('guidy-') ||
+        tag.includes('guidy') ||
+        url.includes('/guidy')
+    );
+}
 
-    // Check if this notification is for a Guidy chat
-    const isGuidy = (data.category === 'guidy') ||
-                    (data.source === 'guidy') ||
-                    (data.tag && String(data.tag).startsWith('guidy-')) ||
-                    (data.url && data.url.includes('/guidy'));
+    const catLower = (data.category || '').toLowerCase().trim();
+    const titleLower = (title || '').toLowerCase().trim();
+    const tagLower = (data.tag || '').toLowerCase().trim();
+
+    // Check if this notification is for a Guidy chat (fully normalized)
+    const isGuidy = isGuidyPayload(data);
 
     // Distinguish alarm vs simple reminder cleanly - Guidy is NEVER an alarm or reminder!
     let isAlarm = false;
@@ -224,9 +238,7 @@ self.addEventListener('notificationclick', function (event) {
     const notifData = (event.notification && event.notification.data) ? event.notification.data : {};
     let targetUrl = notifData.url || '/';
 
-    const isNotifGuidy = (notifData.category === 'guidy') ||
-                         (notifData.source === 'guidy') ||
-                         (targetUrl && targetUrl.includes('/guidy'));
+    const isNotifGuidy = isGuidyPayload(notifData, targetUrl);
 
     const isAlarmClick = !isNotifGuidy && (notifData.isAlarm || event.action === 'open_alarm') && (notifData.taskId || notifData.source === 'todo');
     const isReminderClick = !isNotifGuidy && (notifData.isReminder || event.action === 'open_reminder') && (notifData.taskId || notifData.source === 'todo');

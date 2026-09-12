@@ -558,7 +558,7 @@
         const stopBtn = document.getElementById('abcdStopAlarmBtn');
         if (stopBtn) {
             stopBtn.addEventListener('click', function () {
-                stopABCDAlarm(); // Immediately pauses audio, resets currentTime, persists stop locally & notifies server
+                stopABCDAlarm({ persistStop: true }); // Explicit user action: persist stop locally & notify server
             });
         }
 
@@ -567,7 +567,7 @@
         if (snoozeBtn) {
             snoozeBtn.addEventListener('click', function () {
                 const targetId = currentAlarmTaskId;
-                stopABCDAlarm();
+                stopABCDAlarm({ persistStop: false }); // Clean up modal/audio without permanently marking stopped
                 if (targetId) {
                     locallyStoppedAlarmIds.add(targetId);
                     globalFiredAlarmIds.add(targetId);
@@ -634,9 +634,14 @@
 
     /**
      * Stop continuous alarm audio & dismiss modal
+     * @param {Object} [options]
+     * @param {boolean} [options.persistStop=false] - When true, marks alarm stopped locally & notifies server
      */
-    function stopABCDAlarm() {
+    function stopABCDAlarm(options) {
+        const opts = options || {};
+        const shouldPersist = Boolean(opts.persistStop);
         const targetId = currentAlarmTaskId;
+
         if (alarmAutoStopTimer) {
             clearTimeout(alarmAutoStopTimer);
             alarmAutoStopTimer = null;
@@ -660,7 +665,7 @@
             } catch (e) {}
             activeAlarmModal = null;
         }
-        if (targetId) {
+        if (shouldPersist && targetId) {
             markAlarmStoppedLocallyAndRemotely(targetId);
         }
         currentAlarmTaskId = null;
@@ -671,10 +676,23 @@
     // ═════════════════════════════════════════════════════════════════════
     function getStoredAlarmSet(key) {
         const set = new Set();
+        // Merge alarm IDs from both localStorage and sessionStorage
         try {
-            const raw = localStorage.getItem(key) || sessionStorage.getItem(key);
-            if (raw) {
-                JSON.parse(raw).forEach(function (id) { set.add(id); });
+            const localRaw = localStorage.getItem(key);
+            if (localRaw) {
+                const parsed = JSON.parse(localRaw);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(function (id) { set.add(id); });
+                }
+            }
+        } catch (e) {}
+        try {
+            const sessionRaw = sessionStorage.getItem(key);
+            if (sessionRaw) {
+                const parsed = JSON.parse(sessionRaw);
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(function (id) { set.add(id); });
+                }
             }
         } catch (e) {}
         return set;
@@ -801,7 +819,7 @@
     // Keyboard shortcut (Escape stops active alarm)
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && activeAlarmModal) {
-            stopABCDAlarm();
+            stopABCDAlarm({ persistStop: true });
         }
     });
 
