@@ -105,7 +105,9 @@
                 z-index: 9990 !important;
                 transform: translate3d(0, -100%, 0);
                 opacity: 0;
-                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+                pointer-events: none !important;
+                visibility: hidden !important;
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, visibility 0.25s ease;
                 box-sizing: border-box !important;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
                 will-change: transform, opacity;
@@ -113,6 +115,8 @@
             .abcd-smart-banner.visible {
                 transform: translate3d(0, 0, 0) !important;
                 opacity: 1 !important;
+                pointer-events: auto !important;
+                visibility: visible !important;
             }
             body.dark-theme .abcd-smart-banner {
                 background: #150f28 !important;
@@ -124,12 +128,17 @@
                     display: none !important;
                 }
             }
-            /* Ensure mobile search overlay and bubble stay layered above the smart banner */
+            /* Ensure mobile search overlay and bubble stay layered above the smart banner only when visible */
             .mob-search-overlay {
                 z-index: 10021 !important;
             }
+            .mob-search-overlay:not(.visible) {
+                pointer-events: none !important;
+                visibility: hidden !important;
+            }
             .mob-search-bubble {
                 z-index: 10020 !important;
+                pointer-events: none !important;
             }
             body.has-abcd-smart-banner {
                 padding-top: 54px !important;
@@ -166,24 +175,40 @@
                 background: none !important;
                 border: none !important;
                 color: #94a3b8 !important;
-                font-size: 1.25rem !important;
+                font-size: 1.35rem !important;
                 line-height: 1 !important;
-                padding: 2px !important;
+                padding: 0 !important;
                 cursor: pointer !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 flex-shrink: 0 !important;
-                width: 22px !important;
-                height: 22px !important;
+                width: 32px !important;
+                height: 32px !important;
                 border-radius: 50% !important;
-                transition: background 0.2s ease;
+                touch-action: manipulation !important;
+                -webkit-tap-highlight-color: transparent !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
+                transition: background 0.15s ease, color 0.15s ease;
             }
-            .abcd-banner-close:hover {
-                background: rgba(0, 0, 0, 0.05) !important;
+            @media (hover: hover) and (pointer: fine) {
+                .abcd-banner-close:hover {
+                    background: rgba(0, 0, 0, 0.06) !important;
+                    color: #475569 !important;
+                }
+                body.dark-theme .abcd-banner-close:hover {
+                    background: rgba(255, 255, 255, 0.12) !important;
+                    color: #f1f5f9 !important;
+                }
             }
-            body.dark-theme .abcd-banner-close:hover {
-                background: rgba(255, 255, 255, 0.1) !important;
+            .abcd-banner-close:active {
+                background: rgba(0, 0, 0, 0.12) !important;
+                transform: scale(0.92) !important;
+            }
+            body.dark-theme .abcd-banner-close:active {
+                background: rgba(255, 255, 255, 0.2) !important;
+                transform: scale(0.92) !important;
             }
             .abcd-banner-icon {
                 width: 38px !important;
@@ -845,7 +870,7 @@
 
             smartBanner.innerHTML = `
                 <div class="abcd-banner-left">
-                    <button class="abcd-banner-close" id="abcdBannerCloseBtn" aria-label="Dismiss Banner">&times;</button>
+                    <button type="button" class="abcd-banner-close" id="abcdBannerCloseBtn" aria-label="Dismiss Banner">&times;</button>
                     <img src="/static/data/favicon/web-app-manifest-192x192.png" alt="ABCD Logo" class="abcd-banner-icon" />
                     <div class="abcd-banner-text">
                         <span class="abcd-banner-title">ABCD Campus</span>
@@ -854,16 +879,27 @@
                         </span>
                     </div>
                 </div>
-                <button class="abcd-banner-action-btn" id="abcdBannerActionBtn" aria-label="${actionAria}">
+                <button type="button" class="abcd-banner-action-btn" id="abcdBannerActionBtn" aria-label="${actionAria}">
                     ${actionText}
                 </button>
             `;
             document.body.prepend(smartBanner);
 
-            document.getElementById('abcdBannerCloseBtn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                hideSmartBanner();
-            });
+            const closeBtn = document.getElementById('abcdBannerCloseBtn');
+            if (closeBtn) {
+                let isDismissing = false;
+                const dismissBanner = (e) => {
+                    if (isDismissing) return;
+                    isDismissing = true;
+                    if (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    hideSmartBanner();
+                };
+                closeBtn.addEventListener('click', dismissBanner);
+                closeBtn.addEventListener('pointerdown', dismissBanner);
+            }
 
             document.getElementById('abcdBannerActionBtn').addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -888,8 +924,14 @@
     function hideSmartBanner() {
         if (smartBanner) {
             smartBanner.classList.remove('visible');
+            smartBanner.style.pointerEvents = 'none';
             document.body.classList.remove('has-abcd-smart-banner');
             sessionStorage.setItem(DISMISS_BANNER_SESSION_KEY, 'true');
+            setTimeout(() => {
+                if (smartBanner && !smartBanner.classList.contains('visible')) {
+                    smartBanner.style.display = 'none';
+                }
+            }, 260);
         }
     }
 
