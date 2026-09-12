@@ -3040,8 +3040,20 @@
             return col.children[index]?.textContent || '';
         }
 
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { 
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('active');
+                el.style.removeProperty('z-index');
+            }
+        }
+        function openModal(id) { 
+            const el = document.getElementById(id);
+            if (el) {
+                if (typeof window.bringToFront === 'function') window.bringToFront(el);
+                el.classList.add('active');
+            }
+        }
 
         // --- START DATE LOGIC ---
         function syncStartDateWheels() {

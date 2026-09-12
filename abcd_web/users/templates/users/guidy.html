@@ -3895,22 +3895,6 @@ body.dark-theme .search-highlight {
   </div>
 </div>
 
-<!-- Receiver Warning Modal -->
-<div class="g-modal-bg" id="receiverWarningModal">
-  <div class="g-modal" style="max-width: 400px; width: 90%; text-align: center;">
-    <h3 style="font-weight: 800; font-size: 1.25rem; color: var(--g-text); margin-bottom: 12px;"><i class='bx bx-time-five' style="color: #ef4444; font-size: 2rem; display: block; margin-bottom: 8px;"></i>Media Deletion Notice</h3>
-    <p id="receiverWarningText" style="color: var(--g-sub); font-size: 0.88rem; margin-bottom: 16px; line-height: 1.5; text-align: left;"></p>
-    <label class="app-checkbox-wrapper" for="skipReceiverWarnCheckbox">
-      <input type="checkbox" id="skipReceiverWarnCheckbox">
-      <span>Don't show this notice again</span>
-    </label>
-    <div style="display: flex; gap: 12px;">
-      <button class="g-modal-cancel" onclick="closeReceiverWarning()" style="flex: 1; background: var(--g-hov); color: var(--g-text); border: 1px solid var(--g-border); cursor: pointer;">Cancel</button>
-      <button class="g-modal-ok" onclick="confirmReceiverWarning()" style="flex: 1; background: var(--g-primary-s); color: white; border: none; cursor: pointer;">Download</button>
-    </div>
-  </div>
-</div>
-
 <!-- Locked Chat Countdown Modal -->
 {% if is_teacher or is_alumni %}
   {% if active_session and not active_session.is_active and active_session.ended_by or active_direct and not active_direct.is_active and active_direct.ended_by %}
@@ -4869,7 +4853,13 @@ async function sendMessage() {
 
   const sendAction = async () => {
     const url = getChatSendUrl();
+    const sendBtn = document.getElementById('gSendBtn');
+    const oldBtnHtml = sendBtn ? sendBtn.innerHTML : '';
     try {
+      if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+      }
       const r = await fetch(url, { method:'POST', body:fd });
       const data = await r.json();
       if (data.success) {
@@ -4883,6 +4873,11 @@ async function sendMessage() {
     } catch(e) {
       console.error("sendAction exception:", e);
       showToast('Failed to send message: ' + e.message, 'error');
+    } finally {
+      if (sendBtn) {
+        sendBtn.innerHTML = oldBtnHtml;
+        toggleSendBtn();
+      }
     }
   };
 
@@ -4891,6 +4886,10 @@ async function sendMessage() {
     await sendAction();
   } else {
     pendingUploadAction = sendAction;
+    const chk = document.getElementById('skipSenderWarnCheckbox');
+    if (chk) {
+      chk.checked = (localStorage.getItem('guidy_skip_sender_warn') === 'true');
+    }
     document.getElementById('senderWarningModal').classList.add('open');
   }
 }
@@ -5788,18 +5787,6 @@ function appendMessage(msg) {
     }
   }
 
-  if (!msg.is_mine && msg.file_url) {
-    const skipWarn = localStorage.getItem('guidy_skip_receiver_warn') === 'true';
-    if (!skipWarn) {
-      const txtEl = document.getElementById('receiverWarningText');
-      if (txtEl) {
-        txtEl.innerHTML = `Media <b>${escHtml(msg.file_name || 'Document')}</b> sent by <b>${escHtml(msg.sender_name)}</b>. This document will be permanently deleted in 10 days.<br><br><b>Tip:</b> Download it now.`;
-      }
-      pendingDownloadUrl = msg.file_url;
-      document.getElementById('receiverWarningModal').classList.add('open');
-    }
-  }
-
   if (msg.is_mine && !msg.is_read) {
     const id = parseInt(msg.id);
     if (id && !pendingReadIds.includes(id)) {
@@ -6688,29 +6675,40 @@ function compressImage(file, maxWidth, maxHeight, quality, callback) {
         return;
     }
     const reader = new FileReader();
+    reader.onerror = () => callback(file);
     reader.readAsDataURL(file);
     reader.onload = event => {
         const img = new Image();
+        img.onerror = () => callback(file);
         img.src = event.target.result;
         img.onload = () => {
-            let width = img.width;
-            let height = img.height;
-            if (width > height) {
-                if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-            } else {
-                if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
+            try {
+                let width = img.width;
+                let height = img.height;
+                if (width > height) {
+                    if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+                } else {
+                    if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        callback(file);
+                        return;
+                    }
+                    const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    callback(compressedFile);
+                }, 'image/jpeg', quality);
+            } catch (err) {
+                console.warn("Client image compression fallback:", err);
+                callback(file);
             }
-            const canvas = document.createElement('canvas');
-            canvas.width = width; canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob(blob => {
-                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-                    type: 'image/jpeg',
-                    lastModified: Date.now()
-                });
-                callback(compressedFile);
-            }, 'image/jpeg', quality);
         };
     };
 }
@@ -6721,13 +6719,14 @@ function handleFileSelect(input) {
     const file = input.files[0];
 
     const allowedTypes = [
-        'image/jpeg', 'image/png', 'application/pdf', 
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'application/pdf', 
         'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
         'text/plain', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'
     ];
-    // Check type or extension
+    const isImageExt = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'].some(ext => file.name.toLowerCase().endsWith(ext));
+    const isDocExt = ['.pdf', '.doc', '.docx', '.txt'].some(ext => file.name.toLowerCase().endsWith(ext));
     const isAudioExt = ['.mp3', '.wav', '.ogg', '.m4a'].some(ext => file.name.toLowerCase().endsWith(ext));
-    if (!allowedTypes.includes(file.type) && !isAudioExt) {
+    if (!allowedTypes.includes(file.type) && !isImageExt && !isDocExt && !isAudioExt) {
         showToast('Security block: Invalid file type selected.', 'error');
         clearMediaSelection();
         return;
@@ -10305,11 +10304,14 @@ function closeEndSessionsModal() {
   exitEndSessionSelectMode();
 }
 
-// Media Upload/Download Warning Popups (10-Day Auto-Purge Policy)
+// Media Upload Warning Popup (10-Day Auto-Purge Policy)
 let pendingUploadAction = null;
-let pendingDownloadUrl = null;
 
 function closeSenderWarning() {
+  const checkbox = document.getElementById('skipSenderWarnCheckbox');
+  if (checkbox && checkbox.checked) {
+    localStorage.setItem('guidy_skip_sender_warn', 'true');
+  }
   document.getElementById('senderWarningModal').classList.remove('open');
   pendingUploadAction = null;
 }
@@ -10326,27 +10328,19 @@ function confirmSenderWarning() {
   }
 }
 
-function closeReceiverWarning() {
-  document.getElementById('receiverWarningModal').classList.remove('open');
-  pendingDownloadUrl = null;
-}
-
-function confirmReceiverWarning() {
-  const checkbox = document.getElementById('skipReceiverWarnCheckbox');
-  if (checkbox && checkbox.checked) {
-    localStorage.setItem('guidy_skip_receiver_warn', 'true');
+document.addEventListener('DOMContentLoaded', () => {
+  const chk = document.getElementById('skipSenderWarnCheckbox');
+  if (chk) {
+    chk.checked = (localStorage.getItem('guidy_skip_sender_warn') === 'true');
+    chk.addEventListener('change', () => {
+      if (chk.checked) {
+        localStorage.setItem('guidy_skip_sender_warn', 'true');
+      } else {
+        localStorage.removeItem('guidy_skip_sender_warn');
+      }
+    });
   }
-  document.getElementById('receiverWarningModal').classList.remove('open');
-  if (pendingDownloadUrl) {
-    const link = document.createElement('a');
-    link.href = pendingDownloadUrl;
-    link.setAttribute('download', '');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    pendingDownloadUrl = null;
-  }
-}
+});
 
 // Contacts List & Group Modal State
 let modalMode = 'direct'; // 'direct' or 'group'

@@ -89,29 +89,40 @@ var CustomPopup = window.CustomPopup || (function () {
     /**
      * Dynamically calculates the highest z-index on screen to ensure newly opened popup B is ALWAYS on top of existing modal A
      */
-    function getHighestZIndex() {
-        let maxZ = 10000;
+    /**
+     * Dynamically calculates the highest z-index on screen to ensure newly opened popup B is ALWAYS on top of existing modal A
+     */
+    function getHighestZIndex(excludeElement = null) {
+        let maxZ = 100000;
         const selector = [
             '.fees-modal', '.modal', '.custom-modal', '.admission-modal', 
-            '.teacher-modal', '.modal-overlay', '.popup', '.popup-overlay',
+            '.teacher-modal', '.popup', '.custom-popup', '.abcd-modal-overlay',
             'div[id*="Modal"]', 'div[id*="Popup"]', 'div[class*="modal"]',
-            'div[class*="popup"]', 'div[class*="overlay"]'
+            'div[class*="popup"]'
         ].join(',');
 
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
-            if (el !== popupOverlay && el !== popupContainer) {
-                const style = window.getComputedStyle(el);
-                if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
-                    const z = parseInt(style.zIndex, 10);
-                    if (!isNaN(z) && z > maxZ) {
-                        maxZ = z;
-                    }
+            if (el === excludeElement || (excludeElement && (excludeElement.contains(el) || el.contains(excludeElement)))) return;
+            if (el === popupOverlay || el === popupContainer) return;
+
+            const elClasses = (el.className || '').toLowerCase();
+            const elId = (el.id || '').toLowerCase();
+            // Ignore pure backdrop overlays that have no dialog content inside
+            const isPureBackdrop = (elId === 'admissionmodaloverlay' || elId === 'teacherpremiumoverlay' || elId === 'custompopupoverlay' || (elClasses.includes('modal-overlay') && el.children.length === 0));
+            if (isPureBackdrop) return;
+
+            const style = window.getComputedStyle(el);
+            if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
+                const z = parseInt(style.zIndex, 10);
+                if (!isNaN(z) && z > maxZ) {
+                    maxZ = z;
                 }
             }
         });
         return maxZ;
     }
+    window.getHighestZIndex = getHighestZIndex;
 
     /**
      * Show the popup
@@ -163,8 +174,8 @@ var CustomPopup = window.CustomPopup || (function () {
 
         // Dynamic Z-Index Stacking: Ensure newly opened popup B is ALWAYS on top of existing modal A
         const highestZ = getHighestZIndex();
-        popupOverlay.style.zIndex = (highestZ + 10).toString();
-        popupContainer.style.zIndex = (highestZ + 11).toString();
+        popupOverlay.style.setProperty('z-index', (highestZ + 20).toString(), 'important');
+        popupContainer.style.setProperty('z-index', (highestZ + 21).toString(), 'important');
 
         // Show
         popupOverlay.classList.add('visible');
@@ -405,34 +416,15 @@ window.showABCDModal = function (opts) {
         if (!element) return;
         const elClasses = (element.className || '').toLowerCase();
         const elId = (element.id || '').toLowerCase();
-        if (elClasses.includes('overlay') || elId.includes('overlay')) return;
+        // Ignore pure backdrop overlays that have no dialog content inside
+        const isPureBackdrop = (elId === 'admissionmodaloverlay' || elId === 'teacherpremiumoverlay' || elId === 'custompopupoverlay' || (elClasses.includes('modal-overlay') && element.children.length === 0));
+        if (isPureBackdrop) return;
 
-        let maxZ = 10000;
-        const selector = [
-            '.fees-modal', '.modal', '.custom-modal', '.admission-modal', 
-            '.teacher-modal', '.popup',
-            'div[id*="Modal"]', 'div[id*="Popup"]', 'div[class*="modal"]',
-            'div[class*="popup"]'
-        ].join(',');
+        const highestZ = (typeof window.getHighestZIndex === 'function') 
+            ? window.getHighestZIndex(element) 
+            : 100000;
 
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-            const currentClasses = (el.className || '').toLowerCase();
-            const currentId = (el.id || '').toLowerCase();
-            if (currentClasses.includes('overlay') || currentId.includes('overlay')) return;
-
-            if (el !== element && !element.contains(el) && !el.contains(element)) {
-                const style = window.getComputedStyle(el);
-                if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
-                    const z = parseInt(style.zIndex, 10);
-                    if (!isNaN(z) && z > maxZ) {
-                        maxZ = z;
-                    }
-                }
-            }
-        });
-
-        element.style.zIndex = (maxZ + 10).toString();
+        element.style.setProperty('z-index', (highestZ + 10).toString(), 'important');
     };
 
     // Global Auto-Enhancer for all select elements in modals, forms, and popups
@@ -547,14 +539,15 @@ window.showABCDModal = function (opts) {
 
     function initAutoStacking() {
         const handleVisibilityChange = (el) => {
-            if (el.matches && el.matches('.modal, .fees-modal, .admission-modal, .teacher-modal, [id*="Modal"], [id*="Popup"], div[class*="modal"], div[class*="popup"]')) {
+            if (el.matches && el.matches('.modal, .fees-modal, .admission-modal, .teacher-modal, .abcd-modal-overlay, [id*="Modal"], [id*="Popup"], div[class*="modal"], div[class*="popup"]')) {
                 window.enhanceSelectElements(el);
                 if (el.id === 'customPopupOverlay' || el.id === 'customPopup') return;
                 
-                // CRITICAL: Never auto-stack overlay elements - they must stay BELOW their modals
+                // CRITICAL: Never auto-stack pure backdrop overlays - they must stay below
                 const elClasses = (el.className || '').toLowerCase();
                 const elId = (el.id || '').toLowerCase();
-                if (elClasses.includes('overlay') || elId.includes('overlay')) return;
+                const isPureBackdrop = (elId === 'admissionmodaloverlay' || elId === 'teacherpremiumoverlay' || elId === 'custompopupoverlay' || (elClasses.includes('modal-overlay') && el.children.length === 0));
+                if (isPureBackdrop) return;
 
                 // CRITICAL: On pages with teacher-seat-manager, openSmallModal manages admission-modal & teacher-modal z-indices. Do not override them!
                 if (typeof window.syncGlobalModalState === 'function' && (elClasses.includes('admission-modal') || elClasses.includes('teacher-modal'))) return;
@@ -563,7 +556,7 @@ window.showABCDModal = function (opts) {
                 if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
                     const now = Date.now();
                     const lastStacked = parseInt(el.dataset.stackedTime, 10) || 0;
-                    if (now - lastStacked > 300) {
+                    if (now - lastStacked > 200) {
                         window.bringToFront(el);
                         el.dataset.stackedTime = now.toString();
                     }

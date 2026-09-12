@@ -11475,9 +11475,9 @@ def guidy_send_message(request, session_id=None, direct_id=None):
     client_msg_id = request.POST.get('client_msg_id')
 
     if uploaded_file:
-        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'ogg', 'm4a'}
+        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'ogg', 'm4a'}
         ALLOWED_MIME_TYPES = {
-            'image/jpeg', 'image/png', 'application/pdf', 
+            'image/jpeg', 'image/png', 'image/webp', 'application/pdf', 
             'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
             'text/plain', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'
         }
@@ -12893,9 +12893,9 @@ def guidy_group_send_message(request, group_id):
     uploaded_file = request.FILES.get('file')
 
     if uploaded_file:
-        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'ogg', 'm4a'}
+        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'ogg', 'm4a'}
         ALLOWED_MIME_TYPES = {
-            'image/jpeg', 'image/png', 'application/pdf', 
+            'image/jpeg', 'image/png', 'image/webp', 'application/pdf', 
             'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
             'text/plain', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'
         }

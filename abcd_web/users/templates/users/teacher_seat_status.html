@@ -150,7 +150,7 @@
             max-height: 90vh;
             overflow: hidden;
             display: none;
-            z-index: 100001 !important;
+            z-index: 100001;
             flex-direction: column;
             opacity: 0;
             transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease-out;
@@ -2361,7 +2361,7 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
-            z-index: 100000;
+            z-index: 100050;
             display: none;
             align-items: center;
             justify-content: center;
@@ -3050,7 +3050,28 @@
         }
 
         function openBirthdayModal() {
-            document.getElementById('birthdayModal').classList.add('active');
+            const modal = document.getElementById('birthdayModal');
+            if (!modal) return;
+
+            // Dim lower active modals
+            const activeModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'));
+            activeModals.forEach(m => {
+                if (m !== modal) {
+                    m.classList.add('modal-stacked-parent');
+                }
+            });
+
+            const highestZ = (typeof window.getHighestZIndex === 'function') 
+                ? window.getHighestZIndex(modal) 
+                : 100020;
+            const nextZ = Math.max(highestZ + 20, 100050);
+            modal.style.setProperty('z-index', nextZ.toString(), 'important');
+            modal.classList.add('active');
+            modal.classList.remove('modal-stacked-parent');
+
+            if (typeof window.syncGlobalModalState === 'function') {
+                window.syncGlobalModalState(null, modal);
+            }
 
             const years = [];
             const currentYear = new Date().getFullYear();
@@ -3060,7 +3081,7 @@
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
             // If the field already has a value, parse it and set defaults
-            const currentVal = document.getElementById('manualAssignDOB').value;
+            const currentVal = document.getElementById('manualAssignDOB') ? document.getElementById('manualAssignDOB').value : '';
             let defaultYear = '1998';
             let defaultMonth = 'Jun';
             let defaultDay = '15';
@@ -3086,7 +3107,21 @@
         }
 
         function closeBirthdayModal() {
-            document.getElementById('birthdayModal').classList.remove('active');
+            const modal = document.getElementById('birthdayModal');
+            if (!modal) return;
+            modal.classList.remove('active', 'modal-stacked-parent');
+            modal.style.removeProperty('z-index');
+
+            const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'))
+                .filter(m => m !== modal);
+            if (remainingModals.length > 0) {
+                const topModal = remainingModals[remainingModals.length - 1];
+                topModal.classList.remove('modal-stacked-parent');
+            }
+
+            if (typeof window.syncGlobalModalState === 'function') {
+                window.syncGlobalModalState(modal);
+            }
         }
 
         function submitBirthday() {
@@ -3106,7 +3141,27 @@
 
         // --- HOLD START DATE WHEEL PICKER ---
         function openHoldDateModal() {
-            document.getElementById('holdDateModal').classList.add('active');
+            const modal = document.getElementById('holdDateModal');
+            if (!modal) return;
+
+            const activeModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'));
+            activeModals.forEach(m => {
+                if (m !== modal) {
+                    m.classList.add('modal-stacked-parent');
+                }
+            });
+
+            const highestZ = (typeof window.getHighestZIndex === 'function') 
+                ? window.getHighestZIndex(modal) 
+                : 100020;
+            const nextZ = Math.max(highestZ + 20, 100050);
+            modal.style.setProperty('z-index', nextZ.toString(), 'important');
+            modal.classList.add('active');
+            modal.classList.remove('modal-stacked-parent');
+
+            if (typeof window.syncGlobalModalState === 'function') {
+                window.syncGlobalModalState(null, modal);
+            }
 
             const today = new Date();
             const currentYear = today.getFullYear();
@@ -3213,7 +3268,21 @@
         }
 
         function closeHoldDateModal() {
-            document.getElementById('holdDateModal').classList.remove('active');
+            const modal = document.getElementById('holdDateModal');
+            if (!modal) return;
+            modal.classList.remove('active', 'modal-stacked-parent');
+            modal.style.removeProperty('z-index');
+
+            const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'))
+                .filter(m => m !== modal);
+            if (remainingModals.length > 0) {
+                const topModal = remainingModals[remainingModals.length - 1];
+                topModal.classList.remove('modal-stacked-parent');
+            }
+
+            if (typeof window.syncGlobalModalState === 'function') {
+                window.syncGlobalModalState(modal);
+            }
         }
 
         function submitHoldDate() {
@@ -3270,6 +3339,32 @@
                     openHoldDateModal();
                 });
             }
+
+            // Dismiss wheel modals when clicking on the dark backdrop outside modal container
+            ['birthdayModal', 'holdDateModal'].forEach(modalId => {
+                const m = document.getElementById(modalId);
+                if (m) {
+                    m.addEventListener('click', (e) => {
+                        if (e.target === m) {
+                            if (modalId === 'birthdayModal') closeBirthdayModal();
+                            else if (modalId === 'holdDateModal') closeHoldDateModal();
+                        }
+                    });
+                }
+            });
+
+            // Escape key dismiss for wheel modals
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const bday = document.getElementById('birthdayModal');
+                    const hold = document.getElementById('holdDateModal');
+                    if (bday && bday.classList.contains('active')) {
+                        closeBirthdayModal();
+                    } else if (hold && hold.classList.contains('active')) {
+                        closeHoldDateModal();
+                    }
+                }
+            });
         });
     </script>
 

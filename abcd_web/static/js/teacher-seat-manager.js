@@ -3499,7 +3499,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window._overlayCloseTimeout = null;
     }
 
-    const allModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open'));
+    const allModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'));
     let activeModals = closingEl ? allModals.filter(m => m !== closingEl) : allModals;
     if (openingEl && !activeModals.includes(openingEl)) {
       activeModals.push(openingEl);
@@ -3522,7 +3522,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (overlay) overlay.classList.remove('active');
 
       window._overlayCloseTimeout = setTimeout(() => {
-        const stillActiveModals = document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open');
+        const stillActiveModals = document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active');
         const stillActivePopup = document.querySelector('.custom-popup.visible');
         
         if (stillActiveModals.length === 0 && !stillActivePopup) {
@@ -3548,15 +3548,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Dim lower active modals
-    const activeModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open'));
+    const activeModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'));
     activeModals.forEach(m => {
       if (m !== modalEl) {
         m.classList.add('modal-stacked-parent');
       }
     });
 
-    const stackLevel = activeModals.length + 1;
-    modalEl.style.setProperty('z-index', (100001 + (stackLevel * 10)).toString(), 'important');
+    const highestZ = (typeof window.getHighestZIndex === 'function') 
+      ? window.getHighestZIndex(modalEl) 
+      : (100001 + (activeModals.length * 10));
+    const nextZ = Math.max(highestZ + 10, 100011);
+    modalEl.style.setProperty('z-index', nextZ.toString(), 'important');
     modalEl.style.display = 'flex';
     void modalEl.offsetHeight; // Force layout recalculation so CSS animation runs cleanly
     
@@ -3574,7 +3577,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.setButtonLoading(actionFinalConfirm, false);
     }
     
-    const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .seat-modal-container.open'))
+    const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'))
       .filter(m => m !== modalEl);
     if (remainingModals.length > 0) {
       const topModal = remainingModals[remainingModals.length - 1];
@@ -3586,7 +3589,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       if (!modalEl.classList.contains('active')) {
         modalEl.style.display = 'none';
-        modalEl.style.zIndex = '';
+        modalEl.style.removeProperty('z-index');
       }
     }, 200);
   };
@@ -3596,11 +3599,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.setButtonLoading === 'function' && actionFinalConfirm) {
       window.setButtonLoading(actionFinalConfirm, false);
     }
-    const allModals = document.querySelectorAll('.admission-modal, .teacher-modal, .seat-modal-container, .custom-popup');
+    const allModals = document.querySelectorAll('.admission-modal, .teacher-modal, .seat-modal-container, .custom-popup, .abcd-modal-overlay');
     allModals.forEach(m => {
       m.classList.remove('active', 'open', 'visible', 'modal-stacked-parent');
-      m.style.display = 'none';
-      m.style.zIndex = '';
+      if (!m.classList.contains('abcd-modal-overlay')) {
+        m.style.display = 'none';
+      }
+      m.style.removeProperty('z-index');
     });
     const overlay = document.getElementById('admissionModalOverlay') || document.getElementById('teacherPremiumOverlay');
     if (overlay) {
