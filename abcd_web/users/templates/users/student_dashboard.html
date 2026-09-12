@@ -669,177 +669,62 @@
       border-color: #2d1b4d;
     }
 
-    /* Nav & Sidebar Button Styles: Logout (Crimson/Rose) & Sign In (Royal Indigo) */
+    /* Logout Button Style */
     .nav-logout-btn {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      gap: 6px !important;
-      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-      color: #ffffff !important;
-      padding: 7px 18px !important;
-      border-radius: 20px !important;
-      border: 1px solid rgba(244, 63, 94, 0.35) !important;
-      text-decoration: none !important;
-      font-weight: 600 !important;
-      font-size: 0.86rem !important;
-      letter-spacing: 0.2px;
+      background: #526D82;
+      color: white !important;
+      padding: 8px 22px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
       margin-right: 15px;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-      cursor: pointer;
+      transition: background 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 4px 12px rgba(82, 109, 130, 0.2);
     }
-    .nav-logout-btn i {
-      font-size: 1.1rem;
-      line-height: 1;
-      transition: transform 0.25s ease;
-    }
+
     .nav-logout-btn:hover {
-      background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%) !important;
-      color: #ffffff !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 20px rgba(225, 29, 72, 0.4), 0 2px 6px rgba(244, 63, 94, 0.3) !important;
-      border-color: rgba(251, 113, 133, 0.6) !important;
-    }
-    .nav-logout-btn:hover i {
-      transform: translateX(2px);
-    }
-    .nav-logout-btn:active {
-      transform: translateY(0) scale(0.97) !important;
-      box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25) !important;
-    }
-    body.dark-theme .nav-logout-btn {
-      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
-      color: #ffffff !important;
-      border: 1px solid rgba(251, 113, 133, 0.35) !important;
-      box-shadow: 0 4px 16px rgba(225, 29, 72, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    }
-    body.dark-theme .nav-logout-btn:hover {
-      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 24px rgba(244, 63, 94, 0.6), 0 0 12px rgba(225, 29, 72, 0.4) !important;
-      border-color: rgba(251, 113, 133, 0.6) !important;
+      background-color: #7b61ff !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(123, 97, 255, 0.3);
     }
 
-    /* Nav Sign-In variant (Royal Indigo-Violet) */
-    .nav-signin-btn,
-    .nav-logout-btn.nav-signin-btn {
-      background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%) !important;
-      border-color: rgba(124, 58, 237, 0.35) !important;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-    }
-    .nav-signin-btn:hover,
-    .nav-logout-btn.nav-signin-btn:hover {
-      background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7e22ce 100%) !important;
-      box-shadow: 0 8px 22px rgba(99, 102, 241, 0.45), 0 2px 8px rgba(124, 58, 237, 0.3) !important;
-      border-color: rgba(168, 85, 247, 0.6) !important;
-    }
-    body.dark-theme .nav-signin-btn,
-    body.dark-theme .nav-logout-btn.nav-signin-btn {
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%) !important;
-      border-color: rgba(168, 85, 247, 0.45) !important;
-      box-shadow: 0 4px 18px rgba(124, 58, 237, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    }
-    body.dark-theme .nav-signin-btn:hover,
-    body.dark-theme .nav-logout-btn.nav-signin-btn:hover {
-      background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%) !important;
-      box-shadow: 0 8px 26px rgba(168, 85, 247, 0.65), 0 0 14px rgba(129, 140, 248, 0.5) !important;
-      border-color: rgba(192, 132, 252, 0.6) !important;
-    }
-
-    /* Sidebar Items & Buttons */
-    .sidebar-logout-item,
-    .sidebar-signin-item {
+    /* Sidebar logout button (teacher dashboard style) */
+    .sidebar-logout-item {
       margin-top: 14px !important;
       margin-bottom: 20px !important;
-      padding-top: 16px !important;
-      border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+      padding-top: 14px !important;
+      border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
       text-align: center !important;
       flex-shrink: 0 !important;
     }
-    body.dark-theme .sidebar-logout-item,
-    body.dark-theme .sidebar-signin-item { 
-      border-top: 1px solid rgba(255, 255, 255, 0.12) !important; 
+    body.dark-theme .sidebar-logout-item { 
+      border-top: 1px solid rgba(255, 255, 255, 0.15) !important; 
     }
-
-    /* Sidebar Logout Button */
     .sidebar-logout-btn {
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
       gap: 8px !important;
-      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-      color: #ffffff !important;
+      background: #526D82;
+      color: white !important;
       padding: 10px 32px !important;
       border-radius: 25px !important;
-      border: 1px solid rgba(244, 63, 94, 0.35) !important;
       font-weight: 600 !important;
       font-size: 0.95rem !important;
-      letter-spacing: 0.3px;
       text-decoration: none !important;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      box-shadow: 0 4px 14px rgba(225, 29, 72, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+      transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
+      box-shadow: 0 4px 12px rgba(82, 109, 130, 0.35) !important;
       flex-shrink: 0 !important;
-      cursor: pointer;
-    }
-    .sidebar-logout-btn i {
-      font-size: 1.25rem;
-      line-height: 1;
-      transition: transform 0.25s ease;
     }
     .sidebar-logout-btn:hover {
-      background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%) !important;
-      color: #ffffff !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 22px rgba(225, 29, 72, 0.42), 0 2px 6px rgba(244, 63, 94, 0.3) !important;
-      border-color: rgba(251, 113, 133, 0.6) !important;
-    }
-    .sidebar-logout-btn:hover i {
-      transform: translateX(2px);
-    }
-    .sidebar-logout-btn:active {
-      transform: translateY(0) scale(0.97) !important;
-      box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25) !important;
+      background: #7b61ff !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(123, 97, 255, 0.4);
     }
     body.dark-theme .sidebar-logout-btn { 
-      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important; 
-      color: #ffffff !important;
-      border: 1px solid rgba(251, 113, 133, 0.35) !important;
-      box-shadow: 0 4px 16px rgba(225, 29, 72, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    }
-    body.dark-theme .sidebar-logout-btn:hover { 
-      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 24px rgba(244, 63, 94, 0.6), 0 0 14px rgba(225, 29, 72, 0.4) !important;
-      border-color: rgba(251, 113, 133, 0.6) !important;
-    }
-
-    /* Sidebar Sign In Button */
-    .sidebar-signin-btn,
-    .sidebar-logout-btn.sidebar-signin-btn {
-      background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%) !important;
-      border: 1px solid rgba(124, 58, 237, 0.3) !important;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-    }
-    .sidebar-signin-btn:hover,
-    .sidebar-logout-btn.sidebar-signin-btn:hover {
-      background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7e22ce 100%) !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.48), 0 2px 8px rgba(124, 58, 237, 0.3) !important;
-      border-color: rgba(168, 85, 247, 0.6) !important;
-    }
-    body.dark-theme .sidebar-signin-btn,
-    body.dark-theme .sidebar-logout-btn.sidebar-signin-btn {
-      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%) !important;
-      border-color: rgba(168, 85, 247, 0.45) !important;
-      box-shadow: 0 4px 18px rgba(124, 58, 237, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-    }
-    body.dark-theme .sidebar-signin-btn:hover,
-    body.dark-theme .sidebar-logout-btn.sidebar-signin-btn:hover {
-      background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%) !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 8px 26px rgba(168, 85, 247, 0.65), 0 0 14px rgba(129, 140, 248, 0.5) !important;
-      border-color: rgba(192, 132, 252, 0.6) !important;
+      background: #7b61ff !important; 
+      box-shadow: 0 4px 14px rgba(123, 97, 255, 0.4) !important;
     }
 
     /* Hide navbar logout at <=1320px */
@@ -3216,36 +3101,10 @@
         border: 2px solid transparent;
     }
 
-    .login-btn { 
-        background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%); 
-        color: #ffffff !important; 
-        border: 1px solid rgba(124, 58, 237, 0.3);
-        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-    }
-    .login-btn:hover { 
-        background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7e22ce 100%); 
-        transform: translateY(-2px);
-        box-shadow: 0 8px 22px rgba(99, 102, 241, 0.45);
-        color: #ffffff !important;
-    }
-    .login-btn:active {
-        transform: translateY(0) scale(0.97);
-    }
-    .no-profile-btn.register-btn { 
-        background: rgba(99, 102, 241, 0.08); 
-        color: #6366f1; 
-        border-color: rgba(99, 102, 241, 0.4); 
-    }
-    .no-profile-btn.register-btn:hover { 
-        background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%); 
-        color: #ffffff; 
-        border-color: transparent;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
-    }
-    .no-profile-btn.register-btn:active {
-        transform: translateY(0) scale(0.97);
-    }
+    .login-btn  { background: #526D82; color: white; }
+    .login-btn:hover  { background: #7b61ff; }
+    .no-profile-btn.register-btn { background: transparent; color: #526D82; border-color: #526D82; }
+    .no-profile-btn.register-btn:hover { background: #526D82; color: white; }
 
     .no-profile-close {
         position: absolute;
@@ -3443,10 +3302,10 @@
 
       <!-- Logout (hidden below 1320px, visible in sidebar) -->
       {% if user.is_authenticated %}
-      <a href="{% url 'users:logout' %}" class="nav-logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+      <a href="{% url 'users:logout' %}" class="nav-logout-btn">Logout</a>
       {% else %}
       <!-- Sign in for Guest -->
-      <a href="{% url 'users:login' %}" class="nav-logout-btn nav-signin-btn"><i class='bx bx-log-in'></i> Sign in</a>
+      <a href="{% url 'users:login' %}" class="nav-logout-btn">Sign in</a>
       {% endif %}
 
       <!-- Theme Toggle -->
@@ -3765,8 +3624,8 @@
         <a href="{% url 'users:logout' %}" class="sidebar-logout-btn"><i class='bx bx-log-out'></i> Logout</a>
       </li>
       {% else %}
-      <li class="sidebar-logout-item sidebar-signin-item">
-        <a href="{% url 'users:login' %}" class="sidebar-logout-btn sidebar-signin-btn"><i class='bx bx-log-in'></i> Sign In</a>
+      <li class="sidebar-logout-item">
+        <a href="{% url 'users:login' %}" class="sidebar-logout-btn"><i class='bx bx-log-in'></i> Sign In</a>
       </li>
       {% endif %}
     </ul>
