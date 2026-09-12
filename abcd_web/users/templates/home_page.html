@@ -546,83 +546,109 @@
             color: #7b61ff;
         }
 
-        /* Unified Button Styles: Logout (Crimson/Rose) & Sign In (Royal Indigo) */
+        /* Master Unified Navbar Auth Buttons (Logout & Sign In) */
         .nav-logout-btn {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 6px !important;
-            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-            color: #ffffff !important;
-            padding: 7px 18px !important;
-            border-radius: 20px !important;
-            border: 1px solid rgba(244, 63, 94, 0.35) !important;
-            text-decoration: none !important;
-            font-weight: 600 !important;
-            font-size: 0.86rem !important;
-            letter-spacing: 0.2px;
-            margin-right: 15px;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            box-shadow: 0 4px 14px rgba(225, 29, 72, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 7px 20px;
+            border-radius: 22px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            line-height: 1.2;
+            margin-right: 14px;
             cursor: pointer;
-            line-height: normal;
-        }
-        .nav-logout-btn i {
-            font-size: 1.1rem;
-            line-height: 1;
-            transition: transform 0.25s ease;
-        }
-        .nav-logout-btn:hover {
-            background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%) !important;
-            color: #ffffff !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 20px rgba(225, 29, 72, 0.4), 0 2px 6px rgba(244, 63, 94, 0.3) !important;
-            border-color: rgba(251, 113, 133, 0.6) !important;
-        }
-        .nav-logout-btn:hover i {
-            transform: translateX(2px);
-        }
-        .nav-logout-btn:active {
-            transform: translateY(0) scale(0.97) !important;
-            box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25) !important;
-        }
-        body.dark-theme .nav-logout-btn {
-            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
-            color: #ffffff !important;
-            border: 1px solid rgba(251, 113, 133, 0.35) !important;
-            box-shadow: 0 4px 16px rgba(225, 29, 72, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-        }
-        body.dark-theme .nav-logout-btn:hover {
-            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 24px rgba(244, 63, 94, 0.6), 0 0 12px rgba(225, 29, 72, 0.4) !important;
-            border-color: rgba(251, 113, 133, 0.6) !important;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+            white-space: nowrap;
+            letter-spacing: 0.2px;
         }
 
-        /* Nav Sign In Button Variant */
-        .nav-signin-btn,
-        .nav-logout-btn.nav-signin-btn {
-            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%) !important;
-            border-color: rgba(124, 58, 237, 0.35) !important;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+        /* Nav Logout (Understated, calm neutral resting state with gentle rose hover) */
+        .nav-logout-btn,
+        .nav-logout-btn[href*="logout"] {
+            background: rgba(100, 116, 139, 0.08);
+            color: #475569 !important;
+            border: 1px solid rgba(100, 116, 139, 0.22);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
-        .nav-signin-btn:hover,
-        .nav-logout-btn.nav-signin-btn:hover {
-            background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7e22ce 100%) !important;
-            box-shadow: 0 8px 22px rgba(99, 102, 241, 0.45), 0 2px 8px rgba(124, 58, 237, 0.3) !important;
-            border-color: rgba(168, 85, 247, 0.6) !important;
+        .nav-logout-btn:hover,
+        .nav-logout-btn[href*="logout"]:hover {
+            background: rgba(239, 68, 68, 0.08) !important;
+            color: #dc2626 !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.12) !important;
+            transform: translateY(-1px);
         }
-        body.dark-theme .nav-signin-btn,
-        body.dark-theme .nav-logout-btn.nav-signin-btn {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%) !important;
-            border-color: rgba(168, 85, 247, 0.45) !important;
-            box-shadow: 0 4px 18px rgba(124, 58, 237, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+        .nav-logout-btn:active,
+        .nav-logout-btn[href*="logout"]:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 1px 4px rgba(239, 68, 68, 0.1) !important;
         }
-        body.dark-theme .nav-signin-btn:hover,
-        body.dark-theme .nav-logout-btn.nav-signin-btn:hover {
-            background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%) !important;
-            box-shadow: 0 8px 26px rgba(168, 85, 247, 0.65), 0 0 14px rgba(129, 140, 248, 0.5) !important;
-            border-color: rgba(192, 132, 252, 0.6) !important;
+
+        /* Nav Sign In (Sleek, refined dark slate pill) */
+        .nav-logout-btn[href*="login"],
+        .nav-signin-btn {
+            background: #1e293b;
+            color: #ffffff !important;
+            border: 1px solid transparent;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+        }
+        .nav-logout-btn[href*="login"]:hover,
+        .nav-signin-btn:hover {
+            background: #334155 !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18) !important;
+            transform: translateY(-1px);
+        }
+        .nav-logout-btn[href*="login"]:active,
+        .nav-signin-btn:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12) !important;
+        }
+
+        /* Dark Theme - Nav Logout */
+        body.dark-theme .nav-logout-btn,
+        body.dark-theme .nav-logout-btn[href*="logout"] {
+            background: rgba(255, 255, 255, 0.07);
+            color: #cbd5e1 !important;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+        body.dark-theme .nav-logout-btn:hover,
+        body.dark-theme .nav-logout-btn[href*="logout"]:hover {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #fca5a5 !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2) !important;
+            transform: translateY(-1px);
+        }
+        body.dark-theme .nav-logout-btn:active,
+        body.dark-theme .nav-logout-btn[href*="logout"]:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Dark Theme - Nav Sign In */
+        body.dark-theme .nav-logout-btn[href*="login"],
+        body.dark-theme .nav-signin-btn {
+            background: rgba(255, 255, 255, 0.12);
+            color: #f8fafc !important;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
+        body.dark-theme .nav-logout-btn[href*="login"]:hover,
+        body.dark-theme .nav-signin-btn:hover {
+            background: rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.35) !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+            transform: translateY(-1px);
+        }
+        body.dark-theme .nav-logout-btn[href*="login"]:active,
+        body.dark-theme .nav-signin-btn:active {
+            transform: translateY(0) scale(0.98);
         }
 
         /* Theme Toggle Style */
@@ -676,13 +702,23 @@
             top: 75px;
             right: 20px;
             width: 320px;
-            height: calc(100dvh - 85px);
             height: calc(100vh - 85px);
+            height: calc(100dvh - 85px);
             max-height: calc(100dvh - 85px);
             overflow: hidden;
-            z-index: 999;
+            z-index: 1000;
             pointer-events: none;
             border-radius: 0 0 20px 20px;
+        }
+
+        .sidebar-wrapper.active,
+        .sidebar-wrapper:has(#sidebar.active),
+        .sidebar-wrapper:has(.nav-sidebar.active) {
+            pointer-events: auto !important;
+        }
+
+        body.sidebar-open {
+            overflow: hidden !important;
         }
 
         @media (max-width: 768px) {
@@ -690,6 +726,7 @@
                 top: 68px;
                 right: 12px;
                 width: min(320px, calc(100vw - 24px));
+                height: calc(100vh - 78px);
                 height: calc(100dvh - 78px);
                 max-height: calc(100dvh - 78px);
             }
@@ -716,12 +753,13 @@
             will-change: transform, opacity;
             transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-            padding: 16px 14px 95px 14px !important;
+            padding: 16px 14px 40px 14px !important;
             border-radius: 20px;
             display: flex;
             flex-direction: column;
             gap: 8px;
             overflow-y: auto !important;
+            overflow-x: hidden !important;
             -webkit-overflow-scrolling: touch !important;
             overscroll-behavior: contain !important;
             touch-action: pan-y !important;
@@ -790,122 +828,135 @@
             color: #c084fc !important;
         }
 
-        /* Sidebar Sign-In & Logout Buttons */
+        /* Master Sidebar Auth Buttons (Logout & Sign In) */
         .sidebar-signin-item,
         .sidebar-logout-item {
             margin-top: 14px !important;
             margin-bottom: 20px !important;
-            padding-top: 16px !important;
+            padding-top: 14px !important;
             border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
             text-align: center !important;
             flex-shrink: 0 !important;
-        }
-        body.dark-theme .sidebar-signin-item,
-        body.dark-theme .sidebar-logout-item {
-            border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+            width: 100% !important;
         }
 
-        /* Sidebar Sign In Button (Royal Indigo-Violet) */
-        .sidebar-signin-btn {
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%) !important;
-            color: white !important;
-            padding: 10px 32px !important;
-            border-radius: 25px !important;
-            border: 1px solid rgba(124, 58, 237, 0.3) !important;
-            font-weight: 600 !important;
-            font-size: 0.95rem !important;
-            letter-spacing: 0.3px;
-            text-decoration: none !important;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-            flex-shrink: 0 !important;
-            cursor: pointer;
-        }
-        .sidebar-signin-btn i {
-            font-size: 1.25rem;
-            line-height: 1;
-            transition: transform 0.25s ease;
-        }
-        .sidebar-signin-btn:hover {
-            background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7e22ce 100%) !important;
-            color: white !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.48), 0 2px 8px rgba(124, 58, 237, 0.3) !important;
-            border-color: rgba(168, 85, 247, 0.6) !important;
-        }
-        .sidebar-signin-btn:hover i {
-            transform: translateX(2px);
-        }
-        .sidebar-signin-btn:active {
-            transform: translateY(0) scale(0.97) !important;
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
-        }
-        body.dark-theme .sidebar-signin-btn {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%) !important;
-            border-color: rgba(168, 85, 247, 0.45) !important;
-            box-shadow: 0 4px 18px rgba(124, 58, 237, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-        }
-        body.dark-theme .sidebar-signin-btn:hover {
-            background: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%) !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 26px rgba(168, 85, 247, 0.65), 0 0 14px rgba(129, 140, 248, 0.5) !important;
-            border-color: rgba(192, 132, 252, 0.6) !important;
-        }
-
-        /* Sidebar Logout Button (Crimson/Rose) */
+        .sidebar-signin-btn,
         .sidebar-logout-btn {
             display: inline-flex !important;
             align-items: center !important;
             justify-content: center !important;
             gap: 8px !important;
-            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-            color: #ffffff !important;
-            padding: 10px 32px !important;
-            border-radius: 25px !important;
-            border: 1px solid rgba(244, 63, 94, 0.35) !important;
+            padding: 10px 28px !important;
+            border-radius: 24px !important;
             font-weight: 600 !important;
-            font-size: 0.95rem !important;
-            letter-spacing: 0.3px;
+            font-size: 0.93rem !important;
             text-decoration: none !important;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            box-shadow: 0 4px 14px rgba(225, 29, 72, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
             flex-shrink: 0 !important;
             cursor: pointer;
+            min-width: 140px;
+            letter-spacing: 0.2px;
         }
+        .sidebar-signin-btn i,
         .sidebar-logout-btn i {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             line-height: 1;
-            transition: transform 0.25s ease;
         }
-        .sidebar-logout-btn:hover {
-            background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%) !important;
+
+        /* Sidebar Logout Button (Calm, neutral resting state with gentle rose hover) */
+        .sidebar-logout-btn,
+        .sidebar-signin-btn.sidebar-logout-btn,
+        .sidebar-signin-btn[href*="logout"] {
+            background: rgba(100, 116, 139, 0.08) !important;
+            color: #475569 !important;
+            border: 1px solid rgba(100, 116, 139, 0.22) !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+        }
+        .sidebar-logout-btn:hover,
+        .sidebar-signin-btn.sidebar-logout-btn:hover,
+        .sidebar-signin-btn[href*="logout"]:hover {
+            background: rgba(239, 68, 68, 0.08) !important;
+            color: #dc2626 !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12) !important;
+            transform: translateY(-1px) !important;
+        }
+        .sidebar-logout-btn:active,
+        .sidebar-signin-btn.sidebar-logout-btn:active,
+        .sidebar-signin-btn[href*="logout"]:active {
+            transform: translateY(0) scale(0.98) !important;
+            box-shadow: 0 1px 4px rgba(239, 68, 68, 0.1) !important;
+        }
+
+        /* Sidebar Sign In Button (Sleek, modern dark slate pill) */
+        .sidebar-signin-btn:not(.sidebar-logout-btn):not([href*="logout"]),
+        .sidebar-logout-btn[href*="login"] {
+            background: #1e293b !important;
             color: #ffffff !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 22px rgba(225, 29, 72, 0.42), 0 2px 6px rgba(244, 63, 94, 0.3) !important;
-            border-color: rgba(251, 113, 133, 0.6) !important;
+            border: 1px solid transparent !important;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15) !important;
         }
-        .sidebar-logout-btn:hover i {
-            transform: translateX(2px);
-        }
-        .sidebar-logout-btn:active {
-            transform: translateY(0) scale(0.97) !important;
-            box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25) !important;
-        }
-        body.dark-theme .sidebar-logout-btn {
-            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
+        .sidebar-signin-btn:not(.sidebar-logout-btn):not([href*="logout"]):hover,
+        .sidebar-logout-btn[href*="login"]:hover {
+            background: #334155 !important;
             color: #ffffff !important;
-            border: 1px solid rgba(251, 113, 133, 0.35) !important;
-            box-shadow: 0 4px 16px rgba(225, 29, 72, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+            border-color: transparent !important;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22) !important;
+            transform: translateY(-1px) !important;
         }
-        body.dark-theme .sidebar-logout-btn:hover {
-            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%) !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 24px rgba(244, 63, 94, 0.6), 0 0 14px rgba(225, 29, 72, 0.4) !important;
-            border-color: rgba(251, 113, 133, 0.6) !important;
+        .sidebar-signin-btn:not(.sidebar-logout-btn):not([href*="logout"]):active,
+        .sidebar-logout-btn[href*="login"]:active {
+            transform: translateY(0) scale(0.98) !important;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12) !important;
+        }
+
+        /* Dark Theme - Sidebar Auth Buttons */
+        body.dark-theme .sidebar-signin-item,
+        body.dark-theme .sidebar-logout-item {
+            border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+        }
+
+        body.dark-theme .sidebar-logout-btn,
+        body.dark-theme .sidebar-signin-btn.sidebar-logout-btn,
+        body.dark-theme .sidebar-signin-btn[href*="logout"] {
+            background: rgba(255, 255, 255, 0.07) !important;
+            color: #cbd5e1 !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+        }
+        body.dark-theme .sidebar-logout-btn:hover,
+        body.dark-theme .sidebar-signin-btn.sidebar-logout-btn:hover,
+        body.dark-theme .sidebar-signin-btn[href*="logout"]:hover {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #fca5a5 !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.2) !important;
+            transform: translateY(-1px) !important;
+        }
+        body.dark-theme .sidebar-logout-btn:active,
+        body.dark-theme .sidebar-signin-btn.sidebar-logout-btn:active,
+        body.dark-theme .sidebar-signin-btn[href*="logout"]:active {
+            transform: translateY(0) scale(0.98) !important;
+        }
+
+        body.dark-theme .sidebar-signin-btn:not(.sidebar-logout-btn):not([href*="logout"]),
+        body.dark-theme .sidebar-logout-btn[href*="login"] {
+            background: rgba(255, 255, 255, 0.12) !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+        }
+        body.dark-theme .sidebar-signin-btn:not(.sidebar-logout-btn):not([href*="logout"]):hover,
+        body.dark-theme .sidebar-logout-btn[href*="login"]:hover {
+            background: rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.35) !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+            transform: translateY(-1px) !important;
+        }
+        body.dark-theme .sidebar-signin-btn:not(.sidebar-logout-btn):not([href*="logout"]):active,
+        body.dark-theme .sidebar-logout-btn[href*="login"]:active {
+            transform: translateY(0) scale(0.98) !important;
         }
 
         .sidebar-overlay {
@@ -2862,36 +2913,14 @@
             border: 2px solid transparent;
         }
 
-        .login-btn { 
-            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%); 
-            color: #ffffff !important; 
-            border: 1px solid rgba(124, 58, 237, 0.3);
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-        }
-        .login-btn:hover { 
-            background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 50%, #7e22ce 100%); 
-            transform: translateY(-2px);
-            box-shadow: 0 8px 22px rgba(99, 102, 241, 0.45);
-            color: #ffffff !important;
-        }
-        .login-btn:active {
-            transform: translateY(0) scale(0.97);
-        }
-        .no-profile-btn.register-btn { 
-            background: rgba(99, 102, 241, 0.08); 
-            color: #6366f1; 
-            border-color: rgba(99, 102, 241, 0.4); 
-        }
-        .no-profile-btn.register-btn:hover { 
-            background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%); 
-            color: #ffffff; 
-            border-color: transparent;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
-        }
-        .no-profile-btn.register-btn:active {
-            transform: translateY(0) scale(0.97);
-        }
+        .login-btn  { background: #1e293b; color: white !important; border: 1px solid transparent; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15); }
+        .login-btn:hover  { background: #334155; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22); }
+        .no-profile-btn.register-btn { background: transparent; color: #475569; border: 1.5px solid #cbd5e1; }
+        .no-profile-btn.register-btn:hover { background: #f1f5f9; color: #1e293b; border-color: #94a3b8; }
+        body.dark-theme .login-btn { background: rgba(255, 255, 255, 0.12); color: #f8fafc !important; border-color: rgba(255, 255, 255, 0.2); }
+        body.dark-theme .login-btn:hover { background: rgba(255, 255, 255, 0.22); color: #ffffff !important; border-color: rgba(255, 255, 255, 0.35); }
+        body.dark-theme .no-profile-btn.register-btn { color: #cbd5e1; border-color: rgba(255, 255, 255, 0.2); }
+        body.dark-theme .no-profile-btn.register-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; border-color: rgba(255, 255, 255, 0.35); }
 
         .no-profile-close {
             position: absolute;
@@ -4742,9 +4771,9 @@
 
             <!-- Sign in / Logout -->
             {% if user.is_authenticated %}
-            <a href="{% url 'users:logout' %}" class="nav-logout-btn nav-hide-600"><i class='bx bx-log-out'></i> Logout</a>
+            <a href="{% url 'users:logout' %}" class="nav-logout-btn nav-hide-600">Logout</a>
             {% else %}
-            <a href="{% url 'users:login' %}" class="nav-logout-btn nav-signin-btn nav-hide-600"><i class='bx bx-log-in'></i> Sign In</a>
+            <a href="{% url 'users:login' %}" class="nav-logout-btn nav-hide-600">Sign In</a>
             {% endif %}
 
             <!-- Theme Toggle -->
@@ -4776,9 +4805,9 @@
                     <i class='bx bx-compass' style="color:#0284c7;"></i> <span>Take Tour</span>
                 </a>
             </li>
-            <li class="sidebar-signin-item {% if user.is_authenticated %}sidebar-logout-item{% endif %}">
+            <li class="sidebar-signin-item sidebar-logout-item">
                 {% if user.is_authenticated %}
-                <a href="{% url 'users:logout' %}" class="sidebar-logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+                <a href="{% url 'users:logout' %}" class="sidebar-signin-btn sidebar-logout-btn"><i class='bx bx-log-out'></i> Logout</a>
                 {% else %}
                 <a href="{% url 'users:login' %}" class="sidebar-signin-btn"><i class='bx bx-log-in'></i> Sign In</a>
                 {% endif %}
@@ -5216,15 +5245,24 @@
 
         // --- SIDEBAR LOGIC ---
         function toggleSidebar() {
-            if (hamburgerBtn) hamburgerBtn.classList.toggle('open');
-            if (sidebar) sidebar.classList.toggle('active');
-            if (sidebarOverlay) sidebarOverlay.classList.toggle('active');
+            const isOpening = sidebar ? !sidebar.classList.contains('active') : true;
+            if (hamburgerBtn) hamburgerBtn.classList.toggle('open', isOpening);
+            if (sidebar) sidebar.classList.toggle('active', isOpening);
+            if (sidebarOverlay) sidebarOverlay.classList.toggle('active', isOpening);
+            const wrapper = document.querySelector('.sidebar-wrapper');
+            if (wrapper) wrapper.classList.toggle('active', isOpening);
+            if (window.innerWidth <= 768) {
+                document.body.classList.toggle('sidebar-open', isOpening);
+            }
         }
 
         function hideSidebar() {
             if (hamburgerBtn) hamburgerBtn.classList.remove('open');
             if (sidebar) sidebar.classList.remove('active');
             if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+            const wrapper = document.querySelector('.sidebar-wrapper');
+            if (wrapper) wrapper.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
         }
 
         if (hamburgerBtn) {
