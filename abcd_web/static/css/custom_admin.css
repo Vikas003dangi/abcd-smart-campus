@@ -31,6 +31,12 @@
   --admin-hero-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%);
   --admin-filter-bg: rgba(13, 20, 36, 0.95);
   --admin-drawer-bg: rgba(10, 16, 30, 0.98);
+  --header-link-color: #38bdf8;
+  --header-color: #f8fafc;
+  --body-fg: #f8fafc;
+  --body-quiet-color: #94a3b8;
+  --breadcrumbs-fg: #f8fafc;
+  --breadcrumbs-link-fg: #38bdf8;
 }
 
 /* Light Mode Variables - Crisp, High-Contrast Precision */
@@ -51,7 +57,7 @@
   --admin-border-radius: 16px;
   --admin-input-bg: #ffffff;
   --admin-input-border: #94a3b8;
-  --admin-module-caption-bg: linear-gradient(90deg, #f1f5f9, #ffffff);
+  --admin-module-caption-bg: linear-gradient(90deg, #e0f2fe 0%, #f0f9ff 100%);
   --admin-table-hover: rgba(2, 132, 199, 0.08);
   --admin-table-border: #e2e8f0;
   --admin-breadcrumbs-bg: #ffffff;
@@ -59,6 +65,12 @@
   --admin-hero-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   --admin-filter-bg: #ffffff;
   --admin-drawer-bg: #ffffff;
+  --header-link-color: #0369a1;
+  --header-color: #0f172a;
+  --body-fg: #0f172a;
+  --body-quiet-color: #334155;
+  --breadcrumbs-fg: #0f172a;
+  --breadcrumbs-link-fg: #0284c7;
 }
 
 /* Base HTML and Canvas setup */
@@ -1046,6 +1058,30 @@ div.breadcrumbs a:hover {
   letter-spacing: 0.08em !important;
   padding: 15px 22px !important;
   border-bottom: 1px solid var(--admin-card-border) !important;
+  text-align: left !important;
+}
+
+.module caption a,
+.module caption a:link,
+.module caption a:visited,
+.module caption a.section {
+  color: var(--admin-accent) !important;
+  text-decoration: none !important;
+  font-weight: 800 !important;
+}
+
+:root[data-theme="light"] .module caption,
+:root[data-theme="light"] .module h2 {
+  background: linear-gradient(90deg, #e0f2fe 0%, #f0f9ff 100%) !important;
+  color: #0369a1 !important;
+  border-bottom: 1px solid #bae6fd !important;
+}
+
+:root[data-theme="light"] .module caption a,
+:root[data-theme="light"] .module caption a:link,
+:root[data-theme="light"] .module caption a:visited,
+:root[data-theme="light"] .module caption a.section {
+  color: #0369a1 !important;
 }
 
 .module table {
@@ -1397,7 +1433,7 @@ fieldset h2 {
   margin-bottom: 20px !important;
 }
 
-.form-row {
+div.form-row, .form-row:not(tr) {
   border-bottom: 1px solid var(--admin-table-border) !important;
   padding: 14px 0 !important;
   width: 100% !important;
@@ -1435,6 +1471,326 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
   border-color: var(--admin-accent) !important;
   box-shadow: 0 0 0 3px var(--admin-accent-glow) !important;
   outline: none !important;
+}
+
+/* Related Widget Wrapper (FK/M2M Action Links) */
+.related-widget-wrapper {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+.related-widget-wrapper select {
+  flex: 1 1 200px !important;
+  min-width: 140px !important;
+  max-width: calc(100% - 130px) !important;
+  box-sizing: border-box !important;
+}
+
+.related-widget-wrapper-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px 6px !important;
+  margin: 0 !important;
+  opacity: 0.88 !important;
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.related-widget-wrapper-link:hover {
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
+}
+
+.related-widget-wrapper-link img {
+  vertical-align: middle !important;
+}
+
+/* File Upload Display */
+.file-upload {
+  font-size: 0.85rem !important;
+  color: var(--admin-text-muted) !important;
+  word-break: break-all !important;
+  line-height: 1.6 !important;
+  margin: 4px 0 !important;
+}
+
+.file-upload a {
+  color: var(--admin-accent) !important;
+  font-weight: 700 !important;
+}
+
+input[type="file"] {
+  max-width: 100% !important;
+  font-size: 0.85rem !important;
+  color: var(--admin-text-main) !important;
+  padding: 6px 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Readonly fields */
+.readonly {
+  color: var(--admin-text-main) !important;
+  font-size: 0.92rem !important;
+  font-weight: 500 !important;
+  padding: 8px 0 !important;
+  line-height: 1.5 !important;
+  word-break: break-word !important;
+}
+
+/* ==========================================================================
+   INLINE FORMSETS (TABULAR & STACKED INLINES) - ULTRA RESPONSIVE
+   ========================================================================== */
+.inline-group {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 28px !important;
+  background: transparent !important;
+  border: none !important;
+  clear: both !important;
+}
+
+.inline-heading,
+.inline-group h2,
+.tabular fieldset.module h2 {
+  background: var(--admin-module-caption-bg) !important;
+  color: var(--admin-accent) !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  padding: 14px 20px !important;
+  border-radius: var(--admin-border-radius) var(--admin-border-radius) 0 0 !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-bottom: none !important;
+  margin: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+:root[data-theme="light"] .inline-heading,
+:root[data-theme="light"] .inline-group h2,
+:root[data-theme="light"] .tabular fieldset.module h2 {
+  background: linear-gradient(90deg, #e0f2fe 0%, #f0f9ff 100%) !important;
+  color: #0369a1 !important;
+  border-color: #bae6fd !important;
+}
+
+/* Tabular Inline Outer Box & Touch Horizontal Scroll */
+.inline-group .tabular,
+.inline-related.tabular {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: 0 0 var(--admin-border-radius) var(--admin-border-radius) !important;
+  box-shadow: 0 10px 30px var(--admin-shadow) !important;
+  padding: 0 !important;
+  margin-bottom: 24px !important;
+}
+
+.inline-group .tabular fieldset.module {
+  width: 100% !important;
+  min-width: 100% !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  overflow: visible !important;
+  display: block !important;
+}
+
+/* Force Table to have comfortable width so all columns render naturally */
+.inline-group .tabular table {
+  width: 100% !important;
+  min-width: 950px !important;
+  border-collapse: collapse !important;
+  table-layout: auto !important;
+  margin: 0 !important;
+  display: table !important;
+}
+
+.inline-group .tabular tr.form-row {
+  display: table-row !important;
+  border-bottom: 1px solid var(--admin-table-border) !important;
+}
+
+.inline-group .tabular tr.form-row > td,
+.inline-group .tabular tr.form-row > th {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  padding: 10px 12px !important;
+}
+
+.inline-group .tabular thead th {
+  background: var(--admin-module-caption-bg) !important;
+  color: var(--admin-text-muted) !important;
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  padding: 12px 14px !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+}
+
+:root[data-theme="light"] .inline-group .tabular thead th {
+  color: #334155 !important;
+  background: #f1f5f9 !important;
+}
+
+.inline-group .tabular tbody td {
+  padding: 10px 14px !important;
+  border-bottom: 1px solid var(--admin-table-border) !important;
+  vertical-align: middle !important;
+  white-space: normal !important;
+}
+
+/* Fix td.original p absolute overlap glitch */
+.inline-group .tabular td.original,
+.inline-group .tabular th.original {
+  position: static !important;
+  width: auto !important;
+  min-width: 100px !important;
+  padding: 10px 14px !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+}
+
+.inline-group .tabular td.original p {
+  position: static !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 6px 12px !important;
+  font-weight: 700 !important;
+  font-size: 0.84rem !important;
+  color: var(--admin-accent) !important;
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-radius: 8px !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+}
+
+:root[data-theme="light"] .inline-group .tabular td.original p {
+  color: #0369a1 !important;
+  background: #e0f2fe !important;
+  border-color: #bae6fd !important;
+}
+
+/* Tabular inputs within table cells */
+.inline-group .tabular td input[type="text"],
+.inline-group .tabular td input[type="number"],
+.inline-group .tabular td select {
+  min-width: 140px !important;
+  width: 100% !important;
+  padding: 8px 10px !important;
+}
+
+/* Add another row row */
+.inline-group tr.add-row td {
+  background: var(--admin-card-bg) !important;
+  padding: 12px 16px !important;
+}
+
+.inline-group tr.add-row td a {
+  color: var(--admin-accent) !important;
+  font-weight: 800 !important;
+  font-size: 0.86rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  text-decoration: none !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  background: rgba(56, 189, 248, 0.1) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  transition: all 0.2s ease !important;
+}
+
+.inline-group tr.add-row td a:hover {
+  background: var(--admin-accent) !important;
+  color: #ffffff !important;
+}
+
+/* Stacked Inlines */
+.inline-group .stacked .inline-related {
+  background: var(--admin-card-bg) !important;
+  border: 1px solid var(--admin-card-border) !important;
+  border-radius: var(--admin-border-radius) !important;
+  padding: 16px 20px !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 8px 24px var(--admin-shadow) !important;
+}
+
+.inline-group .stacked .inline-related h3 {
+  color: var(--admin-accent) !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  margin: 0 0 12px 0 !important;
+  padding-bottom: 8px !important;
+  border-bottom: 1px solid var(--admin-card-border) !important;
+}
+
+/* Responsive Many-to-Many Selector */
+.selector {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+}
+
+.selector .selector-available,
+.selector .selector-chosen {
+  flex: 1 1 240px !important;
+  min-width: 200px !important;
+  width: 100% !important;
+}
+
+.selector select {
+  width: 100% !important;
+  min-height: 160px !important;
+}
+
+.selector .selector-chooser {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 0 !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+
+@media (min-width: 769px) {
+  .selector {
+    flex-wrap: nowrap !important;
+  }
+  .selector .selector-chooser {
+    width: auto !important;
+    flex-direction: column !important;
+  }
 }
 
 /* Submit Row Buttons */
@@ -1745,17 +2101,98 @@ input[type=url]:focus, input[type=number]:focus, textarea:focus, select:focus {
 
   fieldset {
     padding: 16px 12px !important;
+    border-radius: 12px !important;
+  }
+
+  div.form-row, .form-row:not(tr) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 12px 4px !important;
+    gap: 6px !important;
+  }
+
+  /* Table row within tabular inlines must remain table-row */
+  tr.form-row {
+    display: table-row !important;
+  }
+  td.form-row, tr.form-row > td, tr.form-row > th {
+    display: table-cell !important;
+  }
+
+  div.form-row > div, .form-row:not(tr) > div {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .form-row label {
+    width: 100% !important;
+    float: none !important;
+    margin-bottom: 2px !important;
+    font-weight: 700 !important;
+    font-size: 0.88rem !important;
+    display: block !important;
+  }
+
+  .form-row input[type="text"],
+  .form-row input[type="password"],
+  .form-row input[type="email"],
+  .form-row input[type="url"],
+  .form-row input[type="number"],
+  .form-row textarea,
+  .form-row select {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .related-widget-wrapper {
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .related-widget-wrapper select {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
   }
 
   .submit-row {
-    padding: 12px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 16px 14px !important;
   }
 
-  .submit-row input[type=submit], .submit-row .button, .button.default {
+  .submit-row input[type=submit],
+  .submit-row .button,
+  .submit-row .button.default,
+  .submit-row input[type=submit].default {
     width: 100% !important;
-    margin-bottom: 6px !important;
+    margin: 0 !important;
+    padding: 12px 18px !important;
+    font-size: 0.92rem !important;
+    border-radius: 12px !important;
     text-align: center !important;
     justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  .submit-row .deletelink-box {
+    float: none !important;
+    width: 100% !important;
+    margin: 4px 0 0 0 !important;
+    text-align: center !important;
+  }
+
+  .submit-row .deletelink {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 11px 16px !important;
+    border-radius: 12px !important;
+    text-align: center !important;
+    font-size: 0.9rem !important;
   }
 }
 
