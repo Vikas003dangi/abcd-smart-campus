@@ -2129,7 +2129,7 @@ def register(request):
                 }
                 request.session.modified = True
 
-                # Send email
+                # Send email asynchronously for instant sub-second OTP entry screen transition
                 try:
                     send_html_email(
                         subject="Verify your email for ABCD registration",
@@ -2142,11 +2142,12 @@ def register(request):
                             "preheader": "Use this OTP to complete your ABCD registration",
                             "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                         },
-                        fail_silently=False,
-                        timeout=5
+                        fail_silently=True,
+                        timeout=15,
+                        run_async=True
                     )
                 except Exception as e:
-                    return JsonResponse({'status': 'error', 'message': f"Error sending verification email: {e}"}, status=500)
+                    logger.error(f"Error dispatching registration OTP email to {email}: {e}")
 
                 # Increment attempts, daily count and set 60s cooldown
                 cache.set(counter_key, attempts + 1, timeout=18000)
@@ -2211,7 +2212,7 @@ def register(request):
             request.session['pending_registration'] = pending
             request.session.modified = True
 
-            # Send email
+            # Send email asynchronously for instant sub-second OTP entry screen transition
             try:
                 send_html_email(
                     subject="Verify your email for ABCD registration",
@@ -2224,11 +2225,12 @@ def register(request):
                         "preheader": "Use this OTP to complete your ABCD registration",
                         "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                     },
-                    fail_silently=False,
-                    timeout=5
+                    fail_silently=True,
+                    timeout=15,
+                    run_async=True
                 )
             except Exception as e:
-                return JsonResponse({'status': 'error', 'message': f"Error sending verification email: {e}"}, status=500)
+                logger.error(f"Error dispatching resend OTP email to {pending['email']}: {e}")
 
             cache.set(counter_key, attempts + 1, timeout=18000)
             cache.set(cooldown_key, time.time() + 60, timeout=60)
