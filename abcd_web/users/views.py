@@ -44,7 +44,7 @@ from django.utils.timesince import timesince
 from .utils import (
     get_playlist_videos_for_course, sync_courses_from_youtube, track_visitor_intent,
     sync_active_holds, get_user_notification_email, get_user_display_name, get_profile_photo_url,
-    get_admin_and_teacher_emails, get_client_ip
+    get_admin_and_teacher_emails, get_client_ip, atomic_cache_incr
 )
 from .youtube_service import fetch_playlists, fetch_playlist_videos, fetch_channel_videos
 from users.email_service import send_html_email
@@ -2164,16 +2164,16 @@ def register(request):
                         'message': 'Failed to deliver verification code. Please check your email address or try again shortly.'
                     }, status=500)
 
-                # Increment attempts, daily count and set 60s cooldown
-                cache.set(counter_key, attempts + 1, timeout=18000)
+                # Increment attempts, daily count atomically and set 60s cooldown
                 cache.set(cooldown_key, time.time() + 60, timeout=60)
-                cache.set(daily_ip_key, daily_ip_count + 1, timeout=86400)
-                cache.set(daily_email_key, daily_email_count + 1, timeout=86400)
+                atomic_attempts = atomic_cache_incr(counter_key, timeout=18000)
+                atomic_cache_incr(daily_ip_key, timeout=86400)
+                atomic_cache_incr(daily_email_key, timeout=86400)
 
                 return JsonResponse({
                     'status': 'ok',
                     'message': 'Verification code sent to your email.',
-                    'attempts': attempts + 1,
+                    'attempts': atomic_attempts,
                     'cooldown_seconds': 60
                 })
             else:
@@ -2262,15 +2262,15 @@ def register(request):
                     'message': 'Failed to deliver verification code. Please try again in a few moments.'
                 }, status=500)
 
-            cache.set(counter_key, attempts + 1, timeout=18000)
             cache.set(cooldown_key, time.time() + 60, timeout=60)
-            cache.set(daily_ip_key, daily_ip_count + 1, timeout=86400)
-            cache.set(daily_email_key, daily_email_count + 1, timeout=86400)
+            atomic_attempts = atomic_cache_incr(counter_key, timeout=18000)
+            atomic_cache_incr(daily_ip_key, timeout=86400)
+            atomic_cache_incr(daily_email_key, timeout=86400)
 
             return JsonResponse({
                 'status': 'ok',
                 'message': 'New verification code sent to your email.',
-                'attempts': attempts + 1,
+                'attempts': atomic_attempts,
                 'cooldown_seconds': 60
             })
 
@@ -2751,17 +2751,16 @@ def forgot_password_request(request):
             status=500
         )
 
-    # Increment resend count, daily counts and set 60s cooldown on success
-    attempts = cache.get(counter_key, 0)
-    cache.set(counter_key, attempts + 1, timeout=18000)  # 5 hours
+    # Increment resend count, daily counts atomically and set 60s cooldown on success
     cache.set(otp_cooldown_key, time.time() + 60, timeout=60)  # 60s
-    cache.set(daily_ip_key, daily_ip_count + 1, timeout=86400)
-    cache.set(daily_email_key, daily_email_count + 1, timeout=86400)
+    atomic_attempts = atomic_cache_incr(counter_key, timeout=18000)  # 5 hours
+    atomic_cache_incr(daily_ip_key, timeout=86400)
+    atomic_cache_incr(daily_email_key, timeout=86400)
 
     return JsonResponse({
         "status": "ok",
         "message": f"Verification OTP sent successfully to {target_email}!",
-        "attempts": attempts + 1,
+        "attempts": atomic_attempts,
         "cooldown_seconds": 60
     })
 

@@ -37,6 +37,22 @@ def get_client_ip(request):
         return x_real_ip.strip()
     return request.META.get('REMOTE_ADDR') or '127.0.0.1'
 
+def atomic_cache_incr(key, timeout=86400):
+    """
+    Atomically increments a cache counter with an expiration timeout.
+    Prevents race conditions in rate limiting under concurrent requests.
+    """
+    try:
+        return cache.incr(key)
+    except ValueError:
+        if cache.add(key, 1, timeout=timeout):
+            return 1
+        try:
+            return cache.incr(key)
+        except ValueError:
+            cache.set(key, 1, timeout=timeout)
+            return 1
+
 # -------------------------------------------------------------------
 # FLEXIBLE DATETIME PARSING & SCHEDULED BROADCAST AUTOMATION
 
