@@ -2130,40 +2130,22 @@ def register(request):
 
                 logger.info(f"[REGISTRATION OTP] OTP for {email} ({username}): {otp}")
 
-                # Send email: try fast dispatch (5s), and if SMTP takes longer on cloud network, hand off to background thread so user is NEVER blocked!
-                try:
-                    send_html_email(
-                        subject="Verify your email for ABCD registration",
-                        to_email=email,
-                        template="emails/otp_register.html",
-                        context={
-                            "username": username,
-                            "otp": otp,
-                            "subject": "Verify your email for ABCD registration",
-                            "preheader": "Use this OTP to complete your ABCD registration",
-                            "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
-                        },
-                        fail_silently=False,
-                        timeout=5,
-                        run_async=False
-                    )
-                except Exception as e:
-                    logger.warning(f"Fast registration email send to {email} deferred to background ({e}). Launching background delivery...")
-                    send_html_email(
-                        subject="Verify your email for ABCD registration",
-                        to_email=email,
-                        template="emails/otp_register.html",
-                        context={
-                            "username": username,
-                            "otp": otp,
-                            "subject": "Verify your email for ABCD registration",
-                            "preheader": "Use this OTP to complete your ABCD registration",
-                            "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
-                        },
-                        fail_silently=True,
-                        timeout=20,
-                        run_async=True
-                    )
+                # Send email asynchronously in background thread so the OTP modal opens INSTANTLY in <100ms
+                send_html_email(
+                    subject="Verify your email for ABCD registration",
+                    to_email=email,
+                    template="emails/otp_register.html",
+                    context={
+                        "username": username,
+                        "otp": otp,
+                        "subject": "Verify your email for ABCD registration",
+                        "preheader": "Use this OTP to complete your ABCD registration",
+                        "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+                    },
+                    fail_silently=True,
+                    timeout=20,
+                    run_async=True
+                )
 
                 # Set 60s cooldown and update daily counters atomically
                 cache.set(cooldown_key, time.time() + 60, timeout=60)
@@ -2228,40 +2210,22 @@ def register(request):
 
             logger.info(f"[REGISTRATION OTP RESEND] New OTP for {pending['email']} ({pending['username']}): {otp}")
 
-            # Send email: try fast dispatch (5s), and if SMTP takes longer on cloud network, hand off to background thread so user is NEVER blocked!
-            try:
-                send_html_email(
-                    subject="Verify your email for ABCD registration",
-                    to_email=pending['email'],
-                    template="emails/otp_register.html",
-                    context={
-                        "username": pending['username'],
-                        "otp": otp,
-                        "subject": "Verify your email for ABCD registration",
-                        "preheader": "Use this OTP to complete your ABCD registration",
-                        "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
-                    },
-                    fail_silently=False,
-                    timeout=5,
-                    run_async=False
-                )
-            except Exception as e:
-                logger.warning(f"Fast resend registration email to {pending['email']} deferred to background ({e}). Launching background delivery...")
-                send_html_email(
-                    subject="Verify your email for ABCD registration",
-                    to_email=pending['email'],
-                    template="emails/otp_register.html",
-                    context={
-                        "username": pending['username'],
-                        "otp": otp,
-                        "subject": "Verify your email for ABCD registration",
-                        "preheader": "Use this OTP to complete your ABCD registration",
-                        "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
-                    },
-                    fail_silently=True,
-                    timeout=20,
-                    run_async=True
-                )
+            # Send email asynchronously in background thread so resend response returns INSTANTLY
+            send_html_email(
+                subject="Verify your email for ABCD registration",
+                to_email=pending['email'],
+                template="emails/otp_register.html",
+                context={
+                    "username": pending['username'],
+                    "otp": otp,
+                    "subject": "Verify your email for ABCD registration",
+                    "preheader": "Use this OTP to complete your ABCD registration",
+                    "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+                },
+                fail_silently=True,
+                timeout=20,
+                run_async=True
+            )
 
             # Set 60s cooldown and update daily counters atomically
             cache.set(cooldown_key, time.time() + 60, timeout=60)

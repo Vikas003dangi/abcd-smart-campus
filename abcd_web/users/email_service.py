@@ -98,59 +98,11 @@ def send_html_email(
         elif any(k in tmpl_lower or k in subj_lower for k in ['welcome']):
             illustration_name = 'welcome.png'
 
-        # 2. Locate local static files for instantaneous 0ms "flash loading" via Inline CID (Content-ID MIME)
+        # Use lightweight direct URLs for images to keep email payload <5KB and ensure instant delivery
+        site_url_clean = str(site_url).rstrip('/')
         inline_images = []
-        base_dir = getattr(settings, 'BASE_DIR', None)
-        
-        logo_file = None
-        ill_file = None
-        if base_dir:
-            search_dirs = [
-                os.path.join(base_dir, 'static'),
-                getattr(settings, 'STATIC_ROOT', None)
-            ]
-            for s_dir in search_dirs:
-                if not s_dir or not os.path.exists(s_dir):
-                    continue
-                cand_logo = os.path.join(s_dir, 'data', 'light-logo.png')
-                if not logo_file and os.path.exists(cand_logo):
-                    logo_file = cand_logo
-                cand_ill = os.path.join(s_dir, 'data', 'email_illustrations', illustration_name)
-                if not ill_file and os.path.exists(cand_ill):
-                    ill_file = cand_ill
-
-        # 3. Attach Logo inline if file exists locally, otherwise fallback to public URL
-        if logo_file and os.path.exists(logo_file):
-            try:
-                with open(logo_file, 'rb') as f:
-                    img_logo = MIMEImage(f.read(), _subtype='png')
-                img_logo.add_header('Content-ID', '<abcd_logo>')
-                img_logo.add_header('Content-Disposition', 'inline', filename='logo.png')
-                inline_images.append(img_logo)
-                logo_url = "cid:abcd_logo"
-            except Exception as e:
-                logger.warning(f"Failed to read local logo for CID: {e}")
-                logo_url = f"{site_url.rstrip('/')}/static/data/light-logo.png"
-        else:
-            logo_url = f"{site_url.rstrip('/')}/static/data/light-logo.png"
-
-        # 4. Attach Hero Illustration inline if file exists locally, otherwise fallback to public URL
-        if ill_file and os.path.exists(ill_file):
-            try:
-                with open(ill_file, 'rb') as f:
-                    img_ill = MIMEImage(f.read(), _subtype='png')
-                img_ill.add_header('Content-ID', '<abcd_illustration>')
-                img_ill.add_header('Content-Disposition', 'inline', filename=illustration_name)
-                inline_images.append(img_ill)
-                illustration_url = "cid:abcd_illustration"
-            except Exception as e:
-                logger.warning(f"Failed to read local illustration for CID: {e}")
-                illustration_url = f"{site_url.rstrip('/')}/static/data/email_illustrations/{illustration_name}"
-        else:
-            illustration_url = f"{site_url.rstrip('/')}/static/data/email_illustrations/{illustration_name}"
-
-        context['logo_url'] = logo_url
-        context['illustration_url'] = illustration_url
+        context['logo_url'] = f"{site_url_clean}/static/data/light-logo.png"
+        context['illustration_url'] = f"{site_url_clean}/static/data/email_illustrations/{illustration_name}"
 
         html_content = render_to_string(template, context)
         

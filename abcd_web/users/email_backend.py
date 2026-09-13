@@ -36,6 +36,14 @@ class IPv4EmailBackend(EmailBackend):
             return original_getaddrinfo(host, port, socket.AF_INET, type, proto, clean_flags)
 
         socket.getaddrinfo = ipv4_getaddrinfo
+
+        # Override CachedDnsName to avoid slow reverse DNS lookups in container environments
+        try:
+            from django.core.mail.backends.smtp import DNS_NAME
+            DNS_NAME._fqdn = 'abcdcampus.in'
+        except Exception:
+            pass
+
         try:
             return super().open()
         except Exception as e:
