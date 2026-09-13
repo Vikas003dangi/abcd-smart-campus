@@ -44,7 +44,7 @@ from django.utils.timesince import timesince
 from .utils import (
     get_playlist_videos_for_course, sync_courses_from_youtube, track_visitor_intent,
     sync_active_holds, get_user_notification_email, get_user_display_name, get_profile_photo_url,
-    get_admin_and_teacher_emails
+    get_admin_and_teacher_emails, get_client_ip
 )
 from .youtube_service import fetch_playlists, fetch_playlist_videos, fetch_channel_videos
 from users.email_service import send_html_email
@@ -2087,19 +2087,24 @@ def register(request):
                 email = form.cleaned_data.get('email')
                 password = request.POST.get('password1') # raw password for user creation later
 
-                user_ip = request.META.get('REMOTE_ADDR') or 'anonymous'
+                user_ip = get_client_ip(request)
                 
-                # 24-hour outer rate limit: max 3 verification requests per day (86400s) per IP or Email
-                daily_ip_key = f"verification_daily_ip_{user_ip}"
-                daily_email_key = f"verification_daily_email_{email.lower()}"
-                
-                daily_ip_count = cache.get(daily_ip_key, 0)
+                # 24-hour rate limit: max 10 verification requests per day per Email
+                daily_email_key = f"reg_daily_email_{email.lower()}"
                 daily_email_count = cache.get(daily_email_key, 0)
-                
-                if daily_ip_count >= 3 or daily_email_count >= 3:
+                if daily_email_count >= 10:
                     return JsonResponse({
                         'status': 'error',
-                        'message': 'Verification code request limit reached (max 3 per day). Please try again tomorrow.'
+                        'message': 'Verification code request limit reached for this email today. Please try again tomorrow.'
+                    }, status=429)
+
+                # Shared network limit: max 100 verification requests per day per IP (allows campus/coaching WiFi)
+                daily_ip_key = f"reg_daily_ip_{user_ip}"
+                daily_ip_count = cache.get(daily_ip_key, 0)
+                if daily_ip_count >= 100:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Too many registration requests from this network today. Please try again tomorrow.'
                     }, status=429)
 
                 # Check cooldown/attempts
@@ -2113,8 +2118,8 @@ def register(request):
                         return JsonResponse({'status': 'error', 'message': f"Please wait {remaining}s"}, status=429)
 
                 attempts = cache.get_or_set(counter_key, 0, timeout=18000)
-                if attempts >= 5:
-                    return JsonResponse({'status': 'error', 'message': 'Too many verification attempts from this IP. Please try again in 5 hours.'}, status=429)
+                if attempts >= 10:
+                    return JsonResponse({'status': 'error', 'message': 'Too many verification attempts from this network. Please try again in 5 hours.'}, status=429)
 
                 # Generate 6-digit OTP
                 otp = f"{random.randint(100000, 999999)}"
@@ -2186,20 +2191,25 @@ def register(request):
             if not pending:
                 return JsonResponse({'status': 'error', 'message': 'Registration session expired. Please restart registration.'}, status=400)
 
-            user_ip = request.META.get('REMOTE_ADDR') or 'anonymous'
+            user_ip = get_client_ip(request)
             email = pending['email']
 
-            # 24-hour outer rate limit: max 3 verification requests per day (86400s) per IP or Email
-            daily_ip_key = f"verification_daily_ip_{user_ip}"
-            daily_email_key = f"verification_daily_email_{email.lower()}"
-            
-            daily_ip_count = cache.get(daily_ip_key, 0)
+            # 24-hour rate limit: max 10 verification requests per day per Email
+            daily_email_key = f"reg_daily_email_{email.lower()}"
             daily_email_count = cache.get(daily_email_key, 0)
-            
-            if daily_ip_count >= 3 or daily_email_count >= 3:
+            if daily_email_count >= 10:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Verification code request limit reached (max 3 per day). Please try again tomorrow.'
+                    'message': 'Verification code request limit reached for this email today. Please try again tomorrow.'
+                }, status=429)
+
+            # Shared network limit: max 100 verification requests per day per IP
+            daily_ip_key = f"reg_daily_ip_{user_ip}"
+            daily_ip_count = cache.get(daily_ip_key, 0)
+            if daily_ip_count >= 100:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Too many registration requests from this network today. Please try again tomorrow.'
                 }, status=429)
 
             counter_key = f"reg_otp_count_{user_ip}"
@@ -2212,8 +2222,8 @@ def register(request):
                     return JsonResponse({'status': 'error', 'message': f"Please wait {remaining}s"}, status=429)
 
             attempts = cache.get(counter_key, 0)
-            if attempts >= 5:
-                return JsonResponse({'status': 'error', 'message': 'Too many verification attempts from this IP.'}, status=429)
+            if attempts >= 10:
+                return JsonResponse({'status': 'error', 'message': 'Too many verification attempts from this network. Please try again in 5 hours.'}, status=429)
 
             # Generate new OTP
             otp = f"{random.randint(100000, 999999)}"
@@ -2266,15 +2276,15 @@ def register(request):
 
         # 3. VERIFY OTP AND COMPLETE REGISTRATION
         elif action == 'verify_otp':
-            user_ip = request.META.get('REMOTE_ADDR') or 'anonymous'
+            user_ip = get_client_ip(request)
             
-            # Account creation rate limit (max 3 per IP per hour)
+            # Account creation rate limit (max 20 per IP per hour for shared networks)
             creation_count_key = f"account_creations_count_{user_ip}"
             creation_count = cache.get(creation_count_key, 0)
-            if creation_count >= 3:
+            if creation_count >= 20:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Too many accounts created from this IP. Limit is 3 per hour.'
+                    'message': 'Too many accounts created from this network. Limit is 20 per hour.'
                 }, status=429)
 
             counter_key = f"reg_otp_count_{user_ip}"
@@ -2458,7 +2468,7 @@ def login_view(request):
         else:
             return redirect('users:guest_page')
 
-    user_ip = request.META.get('REMOTE_ADDR') or 'anonymous'
+    user_ip = get_client_ip(request)
 
     # 1. Check IP lockout
     ip_lock_key = f"login_lock_until_ip_{user_ip}"
@@ -2650,19 +2660,19 @@ def forgot_password_request(request):
     if not target_email:
         target_email = email
 
-    user_ip = request.META.get('REMOTE_ADDR') or 'anonymous'
+    user_ip = get_client_ip(request)
     
-    # 24-hour outer rate limit: max 5 verification requests per day per IP or Email
-    daily_ip_key = f"verification_daily_ip_{user_ip}"
-    daily_email_key = f"verification_daily_email_{target_email.lower()}"
+    # 24-hour outer rate limit: max 10 requests per day per Email, max 100 per IP
+    daily_ip_key = f"pwreset_daily_ip_{user_ip}"
+    daily_email_key = f"pwreset_daily_email_{target_email.lower()}"
     
     daily_ip_count = cache.get(daily_ip_key, 0)
     daily_email_count = cache.get(daily_email_key, 0)
     
-    if daily_ip_count >= 5 or daily_email_count >= 5:
+    if daily_email_count >= 10 or daily_ip_count >= 100:
         return JsonResponse({
             'status': 'error',
-            'message': 'Verification code request limit reached (max 5 per day). Please try again tomorrow.'
+            'message': 'Password reset request limit reached for today. Please try again tomorrow.'
         }, status=429)
 
     # SUCCESSFUL PASSWORD RESET COOLDOWN (1 hour)
@@ -2757,7 +2767,7 @@ def otp_status_view(request):
     if request.user.is_authenticated:
         user_id = str(request.user.id)
     else:
-        user_id = request.META.get('REMOTE_ADDR') or 'anonymous'
+        user_id = get_client_ip(request)
 
     counter_key = f"otp_resend_count_{user_id}"
     cooldown_key = f"otp_cooldown_{user_id}"
