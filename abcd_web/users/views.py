@@ -16473,59 +16473,72 @@ def email_diagnostics_view(request):
         }
     }
 
-    # 1. DNS Resolution
-    t0 = time.time()
-    try:
-        ips = socket.gethostbyname_ex('smtp.gmail.com')[2]
-        results['dns'] = {'status': 'ok', 'ips': ips, 'latency_s': round(time.time() - t0, 3)}
-    except Exception as e:
-        results['dns'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+    # Force IPv4 socket resolution
+    original_getaddrinfo = socket.getaddrinfo
 
-    # 2. Port 465 SSL Direct
-    t0 = time.time()
-    try:
-        s = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8, local_hostname='abcdcampus.in')
-        try:
-            s.login(user, pwd)
-        except smtplib.SMTPAuthenticationError:
-            s.login(user, 'cpwejcqiszcoeldd')
-        s.quit()
-        results['port_465_ssl'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
-    except Exception as e:
-        results['port_465_ssl'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+    def ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        clean_flags = flags & ~socket.AI_ADDRCONFIG if hasattr(socket, 'AI_ADDRCONFIG') else 0
+        return original_getaddrinfo(host, port, socket.AF_INET, type, proto, clean_flags)
 
-    # 3. Port 587 STARTTLS Direct
-    t0 = time.time()
-    try:
-        s = smtplib.SMTP('smtp.gmail.com', 587, timeout=8, local_hostname='abcdcampus.in')
-        s.ehlo()
-        s.starttls()
-        s.ehlo()
-        try:
-            s.login(user, pwd)
-        except smtplib.SMTPAuthenticationError:
-            s.login(user, 'cpwejcqiszcoeldd')
-        s.quit()
-        results['port_587_tls'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
-    except Exception as e:
-        results['port_587_tls'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+    socket.getaddrinfo = ipv4_getaddrinfo
 
-    # 4. Actual Dispatch via send_html_email
-    if request.GET.get('send') == '1':
+    try:
+        # 1. DNS Resolution
         t0 = time.time()
         try:
-            sent = send_html_email(
-                subject="ABCD Live Diagnostics Verification",
-                to_email=recipient,
-                template="emails/otp_register.html",
-                context={'username': 'Diagnostics User', 'otp': '888999'},
-                fail_silently=False,
-                timeout=12,
-                run_async=False
-            )
-            results['send_test'] = {'status': 'ok' if sent else 'failed', 'sent': sent, 'latency_s': round(time.time() - t0, 3)}
+            ips = [res[4][0] for res in original_getaddrinfo('smtp.gmail.com', 465, socket.AF_INET)]
+            results['dns_ipv4'] = {'status': 'ok', 'ips': list(set(ips)), 'latency_s': round(time.time() - t0, 3)}
         except Exception as e:
-            results['send_test'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+            results['dns_ipv4'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+
+        # 2. Port 465 SSL Direct (IPv4)
+        t0 = time.time()
+        try:
+            s = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=5, local_hostname='abcdcampus.in')
+            try:
+                s.login(user, pwd)
+            except smtplib.SMTPAuthenticationError:
+                s.login(user, 'cpwejcqiszcoeldd')
+            s.quit()
+            results['port_465_ssl'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
+        except Exception as e:
+            results['port_465_ssl'] = {'status': 'error', 'error': f"{type(e).__name__}: {e}", 'latency_s': round(time.time() - t0, 3)}
+
+        # 3. Port 587 STARTTLS Direct (IPv4)
+        t0 = time.time()
+        try:
+            s = smtplib.SMTP('smtp.gmail.com', 587, timeout=5, local_hostname='abcdcampus.in')
+            s.ehlo()
+            s.starttls()
+            s.ehlo()
+            try:
+                s.login(user, pwd)
+            except smtplib.SMTPAuthenticationError:
+                s.login(user, 'cpwejcqiszcoeldd')
+            s.quit()
+            results['port_587_tls'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
+        except Exception as e:
+            results['port_587_tls'] = {'status': 'error', 'error': f"{type(e).__name__}: {e}", 'latency_s': round(time.time() - t0, 3)}
+
+        # 4. Actual Dispatch via send_html_email
+        if request.GET.get('send') == '1':
+            t0 = time.time()
+            try:
+                sent = send_html_email(
+                    subject="ABCD Live Diagnostics Verification",
+                    to_email=recipient,
+                    template="emails/otp_register.html",
+                    context={'username': 'Diagnostics User', 'otp': '888999'},
+                    fail_silently=False,
+                    timeout=8,
+                    run_async=False
+                )
+                results['send_test'] = {'status': 'ok' if sent else 'failed', 'sent': sent, 'latency_s': round(time.time() - t0, 3)}
+            except Exception as e:
+                results['send_test'] = {'status': 'error', 'error': f"{type(e).__name__}: {e}", 'latency_s': round(time.time() - t0, 3)}
+
+    finally:
+        socket.getaddrinfo = original_getaddrinfo
 
     return JsonResponse(results)
 
