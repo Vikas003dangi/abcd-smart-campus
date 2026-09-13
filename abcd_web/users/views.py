@@ -721,6 +721,24 @@ def save_learning_reminder(request, course_id):
             params['reminder_time'] = dt
             if params['reminder_time'] <= timezone.now():
                 return JsonResponse({'success': False, 'error': 'Reminder time must be in the future.'})
+
+            # Prevent duplicate once-off reminder/schedule for exact same date and time (within same minute)
+            existing_once = LearningReminder.objects.filter(
+                user=request.user,
+                course=course,
+                recurrence_type='once',
+                reminder_time__year=dt.year,
+                reminder_time__month=dt.month,
+                reminder_time__day=dt.day,
+                reminder_time__hour=dt.hour,
+                reminder_time__minute=dt.minute,
+                is_sent=False
+            ).exists()
+            if existing_once:
+                return JsonResponse({
+                    'success': False,
+                    'error': f"A reminder or task for {timezone.localtime(dt).strftime('%d %b %Y, %I:%M %p')} already exists."
+                })
         else:
             time_str = data.get('reminder_time_daily')
             if not time_str:
@@ -733,8 +751,39 @@ def save_learning_reminder(request, course_id):
                     return JsonResponse({'success': False, 'error': 'At least one day must be selected'})
                 params['days_of_week'] = ",".join(map(str, days))
 
-        LearningReminder.objects.create(**params)
-        return JsonResponse({'success': True})
+            # Prevent duplicate recurring reminder for same course and time
+            existing_rec = LearningReminder.objects.filter(
+                user=request.user,
+                course=course,
+                reminder_time_daily=time_str
+            ).exclude(recurrence_type='once').exists()
+            if existing_rec:
+                return JsonResponse({
+                    'success': False,
+                    'error': f"A recurring reminder at {time_str} already exists."
+                })
+
+        reminder = LearningReminder.objects.create(**params)
+        time_display = ""
+        if reminder.recurrence_type == 'once' and reminder.reminder_time:
+            time_display = f"Scheduled for: {timezone.localtime(reminder.reminder_time).strftime('%d %b %Y, %I:%M %p')}"
+        elif reminder.recurrence_type == 'daily' and reminder.reminder_time_daily:
+            time_display = f"Daily at {reminder.reminder_time_daily.strftime('%I:%M %p')}"
+        elif reminder.recurrence_type == 'weekly' and reminder.reminder_time_daily:
+            time_display = f"Every Sat & Sun at {reminder.reminder_time_daily.strftime('%I:%M %p')}"
+        elif reminder.recurrence_type == 'custom' and reminder.reminder_time_daily:
+            time_display = f"{reminder.get_days_display()} at {reminder.reminder_time_daily.strftime('%I:%M %p')}"
+
+        return JsonResponse({
+            'success': True,
+            'reminder': {
+                'id': reminder.id,
+                'title': reminder.title,
+                'recurrence_type': reminder.recurrence_type,
+                'time_display': time_display,
+                'is_sent': reminder.is_sent
+            }
+        })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
@@ -778,9 +827,20 @@ def get_due_reminders(request):
 
     data = []
     
+    def is_reminder_item(title_text):
+        t = (title_text or "").lower()
+        return t.startswith('one-time reminder') or t.startswith('daily reminder') or 'reminder' in t
+
     # Process Once-off
     for r in due_once:
-        data.append({'id': r.id, 'title': r.title, 'message': f"Time to study {r.course.title}!", 'url': f"/courses/{r.course.id}/"})
+        is_alarm = is_reminder_item(r.title)
+        data.append({
+            'id': r.id,
+            'title': r.title,
+            'message': f"Time to study {r.course.title}!" if is_alarm else f"Scheduled Task: {r.title}",
+            'url': f"/courses/{r.course.id}/",
+            'is_alarm': is_alarm
+        })
         r.is_sent = True
         r.last_sent_at = now
         r.save()
@@ -800,7 +860,14 @@ def get_due_reminders(request):
                 should_send = True
         
         if should_send:
-            data.append({'id': r.id, 'title': r.title, 'message': f"Daily Reminder: {r.course.title}!", 'url': f"/courses/{r.course.id}/"})
+            is_alarm = is_reminder_item(r.title)
+            data.append({
+                'id': r.id,
+                'title': r.title,
+                'message': f"Daily Reminder: {r.course.title}!" if is_alarm else f"Scheduled Task: {r.title}",
+                'url': f"/courses/{r.course.id}/",
+                'is_alarm': is_alarm
+            })
             r.last_sent_at = now
             r.save()
             create_dashboard_notification(request.user, r)
@@ -808,14 +875,18 @@ def get_due_reminders(request):
     return JsonResponse({'success': True, 'reminders': data})
 
 def create_dashboard_notification(user, reminder):
+    t = (reminder.title or "").lower()
+    is_alarm = t.startswith('one-time reminder') or t.startswith('daily reminder') or 'reminder' in t
+    category = "reminder" if is_alarm else "schedule"
+    sound = "/static/audio/alarms and reminders.mp3" if is_alarm else "/static/audio/PWA.mp3"
     create_notification(
         user=user,
-        title=f"Study Reminder: {reminder.course.title}",
-        message=f"Time to study {reminder.course.title}!",
+        title=f"Study Reminder: {reminder.course.title}" if is_alarm else f"Study Schedule: {reminder.course.title}",
+        message=f"Time to study {reminder.course.title}!" if is_alarm else f"Scheduled Task: {reminder.title}",
         link=f"/courses/{reminder.course.id}/",
-        category="reminder",
-        sound="/static/audio/alarms and reminders.mp3",
-        meta={'is_alarm': False, 'reminder_id': reminder.id, 'source': 'course'},
+        category=category,
+        sound=sound,
+        meta={'is_alarm': is_alarm, 'reminder_id': reminder.id, 'source': 'course'},
         tag=f"abcd-learning-reminder-{reminder.id}"
     )
 
@@ -835,6 +906,7 @@ def submit_course_review(request, course_id):
     except ValueError:
         return JsonResponse({"success": False, "error": "Invalid rating format."})
 
+    student = None
     if request.user.is_authenticated:
         try:
             student = request.user.profile
@@ -848,7 +920,7 @@ def submit_course_review(request, course_id):
         )
     else:
         guest_name = request.POST.get('guest_name', '').strip() or 'Unknown'
-        CourseReview.objects.create(
+        review = CourseReview.objects.create(
             course=course,
             student=None,
             rating=rating_val,
@@ -857,7 +929,23 @@ def submit_course_review(request, course_id):
         )
 
     messages.success(request, "Review submitted successfully.")
-    return JsonResponse({"success": True})
+    author_name = student.full_name if (request.user.is_authenticated and student) else (request.POST.get('guest_name', '').strip() or 'Guest')
+    avg_rating = course.reviews.aggregate(models.Avg('rating'))['rating__avg'] or float(rating_val)
+    review_count = course.reviews.count()
+
+    return JsonResponse({
+        "success": True,
+        "review": {
+            "author": author_name,
+            "rating": rating_val,
+            "comment": comment,
+            "created_at": "Just now"
+        },
+        "stats": {
+            "avg_rating": round(float(avg_rating), 1),
+            "review_count": review_count
+        }
+    })
 
 @login_required
 @require_POST
@@ -1100,7 +1188,7 @@ def teacher_course_preview_view(request, course_id):
         unique_students=Count('student_access', distinct=True)
     ).order_by('order', 'created_at')
     
-    questions = CourseQuestion.objects.filter(course=course).prefetch_related('answers__user', 'user').order_by('-created_at')
+    questions = CourseQuestion.objects.filter(course=course).prefetch_related('answers__user', 'student__user').order_by('-created_at')
     reviews = CourseReview.objects.filter(course=course).select_related('student__user').order_by('-created_at')
     
     avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0

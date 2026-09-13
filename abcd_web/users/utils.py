@@ -1451,14 +1451,19 @@ def process_offline_learning_reminders():
         if not claimed:
             continue
 
+        t = (r.title or "").lower()
+        is_alarm = t.startswith('one-time reminder') or t.startswith('daily reminder') or 'reminder' in t
+        category = "reminder" if is_alarm else "schedule"
+        sound = "/static/audio/alarms and reminders.mp3" if is_alarm else "/static/audio/PWA.mp3"
+
         create_notification(
             user=r.user,
-            title=f"Study Reminder: {r.course.title}",
-            message=f"Time to study {r.course.title}!",
+            title=f"Study Reminder: {r.course.title}" if is_alarm else f"Study Schedule: {r.course.title}",
+            message=f"Time to study {r.course.title}!" if is_alarm else f"Scheduled Task: {r.title}",
             link=f"/courses/{r.course.id}/",
-            category="reminder",
-            sound="/static/audio/alarms and reminders.mp3",
-            meta={'is_alarm': False, 'reminder_id': r.id, 'source': 'course'},
+            category=category,
+            sound=sound,
+            meta={'is_alarm': is_alarm, 'reminder_id': r.id, 'source': 'course'},
             tag=f"abcd-learning-reminder-{r.id}"
         )
         target_email = get_user_notification_email(r.user)

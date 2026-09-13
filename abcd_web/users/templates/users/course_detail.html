@@ -1787,7 +1787,7 @@
                         
                         <div id="remindersList" style="margin-bottom: 30px;">
                             {% for r in reminders %}
-                            <div class="reminder-item" style="background: var(--item-hover); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
+                            <div class="reminder-item" id="reminder-item-{{ r.id }}" style="background: var(--item-hover); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
                                 <div>
                                     <div style="font-weight: 700; color: var(--text-main);">{{ r.title }}</div>
                                     <div style="font-size: 0.85rem; color: var(--text-dim);">
@@ -1814,7 +1814,7 @@
                                 </div>
                             </div>
                             {% empty %}
-                            <div style="text-align: center; padding: 30px; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 8px;">
+                            <div id="remindersEmptyState" style="text-align: center; padding: 30px; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 8px;">
                                 No reminders scheduled yet.
                             </div>
                             {% endfor %}
@@ -2334,8 +2334,18 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) { location.reload(); }
-            else { showABCDModal({ title: 'Error', message: data.error, type: 'error' }); }
+            if (data.success) {
+                closeModal('ratingModal');
+                if (data.stats) {
+                    document.querySelectorAll('.course-rating-score, .avg-rating-val').forEach(el => el.textContent = data.stats.avg_rating);
+                    document.querySelectorAll('.course-rating-count, .review-count-val').forEach(el => el.textContent = `(${data.stats.review_count} reviews)`);
+                }
+                showABCDModal({ title: 'Success', message: 'Review submitted successfully!', type: 'success' });
+            }
+            else { showABCDModal({ title: 'Error', message: data.error || 'Failed to submit review.', type: 'error' }); }
+        })
+        .catch(err => {
+            showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
         });
     }
 
@@ -2690,6 +2700,11 @@
         
         document.querySelectorAll('.modal-section').forEach(s => s.style.display = 'none');
         document.getElementById(`modal-section-${tab}`).style.display = 'block';
+
+        const submitBtn = document.getElementById('btnSubmitReminderSchedule');
+        if (submitBtn) {
+            submitBtn.textContent = (tab === 'reminder') ? 'Save Reminder' : 'Save Schedule';
+        }
     }
 
     // NOTE: Navbar scroll hide/show is handled by the base template's scroll handler.
@@ -2724,6 +2739,16 @@
 
     function closeReminderModal() {
         closeModal('reminderModal');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     function submitReminder() {
@@ -2801,15 +2826,42 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                closeReminderModal();
+
+                // Live dynamic UI update: add reminder to list without page refresh!
+                const list = document.getElementById('remindersList');
+                const empty = document.getElementById('remindersEmptyState');
+                if (empty) empty.remove();
+
+                const r = data.reminder;
+                if (r && list) {
+                    const itemHtml = `
+                    <div class="reminder-item" id="reminder-item-${r.id}" style="background: var(--item-hover); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); animation: fadeIn 0.3s ease;">
+                        <div>
+                            <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(r.title)}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-dim);">${escapeHtml(r.time_display)}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="color: var(--accent); font-size: 0.75rem; font-weight: 700;">Pending</span>
+                            <button onclick="deleteReminder('${r.id}')" style="background: transparent; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px; display: flex; align-items: center;" title="Delete Reminder">
+                                <i class='bx bx-trash'></i>
+                            </button>
+                        </div>
+                    </div>`;
+                    list.insertAdjacentHTML('afterbegin', itemHtml);
+                }
+
                 showABCDModal({
                     title: 'Success',
-                    message: 'Schedule saved successfully!',
-                    type: 'success',
-                    onConfirm: () => location.reload()
+                    message: activeModalTab === 'reminder' ? 'Reminder saved successfully!' : 'Schedule saved successfully!',
+                    type: 'success'
                 });
             } else {
-                showABCDModal({ title: 'Error', message: data.error, type: 'error' });
+                showABCDModal({ title: 'Error', message: data.error || 'Failed to save schedule.', type: 'error' });
             }
+        })
+        .catch(err => {
+            showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
         });
     }
 
@@ -2820,6 +2872,7 @@
             type: 'confirm',
             showCancel: true,
             confirmText: 'Delete',
+            isDestructive: true,
             onConfirm: () => {
                 fetch(`/api/reminders/${reminderId}/delete/`, {
                     method: 'POST',
@@ -2828,10 +2881,28 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        location.reload();
+                        const itemEl = document.getElementById(`reminder-item-${reminderId}`);
+                        if (itemEl) {
+                            itemEl.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                            itemEl.style.opacity = '0';
+                            itemEl.style.transform = 'translateY(-10px)';
+                            setTimeout(() => {
+                                itemEl.remove();
+                                const list = document.getElementById('remindersList');
+                                if (list && list.querySelectorAll('.reminder-item').length === 0) {
+                                    list.innerHTML = `
+                                    <div id="remindersEmptyState" style="text-align: center; padding: 30px; color: var(--text-dim); border: 1px dashed var(--border); border-radius: 8px;">
+                                        No reminders scheduled yet.
+                                    </div>`;
+                                }
+                            }, 250);
+                        }
                     } else {
-                        showABCDModal({ title: 'Error', message: data.error, type: 'error' });
+                        showABCDModal({ title: 'Error', message: data.error || 'Failed to delete reminder.', type: 'error' });
                     }
+                })
+                .catch(err => {
+                    showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
                 });
             }
         });
@@ -2959,21 +3030,30 @@
             .then(data => {
                 if (data.success && data.reminders && data.reminders.length > 0) {
                     data.reminders.forEach(r => {
-                        if (window.startABCDAlarm) {
-                            window.startABCDAlarm(r.title, r.message, null, false, '/static/audio/alarms and reminders.mp3');
-                        } else if (window.playABCDSound) {
-                            window.playABCDSound('alarms and reminders', 1.0);
+                        // Mark item in UI as 'Sent' if visible in reminders list
+                        const itemEl = document.getElementById(`reminder-item-${r.id}`);
+                        if (itemEl) {
+                            const badges = itemEl.querySelectorAll('span');
+                            badges.forEach(b => {
+                                if (b.textContent.trim() === 'Pending') {
+                                    b.style.color = 'var(--success)';
+                                    b.textContent = 'Sent';
+                                }
+                            });
                         }
-                        if (Notification.permission === "granted") {
-                            try {
-                                new Notification(r.title, {
-                                    body: r.message,
-                                    icon: '/static/data/favicon/favicon.ico'
-                                }).onclick = () => {
-                                    window.focus();
-                                    location.href = r.url;
-                                };
-                            } catch(e) {}
+
+                        // Play sound based on type: reminder alarm vs scheduled task
+                        const isAlarm = r.is_alarm !== false;
+                        if (isAlarm) {
+                            if (window.startABCDAlarm) {
+                                window.startABCDAlarm(r.title, r.message, null, false, '/static/audio/alarms and reminders.mp3');
+                            } else if (window.playABCDSound) {
+                                window.playABCDSound('alarms and reminders', 1.0);
+                            }
+                        } else {
+                            if (window.playABCDSound) {
+                                window.playABCDSound('pwa');
+                            }
                         }
                     });
                 }
@@ -3355,7 +3435,7 @@
 
                 <div class="abcd-modal-actions" style="margin-top: 20px;">
                     <button class="abcd-modal-btn" style="background:var(--item-hover); color:var(--text-main); border-radius: 12px; padding: 15px 25px;" onclick="closeReminderModal()">Cancel</button>
-                    <button class="abcd-modal-btn abcd-modal-btn-confirm" style="border-radius: 12px; padding: 15px 25px;" onclick="submitReminder()">Save Schedule</button>
+                    <button id="btnSubmitReminderSchedule" class="abcd-modal-btn abcd-modal-btn-confirm" style="border-radius: 12px; padding: 15px 25px;" onclick="submitReminder()">Save Reminder</button>
                 </div>
             </div>
         </div>

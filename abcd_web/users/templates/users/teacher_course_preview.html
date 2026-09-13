@@ -1450,9 +1450,13 @@
           {% for r in reviews %}
           <div class="tp-list-item">
             <div style="display: flex; gap: 15px;">
-              <div class="tp-avatar" style="background: #fdf0d5; color: #856404;">{{ r.student.full_name|slice:":1" }}</div>
+              <div class="tp-avatar" style="background: #fdf0d5; color: #856404;">
+                {% if r.student %}{{ r.student.full_name|slice:":1" }}{% elif r.guest_name %}{{ r.guest_name|slice:":1" }}{% else %}S{% endif %}
+              </div>
               <div style="flex: 1;">
-                <div style="font-weight: 700; color: var(--text-main);">{{ r.student.full_name }}</div>
+                <div style="font-weight: 700; color: var(--text-main);">
+                  {% if r.student %}{{ r.student.full_name }}{% elif r.guest_name %}{{ r.guest_name }} <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-dim);">(Guest)</span>{% else %}Student{% endif %}
+                </div>
                 <div style="font-size: 0.8rem; color: var(--text-dim);">{{ r.created_at|date:"M d, Y" }}</div>
                 <div style="margin: 8px 0; color: #fbbf24;">
                   {% for i in "12345" %}

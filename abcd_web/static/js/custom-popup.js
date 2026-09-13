@@ -430,22 +430,41 @@ window.showStyledConfirm = function (title, message) {
 };
 
 window.showStyledPopup = function (opts) {
-    if (!opts) return;
+    if (!opts) return Promise.resolve(false);
     const type = opts.type || 'alert';
-    const title = opts.title || (type === 'error' ? 'Error' : (type === 'warning' ? 'Warning' : 'Notice'));
+    const isConfirm = type === 'confirm' || opts.showCancel === true;
+    const title = opts.title || (type === 'error' ? 'Error' : (type === 'warning' ? 'Warning' : (isConfirm ? 'Confirmation' : 'Notice')));
     const msg = opts.message || '';
     const okBtnClass = type === 'error' ? 'btn-danger' : (type === 'warning' ? 'btn-warning' : (type === 'success' ? 'btn-success' : 'btn-primary'));
+    const confirmLabel = opts.confirmText || opts.okText || (isConfirm ? 'Confirm' : 'OK');
+    const cancelLabel = opts.cancelText || 'Cancel';
+    const confirmBtnClass = opts.confirmBtnClass || (opts.type === 'confirm' && (confirmLabel === 'Delete' || opts.isDestructive) ? 'btn-danger' : okBtnClass);
+
+    const buttons = [];
+    if (isConfirm) {
+        buttons.push({ label: cancelLabel, value: false, class: 'btn-secondary' });
+        buttons.push({ label: confirmLabel, value: true, class: confirmBtnClass });
+    } else {
+        buttons.push({ label: confirmLabel, value: true, class: okBtnClass });
+    }
     
     return CustomPopup.show({
         title: title,
         message: msg,
         type: type,
-        buttons: [
-            { label: opts.okText || 'OK', value: true, class: okBtnClass }
-        ]
+        buttons: buttons
     }).then((val) => {
-        if (typeof opts.onOk === 'function') {
-            opts.onOk(val);
+        if (val) {
+            if (typeof opts.onConfirm === 'function') {
+                opts.onConfirm(val);
+            }
+            if (typeof opts.onOk === 'function') {
+                opts.onOk(val);
+            }
+        } else {
+            if (typeof opts.onCancel === 'function') {
+                opts.onCancel(val);
+            }
         }
         return val;
     });

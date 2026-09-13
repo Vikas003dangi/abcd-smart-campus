@@ -52,9 +52,9 @@
         localStorage.setItem(SOUND_STORAGE_KEY, enabled ? 'true' : 'false');
     }
 
-    // Pre-cache sounds
+    // Pre-cache small UI interaction sounds (load large alert/alarm audio files on-demand)
     function initAudioPool() {
-        Object.keys(SOUND_PATHS).forEach(function (key) {
+        ['button', 'send', 'receive', 'done', 'error'].forEach(function (key) {
             try {
                 const audio = new Audio(SOUND_PATHS[key]);
                 audio.preload = 'auto';
@@ -70,20 +70,18 @@
         if (isAudioUnlocked) return;
 
         try {
-            // Prime essential audio elements so subsequent playback is permitted by browser policy
-            ['button', 'alarm', 'reminder', 'alarms and reminders'].forEach(function (key) {
-                const primer = audioPool[key] || new Audio(SOUND_PATHS[key]);
-                audioPool[key] = primer;
-                primer.volume = 0.001;
-                const promise = primer.play();
-                if (promise !== undefined) {
-                    promise.then(function () {
-                        primer.pause();
-                        primer.currentTime = 0;
-                        primer.volume = 1.0;
-                    }).catch(function () {});
-                }
-            });
+            // Prime audio context using the tiny 1.5KB button sound
+            const primer = audioPool['button'] || new Audio(SOUND_PATHS['button']);
+            audioPool['button'] = primer;
+            primer.volume = 0.001;
+            const promise = primer.play();
+            if (promise !== undefined) {
+                promise.then(function () {
+                    primer.pause();
+                    primer.currentTime = 0;
+                    primer.volume = 1.0;
+                }).catch(function () {});
+            }
             isAudioUnlocked = true;
             ['click', 'touchstart', 'keydown'].forEach(function (evt) {
                 document.removeEventListener(evt, unlockAudio, { capture: true });

@@ -10,6 +10,23 @@ self.addEventListener('activate', function (event) {
 
 let activeChatState = { chatType: null, chatId: null, timestamp: 0 };
 
+// Normalized helper for robust Guidy classification across push and click events
+function isGuidyPayload(obj, fallbackUrl) {
+    if (!obj && !fallbackUrl) return false;
+    const o = obj || {};
+    const cat = String(o.category || '').toLowerCase().trim();
+    const src = String(o.source || '').toLowerCase().trim();
+    const tag = String(o.tag || '').toLowerCase().trim();
+    const url = String(o.url || fallbackUrl || '').toLowerCase().trim();
+    return (
+        cat === 'guidy' ||
+        src === 'guidy' ||
+        tag.startsWith('guidy-') ||
+        tag.includes('guidy') ||
+        url.includes('/guidy')
+    );
+}
+
 self.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'ACTIVE_CHAT_UPDATE') {
         activeChatState = {
@@ -45,23 +62,6 @@ self.addEventListener('push', function (event) {
     const bodyText = sanitizeText(data.body) || 'You have a new update.';
     const icon = data.icon || '/static/data/favicon/web-app-manifest-192x192.png';
     const badge = data.badge || '/static/data/favicon/favicon-96x96.png';
-
-// Normalized helper for robust Guidy classification across push and click events
-function isGuidyPayload(obj, fallbackUrl) {
-    if (!obj && !fallbackUrl) return false;
-    const o = obj || {};
-    const cat = String(o.category || '').toLowerCase().trim();
-    const src = String(o.source || '').toLowerCase().trim();
-    const tag = String(o.tag || '').toLowerCase().trim();
-    const url = String(o.url || fallbackUrl || '').toLowerCase().trim();
-    return (
-        cat === 'guidy' ||
-        src === 'guidy' ||
-        tag.startsWith('guidy-') ||
-        tag.includes('guidy') ||
-        url.includes('/guidy')
-    );
-}
 
     const catLower = (data.category || '').toLowerCase().trim();
     const titleLower = (title || '').toLowerCase().trim();

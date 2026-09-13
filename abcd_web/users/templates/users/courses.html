@@ -790,7 +790,15 @@
             });
             const data = await res.json();
             if (data.success) {
-                location.reload();
+                closeRatingModal();
+                if (data.stats) {
+                    const card = document.querySelector(`.course-card[data-course-id="${currentCourseId}"]`);
+                    if (card) {
+                        const scoreEl = card.querySelector('.rating-score');
+                        if (scoreEl) scoreEl.textContent = data.stats.avg_rating;
+                    }
+                }
+                await showAlert("Success", "Review submitted successfully!");
             } else {
                 await showAlert("Error", data.error || "Failed to submit review.");
             }
