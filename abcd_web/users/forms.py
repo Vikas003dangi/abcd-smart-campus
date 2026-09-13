@@ -273,6 +273,13 @@ class StudentProfileForm(forms.ModelForm):
 
         return cleaned_data
 
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo and hasattr(photo, 'size'):
+            if photo.size > 2 * 1024 * 1024:
+                raise ValidationError("Photo file size cannot exceed 2MB. Please compress your image.")
+        return photo
+
     def save(self, commit=True):
         instance = super().save(commit=False)
         instance.full_name = f"{self.cleaned_data['first_name']} {self.cleaned_data['last_name']}"
@@ -553,6 +560,13 @@ class StudentAchievementForm(forms.ModelForm):
                 field.widget.attrs['placeholder'] = '10-digit WhatsApp Number'
             elif field_name == 'email':
                 field.widget.attrs['placeholder'] = 'Your Email Address'
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo and hasattr(photo, 'size'):
+            if photo.size > 2 * 1024 * 1024:
+                raise ValidationError("Photo file size cannot exceed 2MB. Please compress your image.")
+        return photo
 
 
 class EditAlumniProfileForm(forms.ModelForm):

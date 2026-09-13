@@ -11,6 +11,7 @@
 
 {% block extra_css %}
 {{ block.super }}
+<link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
 <style>
     /* --- SHARED STYLES FROM ADMISSION FORM --- */
     .form-container {
@@ -791,10 +792,10 @@
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
         const box = document.createElement('div');
-        box.style.cssText = 'background:#fff;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
+        box.style.cssText = 'background:#fff;border-radius:16px;padding:26px 28px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
         box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:10px">${c.icon}</div>
                          <h3 style="color:${c.titleColor};margin-bottom:12px;font-size:1.2rem">${title}</h3>
-                         <p style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:22px">${message}</p>
+                         <div style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:22px">${message}</div>
                          <button id="styledPopupOkBtn" style="background:${c.border};color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity 0.2s">${okText}</button>`;
         overlay.appendChild(box);
         document.body.appendChild(overlay);
@@ -1038,31 +1039,89 @@
     const photoIn = document.getElementById('id_photo');
     if (photoIn) {
         photoIn.addEventListener('change', function() {
-            const file = this.files[0];
+            const file = this.files && this.files[0];
             const previewImgCustom = document.getElementById('photoPreviewCustom');
             const placeholderCustom = document.getElementById('photoPlaceholderCustom');
             
-            if (file) {
-                if (file.size > 2 * 1024 * 1024) {
-                    showStyledPopup({title: 'File too large', message: 'Please upload a photo smaller than 2MB.', type: 'warning'});
-                    this.value = '';
-                    if (previewImgCustom) {
-                        previewImgCustom.src = '';
-                        previewImgCustom.style.display = 'none';
-                    }
-                    if (placeholderCustom) placeholderCustom.style.display = 'flex';
-                    return;
+            if (!file) return;
+
+            const resetPhoto = () => {
+                this.value = '';
+                if (previewImgCustom) {
+                    previewImgCustom.src = '';
+                    previewImgCustom.style.display = 'none';
                 }
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    if (previewImgCustom) {
-                        previewImgCustom.src = e.target.result;
-                        previewImgCustom.style.display = 'block';
-                    }
-                    if (placeholderCustom) placeholderCustom.style.display = 'none';
+                if (placeholderCustom) {
+                    placeholderCustom.style.display = 'flex';
                 }
-                reader.readAsDataURL(file);
+            };
+
+            // 1. Format validation (JPG, JPEG, PNG, WEBP)
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            const fileName = (file.name || '').toLowerCase();
+            const validExtension = /\.(jpe?g|png|webp)$/i.test(fileName);
+            const validType = allowedTypes.includes(file.type) || validExtension;
+
+            if (!validType) {
+                showStyledPopup({
+                    title: 'Invalid Photo Format',
+                    message: `
+                        <div style="text-align: left; font-size: 0.92rem; line-height: 1.55;">
+                            <p style="margin-bottom: 10px;">
+                                The selected file is not in a supported image format.
+                            </p>
+                            <div class="popup-info-box">
+                                <strong style="color: #b45309; display: block; margin-bottom: 4px;">Acceptable Formats:</strong>
+                                <span>Only <strong>JPG, JPEG, PNG, or WEBP</strong> files are accepted.</span>
+                            </div>
+                        </div>
+                    `,
+                    type: 'warning',
+                    okText: 'Understood'
+                });
+                resetPhoto();
+                return;
             }
+
+            // 2. File size validation (Max 2MB)
+            const maxSizeBytes = 2 * 1024 * 1024;
+            if (file.size > maxSizeBytes) {
+                const currentSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                showStyledPopup({
+                    title: 'Photo Too Large',
+                    message: `
+                        <div style="text-align: left; font-size: 0.92rem; line-height: 1.55;">
+                            <p style="margin-bottom: 10px;">
+                                Your photo is <strong>${currentSizeMB} MB</strong>, which exceeds the <strong>2MB</strong> limit.
+                            </p>
+                            <div class="popup-info-box">
+                                <strong style="color: #b45309; display: block; margin-bottom: 4px;">Requirements:</strong>
+                                <span>• Maximum size: <strong>2MB</strong><br>• Formats: <strong>JPG, PNG, WEBP</strong></span>
+                            </div>
+                            <div class="popup-tip-box">
+                                <strong style="color: #4f46e5; display: block; margin-bottom: 3px;">💡 Quick Tip:</strong>
+                                <span>Want to use this photo? Compress it online at <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;font-weight:600;">tinypng.com</a> or <a href="https://compressjpeg.com" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;font-weight:600;">compressjpeg.com</a> to bring it under 2MB.</span>
+                            </div>
+                        </div>
+                    `,
+                    type: 'warning',
+                    okText: 'Got It'
+                });
+                resetPhoto();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (previewImgCustom) {
+                    previewImgCustom.src = e.target.result;
+                    previewImgCustom.style.display = 'block';
+                }
+                if (placeholderCustom) {
+                    placeholderCustom.style.display = 'none';
+                }
+            };
+            reader.readAsDataURL(file);
         });
     }
 
@@ -1244,5 +1303,6 @@
     });
 })();
 </script>
+<script src="{% static 'js/custom-popup.js' %}"></script>
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

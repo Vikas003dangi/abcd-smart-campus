@@ -199,6 +199,39 @@ body.dark-theme .custom-popup-title {
     font-size: 0.9rem;
 }
 
+/* Helper callout boxes for popup notices & compression tips */
+.popup-info-box {
+    background: rgba(245, 158, 11, 0.08);
+    border-left: 3px solid #f59e0b;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin: 12px 0;
+    text-align: left;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.popup-tip-box {
+    background: rgba(99, 102, 241, 0.08);
+    border-left: 3px solid #6366f1;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 10px;
+    text-align: left;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+body.dark-theme .popup-info-box {
+    background: rgba(245, 158, 11, 0.16) !important;
+    border-left-color: #fbbf24 !important;
+}
+
+body.dark-theme .popup-tip-box {
+    background: rgba(99, 102, 241, 0.16) !important;
+    border-left-color: #818cf8 !important;
+}
+
 /* ================================================== */
 /* POPUP ACTIONS (BUTTONS) */
 /* ================================================== */

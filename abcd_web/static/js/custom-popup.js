@@ -27,6 +27,18 @@ window.setButtonLoading = function(button, isLoading, loadingText) {
 var CustomPopup = window.CustomPopup || (function () {
     'use strict';
 
+    // Auto-inject stylesheet if not already present on page
+    (function ensurePopupStyles() {
+        if (typeof document !== 'undefined' && document.head) {
+            if (!document.querySelector('link[href*="custom-popup.css"]')) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = '/static/css/custom-popup.css';
+                document.head.appendChild(link);
+            }
+        }
+    })();
+
     let popupOverlay = null;
     let popupContainer = null;
     let resolveCallback = null;
@@ -36,6 +48,14 @@ var CustomPopup = window.CustomPopup || (function () {
      */
     function init() {
         if (popupOverlay) return;
+
+        // Ensure stylesheet exists
+        if (typeof document !== 'undefined' && document.head && !document.querySelector('link[href*="custom-popup.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = '/static/css/custom-popup.css';
+            document.head.appendChild(link);
+        }
 
         // Create overlay
         popupOverlay = document.createElement('div');
@@ -399,16 +419,29 @@ window.showStyledConfirm = function (title, message) {
 
 window.showStyledPopup = function (opts) {
     if (!opts) return;
-    const title = opts.title || (opts.type === 'error' ? 'Error' : 'Notice');
+    const type = opts.type || 'alert';
+    const title = opts.title || (type === 'error' ? 'Error' : (type === 'warning' ? 'Warning' : 'Notice'));
     const msg = opts.message || '';
-    return CustomPopup.alert(msg, title);
+    const okBtnClass = type === 'error' ? 'btn-danger' : (type === 'warning' ? 'btn-warning' : (type === 'success' ? 'btn-success' : 'btn-primary'));
+    
+    return CustomPopup.show({
+        title: title,
+        message: msg,
+        type: type,
+        buttons: [
+            { label: opts.okText || 'OK', value: true, class: okBtnClass }
+        ]
+    }).then((val) => {
+        if (typeof opts.onOk === 'function') {
+            opts.onOk(val);
+        }
+        return val;
+    });
 };
 
 window.showABCDModal = function (opts) {
     if (!opts) return;
-    const title = opts.title || (opts.type === 'error' ? 'Error' : 'Notice');
-    const msg = opts.message || '';
-    return CustomPopup.alert(msg, title);
+    return window.showStyledPopup(opts);
 };
 
 // Global Helper & Mutation Observer to ensure ANY newly opened Modal B is ALWAYS on top of Modal A
