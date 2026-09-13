@@ -2173,7 +2173,6 @@ def register(request):
                 return JsonResponse({
                     'status': 'ok',
                     'message': 'Verification code sent to your email.',
-                    'attempts': atomic_attempts,
                     'cooldown_seconds': 60
                 })
             else:
