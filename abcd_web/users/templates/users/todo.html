@@ -3859,7 +3859,7 @@
 </div>
 
 <!-- Custom Confirmation Modal -->
-<div class="todo-modal-overlay" id="confirmModal" style="z-index: 10050;">
+<div class="todo-modal-overlay" id="confirmModal" style="z-index: 3000000 !important;">
   <div class="todo-modal" style="max-width: 400px; text-align: center;">
     <div class="todo-modal-body" style="padding: 30px;">
       <i class='bx bx-info-circle' style="font-size: 3.5rem; color: #7b61ff; margin-bottom: 15px; display: block;"></i>
@@ -8189,7 +8189,7 @@
   function showModalPrompt(title, message, defaultVal, onConfirm) {
     const overlay = document.createElement('div');
     overlay.className = 'todo-modal-overlay active';
-    overlay.style.zIndex = '99999';
+    overlay.style.zIndex = '3000000';
     overlay.innerHTML = `
       <div class="todo-modal" style="max-width:420px; border-radius:16px;">
         <div class="todo-modal-header" style="padding:14px 18px; border-radius:16px 16px 0 0;">
@@ -13478,7 +13478,7 @@
 </div>
 
 <!-- Custom Alert Modal -->
-<div id="alertModalOverlay" class="picker-overlay" style="z-index: 10060;">
+<div id="alertModalOverlay" class="picker-overlay" style="z-index: 3000000 !important;">
   <div class="picker-card" style="max-width: 340px; text-align: center; padding: 40px 30px;">
     <div
       style="width: 64px; height: 64px; background: #fffbeb; color: #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 20px;">

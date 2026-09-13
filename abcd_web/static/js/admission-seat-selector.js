@@ -301,9 +301,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openOverlaySafely(overlay) {
         if (!overlay) return;
-        overlay.style.setProperty('z-index', '300000', 'important');
+        var highestZ = 20000;
+        if (typeof window.getHighestZIndex === 'function') {
+            highestZ = Math.max(highestZ, window.getHighestZIndex([overlay]));
+        }
+        overlay.style.setProperty('z-index', (highestZ + 10).toString(), 'important');
         const box = overlay.querySelector('.seat-interest-box, .seat-interest-modal');
-        if (box) box.style.setProperty('z-index', '300001', 'important');
+        if (box) box.style.setProperty('z-index', (highestZ + 11).toString(), 'important');
         overlay.classList.remove('hidden');
     }
 

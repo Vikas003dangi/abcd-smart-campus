@@ -2334,7 +2334,7 @@
         background: rgba(15, 23, 42, 0.78) !important;
         backdrop-filter: blur(14px) !important;
         -webkit-backdrop-filter: blur(14px) !important;
-        z-index: 2500000 !important;
+        z-index: 50000 !important;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2359,7 +2359,7 @@
         transform: scale(0.85) translateY(20px);
         transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         position: relative;
-        z-index: 2500002;
+        z-index: 50001 !important;
     }
     body.dark-theme .reg-success-card {
         background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%);
@@ -2569,7 +2569,7 @@
         display: none; /* Controlled by JS via sessionStorage */
         justify-content: center !important;
         align-items: center !important;
-        z-index: 1000000 !important;
+        z-index: 30000 !important;
         pointer-events: auto !important;
     }
 
@@ -2578,7 +2578,7 @@
     }
 
     .choice-modal-card {
-        z-index: 1000001 !important;
+        z-index: 30001 !important;
         background: white !important;
         color: #333 !important;
         border-radius: 24px !important;
@@ -5194,7 +5194,6 @@ document.addEventListener('click', function(e) {
         window.location.href = "{% url 'users:student_dashboard' %}";
     }
 </script>
-{% include 'users/_banner_popup.html' %}
 {% include 'partials/_home_base_exit.html' %}
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 {% endblock %}

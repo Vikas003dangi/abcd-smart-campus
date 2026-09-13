@@ -16,7 +16,7 @@
     background: rgba(10, 15, 30, 0.85);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    z-index: 100000;
+    z-index: 3000000 !important;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -50,7 +50,7 @@
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-    z-index: 100001;
+    z-index: 3000001 !important;
     opacity: 0;
     visibility: hidden;
     will-change: transform, opacity;

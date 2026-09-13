@@ -45,7 +45,7 @@
     background: rgba(15, 23, 42, 0.75) !important;
     backdrop-filter: blur(14px) !important;
     -webkit-backdrop-filter: blur(14px) !important;
-    z-index: 1000000 !important;
+    z-index: 35000 !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -60,7 +60,7 @@
 
 .student-banner-card {
     position: relative;
-    z-index: 1000001 !important;
+    z-index: 35001 !important;
     width: 100%;
     max-width: 520px;
     max-height: 90vh;
@@ -275,9 +275,13 @@ body.dark-theme .banner-buttons-footer {
 </style>
 
 <script>
-let currentActiveBannerId = null;
+(function() {
+    if (window.__abcdBannerPopupLoaded) return;
+    window.__abcdBannerPopupLoaded = true;
 
-async function checkAndDisplayStudentBanner() {
+    var currentActiveBannerId = window.currentActiveBannerId || null;
+
+    async function checkAndDisplayStudentBanner() {
     try {
         const response = await fetch("{% url 'users:get_active_student_banner_api' %}");
         if (!response.ok) return;
@@ -372,6 +376,8 @@ async function dismissStudentBanner() {
         }
     }
 }
+window.checkAndDisplayStudentBanner = checkAndDisplayStudentBanner;
+window.dismissStudentBanner = dismissStudentBanner;
 
 {% if user.is_authenticated %}
 // Show banner on base page (initial 8s gap) and check periodically for newly maturing scheduled banners
@@ -484,5 +490,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 })();
 {% endif %}
+})();
 </script>
 

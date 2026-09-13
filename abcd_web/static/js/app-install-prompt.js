@@ -279,7 +279,7 @@
                 position: fixed !important;
                 inset: 0 !important;
                 background: rgba(10, 15, 30, 0.8) !important;
-                z-index: 3000000 !important;
+                z-index: 40000 !important;
                 opacity: 0;
                 visibility: hidden;
                 transition: opacity 0.2s ease, visibility 0.2s ease;
@@ -301,7 +301,7 @@
                 padding: 32px 28px;
                 box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45), 0 0 50px rgba(108, 99, 255, 0.25);
                 color: #1e293b;
-                z-index: 3000001 !important;
+                z-index: 40001 !important;
                 opacity: 0;
                 visibility: hidden;
                 will-change: transform, opacity;

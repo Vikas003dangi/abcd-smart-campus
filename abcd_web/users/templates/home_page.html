@@ -1200,7 +1200,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 1000000 !important;
+            z-index: 30000 !important;
             background: rgba(15, 23, 42, 0.75) !important;
             backdrop-filter: blur(14px) !important;
             -webkit-backdrop-filter: blur(14px) !important;
@@ -1230,7 +1230,7 @@
             max-width: 530px;
             padding: 24px 26px 22px;
             position: relative;
-            z-index: 1000001 !important;
+            z-index: 30001 !important;
             box-shadow: 0 25px 60px rgba(15, 23, 42, 0.16), 0 0 45px rgba(234, 88, 12, 0.12);
             display: flex;
             flex-direction: column;
@@ -2673,7 +2673,7 @@
         .search-keyword-popup {
             display: none;
             position: absolute;
-            z-index: 999999;
+            z-index: 2500;
             border-radius: 8px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             padding: 4px;
@@ -6925,8 +6925,8 @@
     </script>
 
 <!-- ================= LOGOUT CONFIRMATION POPUP ================= -->
-<div id="logoutConfirmOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;z-index:99998;backdrop-filter:blur(4px);opacity:0;transition:opacity 0.25s ease;"></div>
-<div id="logoutConfirmModal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);background:#fff9f9;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.35);width:min(400px,88vw);display:none;z-index:99999;opacity:0;transition:opacity 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);">
+<div id="logoutConfirmOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;z-index:3000000;backdrop-filter:blur(4px);opacity:0;transition:opacity 0.25s ease;"></div>
+<div id="logoutConfirmModal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);background:#fff9f9;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.35);width:min(400px,88vw);display:none;z-index:3000001;opacity:0;transition:opacity 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:linear-gradient(135deg,#e8455a 0%,#c0392b 100%);color:white;border-radius:16px 16px 0 0;">
         <h3 style="margin:0;font-size:1.15rem;font-weight:700;letter-spacing:0.3px;">Confirm Logout</h3>
         <button type="button" id="logoutConfirmCloseBtn" style="background:none;border:none;font-size:1.8rem;cursor:pointer;color:white;opacity:0.85;line-height:1;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">&times;</button>
@@ -6951,6 +6951,12 @@
 
     function showLogoutPopup(url) {
         logoutUrl = url;
+        var highestZ = 3000000;
+        if (typeof window.getHighestZIndex === 'function') {
+            highestZ = Math.max(highestZ, window.getHighestZIndex([overlay, modal]));
+        }
+        overlay.style.setProperty('z-index', (highestZ + 10).toString(), 'important');
+        modal.style.setProperty('z-index', (highestZ + 11).toString(), 'important');
         overlay.style.display = 'block';
         modal.style.display = 'block';
         void modal.offsetWidth;
