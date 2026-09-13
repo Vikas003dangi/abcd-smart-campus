@@ -124,6 +124,90 @@ def send_html_email(
             text = re.sub(r'\n\s*\n+', '\n\n', text).strip()
             text_content = text
 
+        # 0. CLOUD HTTP REST API DISPATCH (HTTPS Port 443 - Bypasses cloud host SMTP port blocks)
+        # Option A: Google Apps Script Webhook Relay (Direct from abcd2013baq@gmail.com)
+        relay_url = (getattr(settings, 'GMAIL_RELAY_URL', '') or os.environ.get('GMAIL_RELAY_URL', '')).strip()
+        if relay_url:
+            try:
+                import requests
+                resp = requests.post(
+                    relay_url,
+                    json={
+                        'to': to_email,
+                        'subject': clean_subject,
+                        'html': html_content,
+                        'text': text_content,
+                        'from_name': "ABCD Coaching & Library"
+                    },
+                    timeout=min(timeout, 8)
+                )
+                if resp.status_code == 200:
+                    logger.info(f"EMAIL SUCCESS (Google HTTP Relay): Sent '{clean_subject}' to {to_email}")
+                    return True
+                else:
+                    logger.warning(f"Google HTTP Relay returned status {resp.status_code}. Falling back...")
+            except Exception as h_err:
+                logger.warning(f"Google HTTP Relay error: {h_err}. Falling back...")
+
+        # Option B: Brevo HTTP REST API (300 free emails/day over HTTPS Port 443)
+        brevo_key = (getattr(settings, 'BREVO_API_KEY', '') or os.environ.get('BREVO_API_KEY', '')).strip()
+        if brevo_key:
+            try:
+                import requests
+                sender_email = (getattr(settings, 'EMAIL_HOST_USER', '') or 'abcd2013baq@gmail.com').strip()
+                resp = requests.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "api-key": brevo_key,
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    json={
+                        "sender": {"name": "ABCD Coaching & Library", "email": sender_email},
+                        "to": [{"email": to_email}],
+                        "subject": clean_subject,
+                        "htmlContent": html_content,
+                        "textContent": text_content
+                    },
+                    timeout=min(timeout, 8)
+                )
+                if resp.status_code in [200, 201, 202]:
+                    logger.info(f"EMAIL SUCCESS (Brevo HTTP API): Sent '{clean_subject}' to {to_email}")
+                    return True
+                else:
+                    logger.warning(f"Brevo HTTP API returned status {resp.status_code}. Falling back...")
+            except Exception as b_err:
+                logger.warning(f"Brevo HTTP API error: {b_err}. Falling back...")
+
+        # Option C: Resend HTTP REST API (100 free emails/day over HTTPS Port 443)
+        resend_key = (getattr(settings, 'RESEND_API_KEY', '') or os.environ.get('RESEND_API_KEY', '')).strip()
+        if resend_key:
+            try:
+                import requests
+                from_addr = getattr(settings, 'RESEND_FROM_EMAIL', None) or "ABCD Smart Campus <onboarding@resend.dev>"
+                resp = requests.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {resend_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "from": from_addr,
+                        "to": [to_email],
+                        "subject": clean_subject,
+                        "html": html_content,
+                        "text": text_content
+                    },
+                    timeout=min(timeout, 8)
+                )
+                if resp.status_code in [200, 201, 202]:
+                    logger.info(f"EMAIL SUCCESS (Resend HTTP API): Sent '{clean_subject}' to {to_email}")
+                    return True
+                else:
+                    logger.warning(f"Resend HTTP API returned status {resp.status_code}. Falling back...")
+            except Exception as r_err:
+                logger.warning(f"Resend HTTP API error: {r_err}. Falling back...")
+
         # Use a connection with an explicit timeout to prevent command freezing
         connection = get_connection(timeout=timeout)
 

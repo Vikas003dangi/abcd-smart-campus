@@ -278,6 +278,10 @@ EMAIL_HOST_USER = (config('EMAIL_HOST_USER', default='abcd2013baq@gmail.com') or
 EMAIL_HOST_PASSWORD = (config('EMAIL_HOST_PASSWORD', default='cpwe jcqi szco eldd') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
 DEFAULT_FROM_EMAIL = f'"ABCD Coaching & Library" <{EMAIL_HOST_USER}>'
 ADMIN_EMAIL = (config('ADMIN_EMAIL', default=EMAIL_HOST_USER) or '').strip() or EMAIL_HOST_USER
+GMAIL_RELAY_URL = config('GMAIL_RELAY_URL', default='').strip()
+BREVO_API_KEY = config('BREVO_API_KEY', default='').strip()
+RESEND_API_KEY = config('RESEND_API_KEY', default='').strip()
+RESEND_FROM_EMAIL = config('RESEND_FROM_EMAIL', default='').strip()
 
 # -------------------------------
 # TEMPLATES
