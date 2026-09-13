@@ -18,8 +18,8 @@ class IPv4EmailBackend(EmailBackend):
     """
 
     def __init__(self, *args, **kwargs):
-        if 'timeout' not in kwargs or kwargs['timeout'] is None or kwargs['timeout'] > 15:
-            kwargs['timeout'] = 10
+        if 'timeout' not in kwargs or kwargs['timeout'] is None:
+            kwargs['timeout'] = getattr(settings, 'EMAIL_TIMEOUT', 15)
         super().__init__(*args, **kwargs)
         self.username = (self.username or getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
         self.password = (self.password or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
@@ -32,7 +32,8 @@ class IPv4EmailBackend(EmailBackend):
         original_getaddrinfo = socket.getaddrinfo
 
         def ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-            return original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+            clean_flags = flags & ~socket.AI_ADDRCONFIG if hasattr(socket, 'AI_ADDRCONFIG') else 0
+            return original_getaddrinfo(host, port, socket.AF_INET, type, proto, clean_flags)
 
         socket.getaddrinfo = ipv4_getaddrinfo
         try:
@@ -42,8 +43,19 @@ class IPv4EmailBackend(EmailBackend):
             user = self.username or 'abcd2013baq@gmail.com'
             pwd = self.password or 'cpwejcqiszcoeldd'
             fb_err = None
-            # Fallback 1: If primary was port 465 SSL, try port 587 with STARTTLS
-            if self.port == 465 or self.use_ssl:
+            # Fallback 1: If primary was port 587 TLS, try port 465 SSL
+            if self.port == 587 or self.use_tls:
+                try:
+                    conn = smtplib.SMTP_SSL(self.host, 465, timeout=self.timeout)
+                    conn.login(user, pwd)
+                    self.connection = conn
+                    logger.info("[IPv4EmailBackend] Fallback to Port 465 SSL succeeded!")
+                    return True
+                except Exception as err:
+                    fb_err = err
+                    logger.error(f"[IPv4EmailBackend] Fallback to Port 465 failed: {fb_err}")
+            # Fallback 2: If primary was port 465 SSL, try port 587 with STARTTLS
+            elif self.port == 465 or self.use_ssl:
                 try:
                     conn = smtplib.SMTP(self.host, 587, timeout=self.timeout)
                     conn.ehlo()
@@ -56,17 +68,6 @@ class IPv4EmailBackend(EmailBackend):
                 except Exception as err:
                     fb_err = err
                     logger.error(f"[IPv4EmailBackend] Fallback to Port 587 failed: {fb_err}")
-            # Fallback 2: If primary was port 587 TLS, try port 465 SSL
-            elif self.port == 587 or self.use_tls:
-                try:
-                    conn = smtplib.SMTP_SSL(self.host, 465, timeout=self.timeout)
-                    conn.login(user, pwd)
-                    self.connection = conn
-                    logger.info("[IPv4EmailBackend] Fallback to Port 465 SSL succeeded!")
-                    return True
-                except Exception as err:
-                    fb_err = err
-                    logger.error(f"[IPv4EmailBackend] Fallback to Port 465 failed: {fb_err}")
 
             if not self.fail_silently:
                 raise smtplib.SMTPException(f"SMTP Primary ({self.port}) failed: {e}; Fallback failed: {fb_err}")

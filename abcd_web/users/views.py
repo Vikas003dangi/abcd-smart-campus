@@ -2107,19 +2107,13 @@ def register(request):
                         'message': 'Verification code request limit reached for this device (max 10 per day). Please try again tomorrow.'
                     }, status=429)
 
-                # Check cooldown/attempts
-                counter_key = f"reg_otp_count_{user_ip}"
+                # Check 60s rapid-click cooldown
                 cooldown_key = f"reg_otp_cooldown_{user_ip}"
-
                 cooldown_expiry = cache.get(cooldown_key)
                 if cooldown_expiry:
                     remaining = int(max(0, cooldown_expiry - time.time()))
                     if remaining > 0:
-                        return JsonResponse({'status': 'error', 'message': f"Please wait {remaining}s"}, status=429)
-
-                attempts = cache.get_or_set(counter_key, 0, timeout=18000)
-                if attempts >= 10:
-                    return JsonResponse({'status': 'error', 'message': 'Too many verification attempts from this network. Please try again in 5 hours.'}, status=429)
+                        return JsonResponse({'status': 'error', 'message': f"Please wait {remaining}s before requesting a new code."}, status=429)
 
                 # Generate 6-digit OTP
                 otp = f"{random.randint(100000, 999999)}"
@@ -2136,10 +2130,9 @@ def register(request):
 
                 logger.info(f"[REGISTRATION OTP] OTP for {email} ({username}): {otp}")
 
-                # Send email synchronously so user only sees success if delivery succeeded
-                email_sent = False
+                # Send email: try fast dispatch (5s), and if SMTP takes longer on cloud network, hand off to background thread so user is NEVER blocked!
                 try:
-                    email_sent = send_html_email(
+                    send_html_email(
                         subject="Verify your email for ABCD registration",
                         to_email=email,
                         template="emails/otp_register.html",
@@ -2151,23 +2144,29 @@ def register(request):
                             "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                         },
                         fail_silently=False,
-                        timeout=10,
+                        timeout=5,
                         run_async=False
                     )
                 except Exception as e:
-                    logger.error(f"Error dispatching registration OTP email to {email}: {e}")
-                    email_sent = False
-                    email_err_msg = f"{type(e).__name__}: {e}"
+                    logger.warning(f"Fast registration email send to {email} deferred to background ({e}). Launching background delivery...")
+                    send_html_email(
+                        subject="Verify your email for ABCD registration",
+                        to_email=email,
+                        template="emails/otp_register.html",
+                        context={
+                            "username": username,
+                            "otp": otp,
+                            "subject": "Verify your email for ABCD registration",
+                            "preheader": "Use this OTP to complete your ABCD registration",
+                            "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+                        },
+                        fail_silently=True,
+                        timeout=20,
+                        run_async=True
+                    )
 
-                if not email_sent:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': f"Failed to deliver verification code ({email_err_msg}). Please check your email address or try again shortly."
-                    }, status=500)
-
-                # Increment attempts, daily count atomically and set 60s cooldown
+                # Set 60s cooldown and update daily counters atomically
                 cache.set(cooldown_key, time.time() + 60, timeout=60)
-                atomic_attempts = atomic_cache_incr(counter_key, timeout=18000)
                 atomic_cache_incr(daily_ip_key, timeout=86400)
                 atomic_cache_incr(daily_email_key, timeout=86400)
 
@@ -2213,18 +2212,13 @@ def register(request):
                     'message': 'Verification code request limit reached for this device (max 10 per day). Please try again tomorrow.'
                 }, status=429)
 
-            counter_key = f"reg_otp_count_{user_ip}"
+            # Check 60s rapid-click cooldown
             cooldown_key = f"reg_otp_cooldown_{user_ip}"
-
             cooldown_expiry = cache.get(cooldown_key)
             if cooldown_expiry:
                 remaining = int(max(0, cooldown_expiry - time.time()))
                 if remaining > 0:
-                    return JsonResponse({'status': 'error', 'message': f"Please wait {remaining}s"}, status=429)
-
-            attempts = cache.get(counter_key, 0)
-            if attempts >= 10:
-                return JsonResponse({'status': 'error', 'message': 'Too many verification attempts from this network. Please try again in 5 hours.'}, status=429)
+                    return JsonResponse({'status': 'error', 'message': f"Please wait {remaining}s before requesting a new code."}, status=429)
 
             # Generate new OTP
             otp = f"{random.randint(100000, 999999)}"
@@ -2235,10 +2229,9 @@ def register(request):
 
             logger.info(f"[REGISTRATION OTP RESEND] New OTP for {pending['email']} ({pending['username']}): {otp}")
 
-            # Send email synchronously so user only sees success if delivery succeeded
-            email_sent = False
+            # Send email: try fast dispatch (5s), and if SMTP takes longer on cloud network, hand off to background thread so user is NEVER blocked!
             try:
-                email_sent = send_html_email(
+                send_html_email(
                     subject="Verify your email for ABCD registration",
                     to_email=pending['email'],
                     template="emails/otp_register.html",
@@ -2250,29 +2243,35 @@ def register(request):
                         "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                     },
                     fail_silently=False,
-                    timeout=10,
+                    timeout=5,
                     run_async=False
                 )
             except Exception as e:
-                logger.error(f"Error dispatching resend OTP email to {pending['email']}: {e}")
-                email_sent = False
-                email_err_msg = f"{type(e).__name__}: {e}"
+                logger.warning(f"Fast resend registration email to {pending['email']} deferred to background ({e}). Launching background delivery...")
+                send_html_email(
+                    subject="Verify your email for ABCD registration",
+                    to_email=pending['email'],
+                    template="emails/otp_register.html",
+                    context={
+                        "username": pending['username'],
+                        "otp": otp,
+                        "subject": "Verify your email for ABCD registration",
+                        "preheader": "Use this OTP to complete your ABCD registration",
+                        "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+                    },
+                    fail_silently=True,
+                    timeout=20,
+                    run_async=True
+                )
 
-            if not email_sent:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': f"Failed to deliver verification code ({email_err_msg}). Please try again in a few moments."
-                }, status=500)
-
+            # Set 60s cooldown and update daily counters atomically
             cache.set(cooldown_key, time.time() + 60, timeout=60)
-            atomic_attempts = atomic_cache_incr(counter_key, timeout=18000)
             atomic_cache_incr(daily_ip_key, timeout=86400)
             atomic_cache_incr(daily_email_key, timeout=86400)
 
             return JsonResponse({
                 'status': 'ok',
                 'message': 'New verification code sent to your email.',
-                'attempts': atomic_attempts,
                 'cooldown_seconds': 60
             })
 
@@ -2712,14 +2711,6 @@ def forgot_password_request(request):
                 'message': f"Please wait {remaining}s before requesting a new OTP."
             }, status=429)
 
-    # 5 ATTEMPTS PER 5 HOURS LIMIT
-    attempts = cache.get_or_set(counter_key, 0, timeout=18000)
-    if attempts >= 5:
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Too many OTP requests. Please wait a few hours before trying again.'
-        }, status=429)
-
     # Generate 6-digit OTP
     otp = f"{random.randint(100000, 999999)}"
     cache_key = f"pwreset_otp_{user.pk}"
@@ -2727,7 +2718,7 @@ def forgot_password_request(request):
     cache.delete(f"pwreset_otp_fails_{user.pk}")
 
     try:
-        success = send_html_email(
+        send_html_email(
             subject="Your ABCD password reset OTP",
             to_email=target_email,
             template="emails/otp_security.html",
@@ -2739,30 +2730,35 @@ def forgot_password_request(request):
                 "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
             },
             fail_silently=False,
-            timeout=8
+            timeout=5,
+            run_async=False
         )
-        if not success:
-            return JsonResponse(
-                {"status": "error", "message": "Email delivery service temporarily delayed. Please try again in a few moments."},
-                status=500
-            )
     except Exception as e:
-        logger.error(f"OTP email send exception for user {target_email}: {e}")
-        return JsonResponse(
-            {"status": "error", "message": "Email delivery service temporarily delayed. Please try again in a few moments."},
-            status=500
+        logger.warning(f"Fast password reset email to {target_email} deferred to background ({e}). Launching background delivery...")
+        send_html_email(
+            subject="Your ABCD password reset OTP",
+            to_email=target_email,
+            template="emails/otp_security.html",
+            context={
+                "username": user.username,
+                "otp": otp,
+                "subject": "Your ABCD password reset OTP",
+                "preheader": "Use this OTP to reset your ABCD password",
+                "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+            },
+            fail_silently=True,
+            timeout=20,
+            run_async=True
         )
 
-    # Increment resend count, daily counts atomically and set 60s cooldown on success
+    # Set 60s cooldown and update daily counts atomically on success
     cache.set(otp_cooldown_key, time.time() + 60, timeout=60)  # 60s
-    atomic_attempts = atomic_cache_incr(counter_key, timeout=18000)  # 5 hours
     atomic_cache_incr(daily_ip_key, timeout=86400)
     atomic_cache_incr(daily_email_key, timeout=86400)
 
     return JsonResponse({
         "status": "ok",
         "message": f"Verification OTP sent successfully to {target_email}!",
-        "attempts": atomic_attempts,
         "cooldown_seconds": 60
     })
 
