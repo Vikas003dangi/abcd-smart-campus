@@ -133,6 +133,8 @@ def send_html_email(
             'X-Auto-Response-Suppress': 'All',
             'X-Mailer': 'ABCD Campus Mailer',
             'Feedback-ID': 'system:transactional:abcd',
+            'X-Priority': '1',
+            'Importance': 'high',
         }
 
         reply_to_addr = getattr(settings, 'ADMIN_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'abcd2013baq@gmail.com'

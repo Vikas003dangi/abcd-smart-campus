@@ -2124,7 +2124,7 @@ def register(request):
                     'email': email,
                     'password': password,
                     'otp': otp,
-                    'expires': time.time() + 300
+                    'expires': time.time() + 600
                 }
                 request.session.modified = True
 
@@ -2204,7 +2204,7 @@ def register(request):
             # Generate new OTP
             otp = f"{random.randint(100000, 999999)}"
             pending['otp'] = otp
-            pending['expires'] = time.time() + 300
+            pending['expires'] = time.time() + 600
             request.session['pending_registration'] = pending
             request.session.modified = True
 
@@ -2677,7 +2677,7 @@ def forgot_password_request(request):
     # Generate 6-digit OTP
     otp = f"{random.randint(100000, 999999)}"
     cache_key = f"pwreset_otp_{user.pk}"
-    cache.set(cache_key, otp, timeout=300)  # 5 minutes
+    cache.set(cache_key, otp, timeout=600)  # 10 minutes
     cache.delete(f"pwreset_otp_fails_{user.pk}")
 
     try:
@@ -16440,3 +16440,92 @@ def assetlinks_json_view(request):
     response = HttpResponse(json.dumps(assetlinks, indent=2), content_type="application/json")
     response['Cache-Control'] = 'public, max-age=86400'
     return response
+
+
+# ==============================================================================
+# REAL-TIME EMAIL DIAGNOSTICS ENDPOINT
+# ==============================================================================
+
+def email_diagnostics_view(request):
+    """
+    Real-Time Production Email Diagnostics Endpoint.
+    Tests DNS resolution, direct Port 465 SSL, direct Port 587 STARTTLS,
+    and actual transactional email dispatch via send_html_email.
+    """
+    import socket, smtplib, time
+    from django.conf import settings
+    from django.http import JsonResponse
+    from users.email_service import send_html_email
+
+    recipient = (request.GET.get('to') or 'abcd2013baq@gmail.com').strip()
+    user = (getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
+    pwd = (getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
+
+    results = {
+        'status': 'ok',
+        'settings': {
+            'EMAIL_HOST': getattr(settings, 'EMAIL_HOST', ''),
+            'EMAIL_PORT': getattr(settings, 'EMAIL_PORT', 0),
+            'EMAIL_USE_SSL': getattr(settings, 'EMAIL_USE_SSL', False),
+            'EMAIL_USE_TLS': getattr(settings, 'EMAIL_USE_TLS', False),
+            'EMAIL_HOST_USER': user,
+            'recipient': recipient,
+        }
+    }
+
+    # 1. DNS Resolution
+    t0 = time.time()
+    try:
+        ips = socket.gethostbyname_ex('smtp.gmail.com')[2]
+        results['dns'] = {'status': 'ok', 'ips': ips, 'latency_s': round(time.time() - t0, 3)}
+    except Exception as e:
+        results['dns'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+
+    # 2. Port 465 SSL Direct
+    t0 = time.time()
+    try:
+        s = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8, local_hostname='abcdcampus.in')
+        try:
+            s.login(user, pwd)
+        except smtplib.SMTPAuthenticationError:
+            s.login(user, 'cpwejcqiszcoeldd')
+        s.quit()
+        results['port_465_ssl'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
+    except Exception as e:
+        results['port_465_ssl'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+
+    # 3. Port 587 STARTTLS Direct
+    t0 = time.time()
+    try:
+        s = smtplib.SMTP('smtp.gmail.com', 587, timeout=8, local_hostname='abcdcampus.in')
+        s.ehlo()
+        s.starttls()
+        s.ehlo()
+        try:
+            s.login(user, pwd)
+        except smtplib.SMTPAuthenticationError:
+            s.login(user, 'cpwejcqiszcoeldd')
+        s.quit()
+        results['port_587_tls'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
+    except Exception as e:
+        results['port_587_tls'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+
+    # 4. Actual Dispatch via send_html_email
+    if request.GET.get('send') == '1':
+        t0 = time.time()
+        try:
+            sent = send_html_email(
+                subject="ABCD Live Diagnostics Verification",
+                to_email=recipient,
+                template="emails/otp_register.html",
+                context={'username': 'Diagnostics User', 'otp': '888999'},
+                fail_silently=False,
+                timeout=12,
+                run_async=False
+            )
+            results['send_test'] = {'status': 'ok' if sent else 'failed', 'sent': sent, 'latency_s': round(time.time() - t0, 3)}
+        except Exception as e:
+            results['send_test'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
+
+    return JsonResponse(results)
+

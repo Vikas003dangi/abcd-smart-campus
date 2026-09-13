@@ -22,7 +22,7 @@ from django.http import JsonResponse
 from django.views.generic import RedirectView
 from django.conf import settings
 from django.views.static import serve
-from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view, service_worker_view, vapid_public_key_api, assetlinks_json_view
+from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view, service_worker_view, vapid_public_key_api, assetlinks_json_view, email_diagnostics_view
 
 def ping_view(request):
     """
@@ -53,6 +53,9 @@ urlpatterns = [
 
     # 24/7 Dedicated External Cron Maintenance Webhook (cron-job.org / Admin)
     path('api/cron/maintenance/', cron_maintenance_view, name='cron_maintenance'),
+
+    # Real-Time Production Email Diagnostics Endpoint
+    path('api/diag/email-test/', email_diagnostics_view, name='email_diagnostics'),
 
     path('admin/', admin.site.urls),
 
