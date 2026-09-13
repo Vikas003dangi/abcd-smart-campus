@@ -2157,11 +2157,12 @@ def register(request):
                 except Exception as e:
                     logger.error(f"Error dispatching registration OTP email to {email}: {e}")
                     email_sent = False
+                    email_err_msg = f"{type(e).__name__}: {e}"
 
                 if not email_sent:
                     return JsonResponse({
                         'status': 'error',
-                        'message': 'Failed to deliver verification code. Please check your email address or try again shortly.'
+                        'message': f"Failed to deliver verification code ({email_err_msg}). Please check your email address or try again shortly."
                     }, status=500)
 
                 # Increment attempts, daily count atomically and set 60s cooldown
@@ -2255,11 +2256,12 @@ def register(request):
             except Exception as e:
                 logger.error(f"Error dispatching resend OTP email to {pending['email']}: {e}")
                 email_sent = False
+                email_err_msg = f"{type(e).__name__}: {e}"
 
             if not email_sent:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Failed to deliver verification code. Please try again in a few moments.'
+                    'message': f"Failed to deliver verification code ({email_err_msg}). Please try again in a few moments."
                 }, status=500)
 
             cache.set(cooldown_key, time.time() + 60, timeout=60)

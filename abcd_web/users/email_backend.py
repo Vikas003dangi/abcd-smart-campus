@@ -41,6 +41,7 @@ class IPv4EmailBackend(EmailBackend):
             logger.warning(f"[IPv4EmailBackend] Primary connection to SMTP {self.host}:{self.port} failed ({e}). Attempting dual-port fallback...")
             user = self.username or 'abcd2013baq@gmail.com'
             pwd = self.password or 'cpwejcqiszcoeldd'
+            fb_err = None
             # Fallback 1: If primary was port 465 SSL, try port 587 with STARTTLS
             if self.port == 465 or self.use_ssl:
                 try:
@@ -52,7 +53,8 @@ class IPv4EmailBackend(EmailBackend):
                     self.connection = conn
                     logger.info("[IPv4EmailBackend] Fallback to Port 587 STARTTLS succeeded!")
                     return True
-                except Exception as fb_err:
+                except Exception as err:
+                    fb_err = err
                     logger.error(f"[IPv4EmailBackend] Fallback to Port 587 failed: {fb_err}")
             # Fallback 2: If primary was port 587 TLS, try port 465 SSL
             elif self.port == 587 or self.use_tls:
@@ -62,11 +64,12 @@ class IPv4EmailBackend(EmailBackend):
                     self.connection = conn
                     logger.info("[IPv4EmailBackend] Fallback to Port 465 SSL succeeded!")
                     return True
-                except Exception as fb_err:
+                except Exception as err:
+                    fb_err = err
                     logger.error(f"[IPv4EmailBackend] Fallback to Port 465 failed: {fb_err}")
 
             if not self.fail_silently:
-                raise e
+                raise smtplib.SMTPException(f"SMTP Primary ({self.port}) failed: {e}; Fallback failed: {fb_err}")
             return False
         finally:
             socket.getaddrinfo = original_getaddrinfo
