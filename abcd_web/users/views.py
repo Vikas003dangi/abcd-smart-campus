@@ -8863,16 +8863,41 @@ def send_receipt_notifications_async(transaction_id, student_id):
         close_old_connections()
 
 
-@user_passes_test(lambda u: u.is_staff)
+@require_POST
 def process_fees_view(request, student_id):
-    if request.method != 'POST':
-        return HttpResponseForbidden('Only POST allowed')
+    if not request.user.is_authenticated:
+        return JsonResponse({'status': 'error', 'message': 'Authentication required. Please log in.'}, status=401)
+    if not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'status': 'error', 'message': 'Permission denied. Teacher access required.'}, status=403)
 
+    from datetime import date
     from django.utils import timezone
     from users.models import Payment, StudentProfile, FeeTransaction
     from users.utils.receipt_generator import generate_fee_receipt_pdf
     from users.notifications import get_student_service_details
-    # sync_student_fee_chain and calculate_hold_extension_days are defined locally in views.py
+
+    def _safe_fee_amount(val):
+        if val is None or val == '':
+            return 0
+        try:
+            return int(float(str(val).strip()))
+        except (ValueError, TypeError):
+            return 0
+
+    def _safe_fee_date(val, fallback=None):
+        if not val:
+            return fallback
+        if isinstance(val, datetime):
+            return val.date()
+        if isinstance(val, date):
+            return val
+        val_str = str(val).strip()
+        for fmt in ('%Y-%m-%d', '%d %b %Y', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%d-%b-%Y'):
+            try:
+                return datetime.strptime(val_str, fmt).date()
+            except (ValueError, TypeError):
+                continue
+        return fallback
 
     try:
         data = json.loads(request.body)
@@ -8901,9 +8926,9 @@ def process_fees_view(request, student_id):
         # Pre-scan for explicit day
         for action_data in actions:
             if action_data.get('action') in ['add_fee', 'edit_fee']:
-                pd_str = action_data.get('payment_date')
-                if pd_str:
-                    explicit_day = datetime.strptime(pd_str, '%Y-%m-%d').day
+                pd = _safe_fee_date(action_data.get('payment_date'))
+                if pd:
+                    explicit_day = pd.day
                     break
         
         if not explicit_day and student.fee_expiry_date:
@@ -8924,7 +8949,7 @@ def process_fees_view(request, student_id):
                 month = action_data.get('month')
                 year = action_data.get('year')
                 
-                year_int = int(year)
+                year_int = int(year) if (year and str(year).isdigit()) else timezone.localdate().year
                 month_num = month_map.get(month, 1)
                 
                 if year_int > latest_year or (year_int == latest_year and month_num > latest_month_num):
@@ -8937,9 +8962,10 @@ def process_fees_view(request, student_id):
                 # If we are only building notification details on final dispatch (payments already saved):
                 if final_dispatch:
                     if action_type in ['add_fee', 'edit_fee']:
-                        amount_val = int(action_data.get('amount', 0))
-                        payment_date_str = action_data.get('payment_date')
-                        payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+                        amount_val = _safe_fee_amount(action_data.get('amount'))
+                        existing_p = Payment.objects.filter(student=student, month=month, year=year).first()
+                        fallback_d = existing_p.date_paid if (existing_p and existing_p.date_paid) else timezone.localdate()
+                        payment_date = _safe_fee_date(action_data.get('payment_date'), fallback=fallback_d)
                         
                         notification_details.append(
                             f"{month} (₹{amount_val} on {payment_date.strftime('%d-%b-%Y')})"
@@ -8995,9 +9021,9 @@ def process_fees_view(request, student_id):
                         )
 
                         if action_type == 'add_fee':
-                            amount_to_add = int(action_data.get('amount', 0))
-                            payment_date_str = action_data.get('payment_date')
-                            payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+                            amount_to_add = _safe_fee_amount(action_data.get('amount'))
+                            fallback_d = payment.date_paid if payment.date_paid else timezone.localdate()
+                            payment_date = _safe_fee_date(action_data.get('payment_date'), fallback=fallback_d)
                             
                             payment.date_paid = payment_date
                             payment.amount = F('amount') + amount_to_add
@@ -9016,9 +9042,9 @@ def process_fees_view(request, student_id):
                             })
 
                         elif action_type == 'edit_fee':
-                            amount_to_edit = int(action_data.get('amount', 0))
-                            payment_date_str = action_data.get('payment_date')
-                            payment_date = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+                            amount_to_edit = _safe_fee_amount(action_data.get('amount'))
+                            fallback_d = payment.date_paid if payment.date_paid else timezone.localdate()
+                            payment_date = _safe_fee_date(action_data.get('payment_date'), fallback=fallback_d)
                             
                             payment.date_paid = payment_date
                             payment.amount = amount_to_edit
@@ -9037,7 +9063,7 @@ def process_fees_view(request, student_id):
                             })
 
                         elif action_type == 'mark_as_paid':
-                            if created:
+                            if created or not payment.date_paid:
                                 import calendar
                                 _, last_day = calendar.monthrange(year_int, month_num)
                                 day_to_use = min(explicit_day, last_day)
@@ -9081,20 +9107,22 @@ def process_fees_view(request, student_id):
                     
                     student.save()
                 elif expiry_date_str:
-                    student.fee_expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
-                    student.save()
+                    parsed_exp = _safe_fee_date(expiry_date_str)
+                    if parsed_exp:
+                        student.fee_expiry_date = parsed_exp
+                        student.save()
             else:
                 # Direct edit of expiry date without fee actions
                 if expiry_date_str:
-                    student.fee_expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
-                    student.save()
-                    if save_only:
+                    parsed_exp = _safe_fee_date(expiry_date_str)
+                    if parsed_exp:
+                        student.fee_expiry_date = parsed_exp
+                        student.save()
                         return JsonResponse({
                             'status': 'success',
                             'message': 'Expiry date updated successfully!',
-                            'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
+                            'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y')
                         })
-                    return JsonResponse({'status': 'success', 'message': 'Expiry date updated successfully!'})
 
             # If it's a save_only AJAX call from a single month card:
             if save_only:

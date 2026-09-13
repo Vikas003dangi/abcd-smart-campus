@@ -113,7 +113,7 @@
         .theme-toggle-fixed:hover { transform:scale(1.1); }
 
         /* Wheel Picker Modal */
-        .abcd-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:100000; display:none; align-items:center; justify-content:center; }
+        .abcd-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); z-index:20000; display:none; align-items:center; justify-content:center; }
         .abcd-modal-overlay.active { display:flex; }
         .abcd-modal-container { background:#fff; border-radius:24px; width:95%; max-width:350px; box-shadow:0 25px 70px rgba(0,0,0,0.4); overflow:hidden; animation:modalIn 0.3s cubic-bezier(0.4,0,0.2,1); }
         @keyframes modalIn { from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1} }
@@ -140,9 +140,9 @@
         .btn-submit-modal { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; padding:16px; border-radius:15px; font-size:1.05rem; font-weight:800; cursor:pointer; width:100%; margin-top:22px; text-transform:uppercase; box-shadow:0 5px 15px rgba(102,126,234,0.3); }
 
         /* Popup Modal */
-        .popup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); display:none; z-index:9998; }
+        .popup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); display:none; z-index:3000000; }
         .popup-overlay.active { display:block; }
-        .popup-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:16px; box-shadow:0 12px 45px rgba(0,0,0,0.35); width:min(440px,92vw); display:none; z-index:9999; animation:slideIn 0.3s ease; overflow:hidden; }
+        .popup-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:16px; box-shadow:0 12px 45px rgba(0,0,0,0.35); width:min(440px,92vw); display:none; z-index:3000001; animation:slideIn 0.3s ease; overflow:hidden; }
         .popup-modal.active { display:block; }
         @keyframes slideIn { from{opacity:0;transform:translate(-50%,-48%)} to{opacity:1;transform:translate(-50%,-50%)} }
         body.dark-theme .popup-modal { background:#2d2d3a; }
@@ -899,7 +899,7 @@
         
         {% csrf_token %} <div class="calendar-grid">
             {% for item in calendar_data %}
-            <div class="month-card" onclick="expandCard(this)" data-month="{{ item.month_name }}" data-year="{{ selected_year }}" data-originally-paid="{% if item.payment %}true{% else %}false{% endif %}">
+            <div class="month-card" onclick="expandCard(this, event)" data-month="{{ item.month_name }}" data-year="{{ selected_year }}" data-originally-paid="{% if item.payment %}true{% else %}false{% endif %}" data-original-amount="{% if item.payment %}{{ item.payment.amount }}{% endif %}" data-original-date="{% if item.payment and item.payment.date_paid %}{{ item.payment.date_paid|date:'Y-m-d' }}{% endif %}">
                 <div class="month-header">
                     <span class="month-name">{{ item.month_name }}</span>
                     {% if item.payment %}<span class="status paid">Paid</span>{% else %}<span class="status unpaid">Unpaid</span>{% endif %}
@@ -917,7 +917,7 @@
                     <div class="form-group" style="margin-bottom:8px;">
                         <label><i class='bx bx-calendar-event' style="vertical-align:middle;margin-right:4px;"></i> Payment Date</label>
                         <!-- Hidden field that stores the chosen YYYY-MM-DD for JS to read -->
-                        <input type="hidden" class="payment-date-input" value="">
+                        <input type="hidden" class="payment-date-input" value="{% if item.payment and item.payment.date_paid %}{{ item.payment.date_paid|date:'Y-m-d' }}{% endif %}">
                         <!-- Mini inline calendar -->
                         <div class="mini-cal"
                              data-month="{{ item.month_num }}"
@@ -928,7 +928,7 @@
                     </div>
                     <div class="form-group">
                         <label><i class='bx bx-rupee' style="vertical-align:middle;margin-right:4px;"></i> Amount (₹)</label>
-                        <input type="number" name="amount" class="form-control amount-input" placeholder="e.g., 500">
+                        <input type="number" name="amount" class="form-control amount-input" placeholder="e.g., 500" value="{% if item.payment %}{{ item.payment.amount }}{% endif %}">
                     </div>
                     {% if not item.payment %}
                     <div class="mark-as-paid-group">
@@ -1752,6 +1752,8 @@
     function updateCardVisualState(card, actionType, amount, paymentDate) {
         const statusBadge = card.querySelector('.status');
         const detailsEl = card.querySelector('.payment-details');
+        const dateInput = card.querySelector('.payment-date-input');
+        const amtInput = card.querySelector('.amount-input');
 
         if (actionType === 'delete_fee') {
             if (statusBadge) {
@@ -1761,7 +1763,6 @@
             if (detailsEl) {
                 detailsEl.innerHTML = `<span style="opacity:0.6;font-style:italic;">No payment recorded yet.</span>`;
             }
-            const amtInput = card.querySelector('.amount-input');
             if (amtInput) {
                 amtInput.value = '';
                 amtInput.disabled = false;
@@ -1797,6 +1798,10 @@
                 }
             }
             clearMiniCalSelection(card);
+            card.dataset.originallyPaid = 'false';
+            card.dataset.originalAmount = '';
+            card.dataset.originalDate = '';
+            card._isMarkedCleared = false;
         } else {
             if (statusBadge) {
                 statusBadge.className = 'status paid';
@@ -1818,12 +1823,10 @@
                 }
             }
 
-            const amtInput = card.querySelector('.amount-input');
             if (amtInput) {
                 amtInput.value = (actionType === 'mark_as_paid' ? '' : amount);
                 amtInput.disabled = (actionType === 'mark_as_paid');
             }
-            const dateInput = card.querySelector('.payment-date-input');
             if (dateInput) {
                 dateInput.value = paymentDate;
                 const calEl = card.querySelector('.mini-cal');
@@ -1841,6 +1844,11 @@
             if (markPaidGroup) {
                 markPaidGroup.remove();
             }
+
+            card.dataset.originallyPaid = 'true';
+            card.dataset.originalAmount = (actionType === 'mark_as_paid' ? '' : String(amount));
+            card.dataset.originalDate = (paymentDate || '');
+            card._isMarkedCleared = false;
         }
     }
 
@@ -1874,8 +1882,9 @@
         }
     }
 
-    function expandCard(cardElement) {
-        if (event.target.closest('.add-fee-form')) return;
+    function expandCard(cardElement, evt) {
+        const ev = evt || window.event;
+        if (ev && ev.target && ev.target.closest('.add-fee-form')) return;
         const isAlreadyExpanded = cardElement.classList.contains('expanded');
         
         hideBubble();
@@ -2136,8 +2145,15 @@
                         save_only: true
                     })
                 });
-                const data = await response.json();
-                if (data.status === 'success') {
+
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (jsonErr) {
+                    console.error('Failed to parse response JSON:', jsonErr);
+                }
+
+                if (response.ok && data && data.status === 'success') {
                     updateCardVisualState(activeCard, actionType, amount, paymentDate);
                     
                     if (data.fee_expiry_date) {
@@ -2176,10 +2192,12 @@
                     initialState = null;
                     hideBubble();
                 } else {
-                    await window.showStyledAlert('Error', 'Failed to save changes: ' + data.message);
+                    const msg = (data && data.message) ? data.message : `Server returned error (${response.status}). Please try again.`;
+                    await window.showStyledAlert('Error', 'Failed to save changes: ' + msg);
                 }
             } catch (error) {
-                await window.showStyledAlert('Error', 'A network error occurred. Please try again.');
+                console.error('Error saving fee changes:', error);
+                await window.showStyledAlert('Error', 'A network error occurred. Please check your connection and try again.');
             }
         });
 
@@ -2347,8 +2365,14 @@
 
             try {
                 const response = await fetch(processUrl, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken}, body:JSON.stringify(payload) });
-                const data = await response.json();
-                if (data.status === 'success') { 
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (jsonErr) {
+                    console.error('Failed to parse response JSON:', jsonErr);
+                }
+
+                if (response.ok && data && data.status === 'success') { 
                     localStorage.removeItem(localStorageKey);
                     sessionSavedActions = [];
                     updateSubmitButtonText();
@@ -2363,12 +2387,14 @@
                     }
                 }
                 else { 
-                    await window.showStyledAlert('Error', 'An error occurred: ' + data.message); 
+                    const msg = (data && data.message) ? data.message : `Server returned error (${response.status}). Please try again.`;
+                    await window.showStyledAlert('Error', 'An error occurred: ' + msg); 
                     submitBtn.disabled = false;
                     updateSubmitButtonText();
                 }
             } catch (error) { 
-                await window.showStyledAlert('Error', 'A network error occurred. Please try again.'); 
+                console.error('Error submitting fee actions:', error);
+                await window.showStyledAlert('Error', 'A network error occurred. Please check your connection and try again.'); 
                 submitBtn.disabled = false;
                 updateSubmitButtonText();
             }
@@ -2377,14 +2403,26 @@
         async function submitSingleAction(actions) {
             try {
                 const response = await fetch(processUrl, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken}, body:JSON.stringify({actions}) });
-                const data = await response.json();
-                if (data.status === 'success') { 
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (jsonErr) {
+                    console.error('Failed to parse response JSON:', jsonErr);
+                }
+
+                if (response.ok && data && data.status === 'success') { 
                     window.allowPageUnload = true;
                     await window.showStyledAlert('Success', data.message); 
                     window.location.reload(); 
                 }
-                else { await window.showStyledAlert('Error', 'An error occurred: ' + data.message); }
-            } catch (error) { await window.showStyledAlert('Error', 'A network error occurred. Please try again.'); }
+                else { 
+                    const msg = (data && data.message) ? data.message : `Server returned error (${response.status}). Please try again.`;
+                    await window.showStyledAlert('Error', 'An error occurred: ' + msg); 
+                }
+            } catch (error) { 
+                console.error('Error in submitSingleAction:', error);
+                await window.showStyledAlert('Error', 'A network error occurred. Please check your connection and try again.'); 
+            }
         }
 
         // ── Search Amount Functionality ──────────────────────────────────────────
