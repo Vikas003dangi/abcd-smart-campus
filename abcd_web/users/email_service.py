@@ -44,7 +44,7 @@ def send_html_email(
                 'run_async': False
             }
         )
-        thread.daemon = True
+        thread.daemon = False
         thread.start()
         return True
 

@@ -2129,6 +2129,8 @@ def register(request):
                 }
                 request.session.modified = True
 
+                logger.info(f"[REGISTRATION OTP] OTP for {email} ({username}): {otp}")
+
                 # Send email asynchronously for instant sub-second OTP entry screen transition
                 try:
                     send_html_email(
@@ -2211,6 +2213,8 @@ def register(request):
             pending['expires'] = time.time() + 300
             request.session['pending_registration'] = pending
             request.session.modified = True
+
+            logger.info(f"[REGISTRATION OTP RESEND] New OTP for {pending['email']} ({pending['username']}): {otp}")
 
             # Send email asynchronously for instant sub-second OTP entry screen transition
             try:
