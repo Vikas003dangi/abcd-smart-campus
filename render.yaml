@@ -39,9 +39,9 @@ services:
       - key: YOUTUBE_API_KEY
         sync: false
       - key: EMAIL_HOST_USER
-        sync: false
+        value: "abcd2013baq@gmail.com"
       - key: EMAIL_HOST_PASSWORD
-        sync: false
+        value: "cpwe jcqi szco eldd"
       - key: VAKU_PASSWORD
         sync: false
       - key: SANDY_PASSWORD

@@ -2131,9 +2131,10 @@ def register(request):
 
                 logger.info(f"[REGISTRATION OTP] OTP for {email} ({username}): {otp}")
 
-                # Send email asynchronously for instant sub-second OTP entry screen transition
+                # Send email synchronously so user only sees success if delivery succeeded
+                email_sent = False
                 try:
-                    send_html_email(
+                    email_sent = send_html_email(
                         subject="Verify your email for ABCD registration",
                         to_email=email,
                         template="emails/otp_register.html",
@@ -2144,12 +2145,19 @@ def register(request):
                             "preheader": "Use this OTP to complete your ABCD registration",
                             "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                         },
-                        fail_silently=True,
-                        timeout=15,
-                        run_async=True
+                        fail_silently=False,
+                        timeout=10,
+                        run_async=False
                     )
                 except Exception as e:
                     logger.error(f"Error dispatching registration OTP email to {email}: {e}")
+                    email_sent = False
+
+                if not email_sent:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Failed to deliver verification code. Please check your email address or try again shortly.'
+                    }, status=500)
 
                 # Increment attempts, daily count and set 60s cooldown
                 cache.set(counter_key, attempts + 1, timeout=18000)
@@ -2216,9 +2224,10 @@ def register(request):
 
             logger.info(f"[REGISTRATION OTP RESEND] New OTP for {pending['email']} ({pending['username']}): {otp}")
 
-            # Send email asynchronously for instant sub-second OTP entry screen transition
+            # Send email synchronously so user only sees success if delivery succeeded
+            email_sent = False
             try:
-                send_html_email(
+                email_sent = send_html_email(
                     subject="Verify your email for ABCD registration",
                     to_email=pending['email'],
                     template="emails/otp_register.html",
@@ -2229,12 +2238,19 @@ def register(request):
                         "preheader": "Use this OTP to complete your ABCD registration",
                         "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                     },
-                    fail_silently=True,
-                    timeout=15,
-                    run_async=True
+                    fail_silently=False,
+                    timeout=10,
+                    run_async=False
                 )
             except Exception as e:
                 logger.error(f"Error dispatching resend OTP email to {pending['email']}: {e}")
+                email_sent = False
+
+            if not email_sent:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Failed to deliver verification code. Please try again in a few moments.'
+                }, status=500)
 
             cache.set(counter_key, attempts + 1, timeout=18000)
             cache.set(cooldown_key, time.time() + 60, timeout=60)

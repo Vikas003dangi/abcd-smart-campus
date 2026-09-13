@@ -274,10 +274,10 @@ EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False
 EMAIL_TIMEOUT = 10
 
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='abcd2013baq@gmail.com').strip()
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='cpwe jcqi szco eldd').strip().replace(' ', '').replace('"', '').replace("'", "")
+EMAIL_HOST_USER = (config('EMAIL_HOST_USER', default='abcd2013baq@gmail.com') or '').strip() or 'abcd2013baq@gmail.com'
+EMAIL_HOST_PASSWORD = (config('EMAIL_HOST_PASSWORD', default='cpwe jcqi szco eldd') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
 DEFAULT_FROM_EMAIL = f'"ABCD Coaching & Library" <{EMAIL_HOST_USER}>'
-ADMIN_EMAIL = config('ADMIN_EMAIL', default=EMAIL_HOST_USER).strip()
+ADMIN_EMAIL = (config('ADMIN_EMAIL', default=EMAIL_HOST_USER) or '').strip() or EMAIL_HOST_USER
 
 # -------------------------------
 # TEMPLATES

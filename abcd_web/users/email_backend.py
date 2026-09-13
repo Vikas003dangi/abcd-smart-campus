@@ -1,6 +1,7 @@
 import socket
 import logging
 import smtplib
+from django.conf import settings
 from django.core.mail.backends.smtp import EmailBackend
 
 logger = logging.getLogger(__name__)
@@ -13,12 +14,15 @@ class IPv4EmailBackend(EmailBackend):
     2. Works seamlessly with Port 465 SSL (recommended) or Port 587 STARTTLS.
     3. Dual-port auto-fallback: if Port 465 fails (timeout/firewall), attempts Port 587 STARTTLS (and vice-versa).
     4. Prevents socket hangs with an explicit timeout.
+    5. Always enforces valid sanitized credentials even if environment variables are empty.
     """
 
     def __init__(self, *args, **kwargs):
         if 'timeout' not in kwargs or kwargs['timeout'] is None or kwargs['timeout'] > 15:
             kwargs['timeout'] = 10
         super().__init__(*args, **kwargs)
+        self.username = (self.username or getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
+        self.password = (self.password or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
 
     def open(self):
         if self.connection:
@@ -35,6 +39,8 @@ class IPv4EmailBackend(EmailBackend):
             return super().open()
         except Exception as e:
             logger.warning(f"[IPv4EmailBackend] Primary connection to SMTP {self.host}:{self.port} failed ({e}). Attempting dual-port fallback...")
+            user = self.username or 'abcd2013baq@gmail.com'
+            pwd = self.password or 'cpwejcqiszcoeldd'
             # Fallback 1: If primary was port 465 SSL, try port 587 with STARTTLS
             if self.port == 465 or self.use_ssl:
                 try:
@@ -42,8 +48,7 @@ class IPv4EmailBackend(EmailBackend):
                     conn.ehlo()
                     conn.starttls()
                     conn.ehlo()
-                    if self.username and self.password:
-                        conn.login(self.username, self.password)
+                    conn.login(user, pwd)
                     self.connection = conn
                     logger.info("[IPv4EmailBackend] Fallback to Port 587 STARTTLS succeeded!")
                     return True
@@ -53,8 +58,7 @@ class IPv4EmailBackend(EmailBackend):
             elif self.port == 587 or self.use_tls:
                 try:
                     conn = smtplib.SMTP_SSL(self.host, 465, timeout=self.timeout)
-                    if self.username and self.password:
-                        conn.login(self.username, self.password)
+                    conn.login(user, pwd)
                     self.connection = conn
                     logger.info("[IPv4EmailBackend] Fallback to Port 465 SSL succeeded!")
                     return True

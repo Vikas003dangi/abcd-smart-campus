@@ -183,13 +183,18 @@ def send_html_email(
             'Feedback-ID': 'system:transactional:abcd',
         }
 
-        reply_to_addr = getattr(settings, 'ADMIN_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None)
+        reply_to_addr = getattr(settings, 'ADMIN_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'abcd2013baq@gmail.com'
         reply_to_list = [reply_to_addr] if reply_to_addr else None
+
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+        if not from_email or '<>' in from_email or '@' not in from_email:
+            smtp_user = (getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
+            from_email = f'"ABCD Coaching & Library" <{smtp_user}>'
 
         email = EmailMultiAlternatives(
             subject=clean_subject,
             body=text_content,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=from_email,
             to=[to_email],
             reply_to=reply_to_list,
             headers=headers,
