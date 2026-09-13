@@ -45,12 +45,12 @@ def atomic_cache_incr(key, timeout=86400):
     try:
         return cache.incr(key)
     except ValueError:
+        # cache.add is atomic in Django cache backends: only sets if key does not exist
         if cache.add(key, 1, timeout=timeout):
             return 1
         try:
             return cache.incr(key)
         except ValueError:
-            cache.set(key, 1, timeout=timeout)
             return 1
 
 # -------------------------------------------------------------------
@@ -145,7 +145,7 @@ def process_scheduled_broadcasts():
     )
     for b in due_broadcasts:
         try:
-            claimed = BroadcastMessage.objects.filter(id=b.id, status="scheduled").update(status="sent", is_sent=True)
+            claimed = BroadcastMessage.objects.filter(id=b.id, status="scheduled").update(status="processing")
             if not claimed:
                 continue
 
@@ -170,7 +170,11 @@ def process_scheduled_broadcasts():
                 recipient_qs = User.objects.filter(achievements__isnull=False)
             elif target_group in ["individual_selection", "individuals"]:
                 if b.selected_ids:
-                    recipient_qs = User.objects.filter(id__in=b.selected_ids)
+                    recipient_qs = User.objects.filter(
+                        Q(id__in=b.selected_ids) |
+                        Q(profile__id__in=b.selected_ids) |
+                        Q(achievements__id__in=b.selected_ids)
+                    )
 
             users = list(recipient_qs.filter(is_staff=False).distinct())
 
@@ -247,8 +251,12 @@ def process_scheduled_broadcasts():
                         attachments=attachment_links,
                         buttons=b.banner_buttons
                     )
-        except Exception:
-            pass
+
+            # Record final delivery only after dispatch finishes successfully
+            BroadcastMessage.objects.filter(id=b.id).update(status="sent", is_sent=True)
+        except Exception as exc:
+            logger.warning(f"Failed to dispatch scheduled broadcast {b.id}: {exc}")
+            BroadcastMessage.objects.filter(id=b.id).update(status="failed")
 
 
 # -------------------------------------------------------------------
@@ -829,7 +837,7 @@ def process_expired_holds():
             for num in prof_phone.replace('\n', ',').split(','):
                 num_clean = re.sub(r'[^0-9]', '', num)
                 if len(num_clean) >= 10:
-                    teacher_phone = num_clean
+                    teacher_phone = num_clean[-10:]
                     break
     except Exception:
         pass
@@ -929,8 +937,8 @@ def process_expired_holds():
                 meta={
                     "cooldown_key": cooldown_key,
                     "actions": [
-                        {"label": "Call Teacher", "url": f"tel:{teacher_phone}", "type": "call"},
-                        {"label": "Message WhatsApp", "url": f"https://wa.me/91{teacher_phone}?text=Hello%20Teacher,%20regarding%20my%20seat%20hold%20on%20{seat_desc}", "type": "whatsapp"},
+                        {"label": "Call Teacher", "url": f"tel:+91{teacher_phone[-10:]}", "type": "call"},
+                        {"label": "Message WhatsApp", "url": f"https://wa.me/91{teacher_phone[-10:]}?text=Hello%20Teacher,%20regarding%20my%20seat%20hold%20on%20{seat_desc}", "type": "whatsapp"},
                         {"label": "End Hold", "url": f"{settings.SITE_URL}{reverse('users:your_seat_status')}", "type": "end_hold"}
                     ]
                 }
@@ -1088,7 +1096,7 @@ def process_expired_holds():
                 create_notification(
                     user=req_student.user,
                     title="Permanent Seat Allotted!",
-                    message=f"Your temporary request for Seat {seat.seat_number} ({shift}) has been automatically approved as permanent allotment!",
+                    message=f"Your request for Seat {seat.seat_number} ({shift}) has been automatically approved as permanent allotment!",
                     link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
                     category="seat"
                 )
