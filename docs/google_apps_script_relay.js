@@ -49,11 +49,20 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Direct instant delivery via GmailApp API
-    GmailApp.sendEmail(to, subject, textBody, {
+    var mailOptions = {
       htmlBody: htmlBody,
       name: fromName
-    });
+    };
+
+    // Attach custom files (e.g. PDF Fee Receipts) if provided
+    if (data.attachments && data.attachments.length > 0) {
+      mailOptions.attachments = data.attachments.map(function(att) {
+        return Utilities.newBlob(Utilities.base64Decode(att.content), att.mimeType, att.name);
+      });
+    }
+
+    // Direct instant delivery via GmailApp API
+    GmailApp.sendEmail(to, subject, textBody, mailOptions);
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "ok",

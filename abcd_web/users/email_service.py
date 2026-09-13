@@ -129,18 +129,27 @@ def send_html_email(
         relay_url = (getattr(settings, 'GMAIL_RELAY_URL', '') or os.environ.get('GMAIL_RELAY_URL', '')).strip()
         if relay_url:
             try:
-                import requests
-                resp = requests.post(
-                    relay_url,
-                    json={
-                        'to': to_email,
-                        'subject': clean_subject,
-                        'html': html_content,
-                        'text': text_content,
-                        'from_name': "ABCD Coaching & Library"
-                    },
-                    timeout=min(timeout, 8)
-                )
+                import requests, base64
+                payload = {
+                    'to': to_email,
+                    'subject': clean_subject,
+                    'html': html_content,
+                    'text': text_content,
+                    'from_name': "ABCD Coaching & Library"
+                }
+                if attachments:
+                    payload['attachments'] = []
+                    for att in attachments:
+                        att_name = att[0]
+                        att_content = att[1]
+                        att_mime = att[2] if len(att) > 2 else 'application/octet-stream'
+                        b64_data = base64.b64encode(att_content if isinstance(att_content, bytes) else att_content.encode('utf-8')).decode('ascii')
+                        payload['attachments'].append({
+                            'name': att_name,
+                            'content': b64_data,
+                            'mimeType': att_mime
+                        })
+                resp = requests.post(relay_url, json=payload, timeout=min(timeout, 12))
                 if resp.status_code == 200:
                     logger.info(f"EMAIL SUCCESS (Google HTTP Relay): Sent '{clean_subject}' to {to_email}")
                     return True
