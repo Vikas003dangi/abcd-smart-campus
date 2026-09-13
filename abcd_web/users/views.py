@@ -2089,13 +2089,13 @@ def register(request):
 
                 user_ip = get_client_ip(request)
                 
-                # 24-hour rate limit: max 10 verification requests per day per Email
+                # 24-hour rate limit: max 3 verification requests per day per Email/profile
                 daily_email_key = f"reg_daily_email_{email.lower()}"
                 daily_email_count = cache.get(daily_email_key, 0)
-                if daily_email_count >= 10:
+                if daily_email_count >= 3:
                     return JsonResponse({
                         'status': 'error',
-                        'message': 'Verification code request limit reached for this email today. Please try again tomorrow.'
+                        'message': 'Verification code request limit reached (max 3 per day for this email). Please try again tomorrow.'
                     }, status=429)
 
                 # Shared network limit: max 100 verification requests per day per IP (allows campus/coaching WiFi)
@@ -2194,13 +2194,13 @@ def register(request):
             user_ip = get_client_ip(request)
             email = pending['email']
 
-            # 24-hour rate limit: max 10 verification requests per day per Email
+            # 24-hour rate limit: max 3 verification requests per day per Email/profile
             daily_email_key = f"reg_daily_email_{email.lower()}"
             daily_email_count = cache.get(daily_email_key, 0)
-            if daily_email_count >= 10:
+            if daily_email_count >= 3:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Verification code request limit reached for this email today. Please try again tomorrow.'
+                    'message': 'Verification code request limit reached (max 3 per day for this email). Please try again tomorrow.'
                 }, status=429)
 
             # Shared network limit: max 100 verification requests per day per IP
@@ -2662,17 +2662,23 @@ def forgot_password_request(request):
 
     user_ip = get_client_ip(request)
     
-    # 24-hour outer rate limit: max 10 requests per day per Email, max 100 per IP
+    # 24-hour outer rate limit: max 3 requests per day per Email, max 100 per IP
     daily_ip_key = f"pwreset_daily_ip_{user_ip}"
     daily_email_key = f"pwreset_daily_email_{target_email.lower()}"
     
     daily_ip_count = cache.get(daily_ip_key, 0)
     daily_email_count = cache.get(daily_email_key, 0)
     
-    if daily_email_count >= 10 or daily_ip_count >= 100:
+    if daily_email_count >= 3:
         return JsonResponse({
             'status': 'error',
-            'message': 'Password reset request limit reached for today. Please try again tomorrow.'
+            'message': 'Password reset request limit reached (max 3 per day for this account). Please try again tomorrow.'
+        }, status=429)
+
+    if daily_ip_count >= 100:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Too many requests from this network today. Please try again tomorrow.'
         }, status=429)
 
     # SUCCESSFUL PASSWORD RESET COOLDOWN (1 hour)
