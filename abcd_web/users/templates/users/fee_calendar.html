@@ -237,7 +237,9 @@
             gap: 16px;
             align-items: center;
             z-index: 99999;
-            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
         }
         body.dark-theme .floating-bubble {
             background: rgba(30, 30, 48, 0.95);
@@ -246,6 +248,8 @@
         }
         .floating-bubble.active {
             bottom: 30px;
+            opacity: 1;
+            pointer-events: auto;
         }
         .bubble-btn {
             padding: 10px 24px;
@@ -593,6 +597,10 @@
         .search-alert-toast.active {
             opacity: 1;
             transform: translate(-50%, 0);
+        }
+        .search-alert-toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4), 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
         /* Highlight-on-Match Visual Glow */
@@ -1682,8 +1690,43 @@
         updateBubbleVisibility();
     }
 
+    function checkCardHasChanges(card) {
+        if (!card || !initialState) return false;
+        if (card._isMarkedCleared) return true;
+        const dateInput = card.querySelector('.payment-date-input');
+        const amtInput = card.querySelector('.amount-input');
+        const chk = card.querySelector('.mark-as-paid-checkbox');
+
+        const currentAmt = amtInput ? amtInput.value.trim() : '';
+        const currentDate = dateInput ? dateInput.value : '';
+        const currentChk = chk ? chk.checked : false;
+
+        if (initialState.paid) {
+            return (currentAmt !== initialState.amount || currentDate !== initialState.date);
+        } else {
+            return (currentAmt !== '' || currentDate !== '' || currentChk);
+        }
+    }
+
+    function showBubble() {
+        const bubble = document.getElementById('floating-action-bubble');
+        if (!bubble) return;
+        bubble.classList.add('active');
+        if (typeof updateFloatingElementsForVisualViewport === 'function') {
+            updateFloatingElementsForVisualViewport();
+        }
+    }
+
+    function hideBubble() {
+        const bubble = document.getElementById('floating-action-bubble');
+        if (bubble) {
+            bubble.classList.remove('active');
+            bubble.style.bottom = '';
+        }
+    }
+
     function updateBubbleVisibility() {
-        if (!activeCard) {
+        if (!activeCard || !initialState) {
             hideBubble();
             return;
         }
@@ -1700,39 +1743,33 @@
         const bubble = document.getElementById('floating-action-bubble');
         const saveBtn = document.getElementById('bubble-save-btn');
         const clearBtn = document.getElementById('bubble-clear-btn');
+        if (!bubble || !saveBtn || !clearBtn) return;
 
         if (isPaid) {
+            const hasChanged = (currentAmt !== initialState.amount || currentDate !== initialState.date);
             if (activeCard._isMarkedCleared) {
-                bubble.classList.add('active');
+                showBubble();
+                saveBtn.style.display = 'inline-flex';
+                clearBtn.style.display = 'inline-flex';
+            } else if (hasChanged) {
+                showBubble();
                 saveBtn.style.display = 'inline-flex';
                 clearBtn.style.display = 'inline-flex';
             } else {
-                const hasChanged = (currentAmt !== initialState.amount || currentDate !== initialState.date);
-                if (hasChanged) {
-                    bubble.classList.add('active');
-                    saveBtn.style.display = 'inline-flex';
-                    clearBtn.style.display = 'inline-flex';
-                } else {
-                    bubble.classList.add('active');
-                    saveBtn.style.display = 'none';
-                    clearBtn.style.display = 'inline-flex';
-                }
+                showBubble();
+                saveBtn.style.display = 'none';
+                clearBtn.style.display = 'inline-flex';
             }
         } else {
             const hasData = (currentAmt !== '' || currentDate !== '' || currentChk);
             if (hasData) {
-                bubble.classList.add('active');
+                showBubble();
                 saveBtn.style.display = 'inline-flex';
                 clearBtn.style.display = 'inline-flex';
             } else {
                 hideBubble();
             }
         }
-    }
-
-    function hideBubble() {
-        const bubble = document.getElementById('floating-action-bubble');
-        if (bubble) bubble.classList.remove('active');
     }
 
     function clearMiniCalSelection(card) {
@@ -2034,12 +2071,14 @@
 
             if (amountInput) {
                 amountInput.addEventListener('input', () => {
+                    if (card._isMarkedCleared) card._isMarkedCleared = false;
                     updateBubbleVisibility();
                 });
             }
 
             if (checkbox) {
                 checkbox.addEventListener('change', () => {
+                    if (card._isMarkedCleared) card._isMarkedCleared = false;
                     if (checkbox.checked) {
                         card.classList.add('is-touched');
                         if (dateInput) dateInput.value = '';
@@ -2053,36 +2092,174 @@
             }
         });
 
+        // Helper to execute fee deletion with proper button feedback
+        async function executeFeeDelete(card) {
+            if (!card) return;
+            const monthName = card.dataset.month;
+            const year = card.dataset.year;
+            const saveBtn = document.getElementById('bubble-save-btn');
+            const clearBtn = document.getElementById('bubble-clear-btn');
+
+            if (clearBtn) clearBtn.disabled = true;
+            if (saveBtn) saveBtn.disabled = true;
+            const originalClearHtml = clearBtn ? clearBtn.innerHTML : '';
+            if (clearBtn) clearBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Clearing...`;
+
+            try {
+                const payloadAction = {
+                    month: monthName,
+                    year: year,
+                    action: 'delete_fee',
+                    amount: '0',
+                    payment_date: ''
+                };
+
+                const response = await fetch(processUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        actions: [payloadAction],
+                        save_only: true
+                    })
+                });
+
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (jsonErr) {
+                    console.error('Failed to parse response JSON:', jsonErr);
+                }
+
+                if (response.ok && data && data.status === 'success') {
+                    updateCardVisualState(card, 'delete_fee', '0', '');
+                    if (data.fee_expiry_date) {
+                        const expiryEl = document.querySelector('.expiry-val');
+                        if (expiryEl) {
+                            expiryEl.textContent = data.fee_expiry_date;
+                        }
+                    }
+
+                    sessionSavedActions = sessionSavedActions.filter(a => !(a.month === monthName && a.year === year));
+                    if (card.dataset.originallyPaid === 'true') {
+                        sessionSavedActions.push(payloadAction);
+                    }
+                    localStorage.setItem(localStorageKey, JSON.stringify(sessionSavedActions));
+                    updateSubmitButtonText();
+
+                    updateCardTouchedState(card);
+                    card.classList.remove('expanded');
+                    activeCard = null;
+                    initialState = null;
+                    hideBubble();
+
+                    if (typeof showSearchToast === 'function') {
+                        showSearchToast(`Fee for ${monthName} cleared successfully.`, 'success');
+                    }
+                } else {
+                    const msg = (data && data.message) ? data.message : `Server returned error (${response.status}). Please try again.`;
+                    await window.showStyledAlert('Error', 'Failed to clear fee: ' + msg);
+                }
+            } catch (err) {
+                console.error('Error clearing fee:', err);
+                await window.showStyledAlert('Error', 'A network error occurred. Please check your connection and try again.');
+            } finally {
+                if (clearBtn) {
+                    clearBtn.disabled = false;
+                    clearBtn.innerHTML = originalClearHtml;
+                }
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        }
+
         // Bubble Clear action
-        document.getElementById('bubble-clear-btn').addEventListener('click', function() {
+        document.getElementById('bubble-clear-btn').addEventListener('click', async function() {
             if (!activeCard) return;
             
+            const monthName = activeCard.dataset.month;
+            const year = activeCard.dataset.year;
             const isPaidNow = activeCard.querySelector('.status.paid') !== null;
-            if (isPaidNow) {
-                // Card is currently paid (either from DB or saved this session)
-                activeCard._isMarkedCleared = true;
-                const amtInput = activeCard.querySelector('.amount-input');
-                if (amtInput) amtInput.value = '';
-                clearMiniCalSelection(activeCard);
-                updateBubbleVisibility();
-            } else {
-                // Card is unpaid – just reset inputs
-                const amtInput = activeCard.querySelector('.amount-input');
+            const amtInput = activeCard.querySelector('.amount-input');
+            const dateInput = activeCard.querySelector('.payment-date-input');
+            const chk = activeCard.querySelector('.mark-as-paid-checkbox');
+
+            if (!isPaidNow) {
+                // Card is UNPAID: clear all inputs, collapse card, and hide bubble
                 if (amtInput) {
                     amtInput.value = '';
                     amtInput.disabled = false;
                 }
-                const chk = activeCard.querySelector('.mark-as-paid-checkbox');
                 if (chk) chk.checked = false;
                 clearMiniCalSelection(activeCard);
                 activeCard.classList.remove('is-touched');
-                updateBubbleVisibility();
+                activeCard.classList.remove('expanded');
+                activeCard = null;
+                initialState = null;
+                hideBubble();
+                return;
+            }
+
+            // Card is currently PAID
+            const currentAmt = amtInput ? amtInput.value.trim() : '';
+            const currentDate = dateInput ? dateInput.value : '';
+            const hasChanged = initialState && (currentAmt !== initialState.amount || currentDate !== initialState.date);
+
+            if (hasChanged) {
+                // User edited an existing payment: ask whether to clear fee completely or discard edits
+                const confirmed = await window.showStyledConfirm(
+                    'Clear Fee or Discard Changes?',
+                    `You have unsaved changes in <b>${monthName} ${year}</b>.<br><br>Click <b>Clear Fee</b> to delete this payment completely, or <b>Discard Changes</b> to revert to the saved payment.`,
+                    true,
+                    'Clear Fee',
+                    'Discard Edits',
+                    'warning'
+                );
+
+                if (confirmed) {
+                    await executeFeeDelete(activeCard);
+                } else {
+                    // Revert inputs back to original state
+                    if (amtInput) amtInput.value = initialState.amount || '';
+                    if (dateInput) {
+                        dateInput.value = initialState.date || '';
+                        const calEl = activeCard.querySelector('.mini-cal');
+                        if (calEl) {
+                            calEl._selectedDate = initialState.date || null;
+                            renderMiniCal(calEl, parseInt(calEl.dataset.year, 10), parseInt(calEl.dataset.month, 10), initialState.date);
+                        }
+                    }
+                    activeCard._isMarkedCleared = false;
+                    activeCard.classList.remove('is-touched');
+                    activeCard.classList.remove('expanded');
+                    activeCard = null;
+                    initialState = null;
+                    hideBubble();
+                }
+            } else {
+                // Card was untouched: user wants to clear/delete existing payment
+                const confirmed = await window.showStyledConfirm(
+                    'Clear Fee Payment',
+                    `Are you sure you want to <b>clear and remove</b> the fee payment for <b>${monthName} ${year}</b>?`,
+                    true,
+                    'Clear Fee',
+                    'Cancel'
+                );
+
+                if (confirmed) {
+                    await executeFeeDelete(activeCard);
+                }
             }
         });
 
         // Bubble Save action
         document.getElementById('bubble-save-btn').addEventListener('click', async function() {
             if (!activeCard) return;
+
+            const saveBtn = document.getElementById('bubble-save-btn');
+            const clearBtn = document.getElementById('bubble-clear-btn');
+            if (saveBtn && saveBtn.disabled) return;
 
             const monthName = activeCard.dataset.month;
             const year = activeCard.dataset.year;
@@ -2096,8 +2273,6 @@
 
             const originallyPaid = activeCard.dataset.originallyPaid === 'true';
 
-            // Check _isMarkedCleared first – covers both "originally paid" and
-            // "saved this session but now user wants to undo"
             if (activeCard._isMarkedCleared) {
                 actionType = 'delete_fee';
             } else if (originallyPaid) {
@@ -2132,6 +2307,12 @@
                 amount: amount,
                 payment_date: paymentDate
             };
+
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = `<i class='bx bx-loader-alt bx-spin'></i> Saving...`;
+            }
+            if (clearBtn) clearBtn.disabled = true;
 
             try {
                 const response = await fetch(processUrl, {
@@ -2191,6 +2372,10 @@
                     activeCard = null;
                     initialState = null;
                     hideBubble();
+
+                    if (typeof showSearchToast === 'function') {
+                        showSearchToast(`Fee for ${monthName} saved successfully!`, 'success');
+                    }
                 } else {
                     const msg = (data && data.message) ? data.message : `Server returned error (${response.status}). Please try again.`;
                     await window.showStyledAlert('Error', 'Failed to save changes: ' + msg);
@@ -2198,6 +2383,34 @@
             } catch (error) {
                 console.error('Error saving fee changes:', error);
                 await window.showStyledAlert('Error', 'A network error occurred. Please check your connection and try again.');
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = `<i class='bx bx-save'></i> Save`;
+                }
+                if (clearBtn) clearBtn.disabled = false;
+            }
+        });
+
+        // Outside click listener: collapse untouched active card and hide bubble
+        document.addEventListener('click', function(e) {
+            if (!activeCard) return;
+            if (e.target.closest('.month-card') || 
+                e.target.closest('#floating-action-bubble') || 
+                e.target.closest('.abcd-modal-overlay') || 
+                e.target.closest('.popup-modal') || 
+                e.target.closest('.calendar-search-wrapper') || 
+                e.target.closest('#calendarSearchNavPanel') ||
+                e.target.closest('.year-selector-form') ||
+                e.target.closest('.header')) {
+                return;
+            }
+            const hasChanged = checkCardHasChanges(activeCard);
+            if (!hasChanged) {
+                activeCard.classList.remove('expanded');
+                activeCard = null;
+                initialState = null;
+                hideBubble();
             }
         });
 
@@ -2429,15 +2642,20 @@
         let activeMatches = [];
         let activeMatchIndex = -1;
 
-        window.showSearchToast = function(message) {
+        window.showSearchToast = function(message, type = 'error') {
             let toast = document.getElementById('searchAlertToast');
             if (!toast) {
                 toast = document.createElement('div');
                 toast.id = 'searchAlertToast';
-                toast.className = 'search-alert-toast';
                 document.body.appendChild(toast);
             }
-            toast.innerHTML = `<i class='bx bx-error-circle' style="font-size:1.2rem;"></i> <span>${message}</span>`;
+            if (type === 'success') {
+                toast.className = 'search-alert-toast success';
+                toast.innerHTML = `<i class='bx bx-check-circle' style="font-size:1.2rem;"></i> <span>${message}</span>`;
+            } else {
+                toast.className = 'search-alert-toast';
+                toast.innerHTML = `<i class='bx bx-error-circle' style="font-size:1.2rem;"></i> <span>${message}</span>`;
+            }
             
             // Visual viewport offset handling: always pin to top of visible screen
             if (window.visualViewport) {
@@ -2458,9 +2676,14 @@
         };
 
         function updateFloatingElementsForVisualViewport() {
-            if (window.innerWidth >= 1000) return;
-            const wrapper = document.getElementById('calendarSearchWrapper');
             const bubble = document.getElementById('floating-action-bubble');
+            if (window.innerWidth >= 1000) {
+                if (bubble && !bubble.classList.contains('active')) {
+                    bubble.style.bottom = '';
+                }
+                return;
+            }
+            const wrapper = document.getElementById('calendarSearchWrapper');
             const themeBtn = document.getElementById('themeBtn');
             const toast = document.getElementById('searchAlertToast');
 
@@ -2476,11 +2699,19 @@
                 if (themeBtn) {
                     themeBtn.style.bottom = bottomPos;
                 }
-                if (bubble && bubble.classList.contains('active')) {
-                    bubble.style.bottom = (keyboardOffset + 25) + 'px';
+                if (bubble) {
+                    if (bubble.classList.contains('active')) {
+                        bubble.style.bottom = (keyboardOffset + 25) + 'px';
+                    } else {
+                        bubble.style.bottom = '';
+                    }
                 }
                 if (toast && toast.classList.contains('active')) {
                     toast.style.top = Math.max(16, vv.offsetTop + 16) + 'px';
+                }
+            } else {
+                if (bubble && !bubble.classList.contains('active')) {
+                    bubble.style.bottom = '';
                 }
             }
             positionSearchNavPanel();
