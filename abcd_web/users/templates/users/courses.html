@@ -711,6 +711,9 @@
         document.getElementById('modalCourseTitle').innerText = title;
         document.getElementById('ratingModal').classList.add('active');
         document.getElementById('modalOverlay').classList.add('active');
+        if (typeof window.bringToFront === 'function') {
+            window.bringToFront(document.getElementById('ratingModal'));
+        }
         resetStars();
     }
 

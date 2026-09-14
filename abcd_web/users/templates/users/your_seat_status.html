@@ -3251,6 +3251,9 @@
                 _closeBtn.onclick = close;
                 _overlay.onclick = close;
                 _overlay.style.display='block'; _modal.style.display='block';
+                if (typeof window.bringToFront === 'function') {
+                    window.bringToFront(_modal);
+                }
             });
         };
 
@@ -3302,6 +3305,9 @@
                 _closeBtn.onclick = onCancel;
                 _overlay.onclick = onCancel;
                 _overlay.style.display='block'; _modal.style.display='block';
+                if (typeof window.bringToFront === 'function') {
+                    window.bringToFront(_modal);
+                }
             });
         };
 

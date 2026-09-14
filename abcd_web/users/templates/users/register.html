@@ -1639,6 +1639,9 @@
 
                 statusModalOverlay.classList.add('active');
                 statusModal.classList.add('active');
+                if (typeof window.bringToFront === 'function') {
+                    window.bringToFront(statusModal);
+                }
             });
         };
 

@@ -140,7 +140,7 @@
         .btn-submit-modal { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; padding:16px; border-radius:15px; font-size:1.05rem; font-weight:800; cursor:pointer; width:100%; margin-top:22px; text-transform:uppercase; box-shadow:0 5px 15px rgba(102,126,234,0.3); }
 
         /* Popup Modal */
-        .popup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(3px); display:none; z-index:3000000; }
+        .popup-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); display:none; z-index:3000000; }
         .popup-overlay.active { display:block; }
         .popup-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:16px; box-shadow:0 12px 45px rgba(0,0,0,0.35); width:min(440px,92vw); display:none; z-index:3000001; animation:slideIn 0.3s ease; overflow:hidden; }
         .popup-modal.active { display:block; }
@@ -1319,6 +1319,9 @@
             statusModalOverlay.onclick = close;
             statusModalOverlay.classList.add('active');
             statusModal.classList.add('active');
+            if (typeof window.bringToFront === 'function') {
+                window.bringToFront(statusModal);
+            }
         });
     };
 
@@ -1414,6 +1417,9 @@
 
             statusModalOverlay.classList.add('active');
             statusModal.classList.add('active');
+            if (typeof window.bringToFront === 'function') {
+                window.bringToFront(statusModal);
+            }
         });
     };
 
@@ -2004,6 +2010,9 @@
 
             overlay.classList.add('active');
             modal.classList.add('active');
+            if (typeof window.bringToFront === 'function') {
+                window.bringToFront(modal);
+            }
         });
     }
 
