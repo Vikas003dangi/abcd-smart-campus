@@ -19,8 +19,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'ABCD Learning Reminder';
     const options = {
         body: data.message || 'Time to get back to your course!',
-        icon: '/static/data/favicon/favicon.ico',
-        badge: '/static/data/favicon/favicon.ico',
+        icon: '/static/data/favicon/web-app-manifest-192x192.png',
+        badge: '/static/data/favicon/badge-mono.png',
         data: { url: data.url || '/' }
     };
 

@@ -853,7 +853,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         "body": clean_body,
         "url": url,
         "icon": icon or "/static/data/favicon/web-app-manifest-192x192.png",
-        "badge": badge or "/static/data/favicon/favicon-96x96.png",
+        "badge": badge or "/static/data/favicon/badge-mono.png",
         "sound": sound,
         "badge_count": max(1, badge_count or 1),
         "tag": unique_tag,

@@ -61,7 +61,7 @@ self.addEventListener('push', function (event) {
     const title = rawTitle;
     const bodyText = sanitizeText(data.body) || 'You have a new update.';
     const icon = data.icon || '/static/data/favicon/web-app-manifest-192x192.png';
-    const badge = data.badge || '/static/data/favicon/favicon-96x96.png';
+    const badge = data.badge || '/static/data/favicon/badge-mono.png';
 
     const catLower = (data.category || '').toLowerCase().trim();
     const titleLower = (title || '').toLowerCase().trim();

@@ -11808,12 +11808,14 @@ def guidy_send_message(request, session_id=None, direct_id=None):
 
             threading.Thread(
                 target=_send_push_bg,
-                args=(other_user, push_title, push_body, push_url, push_icon, "/static/data/favicon/favicon-96x96.png", push_tag),
+                args=(other_user, push_title, push_body, push_url, push_icon, "/static/data/favicon/badge-mono.png", push_tag),
                 kwargs={
                     "msg_id": msg.id,
                     "chat_type": 'direct' if direct_session else 'guidance',
                     "session_id": direct_session.id if direct_session else session.id,
                     "sender_id": user.id,
+                    "category": "guidy",
+                    "source": "guidy",
                 },
                 daemon=True
             ).start()
@@ -13196,7 +13198,11 @@ def guidy_group_send_message(request, group_id):
                 push_tag = f"guidy-group-{group.id}"
                 threading.Thread(
                     target=_send_push_bg,
-                    args=(member, push_title, push_body, push_url, push_icon, "/static/data/favicon/favicon-96x96.png", push_tag),
+                    args=(member, push_title, push_body, push_url, push_icon, "/static/data/favicon/badge-mono.png", push_tag),
+                    kwargs={
+                        "category": "guidy",
+                        "source": "guidy",
+                    },
                     daemon=True
                 ).start()
     except Exception as e:
