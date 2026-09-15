@@ -4818,6 +4818,7 @@
     <div class="sidebar-wrapper">
         <ul class="nav-sidebar" id="sidebar" style="list-style: none;">
             <li><a href="{% url 'users:home_page' %}"><i class='bx bx-home-alt'></i> Home</a></li>
+            <li><a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}"><i class='bx bxs-buildings' style="color:#10b981;"></i> Library Seat Status</a></li>
             <li><a href="{% url 'users:about_us' %}"><i class='bx bx-info-circle'></i> About Us</a></li>
             <li><a href="{% url 'users:services' %}"><i class='bx bx-grid-alt'></i> Services</a></li>
             <li><a href="{% url 'users:courses' %}" class="{% if 'course' in request.resolver_match.url_name %}active{% endif %}"><i class='bx bx-book-open'></i> {% if user.profile.status == 'admitted' %}Courses{% else %}Our Courses{% endif %}</a></li>
