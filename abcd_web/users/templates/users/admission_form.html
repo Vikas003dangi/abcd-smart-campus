@@ -1818,18 +1818,31 @@
                         {{ form.photo }}
                     </div>
                     
+                    {% with cur_photo=existing_photo_url %}
                     <!-- Premium Profile Photo Upload Wrapper -->
                     <div style="position: relative; width: 120px; height: 120px;">
                         <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-                            <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-                            <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1;"></i>
+                            <img id="photoPreviewCustom" 
+                                 src="{% if cur_photo %}{{ cur_photo }}{% endif %}" 
+                                 data-initial-src="{% if cur_photo %}{{ cur_photo }}{% endif %}" 
+                                 alt="Profile Photo"
+                                 style="width: 100%; height: 100%; object-fit: cover; display: {% if cur_photo %}block{% else %}none{% endif %};"
+                                 onerror="this.style.display='none'; const ph=document.getElementById('photoPlaceholderCustom'); if(ph) ph.style.display='flex';">
+                            <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: {% if cur_photo %}none{% else %}flex{% endif %};"></i>
                         </div>
-                        <label for="id_photo" style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
+                        <label for="id_photo" title="{% if cur_photo %}Change profile photo{% else %}Upload profile photo{% endif %}" style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
                             <i class='bx bxs-camera'></i>
                         </label>
                     </div>
-                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 10px; font-weight: 600;">Passport size photo (Optional)</p>
-                    <small style="color: #94a3b8; font-size: 0.75rem; margin-top: 2px;">JPG / PNG only · Max 2MB</small>
+                    <p id="photoCaptionText" style="font-size: 0.8rem; color: #64748b; margin-top: 10px; font-weight: 600;">
+                        {% if cur_photo %}
+                            Current Profile Photo <span style="font-size: 0.75rem; font-weight: normal; color: #4f46e5;">(Click camera to change)</span>
+                        {% else %}
+                            Passport size photo (Optional)
+                        {% endif %}
+                    </p>
+                    <small id="photoSubtext" style="color: #94a3b8; font-size: 0.75rem; margin-top: 2px;">JPG / PNG only · Max 2MB</small>
+                    {% endwith %}
                 </div>
                 <div class="form-group">
                     <label for="id_email">Email Address (Optional)</label>
@@ -2388,19 +2401,38 @@
                 const file = this.files && this.files[0];
                 const previewImgCustom = document.getElementById('photoPreviewCustom');
                 const placeholderCustom = document.getElementById('photoPlaceholderCustom');
-                
-                if (!file) return;
+                const captionText = document.getElementById('photoCaptionText');
+                const initialSrc = previewImgCustom ? previewImgCustom.getAttribute('data-initial-src') : "";
 
                 const resetPhoto = () => {
                     this.value = "";
                     if (previewImgCustom) {
-                        previewImgCustom.src = "";
-                        previewImgCustom.style.display = "none";
+                        if (initialSrc) {
+                            previewImgCustom.src = initialSrc;
+                            previewImgCustom.style.display = "block";
+                        } else {
+                            previewImgCustom.src = "";
+                            previewImgCustom.style.display = "none";
+                        }
                     }
                     if (placeholderCustom) {
-                        placeholderCustom.style.display = "flex";
+                        placeholderCustom.style.display = initialSrc ? "none" : "flex";
+                    }
+                    if (captionText) {
+                        if (initialSrc) {
+                            captionText.innerHTML = `Current Profile Photo <span style="font-size: 0.75rem; font-weight: normal; color: #4f46e5;">(Click camera to change)</span>`;
+                            captionText.style.color = "#64748b";
+                        } else {
+                            captionText.textContent = "Passport size photo (Optional)";
+                            captionText.style.color = "#64748b";
+                        }
                     }
                 };
+
+                if (!file) {
+                    resetPhoto();
+                    return;
+                }
 
                 // 1. Format validation (JPG, JPEG, PNG, WEBP)
                 const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -2465,6 +2497,11 @@
                     }
                     if (placeholderCustom) {
                         placeholderCustom.style.display = "none";
+                    }
+                    if (captionText) {
+                        captionText.innerHTML = initialSrc 
+                            ? `<span style="color: #4f46e5; font-weight: 600;">✓ New photo selected (replaces current photo)</span>`
+                            : `<span style="color: #4f46e5; font-weight: 600;">✓ Photo selected</span>`;
                     }
                 };
                 reader.readAsDataURL(file);

@@ -317,24 +317,10 @@ class EditStudentProfileForm(forms.ModelForm):
 
         # If student is editing, restrict sensitive fields
         if self.user_editing and not self.user_editing.is_staff:
-            restricted_fields = ['status', 'service_type', 'batch']
+            restricted_fields = ['status', 'service_type', 'batch', 'full_name', 'sex', 'dob', 'email']
             for field_name in restricted_fields:
                 if field_name in self.fields:
                     self.fields[field_name].disabled = True
-            if 'email' in self.fields:
-                self.fields['email'].disabled = True
-
-            # Lock common details if any profile is pending approval
-            from .models import StudentProfile, StudentAchievement
-            profile_pending = StudentProfile.objects.filter(user=self.user_editing, status='pending').exists()
-            ach_pending = StudentAchievement.objects.filter(user=self.user_editing, status='pending').exists()
-            if profile_pending or ach_pending:
-                if 'full_name' in self.fields:
-                    self.fields['full_name'].disabled = True
-                if 'sex' in self.fields:
-                    self.fields['sex'].disabled = True
-                if 'dob' in self.fields:
-                    self.fields['dob'].disabled = True
 
         # Common styling
         for field in self.fields.values():
@@ -607,19 +593,9 @@ class EditAlumniProfileForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if user_editing and not user_editing.is_staff:
-            # Check if any profile is currently pending approval
-            from .models import StudentProfile, StudentAchievement
-            profile_pending = StudentProfile.objects.filter(user=user_editing, status='pending').exists()
-            ach_pending = StudentAchievement.objects.filter(user=user_editing, status='pending').exists()
-            if profile_pending or ach_pending:
-                if 'first_name' in self.fields:
-                    self.fields['first_name'].disabled = True
-                if 'last_name' in self.fields:
-                    self.fields['last_name'].disabled = True
-                if 'gender' in self.fields:
-                    self.fields['gender'].disabled = True
-                if 'dob' in self.fields:
-                    self.fields['dob'].disabled = True
+            for field_name in ['first_name', 'last_name', 'gender', 'dob']:
+                if field_name in self.fields:
+                    self.fields[field_name].disabled = True
         for field_name, field in self.fields.items():
             if field_name != 'photo':
                 existing = field.widget.attrs.get('class', '')

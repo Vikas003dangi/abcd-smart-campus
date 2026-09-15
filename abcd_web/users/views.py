@@ -3371,6 +3371,14 @@ def admission_form_view(request):
     if library_registered:
         disabled_services.append('Library')
 
+    # Resolve existing student profile photo URL if any
+    existing_photo_url = None
+    if has_profile and profile and profile.photo:
+        try:
+            existing_photo_url = profile.photo.url
+        except Exception:
+            existing_photo_url = None
+
     # ======================= GET ==========================
     if request.method == "GET":
         # Track visitor intent safely for SQLite
@@ -3391,7 +3399,7 @@ def admission_form_view(request):
         else:
             initial = {'is_new_registration': 'True', 'email': request.user.email or ''}
             form = StudentProfileForm(initial=initial, user=request.user, disabled_services=disabled_services)
-        return render(request, 'users/admission_form.html', {'form': form})
+        return render(request, 'users/admission_form.html', {'form': form, 'existing_photo_url': existing_photo_url})
 
     # ======================= POST ==========================
     if request.method == 'POST':
@@ -3406,7 +3414,7 @@ def admission_form_view(request):
                     'errors': form.errors.get_json_data(),
                     'message': 'Please correct the highlighted errors in the form.'
                 }, status=400)
-            return render(request, 'users/admission_form.html', {'form': form})
+            return render(request, 'users/admission_form.html', {'form': form, 'existing_photo_url': existing_photo_url})
 
         cleaned = form.cleaned_data
         service_type = cleaned['service_type']
@@ -3441,7 +3449,7 @@ def admission_form_view(request):
                         'message': dup_msg,
                         'show_duplicate_popup': True
                     }, status=400)
-                return render(request, 'users/admission_form.html', {'form': form, 'show_duplicate_popup': True})
+                return render(request, 'users/admission_form.html', {'form': form, 'show_duplicate_popup': True, 'existing_photo_url': existing_photo_url})
 
         # --- RETRY LOOP FOR DATABASE LOCKS ---
         for attempt in range(3):
@@ -3453,20 +3461,21 @@ def admission_form_view(request):
                 
                 with transaction.atomic():
                     # Preparation
+                    old_photo = profile.photo if (has_profile and profile and profile.photo) else None
+                    new_photo_uploaded = bool(request.FILES.get('photo'))
+
                     student_profile = form.save(commit=False)
                     if not cleaned.get('first_name') or not cleaned.get('last_name'):
                         if profile:
                             student_profile.full_name = profile.full_name
                             student_profile.sex = profile.sex
                             student_profile.dob = profile.dob
-                        else:
-                            ach = StudentAchievement.objects.filter(user=request.user).first()
-                            if ach:
-                                student_profile.full_name = ach.full_name
-                                student_profile.sex = ach.gender.capitalize() if ach.gender else 'Male'
-                                student_profile.dob = ach.dob
                     else:
                         student_profile.full_name = f"{cleaned['first_name']} {cleaned['last_name']}"
+
+                    # If no new photo uploaded, preserve existing student profile photo
+                    if not new_photo_uploaded and old_photo:
+                        student_profile.photo = old_photo
 
                     student_profile.admission_type = 'new' if is_new_choice else 'existing'
                     student_profile.is_manual_pending = False
@@ -3476,6 +3485,11 @@ def admission_form_view(request):
                         student_profile.status = 'pending'
                     else:
                         # Existing student registering for a second service
+                        if profile.status == 'admitted':
+                            # Retain active admitted status and service_type while second service is pending
+                            student_profile.service_type = profile.service_type
+                            student_profile.status = 'admitted'
+                            student_profile.is_admitted = True
                         if service_type == 'Coaching':
                             student_profile.coaching_pending = True
                         elif service_type == 'Library':
@@ -3555,7 +3569,8 @@ def admission_form_view(request):
                             if is_temporary_request:
                                 student_profile.seat = seat
                                 student_profile.shift = selected_shift
-                                student_profile.status = 'pending'
+                                if not (has_profile and profile.status == 'admitted'):
+                                    student_profile.status = 'pending'
                                 student_profile.save(update_fields=['seat', 'shift', 'status'])
 
                                 if not SeatSpecialRequest.objects.filter(seat=seat, requested_shift=selected_shift, status='pending').exists():
@@ -3593,7 +3608,8 @@ def admission_form_view(request):
                             SeatAssignment(seat=seat, student=student_profile, shift_type=selected_shift, is_active=False).full_clean()
                             
                             student_profile.shift = selected_shift
-                            student_profile.status = 'pending'
+                            if not (has_profile and profile.status == 'admitted'):
+                                student_profile.status = 'pending'
                             student_profile.seat = seat 
                             student_profile.save()
 
@@ -3652,6 +3668,16 @@ def admission_form_view(request):
                     # Link any user-level special seat requests to the new student profile
                     SeatSpecialRequest.objects.filter(user=request.user, student__isnull=True).update(student=student_profile)
 
+                    # Clean replacement of old student photo from disk/storage if a new one was uploaded
+                    if new_photo_uploaded and old_photo and student_profile.photo and old_photo.name != student_profile.photo.name:
+                        try:
+                            old_photo.delete(save=False)
+                        except Exception:
+                            pass
+
+                    # Clear cache so navbar and header avatars update immediately
+                    cache.delete(f"student_context_data_{request.user.id}")
+
                 # --- OUTSIDE ATOMIC BLOCK: Perform deferred actions ---
                 for action in deferred_actions:
                     try:
@@ -3678,7 +3704,7 @@ def admission_form_view(request):
                 messages.error(request, err_msg)
                 if is_ajax:
                     return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
-                return render(request, 'users/admission_form.html', {'form': form})
+                return render(request, 'users/admission_form.html', {'form': form, 'existing_photo_url': existing_photo_url})
             except OperationalError as e:
                 if "database is locked" in str(e) and attempt < 2:
                     time.sleep(0.1 * (attempt + 1))
@@ -3687,16 +3713,16 @@ def admission_form_view(request):
                 if is_ajax:
                     return JsonResponse({'status': 'error', 'message': 'The database is temporarily busy. Please try submitting again.'}, status=503)
                 messages.error(request, "The database is temporarily busy. Please try submitting again.")
-                return render(request, 'users/admission_form.html', {'form': form})
+                return render(request, 'users/admission_form.html', {'form': form, 'existing_photo_url': existing_photo_url})
             except Exception as e:
                 logger.error(f"Admission Form Exception: {e}", exc_info=True)
                 err_text = "There was an error processing your admission. Please try again."
                 messages.error(request, err_text)
                 if is_ajax:
                     return JsonResponse({'status': 'error', 'message': err_text}, status=500)
-                return render(request, 'users/admission_form.html', {'form': form})
+                return render(request, 'users/admission_form.html', {'form': form, 'existing_photo_url': existing_photo_url})
 
-    return render(request, 'users/admission_form.html', {'form': form})
+    return render(request, 'users/admission_form.html', {'form': form, 'existing_photo_url': existing_photo_url})
     
 # -------------------------------------------------------------------
 # API VIEW: Records interest in an occupied seat
@@ -7973,6 +7999,17 @@ def edit_student_view(request, student_id):
             
             updated_student.save()
             
+            # Keep verified name synchronized across auth User and StudentAchievement
+            u = updated_student.user
+            if updated_student.full_name:
+                fn, *ln_parts = updated_student.full_name.strip().split(' ', 1)
+                ln = ln_parts[0] if ln_parts else ''
+                if u.first_name != fn or u.last_name != ln:
+                    u.first_name = fn
+                    u.last_name = ln
+                    u.save(update_fields=['first_name', 'last_name'])
+                StudentAchievement.objects.filter(user=u).update(first_name=fn, last_name=ln)
+            
             # Send Email for Profile Update (if edited by staff and not self)
             if request.user.is_staff and request.user != updated_student.user:
                 send_html_email(
@@ -10150,6 +10187,18 @@ def edit_alumni_view(request, pk=None):
             obj.other_achievements = others
             
             obj.save()
+
+            # Keep verified name synchronized across auth User and StudentProfile
+            u = obj.user
+            fn = (obj.first_name or '').strip()
+            ln = (obj.last_name or '').strip()
+            full_n = f"{fn} {ln}".strip()
+            if u and (u.first_name != fn or u.last_name != ln):
+                u.first_name = fn
+                u.last_name = ln
+                u.save(update_fields=['first_name', 'last_name'])
+            if u and full_n:
+                StudentProfile.objects.filter(user=u).update(full_name=full_n)
             messages.success(request, "Profile updated successfully!")
             return redirect('users:achievement_detail', pk=achievement.pk)
     else:
@@ -11275,7 +11324,17 @@ def guidy_home(request):
     # Notification counts for badge
     guidy_badge = get_guidy_badge_count(user)
 
-    my_photo = get_profile_photo_url(user)
+    active_dash = request.session.get('active_dashboard')
+
+    # Contextual photo for dual-role users (Student vs Alumni)
+    if active_dash == 'alumni' and is_alumni and alumni_profile and alumni_profile.photo:
+        my_photo = alumni_profile.photo.url
+    elif active_dash == 'student' and is_student:
+        stud_prof = StudentProfile.objects.filter(user=user).first()
+        my_photo = stud_prof.photo.url if (stud_prof and stud_prof.photo) else get_profile_photo_url(user)
+    else:
+        my_photo = get_profile_photo_url(user)
+
     my_display_name = get_user_display_name(user)
     my_subtext = "Guest User"
     my_teacher_profile = None
@@ -11293,11 +11352,17 @@ def guidy_home(request):
             if w:
                 clean = "".join(c for c in w if c.isdigit())
                 my_whatsapps_list.append({'original': w, 'clean': clean})
+    elif is_alumni and is_student:
+        if active_dash == 'student':
+            my_subtext = "Student"
+        elif active_dash == 'alumni':
+            my_subtext = "Alumni Guide"
+        else:
+            my_subtext = "Student & Alumni"
     elif is_alumni:
         my_subtext = "Alumni Guide"
-    else:
-        if is_student:
-            my_subtext = "Student"
+    elif is_student:
+        my_subtext = "Student"
 
     other_user_active = False
     other_is_verified = False
@@ -12812,7 +12877,7 @@ def guidy_profile_info(request, entity_type, entity_id):
                 'success': True,
                 'is_group': False,
                 'name': ach.full_name,
-                'photo': get_profile_photo_url(ach.user),
+                'photo': (ach.photo.url if ach.photo else None) or get_profile_photo_url(ach.user),
                 'role': 'Alumni Achiever',
                 'detail1': ach.current_post or '',
                 'detail2': ach.working_city or '',

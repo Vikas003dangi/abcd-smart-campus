@@ -2592,7 +2592,7 @@ body.dark-theme .search-highlight {
       <!-- ROW 1: Title & Menu -->
       <div class="g-sidebar-title-row">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <a href="{% if is_teacher %}{% url 'users:teacher_dashboard' %}{% elif is_guest %}{% url 'users:guest_page' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}" class="g-sidebar-back-btn" title="Back to Dashboard" style="display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; color: var(--g-text); background: var(--g-bg); text-decoration: none; font-size: 1.3rem;">
+          <a href="{% url 'users:smart_back_router' %}" class="g-sidebar-back-btn" title="Back to Dashboard" style="display: none; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; color: var(--g-text); background: var(--g-bg); text-decoration: none; font-size: 1.3rem;">
             <i class='bx bx-left-arrow-alt'></i>
           </a>
           <h2>Guidy Chats</h2>
