@@ -2,11 +2,12 @@
 
 import os
 import re
+import base64
 import logging
-from email.mime.image import MIMEImage
 from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.contrib.staticfiles import finders
 
 logger = logging.getLogger(__name__)
 
@@ -98,11 +99,44 @@ def send_html_email(
         elif any(k in tmpl_lower or k in subj_lower for k in ['welcome']):
             illustration_name = 'welcome.png'
 
-        # Use lightweight direct URLs for images to keep email payload <5KB and ensure instant delivery
-        site_url_clean = str(site_url).rstrip('/')
+        # Embed images as base64 data URIs so they display instantly in Gmail/Outlook
+        # without being blocked as "remote images" or appearing as attachments.
+        # This matches how professional mailers (PhonePe, Razorpay, etc.) embed logos.
+
+        def _img_to_data_uri(static_relative_path):
+            """Find a static file and return a data: URI string, or None on failure."""
+            try:
+                abs_path = finders.find(static_relative_path)
+                if not abs_path:
+                    # Fallback: look directly in STATIC_ROOT / staticfiles
+                    from django.conf import settings as _s
+                    import os
+                    for root in [getattr(_s, 'STATIC_ROOT', None), getattr(_s, 'STATICFILES_DIRS', [None])[0]]:
+                        if root:
+                            candidate = os.path.join(str(root), static_relative_path)
+                            if os.path.isfile(candidate):
+                                abs_path = candidate
+                                break
+                if not abs_path:
+                    return None
+                with open(abs_path, 'rb') as f:
+                    b64 = base64.b64encode(f.read()).decode('ascii')
+                ext = static_relative_path.rsplit('.', 1)[-1].lower()
+                mime = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif', 'svg': 'image/svg+xml'}.get(ext, 'image/png')
+                return f"data:{mime};base64,{b64}"
+            except Exception:
+                return None
+
         inline_images = []
-        context['logo_url'] = f"{site_url_clean}/static/data/light-logo.png"
-        context['illustration_url'] = f"{site_url_clean}/static/data/email_illustrations/{illustration_name}"
+
+        # Logo: embed as base64 data URI (14KB — negligible)
+        logo_data_uri = _img_to_data_uri('data/light-logo.png')
+        site_url_clean = str(site_url).rstrip('/')
+        context['logo_url'] = logo_data_uri or f"{site_url_clean}/static/data/light-logo.png"
+
+        # Illustration: embed as base64 data URI (25–80KB per image)
+        illus_data_uri = _img_to_data_uri(f'data/email_illustrations/{illustration_name}')
+        context['illustration_url'] = illus_data_uri or f"{site_url_clean}/static/data/email_illustrations/{illustration_name}"
 
         html_content = render_to_string(template, context)
         
