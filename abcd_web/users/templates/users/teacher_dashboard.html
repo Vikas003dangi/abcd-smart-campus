@@ -850,9 +850,7 @@
         max-height: calc(100dvh - 78px);
       }
       .nav-sidebar,
-      body.dark-theme .nav-sidebar,
-      .sidebar-overlay,
-      body.dark-theme .sidebar-overlay {
+      body.dark-theme .nav-sidebar {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
       }
@@ -969,13 +967,17 @@
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.25s ease, visibility 0.25s ease;
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: opacity 0.25s ease, visibility 0.25s ease, backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
     }
 
     .sidebar-overlay.active {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
     }
 
     .dashboard-container {
@@ -1532,13 +1534,17 @@
       z-index: 1000001 !important;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
-      will-change: opacity;
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: opacity 0.25s ease, backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
+      will-change: opacity, backdrop-filter;
     }
 
     .teacher-notif-overlay.active {
       opacity: 1;
       pointer-events: auto;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
     }
 
     body.notif-panel-open {
@@ -3926,17 +3932,21 @@
     .broadcast-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(15, 23, 42, 0.45);
       z-index: 1000001 !important;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.25s ease;
-      will-change: opacity;
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: opacity 0.25s ease, backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
+      will-change: opacity, backdrop-filter;
     }
 
     .broadcast-overlay.active {
       opacity: 1;
       pointer-events: auto;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
     }
 
     /* Styles for the structure within teacher_broadcast.html */

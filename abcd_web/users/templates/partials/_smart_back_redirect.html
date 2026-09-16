@@ -220,10 +220,13 @@
                     const url = new URL(href, window.location.origin);
                     const itemPath = (url.pathname.replace(/\/$/, '') || '/').toLowerCase();
 
-                    if (itemPath === currentPath) {
+                    const isExactMatch = (itemPath === currentPath);
+                    const isSegmentMatch = (itemPath !== '/' && currentPath.startsWith(itemPath + '/'));
+
+                    if (isExactMatch) {
                         bestMatch = item;
-                        bestMatchLen = itemPath.length;
-                    } else if (itemPath !== '/' && currentPath.startsWith(itemPath) && itemPath.length > bestMatchLen) {
+                        bestMatchLen = Infinity;
+                    } else if (isSegmentMatch && itemPath.length > bestMatchLen) {
                         bestMatch = item;
                         bestMatchLen = itemPath.length;
                     }

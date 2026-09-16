@@ -4140,9 +4140,9 @@ def student_dashboard_view(request):
     try:
         _ach_pool = list(
             StudentAchievement.objects.filter(status='approved')
-            .order_by('-id')
+            .order_by('-id')[:100]
         )
-        achievements = random.sample(_ach_pool, 50) if len(_ach_pool) > 50 else _ach_pool
+        achievements = random.sample(_ach_pool, min(len(_ach_pool), 50)) if _ach_pool else []
     except Exception:
         achievements = []
 

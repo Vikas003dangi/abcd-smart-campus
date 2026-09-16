@@ -1155,9 +1155,7 @@
 
     @media (max-width: 768px) {
       .nav-sidebar,
-      body.dark-theme .nav-sidebar,
-      .sidebar-overlay,
-      body.dark-theme .sidebar-overlay {
+      body.dark-theme .nav-sidebar {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
       }
@@ -1237,13 +1235,17 @@
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.25s ease, visibility 0.25s ease;
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: opacity 0.25s ease, visibility 0.25s ease, backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
     }
 
     .sidebar-overlay.active {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
     }
 
     /* NAV SEARCH INPUT */
@@ -1314,13 +1316,17 @@
       z-index: 25000 !important;
       display: none;
       opacity: 0;
-      transition: opacity 0.25s ease;
-      will-change: opacity;
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: opacity 0.25s ease, backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
+      will-change: opacity, backdrop-filter;
     }
 
     .notif-overlay.active {
       display: block;
       opacity: 1;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
     }
 
     /* Panel header - Sticky & Professional */
@@ -3500,9 +3506,11 @@
 
     .student-marquee-section .marquee-header {
       max-width: 1200px;
-      margin: 0 auto 12px auto !important;
+      margin: 0 auto 16px auto !important;
       padding: 0 20px;
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center !important;
       text-align: center;
     }
@@ -3514,6 +3522,7 @@
       color: #526D82;
       position: relative;
       padding-bottom: 10px;
+      margin-bottom: 0;
     }
     .student-marquee-section .marquee-header h2::after {
       content: '';
@@ -3527,6 +3536,18 @@
       border-radius: 2px;
     }
     body.dark-theme .student-marquee-section .marquee-header h2 { color: #fff; }
+
+    .student-marquee-section .marquee-subtitle {
+      font-size: clamp(0.85rem, 2vw, 1.02rem);
+      color: #64748b;
+      margin: 8px auto 0 auto;
+      max-width: 700px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+    body.dark-theme .student-marquee-section .marquee-subtitle {
+      color: rgba(245, 222, 179, 0.8);
+    }
 
     .student-marquee-section .marquee-footer-buttons {
       display: flex;
@@ -3620,6 +3641,14 @@
       perspective: 1000px;
       transition: all 0.3s ease;
       cursor: pointer;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+    .student-marquee-section .ach-card-item:focus-visible {
+      outline: 3px solid #6366f1;
+      outline-offset: 4px;
+      border-radius: 50%;
     }
 
     @media (max-width: 768px) {
@@ -4437,20 +4466,21 @@
     <section class="marquee-section student-marquee-section">
       <div class="marquee-section-inner">
         <div class="marquee-header">
-          <h2>Connect with ABCD Guides</h2>
+          <h2>Connect & Consult with ABCD Achievers</h2>
+          <p class="marquee-subtitle">Direct 1-on-1 Guidance & Real-Time Mentorship from Proven ABCD Achievers</p>
         </div>
         
         <div class="marquee-wrapper">
-          <button class="marquee-nav-btn prev" onclick="studentManualScroll(-1)" aria-label="Previous">
+          <button class="marquee-nav-btn prev" onclick="studentManualScroll(-1)" aria-label="Previous achievement">
             <i class='bx bx-chevron-left'></i>
           </button>
           
           <div class="marquee-container" id="studentMarqueeContainer">
             <div class="marquee-content scrolling" id="studentMarqueeContent">
-              {# Repeat 6 times for seamless infinite loop #}
-              {% for i in "123456" %}
+              {# Repeat 2 times for initial render, client JS auto-fills to fit full screen #}
+              {% for i in "12" %}
                 {% for ach in achievements %}
-                <div class="ach-card-item" data-url="{% url 'users:achievement_detail' ach.id %}" onclick="window.location.href=this.getAttribute('data-url')">
+                <a href="{% url 'users:achievement_detail' ach.id %}" class="ach-card-item" aria-label="Connect with {{ ach.first_name }} {{ ach.last_name }}" tabindex="0">
                   <div class="circle-view">
                     <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }}" loading="lazy" decoding="async">
                     <div class="circle-overlay">
@@ -4475,7 +4505,7 @@
                       <p class="exp-review">"{{ ach.abcd_feedback|truncatechars:80 }}"</p>
                     </div>
                   </div>
-                </div>
+                </a>
                 {% endfor %}
               {% endfor %}
             </div>
