@@ -4970,7 +4970,7 @@
                 </div>
                 <div class="hero-buttons">
                     <a href="{% url 'users:register' %}" class="btn-primary" style="text-decoration: none;">Get Started</a>
-                    <button type="button" class="btn-secondary">Learn More</button>
+                    <a href="{% url 'users:services' %}" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Learn More</a>
                 </div>
             </div>
             
@@ -5353,8 +5353,10 @@
             <div class="footer-section">
                 <h4>Services</h4>
                 <ul>
+                    {% if request.resolver_match.url_name == 'home_page' or request.path == '/' %}
                     <li><a href="#facilityCoaching" class="facility-trigger"><i class='bx bx-chevron-right'></i>Coaching Services</a></li>
                     <li><a href="#facilityLibrary" class="facility-trigger"><i class='bx bx-chevron-right'></i>Library Services</a></li>
+                    {% endif %}
                     <li><a href="{% url 'users:courses' %}"><i class='bx bx-chevron-right'></i>Courses</a></li>
                     <li><a href="https://www.youtube.com/@englishekkhoz8279" target="_blank" rel="noopener noreferrer"><i class='bx bx-chevron-right'></i>Free Youtube Classes</a></li>
                     <li><a href="#" class="feature-trigger" data-feature="To-Do Features"><i class='bx bx-chevron-right'></i>To Do Features</a></li>
