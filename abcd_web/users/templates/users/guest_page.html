@@ -1963,7 +1963,7 @@
         display: grid !important;
         backdrop-filter: blur(14px) !important;
         -webkit-backdrop-filter: blur(14px) !important;
-        z-index: 3000 !important;
+        z-index: 3000000 !important;
         pointer-events: auto !important;
     }
 
@@ -3904,16 +3904,59 @@
         (function () {
             var popup       = document.getElementById('noProfilePopup');
             var closeBtn    = document.getElementById('noProfileClose');
+            var bnavProfile = document.getElementById('bnavProfile');
+
+            function openNoProfilePopup() {
+                if (popup) {
+                    popup.style.removeProperty('display');
+                    popup.style.removeProperty('pointer-events');
+                    popup.style.removeProperty('z-index');
+                    popup.style.removeProperty('backdrop-filter');
+                    popup.style.removeProperty('-webkit-backdrop-filter');
+                    popup.classList.add('visible');
+                }
+            }
+
+            function closeNoProfilePopup() {
+                if (popup) {
+                    popup.classList.remove('visible');
+                }
+            }
+            window.openNoProfilePopup = openNoProfilePopup;
+            window.closeNoProfilePopup = closeNoProfilePopup;
+
+            if (bnavProfile) {
+                bnavProfile.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openNoProfilePopup();
+                });
+            }
 
             if (closeBtn && popup) {
-                closeBtn.addEventListener('click', function() { popup.classList.remove('visible'); });
+                closeBtn.addEventListener('click', closeNoProfilePopup);
             }
 
             if (popup) {
                 popup.addEventListener('click', function(e) {
-                    if (e.target === popup) popup.classList.remove('visible');
+                    if (e.target === popup) closeNoProfilePopup();
                 });
             }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') closeNoProfilePopup();
+            });
+
+            document.addEventListener('click', function(e) {
+                var profileEl = e.target.closest('#bnavProfile, .bnav-profile, [data-action="profile"], .nav-link-profile, a[href*="profile"]');
+                if (profileEl) {
+                    {% if not user.is_authenticated %}
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openNoProfilePopup();
+                    {% endif %}
+                }
+            });
         })();
 </script>
 {% endblock bottom_nav_js %}

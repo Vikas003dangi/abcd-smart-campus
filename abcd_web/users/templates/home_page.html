@@ -2911,15 +2911,23 @@
         .no-profile-popup {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            z-index: 3000;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 3000000;
             display: none;
             place-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
         }
 
-        .no-profile-popup.visible { display: grid; }
+        .no-profile-popup.visible {
+            display: grid !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: 3000000 !important;
+        }
 
         .no-profile-card {
             background: white;
@@ -4415,22 +4423,23 @@
             height: 32px !important;
             font-size: 1.2rem !important;
         }
-        .no-profile-popup {
+        .no-profile-card {
             padding: 20px 15px !important;
             width: 94% !important;
             max-width: 94% !important;
             border-radius: 16px !important;
         }
-        .no-profile-popup h2,
-        .no-profile-popup h3 {
+        .no-profile-card h2,
+        .no-profile-card h3 {
             font-size: 1.4rem !important;
         }
-        .no-profile-popup p {
+        .no-profile-card p {
             font-size: 0.9rem !important;
         }
-        .no-profile-popup button,
-        .no-profile-popup .btn,
-        .no-profile-popup a.btn {
+        .no-profile-card button,
+        .no-profile-card .btn,
+        .no-profile-card a.btn,
+        .no-profile-card .no-profile-btn {
             padding: 10px 16px !important;
             font-size: 0.85rem !important;
             border-radius: 8px !important;
@@ -5479,6 +5488,11 @@
                 featureAuthMessage.innerHTML = `You have to register or log in to use <strong>${featureName}</strong>.`;
             }
             if (featureAuthPopup) {
+                featureAuthPopup.style.removeProperty('display');
+                featureAuthPopup.style.removeProperty('pointer-events');
+                featureAuthPopup.style.removeProperty('z-index');
+                featureAuthPopup.style.removeProperty('backdrop-filter');
+                featureAuthPopup.style.removeProperty('-webkit-backdrop-filter');
                 featureAuthPopup.classList.add('visible');
             }
         }
@@ -5488,6 +5502,8 @@
                 featureAuthPopup.classList.remove('visible');
             }
         }
+        window.showFeatureAuthPopup = showFeatureAuthPopup;
+        window.closeFeatureAuthPopup = closeFeatureAuthPopup;
 
         if (featureAuthClose) {
             featureAuthClose.addEventListener('click', closeFeatureAuthPopup);
@@ -5531,6 +5547,16 @@
                 const featureName = this.getAttribute('data-feature');
                 showFeatureAuthPopup(featureName);
             });
+        });
+
+        document.addEventListener('click', function(e) {
+            const featBtn = e.target.closest('.feature-trigger');
+            if (featBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const featureName = featBtn.getAttribute('data-feature') || 'this feature';
+                showFeatureAuthPopup(featureName);
+            }
         });
 
         // --- ALERT & MASCOT ANIMATION CHOREOGRAPHY ---
@@ -7005,29 +7031,69 @@
 
     <script>
         // ==========================================
-        // PROFILE POPUP  (bottom nav Profile button)
+        // PROFILE POPUP  (bottom nav Profile button & Navbar)
         // ==========================================
         (function () {
             var bnavProfile = document.getElementById('bnavProfile');
             var popup       = document.getElementById('noProfilePopup');
             var closeBtn    = document.getElementById('noProfileClose');
 
-            if (bnavProfile && popup) {
+            function openNoProfilePopup() {
+                if (popup) {
+                    popup.style.removeProperty('display');
+                    popup.style.removeProperty('pointer-events');
+                    popup.style.removeProperty('z-index');
+                    popup.style.removeProperty('backdrop-filter');
+                    popup.style.removeProperty('-webkit-backdrop-filter');
+                    popup.classList.add('visible');
+                }
+            }
+
+            function closeNoProfilePopup() {
+                if (popup) {
+                    popup.classList.remove('visible');
+                }
+            }
+            window.openNoProfilePopup = openNoProfilePopup;
+            window.closeNoProfilePopup = closeNoProfilePopup;
+
+            if (bnavProfile) {
                 bnavProfile.addEventListener('click', function(e) {
                     e.preventDefault();
-                    popup.classList.add('visible');
+                    e.stopPropagation();
+                    openNoProfilePopup();
                 });
             }
 
-            if (closeBtn && popup) {
-                closeBtn.addEventListener('click', function() { popup.classList.remove('visible'); });
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeNoProfilePopup);
             }
 
             if (popup) {
                 popup.addEventListener('click', function(e) {
-                    if (e.target === popup) popup.classList.remove('visible');
+                    if (e.target === popup) closeNoProfilePopup();
                 });
             }
+
+            // Close on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeNoProfilePopup();
+                    if (typeof closeFeatureAuthPopup === 'function') closeFeatureAuthPopup();
+                }
+            });
+
+            // Handle ANY profile click across navbar, sidebar, or footer for logged-out visitors
+            document.addEventListener('click', function(e) {
+                var profileEl = e.target.closest('#bnavProfile, .bnav-profile, [data-action="profile"], .nav-link-profile, a[href*="profile"], a[href*="my-details"]');
+                if (profileEl) {
+                    {% if not user.is_authenticated %}
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openNoProfilePopup();
+                    {% endif %}
+                }
+            });
         })();
     </script>
 

@@ -897,7 +897,6 @@ window.showABCDModal = function (opts) {
                 '.custom-popup-overlay:not(.visible)',
                 '.alert-overlay:not(.visible)',
                 '.reg-success-overlay:not(.active)',
-                '.no-profile-popup:not(.visible)',
                 '.ach-modal-overlay:not(.active)',
                 '#logoutConfirmOverlay:not(.active)',
                 '#logoutConfirmOverlay'
@@ -954,6 +953,15 @@ window.showABCDModal = function (opts) {
                 cleanSidebarOverlay.style.removeProperty('backdrop-filter');
                 cleanSidebarOverlay.style.removeProperty('-webkit-backdrop-filter');
             }
+
+            // Ensure no-profile-popup elements are never infected with leftover inline styles
+            document.querySelectorAll('.no-profile-popup').forEach(el => {
+                el.style.removeProperty('display');
+                el.style.removeProperty('pointer-events');
+                el.style.removeProperty('z-index');
+                el.style.removeProperty('backdrop-filter');
+                el.style.removeProperty('-webkit-backdrop-filter');
+            });
 
             // Unlock any stuck scroll / modal-open states
             const openModals = document.querySelectorAll('.choice-modal-open, .banner-show, .custom-popup-overlay.visible, .reg-success-overlay.active, .ach-modal-overlay.active, .alert-overlay.visible, .admission-modal.active, .teacher-modal.active');
