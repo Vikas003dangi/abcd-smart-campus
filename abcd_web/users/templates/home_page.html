@@ -2130,6 +2130,7 @@
         .icon-support { color: #06b6d4; filter: drop-shadow(0 2px 8px rgba(6, 182, 212, 0.3)); }
         .icon-courses { color: #f43f5e; filter: drop-shadow(0 2px 8px rgba(244, 63, 94, 0.3)); }
         .icon-complaints { color: #10b981; filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.3)); }
+        .icon-seat { color: #0ea5e9; filter: drop-shadow(0 2px 8px rgba(14, 165, 233, 0.3)); }
 
         .premium-card {
             display: flex;
@@ -2189,6 +2190,16 @@
         body.dark-theme .success-badge {
             background: rgba(16, 185, 129, 0.15);
             color: #34d399;
+        }
+
+        .danger-badge {
+            background: rgba(239, 68, 68, 0.08);
+            color: #ef4444;
+        }
+
+        body.dark-theme .danger-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
         }
 
         .button-wrapper {
@@ -4995,7 +5006,27 @@
 
     <!-- Complaint ratings widget — place into guest_page.html and home_page.html where desired -->
     <section class="services-preview extra-services" style="padding-top: 0; margin-top: -20px; margin-bottom: 30px;">
-        <div class="services-grid" style="max-width: 900px; margin: 0 auto;">
+        <div class="services-grid" style="max-width: 1200px; margin: 0 auto;">
+            <div class="service-card premium-card">
+                <div style="width: 100%;">
+                    <div class="feature-icon"><i class='bx bx-chair icon-seat'></i></div>
+                    <h3>Live Seat Availability</h3>
+                    <p style="margin-bottom: 0;">Check the real-time status of our library seats for both floors before you visit.</p>
+                    <div class="badge-row">
+                        {% if avail_seats_count > 0 %}
+                            <span class="service-badge success-badge"><i class="bx bx-check-circle"></i> {{ avail_seats_count }} Available</span>
+                        {% else %}
+                            <span class="service-badge danger-badge"><i class="bx bx-x-circle"></i> No seat available</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="button-wrapper">
+                    <a href="{% url 'users:library_availability' %}" class="service-btn">
+                        Check Availability
+                    </a>
+                </div>
+            </div>
+
             <div class="service-card premium-card">
                 <div style="width: 100%;">
                     <div class="feature-icon"><i class='bx bxs-layer icon-courses'></i></div>
@@ -5219,6 +5250,7 @@
                     <li><a href="{% url 'users:home_page' %}"><i class='bx bx-chevron-right'></i>Home</a></li>
                     <li><a href="{% url 'users:about_us' %}"><i class='bx bx-chevron-right'></i>About Us</a></li>
                     <li><a href="{% url 'users:services' %}"><i class='bx bx-chevron-right'></i>Services</a></li>
+                    <li><a href="{% url 'users:library_availability' %}"><i class='bx bx-chevron-right'></i>Library Seats</a></li>
                     <li><a href="{% url 'users:register' %}"><i class='bx bx-chevron-right'></i>Admission</a></li>
                     <li><a href="{% url 'users:contact' %}"><i class='bx bx-chevron-right'></i>Contact</a></li>
                 </ul>
