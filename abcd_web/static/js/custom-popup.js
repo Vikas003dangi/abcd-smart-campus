@@ -673,12 +673,14 @@ window.showABCDModal = function (opts) {
 
         // 1. PAIRED OVERLAY is ALWAYS set to baseZ (rendered BEHIND the dialog!)
         if (targetOverlay) {
+            targetOverlay.style.removeProperty('pointer-events');
             targetOverlay.style.setProperty('z-index', baseZ.toString(), 'important');
             targetOverlay.dataset.stackedTime = Date.now().toString();
         }
 
         // 2. DIALOG is ALWAYS set to baseZ + 1 (rendered IN FRONT of the overlay!)
         if (targetDialog) {
+            targetDialog.style.removeProperty('pointer-events');
             targetDialog.style.setProperty('z-index', (baseZ + 1).toString(), 'important');
             targetDialog.dataset.stackedTime = Date.now().toString();
 
@@ -692,8 +694,13 @@ window.showABCDModal = function (opts) {
                 '[class*="-card"], [class*="-container"], [class*="-box"]'
             );
             if (innerCard && innerCard !== targetDialog) {
+                innerCard.style.removeProperty('pointer-events');
                 innerCard.style.setProperty('z-index', (baseZ + 2).toString(), 'important');
             }
+        }
+
+        if (element && element !== targetOverlay && element !== targetDialog) {
+            element.style.removeProperty('pointer-events');
         }
     };
 
@@ -817,6 +824,14 @@ window.showABCDModal = function (opts) {
                 const style = window.getComputedStyle(el);
                 if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return;
 
+                // CRITICAL: When element becomes visible/active, ALWAYS restore pointer-events and unpoison inline styles
+                el.style.removeProperty('pointer-events');
+                if (el.style.zIndex === '-1') {
+                    el.style.removeProperty('z-index');
+                }
+                el.style.removeProperty('backdrop-filter');
+                el.style.removeProperty('-webkit-backdrop-filter');
+
                 // CRITICAL: If element is a pure backdrop overlay, never bring it to front alone.
                 // Instead, find its paired modal dialog and bring that to front (which sets overlay at Z, dialog at Z+1).
                 if (typeof window.isPureBackdrop === 'function' && window.isPureBackdrop(el)) {
@@ -931,17 +946,34 @@ window.showABCDModal = function (opts) {
                 });
             });
 
-            document.querySelectorAll('.modal-overlay, .custom-modal-overlay, .fp-overlay, .todo-modal-overlay, .picker-overlay, .tc-modal-bg, #statusModalOverlay, .choice-modal-overlay, .student-banner-overlay, .custom-popup-overlay, .alert-overlay, .ach-modal-overlay').forEach(el => {
-                if (el.classList.contains('sidebar-overlay') || el.id === 'sidebarOverlay' || el.closest('.sidebar-wrapper')) return;
-                const cs = window.getComputedStyle(el);
-                if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0' || (!el.classList.contains('active') && !el.classList.contains('visible') && !el.classList.contains('show') && !el.classList.contains('choice-modal-open') && !el.classList.contains('banner-show'))) {
-                    el.style.setProperty('backdrop-filter', 'none', 'important');
-                    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-                    el.style.setProperty('pointer-events', 'none', 'important');
-                    if (parseInt(cs.zIndex, 10) > 1000) {
-                        el.style.setProperty('z-index', '-1', 'important');
-                    }
+            document.querySelectorAll('.modal-overlay, .custom-modal-overlay, .fp-overlay, .tc-modal-bg, #statusModalOverlay, .choice-modal-overlay, .student-banner-overlay, .custom-popup-overlay, .alert-overlay, .ach-modal-overlay').forEach(el => {
+                if (el.classList.contains('sidebar-overlay') || el.id === 'sidebarOverlay' || el.closest('.sidebar-wrapper') || el.classList.contains('todo-modal-overlay') || el.classList.contains('picker-overlay')) return;
+                const isActive = el.classList.contains('active') || el.classList.contains('visible') || el.classList.contains('show') || el.classList.contains('choice-modal-open') || el.classList.contains('banner-show');
+                if (isActive) {
+                    el.style.removeProperty('pointer-events');
+                    if (el.style.zIndex === '-1') el.style.removeProperty('z-index');
+                    el.style.removeProperty('backdrop-filter');
+                    el.style.removeProperty('-webkit-backdrop-filter');
+                    return;
                 }
+                const cs = window.getComputedStyle(el);
+                if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') {
+                    return; // Already hidden by stylesheet, do not poison with inline styles
+                }
+                el.style.setProperty('backdrop-filter', 'none', 'important');
+                el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                el.style.setProperty('pointer-events', 'none', 'important');
+                if (parseInt(cs.zIndex, 10) > 1000) {
+                    el.style.setProperty('z-index', '-1', 'important');
+                }
+            });
+
+            // Ensure todo-modal-overlay and picker-overlay are never infected with leftover inline styles
+            document.querySelectorAll('.todo-modal-overlay, .picker-overlay').forEach(el => {
+                el.style.removeProperty('pointer-events');
+                if (el.style.zIndex === '-1') el.style.removeProperty('z-index');
+                el.style.removeProperty('backdrop-filter');
+                el.style.removeProperty('-webkit-backdrop-filter');
             });
 
             // Ensure sidebarOverlay is never infected with leftover inline styles

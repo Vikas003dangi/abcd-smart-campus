@@ -258,6 +258,7 @@
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: none;
     justify-content: center;
     align-items: center;
@@ -265,7 +266,8 @@
   }
 
   .todo-modal-overlay.active {
-    display: flex;
+    display: flex !important;
+    pointer-events: auto !important;
   }
 
   .todo-modal {
@@ -277,6 +279,7 @@
     overflow: hidden;
     transform: scale(0.95);
     transition: all 0.2s;
+    pointer-events: auto !important;
   }
 
   body.dark-theme .todo-modal {
@@ -287,6 +290,7 @@
 
   .todo-modal-overlay.active .todo-modal {
     transform: scale(1);
+    pointer-events: auto !important;
   }
 
   .todo-modal-header {
@@ -814,10 +818,12 @@
     align-items: center;
     z-index: 9999;
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   .picker-overlay.active {
-    display: flex;
+    display: flex !important;
+    pointer-events: auto !important;
   }
 
   .picker-card {
@@ -829,6 +835,7 @@
     box-shadow: 0 25px 60px rgba(123, 97, 255, 0.2);
     position: relative;
     border: 1px solid #eef2f6;
+    pointer-events: auto !important;
   }
 
   body.dark-theme .picker-card {
@@ -5119,14 +5126,28 @@
     timePickerTargetId = null;
   }
 
-  let markCompletedMode = false;
+  window.openModalOverlay = function(modalId) {
+    const el = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+    if (!el) return;
+    el.style.removeProperty('pointer-events');
+    if (el.style.zIndex === '-1') el.style.removeProperty('z-index');
+    el.style.removeProperty('backdrop-filter');
+    el.style.removeProperty('-webkit-backdrop-filter');
+    el.classList.add('active');
+  };
+
+  window.closeModalOverlay = function(modalId) {
+    const el = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+    if (!el) return;
+    el.classList.remove('active');
+  };
 
   function openNewModal() {
-    document.getElementById('newMenuModal').classList.add('active');
+    window.openModalOverlay('newMenuModal');
   }
 
   function closeNewModal() {
-    document.getElementById('newMenuModal').classList.remove('active');
+    window.closeModalOverlay('newMenuModal');
   }
 
   function handleContextFabClick() {
@@ -5147,11 +5168,11 @@
   function showModalAlert(title, message) {
     document.getElementById('alertModalTitle').textContent = title;
     document.getElementById('alertModalMessage').textContent = message;
-    document.getElementById('alertModalOverlay').classList.add('active');
+    window.openModalOverlay('alertModalOverlay');
   }
 
   function closeAlertModal() {
-    document.getElementById('alertModalOverlay').classList.remove('active');
+    window.closeModalOverlay('alertModalOverlay');
   }
 
   function getCsrfToken() {
@@ -5259,7 +5280,7 @@
   /* --- Task Breakdown Logic --- */
   function openBreakdownModal() {
     closeNewModal();
-    document.getElementById('breakdownModal').classList.add('active');
+    window.openModalOverlay('breakdownModal');
     breakdownSubtasks = [];
     markCompletedMode = false;
     breakdownTaskCreatedAt = null;
@@ -5298,7 +5319,7 @@
   }
 
   function closeBreakdownModal() {
-    document.getElementById('breakdownModal').classList.remove('active');
+    window.closeModalOverlay('breakdownModal');
     if (deadlineTimer) clearInterval(deadlineTimer);
     delete document.getElementById('breakdownModal').dataset.updateTaskId;
     if (subtaskCountdownInterval) {
@@ -5699,8 +5720,8 @@
         '<div style="display:flex;align-items:center;gap:6px;">' +
         '<span class="subtask-time-badge" onclick="openSubtaskTimePicker(' + s.id + ')"' +
         ' style="cursor:pointer;padding:4px 10px;border-radius:8px;background:' + timeBg + ';color:' + timeColor + ';font-size:0.8rem;font-weight:600;white-space:nowrap;user-select:none;border:1.5px solid transparent;transition:border 0.15s;"' +
-        ' onmouseover="this.style.border=\\\'1.5px solid #7b61ff\\\'"' +
-        ' onmouseout="this.style.border=\\\'1.5px solid transparent\\\'">' +
+        ' onmouseover="this.style.borderColor=\'#7b61ff\'"' +
+        ' onmouseout="this.style.borderColor=\'transparent\'">' +
         timeDisplay +
         '</span>' +
         (s.manual && !s.is_done
@@ -6486,7 +6507,7 @@
     const editBtn = document.getElementById('editTaskBtn');
     editBtn.style.display = task.is_trash ? 'none' : 'block';
     document.getElementById('saveTaskBtn').style.display = 'none';
-    modal.classList.add('active');
+    window.openModalOverlay(modal);
 
     if (task.category === 'BREAKDOWN') startDetailModalTimer(task);
   }
@@ -7218,7 +7239,7 @@
     document.getElementById('confirmText').textContent = text;
     document.getElementById('confirmActionBtn').onclick = closeConfirmModal;
     document.getElementById('confirmActionBtn').textContent = "OK";
-    document.getElementById('confirmModal').classList.add('active');
+    window.openModalOverlay('confirmModal');
   }
 
   function showModalConfirm(title, text, onConfirm) {
@@ -7229,18 +7250,18 @@
       onConfirm();
       closeConfirmModal();
     };
-    document.getElementById('confirmModal').classList.add('active');
+    window.openModalOverlay('confirmModal');
   }
 
   function closeConfirmModal() {
-    document.getElementById('confirmModal').classList.remove('active');
+    window.closeModalOverlay('confirmModal');
   }
 </script>
 
 {% if user.is_staff %}
 <script>
   function closeFeeModal() {
-    document.getElementById('feeModal').classList.remove('active');
+    window.closeModalOverlay('feeModal');
     document.getElementById('feeStudentFilter').value = '';
     selectedStudents = {};
   }
@@ -7276,7 +7297,7 @@
     }
 
     updateSelectedCount();
-    document.getElementById('feeModal').classList.add('active');
+    window.openModalOverlay('feeModal');
     loadAllStudents();
   }
 
@@ -7556,12 +7577,12 @@
     currentTodoColor = 'none';
     document.getElementById('addTodoColorDot').style.background = '#e2e8f0';
 
-    document.getElementById('addTodoModal').classList.add('active');
+    window.openModalOverlay('addTodoModal');
     setTimeout(() => document.getElementById('addTodoName').focus(), 100);
   }
 
   function closeTodoModal() {
-    document.getElementById('addTodoModal').classList.remove('active');
+    window.closeModalOverlay('addTodoModal');
   }
 
   function openEditTodoModal(taskId) {
@@ -7578,12 +7599,12 @@
     currentTodoColor = color;
     document.getElementById('editTodoColorDot').style.background = (color === 'none' ? '#e2e8f0' : color);
 
-    document.getElementById('editTodoModal').classList.add('active');
+    window.openModalOverlay('editTodoModal');
     setTimeout(() => document.getElementById('editTodoName').focus(), 100);
   }
 
   function closeEditTodoModal() {
-    document.getElementById('editTodoModal').classList.remove('active');
+    window.closeModalOverlay('editTodoModal');
     editingTodoId = null;
   }
 
@@ -7812,7 +7833,7 @@
 
     closeNoteViewModal();
     closeNewModal();
-    document.getElementById('noteEditorModal').classList.add('active');
+    window.openModalOverlay('noteEditorModal');
 
     // Attach listeners on noteEditorContent for active state
     const editor = document.getElementById('noteEditorContent');
@@ -7842,13 +7863,13 @@
   }
 
   function closeNoteModal() {
-    document.getElementById('noteEditorModal').classList.remove('active');
+    window.closeModalOverlay('noteEditorModal');
     document.getElementById('noteBgPickerDropdown').style.display = 'none';
     editingNoteId = null;
   }
 
   function closeNoteViewModal() {
-    document.getElementById('noteViewModal').classList.remove('active');
+    window.closeModalOverlay('noteViewModal');
     noteViewingId = null;
   }
 
@@ -8703,7 +8724,7 @@
       }
     });
 
-    document.getElementById('noteViewModal').classList.add('active');
+    window.openModalOverlay('noteViewModal');
   }
 
   function openNoteForEdit() {
@@ -11751,28 +11772,28 @@
   function openDatePicker() {
     currentPickerContext = 'breakdown';
     pickerMode = 'create';
-    document.getElementById('datePickerOverlay').classList.add('active');
+    window.openModalOverlay('datePickerOverlay');
     populateDrums('date');
   }
-  function closeDatePicker() { document.getElementById('datePickerOverlay').classList.remove('active'); }
+  function closeDatePicker() { window.closeModalOverlay('datePickerOverlay'); }
   function openTimePicker() {
     currentPickerContext = 'breakdown';
     pickerMode = 'create';
-    document.getElementById('timePickerOverlay').classList.add('active');
+    window.openModalOverlay('timePickerOverlay');
     populateDrums('time');
   }
-  function closeTimePicker() { document.getElementById('timePickerOverlay').classList.remove('active'); }
+  function closeTimePicker() { window.closeModalOverlay('timePickerOverlay'); }
 
   function openEditDatePicker() {
     currentPickerContext = 'breakdown';
     pickerMode = 'edit';
-    document.getElementById('datePickerOverlay').classList.add('active');
+    window.openModalOverlay('datePickerOverlay');
     populateDrums('date');
   }
   function openEditTimePicker() {
     currentPickerContext = 'breakdown';
     pickerMode = 'edit';
-    document.getElementById('timePickerOverlay').classList.add('active');
+    window.openModalOverlay('timePickerOverlay');
     populateDrums('time');
   }
 
@@ -12115,7 +12136,7 @@
 
   function openReminderModal(taskData = null) {
     closeNewModal();
-    document.getElementById('reminderModal').classList.add('active');
+    window.openModalOverlay('reminderModal');
 
     // Update modal header title and save button label
     const titleEl = document.getElementById('reminderModalTitle');
@@ -12810,11 +12831,11 @@
       </div>
     `;
 
-    document.getElementById('reminderDetailModal').classList.add('active');
+    window.openModalOverlay('reminderDetailModal');
   }
 
   function closeReminderDetailModal() {
-    document.getElementById('reminderDetailModal').classList.remove('active');
+    window.closeModalOverlay('reminderDetailModal');
     _reminderDetailTask = null;
   }
 
@@ -13523,6 +13544,37 @@
       if (icon) icon.className = 'bx bx-exit-fullscreen';
       if (btn) btn.setAttribute('title', 'Exit Fullscreen');
     }
+
+    // Backdrop click dismiss for all todo modals and picker overlays
+    document.querySelectorAll('.todo-modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          if (overlay.id === 'newMenuModal') closeNewModal();
+          else if (overlay.id === 'breakdownModal') closeBreakdownModal();
+          else if (overlay.id === 'addTodoModal') closeTodoModal();
+          else if (overlay.id === 'editTodoModal') closeEditTodoModal();
+          else if (overlay.id === 'noteEditorModal') closeNoteModal();
+          else if (overlay.id === 'noteViewModal') closeNoteViewModal();
+          else if (overlay.id === 'feeModal' && typeof closeFeeModal === 'function') closeFeeModal();
+          else if (overlay.id === 'taskDetailModal') closeTaskDetailModal();
+          else if (overlay.id === 'confirmModal') closeConfirmModal();
+          else if (overlay.id === 'recheckModal') closeRecheckModal();
+          else if (overlay.id === 'reminderModal') closeReminderModal();
+          else if (overlay.id === 'reminderDetailModal') closeReminderDetailModal();
+          else if (typeof window.closeModalOverlay === 'function') window.closeModalOverlay(overlay);
+          else overlay.classList.remove('active');
+        }
+      });
+    });
+
+    document.querySelectorAll('.picker-overlay').forEach(overlay => {
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          if (typeof window.closeModalOverlay === 'function') window.closeModalOverlay(overlay);
+          else overlay.classList.remove('active');
+        }
+      });
+    });
   });
 </script>
 
