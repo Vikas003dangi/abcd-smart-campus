@@ -838,7 +838,6 @@
     .sidebar-wrapper:has(#sidebar.active),
     .sidebar-wrapper:has(.nav-sidebar.active) {
       pointer-events: auto !important;
-      z-index: 9999999 !important;
     }
 
     @media (max-width: 768px) {
@@ -966,31 +965,17 @@
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      z-index: -1;
-      display: none;
+      z-index: 999;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      will-change: opacity;
-      transition: opacity 0.2s ease, visibility 0.2s ease;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
     }
 
     .sidebar-overlay.active {
-      display: block !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-      z-index: 9999998 !important;
-      pointer-events: auto !important;
-    }
-
-    .sidebar-overlay:not(.active) {
-      display: none !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      z-index: -1 !important;
-      pointer-events: none !important;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
     }
 
     .dashboard-container {
@@ -8585,21 +8570,37 @@
 
       // --- Main Sidebar Logic ---
       function toggleSidebar(action) {
-        const isActive = action === 'open';
-        if (isActive && typeof window.purgeClosedModalOverlays === 'function') {
-          window.purgeClosedModalOverlays();
-        }
+        const isActive = action === 'open' || (action !== 'close' && sidebar && !sidebar.classList.contains('active'));
         const navbar = document.querySelector('.top-nav-menu');
         if (isActive && navbar) {
           navbar.style.transform = 'translateY(0)';
         }
-        sidebar.classList[isActive ? 'add' : 'remove']('active');
-        sidebarOverlay.classList[isActive ? 'add' : 'remove']('active');
-        hamburgerBtn.classList[isActive ? 'add' : 'remove']('open');
+        if (sidebar) sidebar.classList[isActive ? 'add' : 'remove']('active');
+        if (sidebarOverlay) sidebarOverlay.classList[isActive ? 'add' : 'remove']('active');
+        if (hamburgerBtn) hamburgerBtn.classList[isActive ? 'add' : 'remove']('open');
         const wrapper = document.querySelector('.sidebar-wrapper');
         if (wrapper) wrapper.classList[isActive ? 'add' : 'remove']('active');
       }
       window.toggleSidebar = toggleSidebar;
+
+      if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleSidebar('close');
+        });
+        sidebarOverlay.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+      }
+
+      // Close sidebar on clicking outside wrapper
+      document.addEventListener('click', (e) => {
+        if (sidebar && sidebar.classList.contains('active')) {
+          const wrapper = document.querySelector('.sidebar-wrapper');
+          if (wrapper && !wrapper.contains(e.target) && hamburgerBtn && !hamburgerBtn.contains(e.target)) {
+            toggleSidebar('close');
+          }
+        }
+      });
 
       // --- Mobile Search Overlay Logic (Premium) ---
       let mobSearchOpen = false;
@@ -12684,6 +12685,9 @@
 
     function showLogoutPopup(url) {
         logoutUrl = url;
+        if (typeof window.toggleSidebar === 'function') {
+            window.toggleSidebar('close');
+        }
         var highestZ = 3000000;
         if (typeof window.getHighestZIndex === 'function') {
             highestZ = Math.max(highestZ, window.getHighestZIndex([overlay, modal]));
@@ -12705,18 +12709,17 @@
         overlay.style.opacity = '0';
         modal.style.opacity = '0';
         modal.style.transform = 'translate(-50%,-50%) scale(0.9)';
-        overlay.style.setProperty('backdrop-filter', 'none', 'important');
-        overlay.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-        overlay.style.setProperty('pointer-events', 'none', 'important');
-        overlay.style.setProperty('z-index', '-1', 'important');
-        overlay.style.display = 'none';
-        modal.style.display = 'none';
-        if (typeof window.purgeClosedModalOverlays === 'function') {
-            window.purgeClosedModalOverlays();
-        }
-        if (typeof window.syncModalScrollLock === 'function') {
-            window.syncModalScrollLock();
-        }
+        setTimeout(function() {
+            overlay.style.display = 'none';
+            modal.style.display = 'none';
+            overlay.style.removeProperty('backdrop-filter');
+            overlay.style.removeProperty('-webkit-backdrop-filter');
+            overlay.style.removeProperty('pointer-events');
+            overlay.style.removeProperty('z-index');
+            if (typeof window.syncModalScrollLock === 'function') {
+                window.syncModalScrollLock();
+            }
+        }, 220);
         logoutUrl = null;
     }
 
