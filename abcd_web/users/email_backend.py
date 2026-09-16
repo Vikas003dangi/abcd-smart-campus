@@ -45,7 +45,8 @@ class IPv4EmailBackend(EmailBackend):
 
         user = self.username or 'abcd2013baq@gmail.com'
         pwd = self.password or 'cpwejcqiszcoeldd'
-        step_timeout = min(getattr(self, 'timeout', 12) or 12, 8)
+        # Allow adequate socket timeout for SSL handshake + STARTTLS negotiation (10-15s)
+        step_timeout = max(int(getattr(self, 'timeout', 12) or 12), 10)
 
         def _try_connect(port, use_ssl):
             if use_ssl:

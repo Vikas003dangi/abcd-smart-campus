@@ -48,6 +48,8 @@ from .utils import (
 )
 from .youtube_service import fetch_playlists, fetch_playlist_videos, fetch_channel_videos
 from users.email_service import send_html_email
+from users.email_validator import validate_email_deliverability
+
 
 def send_admin_alert_email(subject, template, context, attachments=None):
     """
@@ -2180,22 +2182,22 @@ def register(request):
 
                 user_ip = get_client_ip(request)
                 
-                # 24-hour rate limit: max 3 verification requests per day per Email/profile
+                # 24-hour rate limit: max 10 verification requests per day per Email/profile
                 daily_email_key = f"reg_daily_email_{email.lower()}"
                 daily_email_count = cache.get(daily_email_key, 0)
-                if daily_email_count >= 3:
+                if daily_email_count >= 10:
                     return JsonResponse({
                         'status': 'error',
-                        'message': 'Verification code request limit reached (max 3 per day for this email). Please try again tomorrow.'
+                        'message': 'Verification code request limit reached (max 10 per day for this email). Please try again tomorrow.'
                     }, status=429)
 
-                # Per device limit: max 10 verification requests per day per IP/device
+                # Per device limit: max 20 verification requests per day per IP/device
                 daily_ip_key = f"reg_daily_ip_{user_ip}"
                 daily_ip_count = cache.get(daily_ip_key, 0)
-                if daily_ip_count >= 10:
+                if daily_ip_count >= 20:
                     return JsonResponse({
                         'status': 'error',
-                        'message': 'Verification code request limit reached for this device (max 10 per day). Please try again tomorrow.'
+                        'message': 'Verification code request limit reached for this device (max 20 per day). Please try again tomorrow.'
                     }, status=429)
 
                 # Check 60s rapid-click cooldown
@@ -2205,6 +2207,11 @@ def register(request):
                     remaining = int(max(0, cooldown_expiry - time.time()))
                     if remaining > 0:
                         return JsonResponse({'status': 'error', 'message': f"Please wait {remaining}s before requesting a new code."}, status=429)
+
+                # Extra check on email deliverability
+                is_valid_email, err_email, sugg_email = validate_email_deliverability(email)
+                if not is_valid_email:
+                    return JsonResponse({'status': 'error', 'message': err_email or 'Invalid email address.'}, status=400)
 
                 # Generate 6-digit OTP
                 otp = f"{random.randint(100000, 999999)}"
@@ -2221,8 +2228,8 @@ def register(request):
 
                 logger.info(f"[REGISTRATION OTP] OTP for {email} ({username}): {otp}")
 
-                # Send email asynchronously in background thread so the OTP modal opens INSTANTLY in <100ms
-                send_html_email(
+                # Send email with high-performance dispatch
+                email_sent = send_html_email(
                     subject="Verify your email for ABCD registration",
                     to_email=email,
                     template="emails/otp_register.html",
@@ -2234,11 +2241,37 @@ def register(request):
                         "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                     },
                     fail_silently=True,
-                    timeout=20,
-                    run_async=True
+                    timeout=12,
+                    run_async=False
                 )
 
-                # Set 60s cooldown and update daily counters atomically
+                if not email_sent:
+                    # Retry once in case of socket hiccup
+                    logger.warning(f"[REGISTRATION OTP] Initial dispatch failed for {email}, retrying with fallback...")
+                    email_sent = send_html_email(
+                        subject="Verify your email for ABCD registration",
+                        to_email=email,
+                        template="emails/otp_register.html",
+                        context={
+                            "username": username,
+                            "otp": otp,
+                            "subject": "Verify your email for ABCD registration",
+                            "preheader": "Use this OTP to complete your ABCD registration",
+                            "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+                        },
+                        fail_silently=True,
+                        timeout=15,
+                        run_async=False
+                    )
+
+                if not email_sent:
+                    logger.error(f"[REGISTRATION OTP] Delivery failed completely for {email}")
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f"Unable to deliver OTP to '{email}'. Please check your email address or try again in a few moments."
+                    }, status=500)
+
+                # Set 60s cooldown and update daily counters atomically ONLY upon successful dispatch
                 cache.set(cooldown_key, time.time() + 60, timeout=60)
                 atomic_cache_incr(daily_ip_key, timeout=86400)
                 atomic_cache_incr(daily_email_key, timeout=86400)
@@ -2266,22 +2299,22 @@ def register(request):
             user_ip = get_client_ip(request)
             email = pending['email']
 
-            # 24-hour rate limit: max 3 verification requests per day per Email/profile
+            # 24-hour rate limit: max 10 verification requests per day per Email/profile
             daily_email_key = f"reg_daily_email_{email.lower()}"
             daily_email_count = cache.get(daily_email_key, 0)
-            if daily_email_count >= 3:
+            if daily_email_count >= 10:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Verification code request limit reached (max 3 per day for this email). Please try again tomorrow.'
+                    'message': 'Verification code request limit reached (max 10 per day for this email). Please try again tomorrow.'
                 }, status=429)
 
-            # Per device limit: max 10 verification requests per day per IP/device
+            # Per device limit: max 20 verification requests per day per IP/device
             daily_ip_key = f"reg_daily_ip_{user_ip}"
             daily_ip_count = cache.get(daily_ip_key, 0)
-            if daily_ip_count >= 10:
+            if daily_ip_count >= 20:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Verification code request limit reached for this device (max 10 per day). Please try again tomorrow.'
+                    'message': 'Verification code request limit reached for this device (max 20 per day). Please try again tomorrow.'
                 }, status=429)
 
             # Check 60s rapid-click cooldown
@@ -2301,8 +2334,8 @@ def register(request):
 
             logger.info(f"[REGISTRATION OTP RESEND] New OTP for {pending['email']} ({pending['username']}): {otp}")
 
-            # Send email asynchronously in background thread so resend response returns INSTANTLY
-            send_html_email(
+            # Send email with high-performance dispatch
+            email_sent = send_html_email(
                 subject="Verify your email for ABCD registration",
                 to_email=pending['email'],
                 template="emails/otp_register.html",
@@ -2314,11 +2347,36 @@ def register(request):
                     "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
                 },
                 fail_silently=True,
-                timeout=20,
-                run_async=True
+                timeout=12,
+                run_async=False
             )
 
-            # Set 60s cooldown and update daily counters atomically
+            if not email_sent:
+                # Retry once
+                email_sent = send_html_email(
+                    subject="Verify your email for ABCD registration",
+                    to_email=pending['email'],
+                    template="emails/otp_register.html",
+                    context={
+                        "username": pending['username'],
+                        "otp": otp,
+                        "subject": "Verify your email for ABCD registration",
+                        "preheader": "Use this OTP to complete your ABCD registration",
+                        "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+                    },
+                    fail_silently=True,
+                    timeout=15,
+                    run_async=False
+                )
+
+            if not email_sent:
+                logger.error(f"[REGISTRATION OTP RESEND] Failed to resend OTP to {pending['email']}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f"Unable to resend OTP to '{pending['email']}'. Please try again in a few moments."
+                }, status=500)
+
+            # Set 60s cooldown and update daily counters atomically ONLY upon successful dispatch
             cache.set(cooldown_key, time.time() + 60, timeout=60)
             atomic_cache_incr(daily_ip_key, timeout=86400)
             atomic_cache_incr(daily_email_key, timeout=86400)
@@ -2717,24 +2775,29 @@ def forgot_password_request(request):
 
     user_ip = get_client_ip(request)
     
-    # 24-hour outer rate limit: max 3 requests per day per Email, max 10 per device/IP
+    # 24-hour outer rate limit: max 10 requests per day per Email, max 20 per device/IP
     daily_ip_key = f"pwreset_daily_ip_{user_ip}"
     daily_email_key = f"pwreset_daily_email_{target_email.lower()}"
     
     daily_ip_count = cache.get(daily_ip_key, 0)
     daily_email_count = cache.get(daily_email_key, 0)
     
-    if daily_email_count >= 3:
+    if daily_email_count >= 10:
         return JsonResponse({
             'status': 'error',
-            'message': 'Password reset request limit reached (max 3 per day for this account). Please try again tomorrow.'
+            'message': 'Password reset request limit reached (max 10 per day for this account). Please try again tomorrow.'
         }, status=429)
 
-    if daily_ip_count >= 10:
+    if daily_ip_count >= 20:
         return JsonResponse({
             'status': 'error',
-            'message': 'Password reset request limit reached for this device (max 10 per day). Please try again tomorrow.'
+            'message': 'Password reset request limit reached for this device (max 20 per day). Please try again tomorrow.'
         }, status=429)
+
+    # Deliverability check on recipient
+    is_valid_email, err_email, sugg_email = validate_email_deliverability(target_email)
+    if not is_valid_email:
+        return JsonResponse({'status': 'error', 'message': err_email or 'Invalid email address.'}, status=400)
 
     # SUCCESSFUL PASSWORD RESET COOLDOWN (1 hour)
     cooldown_key = f"pwreset_cooldown_{user.id}"
@@ -2771,25 +2834,26 @@ def forgot_password_request(request):
     cache.set(cache_key, otp, timeout=600)  # 10 minutes
     cache.delete(f"pwreset_otp_fails_{user.pk}")
 
-    try:
-        send_html_email(
-            subject="Your ABCD password reset OTP",
-            to_email=target_email,
-            template="emails/otp_security.html",
-            context={
-                "username": user.username,
-                "otp": otp,
-                "subject": "Your ABCD password reset OTP",
-                "preheader": "Use this OTP to reset your ABCD password",
-                "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
-            },
-            fail_silently=False,
-            timeout=5,
-            run_async=False
-        )
-    except Exception as e:
-        logger.warning(f"Fast password reset email to {target_email} deferred to background ({e}). Launching background delivery...")
-        send_html_email(
+    # Send email with realistic timeout and retry
+    email_sent = send_html_email(
+        subject="Your ABCD password reset OTP",
+        to_email=target_email,
+        template="emails/otp_security.html",
+        context={
+            "username": user.username,
+            "otp": otp,
+            "subject": "Your ABCD password reset OTP",
+            "preheader": "Use this OTP to reset your ABCD password",
+            "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
+        },
+        fail_silently=True,
+        timeout=12,
+        run_async=False
+    )
+
+    if not email_sent:
+        logger.warning(f"Password reset email to {target_email} initial attempt failed; retrying with fallback...")
+        email_sent = send_html_email(
             subject="Your ABCD password reset OTP",
             to_email=target_email,
             template="emails/otp_security.html",
@@ -2801,9 +2865,16 @@ def forgot_password_request(request):
                 "login_url": f"{settings.SITE_URL}{reverse('users:login')}",
             },
             fail_silently=True,
-            timeout=20,
-            run_async=True
+            timeout=15,
+            run_async=False
         )
+
+    if not email_sent:
+        logger.error(f"Failed to deliver password reset OTP to {target_email}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f"Unable to deliver OTP to '{target_email}'. Please check your email or try again in a few moments."
+        }, status=500)
 
     # Set 60s cooldown and update daily counts atomically on success
     cache.set(otp_cooldown_key, time.time() + 60, timeout=60)  # 60s
@@ -2842,6 +2913,26 @@ def otp_status_view(request):
         'attempts': attempts,
         'cooldown_seconds': cooldown_seconds
     })
+
+
+def validate_email_api(request):
+    """
+    Lightweight AJAX endpoint for real-time email deliverability and typo checking.
+    Usage: GET /api/validate-email/?email=user@example.com
+    """
+    email = (request.GET.get('email') or '').strip()
+    if not email:
+        return JsonResponse({'status': 'error', 'is_valid': False, 'message': 'Email address is required.'}, status=400)
+
+    is_valid, err_msg, suggestion = validate_email_deliverability(email, check_dns=True)
+    return JsonResponse({
+        'status': 'ok',
+        'is_valid': is_valid,
+        'message': err_msg,
+        'suggested_email': suggestion,
+        'clean_email': email.lower()
+    })
+
 
 # -----------------------------
 # VERIFY OTP VIEW

@@ -1232,8 +1232,11 @@
                     <i class="bxr bx-user"></i>
                 </div>
                 <div class="input-box">
-                    <input type="email" name="email" placeholder="Email (required)" required />
+                    <input type="email" id="reg_email_input" name="email" placeholder="Email (required)" required autocomplete="email" />
                     <i class="bxr bx-envelope"></i>
+                </div>
+                <div id="reg_email_typo_hint" style="display: none; margin: -10px 0 15px 0; font-size: 13px; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; padding: 7px 12px; border-radius: 8px; text-align: left; cursor: pointer; transition: all 0.2s ease;">
+                    💡 Did you mean <strong id="reg_email_typo_suggestion" style="text-decoration: underline; color: #78350f;"></strong>? (Click to fix)
                 </div>
                 <div class="input-box">
                     <input type="password" name="password1" placeholder="Create Password" required />
@@ -1304,6 +1307,9 @@
                                 <label for="fp_email">Registered Email</label>
                                 <input type="email" id="fp_email" placeholder="you@example.com" autocomplete="email">
                                 <i class="bxr bx-envelope fp-eye" style="cursor:default;"></i>
+                            </div>
+                            <div id="fp_email_typo_hint" style="display: none; margin: -8px 0 12px 0; font-size: 13px; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; padding: 6px 12px; border-radius: 8px; text-align: left; cursor: pointer;">
+                                💡 Did you mean <strong id="fp_email_typo_suggestion" style="text-decoration: underline; color: #78350f;"></strong>? (Click to fix)
                             </div>
                             <div id="fp_loading" class="fp-loading-row">
                                 <div class="fp-spinner"></div>
@@ -1762,10 +1768,97 @@
         setupEye('fp_eye1', 'new_pass');
         setupEye('fp_eye2', 'confirm_pass');
 
+        // Smart Email Typo Detection & Real-Time Correction
+        const CLIENT_TYPO_MAP = {
+            'gmial.com': 'gmail.com',
+            'gmaill.com': 'gmail.com',
+            'gamil.com': 'gmail.com',
+            'gmai.com': 'gmail.com',
+            'gmal.com': 'gmail.com',
+            'gmaul.com': 'gmail.com',
+            'gmeil.com': 'gmail.com',
+            'gml.com': 'gmail.com',
+            'gmail.co': 'gmail.com',
+            'gmail.con': 'gmail.com',
+            'gmail.cm': 'gmail.com',
+            'gmail.cpm': 'gmail.com',
+            'gmail.om': 'gmail.com',
+            'gmail.comm': 'gmail.com',
+            'gmai.co.in': 'gmail.com',
+            'gmail.co.in': 'gmail.com',
+            'yaho.com': 'yahoo.com',
+            'yahooo.com': 'yahoo.com',
+            'yaho.co': 'yahoo.com',
+            'yaho.in': 'yahoo.in',
+            'yaho.co.in': 'yahoo.co.in',
+            'ymail.con': 'ymail.com',
+            'hotmial.com': 'hotmail.com',
+            'hotmai.com': 'hotmail.com',
+            'outlok.com': 'outlook.com',
+            'outloo.com': 'outlook.com',
+            'outllok.com': 'outlook.com',
+            'iclod.com': 'icloud.com',
+            'icoud.com': 'icloud.com',
+            'redifmail.com': 'rediffmail.com'
+        };
+
+        function detectEmailTypo(emailStr) {
+            if (!emailStr || !emailStr.includes('@')) return null;
+            const parts = emailStr.trim().toLowerCase().split('@');
+            if (parts.length !== 2) return null;
+            const userPart = parts[0];
+            const domainPart = parts[1];
+            if (CLIENT_TYPO_MAP[domainPart]) {
+                return `${userPart}@${CLIENT_TYPO_MAP[domainPart]}`;
+            }
+            return null;
+        }
+
+        function setupEmailTypoWatcher(inputId, hintId, suggestionId) {
+            const inputEl = document.getElementById(inputId);
+            const hintEl = document.getElementById(hintId);
+            const suggEl = document.getElementById(suggestionId);
+            if (!inputEl || !hintEl || !suggEl) return;
+
+            function check() {
+                const suggestion = detectEmailTypo(inputEl.value);
+                if (suggestion) {
+                    suggEl.textContent = suggestion;
+                    hintEl.style.display = 'block';
+                } else {
+                    hintEl.style.display = 'none';
+                }
+            }
+
+            inputEl.addEventListener('input', check);
+            inputEl.addEventListener('blur', check);
+
+            hintEl.addEventListener('click', function() {
+                const suggestion = detectEmailTypo(inputEl.value);
+                if (suggestion) {
+                    inputEl.value = suggestion;
+                    hintEl.style.display = 'none';
+                    inputEl.focus();
+                }
+            });
+        }
+
+        setupEmailTypoWatcher('reg_email_input', 'reg_email_typo_hint', 'reg_email_typo_suggestion');
+        setupEmailTypoWatcher('fp_email', 'fp_email_typo_hint', 'fp_email_typo_suggestion');
+
         // ---- STEP 1: Send OTP ----
         document.getElementById('fp_send').addEventListener('click', async function(){
-            const email = document.getElementById('fp_email').value.trim();
+            let email = document.getElementById('fp_email').value.trim();
             hideFpMsg('fp_step1_msg');
+
+            // Automatically fix typo if user missed clicking the hint chip
+            const typoFix = detectEmailTypo(email);
+            if (typoFix) {
+                email = typoFix;
+                document.getElementById('fp_email').value = typoFix;
+                const hintEl = document.getElementById('fp_email_typo_hint');
+                if (hintEl) hintEl.style.display = 'none';
+            }
 
             if (!email) {
                 showFpMsg('fp_step1_msg', 'Please enter your registered email.', 'fp-err');
@@ -2164,6 +2257,17 @@
                     errorDiv.textContent = pwCheck.message;
                     errorDiv.style.display = 'block';
                     return;
+                }
+
+                // Email typo check & auto-fix
+                const emailInput = this.querySelector('input[name="email"]');
+                if (emailInput) {
+                    const typoFix = detectEmailTypo(emailInput.value);
+                    if (typoFix) {
+                        emailInput.value = typoFix;
+                        const hintEl = document.getElementById('reg_email_typo_hint');
+                        if (hintEl) hintEl.style.display = 'none';
+                    }
                 }
 
                 // Send AJAX request

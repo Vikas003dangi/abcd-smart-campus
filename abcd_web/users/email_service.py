@@ -11,6 +11,10 @@ from django.contrib.staticfiles import finders
 
 logger = logging.getLogger(__name__)
 
+# In-memory cache for base64 data URIs so disk I/O and encoding are only done once
+_IMAGE_DATA_URI_CACHE = {}
+
+
 def send_html_email(
     *,
     subject: str,
@@ -104,7 +108,9 @@ def send_html_email(
         # This matches how professional mailers (PhonePe, Razorpay, etc.) embed logos.
 
         def _img_to_data_uri(static_relative_path):
-            """Find a static file and return a data: URI string, or None on failure."""
+            """Find a static file and return a data: URI string, or None on failure (cached in memory)."""
+            if static_relative_path in _IMAGE_DATA_URI_CACHE:
+                return _IMAGE_DATA_URI_CACHE[static_relative_path]
             try:
                 abs_path = finders.find(static_relative_path)
                 if not abs_path:
@@ -123,7 +129,9 @@ def send_html_email(
                     b64 = base64.b64encode(f.read()).decode('ascii')
                 ext = static_relative_path.rsplit('.', 1)[-1].lower()
                 mime = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif', 'svg': 'image/svg+xml'}.get(ext, 'image/png')
-                return f"data:{mime};base64,{b64}"
+                res = f"data:{mime};base64,{b64}"
+                _IMAGE_DATA_URI_CACHE[static_relative_path] = res
+                return res
             except Exception:
                 return None
 

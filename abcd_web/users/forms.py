@@ -8,6 +8,8 @@ from django.db.models import Q
 from django.core.exceptions import ValidationError
 
 
+from users.email_validator import validate_email_deliverability
+
 class InitialRegisterForm(UserCreationForm):
     email = forms.EmailField(
         required=True,
@@ -21,11 +23,19 @@ class InitialRegisterForm(UserCreationForm):
 
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip().lower()
+        if not email:
+            raise forms.ValidationError("Email address is required.")
+
+        is_valid, err_msg, suggestion = validate_email_deliverability(email)
+        if not is_valid:
+            raise forms.ValidationError(err_msg or "Please enter a valid, active email address.")
+
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(
                 "This email is already registered. Please login or use Forgot Password."
             )
         return email
+
 
 # -------------------------------------------------------------------
 # STUDENT PROFILE FORM

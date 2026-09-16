@@ -51,6 +51,7 @@ urlpatterns = [
     path('profile/guest/', views.guest_profile_details_view, name='guest_profile_details'),
     path('profile/change-password/', views.change_password_view, name='change_password'),
     path('profile/otp-status/', views.otp_status_view, name='otp_status'),
+    path('api/validate-email/', views.validate_email_api, name='validate_email_api'),
     path('my-seat/', views.your_seat_status_view, name='your_seat_status'),
 
     # Student complaints
