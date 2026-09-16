@@ -2335,7 +2335,7 @@
         backdrop-filter: blur(14px) !important;
         -webkit-backdrop-filter: blur(14px) !important;
         z-index: 50000 !important;
-        display: flex;
+        display: none;
         align-items: center;
         justify-content: center;
         opacity: 0;
@@ -2343,6 +2343,7 @@
         transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .reg-success-overlay.active {
+        display: flex;
         opacity: 1;
         pointer-events: auto;
     }
@@ -2575,6 +2576,11 @@
 
     .choice-modal-overlay.choice-modal-closed {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
     }
 
     .choice-modal-card {
@@ -4064,8 +4070,9 @@
 </div>
 
 {% if user.is_authenticated and not is_approved_coaching and not is_approved_library and not has_pending_coaching and not has_pending_library %}
-<div class="choice-modal-overlay" id="admissionChoiceModal">
+<div class="choice-modal-overlay" id="admissionChoiceModal" onclick="if(event.target===this) closeChoiceModal();">
     <div class="choice-modal-card">
+        <button type="button" onclick="closeChoiceModal();" style="position: absolute; top: 14px; left: 18px; background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: #64748b; padding: 4px 8px; border-radius: 8px; z-index: 21;" aria-label="Close">&times;</button>
         <a href="{% url 'users:logout' %}" style="position: absolute; top: 16px; right: 20px; text-decoration: none; color: #475569; font-weight: 600; font-size: 0.88rem; z-index: 20;">Logout</a>
 
         <!-- 2D Professional Illustrated Character Rig Stage -->
@@ -4283,10 +4290,19 @@ function closeChoiceModal() {
     const modal = document.getElementById('admissionChoiceModal');
     if (modal) {
         modal.style.setProperty('display', 'none', 'important');
+        modal.style.setProperty('visibility', 'hidden', 'important');
+        modal.style.setProperty('opacity', '0', 'important');
+        modal.style.setProperty('pointer-events', 'none', 'important');
+        modal.style.setProperty('backdrop-filter', 'none', 'important');
+        modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
         modal.classList.add('choice-modal-closed');
     }
     if (choiceMascotInterval) {
         clearInterval(choiceMascotInterval);
+    }
+    // Ensure scroll lock engine releases any lock from this modal
+    if (typeof window.syncModalScrollLock === 'function') {
+        window.syncModalScrollLock();
     }
 }
 
@@ -4336,6 +4352,7 @@ window.triggerAdmissionChoiceModal = function(delayMs) {
     if (hasSeenChoiceModal) {
         modal.style.display = 'none';
         modal.classList.add('choice-modal-closed');
+        if (typeof window.syncModalScrollLock === 'function') window.syncModalScrollLock();
         return;
     }
 
@@ -4414,8 +4431,8 @@ document.addEventListener('click', function(e) {
               
               <div class="marquee-container" id="marqueeContainer">
                   <div class="marquee-content scrolling" id="marqueeContent">
-                      {# Repeat 2 times for seamless infinite loop without overloading mobile RAM #}
-                      {% for i in "12" %}
+                      {# Repeat 6 times for seamless infinite loop even with 1-2 alumni #}
+                      {% for i in "123456" %}
                           {% for ach in achievements %}
                           <div class="ach-card-item" data-url="{% url 'users:achievement_detail' ach.id %}" onclick="window.location.href=this.getAttribute('data-url')">
                               <div class="circle-view">
@@ -5024,14 +5041,35 @@ document.addEventListener('click', function(e) {
     }, { passive: true });
 
     let currentScroll = 0;
+
+    function ensureMarqueeContentFilled() {
+        if (!marqueeContainer || !marqueeContent) return;
+        const originalItems = Array.from(marqueeContent.querySelectorAll('.ach-card-item'));
+        if (originalItems.length === 0) return;
+
+        const containerW = marqueeContainer.clientWidth || window.innerWidth || 1200;
+        const minTargetWidth = Math.max(containerW * 3, 3200);
+
+        // Clone in full batches so that scrollWidth / 2 is always an exact repetition boundary
+        let currentScrollW = marqueeContent.scrollWidth;
+        let safetyCount = 0;
+        while (currentScrollW < minTargetWidth && safetyCount < 20) {
+            safetyCount++;
+            for (let i = 0; i < originalItems.length; i++) {
+                marqueeContent.appendChild(originalItems[i].cloneNode(true));
+            }
+            currentScrollW = marqueeContent.scrollWidth;
+        }
+    }
+
     function animateMarquee() {
         if (!isManual && !isHovered && !isWindowScrolling && marqueeContainer && marqueeContent) {
             currentScroll += scrollSpeed;
-            marqueeContainer.scrollLeft = currentScroll;
-            if (currentScroll >= (marqueeContent.scrollWidth / 2)) {
-                currentScroll = 0;
-                marqueeContainer.scrollLeft = 0;
+            const halfWidth = marqueeContent.scrollWidth / 2;
+            if (halfWidth > 0 && currentScroll >= halfWidth) {
+                currentScroll = currentScroll - halfWidth;
             }
+            marqueeContainer.scrollLeft = currentScroll;
         } else if (marqueeContainer) {
             currentScroll = marqueeContainer.scrollLeft;
         }
@@ -5039,10 +5077,16 @@ document.addEventListener('click', function(e) {
     }
 
     if (marqueeContainer) {
+        ensureMarqueeContentFilled();
         setTimeout(() => {
-            marqueeContainer.scrollLeft = 500;
+            ensureMarqueeContentFilled();
+            currentScroll = 0;
+            marqueeContainer.scrollLeft = 0;
             animateMarquee();
-        }, 500);
+        }, 300);
+        window.addEventListener('resize', () => {
+            ensureMarqueeContentFilled();
+        }, { passive: true });
     }
 
     function manualScroll(direction) {

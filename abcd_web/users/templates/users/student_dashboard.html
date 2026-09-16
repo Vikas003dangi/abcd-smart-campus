@@ -6269,6 +6269,9 @@
         setTimeout(function() {
             overlay.style.display = 'none';
             modal.style.display = 'none';
+            if (typeof window.syncModalScrollLock === 'function') {
+                window.syncModalScrollLock();
+            }
         }, 280);
         logoutUrl = null;
     }

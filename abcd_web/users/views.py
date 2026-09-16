@@ -271,9 +271,12 @@ def home_page_view(request):
     preview_courses = get_accessible_courses(request.user)[:3]
     _ach_pool = list(
         StudentAchievement.objects.filter(status='approved')
-        .order_by('-id')[:50]
+        .order_by('-id')
     )
-    achievements = random.sample(_ach_pool, min(len(_ach_pool), 8))
+    if len(_ach_pool) > 50:
+        achievements = random.sample(_ach_pool, 50)
+    else:
+        achievements = _ach_pool
     resolved_complaints_count = Complaint.objects.filter(status='resolved').count()
     
     return render(request, 'home_page.html', {
@@ -3225,9 +3228,12 @@ def guest_page_view(request):
     try:
         _ach_pool = list(
             StudentAchievement.objects.filter(status='approved')
-            .order_by('-id')[:50]
+            .order_by('-id')
         )
-        achievements = random.sample(_ach_pool, min(len(_ach_pool), 8))
+        if len(_ach_pool) > 50:
+            achievements = random.sample(_ach_pool, 50)
+        else:
+            achievements = _ach_pool
     except Exception:
         achievements = []
 
@@ -4223,8 +4229,10 @@ def alumni_dashboard_view(request):
     preview_courses = get_accessible_courses(request.user)[:3]
     _ach_pool = list(
         StudentAchievement.objects.filter(status='approved')
-        .order_by('-id')[:50]
+        .order_by('-id')
     )
+    if len(_ach_pool) > 50:
+        _ach_pool = random.sample(_ach_pool, 50)
     
     other_achievers = [a for a in _ach_pool if a.user != request.user]
     show_marquee = len(other_achievers) >= 1
