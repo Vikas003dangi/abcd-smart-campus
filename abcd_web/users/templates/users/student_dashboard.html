@@ -3302,26 +3302,41 @@
 
     .no-profile-close {
         position: absolute;
-        top: 12px;
-        right: 12px;
-        background: none;
+        top: 14px;
+        right: 14px;
+        width: 38px;
+        height: 38px;
+        background: rgba(0, 0, 0, 0.05);
         border: none;
-        font-size: 1.4rem;
-        color: #999;
+        border-radius: 50%;
+        font-size: 1.85rem;
+        color: #64748b;
         cursor: pointer;
         line-height: 1;
-        transition: color 0.2s;
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
+        justify-content: center;
+        z-index: 2;
     }
 
-    .no-profile-close:hover { color: #333; }
+    .no-profile-close i {
+        font-size: 1.85rem;
+        line-height: 1;
+        display: block;
+    }
+
+    .no-profile-close:hover {
+        color: #0f172a;
+        background: rgba(0, 0, 0, 0.1);
+        transform: scale(1.08);
+    }
 
     body.dark-theme .no-profile-card   { background: #2d1b4e; }
     body.dark-theme .no-profile-card h3 { color: #f1f5f9; }
     body.dark-theme .no-profile-card > p { color: #c084fc; }
-    body.dark-theme .no-profile-close  { color: #ccc; }
-    body.dark-theme .no-profile-close:hover { color: #fff; }
+    body.dark-theme .no-profile-close  { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; }
+    body.dark-theme .no-profile-close:hover { background: rgba(255, 255, 255, 0.2); color: #fff; transform: scale(1.08); }
 
     /* ── Student Dashboard Performance Leaderboard Dark Theme Overrides ── */
     body.dark-theme .performance-hub-title {
