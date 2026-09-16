@@ -43,19 +43,33 @@
     width: 100vw;
     height: 100vh;
     background: rgba(15, 23, 42, 0.75) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    z-index: 35000 !important;
-    display: flex;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: -1 !important;
+    display: none !important;
     align-items: center;
     justify-content: center;
     padding: 16px;
     opacity: 0;
+    pointer-events: none !important;
     transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .student-banner-overlay.banner-show {
+    display: flex !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    z-index: 35000 !important;
     opacity: 1;
+    pointer-events: auto !important;
+}
+
+.student-banner-overlay:not(.banner-show) {
+    display: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
 }
 
 .student-banner-card {
@@ -355,9 +369,15 @@ async function dismissStudentBanner() {
     const modal = document.getElementById('studentBannerModal');
     if (modal) {
         modal.classList.remove('banner-show');
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 350);
+        modal.style.setProperty('backdrop-filter', 'none', 'important');
+        modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        modal.style.setProperty('display', 'none', 'important');
+        modal.style.setProperty('z-index', '-1', 'important');
+        modal.style.setProperty('pointer-events', 'none', 'important');
+        try { modal.remove(); } catch(e) {}
+    }
+    if (typeof window.purgeClosedModalOverlays === 'function') {
+        window.purgeClosedModalOverlays();
     }
 
     if (currentActiveBannerId) {

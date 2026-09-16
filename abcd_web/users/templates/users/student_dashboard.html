@@ -1077,6 +1077,7 @@
     .sidebar-wrapper:has(#sidebar.active),
     .sidebar-wrapper:has(.nav-sidebar.active) {
       pointer-events: auto !important;
+      z-index: 9999999 !important;
     }
 
     @media (max-width: 768px) {
@@ -1087,6 +1088,11 @@
         height: calc(100vh - 78px);
         height: calc(100dvh - 78px);
         max-height: calc(100dvh - 78px);
+      }
+      .nav-sidebar,
+      body.dark-theme .nav-sidebar {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
       }
     }
 
@@ -1146,6 +1152,16 @@
 
     body.dark-theme .nav-sidebar::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.25);
+    }
+
+    @media (max-width: 768px) {
+      .nav-sidebar,
+      body.dark-theme .nav-sidebar,
+      .sidebar-overlay,
+      body.dark-theme .sidebar-overlay {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
     }
 
     .nav-sidebar.active {
@@ -1217,17 +1233,31 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(4px);
-      z-index: 999;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      z-index: -1;
+      display: none;
       opacity: 0;
       visibility: hidden;
-      transition: all 0.3s ease;
+      pointer-events: none;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
     }
 
     .sidebar-overlay.active {
-      opacity: 1;
-      visibility: visible;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      z-index: 9999998 !important;
+      pointer-events: auto !important;
+    }
+
+    .sidebar-overlay:not(.active) {
+      display: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      z-index: -1 !important;
+      pointer-events: none !important;
     }
 
     /* NAV SEARCH INPUT */
@@ -4546,6 +4576,9 @@
 
     function toggleSidebar() {
       const isOpening = sidebar ? !sidebar.classList.contains('active') : true;
+      if (isOpening && typeof window.purgeClosedModalOverlays === 'function') {
+        window.purgeClosedModalOverlays();
+      }
       const navbar = document.querySelector('.top-nav-menu');
       if (isOpening && navbar) {
         navbar.style.transform = 'translateY(0)';
@@ -6220,8 +6253,8 @@
   {% endblock %}
 
 <!-- ================= LOGOUT CONFIRMATION POPUP ================= -->
-<div id="logoutConfirmOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;z-index:3000000;backdrop-filter:blur(4px);opacity:0;transition:opacity 0.25s ease;"></div>
-<div id="logoutConfirmModal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);background:#fff9f9;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.35);width:min(400px,88vw);display:none;z-index:3000001;opacity:0;transition:opacity 0.3s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);">
+<div id="logoutConfirmOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;z-index:-1;backdrop-filter:none;-webkit-backdrop-filter:none;opacity:0;pointer-events:none;transition:opacity 0.2s ease;"></div>
+<div id="logoutConfirmModal" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);background:#fff9f9;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.35);width:min(400px,88vw);display:none;z-index:3000001;opacity:0;transition:opacity 0.2s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 22px;background:linear-gradient(135deg,#e8455a 0%,#c0392b 100%);color:white;border-radius:16px 16px 0 0;">
         <h3 style="margin:0;font-size:1.15rem;font-weight:700;letter-spacing:0.3px;">Confirm Logout</h3>
         <button type="button" id="logoutConfirmCloseBtn" style="background:none;border:none;font-size:1.8rem;cursor:pointer;color:white;opacity:0.85;line-height:1;transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">&times;</button>
@@ -6253,6 +6286,9 @@
         }
         overlay.style.setProperty('z-index', (highestZ + 10).toString(), 'important');
         modal.style.setProperty('z-index', (highestZ + 11).toString(), 'important');
+        overlay.style.setProperty('backdrop-filter', 'blur(4px)', 'important');
+        overlay.style.setProperty('-webkit-backdrop-filter', 'blur(4px)', 'important');
+        overlay.style.setProperty('pointer-events', 'auto', 'important');
         overlay.style.display = 'block';
         modal.style.display = 'block';
         // Trigger reflow before adding visible state
@@ -6266,13 +6302,18 @@
         overlay.style.opacity = '0';
         modal.style.opacity = '0';
         modal.style.transform = 'translate(-50%,-50%) scale(0.9)';
-        setTimeout(function() {
-            overlay.style.display = 'none';
-            modal.style.display = 'none';
-            if (typeof window.syncModalScrollLock === 'function') {
-                window.syncModalScrollLock();
-            }
-        }, 280);
+        overlay.style.setProperty('backdrop-filter', 'none', 'important');
+        overlay.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        overlay.style.setProperty('pointer-events', 'none', 'important');
+        overlay.style.setProperty('z-index', '-1', 'important');
+        overlay.style.display = 'none';
+        modal.style.display = 'none';
+        if (typeof window.purgeClosedModalOverlays === 'function') {
+            window.purgeClosedModalOverlays();
+        }
+        if (typeof window.syncModalScrollLock === 'function') {
+            window.syncModalScrollLock();
+        }
         logoutUrl = null;
     }
 

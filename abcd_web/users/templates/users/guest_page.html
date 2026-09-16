@@ -963,15 +963,32 @@
         width: 100%;
         height: 100%;
         background: rgba(15, 23, 42, 0.8);
-        backdrop-filter: blur(12px);
-        z-index: 2000;
-        display: none;
-        opacity: 0;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: -1 !important;
+        display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
         transition: all 0.4s ease;
         place-items: center;
         padding: 20px;
     }
-    .ach-modal-overlay.active { display: grid; opacity: 1; }
+    .ach-modal-overlay.active {
+        display: grid !important;
+        opacity: 1 !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        z-index: 2000 !important;
+        pointer-events: auto !important;
+    }
+    .ach-modal-overlay:not(.active) {
+        display: none !important;
+        opacity: 0 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: -1 !important;
+        pointer-events: none !important;
+    }
 
     .ach-modal-card {
         background: white;
@@ -1934,14 +1951,29 @@
         position: fixed;
         inset: 0;
         background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        z-index: 3000;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        z-index: -1;
         display: none;
         place-items: center;
+        pointer-events: none;
     }
 
-    .no-profile-popup.visible { display: grid; }
+    .no-profile-popup.visible {
+        display: grid !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        z-index: 3000 !important;
+        pointer-events: auto !important;
+    }
+
+    .no-profile-popup:not(.visible) {
+        display: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: -1 !important;
+        pointer-events: none !important;
+    }
 
     .no-profile-card {
         background: white;
@@ -2332,20 +2364,30 @@
         width: 100vw;
         height: 100vh;
         background: rgba(15, 23, 42, 0.78) !important;
-        backdrop-filter: blur(14px) !important;
-        -webkit-backdrop-filter: blur(14px) !important;
-        z-index: 50000 !important;
-        display: none;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: -1 !important;
+        display: none !important;
         align-items: center;
         justify-content: center;
         opacity: 0;
-        pointer-events: none;
+        pointer-events: none !important;
         transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .reg-success-overlay.active {
-        display: flex;
+        display: flex !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        z-index: 50000 !important;
         opacity: 1;
-        pointer-events: auto;
+        pointer-events: auto !important;
+    }
+    .reg-success-overlay:not(.active) {
+        display: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: -1 !important;
+        pointer-events: none !important;
     }
 
     /* Success Card */
@@ -2565,22 +2607,32 @@
         width: 100% !important;
         height: 100% !important;
         background: rgba(15, 23, 42, 0.75) !important;
-        backdrop-filter: blur(14px) !important;
-        -webkit-backdrop-filter: blur(14px) !important;
-        display: none; /* Controlled by JS via sessionStorage */
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        display: none !important;
         justify-content: center !important;
         align-items: center !important;
+        z-index: -1 !important;
+        pointer-events: none !important;
+    }
+
+    .choice-modal-overlay.choice-modal-open {
+        display: flex !important;
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
         z-index: 30000 !important;
         pointer-events: auto !important;
     }
 
-    .choice-modal-overlay.choice-modal-closed {
+    .choice-modal-overlay.choice-modal-closed,
+    .choice-modal-overlay:not(.choice-modal-open) {
         display: none !important;
         visibility: hidden !important;
         opacity: 0 !important;
         pointer-events: none !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
+        z-index: -1 !important;
     }
 
     .choice-modal-card {
@@ -4050,6 +4102,7 @@
 {% endblock sidebar_wrapper %}
 
 {% block content %}
+{% if show_registration_animation %}
 <!-- Premium Registration Success Animation Overlay -->
 <div id="regSuccessOverlay" class="reg-success-overlay">
     <div class="reg-success-card">
@@ -4068,6 +4121,7 @@
         <button type="button" class="reg-success-btn" id="regSuccessContinueBtn">Explore Campus ✨</button>
     </div>
 </div>
+{% endif %}
 
 {% if user.is_authenticated and not is_approved_coaching and not is_approved_library and not has_pending_coaching and not has_pending_library %}
 <div class="choice-modal-overlay" id="admissionChoiceModal" onclick="if(event.target===this) closeChoiceModal();">
@@ -4289,16 +4343,24 @@ let choiceMascotInterval = null;
 function closeChoiceModal() {
     const modal = document.getElementById('admissionChoiceModal');
     if (modal) {
+        modal.classList.remove('choice-modal-open');
+        modal.classList.add('choice-modal-closed');
         modal.style.setProperty('display', 'none', 'important');
         modal.style.setProperty('visibility', 'hidden', 'important');
         modal.style.setProperty('opacity', '0', 'important');
         modal.style.setProperty('pointer-events', 'none', 'important');
         modal.style.setProperty('backdrop-filter', 'none', 'important');
         modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-        modal.classList.add('choice-modal-closed');
+        modal.style.setProperty('z-index', '-1', 'important');
+        try {
+            modal.remove();
+        } catch(e) {}
     }
     if (choiceMascotInterval) {
         clearInterval(choiceMascotInterval);
+    }
+    if (typeof window.purgeClosedModalOverlays === 'function') {
+        window.purgeClosedModalOverlays();
     }
     // Ensure scroll lock engine releases any lock from this modal
     if (typeof window.syncModalScrollLock === 'function') {
@@ -4350,8 +4412,12 @@ window.triggerAdmissionChoiceModal = function(delayMs) {
     // Check if user has already seen choice modal in this tab/browser session
     const hasSeenChoiceModal = sessionStorage.getItem('abcd_choice_modal_shown');
     if (hasSeenChoiceModal) {
-        modal.style.display = 'none';
         modal.classList.add('choice-modal-closed');
+        modal.style.setProperty('display', 'none', 'important');
+        modal.style.setProperty('backdrop-filter', 'none', 'important');
+        modal.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        modal.style.setProperty('z-index', '-1', 'important');
+        try { modal.remove(); } catch(e) {}
         if (typeof window.syncModalScrollLock === 'function') window.syncModalScrollLock();
         return;
     }
@@ -4362,12 +4428,28 @@ window.triggerAdmissionChoiceModal = function(delayMs) {
             return;
         }
         sessionStorage.setItem('abcd_choice_modal_shown', 'true');
-        if (modal) {
-            modal.style.display = 'flex';
+        if (modal && modal.isConnected) {
+            modal.classList.remove('choice-modal-closed');
+            modal.classList.add('choice-modal-open');
+            modal.style.setProperty('display', 'flex', 'important');
+            modal.style.setProperty('backdrop-filter', 'blur(14px)', 'important');
+            modal.style.setProperty('-webkit-backdrop-filter', 'blur(14px)', 'important');
+            modal.style.setProperty('z-index', '30000', 'important');
+            modal.style.setProperty('pointer-events', 'auto', 'important');
+            modal.style.setProperty('visibility', 'visible', 'important');
+            modal.style.setProperty('opacity', '1', 'important');
             initChoiceMascotChoreography();
         }
     }, delayMs || 0);
 };
+
+// Immediate cleanup if choice modal was already shown
+if (sessionStorage.getItem('abcd_choice_modal_shown')) {
+    try {
+        const _m = document.getElementById('admissionChoiceModal');
+        if (_m) _m.remove();
+    } catch(e) {}
+}
 
 // Clear session storage keys whenever user clicks logout link anywhere
 document.addEventListener('click', function(e) {

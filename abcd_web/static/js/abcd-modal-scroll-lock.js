@@ -86,6 +86,11 @@
   function onTouchMove(e) {
     if (!isLocked) return;
 
+    // NEVER block touch interactions on sidebar, hamburger, or top navigation
+    if (e.target.closest('.sidebar-wrapper, .top-nav-menu, #sidebar, #sidebarOverlay, .hamburger-icon')) {
+      return;
+    }
+
     // Find the topmost open modal
     let topModal = null;
     for (const m of activeModals) {
@@ -93,7 +98,7 @@
     }
 
     if (!topModal) {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       return;
     }
 
@@ -254,6 +259,21 @@
         el.closest('.top-nav-menu')) {
       return false;
     }
+
+    // Check if element is closed via explicit closed classes
+    if (el.classList.contains('choice-modal-closed') ||
+        el.classList.contains('modal-closed') ||
+        el.classList.contains('popup-closed')) {
+      return false;
+    }
+
+    // Check computed style display and visibility
+    try {
+      const cs = window.getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') {
+        return false;
+      }
+    } catch(err) {}
 
     // Check specific class-based activations
     if (el.classList.contains('active') ||

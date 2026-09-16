@@ -213,6 +213,11 @@ var CustomPopup = window.CustomPopup || (function () {
         popupOverlay = document.createElement('div');
         popupOverlay.className = 'custom-popup-overlay';
         popupOverlay.id = 'customPopupOverlay';
+        popupOverlay.style.setProperty('display', 'none', 'important');
+        popupOverlay.style.setProperty('backdrop-filter', 'none', 'important');
+        popupOverlay.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        popupOverlay.style.setProperty('z-index', '-1', 'important');
+        popupOverlay.style.setProperty('pointer-events', 'none', 'important');
 
         // Create popup container
         popupContainer = document.createElement('div');
@@ -361,6 +366,10 @@ var CustomPopup = window.CustomPopup || (function () {
         popupContainer.style.setProperty('z-index', (highestZ + 11).toString(), 'important');
 
         // Show
+        popupOverlay.style.setProperty('display', 'block', 'important');
+        popupOverlay.style.setProperty('backdrop-filter', 'blur(4px)', 'important');
+        popupOverlay.style.setProperty('-webkit-backdrop-filter', 'blur(4px)', 'important');
+        popupOverlay.style.setProperty('pointer-events', 'auto', 'important');
         popupOverlay.classList.add('visible');
         popupContainer.classList.add('visible');
         document.body.classList.add('modal-open');
@@ -391,7 +400,16 @@ var CustomPopup = window.CustomPopup || (function () {
         // 🚀 INSTANT VISUAL FEEDBACK
         popupOverlay.classList.remove('visible');
         popupContainer.classList.remove('visible');
+        popupOverlay.style.setProperty('display', 'none', 'important');
+        popupOverlay.style.setProperty('backdrop-filter', 'none', 'important');
+        popupOverlay.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+        popupOverlay.style.setProperty('z-index', '-1', 'important');
+        popupOverlay.style.setProperty('pointer-events', 'none', 'important');
         
+        if (typeof window.purgeClosedModalOverlays === 'function') {
+            window.purgeClosedModalOverlays();
+        }
+
         // If teacher-seat-manager is loaded, let it orchestrate the global state sync
         if (typeof window.syncGlobalModalState === 'function') {
             window.syncGlobalModalState();
@@ -870,11 +888,91 @@ window.showABCDModal = function (opts) {
     });
 
 
+    window.purgeClosedModalOverlays = function() {
+        try {
+            const closedSelectors = [
+                '.choice-modal-overlay.choice-modal-closed',
+                '.choice-modal-overlay:not(.choice-modal-open)',
+                '.student-banner-overlay:not(.banner-show)',
+                '.custom-popup-overlay:not(.visible)',
+                '.alert-overlay:not(.visible)',
+                '.reg-success-overlay:not(.active)',
+                '.no-profile-popup:not(.visible)',
+                '.ach-modal-overlay:not(.active)',
+                '#logoutConfirmOverlay:not(.active)',
+                '#logoutConfirmOverlay'
+            ];
+            
+            closedSelectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                    if (el.id === 'admissionChoiceModal' && el.classList.contains('choice-modal-closed')) {
+                        try { el.remove(); } catch(e) {}
+                        return;
+                    }
+                    if (el.id === 'regSuccessOverlay' && !el.classList.contains('active')) {
+                        try { el.remove(); } catch(e) {}
+                        return;
+                    }
+                    if (el.id === 'logoutConfirmOverlay') {
+                        const isVisible = el.style.display === 'block' && el.style.opacity === '1';
+                        if (!isVisible) {
+                            el.style.setProperty('backdrop-filter', 'none', 'important');
+                            el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                            el.style.setProperty('display', 'none', 'important');
+                            el.style.setProperty('pointer-events', 'none', 'important');
+                            el.style.setProperty('z-index', '-1', 'important');
+                        }
+                        return;
+                    }
+                    el.style.setProperty('backdrop-filter', 'none', 'important');
+                    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                    el.style.setProperty('display', 'none', 'important');
+                    el.style.setProperty('pointer-events', 'none', 'important');
+                    el.style.setProperty('z-index', '-1', 'important');
+                });
+            });
+
+            document.querySelectorAll('.modal-overlay, .custom-modal-overlay, .fp-overlay, .todo-modal-overlay, .picker-overlay, .tc-modal-bg, #statusModalOverlay, .choice-modal-overlay, .student-banner-overlay, .custom-popup-overlay, .alert-overlay, .ach-modal-overlay, .sidebar-overlay').forEach(el => {
+                const cs = window.getComputedStyle(el);
+                if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0' || (!el.classList.contains('active') && !el.classList.contains('visible') && !el.classList.contains('show') && !el.classList.contains('choice-modal-open') && !el.classList.contains('banner-show'))) {
+                    el.style.setProperty('backdrop-filter', 'none', 'important');
+                    el.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+                    el.style.setProperty('pointer-events', 'none', 'important');
+                    if (el.classList.contains('sidebar-overlay') && !el.classList.contains('active')) {
+                        el.style.setProperty('z-index', '-1', 'important');
+                        el.style.setProperty('display', 'none', 'important');
+                    } else if (parseInt(cs.zIndex, 10) > 1000) {
+                        el.style.setProperty('z-index', '-1', 'important');
+                    }
+                }
+            });
+
+            // Unlock any stuck scroll / modal-open states
+            const openModals = document.querySelectorAll('.choice-modal-open, .banner-show, .custom-popup-overlay.visible, .reg-success-overlay.active, .ach-modal-overlay.active, .alert-overlay.visible, .admission-modal.active, .teacher-modal.active');
+            if (openModals.length === 0) {
+                document.body.classList.remove('modal-open');
+                document.body.classList.remove('abcd-scroll-locked');
+                document.documentElement.classList.remove('abcd-scroll-locked');
+            }
+
+            if (typeof window.syncModalScrollLock === 'function') {
+                window.syncModalScrollLock();
+            }
+        } catch(e) {}
+    };
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAutoStacking);
+        document.addEventListener('DOMContentLoaded', () => {
+            initAutoStacking();
+            window.purgeClosedModalOverlays();
+        });
     } else {
         initAutoStacking();
+        window.purgeClosedModalOverlays();
     }
+    window.addEventListener('pageshow', () => {
+        window.purgeClosedModalOverlays();
+    });
 })();
 
 
