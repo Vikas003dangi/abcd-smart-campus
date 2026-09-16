@@ -233,7 +233,7 @@ def send_html_email(
                     'subject': clean_subject,
                     'html': html_content,
                     'text': text_content,
-                    'from_name': "ABCD Coaching & Library"
+                    'from_name': "ABCD Campus"
                 }
                 if attachments:
                     payload['attachments'] = []
@@ -277,7 +277,7 @@ def send_html_email(
                 sender_email = (getattr(settings, 'EMAIL_HOST_USER', '') or 'abcd2013baq@gmail.com').strip()
                 logger.info(f"[EMAIL DISPATCH] Attempting Brevo HTTP API for '{clean_subject}' to {to_email}")
                 brevo_payload = {
-                    "sender": {"name": "ABCD Coaching & Library", "email": sender_email},
+                    "sender": {"name": "ABCD Campus", "email": sender_email},
                     "to": [{"email": to_email}],
                     "subject": clean_subject,
                     "htmlContent": html_content,
@@ -368,7 +368,7 @@ def send_html_email(
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
         if not from_email or '<>' in from_email or '@' not in from_email:
             smtp_user = (getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
-            from_email = f'"ABCD Coaching & Library" <{smtp_user}>'
+            from_email = f'"ABCD Campus" <{smtp_user}>'
 
         email = EmailMultiAlternatives(
             subject=clean_subject,

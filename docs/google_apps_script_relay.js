@@ -40,7 +40,7 @@ function doPost(e) {
     var subject = data.subject || "ABCD Campus Notification";
     var htmlBody = data.html || "";
     var textBody = data.text || "";
-    var fromName = data.from_name || "ABCD Coaching & Library";
+    var fromName = data.from_name || "ABCD Campus";
 
     if (!to) {
       return ContentService.createTextOutput(JSON.stringify({
