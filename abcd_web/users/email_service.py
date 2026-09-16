@@ -249,12 +249,23 @@ def send_html_email(
                         })
                 resp = req_lib.post(relay_url, json=payload, timeout=min(timeout, 12))
                 if resp.status_code == 200:
-                    logger.info(f"EMAIL SUCCESS (Google HTTP Relay): Sent '{clean_subject}' to {to_email}")
-                    return True
+                    try:
+                        res_data = resp.json()
+                        if res_data.get('status') == 'ok':
+                            logger.info(f"EMAIL SUCCESS (Google HTTP Relay): Sent '{clean_subject}' to {to_email}")
+                            return True
+                        else:
+                            err_msg = res_data.get('message', 'Unknown Google Apps Script error')
+                            logger.warning(f"[EMAIL DISPATCH] Google Apps Script Relay reported failure: '{err_msg}'. Falling back to Brevo...")
+                    except Exception:
+                        if '"status":"ok"' in resp.text:
+                            logger.info(f"EMAIL SUCCESS (Google HTTP Relay): Sent '{clean_subject}' to {to_email}")
+                            return True
+                        logger.warning(f"[EMAIL DISPATCH] Google Apps Script Relay returned unexpected payload: {resp.text[:200]}. Falling back to Brevo...")
                 else:
-                    logger.warning(f"[EMAIL DISPATCH] Google HTTP Relay returned status {resp.status_code}: {resp.text[:200]}. Falling back...")
+                    logger.warning(f"[EMAIL DISPATCH] Google HTTP Relay returned status {resp.status_code}: {resp.text[:200]}. Falling back to Brevo...")
             except Exception as h_err:
-                logger.warning(f"[EMAIL DISPATCH] Google HTTP Relay error: {h_err}. Falling back...")
+                logger.warning(f"[EMAIL DISPATCH] Google HTTP Relay error: {h_err}. Falling back to Brevo...")
         else:
             logger.debug("[EMAIL DISPATCH] Google Apps Script Relay: SKIPPED (GMAIL_RELAY_URL not configured)")
 
