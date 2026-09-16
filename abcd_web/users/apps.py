@@ -38,3 +38,10 @@ class UsersConfig(AppConfig):
             start_background_scheduler()
         except Exception as e:
             sys.stderr.write(f"Scheduler auto-start error: {e}\n")
+
+        # Run one-time email configuration diagnostic on startup
+        try:
+            from users.email_service import _check_email_config
+            _check_email_config()
+        except Exception:
+            pass

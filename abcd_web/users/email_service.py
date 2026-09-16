@@ -14,6 +14,48 @@ logger = logging.getLogger(__name__)
 # In-memory cache for base64 data URIs so disk I/O and encoding are only done once
 _IMAGE_DATA_URI_CACHE = {}
 
+# One-time startup diagnostic flag
+_EMAIL_CONFIG_CHECKED = False
+
+
+def _check_email_config():
+    """One-time startup diagnostic: warn loudly if no HTTP email provider is configured."""
+    global _EMAIL_CONFIG_CHECKED
+    if _EMAIL_CONFIG_CHECKED:
+        return
+    _EMAIL_CONFIG_CHECKED = True
+
+    relay_url = (getattr(settings, 'GMAIL_RELAY_URL', '') or os.environ.get('GMAIL_RELAY_URL', '') or '').strip()
+    brevo_key = (getattr(settings, 'BREVO_API_KEY', '') or os.environ.get('BREVO_API_KEY', '') or '').strip()
+    resend_key = (getattr(settings, 'RESEND_API_KEY', '') or os.environ.get('RESEND_API_KEY', '') or '').strip()
+
+    configured = []
+    if relay_url:
+        configured.append('Google Apps Script Relay')
+    if brevo_key:
+        configured.append('Brevo HTTP API')
+    if resend_key:
+        configured.append('Resend HTTP API')
+
+    if configured:
+        logger.info(f"[EMAIL CONFIG] HTTP email providers available: {', '.join(configured)}")
+    else:
+        logger.critical(
+            "[EMAIL CONFIG] ⚠️  NO HTTP EMAIL PROVIDER IS CONFIGURED! "
+            "GMAIL_RELAY_URL, BREVO_API_KEY, and RESEND_API_KEY are all empty. "
+            "On Render/Railway/Docker, SMTP ports (465/587) are typically BLOCKED. "
+            "Emails will FAIL unless an HTTP provider is set up. "
+            "Set BREVO_API_KEY in your environment variables (free 300 emails/day). "
+            "See docs/google_apps_script_relay.js for the Apps Script option."
+        )
+
+    smtp_user = (getattr(settings, 'EMAIL_HOST_USER', '') or '').strip()
+    smtp_pass = (getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip()
+    if smtp_user and smtp_pass:
+        logger.info(f"[EMAIL CONFIG] SMTP fallback configured: {smtp_user} via {getattr(settings, 'EMAIL_HOST', 'smtp.gmail.com')}:{getattr(settings, 'EMAIL_PORT', 465)}")
+    else:
+        logger.warning("[EMAIL CONFIG] SMTP fallback NOT configured (missing EMAIL_HOST_USER or EMAIL_HOST_PASSWORD)")
+
 
 def send_html_email(
     *,
@@ -29,10 +71,19 @@ def send_html_email(
 ):
     """
     Central email sender for entire project.
-    Hardened against SMTP hangs with timeouts and structured logging.
+    
+    Dispatch chain (tries each in order, stops on first success):
+      1. Google Apps Script Relay (HTTPS, sends from abcd2013baq@gmail.com)
+      2. Brevo HTTP API (HTTPS, 300 free/day)
+      3. Resend HTTP API (HTTPS, 100 free/day)
+      4. Direct SMTP via Gmail (BLOCKED on Render/Railway free plans)
+    
+    On cloud hosts that block SMTP ports (25/465/587), you MUST configure
+    at least one HTTP provider (BREVO_API_KEY recommended).
     """
-    # Direct delivery to destination address
-    pass
+    # Run one-time diagnostic on first email attempt
+    _check_email_config()
+
     if run_async:
         import threading
         thread = threading.Thread(
@@ -166,12 +217,17 @@ def send_html_email(
             text = re.sub(r'\n\s*\n+', '\n\n', text).strip()
             text_content = text
 
-        # 0. CLOUD HTTP REST API DISPATCH (HTTPS Port 443 - Bypasses cloud host SMTP port blocks)
-        # Option A: Google Apps Script Webhook Relay (Direct from abcd2013baq@gmail.com)
-        relay_url = (getattr(settings, 'GMAIL_RELAY_URL', '') or os.environ.get('GMAIL_RELAY_URL', '')).strip()
+        # =====================================================================
+        # HTTP DISPATCH CHAIN (HTTPS Port 443 — bypasses SMTP port blocks)
+        # Each method is tried in order; first success returns immediately.
+        # =====================================================================
+
+        # --- OPTION A: Google Apps Script Webhook Relay ---
+        relay_url = (getattr(settings, 'GMAIL_RELAY_URL', '') or os.environ.get('GMAIL_RELAY_URL', '') or '').strip()
         if relay_url:
             try:
-                import requests, base64
+                import requests as req_lib
+                logger.info(f"[EMAIL DISPATCH] Attempting Google Apps Script Relay for '{clean_subject}' to {to_email}")
                 payload = {
                     'to': to_email,
                     'subject': clean_subject,
@@ -191,52 +247,70 @@ def send_html_email(
                             'content': b64_data,
                             'mimeType': att_mime
                         })
-                resp = requests.post(relay_url, json=payload, timeout=min(timeout, 12))
+                resp = req_lib.post(relay_url, json=payload, timeout=min(timeout, 12))
                 if resp.status_code == 200:
                     logger.info(f"EMAIL SUCCESS (Google HTTP Relay): Sent '{clean_subject}' to {to_email}")
                     return True
                 else:
-                    logger.warning(f"Google HTTP Relay returned status {resp.status_code}. Falling back...")
+                    logger.warning(f"[EMAIL DISPATCH] Google HTTP Relay returned status {resp.status_code}: {resp.text[:200]}. Falling back...")
             except Exception as h_err:
-                logger.warning(f"Google HTTP Relay error: {h_err}. Falling back...")
+                logger.warning(f"[EMAIL DISPATCH] Google HTTP Relay error: {h_err}. Falling back...")
+        else:
+            logger.debug("[EMAIL DISPATCH] Google Apps Script Relay: SKIPPED (GMAIL_RELAY_URL not configured)")
 
-        # Option B: Brevo HTTP REST API (300 free emails/day over HTTPS Port 443)
-        brevo_key = (getattr(settings, 'BREVO_API_KEY', '') or os.environ.get('BREVO_API_KEY', '')).strip()
+        # --- OPTION B: Brevo (Sendinblue) HTTP REST API (300 free emails/day) ---
+        brevo_key = (getattr(settings, 'BREVO_API_KEY', '') or os.environ.get('BREVO_API_KEY', '') or '').strip()
         if brevo_key:
             try:
-                import requests
+                import requests as req_lib
                 sender_email = (getattr(settings, 'EMAIL_HOST_USER', '') or 'abcd2013baq@gmail.com').strip()
-                resp = requests.post(
+                logger.info(f"[EMAIL DISPATCH] Attempting Brevo HTTP API for '{clean_subject}' to {to_email}")
+                brevo_payload = {
+                    "sender": {"name": "ABCD Coaching & Library", "email": sender_email},
+                    "to": [{"email": to_email}],
+                    "subject": clean_subject,
+                    "htmlContent": html_content,
+                    "textContent": text_content
+                }
+                # Attach files via Brevo's attachment format
+                if attachments:
+                    brevo_payload["attachment"] = []
+                    for att in attachments:
+                        att_name = att[0]
+                        att_content = att[1]
+                        b64_data = base64.b64encode(att_content if isinstance(att_content, bytes) else att_content.encode('utf-8')).decode('ascii')
+                        brevo_payload["attachment"].append({
+                            "name": att_name,
+                            "content": b64_data
+                        })
+                resp = req_lib.post(
                     "https://api.brevo.com/v3/smtp/email",
                     headers={
                         "api-key": brevo_key,
                         "Content-Type": "application/json",
                         "Accept": "application/json"
                     },
-                    json={
-                        "sender": {"name": "ABCD Coaching & Library", "email": sender_email},
-                        "to": [{"email": to_email}],
-                        "subject": clean_subject,
-                        "htmlContent": html_content,
-                        "textContent": text_content
-                    },
-                    timeout=min(timeout, 8)
+                    json=brevo_payload,
+                    timeout=min(timeout, 10)
                 )
                 if resp.status_code in [200, 201, 202]:
                     logger.info(f"EMAIL SUCCESS (Brevo HTTP API): Sent '{clean_subject}' to {to_email}")
                     return True
                 else:
-                    logger.warning(f"Brevo HTTP API returned status {resp.status_code}. Falling back...")
+                    logger.warning(f"[EMAIL DISPATCH] Brevo HTTP API returned status {resp.status_code}: {resp.text[:300]}. Falling back...")
             except Exception as b_err:
-                logger.warning(f"Brevo HTTP API error: {b_err}. Falling back...")
+                logger.warning(f"[EMAIL DISPATCH] Brevo HTTP API error: {b_err}. Falling back...")
+        else:
+            logger.debug("[EMAIL DISPATCH] Brevo HTTP API: SKIPPED (BREVO_API_KEY not configured)")
 
-        # Option C: Resend HTTP REST API (100 free emails/day over HTTPS Port 443)
-        resend_key = (getattr(settings, 'RESEND_API_KEY', '') or os.environ.get('RESEND_API_KEY', '')).strip()
+        # --- OPTION C: Resend HTTP REST API (100 free emails/day) ---
+        resend_key = (getattr(settings, 'RESEND_API_KEY', '') or os.environ.get('RESEND_API_KEY', '') or '').strip()
         if resend_key:
             try:
-                import requests
+                import requests as req_lib
                 from_addr = getattr(settings, 'RESEND_FROM_EMAIL', None) or "ABCD Smart Campus <onboarding@resend.dev>"
-                resp = requests.post(
+                logger.info(f"[EMAIL DISPATCH] Attempting Resend HTTP API for '{clean_subject}' to {to_email}")
+                resp = req_lib.post(
                     "https://api.resend.com/emails",
                     headers={
                         "Authorization": f"Bearer {resend_key}",
@@ -255,9 +329,14 @@ def send_html_email(
                     logger.info(f"EMAIL SUCCESS (Resend HTTP API): Sent '{clean_subject}' to {to_email}")
                     return True
                 else:
-                    logger.warning(f"Resend HTTP API returned status {resp.status_code}. Falling back...")
+                    logger.warning(f"[EMAIL DISPATCH] Resend HTTP API returned status {resp.status_code}: {resp.text[:200]}. Falling back...")
             except Exception as r_err:
-                logger.warning(f"Resend HTTP API error: {r_err}. Falling back...")
+                logger.warning(f"[EMAIL DISPATCH] Resend HTTP API error: {r_err}. Falling back...")
+        else:
+            logger.debug("[EMAIL DISPATCH] Resend HTTP API: SKIPPED (RESEND_API_KEY not configured)")
+
+        # --- OPTION D: Direct SMTP (LAST RESORT — blocked on Render/Railway free plans) ---
+        logger.info(f"[EMAIL DISPATCH] All HTTP providers exhausted. Attempting SMTP fallback for '{clean_subject}' to {to_email}")
 
         # Use a connection with an explicit timeout to prevent command freezing
         connection = get_connection(timeout=timeout)
@@ -300,21 +379,25 @@ def send_html_email(
             for attachment in attachments:
                 email.attach(*attachment)
         
-        # 3. SAFE ERROR HANDLING: Wrap send inside try/except
+        # SAFE ERROR HANDLING: Wrap send inside try/except
         # We set fail_silently=False internally to catch the error and log it properly
         email.send(fail_silently=False)
         
-        # 2. ADD LOGGING (Success)
-        logger.info(f"EMAIL SUCCESS: Sent '{subject}' to {to_email}")
+        logger.info(f"EMAIL SUCCESS (SMTP): Sent '{subject}' to {to_email}")
         return True
 
     except Exception as e:
-        # 2. ADD LOGGING (Failure/Timeout)
-        logger.error(f"EMAIL FAILURE: Failed to send '{subject}' to {to_email}. Reason: {str(e)}")
+        logger.error(
+            f"EMAIL FAILURE: ALL dispatch methods failed for '{subject}' to {to_email}. "
+            f"Last error: {str(e)}. "
+            f"Configured providers: GMAIL_RELAY_URL={'YES' if (getattr(settings, 'GMAIL_RELAY_URL', '') or '').strip() else 'NO'}, "
+            f"BREVO_API_KEY={'YES' if (getattr(settings, 'BREVO_API_KEY', '') or '').strip() else 'NO'}, "
+            f"RESEND_API_KEY={'YES' if (getattr(settings, 'RESEND_API_KEY', '') or '').strip() else 'NO'}"
+        )
         
-        # 4. KEEP fail_silently behavior compatible
+        # KEEP fail_silently behavior compatible
         if not fail_silently:
             raise
             
-        # 7. RETURN BOOLEAN STATUS
+        # RETURN BOOLEAN STATUS
         return False
