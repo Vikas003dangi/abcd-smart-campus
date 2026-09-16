@@ -7494,15 +7494,28 @@ function initSidebarTabSwipeGestures() {
     const diffY = endY - startY;
     const duration = Date.now() - startTime;
 
-    // Must be a deliberate swipe gesture
+    // Must be a deliberate horizontal swipe gesture
     if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2 && duration < 650) {
+      // Determine list of available tabs in the DOM
+      const tabOrder = [];
+      if (document.getElementById('tabChats')) tabOrder.push('chats');
+      if (document.getElementById('tabRequests')) tabOrder.push('requests');
+      if (document.getElementById('tabGroups')) tabOrder.push('groups');
+
+      if (tabOrder.length < 2) return;
+
       const currentTab = getActiveTab();
-      if (currentTab === 'chats') {
-        // Swiping from chats tab transitions to groups tab
-        switchTab('groups', diffX < 0 ? 'right' : 'left');
-      } else if (currentTab === 'groups') {
-        // Swiping from groups tab transitions to chats tab
-        switchTab('chats', diffX > 0 ? 'left' : 'right');
+      let currentIndex = tabOrder.indexOf(currentTab);
+      if (currentIndex === -1) currentIndex = 0;
+
+      if (diffX < 0) {
+        // Swiping LEFT -> advance to NEXT tab (slides in from right)
+        const nextIndex = (currentIndex + 1) % tabOrder.length;
+        switchTab(tabOrder[nextIndex], 'right');
+      } else {
+        // Swiping RIGHT -> retreat to PREVIOUS tab (slides in from left)
+        const prevIndex = (currentIndex - 1 + tabOrder.length) % tabOrder.length;
+        switchTab(tabOrder[prevIndex], 'left');
       }
     }
   }, { passive: true });
