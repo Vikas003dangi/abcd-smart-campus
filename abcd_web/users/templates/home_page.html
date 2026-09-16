@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=overlays-content">
     <meta name="google-site-verification" content="3kZlVyMNLfztAa3hPSHbBXzd6OxHgl582SFfNyO0h2w" />
 
 
@@ -2556,6 +2556,54 @@
         .bnav-item:hover i { transform: translateY(-3px); }
         body.dark-theme .bnav-item { color: rgba(245, 222, 179, 0.85); }
         body.dark-theme .bnav-item:hover { color: #f5deb3; }
+
+        /* Highlighted Active Bottom Nav Tab */
+        .bnav-item.active {
+            color: #7b61ff !important;
+            font-weight: 700 !important;
+        }
+        .bnav-item.active i {
+            color: #7b61ff !important;
+            transform: translateY(-2px) scale(1.12) !important;
+            filter: drop-shadow(0 2px 6px rgba(123, 97, 255, 0.45));
+        }
+        .bnav-item.active span {
+            color: #7b61ff !important;
+            font-weight: 700 !important;
+        }
+        .bnav-item.active::after {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #7b61ff;
+            margin: 2px auto 0;
+            box-shadow: 0 0 6px #7b61ff;
+        }
+        body.dark-theme .bnav-item.active {
+            color: #c084fc !important;
+        }
+        body.dark-theme .bnav-item.active i {
+            color: #c084fc !important;
+            filter: drop-shadow(0 2px 8px rgba(192, 132, 252, 0.5));
+        }
+        body.dark-theme .bnav-item.active span {
+            color: #c084fc !important;
+        }
+        body.dark-theme .bnav-item.active::after {
+            background: #c084fc;
+            box-shadow: 0 0 6px #c084fc;
+        }
+
+        /* Suppress Bottom Nav when virtual keyboard is open or mobile search is active */
+        body.mob-search-active .bottom-nav-menu,
+        body.keyboard-open .bottom-nav-menu {
+            transform: translateY(120%) !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease !important;
+        }
 
         /* Elevated Search Bubble Button */
         .bnav-search-btn {
@@ -5184,7 +5232,7 @@
 
     <!-- ===== PREMIUM BOTTOM NAV BAR ===== -->
     <div class="bottom-nav-menu" id="bottomNavMenu">
-        <a href="{% url 'users:home_page' %}" class="bnav-item" title="Home">
+        <a href="{% url 'users:home_page' %}" class="bnav-item active" title="Home">
             <i class='bx bx-home-alt-2'></i>
             <span>Home</span>
         </a>
@@ -5987,7 +6035,7 @@
         const marqueeContainer = document.getElementById('marqueeContainer');
         let isManual = false;
         let isHovered = false;
-        let scrollSpeed = 0.55; 
+        let scrollSpeed = 0.80; // Smoothly tuned autoscroll speed
         let animationFrame;
 
         let currentScroll = 0;
@@ -6040,10 +6088,24 @@
         }
 
         function manualScroll(direction) {
-            if (!marqueeContainer) return;
+            if (!marqueeContainer || !marqueeContent) return;
             
             isManual = true;
-            const scrollAmount = 350 * direction;
+            
+            // Single photo/alumni card step (card width + gap)
+            const firstCard = marqueeContent.querySelector('.ach-card-item');
+            let cardStep = 260;
+            if (firstCard) {
+                const cardWidth = firstCard.getBoundingClientRect().width || firstCard.offsetWidth || 140;
+                let gap = 20;
+                try {
+                    const style = window.getComputedStyle(marqueeContent);
+                    gap = parseFloat(style.gap) || (window.innerWidth <= 768 ? 20 : 30);
+                } catch(e) {}
+                cardStep = cardWidth + gap;
+            }
+
+            const scrollAmount = cardStep * direction;
             
             marqueeContainer.scrollBy({
                 left: scrollAmount,
@@ -6053,7 +6115,7 @@
             clearTimeout(window.marqueeTimeout);
             window.marqueeTimeout = setTimeout(() => {
                 isManual = false;
-            }, 2000);
+            }, 1800);
         }
 
         if (marqueeContainer) {
@@ -6681,6 +6743,10 @@
             _globalMatchedEls[idx].scrollIntoView({
                 behavior: 'smooth', block: 'center'
             });
+            if (typeof window.__syncMobSearchOverlayPosition === 'function') {
+                setTimeout(window.__syncMobSearchOverlayPosition, 50);
+                setTimeout(window.__syncMobSearchOverlayPosition, 280);
+            }
         }
 
         function updateDesktopNavUI() {
@@ -6912,9 +6978,31 @@
             var mobSearchPrev  = document.getElementById('mobSearchPrev');
             var mobSearchNext  = document.getElementById('mobSearchNext');
 
+            function syncMobSearchOverlayPosition() {
+                if (!mSearchOpen || !mobSearchOverlay) return;
+                var vv = window.visualViewport;
+                if (vv) {
+                    mobSearchOverlay.style.top = (vv.offsetTop || 0) + 'px';
+                    mobSearchOverlay.style.left = (vv.offsetLeft || 0) + 'px';
+                    mobSearchOverlay.style.width = (vv.width || window.innerWidth) + 'px';
+                } else {
+                    mobSearchOverlay.style.top = '0px';
+                    mobSearchOverlay.style.left = '0px';
+                    mobSearchOverlay.style.width = '100%';
+                }
+            }
+            window.__syncMobSearchOverlayPosition = syncMobSearchOverlayPosition;
+
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('scroll', syncMobSearchOverlayPosition, { passive: true });
+                window.visualViewport.addEventListener('resize', syncMobSearchOverlayPosition, { passive: true });
+            }
+            window.addEventListener('scroll', syncMobSearchOverlayPosition, { passive: true });
+
             function openMobSearch() {
                 if (mSearchOpen) return;
                 mSearchOpen = true;
+                document.body.classList.add('mob-search-active');
 
                 var circle = bnavSearchBtn && bnavSearchBtn.querySelector('.bnav-search-circle');
                 if (!circle || !mobSearchBubble || !mobSearchOverlay) return;
@@ -6968,11 +7056,13 @@
                     mobSearchOverlay.style.transform  = '';
                     mobSearchOverlay.style.opacity    = '';
                     mobSearchOverlay.style.transition = '';
+                    syncMobSearchOverlayPosition();
                     mobSearchOverlay.classList.add('visible');
 
                     // Focus after bar finishes entering
                     setTimeout(function() {
                         if (mobileSearchInput) mobileSearchInput.focus();
+                        syncMobSearchOverlayPosition();
                     }, 350);
                 }, 320);
             }
@@ -6981,6 +7071,7 @@
                 if (!mSearchOpen) return;
                 mSearchOpen = false;
                 clearTimeout(mSearchTimer);
+                document.body.classList.remove('mob-search-active');
 
                 // Reset children animations so they can re-run on next open
                 var searchIcon = mobSearchOverlay && mobSearchOverlay.querySelector('.mob-search-icon');
@@ -7002,6 +7093,9 @@
                         mobSearchOverlay.style.animation  = '';
                         mobSearchOverlay.style.transform  = '';
                         mobSearchOverlay.style.opacity    = '';
+                        mobSearchOverlay.style.top        = '';
+                        mobSearchOverlay.style.left       = '';
+                        mobSearchOverlay.style.width      = '';
                     }
                     // Restore child animations so they replay on next open
                     if (searchIcon)        searchIcon.style.animation        = '';

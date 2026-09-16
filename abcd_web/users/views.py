@@ -4137,11 +4137,22 @@ def student_dashboard_view(request):
     # Track that we are in "Student Space"
     request.session['active_dashboard'] = 'student'
 
+    try:
+        _ach_pool = list(
+            StudentAchievement.objects.filter(status='approved')
+            .order_by('-id')
+        )
+        achievements = random.sample(_ach_pool, 50) if len(_ach_pool) > 50 else _ach_pool
+    except Exception:
+        achievements = []
+
     context = {
         'profile': profile,
         'nav_achievement': achievement,
         "notifications": notifications,
         "unread_count": unread_count,
+        "achievements": achievements,
+        "show_marquee": len(achievements) > 0,
     }
 
     if profile.status == 'admitted':

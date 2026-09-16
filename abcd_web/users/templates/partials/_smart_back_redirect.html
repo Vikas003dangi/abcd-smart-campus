@@ -133,12 +133,24 @@
             if (!bars || bars.length === 0) return;
 
             const vv = window.visualViewport;
+            const isKeyboard = vv && (window.innerHeight - vv.height > 140);
+            const isSearchActive = document.body.classList.contains('mob-search-active');
+            const isInputFocused = document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA');
+
+            // If virtual keyboard is open or mobile search is active, hide bottom bar & do not clamp to keyboard
+            if (isKeyboard || isSearchActive || (isInputFocused && window.innerWidth <= 768)) {
+                document.body.classList.add('keyboard-open');
+                return;
+            } else {
+                document.body.classList.remove('keyboard-open');
+            }
+
             const scale = vv ? vv.scale : 1;
             const currentDPR = window.devicePixelRatio || 1;
             const pageZoom = currentDPR / initialDPR;
             const totalZoom = scale * pageZoom;
 
-            if (totalZoom <= 1.001 && totalZoom >= 0.999) {
+            if (totalZoom <= 1.04 && totalZoom >= 0.96) {
                 if (isZoomApplied) {
                     bars.forEach(bar => {
                         bar.style.transform = '';
@@ -181,7 +193,7 @@
 
         function handleScrollUpdate() {
             const vv = window.visualViewport;
-            if (vv && (vv.scale > 1.01 || vv.scale < 0.99 || isZoomApplied)) {
+            if (vv && (vv.scale > 1.04 || vv.scale < 0.96 || isZoomApplied)) {
                 scheduleBottomBarUpdate();
             }
         }
@@ -192,9 +204,48 @@
         }
         window.addEventListener('resize', scheduleBottomBarUpdate, { passive: true });
 
+        // Auto-highlight active tab based on current URL path
+        function highlightActiveBottomNavItem() {
+            const currentPath = (window.location.pathname.replace(/\/$/, '') || '/').toLowerCase();
+            const navItems = document.querySelectorAll('.bottom-nav-menu .bnav-item, .guest-bottom-nav .bnav-item');
+            if (!navItems || navItems.length === 0) return;
+
+            let bestMatch = null;
+            let bestMatchLen = 0;
+
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (!href || href === '#' || href.startsWith('javascript:')) return;
+                try {
+                    const url = new URL(href, window.location.origin);
+                    const itemPath = (url.pathname.replace(/\/$/, '') || '/').toLowerCase();
+
+                    if (itemPath === currentPath) {
+                        bestMatch = item;
+                        bestMatchLen = itemPath.length;
+                    } else if (itemPath !== '/' && currentPath.startsWith(itemPath) && itemPath.length > bestMatchLen) {
+                        bestMatch = item;
+                        bestMatchLen = itemPath.length;
+                    }
+                } catch(e) {}
+            });
+
+            if (bestMatch) {
+                navItems.forEach(item => item.classList.remove('active'));
+                bestMatch.classList.add('active');
+            }
+        }
+
         updateBottomBarZoom();
-        document.addEventListener('DOMContentLoaded', updateBottomBarZoom);
-        window.addEventListener('load', updateBottomBarZoom);
+        highlightActiveBottomNavItem();
+        document.addEventListener('DOMContentLoaded', () => {
+            updateBottomBarZoom();
+            highlightActiveBottomNavItem();
+        });
+        window.addEventListener('load', () => {
+            updateBottomBarZoom();
+            highlightActiveBottomNavItem();
+        });
 
         // Ensure ABCD Audio Engine is globally available on all pages
         if (!window.playABCDSound && !document.querySelector('script[src*="abcd-sound.js"]')) {

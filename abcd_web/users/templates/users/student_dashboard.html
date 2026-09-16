@@ -2182,6 +2182,63 @@
     body.dark-theme .bnav-item { color: rgba(245, 222, 179, 0.85); }
     body.dark-theme .bnav-item:hover { color: #f5deb3; }
 
+    /* Highlighted Active Bottom Nav Tab */
+    .bnav-item.active {
+      color: #7b61ff !important;
+      font-weight: 700 !important;
+    }
+    .bnav-item.active i {
+      color: #7b61ff !important;
+      transform: translateY(-2px) scale(1.12) translate3d(0, 0, 0) !important;
+      filter: drop-shadow(0 2px 6px rgba(123, 97, 255, 0.45));
+    }
+    .bnav-item.active .bnav-profile-circle {
+      box-shadow: 0 0 0 2px #7b61ff, 0 2px 8px rgba(123, 97, 255, 0.45) !important;
+      transform: translateY(-2px) scale(1.08) !important;
+    }
+    .bnav-item.active span {
+      color: #7b61ff !important;
+      font-weight: 700 !important;
+    }
+    .bnav-item.active::after {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #7b61ff;
+      margin: 2px auto 0;
+      box-shadow: 0 0 6px #7b61ff;
+    }
+    body.dark-theme .bnav-item.active {
+      color: #c084fc !important;
+    }
+    body.dark-theme .bnav-item.active i {
+      color: #c084fc !important;
+      filter: drop-shadow(0 2px 8px rgba(192, 132, 252, 0.5));
+    }
+    body.dark-theme .bnav-item.active .bnav-profile-circle {
+      box-shadow: 0 0 0 2px #c084fc, 0 2px 8px rgba(192, 132, 252, 0.5) !important;
+    }
+    body.dark-theme .bnav-item.active span {
+      color: #c084fc !important;
+    }
+    body.dark-theme .bnav-item.active::after {
+      background: #c084fc;
+      box-shadow: 0 0 6px #c084fc;
+    }
+
+    /* Suppress Bottom Nav when virtual keyboard is open or mobile search is active */
+    body.mob-search-active .guest-bottom-nav,
+    body.mob-search-active .bottom-nav-menu,
+    body.keyboard-open .guest-bottom-nav,
+    body.keyboard-open .bottom-nav-menu {
+      transform: translateY(120%) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease !important;
+    }
+
     /* Elevated Search Bubble Button */
     .bnav-search-btn {
       flex: 1.2;
@@ -3425,6 +3482,357 @@
         height: 28px !important;
       }
     }
+
+    /* --- ACHIEVEMENTS MARQUEE STYLES (CONNECT WITH ABCD GUIDES) --- */
+    .student-marquee-section {
+      padding: 30px 0 10px 0;
+      background: transparent;
+      position: relative;
+      overflow: hidden;
+      margin: 10px 0 25px 0;
+    }
+
+    .student-marquee-section .marquee-section-inner {
+      max-width: 1600px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .student-marquee-section .marquee-header {
+      max-width: 1200px;
+      margin: 0 auto 12px auto !important;
+      padding: 0 20px;
+      display: flex;
+      justify-content: center !important;
+      text-align: center;
+    }
+
+    .student-marquee-section .marquee-header h2 {
+      font-family: inherit !important;
+      font-size: clamp(1.2rem, 3.5vw, 2rem) !important;
+      font-weight: 700 !important;
+      color: #526D82;
+      position: relative;
+      padding-bottom: 10px;
+    }
+    .student-marquee-section .marquee-header h2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(90deg, #6366f1, transparent);
+      border-radius: 2px;
+    }
+    body.dark-theme .student-marquee-section .marquee-header h2 { color: #fff; }
+
+    .student-marquee-section .marquee-footer-buttons {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      flex-wrap: wrap;
+    }
+
+    .student-marquee-section .see-all-link {
+      border: 2px solid #6366f1;
+      color: #6366f1 !important;
+      background: transparent;
+      padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2.5vw, 24px);
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: clamp(0.78rem, 1.8vw, 0.95rem);
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .student-marquee-section .see-all-link:hover {
+      background: #6366f1;
+      color: white !important;
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+    }
+    body.dark-theme .student-marquee-section .see-all-link {
+      border-color: #818cf8;
+      color: #818cf8 !important;
+    }
+    body.dark-theme .student-marquee-section .see-all-link:hover {
+      background: #818cf8;
+      color: #1a1a2e !important;
+    }
+
+    .student-marquee-section .add-achievement-btn {
+      background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+      color: white;
+      padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2.5vw, 24px);
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: clamp(0.78rem, 1.8vw, 0.95rem);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .student-marquee-section .add-achievement-btn:hover { 
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4);
+    }
+
+    .student-marquee-section .marquee-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      padding: 10px 0 !important;
+    }
+
+    .student-marquee-section .marquee-container {
+      flex: 1;
+      overflow: hidden;
+      cursor: grab;
+      position: relative;
+      -webkit-mask-image: linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent);
+      mask-image: linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent);
+    }
+
+    .student-marquee-section .marquee-content {
+      display: flex;
+      gap: 30px;
+      width: max-content;
+      padding: 15px 0 !important;
+      will-change: transform;
+    }
+
+    .student-marquee-section .ach-card-item {
+      position: relative;
+      flex: 0 0 240px;
+      height: 240px;
+      perspective: 1000px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .student-marquee-section .ach-card-item {
+        flex: 0 0 140px !important;
+        height: 140px !important;
+      }
+      .student-marquee-section .marquee-content { gap: 20px; }
+      .student-marquee-section .circle-overlay {
+        padding: 10px 8px 6px !important;
+        transform: translateY(5px) !important;
+      }
+      .student-marquee-section .overlay-name {
+        font-size: 0.8rem !important;
+        margin-bottom: 2px !important;
+      }
+      .student-marquee-section .overlay-post {
+        font-size: 0.58rem !important;
+        padding: 2px 6px !important;
+        margin-top: 2px !important;
+        margin-bottom: 3px !important;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .student-marquee-section .ach-card-item {
+        flex: 0 0 125px !important;
+        height: 125px !important;
+      }
+      .student-marquee-section .circle-overlay {
+        padding: 8px 6px 4px !important;
+        transform: translateY(4px) !important;
+      }
+      .student-marquee-section .overlay-name {
+        font-size: 0.72rem !important;
+        margin-bottom: 1px !important;
+      }
+      .student-marquee-section .overlay-post {
+        font-size: 0.52rem !important;
+        padding: 1px 5px !important;
+        margin-top: 1px !important;
+        margin-bottom: 2px !important;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .student-marquee-section .ach-card-item {
+        flex: 0 0 110px !important;
+        height: 110px !important;
+      }
+      .student-marquee-section .circle-overlay {
+        padding: 7px 5px 3px !important;
+        transform: translateY(3px) !important;
+      }
+      .student-marquee-section .overlay-name {
+        font-size: 0.68rem !important;
+        margin-bottom: 0px !important;
+      }
+      .student-marquee-section .overlay-post {
+        font-size: 0.48rem !important;
+        padding: 1px 4px !important;
+        margin-top: 1px !important;
+        margin-bottom: 1px !important;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .student-marquee-section .ach-card-item {
+        flex: 0 0 95px !important;
+        height: 95px !important;
+      }
+      .student-marquee-section .circle-overlay {
+        padding: 6px 4px 3px !important;
+        transform: translateY(3px) !important;
+      }
+      .student-marquee-section .overlay-name {
+        font-size: 0.62rem !important;
+        line-height: 1.1 !important;
+      }
+      .student-marquee-section .overlay-post {
+        font-size: 0.45rem !important;
+        padding: 1px 3px !important;
+        margin-top: 1px !important;
+        margin-bottom: 1px !important;
+      }
+    }
+
+    @media (max-width: 320px) {
+      .student-marquee-section .ach-card-item {
+        flex: 0 0 85px !important;
+        height: 85px !important;
+      }
+      .student-marquee-section .circle-overlay {
+        padding: 5px 3px 2px !important;
+        transform: translateY(2px) !important;
+      }
+      .student-marquee-section .overlay-name {
+        font-size: 0.58rem !important;
+        line-height: 1.1 !important;
+      }
+      .student-marquee-section .overlay-post {
+        font-size: 0.42rem !important;
+        padding: 1px 2px !important;
+        margin-top: 1px !important;
+        margin-bottom: 1px !important;
+      }
+    }
+
+    .student-marquee-section .ach-card-item:hover .circle-view { transform: scale(0.8); opacity: 0; box-shadow: none; }
+
+    .student-marquee-section .circle-view {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      position: relative;
+      overflow: hidden;
+      border: 4px solid #fff;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      background: #f8fafc;
+      z-index: 2;
+    }
+    body.dark-theme .student-marquee-section .circle-view { border-color: #1a1a2e; }
+
+    .student-marquee-section .circle-view img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+
+    .student-marquee-section .circle-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      padding: 15px 10px 10px;
+      text-align: center;
+      color: white;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+
+    .student-marquee-section .overlay-name { 
+      font-weight: 800; 
+      font-size: clamp(0.75rem, 2.5vw, 1.25rem); 
+      line-height: 1.1; 
+      margin-bottom: 4px;
+    }
+    .student-marquee-section .overlay-post { 
+      font-size: clamp(0.55rem, 1.8vw, 0.75rem); 
+      background: #6366f1;
+      color: white;
+      padding: clamp(2px, 0.8vw, 3px) clamp(6px, 1.5vw, 10px);
+      border-radius: 50px; 
+      display: inline-block;
+      margin-top: clamp(2px, 1vw, 6px);
+      margin-bottom: 5px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      font-weight: 800;
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
+    }
+
+    .student-marquee-section .expanded-view {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 240px;
+      min-height: 280px;
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -50%) scale(0.6);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
+      text-align: center;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    body.dark-theme .student-marquee-section .expanded-view { background: #1a1a2e; border: 1px solid #0f3460; box-shadow: none; }
+
+    .student-marquee-section .ach-card-item:hover .expanded-view { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); pointer-events: auto; }
+
+    .student-marquee-section .exp-photo-wrap { width: 100px; height: 100px; margin: 0 auto 15px; border-radius: 50%; border: 3px solid #6366f1; padding: 4px; background: #fff; }
+    .student-marquee-section .exp-photo-wrap img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+    .student-marquee-section .exp-details h4 { font-size: 1.2rem; color: #1e293b; margin-bottom: 5px; }
+    body.dark-theme .student-marquee-section .exp-details h4 { color: #fff; }
+    .student-marquee-section .exp-post { font-weight: 700; color: #6366f1; font-size: 0.85rem; margin-bottom: 5px; }
+    .student-marquee-section .exp-city { font-size: 0.75rem; color: #64748b; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .student-marquee-section .exp-rating { color: #fbbf24; font-size: 0.9rem; margin-bottom: 12px; }
+    .student-marquee-section .exp-rating .bx-star { color: #cbd5e1; }
+    .student-marquee-section .exp-review { font-size: 0.85rem; line-height: 1.5; font-style: italic; color: #475569; }
+    body.dark-theme .student-marquee-section .exp-review { color: #94a3b8; }
+
+    .student-marquee-section .marquee-nav-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #fff;
+      border: none;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      cursor: pointer;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #6366f1;
+      transition: all 0.3s;
+      margin: 0 10px;
+    }
+    .student-marquee-section .marquee-nav-btn:hover { background: #6366f1; color: #fff; transform: scale(1.1); }
+    body.dark-theme .student-marquee-section .marquee-nav-btn { background: #0f3460; color: #fff; }
   </style>
 </head>
 
@@ -4024,6 +4432,75 @@
       {% endif %}
     </div>
 
+    {% if show_marquee and achievements %}
+    <!-- Achievements Marquee Section -->
+    <section class="marquee-section student-marquee-section">
+      <div class="marquee-section-inner">
+        <div class="marquee-header">
+          <h2>Connect with ABCD Guides</h2>
+        </div>
+        
+        <div class="marquee-wrapper">
+          <button class="marquee-nav-btn prev" onclick="studentManualScroll(-1)" aria-label="Previous">
+            <i class='bx bx-chevron-left'></i>
+          </button>
+          
+          <div class="marquee-container" id="studentMarqueeContainer">
+            <div class="marquee-content scrolling" id="studentMarqueeContent">
+              {# Repeat 6 times for seamless infinite loop #}
+              {% for i in "123456" %}
+                {% for ach in achievements %}
+                <div class="ach-card-item" data-url="{% url 'users:achievement_detail' ach.id %}" onclick="window.location.href=this.getAttribute('data-url')">
+                  <div class="circle-view">
+                    <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }}" loading="lazy" decoding="async">
+                    <div class="circle-overlay">
+                      <div class="overlay-name">{{ ach.first_name }}</div>
+                      <div class="overlay-post">{{ ach.short_achievement }}</div>
+                    </div>
+                  </div>
+                  
+                  <div class="expanded-view">
+                    <div class="exp-photo-wrap">
+                      <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }} {{ ach.last_name }}" loading="lazy" decoding="async">
+                    </div>
+                    <div class="exp-details">
+                      <h4>{{ ach.first_name }} {{ ach.last_name }}</h4>
+                      <div class="exp-post">{{ ach.current_post }}</div>
+                      <div class="exp-city"><i class='bx bxs-map'></i> {{ ach.working_city }}</div>
+                      <div class="exp-rating">
+                        {% for i in "12345" %}
+                          <i class='bx bxs-star {% if forloop.counter <= ach.rating %}active{% endif %}'></i>
+                        {% endfor %}
+                      </div>
+                      <p class="exp-review">"{{ ach.abcd_feedback|truncatechars:80 }}"</p>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              {% endfor %}
+            </div>
+          </div>
+
+          <button class="marquee-nav-btn next" onclick="studentManualScroll(1)" aria-label="Next">
+            <i class='bx bx-chevron-right'></i>
+          </button>
+        </div>
+
+        <!-- Bottom Centered Buttons -->
+        <div class="marquee-footer-buttons">
+          <a href="{% url 'users:hall_of_fame' %}" class="see-all-link">
+            See All <i class='bx bx-right-arrow-alt'></i>
+          </a>
+          {% if not nav_achievement %}
+          <a href="{% url 'users:achievement_form' %}" class="add-achievement-btn">
+            <i class='bx bx-plus-circle'></i> Add Yours+
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
     {% if profile.status == 'admitted' and fee_records %}
     <div class="fee-history">
       <div class="fee-table">
@@ -4201,7 +4678,7 @@
   <!-- ===== PREMIUM BOTTOM NAV BAR ===== -->
   <div class="guest-bottom-nav" id="bottomNavMenu">
       {% if not user.is_authenticated or not nav_achievement and not profile.dob and not profile.is_admitted %}
-      <a href="{% if user.is_authenticated %}{% url 'users:guest_page' %}{% else %}{% url 'users:home_page' %}{% endif %}" class="bnav-item" title="Home">
+      <a href="{% if user.is_authenticated %}{% url 'users:guest_page' %}{% else %}{% url 'users:home_page' %}{% endif %}" class="bnav-item active" title="Home">
           <i class='bx bx-home-alt-2'></i>
           <span>Home</span>
       </a>
@@ -4232,7 +4709,7 @@
       {% endif %}
       {% else %}
       {% if request.session.active_dashboard == 'alumni' or request.session.active_dashboard != 'student' and nav_achievement %}
-      <a href="{% url 'users:alumni_dashboard' %}" class="bnav-item" title="Home">
+      <a href="{% url 'users:alumni_dashboard' %}" class="bnav-item active" title="Home">
           <i class='bx bx-home-alt-2'></i>
           <span>Home</span>
       </a>
@@ -4241,7 +4718,7 @@
           <span>Guidy Chat</span>
       </a>
       {% else %}
-      <a href="{% url 'users:student_dashboard' %}" class="bnav-item" title="Home">
+      <a href="{% url 'users:student_dashboard' %}" class="bnav-item active" title="Home">
           <i class='bx bx-home-alt-2'></i>
           <span>Home</span>
       </a>
@@ -5111,6 +5588,10 @@
             _globalMatchedEls[idx].scrollIntoView({
                 behavior: 'smooth', block: 'center'
             });
+            if (typeof window.__syncMobSearchOverlayPosition === 'function') {
+                setTimeout(window.__syncMobSearchOverlayPosition, 50);
+                setTimeout(window.__syncMobSearchOverlayPosition, 280);
+            }
         }
 
         function updateDesktopNavUI() {
@@ -5336,9 +5817,31 @@
             var mobSearchPrev  = document.getElementById('mobSearchPrev');
             var mobSearchNext  = document.getElementById('mobSearchNext');
 
+            function syncMobSearchOverlayPosition() {
+                if (!mSearchOpen || !mobSearchOverlay) return;
+                var vv = window.visualViewport;
+                if (vv) {
+                    mobSearchOverlay.style.top = (vv.offsetTop || 0) + 'px';
+                    mobSearchOverlay.style.left = (vv.offsetLeft || 0) + 'px';
+                    mobSearchOverlay.style.width = (vv.width || window.innerWidth) + 'px';
+                } else {
+                    mobSearchOverlay.style.top = '0px';
+                    mobSearchOverlay.style.left = '0px';
+                    mobSearchOverlay.style.width = '100%';
+                }
+            }
+            window.__syncMobSearchOverlayPosition = syncMobSearchOverlayPosition;
+
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('scroll', syncMobSearchOverlayPosition, { passive: true });
+                window.visualViewport.addEventListener('resize', syncMobSearchOverlayPosition, { passive: true });
+            }
+            window.addEventListener('scroll', syncMobSearchOverlayPosition, { passive: true });
+
             function openMobSearch() {
                 if (mSearchOpen) return;
                 mSearchOpen = true;
+                document.body.classList.add('mob-search-active');
 
                 var circle = bnavSearchBtn && bnavSearchBtn.querySelector('.bnav-search-circle');
                 if (!circle || !mobSearchBubble || !mobSearchOverlay) return;
@@ -5392,11 +5895,13 @@
                     mobSearchOverlay.style.transform  = '';
                     mobSearchOverlay.style.opacity    = '';
                     mobSearchOverlay.style.transition = '';
+                    syncMobSearchOverlayPosition();
                     mobSearchOverlay.classList.add('visible');
 
                     // Focus after bar finishes entering
                     setTimeout(function() {
                         if (mobileSearchInput) mobileSearchInput.focus();
+                        syncMobSearchOverlayPosition();
                     }, 350);
                 }, 320);
             }
@@ -5405,6 +5910,7 @@
                 if (!mSearchOpen) return;
                 mSearchOpen = false;
                 clearTimeout(mSearchTimer);
+                document.body.classList.remove('mob-search-active');
 
                 // Reset children animations so they can re-run on next open
                 var searchIcon = mobSearchOverlay && mobSearchOverlay.querySelector('.mob-search-icon');
@@ -5426,6 +5932,9 @@
                         mobSearchOverlay.style.animation  = '';
                         mobSearchOverlay.style.transform  = '';
                         mobSearchOverlay.style.opacity    = '';
+                        mobSearchOverlay.style.top        = '';
+                        mobSearchOverlay.style.left       = '';
+                        mobSearchOverlay.style.width      = '';
                     }
                     // Restore child animations so they replay on next open
                     if (searchIcon)        searchIcon.style.animation        = '';
@@ -6767,6 +7276,95 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('DOMContentLoaded', function() {
       updateFeeTablePagination();
   });
+
+  // --- STUDENT ACHIEVEMENTS MARQUEE LOGIC ---
+  (function() {
+      const marqueeContent = document.getElementById('studentMarqueeContent');
+      const marqueeContainer = document.getElementById('studentMarqueeContainer');
+      if (!marqueeContainer || !marqueeContent) return;
+      
+      let isManual = false;
+      let isHovered = false;
+      let scrollSpeed = 0.80; 
+      let animationFrame;
+      let currentScroll = 0;
+
+      function ensureMarqueeContentFilled() {
+          const originalItems = Array.from(marqueeContent.querySelectorAll('.ach-card-item'));
+          if (originalItems.length === 0) return;
+
+          const containerW = marqueeContainer.clientWidth || window.innerWidth || 1200;
+          const minTargetWidth = Math.max(containerW * 3, 3200);
+
+          let currentScrollW = marqueeContent.scrollWidth;
+          let safetyCount = 0;
+          while (currentScrollW < minTargetWidth && safetyCount < 20) {
+              safetyCount++;
+              for (let i = 0; i < originalItems.length; i++) {
+                  marqueeContent.appendChild(originalItems[i].cloneNode(true));
+              }
+              currentScrollW = marqueeContent.scrollWidth;
+          }
+      }
+
+      function animateMarquee() {
+          if (!isManual && !isHovered && marqueeContainer && marqueeContent) {
+              currentScroll += scrollSpeed;
+              const halfWidth = marqueeContent.scrollWidth / 2;
+              if (halfWidth > 0 && currentScroll >= halfWidth) {
+                  currentScroll = currentScroll - halfWidth;
+              }
+              marqueeContainer.scrollLeft = currentScroll;
+          } else if (marqueeContainer) {
+              currentScroll = marqueeContainer.scrollLeft;
+          }
+          animationFrame = requestAnimationFrame(animateMarquee);
+      }
+
+      ensureMarqueeContentFilled();
+      setTimeout(() => {
+          ensureMarqueeContentFilled();
+          currentScroll = 0;
+          marqueeContainer.scrollLeft = 0;
+          animateMarquee();
+      }, 300);
+
+      window.addEventListener('resize', () => {
+          ensureMarqueeContentFilled();
+      }, { passive: true });
+
+      window.studentManualScroll = function(direction) {
+          if (!marqueeContainer || !marqueeContent) return;
+          isManual = true;
+          const firstCard = marqueeContent.querySelector('.ach-card-item');
+          let cardStep = 260;
+          if (firstCard) {
+              const cardWidth = firstCard.getBoundingClientRect().width || firstCard.offsetWidth || 140;
+              let gap = 20;
+              try {
+                  const style = window.getComputedStyle(marqueeContent);
+                  gap = parseFloat(style.gap) || (window.innerWidth <= 768 ? 20 : 30);
+              } catch(e) {}
+              cardStep = cardWidth + gap;
+          }
+
+          marqueeContainer.scrollBy({
+              left: cardStep * direction,
+              behavior: 'smooth'
+          });
+
+          clearTimeout(window.studentMarqueeTimeout);
+          window.studentMarqueeTimeout = setTimeout(() => {
+              isManual = false;
+          }, 1800);
+      };
+
+      marqueeContainer.addEventListener('mouseenter', () => { isHovered = true; });
+      marqueeContainer.addEventListener('mouseleave', () => { isHovered = false; });
+      marqueeContainer.addEventListener('touchstart', () => { isHovered = true; }, { passive: true });
+      marqueeContainer.addEventListener('touchend', () => { isHovered = false; }, { passive: true });
+      marqueeContainer.addEventListener('touchcancel', () => { isHovered = false; }, { passive: true });
+  })();
 </script>
 
 {% include 'users/_banner_popup.html' %}

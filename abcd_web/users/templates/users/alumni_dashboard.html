@@ -2098,7 +2098,7 @@
     
     let isManual = false;
     let isHovered = false;
-    let scrollSpeed = 0.55; 
+    let scrollSpeed = 0.80; 
     let animationFrame;
 
     let currentScroll = 0;
@@ -2150,10 +2150,24 @@
     }
 
     function manualScroll(direction) {
-        if (!marqueeContainer) return;
+        if (!marqueeContainer || !marqueeContent) return;
         
         isManual = true;
-        const scrollAmount = 350 * direction;
+        
+        // Single photo/alumni card step (card width + gap)
+        const firstCard = marqueeContent.querySelector('.ach-card-item');
+        let cardStep = 260;
+        if (firstCard) {
+            const cardWidth = firstCard.getBoundingClientRect().width || firstCard.offsetWidth || 140;
+            let gap = 20;
+            try {
+                const style = window.getComputedStyle(marqueeContent);
+                gap = parseFloat(style.gap) || (window.innerWidth <= 768 ? 20 : 30);
+            } catch(e) {}
+            cardStep = cardWidth + gap;
+        }
+
+        const scrollAmount = cardStep * direction;
         
         marqueeContainer.scrollBy({
             left: scrollAmount,
@@ -2163,7 +2177,7 @@
         clearTimeout(window.marqueeTimeout);
         window.marqueeTimeout = setTimeout(() => {
             isManual = false;
-        }, 2000);
+        }, 1800);
     }
 
     if (marqueeContainer) {

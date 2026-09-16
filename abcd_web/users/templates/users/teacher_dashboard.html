@@ -3039,6 +3039,54 @@
 
 
 
+    /* Highlighted Active Bottom Nav Tab */
+    .bnav-item.active {
+      color: #7b61ff !important;
+      font-weight: 700 !important;
+    }
+    .bnav-item.active i {
+      color: #7b61ff !important;
+      transform: translateY(-2px) scale(1.12) !important;
+      filter: drop-shadow(0 2px 6px rgba(123, 97, 255, 0.45));
+    }
+    .bnav-item.active span {
+      color: #7b61ff !important;
+      font-weight: 700 !important;
+    }
+    .bnav-item.active::after {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #7b61ff;
+      margin: 2px auto 0;
+      box-shadow: 0 0 6px #7b61ff;
+    }
+    body.dark-theme .bnav-item.active {
+      color: #c084fc !important;
+    }
+    body.dark-theme .bnav-item.active i {
+      color: #c084fc !important;
+      filter: drop-shadow(0 2px 8px rgba(192, 132, 252, 0.5));
+    }
+    body.dark-theme .bnav-item.active span {
+      color: #c084fc !important;
+    }
+    body.dark-theme .bnav-item.active::after {
+      background: #c084fc;
+      box-shadow: 0 0 6px #c084fc;
+    }
+
+    /* Suppress Bottom Nav when virtual keyboard is open or mobile search is active */
+    body.mob-search-active .bottom-nav-menu,
+    body.keyboard-open .bottom-nav-menu {
+      transform: translateY(120%) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease !important;
+    }
+
     /* ===== MOBILE SEARCH BUBBLE + OVERLAY ===== */
     .mob-search-bubble {
       position: fixed;
