@@ -398,12 +398,21 @@ VAPID_CLAIM_EMAIL = config('VAPID_CLAIM_EMAIL', default='mailto:abcd2013baq@gmai
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-        'LOCATION': 'guidy_presence_cache',
+# Cache: Use Redis if available (faster, reduces Neon CU-hrs), else fall back to DB cache
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'guidy_presence_cache',
+        }
+    }
 
 # -------------------------------
 # PRODUCTION SECURITY HEADERS
