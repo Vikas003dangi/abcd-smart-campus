@@ -247,6 +247,7 @@ urlpatterns = [
     path('guidy/', views.guidy_home, name='guidy_home'),
     path('guidy/seek/<int:alumni_pk>/', views.guidy_seek_guidance, name='guidy_seek'),
     path('guidy/respond/<int:request_pk>/', views.guidy_respond, name='guidy_respond'),
+    path('guidy/requests/', views.guidy_pending_requests_api, name='guidy_pending_requests_api'),
     path('guidy/restrict/<int:request_pk>/', views.guidy_restrict_student, name='guidy_restrict'),
     path('guidy/status/<int:alumni_pk>/', views.guidy_check_status, name='guidy_check_status'),
     path('guidy/heartbeat/', views.guidy_heartbeat, name='guidy_heartbeat'),

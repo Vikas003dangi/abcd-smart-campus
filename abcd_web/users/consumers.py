@@ -722,6 +722,25 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             "guidy_badge_count": event.get("guidy_badge_count", 0),
         }))
 
+    async def guidy_new_request(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_new_request",
+            "req_id": event.get("req_id"),
+            "student_name": event.get("student_name", ""),
+            "student_initial": event.get("student_initial", "?"),
+            "message": event.get("message", ""),
+            "created_at": event.get("created_at", ""),
+            "respond_url": event.get("respond_url", ""),
+            "pending_count": event.get("pending_count"),
+        }))
+
+    async def guidy_requests_badge_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_requests_badge_update",
+            "req_id": event.get("req_id"),
+            "pending_count": event.get("pending_count"),
+        }))
+
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
@@ -878,5 +897,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "message": event.get("message", ""),
             "created_at": event.get("created_at", ""),
             "respond_url": event.get("respond_url", ""),
+            "pending_count": event.get("pending_count"),
+        }))
+
+    async def guidy_requests_badge_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_requests_badge_update",
+            "req_id": event.get("req_id"),
+            "pending_count": event.get("pending_count"),
         }))
 

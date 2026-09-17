@@ -10826,6 +10826,7 @@ def guidy_seek_guidance(request, alumni_pk):
             _cl = get_channel_layer()
             if _cl:
                 _student_name = request.user.get_full_name() or request.user.username
+                _pending_cnt = GuidanceRequest.objects.filter(alumni=alumni, status='pending').count()
                 async_to_sync(_cl.group_send)(
                     f"user_{alumni.user.id}",
                     {
@@ -10836,6 +10837,7 @@ def guidy_seek_guidance(request, alumni_pk):
                         "message": req.message or "",
                         "created_at": req.created_at.strftime("%d %b, %H:%M") if req.created_at else "",
                         "respond_url": reverse('users:guidy_respond', args=[req.id]),
+                        "pending_count": _pending_cnt,
                     }
                 )
         except Exception:
@@ -11799,11 +11801,43 @@ def guidy_respond(request, request_pk):
             link=f"/guidy/?session={session.id}",
             category="general"
         )
-        return JsonResponse({'success': True, 'action': 'accepted', 'session_id': session.id})
+        remaining_pending = GuidanceRequest.objects.filter(alumni=alumni_profile, status='pending').count()
+        # Broadcast real-time requests badge update to alumni
+        try:
+            cl = get_channel_layer()
+            if cl:
+                async_to_sync(cl.group_send)(
+                    f"user_{request.user.id}",
+                    {
+                        "type": "guidy_requests_badge_update",
+                        "req_id": guidance_req.id,
+                        "pending_count": remaining_pending,
+                    }
+                )
+        except Exception:
+            pass
+        return JsonResponse({'success': True, 'action': 'accepted', 'session_id': session.id, 'pending_count': remaining_pending})
 
     elif action == 'reject':
         guidance_req.status = 'rejected'
         guidance_req.save()
+        remaining_pending = GuidanceRequest.objects.filter(alumni=alumni_profile, status='pending').count()
+        # Broadcast real-time requests badge update to alumni
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            cl = get_channel_layer()
+            if cl:
+                async_to_sync(cl.group_send)(
+                    f"user_{request.user.id}",
+                    {
+                        "type": "guidy_requests_badge_update",
+                        "req_id": guidance_req.id,
+                        "pending_count": remaining_pending,
+                    }
+                )
+        except Exception:
+            pass
         # 🔔 Notify student that guidance was rejected
         create_notification(
             user=guidance_req.student,
@@ -11811,7 +11845,7 @@ def guidy_respond(request, request_pk):
             message=f"Your guidance request to {alumni_profile.first_name} was not accepted at this time.",
             category="general"
         )
-        return JsonResponse({'success': True, 'action': 'rejected'})
+        return JsonResponse({'success': True, 'action': 'rejected', 'pending_count': remaining_pending})
 
     return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
 
@@ -12613,6 +12647,30 @@ def guidy_restrict_student(request, request_pk):
         defaults={'reason': request.POST.get('reason', '')}
     )
     return JsonResponse({'success': True, 'action': 'restricted'})
+
+
+@login_required
+def guidy_pending_requests_api(request):
+    """
+    Returns the latest pending guidance requests for the logged-in alumni.
+    """
+    alumni_profile = StudentAchievement.objects.filter(user=request.user, status='approved').first()
+    if not alumni_profile:
+        return JsonResponse({'success': True, 'requests': [], 'count': 0})
+
+    pending = GuidanceRequest.objects.filter(alumni=alumni_profile, status='pending').order_by('-created_at')
+    data = []
+    for r in pending:
+        student_name = r.student.get_full_name() or r.student.username
+        data.append({
+            'id': r.id,
+            'student_name': student_name,
+            'student_initial': student_name[0].upper() if student_name else '?',
+            'message': r.message or '',
+            'created_at': r.created_at.strftime('%d %b, %H:%M') if r.created_at else '',
+            'respond_url': reverse('users:guidy_respond', args=[r.id]),
+        })
+    return JsonResponse({'success': True, 'requests': data, 'count': len(data)})
 
 
 @login_required

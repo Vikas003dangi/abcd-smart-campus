@@ -4107,6 +4107,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  if (IS_ALUMNI) {
+    fetchPendingRequests();
+    setInterval(() => {
+      if (!document.hidden) {
+        fetchPendingRequests();
+      }
+    }, 20000);
+  }
+
   document.addEventListener('click', globalClickClose);
 
   // Apply jumbo emoji styles to existing history
@@ -6312,6 +6321,8 @@ function initGuidyWebSocket() {
           handleSessionStatusChanged(data);
         } else if (data.type === 'guidy_new_request') {
           handleIncomingGuidyRequest(data);
+        } else if (data.type === 'guidy_requests_badge_update') {
+          handleGuidyRequestsBadgeUpdate(data);
         }
       } catch(err) {
         console.warn("WebSocket onmessage error:", err);
@@ -6420,23 +6431,50 @@ function handleIncomingGuidyRequest(data) {
     panel.prepend(card);
 
     // Update Requests tab badge
-    const tabRequests = document.getElementById('tabRequests');
-    if (tabRequests) {
-      let badge = tabRequests.querySelector('.g-tab-badge');
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'g-tab-badge';
-        badge.textContent = '0';
-        tabRequests.appendChild(badge);
-      }
-      const cur = parseInt(badge.textContent) || 0;
-      badge.textContent = cur + 1;
+    updateTabBadges();
+    if (typeof data.pending_count === 'number') {
+      applyRequestsBadge(data.pending_count);
     }
 
     showToast(`New guidance request from ${data.student_name || 'a student'}`, 'info');
     try { playIncomingMessageSound && playIncomingMessageSound(); } catch(e) {}
   } catch(err) {
     console.warn('handleIncomingGuidyRequest error:', err);
+  }
+}
+
+function handleGuidyRequestsBadgeUpdate(data) {
+  if (!data) return;
+  if (data.req_id) {
+    const card = document.getElementById('reqCard' + data.req_id);
+    if (card) card.remove();
+  }
+  updateTabBadges();
+  if (typeof data.pending_count === 'number') {
+    applyRequestsBadge(data.pending_count);
+  }
+}
+
+function applyRequestsBadge(count) {
+  const tabRequests = document.getElementById('tabRequests');
+  if (!tabRequests) return;
+  let badge = tabRequests.querySelector('.g-tab-badge');
+  if (count > 0) {
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'g-tab-badge';
+      tabRequests.appendChild(badge);
+    }
+    badge.textContent = count;
+    badge.style.display = 'inline-block';
+  } else if (badge) {
+    badge.style.display = 'none';
+    badge.textContent = '0';
+    badge.remove();
+  }
+  const panel = document.getElementById('panelRequests');
+  if (panel && count === 0 && !panel.querySelector('.g-empty')) {
+    panel.innerHTML = `<div class="g-empty"><i class='bx bx-envelope-open'></i>No pending requests.</div>`;
   }
 }
 
@@ -6583,6 +6621,30 @@ function updateTabBadges() {
     }
   }
 
+  const requestsTab = document.getElementById('tabRequests');
+  if (requestsTab) {
+    const totalRequests = document.querySelectorAll('#panelRequests .g-req-card').length;
+    let reqBadge = requestsTab.querySelector('.g-tab-badge');
+    if (totalRequests > 0) {
+      if (!reqBadge) {
+        reqBadge = document.createElement('span');
+        reqBadge.className = 'g-tab-badge';
+        requestsTab.appendChild(reqBadge);
+      }
+      reqBadge.textContent = totalRequests;
+      reqBadge.style.display = 'inline-block';
+    } else if (reqBadge) {
+      reqBadge.style.display = 'none';
+      reqBadge.textContent = '0';
+      reqBadge.remove();
+    }
+
+    const panelReq = document.getElementById('panelRequests');
+    if (panelReq && totalRequests === 0 && !panelReq.querySelector('.g-empty')) {
+      panelReq.innerHTML = `<div class="g-empty"><i class='bx bx-envelope-open'></i>No pending requests.</div>`;
+    }
+  }
+
   const groupTab = document.getElementById('tabGroups');
   if (groupTab) {
     let totalGroups = 0;
@@ -6724,6 +6786,7 @@ document.addEventListener("visibilitychange", () => {
     // User came back: resume polling & socket
     if (SESSION_ID || DIRECT_ID) startPolling();
     if (GROUP_ID) startGroupPolling();
+    if (IS_ALUMNI) fetchPendingRequests();
     if (!chatWebSocket || chatWebSocket.readyState !== WebSocket.OPEN) {
       initGuidyWebSocket();
     } else {
@@ -7539,6 +7602,11 @@ function switchTab(tab, animDir) {
     }
     if (btn) btn.classList.toggle('active', t === tab);
   });
+
+  if (tab === 'requests') {
+    updateTabBadges();
+    fetchPendingRequests();
+  }
 
   // Dynamically toggle End Session in sidebar dropdown
   const endSessionMenuItem = document.getElementById('sidebarEndSessionMenuItem');
@@ -9593,20 +9661,76 @@ async function respondReq(btn, action) {
   const fd = new FormData();
   fd.append('csrfmiddlewaretoken', CSRF);
   fd.append('action', action);
-  const r = await fetch(url, { method:'POST', body:fd });
-  const d = await r.json();
-  if (d.success) {
-    if (action === 'accept' && d.session_id) {
+  btn.disabled = true;
+  try {
+    const r = await fetch(url, { method:'POST', body:fd });
+    const d = await r.json();
+    if (d.success) {
       if (card) card.remove();
-      switchTab('chats');
-      loadChatAJAX('session', d.session_id, true);
+      updateTabBadges();
+      if (typeof d.pending_count === 'number') {
+        applyRequestsBadge(d.pending_count);
+      }
+      if (action === 'accept' && d.session_id) {
+        switchTab('chats');
+        loadChatAJAX('session', d.session_id, true);
+      } else {
+        showToast('Request declined');
+      }
     } else {
-      card.style.transition = 'opacity 0.4s, max-height 0.4s';
-      card.style.opacity = '0';
-      card.style.maxHeight = '0';
-      setTimeout(() => card.remove(), 400);
-      showToast('Request declined');
+      btn.disabled = false;
+      showToast(d.error || 'Failed to respond', 'error');
     }
+  } catch(e) {
+    btn.disabled = false;
+    showToast('Network error', 'error');
+  }
+}
+
+async function fetchPendingRequests() {
+  if (!IS_ALUMNI) return;
+  try {
+    const r = await fetch('/guidy/requests/');
+    const d = await r.json();
+    if (d.success && Array.isArray(d.requests)) {
+      const panel = document.getElementById('panelRequests');
+      if (!panel) return;
+
+      if (d.requests.length === 0) {
+        panel.innerHTML = `<div class="g-empty"><i class='bx bx-envelope-open'></i>No pending requests.</div>`;
+        applyRequestsBadge(0);
+        return;
+      }
+
+      let html = '';
+      d.requests.forEach(req => {
+        const studentName = escHtml(req.student_name || 'Student');
+        const studentInitial = escHtml(req.student_initial || '?');
+        const message = escHtml(req.message || '');
+        const createdAt = escHtml(req.created_at || '');
+        html += `
+          <div class="g-req-card" id="reqCard${req.id}" data-req-id="${req.id}" data-student-name="${studentName}" data-message="${message}" data-created-at="${createdAt}" onclick="handleRequestCardClick(this)">
+            <div class="g-item-avatar" style="width:48px;height:48px;">${studentInitial}</div>
+            <div style="flex:1;min-width:0;">
+              <div class="g-item-name">${studentName}</div>
+              ${message ? `<div class="g-item-sub" style="margin-top:3px;font-style:italic;">"${message.length > 50 ? message.slice(0,50)+'…' : message}"</div>` : ''}
+              <div class="g-item-sub">${createdAt}</div>
+              <div class="g-req-actions">
+                <button class="g-req-accept" data-req-id="${req.id}" data-url="${req.respond_url}" onclick="event.stopPropagation();respondReq(this,'accept')">
+                  <i class='bx bx-check'></i> Accept
+                </button>
+                <button class="g-req-reject" data-req-id="${req.id}" data-url="${req.respond_url}" onclick="event.stopPropagation();respondReq(this,'reject')">
+                  Decline
+                </button>
+              </div>
+            </div>
+          </div>`;
+      });
+      panel.innerHTML = html;
+      applyRequestsBadge(d.requests.length);
+    }
+  } catch(e) {
+    console.warn("fetchPendingRequests error:", e);
   }
 }
 
