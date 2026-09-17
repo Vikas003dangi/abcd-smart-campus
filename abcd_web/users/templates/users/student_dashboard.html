@@ -3759,9 +3759,23 @@
     }
 
     .student-marquee-section .marquee-section-inner {
-      max-width: 1600px;
+      max-width: 100%;
       margin: 0 auto;
       position: relative;
+    }
+
+    @media (max-width: 768px) {
+      .student-marquee-section {
+        margin-left: -15px !important;
+        margin-right: -15px !important;
+        width: calc(100% + 30px) !important;
+        max-width: none !important;
+      }
+      .student-marquee-section .marquee-header,
+      .student-marquee-section .marquee-footer-buttons {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+      }
     }
 
     .student-marquee-section .marquee-header {
@@ -3872,18 +3886,23 @@
     .student-marquee-section .marquee-wrapper {
       position: relative;
       width: 100%;
-      display: flex;
-      align-items: center;
       padding: 10px 0 !important;
     }
 
     .student-marquee-section .marquee-container {
-      flex: 1;
+      width: 100%;
       overflow: hidden;
       cursor: grab;
       position: relative;
-      -webkit-mask-image: linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent);
-      mask-image: linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent);
+      -webkit-mask-image: linear-gradient(to right, transparent, black 30px, black calc(100% - 30px), transparent);
+      mask-image: linear-gradient(to right, transparent, black 30px, black calc(100% - 30px), transparent);
+    }
+
+    @media (max-width: 768px) {
+      .student-marquee-section .marquee-container {
+        -webkit-mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent);
+        mask-image: linear-gradient(to right, transparent, black 15px, black calc(100% - 15px), transparent);
+      }
     }
 
     .student-marquee-section .marquee-content {
@@ -4104,24 +4123,62 @@
     body.dark-theme .student-marquee-section .exp-review { color: #94a3b8; }
 
     .student-marquee-section .marquee-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      background: #fff;
-      border: none;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
       cursor: pointer;
-      z-index: 5;
+      z-index: 10;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.6rem;
       color: #6366f1;
-      transition: all 0.3s;
-      margin: 0 10px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin: 0;
     }
-    .student-marquee-section .marquee-nav-btn:hover { background: #6366f1; color: #fff; transform: scale(1.1); }
-    body.dark-theme .student-marquee-section .marquee-nav-btn { background: #0f3460; color: #fff; }
+    .student-marquee-section .marquee-nav-btn.prev {
+      left: 10px;
+    }
+    .student-marquee-section .marquee-nav-btn.next {
+      right: 10px;
+    }
+    .student-marquee-section .marquee-nav-btn:hover {
+      background: #6366f1;
+      color: #fff;
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+    }
+    body.dark-theme .student-marquee-section .marquee-nav-btn {
+      background: rgba(15, 52, 96, 0.88);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+    body.dark-theme .student-marquee-section .marquee-nav-btn:hover {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    @media (max-width: 768px) {
+      .student-marquee-section .marquee-nav-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 1.3rem;
+      }
+      .student-marquee-section .marquee-nav-btn.prev {
+        left: 6px;
+      }
+      .student-marquee-section .marquee-nav-btn.next {
+        right: 6px;
+      }
+    }
   </style>
 </head>
 
