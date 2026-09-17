@@ -837,3 +837,14 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "message_ids": event.get("message_ids", []),
         }))
 
+    async def guidy_new_request(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "guidy_new_request",
+            "req_id": event.get("req_id"),
+            "student_name": event.get("student_name", ""),
+            "student_initial": event.get("student_initial", "?"),
+            "message": event.get("message", ""),
+            "created_at": event.get("created_at", ""),
+            "respond_url": event.get("respond_url", ""),
+        }))
+

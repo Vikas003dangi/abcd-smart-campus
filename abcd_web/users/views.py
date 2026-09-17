@@ -10815,6 +10815,28 @@ def guidy_seek_guidance(request, alumni_pk):
             category="general"
         )
 
+        # Push real-time WS event to alumni so their Requests tab updates without refresh
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            _cl = get_channel_layer()
+            if _cl:
+                _student_name = request.user.get_full_name() or request.user.username
+                async_to_sync(_cl.group_send)(
+                    f"user_{alumni.user.id}",
+                    {
+                        "type": "guidy_new_request",
+                        "req_id": req.id,
+                        "student_name": _student_name,
+                        "student_initial": _student_name[0].upper() if _student_name else "?",
+                        "message": req.message or "",
+                        "created_at": req.created_at.strftime("%d %b, %H:%M") if req.created_at else "",
+                        "respond_url": reverse('users:guidy_respond', args=[req.id]),
+                    }
+                )
+        except Exception:
+            pass
+
         # Send Email to Alumni
         send_html_email(
             subject="New Guidance Request on Guidy",
@@ -11675,7 +11697,23 @@ def guidy_respond(request, request_pk):
     if action == 'accept':
         guidance_req.status = 'accepted'
         guidance_req.save()
-        session, _ = ChatSession.objects.get_or_create(request=guidance_req)
+        session, created_session = ChatSession.objects.get_or_create(request=guidance_req)
+
+        # Save initial request message as the first chat Message (if any, and only once)
+        if guidance_req.message and not Message.objects.filter(session=session).exists():
+            from django.utils.timezone import make_aware
+            from django.utils import timezone
+            msg_timestamp = guidance_req.created_at if guidance_req.created_at else timezone.now()
+            Message.objects.create(
+                session=session,
+                sender=guidance_req.student,
+                content=guidance_req.message,
+                message_type='text',
+                timestamp=msg_timestamp,
+                is_delivered=True,
+                is_read=True,
+            )
+
         # Notify student that guidance was accepted
         create_notification(
             user=guidance_req.student,

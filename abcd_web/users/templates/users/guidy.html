@@ -6279,6 +6279,8 @@ function initGuidyWebSocket() {
           }
         } else if (data.type === 'session_status_changed') {
           handleSessionStatusChanged(data);
+        } else if (data.type === 'guidy_new_request') {
+          handleIncomingGuidyRequest(data);
         }
       } catch(err) {
         console.warn("WebSocket onmessage error:", err);
@@ -6337,6 +6339,73 @@ function handleSessionStatusChanged(data) {
         inputBar.style.display = 'none';
       }
     }
+  }
+}
+
+// ── Handle incoming real-time guidance request (alumni side) ──────────────────
+function handleIncomingGuidyRequest(data) {
+  try {
+    const panel = document.getElementById('panelRequests');
+    if (!panel) return;
+
+    const reqId = data.req_id;
+    // Don't duplicate if card already exists
+    if (document.getElementById('reqCard' + reqId)) return;
+
+    const respondUrl = data.respond_url || '';
+    const studentName = escHtml(data.student_name || 'Student');
+    const studentInitial = escHtml(data.student_initial || '?');
+    const message = escHtml(data.message || '');
+    const createdAt = escHtml(data.created_at || '');
+
+    // Remove "No pending requests" empty state if present
+    const emptyEl = panel.querySelector('.g-empty');
+    if (emptyEl) emptyEl.remove();
+
+    // Build and inject card HTML
+    const card = document.createElement('div');
+    card.className = 'g-req-card';
+    card.id = 'reqCard' + reqId;
+    card.dataset.reqId = reqId;
+    card.dataset.studentName = data.student_name || '';
+    card.dataset.message = data.message || '';
+    card.dataset.createdAt = createdAt;
+    card.setAttribute('onclick', 'handleRequestCardClick(this)');
+    card.innerHTML = `
+      <div class="g-item-avatar" style="width:48px;height:48px;">${studentInitial}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="g-item-name">${studentName}</div>
+        ${message ? `<div class="g-item-sub" style="margin-top:3px;font-style:italic;">"${message.length > 50 ? message.slice(0,50)+'…' : message}"</div>` : ''}
+        <div class="g-item-sub">${createdAt}</div>
+        <div class="g-req-actions">
+          <button class="g-req-accept" data-req-id="${reqId}" data-url="${respondUrl}" onclick="event.stopPropagation();respondReq(this,'accept')">
+            <i class='bx bx-check'></i> Accept
+          </button>
+          <button class="g-req-reject" data-req-id="${reqId}" data-url="${respondUrl}" onclick="event.stopPropagation();respondReq(this,'reject')">
+            Decline
+          </button>
+        </div>
+      </div>`;
+    panel.prepend(card);
+
+    // Update Requests tab badge
+    const tabRequests = document.getElementById('tabRequests');
+    if (tabRequests) {
+      let badge = tabRequests.querySelector('.g-tab-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'g-tab-badge';
+        badge.textContent = '0';
+        tabRequests.appendChild(badge);
+      }
+      const cur = parseInt(badge.textContent) || 0;
+      badge.textContent = cur + 1;
+    }
+
+    showToast(`New guidance request from ${data.student_name || 'a student'}`, 'info');
+    try { playIncomingMessageSound && playIncomingMessageSound(); } catch(e) {}
+  } catch(err) {
+    console.warn('handleIncomingGuidyRequest error:', err);
   }
 }
 
