@@ -1508,7 +1508,7 @@
       height: 100dvh;
       background: #fff;
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.18);
-      z-index: 1000002 !important;
+      z-index: 3000020 !important;
       transform: translate3d(100%, 0, 0);
       will-change: transform;
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1531,7 +1531,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.45);
-      z-index: 1000001 !important;
+      z-index: 3000019 !important;
       opacity: 0;
       pointer-events: none;
       backdrop-filter: blur(0px);
@@ -2203,8 +2203,8 @@
       inset: 0;
       background: rgba(15, 23, 42, 0.7);
       display: none;
-      z-index: 200000;
-      /* Increased to be above page-specific modals */
+      z-index: 3000010;
+      /* Safe tier above page-specific elements */
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
@@ -2225,8 +2225,8 @@
       max-height: 90vh;
       overflow-y: auto;
       display: none;
-      z-index: 200001;
-      /* Increased to be above page-specific modals */
+      z-index: 3000011;
+      /* Safe tier above page-specific elements */
       animation: slideIn 0.3s ease;
     }
 
@@ -3892,7 +3892,7 @@
       height: 100vh;
       height: 100dvh;
       background: #ffffff;
-      z-index: 1000002 !important;
+      z-index: 3000020 !important;
       box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
       transform: translate3d(100%, 0, 0);
       will-change: transform;
@@ -3933,7 +3933,7 @@
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.45);
-      z-index: 1000001 !important;
+      z-index: 3000019 !important;
       opacity: 0;
       pointer-events: none;
       backdrop-filter: blur(0px);
@@ -5469,7 +5469,7 @@
       height: 100%;
       background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(4px);
-      z-index: 100000;
+      z-index: 3000010;
       display: none;
       align-items: center;
       justify-content: center;
@@ -6259,12 +6259,6 @@
       </li>
 
       <li>
-        <a href="{% url 'users:visitor_insights' %}" data-tour="teacher-nav-insights">
-          📊 Visitor Insights
-        </a>
-      </li>
-
-      <li>
         <a href="{% url 'users:todo_hub' %}" class="{% if request.resolver_match.url_name == 'todo_hub' %}active{% endif %}" data-tour="teacher-nav-todo">
           📝 To-Do Hub
         </a>
@@ -6300,6 +6294,12 @@
           <span class="sidebar-notif-badge" id="sidebarNotifBadge" style="display: none;">0</span>
           {% endif %}
         </button>
+      </li>
+
+      <li>
+        <a href="{% url 'users:visitor_insights' %}" data-tour="teacher-nav-insights">
+          📊 Visitor Insights
+        </a>
       </li>
 
       <!-- Take Tour Item -->
@@ -7047,6 +7047,256 @@
     .banner-close:hover {
       color: white;
     }
+
+    /* Teacher Quick Actions Carousel */
+    .app-cards-scroll-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0 25px 0;
+      overflow: visible;
+    }
+
+    .app-cards-scroll-track {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 10px 18px 15px 18px;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      cursor: grab;
+      user-select: none;
+      justify-content: center;
+      transition: -webkit-mask-image 0.25s ease, mask-image 0.25s ease;
+      border-radius: 20px;
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px, black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px, black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%);
+    }
+
+    .app-cards-scroll-track.grabbing {
+      cursor: grabbing;
+      scroll-behavior: auto;
+    }
+
+    .app-cards-scroll-track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-cards-scroll-wrapper.no-scroll .app-scroll-btn {
+      display: none !important;
+    }
+
+    .app-cards-scroll-wrapper.no-scroll .app-cards-scroll-track {
+      justify-content: center !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      cursor: default;
+    }
+
+    .app-cards-scroll-track .app-card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px 8px;
+      text-align: center;
+      text-decoration: none;
+      color: #1e293b;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex: 0 0 118px;
+      min-width: 118px;
+    }
+
+    @media (max-width: 768px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 95px;
+        min-width: 95px;
+        padding: 11px 5px;
+        gap: 6px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.5rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.70rem !important;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .teacher-quick-actions-section {
+        padding: 0 4px !important;
+        margin: 20px auto 10px auto !important;
+      }
+      .app-cards-scroll-track {
+        padding: 8px 4px 12px 4px !important;
+        gap: 8px !important;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
+      .quick-actions-title {
+        padding-left: 8px;
+        font-size: 1.25rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 78px;
+        min-width: 78px;
+        padding: 9px 3px;
+        gap: 5px;
+        border-radius: 13px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.25rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.64rem !important;
+        line-height: 1.15;
+      }
+      .app-scroll-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1.25rem;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
+    }
+
+    @media (max-width: 360px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 68px;
+        min-width: 68px;
+        padding: 7px 2px;
+        gap: 4px;
+        border-radius: 11px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.1rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.58rem !important;
+        line-height: 1.1;
+      }
+    }
+
+    .app-cards-scroll-track .app-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
+      background: linear-gradient(to bottom, #ffffff, #f5f3ff);
+    }
+
+    .app-cards-scroll-track .app-card i {
+      font-size: 2.2rem;
+      color: #6366f1;
+      transition: transform 0.3s ease;
+    }
+
+    .app-cards-scroll-track .app-card:hover i {
+      transform: scale(1.18);
+    }
+
+    .app-cards-scroll-track .app-card span {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.1px;
+    }
+
+    body.dark-theme .app-cards-scroll-track .app-card {
+      background: linear-gradient(135deg, #2c3240 0%, #1a1e29 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #f8fafc !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    body.dark-theme .app-cards-scroll-track .app-card:hover {
+      background: linear-gradient(135deg, #373e4f 0%, #222735 100%) !important;
+      border-color: rgba(168, 85, 247, 0.4) !important;
+      box-shadow: 0 12px 24px rgba(168, 85, 247, 0.3) !important;
+    }
+
+    body.dark-theme .app-cards-scroll-track .app-card i {
+      color: #a855f7;
+    }
+
+    .quick-actions-title {
+      color: #1e293b;
+      transition: color 0.3s ease;
+    }
+    body.dark-theme .quick-actions-title {
+      color: #f8fafc !important;
+    }
+
+    /* Floating Semi-Transparent Arrow Buttons Over Cards */
+    .app-scroll-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+      color: #4f46e5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.55rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      z-index: 25;
+      outline: none;
+    }
+
+    .app-scroll-btn.prev {
+      left: 4px;
+    }
+
+    .app-scroll-btn.next {
+      right: 4px;
+    }
+
+    .app-scroll-btn:hover {
+      background: rgba(99, 102, 241, 0.85);
+      color: #ffffff;
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+      border-color: rgba(99, 102, 241, 0.6);
+    }
+
+    body.dark-theme .app-scroll-btn {
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      color: #c084fc;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-theme .app-scroll-btn:hover {
+      background: rgba(168, 85, 247, 0.85);
+      color: #ffffff;
+      box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+      border-color: rgba(168, 85, 247, 0.6);
+    }
   </style>
 
   {% if new_requests_alert %}
@@ -7146,6 +7396,68 @@
         <h3 class="card-heading">Guidy Chat</h3>
         <div class="number" id="guidyStatCount">{% if guidy_badge_count > 0 %}{{ guidy_badge_count }}{% else %}0{% endif %}</div>
         <a href="{% url 'users:guidy_home' %}" class="manage-btn">Open Chat</a>
+      </div>
+    </div>
+
+    <!-- Quick Actions Carousel -->
+    <div class="teacher-quick-actions-section" style="margin: 25px 0 20px 0;">
+      <h3 class="quick-actions-title" style="margin-bottom: 12px; font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+        <i class='bx bxs-zap' style='color:#f1c40f;'></i> Quick Actions
+      </h3>
+      <div class="app-cards-scroll-wrapper">
+        <button type="button" class="app-scroll-btn prev" onclick="scrollAppCards(this, -1)" aria-label="Scroll left">
+          <i class='bx bx-chevron-left'></i>
+        </button>
+        <div class="app-cards-scroll-track">
+          <!-- 1. Hall of Fame -->
+          <a href="{% url 'users:hall_of_fame' %}" class="app-card">
+            <i class='bx bx-trophy'></i>
+            <span>Hall of Fame</span>
+          </a>
+          <!-- 2. Fees Record -->
+          <a href="{% url 'users:fees_record' %}" class="app-card">
+            <i class='bx bx-wallet'></i>
+            <span>Fees Record</span>
+          </a>
+          <!-- 3. Broadcasts & Ads -->
+          <a href="#" onclick="openBroadcastPanel(event); return false;" class="app-card">
+            <i class='bx bx-broadcast'></i>
+            <span>Broadcast & Ads</span>
+          </a>
+          <!-- 4. Library Seat Status -->
+          <a href="{% url 'users:teacher_seat_status' %}" class="app-card">
+            <i class='bx bx-chair'></i>
+            <span>Seat Status</span>
+          </a>
+          <!-- 5. Student Progress -->
+          <a href="{% url 'users:student_progress' %}" class="app-card">
+            <i class='bx bx-line-chart'></i>
+            <span>Progress</span>
+          </a>
+          <!-- 6. Manage Courses -->
+          <a href="{% url 'users:teacher_courses' %}" class="app-card">
+            <i class='bx bx-book-open'></i>
+            <span>Courses</span>
+          </a>
+          <!-- 7. Guidy Chat -->
+          <a href="{% url 'users:guidy_home' %}" class="app-card">
+            <i class='bx bx-message-rounded-dots'></i>
+            <span>Guidy Chat</span>
+          </a>
+          <!-- 8. To-Do Hub -->
+          <a href="{% url 'users:todo_hub' %}" class="app-card">
+            <i class='bx bx-list-check'></i>
+            <span>To-Do Hub</span>
+          </a>
+          <!-- 9. Visitor Insights -->
+          <a href="{% url 'users:visitor_insights' %}" class="app-card">
+            <i class='bx bx-bar-chart-alt-2'></i>
+            <span>Visitor Insights</span>
+          </a>
+        </div>
+        <button type="button" class="app-scroll-btn next" onclick="scrollAppCards(this, 1)" aria-label="Scroll right">
+          <i class='bx bx-chevron-right'></i>
+        </button>
       </div>
     </div>
 
@@ -12998,7 +13310,10 @@ function showTeacherStyledPopup({ title = 'Notice', message = '', type = 'info',
     const c = colors[type] || colors.info;
     const overlay = document.createElement('div');
     overlay.id = 'teacherStyledPopupOverlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
+    const safeZ = (typeof window.getHighestZIndex === 'function') ? window.getHighestZIndex([overlay]) + 10 : 3000060;
+    overlay.style.setProperty('z-index', safeZ.toString(), 'important');
+
     const box = document.createElement('div');
     box.style.cssText = 'background:#fff;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
     
@@ -13426,6 +13741,135 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
     window.refreshTeacherLiveStats = fetchTeacherLiveStats;
     window.refreshTeacherTabsContent = refreshTeacherTabsContent;
 })();
+</script>
+
+<script>
+function updateScrollTrack(wrapper) {
+    if (!wrapper) return;
+    var track = wrapper.querySelector('.app-cards-scroll-track');
+    var prevBtn = wrapper.querySelector('.app-scroll-btn.prev');
+    var nextBtn = wrapper.querySelector('.app-scroll-btn.next');
+    if (!track) return;
+
+    var isScrollable = (track.scrollWidth - track.clientWidth) > 6;
+
+    if (!isScrollable) {
+        wrapper.classList.add('no-scroll');
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        track.style.justifyContent = 'center';
+        track.style.webkitMaskImage = 'none';
+        track.style.maskImage = 'none';
+        track.style.cursor = 'default';
+    } else {
+        wrapper.classList.remove('no-scroll');
+        if (prevBtn) prevBtn.style.display = 'flex';
+        if (nextBtn) nextBtn.style.display = 'flex';
+        track.style.justifyContent = 'flex-start';
+        track.style.cursor = 'grab';
+
+        var atStart = track.scrollLeft <= 4;
+        var atEnd = (track.scrollLeft + track.clientWidth) >= (track.scrollWidth - 6);
+
+        if (prevBtn) {
+            prevBtn.style.opacity = atStart ? '0.2' : '1';
+            prevBtn.style.pointerEvents = atStart ? 'none' : 'auto';
+        }
+        if (nextBtn) {
+            nextBtn.style.opacity = atEnd ? '0.2' : '1';
+            nextBtn.style.pointerEvents = atEnd ? 'none' : 'auto';
+        }
+
+        // Both corners have a smooth, slow transparent fade
+        var leftFade = atStart ? 'transparent 0%, black 18px' : 'transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px';
+        var rightFade = atEnd ? 'black calc(100% - 18px), transparent 100%' : 'black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%';
+        var mask = 'linear-gradient(to right, ' + leftFade + ', ' + rightFade + ')';
+        track.style.webkitMaskImage = mask;
+        track.style.maskImage = mask;
+    }
+}
+
+function scrollAppCards(btn, direction) {
+    var wrapper = btn.closest('.app-cards-scroll-wrapper');
+    if (!wrapper) return;
+    var track = wrapper.querySelector('.app-cards-scroll-track');
+    if (!track) return;
+    var card = track.querySelector('.app-card');
+    var scrollAmount = card ? (card.offsetWidth + 12) * 2 : 220;
+    track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    setTimeout(function() { updateScrollTrack(wrapper); }, 350);
+}
+
+function enableDragScroll(track, wrapper) {
+    if (!track || track._hasDragInit) return;
+    track._hasDragInit = true;
+
+    var isDown = false;
+    var startX = 0;
+    var scrollLeft = 0;
+    var isDragged = false;
+
+    track.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        isDown = true;
+        isDragged = false;
+        track.classList.add('grabbing');
+        startX = e.pageX - track.getBoundingClientRect().left;
+        scrollLeft = track.scrollLeft;
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (!isDown) return;
+        var x = e.pageX - track.getBoundingClientRect().left;
+        var walk = (x - startX) * 1.5;
+        if (Math.abs(walk) > 4) {
+            isDragged = true;
+        }
+        track.scrollLeft = scrollLeft - walk;
+        if (wrapper) updateScrollTrack(wrapper);
+    });
+
+    var endDrag = function() {
+        if (!isDown) return;
+        isDown = false;
+        track.classList.remove('grabbing');
+    };
+
+    window.addEventListener('mouseup', endDrag);
+
+    track.addEventListener('click', function(e) {
+        if (isDragged) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            isDragged = false;
+        }
+    }, true);
+}
+
+function initAppCardsScroll() {
+    var wrappers = document.querySelectorAll('.app-cards-scroll-wrapper');
+    wrappers.forEach(function(wrapper) {
+        var track = wrapper.querySelector('.app-cards-scroll-track');
+        updateScrollTrack(wrapper);
+        if (track) {
+            enableDragScroll(track, wrapper);
+            if (!track._hasScrollListener) {
+                track._hasScrollListener = true;
+                track.addEventListener('scroll', function() {
+                    updateScrollTrack(wrapper);
+                }, { passive: true });
+            }
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppCardsScroll);
+} else {
+    initAppCardsScroll();
+}
+window.addEventListener('resize', initAppCardsScroll, { passive: true });
+window.addEventListener('load', initAppCardsScroll, { passive: true });
 </script>
 
 <script src="{% static 'js/abcd-sound.js' %}"></script>

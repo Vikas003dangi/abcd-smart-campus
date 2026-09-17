@@ -816,7 +816,7 @@
     display: none;
     justify-content: center;
     align-items: center;
-    z-index: 9999;
+    z-index: 3000050;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
   }
@@ -1432,7 +1432,7 @@
   /* Color picker popover */
   .todo-color-picker {
     position: fixed;
-    z-index: 99999;
+    z-index: 3000050;
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
@@ -1830,7 +1830,7 @@
   }
 
   .note-editor-title::placeholder {
-    color: rgba(15, 23, 42, 0.38);
+    color: var(--note-placeholder-color, rgba(15, 23, 42, 0.38));
   }
 
   .note-editor-body[contenteditable] {
@@ -1844,7 +1844,7 @@
 
   .note-editor-body[contenteditable]:empty::before {
     content: attr(data-placeholder);
-    color: rgba(15, 23, 42, 0.38);
+    color: var(--note-placeholder-color, rgba(15, 23, 42, 0.38));
     pointer-events: none;
   }
 
@@ -1852,6 +1852,39 @@
     color: #2563eb !important;
     text-decoration: underline !important;
     font-weight: 600 !important;
+  }
+
+  .note-inline-img-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    vertical-align: middle;
+    margin: 6px 0;
+  }
+
+  .note-img-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    color: #ffffff;
+    border: none;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  .note-img-delete-btn:hover {
+    background: #ef4444;
+    transform: scale(1.1);
   }
 
   .note-editor-footer {
@@ -2036,7 +2069,7 @@
   /* Dropdown for sticky note color */
   .note-bg-picker-dropdown {
     position: fixed;
-    z-index: 99999;
+    z-index: 3000050;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 14px;
@@ -2065,11 +2098,16 @@
     color: #94a3b8;
   }
 
+  .abcd-push-bubble {
+    z-index: 3000050 !important;
+    pointer-events: auto !important;
+  }
+
   /* Color palette for text coloring */
   .note-color-palette {
     display: none;
     position: fixed;
-    z-index: 99999;
+    z-index: 3000050;
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
@@ -3191,7 +3229,7 @@
 
     <!-- Subtask Time Picker Overlay -->
     <div id="subtaskTimePickerOverlay" style="display:none; position:fixed; inset:0;
-         background:rgba(0,0,0,0.5); z-index:10000; align-items:center;
+         background:rgba(0,0,0,0.5); align-items:center;
          justify-content:center;">
       <div class="picker-card subtask-picker-card" style="border-radius:16px; padding:20px; width:340px;
                   box-shadow:0 20px 60px rgba(0,0,0,0.3);">
@@ -3684,7 +3722,7 @@
 
         <!-- Note type toggle -->
         <div class="note-toolbar-sep"></div>
-        <select id="noteTypeSelect" onchange="onNoteTypeChange(this.value)" class="note-type-select">
+        <select id="noteTypeSelect" onchange="onNoteTypeChange(this.value)" class="note-type-select" data-no-enhance="true">
           <option value="quick">⚡ Quick Note</option>
           <option value="checklist">☑ Checklist</option>
         </select>
@@ -3756,7 +3794,7 @@
 
 <!-- Reconsider Popup Overlay -->
 <div id="reconsiderOverlay" style="display:none;position:fixed;inset:0;
-     background:rgba(0,0,0,0.6);z-index:10001;align-items:center;
+     background:rgba(0,0,0,0.6);align-items:center;
      justify-content:center;">
   <div style="background:#fff;border-radius:16px;padding:24px;
               width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
@@ -3785,7 +3823,7 @@
 
 <!-- "To add Fee" Modal -->
 {% if user.is_staff %}
-<div class="todo-modal-overlay" id="feeModal" style="z-index: 10020;">
+<div class="todo-modal-overlay" id="feeModal">
   <div class="todo-modal" style="max-width: 650px; display: flex; flex-direction: column; max-height: 90vh;">
     <!-- Header -->
     <div class="todo-modal-header fee-form-header">
@@ -3866,7 +3904,7 @@
 </div>
 
 <!-- Custom Confirmation Modal -->
-<div class="todo-modal-overlay" id="confirmModal" style="z-index: 3000000 !important;">
+<div class="todo-modal-overlay" id="confirmModal">
   <div class="todo-modal" style="max-width: 400px; text-align: center;">
     <div class="todo-modal-body" style="padding: 30px;">
       <i class='bx bx-info-circle' style="font-size: 3.5rem; color: #7b61ff; margin-bottom: 15px; display: block;"></i>
@@ -7762,7 +7800,18 @@
     if (activeNoteFormats.strikeThrough) decs.push('line-through');
     noteTypingCarrier.style.textDecoration = decs.length > 0 ? decs.join(' ') : 'none';
 
-    if (!activeNoteFormats.bold && !activeNoteFormats.italic && decs.length === 0) {
+    if (activeNoteFormats.foreColor) {
+      noteTypingCarrier.style.color = activeNoteFormats.foreColor;
+    } else {
+      noteTypingCarrier.style.removeProperty('color');
+    }
+    if (activeNoteFormats.hiliteColor) {
+      noteTypingCarrier.style.backgroundColor = activeNoteFormats.hiliteColor;
+    } else {
+      noteTypingCarrier.style.removeProperty('background-color');
+    }
+
+    if (!activeNoteFormats.bold && !activeNoteFormats.italic && decs.length === 0 && !activeNoteFormats.foreColor && !activeNoteFormats.hiliteColor) {
       noteTypingCarrier.removeAttribute('style');
     }
 
@@ -7807,7 +7856,7 @@
         if (m.images && Array.isArray(m.images)) {
           m.images.forEach(src => {
             if (src && !editor.innerHTML.includes(src)) {
-              const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="display:inline-block; max-width:100%; vertical-align:middle; margin:6px 0;"><img src="${src}" style="max-width:100%; max-height:280px; border-radius:10px; display:block; box-shadow:0 3px 10px rgba(0,0,0,0.15);"></span>&nbsp;`;
+              const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="position:relative; display:inline-block; max-width:100%; vertical-align:middle; margin:6px 0;"><img src="${src}" style="max-width:100%; max-height:280px; border-radius:10px; display:block; box-shadow:0 3px 10px rgba(0,0,0,0.15);"><button type="button" class="note-img-delete-btn" onclick="this.closest('.note-inline-img-wrap').remove(); updateNoteImgBtn();" title="Remove image">&times;</button></span>&nbsp;`;
               editor.insertAdjacentHTML('beforeend', imgHtml);
             }
           });
@@ -7864,8 +7913,16 @@
 
   function closeNoteModal() {
     window.closeModalOverlay('noteEditorModal');
-    document.getElementById('noteBgPickerDropdown').style.display = 'none';
+    const bgDd = document.getElementById('noteBgPickerDropdown');
+    if (bgDd) bgDd.style.display = 'none';
+    const pal = document.getElementById('noteColorPalette');
+    if (pal) pal.classList.remove('visible');
+    const cb = document.getElementById('gCustomColorPickerBoard');
+    if (cb) cb.style.display = 'none';
+    document.querySelectorAll('.todo-modal-overlay.prompt-overlay').forEach(o => o.remove());
     editingNoteId = null;
+    savedNoteSelection = null;
+    savedNoteCursorRange = null;
   }
 
   function closeNoteViewModal() {
@@ -7877,15 +7934,22 @@
     noteCurrentBg = color;
     const paper = document.getElementById('noteEditorPaper');
     const header = document.getElementById('noteModalHeader');
-    if (paper) paper.style.background = color;
+    const isDark = isColorDark(color);
+
+    if (paper) {
+      paper.style.backgroundColor = color;
+      // Preserve notebook lined paper gradient with contrast-appropriate line color
+      const lineRgba = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+      paper.style.backgroundImage = `repeating-linear-gradient(transparent, transparent 27px, ${lineRgba} 28px)`;
+      const placeholderColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.38)';
+      paper.style.setProperty('--note-placeholder-color', placeholderColor);
+    }
     if (header) {
-      header.style.background = color;
+      header.style.backgroundColor = color;
       header.style.setProperty('--note-modal-bg', color);
     }
     // High-contrast text colors
-    const isDark = isColorDark(color);
     const textColor = isDark ? '#ffffff' : '#0f172a';
-    const subColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(15,23,42,0.55)';
     const placeholderColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(15,23,42,0.38)';
 
     const contentEl = document.getElementById('noteEditorContent');
@@ -7895,10 +7959,13 @@
     const pinBtn = document.getElementById('notePinBtn');
     const closeBtn = document.querySelector('#noteModalHeader .close-btn');
 
-    if (contentEl) contentEl.style.color = textColor;
+    if (contentEl) {
+      contentEl.style.color = textColor;
+      contentEl.style.setProperty('--note-placeholder-color', placeholderColor);
+    }
     if (titleEl) {
       titleEl.style.color = textColor;
-      titleEl.style.setProperty('--placeholder-color', placeholderColor);
+      titleEl.style.setProperty('--note-placeholder-color', placeholderColor);
     }
     if (modalTitle) modalTitle.style.color = textColor;
     if (modalIcon) modalIcon.style.color = isDark ? '#a78bfa' : '#7b61ff';
@@ -7906,10 +7973,28 @@
     if (closeBtn) closeBtn.style.color = textColor;
   }
 
-  function isColorDark(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
+  function isColorDark(color) {
+    if (!color) return false;
+    let r = 0, g = 0, b = 0;
+    const str = String(color).trim().toLowerCase();
+    if (str.startsWith('#')) {
+      let hex = str.slice(1);
+      if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      }
+      if (hex.length >= 6) {
+        r = parseInt(hex.slice(0, 2), 16) || 0;
+        g = parseInt(hex.slice(2, 4), 16) || 0;
+        b = parseInt(hex.slice(4, 6), 16) || 0;
+      }
+    } else if (str.startsWith('rgb')) {
+      const match = str.match(/\d+/g);
+      if (match && match.length >= 3) {
+        r = parseInt(match[0], 10) || 0;
+        g = parseInt(match[1], 10) || 0;
+        b = parseInt(match[2], 10) || 0;
+      }
+    }
     return (0.299 * r + 0.587 * g + 0.114 * b) < 128;
   }
 
@@ -7985,12 +8070,19 @@
     }
 
     const palette = document.getElementById('noteColorPalette');
+    if (!palette) return;
     const isVisible = palette.classList.contains('visible');
     palette.classList.remove('visible');
     palette.innerHTML = '';
 
     if (isVisible && palette.dataset.type === type) return;
     palette.dataset.type = type;
+    const palZ = (typeof window.getHighestZIndex === 'function') ? window.getHighestZIndex([palette]) + 15 : 3000080;
+    palette.style.setProperty('z-index', palZ.toString(), 'important');
+
+    if (palette.parentNode !== document.body) {
+      document.body.appendChild(palette);
+    }
 
     NOTE_TEXT_COLORS.forEach(color => {
       const sw = document.createElement('div');
@@ -8010,14 +8102,29 @@
           sel2.removeAllRanges();
           sel2.addRange(savedNoteSelection);
         }
+        const currentSel = window.getSelection();
+        const inEditor = currentSel && currentSel.rangeCount > 0 && editor.contains(currentSel.anchorNode);
+        const isCollapsed = !inEditor || currentSel.isCollapsed;
 
         if (type === 'text') {
-          document.execCommand('foreColor', false, color);
           document.getElementById('textColorIndicator').style.background = color;
+          if (isCollapsed) {
+            activeNoteFormats.foreColor = color;
+            applyActiveFormatsToTypingPoint();
+          } else {
+            document.execCommand('foreColor', false, color);
+          }
         } else {
-          document.execCommand('hiliteColor', false, color);
+          if (isCollapsed) {
+            activeNoteFormats.hiliteColor = color;
+            applyActiveFormatsToTypingPoint();
+          } else {
+            document.execCommand('hiliteColor', false, color);
+          }
         }
         palette.classList.remove('visible');
+        saveNoteEditorSelection();
+        updateNoteToolbarButtonUI();
         savedNoteSelection = null;
       };
       palette.appendChild(sw);
@@ -8046,13 +8153,29 @@
           sel2.removeAllRanges();
           sel2.addRange(savedNoteSelection);
         }
+        const currentSel = window.getSelection();
+        const inEditor = currentSel && currentSel.rangeCount > 0 && editor.contains(currentSel.anchorNode);
+        const isCollapsed = !inEditor || currentSel.isCollapsed;
+
         if (type === 'text') {
-          document.execCommand('foreColor', false, color);
           document.getElementById('textColorIndicator').style.background = color;
+          if (isCollapsed) {
+            activeNoteFormats.foreColor = color;
+            applyActiveFormatsToTypingPoint();
+          } else {
+            document.execCommand('foreColor', false, color);
+          }
         } else {
-          document.execCommand('hiliteColor', false, color);
+          if (isCollapsed) {
+            activeNoteFormats.hiliteColor = color;
+            applyActiveFormatsToTypingPoint();
+          } else {
+            document.execCommand('hiliteColor', false, color);
+          }
         }
         palette.classList.remove('visible');
+        saveNoteEditorSelection();
+        updateNoteToolbarButtonUI();
         savedNoteSelection = null;
       });
     };
@@ -8075,8 +8198,29 @@
         sel2.removeAllRanges();
         sel2.addRange(savedNoteSelection);
       }
-      document.execCommand(type === 'text' ? 'removeFormat' : 'hiliteColor', false, 'transparent');
+      const currentSel = window.getSelection();
+      const inEditor = currentSel && currentSel.rangeCount > 0 && editor.contains(currentSel.anchorNode);
+      const isCollapsed = !inEditor || currentSel.isCollapsed;
+
+      if (type === 'text') {
+        document.getElementById('textColorIndicator').style.background = 'transparent';
+        delete activeNoteFormats.foreColor;
+        if (!isCollapsed) {
+          document.execCommand('foreColor', false, 'inherit');
+        } else {
+          applyActiveFormatsToTypingPoint();
+        }
+      } else {
+        delete activeNoteFormats.hiliteColor;
+        if (!isCollapsed) {
+          document.execCommand('hiliteColor', false, 'transparent');
+        } else {
+          applyActiveFormatsToTypingPoint();
+        }
+      }
       palette.classList.remove('visible');
+      saveNoteEditorSelection();
+      updateNoteToolbarButtonUI();
       savedNoteSelection = null;
     };
     palette.appendChild(reset);
@@ -8099,10 +8243,10 @@
     });
   }
 
-  // Close palette on outside click
+  // Close palette on outside click, ignoring clicks on custom color board
   document.addEventListener('click', (e) => {
     const palette = document.getElementById('noteColorPalette');
-    if (palette && !palette.contains(e.target)) {
+    if (palette && !palette.contains(e.target) && !e.target.closest('#gCustomColorPickerBoard') && !e.target.closest('#textColorBtn') && !e.target.closest('#bgColorBtn')) {
       palette.classList.remove('visible');
     }
   });
@@ -8117,32 +8261,45 @@
     const btn = document.getElementById('noteBgPickerBtn');
     const margin = 8;
     dd.style.display = 'block';
+    const ddZ = (typeof window.getHighestZIndex === 'function') ? window.getHighestZIndex([dd]) + 15 : 3000080;
+    dd.style.setProperty('z-index', ddZ.toString(), 'important');
 
     // Move dropdown to body so fixed positioning and pointer events work correctly outside transformed modal
     if (dd.parentNode !== document.body) {
       document.body.appendChild(dd);
     }
 
-    // Position below the button using fixed coords, then clamp
+    // Position below the button using fixed coords immediately and clamp
+    const bRect = btn ? btn.getBoundingClientRect() : { bottom: 0, left: 0, top: 0 };
+    const dRect = dd.getBoundingClientRect();
+    const ddWidth = dRect.width || 230;
+    const ddHeight = dRect.height || 160;
+    let top = bRect.bottom + 4;
+    let left = bRect.left;
+    if (top + ddHeight > window.innerHeight - margin) {
+      top = Math.max(margin, bRect.top - ddHeight - 4);
+    }
+    left = Math.max(margin, Math.min(window.innerWidth - ddWidth - margin, left));
+    dd.style.top = top + 'px';
+    dd.style.left = left + 'px';
+
     requestAnimationFrame(() => {
-      const bRect = btn ? btn.getBoundingClientRect() : { bottom: 0, left: 0, top: 0 };
-      const dRect = dd.getBoundingClientRect();
-      let top  = bRect.bottom + 4;
-      let left = bRect.left;
-      // Flip above if clipped at bottom
-      if (top + dRect.height > window.innerHeight - margin) {
-        top = Math.max(margin, bRect.top - dRect.height - 4);
+      const bRect2 = btn ? btn.getBoundingClientRect() : bRect;
+      const dRect2 = dd.getBoundingClientRect();
+      let top2 = bRect2.bottom + 4;
+      let left2 = bRect2.left;
+      if (top2 + dRect2.height > window.innerHeight - margin) {
+        top2 = Math.max(margin, bRect2.top - dRect2.height - 4);
       }
-      // Horizontal clamp
-      left = Math.max(margin, Math.min(window.innerWidth - dRect.width - margin, left));
-      dd.style.top  = top  + 'px';
-      dd.style.left = left + 'px';
+      left2 = Math.max(margin, Math.min(window.innerWidth - dRect2.width - margin, left2));
+      dd.style.top = top2 + 'px';
+      dd.style.left = left2 + 'px';
     });
 
-    // Close on outside click
+    // Close on outside click, ignoring custom color board
     setTimeout(() => {
       document.addEventListener('click', function handler(e) {
-        if (!dd.contains(e.target) && e.target.id !== 'noteBgPickerBtn' && !e.target.closest('#noteBgPickerBtn')) {
+        if (!dd.contains(e.target) && !e.target.closest('#noteBgPickerBtn') && !e.target.closest('#gCustomColorPickerBoard')) {
           dd.style.display = 'none';
           document.removeEventListener('click', handler);
         }
@@ -8208,11 +8365,15 @@
   }
 
   function showModalPrompt(title, message, defaultVal, onConfirm) {
+    // Remove any existing lingering prompt overlay
+    document.querySelectorAll('.todo-modal-overlay.prompt-overlay').forEach(o => o.remove());
+
     const overlay = document.createElement('div');
-    overlay.className = 'todo-modal-overlay active';
-    overlay.style.zIndex = '3000000';
+    overlay.className = 'todo-modal-overlay prompt-overlay active';
+    const promptZ = (typeof window.getHighestZIndex === 'function') ? window.getHighestZIndex() + 15 : 3000080;
+    overlay.style.setProperty('z-index', promptZ.toString(), 'important');
     overlay.innerHTML = `
-      <div class="todo-modal" style="max-width:420px; border-radius:16px;">
+      <div class="todo-modal" style="max-width:420px; border-radius:16px; z-index:${promptZ + 1} !important;">
         <div class="todo-modal-header" style="padding:14px 18px; border-radius:16px 16px 0 0;">
           <h3 style="margin:0;font-size:1.05rem;font-weight:700;">${title}</h3>
           <button class="todo-modal-close" id="modalPromptClose">&times;</button>
@@ -8246,7 +8407,21 @@
     const btnCancel = overlay.querySelector('#modalPromptCancel');
     const btnClose = overlay.querySelector('#modalPromptClose');
 
-    const doClose = () => overlay.remove();
+    const doClose = () => {
+      document.removeEventListener('keydown', onEscKey);
+      overlay.remove();
+    };
+
+    const onEscKey = (e) => {
+      if (e.key === 'Escape') doClose();
+    };
+    document.addEventListener('keydown', onEscKey);
+
+    // Backdrop click dismisses prompt
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) doClose();
+    });
+
     btnCancel.onclick = doClose;
     btnClose.onclick = doClose;
     btnOk.onclick = () => {
@@ -8358,7 +8533,7 @@
           } catch (err) {}
         }
 
-        const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="display:inline-block; max-width:100%; vertical-align:middle; margin:6px 0;"><img src="${base64}" style="max-width:100%; max-height:280px; border-radius:10px; display:block; box-shadow:0 3px 10px rgba(0,0,0,0.15);"></span>&nbsp;`;
+        const imgHtml = `&nbsp;<span class="note-inline-img-wrap" contenteditable="false" style="position:relative; display:inline-block; max-width:100%; vertical-align:middle; margin:6px 0;"><img src="${base64}" style="max-width:100%; max-height:280px; border-radius:10px; display:block; box-shadow:0 3px 10px rgba(0,0,0,0.15);"><button type="button" class="note-img-delete-btn" onclick="this.closest('.note-inline-img-wrap').remove(); updateNoteImgBtn();" title="Remove image">&times;</button></span>&nbsp;`;
         document.execCommand('insertHTML', false, imgHtml);
 
         updateNoteImgBtn();
@@ -8386,7 +8561,9 @@
     const title = document.getElementById('noteEditorTitle').value.trim();
     const editor = document.getElementById('noteEditorContent');
     let rawContent = editor ? editor.innerHTML : '';
-    rawContent = rawContent.replace(/\u200B/g, '').replace(/<span[^>]*class="note-typing-carrier"[^>]*>\s*<\/span>/gi, '');
+    rawContent = rawContent.replace(/\u200B/g, '')
+      .replace(/<span[^>]*class="note-typing-carrier"[^>]*>\s*<\/span>/gi, '')
+      .replace(/<button[^>]*class="note-img-delete-btn"[^>]*>.*?<\/button>/gi, '');
     const content = rawContent.replace(/<br\s*\/?>/gi, '').replace(/&nbsp;/g, '').trim();
 
     const imgEls = editor ? editor.querySelectorAll('img') : [];
@@ -9102,7 +9279,9 @@
     const picker = document.createElement('div');
     picker.id = 'floatingTodoColorPicker';
     picker.className = 'todo-color-picker';
-    picker.style.cssText = 'position:fixed; z-index:99999;';
+    picker.style.cssText = 'position:fixed;';
+    const _cpZ = (typeof window.getHighestZIndex === 'function') ? window.getHighestZIndex([picker]) + 15 : 3000080;
+    picker.style.setProperty('z-index', _cpZ.toString(), 'important');
 
     // Position below the dot — clamped to viewport
     const rect = dotEl.getBoundingClientRect();
@@ -13348,10 +13527,10 @@
   });
 
 </script>
-<script src="{% static 'js/abcd-color-picker.js' %}"></script>
+<script src="{% static 'js/abcd-color-picker.js' %}?v=2.6"></script>
 
 <!-- Custom Color Picker Board -->
-<div id="gCustomColorPickerBoard" class="custom-color-picker-board" style="display: none; position: fixed; z-index: 100001; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); width: 228px; user-select: none; -webkit-user-select: none; box-sizing: border-box; touch-action: none;">
+<div id="gCustomColorPickerBoard" class="custom-color-picker-board" style="display: none; position: fixed; z-index: 3000060 !important; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); width: 228px; user-select: none; -webkit-user-select: none; box-sizing: border-box; touch-action: none;">
   <div class="cp-sv-container" style="position: relative; width: 100%; height: 120px; border-radius: 8px; overflow: hidden; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; line-height: 0; margin-bottom: 10px;">
     <canvas class="cp-canvas-sv" width="204" height="120" style="display: block; width: 100%; height: 100%; border-radius: 8px;"></canvas>
     <div class="cp-sv-handle" style="position: absolute; top: 0; left: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 2px rgba(0,0,0,0.9), inset 0 0 2px rgba(0,0,0,0.5); transform: translate(-50%, -50%); pointer-events: none; box-sizing: border-box; z-index: 2;"></div>
@@ -13403,7 +13582,7 @@
 </div>
 
 <!-- Edit Subtask Time Picker Overlay -->
-<div id="editSubtaskTimePickerOverlay" class="picker-overlay" style="z-index: 10030;">
+<div id="editSubtaskTimePickerOverlay" class="picker-overlay">
   <div class="picker-card" style="max-width: 360px;">
     <div class="picker-header">
       <h4>Set Subtask Time</h4>
@@ -13437,7 +13616,7 @@
 </div>
 
 <!-- "Set Auto-Delete Time" Drum-Roll Picker Overlay -->
-<div id="autoDeleteTimePickerOverlay" class="picker-overlay" style="z-index: 10030;">
+<div id="autoDeleteTimePickerOverlay" class="picker-overlay">
   <div class="picker-card" style="max-width: 360px;">
     <div class="picker-header">
       <h4>Set Auto-Delete Time</h4>
@@ -13468,7 +13647,7 @@
 </div>
 
 <!-- "Edit Auto-Delete Time" Drum-Roll Picker Overlay -->
-<div id="editAutoDeleteTimePickerOverlay" class="picker-overlay" style="z-index: 10030;">
+<div id="editAutoDeleteTimePickerOverlay" class="picker-overlay">
   <div class="picker-card" style="max-width: 360px;">
     <div class="picker-header">
       <h4>Set Auto-Delete Time</h4>
@@ -13575,11 +13754,43 @@
         }
       });
     });
+
+    // Sync checklist checkbox checked attribute on change/click in editor or view
+    const syncChecklistCheckbox = (e) => {
+      if (e.target && e.target.type === 'checkbox') {
+        const editor = document.getElementById('noteEditorContent');
+        const view = document.getElementById('noteViewContent');
+        if ((editor && editor.contains(e.target)) || (view && view.contains(e.target))) {
+          if (e.target.checked) {
+            e.target.setAttribute('checked', 'checked');
+          } else {
+            e.target.removeAttribute('checked');
+          }
+          // If in view modal and viewing an active note, auto-save the updated content
+          if (view && view.contains(e.target) && typeof noteViewingId !== 'undefined' && noteViewingId) {
+            const task = currentTasks.find(t => t.id == noteViewingId);
+            if (task && task.metadata) {
+              task.metadata.content = view.innerHTML;
+              fetch(`/todo/update-metadata/${noteViewingId}/`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ metadata: task.metadata })
+              }).catch(err => console.error('Auto-save checklist error:', err));
+            }
+          }
+        }
+      }
+    };
+    document.addEventListener('change', syncChecklistCheckbox);
+    document.addEventListener('click', syncChecklistCheckbox);
   });
 </script>
 
 <script src="{% static 'js/abcd-sound.js' %}"></script>
-<script src="{% static 'js/push-permission.js' %}"></script>
+<script src="{% static 'js/push-permission.js' %}?v=2.6"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

@@ -267,6 +267,8 @@ var CustomPopup = window.CustomPopup || (function () {
             '.student-banner-overlay', '.student-banner-card', '.notif-panel', '.notif-overlay',
             '.todo-modal-overlay', '.todo-modal', '.picker-overlay', '.styled-modal-overlay',
             '.fp-overlay', '.fp-card', '#logoutConfirmModal', '#logoutConfirmOverlay',
+            '.todo-color-picker', '.note-color-palette', '.note-bg-picker-dropdown', '.custom-color-picker-board',
+            '#gCustomColorPickerBoard',
             '[role="dialog"]', 'dialog',
             'div[id*="Modal"]', 'div[id*="Popup"]', 'div[class*="modal"]',
             'div[class*="popup"]'
@@ -871,6 +873,23 @@ window.showABCDModal = function (opts) {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType === 1) {
                             handleVisibilityChange(node);
+                            // CATCH-ALL: Auto-elevate any newly-appended fixed-position overlay
+                            // that doesn't have a recognized modal class (e.g. inline JS overlays)
+                            if (node.parentNode === document.body) {
+                                try {
+                                    const cs = window.getComputedStyle(node);
+                                    if (cs.position === 'fixed' && cs.display !== 'none') {
+                                        const zVal = parseInt(node.style.zIndex || cs.zIndex, 10);
+                                        // Only elevate if it's clearly a deliberate overlay (z > 1000) but below our safe stack
+                                        if (!isNaN(zVal) && zVal > 1000 && zVal < 3000000) {
+                                            const safeZ = (typeof window.getHighestZIndex === 'function')
+                                                ? window.getHighestZIndex([node]) + 10
+                                                : 3000060;
+                                            node.style.setProperty('z-index', safeZ.toString(), 'important');
+                                        }
+                                    }
+                                } catch(e) {}
+                            }
                         }
                     });
                 }

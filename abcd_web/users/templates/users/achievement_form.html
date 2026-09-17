@@ -780,30 +780,12 @@
 
 {% block extra_js %}
 <script>
-    // --- GLOBAL POPUP ---
-    window.showStyledPopup = function({ title = 'Notice', message = '', type = 'info', onOk = null, okText = 'OK' } = {}) {
-        const colors = {
-            warning: { border: '#ffc107', icon: '⚠️', titleColor: '#856404' },
-            error: { border: '#dc3545', icon: '❌', titleColor: '#721c24' },
-            info: { border: '#17a2b8', icon: 'ℹ️', titleColor: '#0c5460' },
-            success: { border: '#28a745', icon: '✅', titleColor: '#155724' }
-        };
-        const c = colors[type] || colors.info;
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
-        const box = document.createElement('div');
-        box.style.cssText = 'background:#fff;border-radius:16px;padding:26px 28px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
-        box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:10px">${c.icon}</div>
-                         <h3 style="color:${c.titleColor};margin-bottom:12px;font-size:1.2rem">${title}</h3>
-                         <div style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:22px">${message}</div>
-                         <button id="styledPopupOkBtn" style="background:${c.border};color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity 0.2s">${okText}</button>`;
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-        document.getElementById('styledPopupOkBtn').onclick = () => { overlay.remove(); if(onOk) onOk(); };
-    };
+    // --- GLOBAL POPUP --- delegated to CustomPopup (custom-popup.js) for proper z-index stacking
+    // NOTE: Do NOT override window.showStyledPopup here; custom-popup.js handles it globally.
     function showStyledPopup(options) {
-        return window.showStyledPopup(options);
+        return window.showStyledPopup ? window.showStyledPopup(options) : Promise.resolve();
     }
+
 
     // --- CUSTOM SELECTS ---
     function initCustomSelects() {

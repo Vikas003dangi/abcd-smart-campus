@@ -355,7 +355,7 @@
       board = document.createElement('div');
       board.id = 'gCustomColorPickerBoard';
       board.className = 'custom-color-picker-board';
-      board.style.cssText = 'display: none; position: fixed; z-index: 100001; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); width: 228px; user-select: none; -webkit-user-select: none; box-sizing: border-box; touch-action: none;';
+      board.style.cssText = 'display: none; position: fixed; z-index: 3000060 !important; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); width: 228px; user-select: none; -webkit-user-select: none; box-sizing: border-box; touch-action: none;';
       board.innerHTML = `
         <div class="cp-sv-container" style="position: relative; width: 100%; height: 120px; border-radius: 8px; overflow: hidden; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; line-height: 0; margin-bottom: 10px;">
           <canvas class="cp-canvas-sv" width="204" height="120" style="display: block; width: 100%; height: 100%; border-radius: 8px;"></canvas>
@@ -465,6 +465,10 @@
     board.style.top = topVal + 'px';
     board.style.left = leftVal + 'px';
     board.style.display = 'block';
+    const boardZ = (typeof window.getHighestZIndex === 'function')
+      ? window.getHighestZIndex([board]) + 20
+      : 3000100;
+    board.style.setProperty('z-index', boardZ.toString(), 'important');
 
     if (!customColorPickerInstance) {
       customColorPickerInstance = new CustomColorPicker(

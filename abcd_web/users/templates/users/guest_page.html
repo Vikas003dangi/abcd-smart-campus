@@ -8,6 +8,329 @@
   <!-- Preload first hero slide for instant LCP -->
   <link rel="preload" as="image" href="{% static 'data/webp/frame mehenat ki.webp' %}" fetchpriority="high">
   <style>
+    /* App Cards & Horizontal Scroll Carousel (Exact match to Home Page) */
+    .app-cards-scroll-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0 25px 0;
+      overflow: visible;
+    }
+
+    .app-cards-scroll-track {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 10px 18px 15px 18px;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      cursor: grab;
+      user-select: none;
+      justify-content: center;
+      transition: -webkit-mask-image 0.25s ease, mask-image 0.25s ease;
+      border-radius: 20px;
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px, black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px, black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%);
+    }
+
+    .app-cards-scroll-track.grabbing {
+      cursor: grabbing;
+      scroll-behavior: auto;
+    }
+
+    .app-cards-scroll-track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-cards-scroll-wrapper.no-scroll .app-scroll-btn {
+      display: none !important;
+    }
+
+    .app-cards-scroll-wrapper.no-scroll .app-cards-scroll-track {
+      justify-content: center !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      cursor: default;
+    }
+
+    .app-cards-scroll-track .app-card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px 8px;
+      text-align: center;
+      text-decoration: none;
+      color: #1e293b;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex: 0 0 118px;
+      min-width: 118px;
+    }
+
+    @media (max-width: 768px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 95px;
+        min-width: 95px;
+        padding: 11px 5px;
+        gap: 6px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.5rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.70rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 78px;
+        min-width: 78px;
+        padding: 9px 3px;
+        gap: 5px;
+        border-radius: 13px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.25rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.64rem !important;
+        line-height: 1.15;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 68px;
+        min-width: 68px;
+        padding: 7px 2px;
+        gap: 4px;
+        border-radius: 11px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.1rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.58rem !important;
+        line-height: 1.1;
+      }
+    }
+
+    .app-cards-scroll-track .app-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
+      background: linear-gradient(to bottom, #ffffff, #f5f3ff);
+    }
+
+    .app-cards-scroll-track .app-card i {
+      font-size: 2.2rem;
+      color: #6366f1;
+      transition: transform 0.3s ease;
+    }
+
+    .app-cards-scroll-track .app-card:hover i {
+      transform: scale(1.18);
+    }
+
+    .app-cards-scroll-track .app-card span {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.1px;
+    }
+
+    body.dark-theme .app-cards-scroll-track .app-card {
+      background: linear-gradient(135deg, #2c3240 0%, #1a1e29 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #f8fafc !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    body.dark-theme .app-cards-scroll-track .app-card:hover {
+      background: linear-gradient(135deg, #373e4f 0%, #222735 100%) !important;
+      border-color: rgba(168, 85, 247, 0.4) !important;
+      box-shadow: 0 12px 24px rgba(168, 85, 247, 0.3) !important;
+    }
+
+    body.dark-theme .app-cards-scroll-track .app-card i {
+      color: #a855f7;
+    }
+
+    .quick-actions-title {
+      color: #1e293b;
+      transition: color 0.3s ease;
+    }
+    body.dark-theme .quick-actions-title {
+      color: #f8fafc !important;
+    }
+
+    /* Floating Semi-Transparent Arrow Buttons Over Cards */
+    .app-scroll-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+      color: #4f46e5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.55rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      z-index: 25;
+      outline: none;
+    }
+
+    .app-scroll-btn.prev {
+      left: 4px;
+    }
+
+    .app-scroll-btn.next {
+      right: 4px;
+    }
+
+    .app-scroll-btn:hover {
+      background: rgba(99, 102, 241, 0.85);
+      color: #ffffff;
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+      border-color: rgba(99, 102, 241, 0.6);
+    }
+
+    body.dark-theme .app-scroll-btn {
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      color: #c084fc;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-theme .app-scroll-btn:hover {
+      background: rgba(168, 85, 247, 0.85);
+      color: #ffffff;
+      box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+      border-color: rgba(168, 85, 247, 0.6);
+    }
+
+    @media (max-width: 600px) {
+      .guest-quick-actions-section {
+        padding: 0 4px !important;
+        margin: 20px auto 10px auto !important;
+      }
+      .app-cards-scroll-track {
+        padding: 8px 4px 12px 4px !important;
+        gap: 8px !important;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
+      .quick-actions-title {
+        padding-left: 8px;
+        font-size: 1.25rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-scroll-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1.25rem;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
+    }
+
+    /* Premium cards in guest page remain as they were (1 per row on mobile/small screens) */
+    @media (max-width: 768px) {
+      .premium-services-section .features-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+      }
+    }
+
+    /* 2 in a Row for Why Choose ABCD? on Small Screens down to at least 350px */
+    @media (max-width: 599px) {
+      .features-section .features-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      .features-section .feature-card {
+        padding: 14px 10px !important;
+        border-radius: 14px !important;
+        text-align: center;
+      }
+
+      .features-section .feature-card .feature-icon {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.35rem !important;
+        margin-bottom: 10px !important;
+      }
+
+      .features-section .feature-card h3 {
+        font-size: 0.92rem !important;
+        margin-bottom: 6px !important;
+        line-height: 1.25 !important;
+        font-weight: 700 !important;
+      }
+
+      .features-section .feature-card p {
+        font-size: 0.72rem !important;
+        line-height: 1.35 !important;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .features-section .features-grid {
+        gap: 8px !important;
+      }
+
+      .features-section .feature-card {
+        padding: 10px 8px !important;
+        border-radius: 12px !important;
+      }
+
+      .features-section .feature-card .feature-icon {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.15rem !important;
+        margin-bottom: 6px !important;
+      }
+
+      .features-section .feature-card h3 {
+        font-size: 0.82rem !important;
+        margin-bottom: 4px !important;
+        line-height: 1.2 !important;
+      }
+
+      .features-section .feature-card p {
+        font-size: 0.66rem !important;
+        line-height: 1.25 !important;
+      }
+    }
+
     /* Logo Image Hover zoom and glow effect */
     .top-nav-menu .logoImage a,
     .top-nav-menu .logoImage a:hover,
@@ -2441,7 +2764,7 @@
         display: flex !important;
         backdrop-filter: blur(14px) !important;
         -webkit-backdrop-filter: blur(14px) !important;
-        z-index: 50000 !important;
+        z-index: 3000010 !important;
         opacity: 1;
         pointer-events: auto !important;
     }
@@ -2465,7 +2788,7 @@
         transform: scale(0.85) translateY(20px);
         transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         position: relative;
-        z-index: 50001 !important;
+        z-index: 3000011 !important;
     }
     body.dark-theme .reg-success-card {
         background: linear-gradient(145deg, #1e1b4b 0%, #0f172a 100%);
@@ -2513,7 +2836,7 @@
     .confetti-particle {
         position: fixed;
         opacity: 0;
-        z-index: 2500001;
+        z-index: 3000009;
         pointer-events: none;
         border-radius: 2px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
@@ -2683,7 +3006,7 @@
         display: flex !important;
         backdrop-filter: blur(14px) !important;
         -webkit-backdrop-filter: blur(14px) !important;
-        z-index: 30000 !important;
+        z-index: 3000010 !important;
         pointer-events: auto !important;
     }
 
@@ -2699,7 +3022,7 @@
     }
 
     .choice-modal-card {
-        z-index: 30001 !important;
+        z-index: 3000011 !important;
         background: white !important;
         color: #333 !important;
         border-radius: 24px !important;
@@ -3052,7 +3375,7 @@
     </div>
 
     <!-- Notification Bell -->
-    {% if user.is_authenticated and nav_achievement or user.is_authenticated and profile.dob or user.is_authenticated and profile.is_admitted %}
+    {% if user.is_authenticated %}
     <div class="notification-wrapper">
       <div class="abcd-notif-btn" id="notificationBell" onclick="toggleNotificationsPanel()" title="Notifications">
         <i class='bx bx-bell'></i>
@@ -4059,7 +4382,7 @@
 {% block sidebar_wrapper %}
 <div class="sidebar-wrapper">
   <ul class="nav-sidebar" id="sidebar" style="list-style: none;">
-    <!-- Home (<=950px) -->
+    <!-- 1. Home -->
     <li class="sidebar-item-home">
       <a href="{% url 'users:guest_page' %}" class="{% if request.resolver_match.url_name == 'guest_page' %}active{% endif %}">
         <i class='bx bx-home-alt-2'></i>
@@ -4067,88 +4390,7 @@
       </a>
     </li>
 
-    <!-- ABCD's Hall Of Fame (always) -->
-    <li>
-      <a href="{% url 'users:hall_of_fame' %}" class="{% if request.resolver_match.url_name == 'hall_of_fame' %}active{% endif %}">
-        <i class='bx bxs-award'></i>
-        <span>ABCD's Hall Of Fame</span>
-      </a>
-    </li>
-
-    <!-- To-Do Hub (always) -->
-    <li>
-      <a href="{% url 'users:todo_hub' %}" class="{% if request.resolver_match.url_name == 'todo_hub' %}active{% endif %}">
-        <i class='bx bx-list-check'></i>
-        <span>To-Do Hub</span>
-      </a>
-    </li>
-
-    <!-- Profile (if authenticated) -->
-    {% if user.is_authenticated %}
-    <li>
-      <a href="{% url 'users:profile' %}" class="{% if request.resolver_match.url_name == 'student_details_S' or request.resolver_match.url_name == 'achievement_detail' or request.resolver_match.url_name == 'guest_profile_details' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
-        <i class='bx bxs-user-pin'></i>
-        <span>Profile</span>
-      </a>
-    </li>
-    {% endif %}
-
-    <!-- Library Status (always) -->
-    <li>
-      <a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}">
-        <i class='bx bxs-buildings'></i>
-        <span>Library Status</span>
-      </a>
-    </li>
-
-    <!-- New Admission -->
-    {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
-    <li>
-      <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
-        <i class='bx bxs-user-plus'></i>
-        <span>+ New Admission</span>
-      </a>
-    </li>
-    {% endif %}
-
-    <!-- Add Your Great Achievement -->
-    {% if not nav_achievement %}
-    <li>
-      <a href="{% url 'users:achievement_form' %}" class="{% if request.resolver_match.url_name == 'achievement_form' %}active{% endif %}">
-        <i class='bx bxs-trophy'></i>
-        <span>Add Your Great Achievement</span>
-      </a>
-    </li>
-    {% endif %}
-
-    <!-- Notifications -->
-    {% if user.is_authenticated %}
-    <li style="position: relative;">
-      <a href="#" onclick="toggleNotificationsPanel(); return false;" style="display: flex; align-items: center; gap: 10px;">
-        <i class='bx bx-bell'></i>
-        <span>Notifications</span>
-        {% if unread_count > 0 %}
-        <span class="notif-count" style="
-          background: #ff4757;
-          color: white;
-          border-radius: 999px;
-          padding: 1px 7px;
-          font-size: 0.7rem;
-          font-weight: 800;
-          min-width: 18px;
-          height: 18px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          margin-left: auto;
-          box-shadow: 0 2px 6px rgba(255,71,87,0.5);
-        ">{{ unread_count }}</span>
-        {% endif %}
-      </a>
-    </li>
-    {% endif %}
-
-    <!-- Guidy -->
+    <!-- 2. Guidy -->
     {% if user.is_authenticated and not user.is_staff %}
     <li style="position: relative;">
       <a href="{% url 'users:guidy_home' %}" class="{% if 'guidy' in request.resolver_match.url_name %}active{% endif %}" style="display: flex; align-items: center; gap: 10px;">
@@ -4175,7 +4417,15 @@
     </li>
     {% endif %}
 
-    <!-- Our Courses (<=1085px) -->
+    <!-- 3. To-Do Hub -->
+    <li>
+      <a href="{% url 'users:todo_hub' %}" class="{% if request.resolver_match.url_name == 'todo_hub' %}active{% endif %}">
+        <i class='bx bx-list-check'></i>
+        <span>To-Do Hub</span>
+      </a>
+    </li>
+
+    <!-- 4. Our Courses -->
     <li class="sidebar-item-courses">
       <a href="{% url 'users:courses' %}" class="{% if 'course' in request.resolver_match.url_name %}active{% endif %}">
         <i class='bx bxs-book-open'></i>
@@ -4183,23 +4433,43 @@
       </a>
     </li>
 
-    <!-- About Us (<=1485px) -->
-    <li class="sidebar-item-about">
-      <a href="{% url 'users:about_us' %}" class="{% if request.resolver_match.url_name == 'about_us' %}active{% endif %}">
-        <i class='bx bx-info-circle'></i>
-        <span>About Us</span>
+    <!-- 5. Library Seat Status -->
+    <li>
+      <a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}">
+        <i class='bx bxs-buildings'></i>
+        <span>Library Seat Status</span>
       </a>
     </li>
 
-    <!-- Our Services (<=1285px) -->
-    <li class="sidebar-item-services">
-      <a href="{% url 'users:services' %}" class="{% if request.resolver_match.url_name == 'services' %}active{% endif %}">
-        <i class='bx bx-cog'></i>
-        <span>Our Services</span>
+    <!-- 6. ABCD's Hall Of Fame -->
+    <li>
+      <a href="{% url 'users:hall_of_fame' %}" class="{% if request.resolver_match.url_name == 'hall_of_fame' %}active{% endif %}">
+        <i class='bx bxs-award'></i>
+        <span>ABCD's Hall Of Fame</span>
       </a>
     </li>
 
-    <!-- View Resolved Complaints (always) -->
+    <!-- 7. New Admission -->
+    {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+    <li>
+      <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
+        <i class='bx bxs-user-plus'></i>
+        <span>New Admission</span>
+      </a>
+    </li>
+    {% endif %}
+
+    <!-- 8. Add Your Great Achievement -->
+    {% if not nav_achievement %}
+    <li>
+      <a href="{% url 'users:achievement_form' %}" class="{% if request.resolver_match.url_name == 'achievement_form' %}active{% endif %}">
+        <i class='bx bxs-trophy'></i>
+        <span>Add Your Great Achievement</span>
+      </a>
+    </li>
+    {% endif %}
+
+    <!-- 9. View Resolved Complaints -->
     <li>
       <a href="{% url 'users:public_resolved_complaints' %}" class="{% if request.resolver_match.url_name == 'public_resolved_complaints' %}active{% endif %}">
         <i class='bx bxs-message-square-detail'></i>
@@ -4207,7 +4477,60 @@
       </a>
     </li>
 
-    <!-- Contact (<=1645px) -->
+    <!-- 10. Notifications -->
+    {% if user.is_authenticated %}
+    <li style="position: relative;">
+      <a href="#" onclick="toggleNotificationsPanel(); return false;" style="display: flex; align-items: center; gap: 10px;">
+        <i class='bx bx-bell'></i>
+        <span>Notifications</span>
+        {% if unread_count > 0 %}
+        <span class="notif-count" style="
+          background: #ff4757;
+          color: white;
+          border-radius: 999px;
+          padding: 1px 7px;
+          font-size: 0.7rem;
+          font-weight: 800;
+          min-width: 18px;
+          height: 18px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-left: auto;
+          box-shadow: 0 2px 6px rgba(255,71,87,0.5);
+        ">{{ unread_count }}</span>
+        {% endif %}
+      </a>
+    </li>
+    {% endif %}
+
+    <!-- 11. Profile (if authenticated) -->
+    {% if user.is_authenticated %}
+    <li>
+      <a href="{% url 'users:profile' %}" class="{% if request.resolver_match.url_name == 'student_details_S' or request.resolver_match.url_name == 'achievement_detail' or request.resolver_match.url_name == 'guest_profile_details' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
+        <i class='bx bxs-user-pin'></i>
+        <span>Profile</span>
+      </a>
+    </li>
+    {% endif %}
+
+    <!-- 12. About Us -->
+    <li class="sidebar-item-about">
+      <a href="{% url 'users:about_us' %}" class="{% if request.resolver_match.url_name == 'about_us' %}active{% endif %}">
+        <i class='bx bx-info-circle'></i>
+        <span>About Us</span>
+      </a>
+    </li>
+
+    <!-- 13. Our Services -->
+    <li class="sidebar-item-services">
+      <a href="{% url 'users:services' %}" class="{% if request.resolver_match.url_name == 'services' %}active{% endif %}">
+        <i class='bx bx-cog'></i>
+        <span>Our Services</span>
+      </a>
+    </li>
+
+    <!-- 14. Contact -->
     <li class="sidebar-item-contact">
       <a href="{% url 'users:contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">
         <i class='bx bx-phone'></i>
@@ -4215,7 +4538,7 @@
       </a>
     </li>
 
-    <!-- Take Tour Item -->
+    <!-- 15. Take Tour Item -->
     <li class="sidebar-tour-item">
       <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
         <i class='bx bx-compass' style="color:#0284c7;"></i>
@@ -4223,7 +4546,7 @@
       </a>
     </li>
 
-    <!-- Auth Button (Logout / Sign In) -->
+    <!-- 16. Auth Button (Logout / Sign In) -->
     <li class="sidebar-signin-item sidebar-logout-item">
       {% if user.is_authenticated %}
       <a href="{% url 'users:logout' %}" class="sidebar-signin-btn sidebar-logout-btn">
@@ -4718,6 +5041,72 @@ document.addEventListener('click', function(e) {
   </section>
 
 
+
+  <!-- Quick Actions Scrollable App Cards -->
+  <section class="guest-quick-actions-section" style="max-width: 1200px; margin: 35px auto 15px auto; padding: 0 15px;">
+    <h2 class="quick-actions-title" style="margin-bottom: 15px; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+      <i class='bx bxs-zap' style='color:#f1c40f;'></i> Quick Actions
+    </h2>
+    <div class="app-cards-scroll-wrapper">
+      <button type="button" class="app-scroll-btn prev" onclick="scrollAppCards(this, -1)" aria-label="Scroll left">
+        <i class='bx bx-chevron-left'></i>
+      </button>
+      <div class="app-cards-scroll-track">
+        <!-- 1. Guidy -->
+        <a href="{% url 'users:guidy_home' %}" class="app-card">
+          <i class='bx bx-message-rounded-dots'></i>
+          <span>Guidy Chat</span>
+        </a>
+        <!-- 2. To-Do Hub -->
+        <a href="{% url 'users:todo_hub' %}" class="app-card">
+          <i class='bx bx-task'></i>
+          <span>To-Do Hub</span>
+        </a>
+        <!-- 3. Library Status -->
+        <a href="{% url 'users:library_availability' %}" class="app-card">
+          <i class='bx bx-buildings'></i>
+          <span>Library Status</span>
+        </a>
+        <!-- 4. Hall of Fame -->
+        <a href="{% url 'users:hall_of_fame' %}" class="app-card">
+          <i class='bx bx-trophy'></i>
+          <span>Hall of Fame</span>
+        </a>
+        <!-- 5. Courses -->
+        <a href="{% url 'users:courses' %}" class="app-card">
+          <i class='bx bx-book-open'></i>
+          <span>Courses</span>
+        </a>
+        <!-- 6. New Admission -->
+        {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+        <a href="{% url 'users:admission_form' %}" class="app-card">
+          <i class='bx bx-user-plus'></i>
+          <span>New Admission</span>
+        </a>
+        {% endif %}
+        <!-- 7. Add Achievement -->
+        {% if not nav_achievement %}
+        <a href="{% url 'users:achievement_form' %}" class="app-card">
+          <i class='bx bx-award'></i>
+          <span>Add Achievement</span>
+        </a>
+        {% endif %}
+        <!-- 8. Contact -->
+        <a href="{% url 'users:contact' %}" class="app-card">
+          <i class='bx bx-phone'></i>
+          <span>Contact</span>
+        </a>
+        <!-- 9. Resolved Complaints -->
+        <a href="{% url 'users:public_resolved_complaints' %}" class="app-card">
+          <i class='bx bx-badge-check'></i>
+          <span>Resolved Issues</span>
+        </a>
+      </div>
+      <button type="button" class="app-scroll-btn next" onclick="scrollAppCards(this, 1)" aria-label="Scroll right">
+        <i class='bx bx-chevron-right'></i>
+      </button>
+    </div>
+  </section>
 
   <!-- Premium Services Section -->
   <section class="premium-services-section">

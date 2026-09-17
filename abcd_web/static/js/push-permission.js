@@ -103,7 +103,8 @@
                 color: #1e293b;
                 font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
                 box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18), 0 0 25px rgba(108, 99, 255, 0.15);
-                z-index: 15000;
+                z-index: 3000050 !important;
+                pointer-events: auto !important;
                 transform: translateY(130%);
                 opacity: 0;
                 transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;

@@ -988,32 +988,17 @@
         }
     }
 
-    // Ensure window.showStyledConfirm fallback exists
+    // Ensure window.showStyledConfirm fallback delegates to CustomPopup for proper stacking
     if (!window.showStyledConfirm) {
-        window.showStyledConfirm = function (title, message, isDelete = false) {
-            return new Promise((resolve) => {
-                const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
-                const box = document.createElement('div');
-                box.style.cssText = 'background:#fff;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
-                const icon = isDelete ? '🗑️' : '❓';
-                const btnBg = isDelete ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
-                box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:10px">${icon}</div>`
-                    + `<h3 style="color:#1e293b;margin-bottom:12px;font-size:1.25rem;font-weight:700">${title}</h3>`
-                    + `<p style="color:#64748b;font-size:0.95rem;line-height:1.6;margin-bottom:22px">${message}</p>`
-                    + `<div style="display:flex;justify-content:center;gap:12px;">`
-                    + `<button id="stCancelBtn" style="background:#e2e8f0;color:#334155;border:none;padding:10px 24px;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;">Cancel</button>`
-                    + `<button id="stConfirmBtn" style="background:${btnBg};color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:0.95rem;font-weight:600;cursor:pointer;">Confirm</button>`
-                    + `</div>`;
-                overlay.appendChild(box);
-                document.body.appendChild(overlay);
-
-                document.getElementById('stCancelBtn').onclick = () => { overlay.remove(); resolve(false); };
-                document.getElementById('stConfirmBtn').onclick = () => { overlay.remove(); resolve(true); };
-                overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
-            });
+        window.showStyledConfirm = function(title, message, isDelete = false) {
+            if (window.CustomPopup) {
+                return CustomPopup.confirm(message, title);
+            }
+            // Last-resort fallback (CustomPopup not loaded)
+            return Promise.resolve(window.confirm(title + '\n\n' + message));
         };
     }
+
 
     document.addEventListener('click', async function (e) {
         const btn = e.target.closest('.action-confirm-btn, .delete-confirm-btn');

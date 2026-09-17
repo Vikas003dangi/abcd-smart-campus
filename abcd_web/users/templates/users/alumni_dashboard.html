@@ -1600,7 +1600,176 @@
 </style>
 {% endblock %}
 
+{% block sidebar_nav %}
+      <!-- 1. Alumni Dashboard -->
+      <li>
+        <a href="{% url 'users:alumni_dashboard' %}" class="{% if request.resolver_match.url_name == 'alumni_dashboard' %}active{% endif %}">
+          <i class='bx bxs-dashboard'></i>
+          <span>Alumni Dashboard</span>
+        </a>
+      </li>
 
+      <!-- 2. Student Dashboard (if user also has admitted student profile) -->
+      {% if profile and profile.is_admitted or profile and profile.dob %}
+      <li>
+        <a href="{% url 'users:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
+          <i class='bx bxs-user-badge'></i>
+          <span>Student Dashboard</span>
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 3. Guidy -->
+      {% if user.is_authenticated and not user.is_staff %}
+      <li style="position: relative;">
+        <a href="{% url 'users:guidy_home' %}" class="{% if 'guidy' in request.resolver_match.url_name %}active{% endif %}" style="display: flex; align-items: center; gap: 10px;">
+          <i class='bx bxs-chat'></i>
+          <span>Guidy</span>
+          {% if guidy_badge_count > 0 %}
+          <span class="guidy-badge-element" style="
+            background: #ff4757;
+            color: white;
+            border-radius: 999px;
+            padding: 1px 7px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            min-width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            box-shadow: 0 2px 6px rgba(255,71,87,0.5);
+          ">{{ guidy_badge_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 4. To-Do Hub -->
+      <li>
+        <a href="{% url 'users:todo_hub' %}" class="{% if request.resolver_match.url_name == 'todo_hub' %}active{% endif %}">
+          <i class='bx bx-list-check'></i>
+          <span>To-Do Hub</span>
+        </a>
+      </li>
+
+      <!-- 5. Our Courses -->
+      <li>
+        <a href="{% url 'users:courses' %}" class="{% if 'course' in request.resolver_match.url_name %}active{% endif %}">
+          <i class='bx bx-book-open'></i>
+          <span>Our Courses</span>
+        </a>
+      </li>
+
+      <!-- 6. Library Status -->
+      <li>
+        <a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}">
+          <i class='bx bxs-buildings'></i>
+          <span>Library Status</span>
+        </a>
+      </li>
+
+      <!-- 7. ABCD's Hall Of Fame -->
+      <li>
+        <a href="{% url 'users:hall_of_fame' %}" class="{% if request.resolver_match.url_name == 'hall_of_fame' %}active{% endif %}">
+          <i class='bx bxs-award'></i>
+          <span>ABCD's Hall Of Fame</span>
+        </a>
+      </li>
+
+      <!-- 8. View/Edit Profile -->
+      {% if nav_achievement or user.is_authenticated %}
+      <li>
+        <a href="{% url 'users:profile' %}" class="{% if request.resolver_match.url_name == 'achievement_detail' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
+          <i class='bx bxs-user-circle'></i>
+          <span>View/Edit Profile</span>
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 9. Your Achievements (Timeline Anchor) -->
+      {% if has_alumni_achievements %}
+      <li>
+        <a href="#alumni-achievement-analytics" onclick="document.getElementById('alumni-achievement-analytics')?.scrollIntoView({ behavior: 'smooth' }); if(document.getElementById('sidebar')?.classList.contains('active')) { toggleSidebar(); } return false;">
+          <i class='bx bxs-bar-chart-square'></i>
+          <span>Your Achievements</span>
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 10. Complaints -->
+      <li>
+        <a href="{% url 'users:student_complaints' %}" class="{% if 'student_complaint' in request.resolver_match.url_name %}active{% endif %}">
+          <i class='bx bxs-message-square-detail'></i>
+          <span>Complaints</span>
+        </a>
+      </li>
+
+      <!-- 11. Notifications -->
+      {% if user.is_authenticated %}
+      <li style="position: relative;">
+        <a href="#" onclick="toggleNotificationsPanel(); return false;" style="display: flex; align-items: center; gap: 10px;">
+          <i class='bx bx-bell'></i>
+          <span>Notifications</span>
+          {% if unread_count > 0 %}
+          <span class="notif-count" style="
+            background: #ff4757;
+            color: white;
+            border-radius: 999px;
+            padding: 1px 7px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            min-width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            box-shadow: 0 2px 6px rgba(255,71,87,0.5);
+          ">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 12. About Us -->
+      <li class="sidebar-show-1660">
+        <a href="{% url 'users:about_us' %}" class="{% if request.resolver_match.url_name == 'about_us' %}active{% endif %}">
+          <i class='bx bx-info-circle'></i>
+          <span>About Us</span>
+        </a>
+      </li>
+
+      <!-- 13. Our Services -->
+      <li class="sidebar-show-1560">
+        <a href="{% url 'users:services' %}" class="{% if request.resolver_match.url_name == 'services' %}active{% endif %}">
+          <i class='bx bx-briefcase'></i>
+          <span>Our Services</span>
+        </a>
+      </li>
+
+      <!-- 14. Contact -->
+      <li class="sidebar-show-1120">
+        <a href="{% url 'users:contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">
+          <i class='bx bx-phone-call'></i>
+          <span>Contact</span>
+        </a>
+      </li>
+
+      <!-- 15. Take Tour Item -->
+      <li class="sidebar-tour-item">
+        <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
+          <i class='bx bx-compass' style="color:#0284c7;"></i>
+          <span>Take Tour</span>
+        </a>
+      </li>
+
+      <!-- 16. Logout -->
+      <li class="sidebar-logout-item">
+        <a href="{% url 'users:logout' %}" class="sidebar-logout-btn"><i class='bx bx-log-out'></i> Logout</a>
+      </li>
+{% endblock sidebar_nav %}
 
 {% block content %}
 <div class="dashboard-container">
@@ -1713,6 +1882,69 @@
     </section>
     {% endif %}
 
+    <!-- Quick Actions App Icons Grid -->
+    <h2 class="quick-actions-title" style="margin-top: 30px; margin-bottom: 20px;"><i class='bx bxs-zap' style='color:#f1c40f;'></i> Quick Actions</h2>
+    <div class="app-icons-grid" style="margin-bottom: 30px;">
+      <!-- 1. Courses -->
+      <a href="{% url 'users:courses' %}" class="app-card">
+        <i class='bx bx-book-open'></i>
+        <span>Courses</span>
+      </a>
+
+      <!-- 2. Library seat status/availability -->
+      {% if profile and profile.service_type == 'Library' and profile.has_library_seat %}
+      <a href="{% url 'users:your_seat_status' %}" class="app-card">
+        <i class='bx bx-chair'></i>
+        <span>Seat Status</span>
+      </a>
+      {% else %}
+      <a href="{% url 'users:library_availability' %}" class="app-card">
+        <i class='bx bx-buildings'></i>
+        <span>Library Status</span>
+      </a>
+      {% endif %}
+
+      <!-- 3. Guidy Chat -->
+      <a href="{% url 'users:guidy_home' %}" class="app-card">
+        <i class='bx bx-message-rounded-dots'></i>
+        <span>Guidy Chat</span>
+      </a>
+
+      <!-- 4. To-Do Hub -->
+      <a href="{% url 'users:todo_hub' %}" class="app-card">
+        <i class='bx bx-task'></i>
+        <span>To-Do Hub</span>
+      </a>
+
+      <!-- 5. New Admission -->
+      {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+      <a href="{% url 'users:admission_form' %}" class="app-card">
+        <i class='bx bx-user-plus'></i>
+        <span>New Admission</span>
+      </a>
+      {% endif %}
+
+      <!-- 6. Complaints -->
+      <a href="{% url 'users:student_complaints' %}" class="app-card">
+        <i class='bx bx-comment-detail'></i>
+        <span>Complaints</span>
+      </a>
+
+      <!-- 7. Hall of Fame -->
+      <a href="{% url 'users:hall_of_fame' %}" class="app-card">
+        <i class='bx bx-trophy'></i>
+        <span>Hall of Fame</span>
+      </a>
+
+      <!-- 8. Student Profile (only if user is also student) -->
+      {% if profile and profile.is_admitted or profile and profile.dob %}
+      <a href="{% url 'users:student_dashboard' %}" class="app-card">
+        <i class='bx bxs-user-badge'></i>
+        <span>Student Profile</span>
+      </a>
+      {% endif %}
+    </div>
+
     <!-- Premium Services Section -->
     <section class="premium-services-section">
       <h2>Our Live Services</h2>
@@ -1773,69 +2005,6 @@
         </div>
       </div>
     </section>
-
-    <!-- Quick Actions App Icons Grid -->
-    <h2 class="quick-actions-title" style="margin-top: 40px; margin-bottom: 20px;"><i class='bx bxs-zap' style='color:#f1c40f;'></i> Quick Actions</h2>
-    <div class="app-icons-grid" style="margin-bottom: 40px;">
-      <!-- 1. Courses -->
-      <a href="{% url 'users:courses' %}" class="app-card">
-        <i class='bx bx-book-open'></i>
-        <span>Courses</span>
-      </a>
-
-      <!-- 2. Library seat status/availability -->
-      {% if profile and profile.service_type == 'Library' and profile.has_library_seat %}
-      <a href="{% url 'users:your_seat_status' %}" class="app-card">
-        <i class='bx bx-chair'></i>
-        <span>Seat Status</span>
-      </a>
-      {% else %}
-      <a href="{% url 'users:library_availability' %}" class="app-card">
-        <i class='bx bx-buildings'></i>
-        <span>Library Status</span>
-      </a>
-      {% endif %}
-
-      <!-- 3. Guidy Chat -->
-      <a href="{% url 'users:guidy_home' %}" class="app-card">
-        <i class='bx bx-message-rounded-dots'></i>
-        <span>Guidy Chat</span>
-      </a>
-
-      <!-- 4. To-Do Hub -->
-      <a href="{% url 'users:todo_hub' %}" class="app-card">
-        <i class='bx bx-task'></i>
-        <span>To-Do Hub</span>
-      </a>
-
-      <!-- 5. New Admission -->
-      {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
-      <a href="{% url 'users:admission_form' %}" class="app-card">
-        <i class='bx bx-user-plus'></i>
-        <span>New Admission</span>
-      </a>
-      {% endif %}
-
-      <!-- 6. Complaints -->
-      <a href="{% url 'users:student_complaints' %}" class="app-card">
-        <i class='bx bx-comment-detail'></i>
-        <span>Complaints</span>
-      </a>
-
-      <!-- 7. Hall of Fame -->
-      <a href="{% url 'users:hall_of_fame' %}" class="app-card">
-        <i class='bx bx-trophy'></i>
-        <span>Hall of Fame</span>
-      </a>
-
-      <!-- 8. Student Profile (only if user is also student) -->
-      {% if profile and profile.is_admitted or profile and profile.dob %}
-      <a href="{% url 'users:student_dashboard' %}" class="app-card">
-        <i class='bx bxs-user-badge'></i>
-        <span>Student Profile</span>
-      </a>
-      {% endif %}
-    </div>
 
     <!-- 6. YouTube Section -->
     <section class="youtube-section" style="margin-top: 0;">

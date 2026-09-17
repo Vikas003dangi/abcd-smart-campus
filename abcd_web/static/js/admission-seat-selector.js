@@ -1,45 +1,20 @@
-/* showStyledPopup is defined globally in admission_form.html.
-   Fallback in case this JS is used on a page without the inline definition: */
+/* showStyledPopup is defined globally by custom-popup.js.
+   This is a safe guard in case the file is used in an unusual context: */
 if (typeof window.showStyledPopup === 'undefined') {
-    window.showStyledPopup = function({ title = 'Notice', message = '', type = 'info', onOk = null, okText = 'OK' } = {}) {
-        const existing = document.getElementById('styledPopupOverlay');
-        if (existing) existing.remove();
-        const colors = {
-            warning: { border: '#ffc107', icon: '⚠️', titleColor: '#856404' },
-            error: { border: '#dc3545', icon: '❌', titleColor: '#721c24' },
-            info: { border: '#17a2b8', icon: 'ℹ️', titleColor: '#0c5460' },
-            success: { border: '#28a745', icon: '✅', titleColor: '#155724' }
-        };
-        const c = colors[type] || colors.info;
-
-        if (window.playABCDSound) {
-            if (type === 'success') {
-                window.playABCDSound('done');
-            } else if (type === 'error' || type === 'warning') {
-                window.playABCDSound('error');
-            }
+    // Delegate to the global CustomPopup system once it's ready
+    window.showStyledPopup = function(options) {
+        if (window.CustomPopup) {
+            return window.CustomPopup.show(options);
         }
-
-        const overlay = document.createElement('div');
-        overlay.id = 'styledPopupOverlay';
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
-        const box = document.createElement('div');
-        box.style.cssText = 'background:#fff;border-radius:16px;padding:30px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;animation:popIn 0.25s ease';
-        box.innerHTML = '<div style="font-size:2.5rem;margin-bottom:10px">' + c.icon + '</div>'
-            + '<h3 style="color:' + c.titleColor + ';margin-bottom:12px;font-size:1.2rem">' + title + '</h3>'
-            + '<p style="color:#555;font-size:0.95rem;line-height:1.6;margin-bottom:22px">' + message + '</p>'
-            + '<button id="styledPopupOkBtn" style="background:' + c.border + ';color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity 0.2s">' + okText + '</button>';
-        overlay.appendChild(box);
-        document.body.appendChild(overlay);
-        const okBtn = document.getElementById('styledPopupOkBtn');
-        const closePopup = function () { overlay.remove(); if (onOk) onOk(); };
-        okBtn.addEventListener('click', closePopup);
-        overlay.addEventListener('click', function (e) { if (e.target === overlay) closePopup(); });
+        // Absolute last resort: native alert
+        alert((options.title ? options.title + '\n' : '') + (options.message || ''));
+        if (options.onOk) options.onOk();
     };
-    if (typeof showStyledPopup === 'undefined') {
-        showStyledPopup = window.showStyledPopup;
-    }
 }
+if (typeof showStyledPopup === 'undefined') {
+    var showStyledPopup = window.showStyledPopup;
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
 

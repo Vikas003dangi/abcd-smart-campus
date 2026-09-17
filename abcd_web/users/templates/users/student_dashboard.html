@@ -1288,7 +1288,7 @@
       height: 100dvh;
       background: rgba(248, 249, 250, 0.98);
       box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
-      z-index: 25001 !important;
+      z-index: 3000020 !important;
       transform: translate3d(100%, 0, 0);
       will-change: transform;
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1313,7 +1313,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.45);
-      z-index: 25000 !important;
+      z-index: 3000019 !important;
       display: none;
       opacity: 0;
       backdrop-filter: blur(0px);
@@ -1992,6 +1992,196 @@
 
     body.dark-theme .app-card i {
       color: #a855f7;
+    }
+
+    /* App Cards Horizontal Scroll Carousel */
+    .app-cards-scroll-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0 25px 0;
+      overflow: visible;
+    }
+
+    .app-cards-scroll-track {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 10px 18px 15px 18px;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      cursor: grab;
+      user-select: none;
+      justify-content: center;
+      transition: -webkit-mask-image 0.25s ease, mask-image 0.25s ease;
+      border-radius: 20px;
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px, black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px, black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%);
+    }
+
+    .app-cards-scroll-track.grabbing {
+      cursor: grabbing;
+      scroll-behavior: auto;
+    }
+
+    .app-cards-scroll-track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-cards-scroll-wrapper.no-scroll .app-scroll-btn {
+      display: none !important;
+    }
+
+    .app-cards-scroll-wrapper.no-scroll .app-cards-scroll-track {
+      justify-content: center !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      cursor: default;
+    }
+
+    .app-cards-scroll-track .app-card {
+      flex: 0 0 118px;
+      min-width: 118px;
+    }
+
+    @media (max-width: 768px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 95px;
+        min-width: 95px;
+        padding: 11px 5px;
+        gap: 6px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.5rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.70rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 78px;
+        min-width: 78px;
+        padding: 9px 3px;
+        gap: 5px;
+        border-radius: 13px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.25rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.64rem !important;
+        line-height: 1.15;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .app-cards-scroll-track .app-card {
+        flex: 0 0 68px;
+        min-width: 68px;
+        padding: 7px 2px;
+        gap: 4px;
+        border-radius: 11px;
+      }
+      .app-cards-scroll-track .app-card i {
+        font-size: 1.1rem !important;
+      }
+      .app-cards-scroll-track .app-card span {
+        font-size: 0.58rem !important;
+        line-height: 1.1;
+      }
+    }
+
+    /* Floating Semi-Transparent Arrow Buttons Over Cards */
+    .app-scroll-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+      color: #4f46e5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.55rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      z-index: 25;
+      outline: none;
+    }
+
+    .app-scroll-btn.prev {
+      left: 4px;
+    }
+
+    .app-scroll-btn.next {
+      right: 4px;
+    }
+
+    .app-scroll-btn:hover {
+      background: rgba(99, 102, 241, 0.85);
+      color: #ffffff;
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+      border-color: rgba(99, 102, 241, 0.6);
+    }
+
+    body.dark-theme .app-scroll-btn {
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      color: #c084fc;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-theme .app-scroll-btn:hover {
+      background: rgba(168, 85, 247, 0.85);
+      color: #ffffff;
+      box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+      border-color: rgba(168, 85, 247, 0.6);
+    }
+
+    @media (max-width: 600px) {
+      .guest-quick-actions-section,
+      .home-quick-actions-section {
+        padding: 0 4px !important;
+        margin: 20px auto 10px auto !important;
+      }
+      .app-cards-scroll-track {
+        padding: 8px 4px 12px 4px !important;
+        gap: 8px !important;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
+      .quick-actions-title {
+        padding-left: 8px;
+        font-size: 1.25rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-scroll-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1.25rem;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
     }
 
     .fee-history {
@@ -4053,148 +4243,7 @@
       </li>
       {% endif %}
 
-      <!-- Courses: shown in sidebar at <=1020px (second position after dashboard links) -->
-      <li class="sidebar-show-1020">
-        <a href="{% url 'users:courses' %}" class="{% if 'course' in request.resolver_match.url_name %}active{% endif %}">
-          <i class='bx bx-book-open'></i>
-          <span>{% if profile.status == 'admitted' and not nav_achievement %}Courses{% else %}Our Courses{% endif %}</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="{% url 'users:hall_of_fame' %}" class="{% if request.resolver_match.url_name == 'hall_of_fame' %}active{% endif %}">
-          <i class='bx bxs-award'></i>
-          <span>ABCD's Hall Of Fame</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="{% url 'users:todo_hub' %}" class="{% if request.resolver_match.url_name == 'todo_hub' %}active{% endif %}" data-tour="student-nav-todo">
-          <i class='bx bx-list-check'></i>
-          <span>To-Do Hub</span>
-        </a>
-      </li>
-
-      {% if request.session.active_dashboard != 'alumni' %}
-        <!-- Student Space Sidebar Items -->
-        {% if profile.has_library_seat %}
-        <li>
-          <a href="{% url 'users:your_seat_status' %}" class="{% if request.resolver_match.url_name == 'your_seat_status' %}active{% endif %}" data-tour="student-seat-status">
-            <i class='bx bxs-car-battery'></i>
-            <span>Your Seat Status</span>
-          </a>
-        </li>
-        {% else %}
-        <li>
-          <a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}">
-            <i class='bx bxs-buildings'></i>
-            <span>Library Status</span>
-          </a>
-        </li>
-        {% endif %}
-
-        {% if profile %}
-        <li>
-          <a href="{% url 'users:profile' %}" class="{% if request.resolver_match.url_name == 'student_details_S' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
-            <i class='bx bxs-user-pin'></i>
-            <span>View/Edit Profile</span>
-          </a>
-        </li>
-        {% if profile.service_type == 'Coaching' %}
-        <li>
-          <a href="#student-performance-hub" onclick="document.getElementById('student-performance-hub')?.scrollIntoView({ behavior: 'smooth' }); if(document.getElementById('sidebar')?.classList.contains('active')) { toggleSidebar(); } return false;">
-            <i class='bx bxs-trophy'></i>
-            <span>Your Performance</span>
-          </a>
-        </li>
-        {% endif %}
-        {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
-        <li>
-          <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
-            <i class='bx bxs-user-plus'></i>
-            <span>New Admission</span>
-          </a>
-        </li>
-        {% endif %}
-        {% else %}
-        {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
-        <li>
-          <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
-            <i class='bx bxs-user-plus'></i>
-            <span>New Admission</span>
-          </a>
-        </li>
-        {% endif %}
-        {% endif %}
-
-      {% elif request.session.active_dashboard == 'alumni' %}
-        <!-- Alumni Space Sidebar Items -->
-        <li>
-          <a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}">
-            <i class='bx bxs-buildings'></i>
-            <span>Library Status</span>
-          </a>
-        </li>
-        {% if nav_achievement %}
-        <li>
-          <a href="{% url 'users:profile' %}" class="{% if request.resolver_match.url_name == 'achievement_detail' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
-            <i class='bx bxs-user-circle'></i>
-            <span>View/Edit Profile</span>
-          </a>
-        </li>
-        {% if has_alumni_achievements %}
-        <li>
-          <a href="#alumni-achievement-analytics">
-            <i class='bx bxs-bar-chart-square'></i>
-            <span>Your Achievements</span>
-          </a>
-        </li>
-        {% endif %}
-        {% endif %}
-      {% endif %}
-
-      {% if not nav_achievement %}
-      <li>
-        <a href="{% url 'users:achievement_form' %}" class="{% if request.resolver_match.url_name == 'achievement_form' %}active{% endif %}">
-          <i class='bx bxs-trophy'></i>
-          <span>Add Your Great Achievements</span>
-        </a>
-      </li>
-      {% endif %}
-
-      <li>
-        <a href="{% url 'users:student_complaints' %}" class="{% if 'student_complaint' in request.resolver_match.url_name %}active{% endif %}">
-          <i class='bx bxs-message-square-detail'></i>
-          <span>Complaints</span>
-        </a>
-      </li>
-
-      {% if user.is_authenticated %}
-      <li style="position: relative;">
-        <a href="#" onclick="toggleNotificationsPanel(); return false;" style="display: flex; align-items: center; gap: 10px;">
-          <i class='bx bx-bell'></i>
-          <span>Notifications</span>
-          {% if unread_count > 0 %}
-          <span class="notif-count" style="
-            background: #ff4757;
-            color: white;
-            border-radius: 999px;
-            padding: 1px 7px;
-            font-size: 0.7rem;
-            font-weight: 800;
-            min-width: 18px;
-            height: 18px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: auto;
-            box-shadow: 0 2px 6px rgba(255,71,87,0.5);
-          ">{{ unread_count }}</span>
-          {% endif %}
-        </a>
-      </li>
-      {% endif %}
-
+      <!-- 2. Guidy Chat -->
       {% if user.is_authenticated and not user.is_staff %}
       <li style="position: relative;">
         <a href="{% url 'users:guidy_home' %}" class="{% if 'guidy' in request.resolver_match.url_name %}active{% endif %}" style="display: flex; align-items: center; gap: 10px;">
@@ -4221,8 +4270,149 @@
       </li>
       {% endif %}
 
+      <!-- 3. To-Do Hub -->
+      <li>
+        <a href="{% url 'users:todo_hub' %}" class="{% if request.resolver_match.url_name == 'todo_hub' %}active{% endif %}" data-tour="student-nav-todo">
+          <i class='bx bx-list-check'></i>
+          <span>To-Do Hub</span>
+        </a>
+      </li>
+
+      <!-- 4. Courses: shown in sidebar at <=1020px -->
+      <li class="sidebar-show-1020">
+        <a href="{% url 'users:courses' %}" class="{% if 'course' in request.resolver_match.url_name %}active{% endif %}">
+          <i class='bx bx-book-open'></i>
+          <span>{% if profile.status == 'admitted' and not nav_achievement %}Courses{% else %}Our Courses{% endif %}</span>
+        </a>
+      </li>
+
+      <!-- 5. Library Seat Status -->
+      {% if request.session.active_dashboard != 'alumni' %}
+        {% if profile.has_library_seat %}
+        <li>
+          <a href="{% url 'users:your_seat_status' %}" class="{% if request.resolver_match.url_name == 'your_seat_status' %}active{% endif %}" data-tour="student-seat-status">
+            <i class='bx bxs-car-battery'></i>
+            <span>Your Seat Status</span>
+          </a>
+        </li>
+        {% else %}
+        <li>
+          <a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}">
+            <i class='bx bxs-buildings'></i>
+            <span>Library Status</span>
+          </a>
+        </li>
+        {% endif %}
+      {% else %}
+        <li>
+          <a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}">
+            <i class='bx bxs-buildings'></i>
+            <span>Library Status</span>
+          </a>
+        </li>
+      {% endif %}
+
+      <!-- 6. Hall Of Fame -->
+      <li>
+        <a href="{% url 'users:hall_of_fame' %}" class="{% if request.resolver_match.url_name == 'hall_of_fame' %}active{% endif %}">
+          <i class='bx bxs-award'></i>
+          <span>ABCD's Hall Of Fame</span>
+        </a>
+      </li>
+
+      <!-- 7. Your Performance (if Coaching) -->
+      {% if request.session.active_dashboard != 'alumni' and profile and profile.service_type == 'Coaching' %}
+      <li>
+        <a href="#student-performance-hub" onclick="document.getElementById('student-performance-hub')?.scrollIntoView({ behavior: 'smooth' }); if(document.getElementById('sidebar')?.classList.contains('active')) { toggleSidebar(); } return false;">
+          <i class='bx bxs-trophy'></i>
+          <span>Your Performance</span>
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 8. New Admission -->
+      {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+      <li>
+        <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
+          <i class='bx bxs-user-plus'></i>
+          <span>New Admission</span>
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 9. Add Your Great Achievements -->
+      {% if not nav_achievement %}
+      <li>
+        <a href="{% url 'users:achievement_form' %}" class="{% if request.resolver_match.url_name == 'achievement_form' %}active{% endif %}">
+          <i class='bx bxs-trophy'></i>
+          <span>Add Your Great Achievements</span>
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 10. Complaints -->
+      <li>
+        <a href="{% url 'users:student_complaints' %}" class="{% if 'student_complaint' in request.resolver_match.url_name %}active{% endif %}">
+          <i class='bx bxs-message-square-detail'></i>
+          <span>Complaints</span>
+        </a>
+      </li>
+
+      <!-- 11. Notifications -->
+      {% if user.is_authenticated %}
+      <li style="position: relative;">
+        <a href="#" onclick="toggleNotificationsPanel(); return false;" style="display: flex; align-items: center; gap: 10px;">
+          <i class='bx bx-bell'></i>
+          <span>Notifications</span>
+          {% if unread_count > 0 %}
+          <span class="notif-count" style="
+            background: #ff4757;
+            color: white;
+            border-radius: 999px;
+            padding: 1px 7px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            min-width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            box-shadow: 0 2px 6px rgba(255,71,87,0.5);
+          ">{{ unread_count }}</span>
+          {% endif %}
+        </a>
+      </li>
+      {% endif %}
+
+      <!-- 12. View/Edit Profile -->
+      {% if profile %}
+      <li>
+        <a href="{% url 'users:profile' %}" class="{% if request.resolver_match.url_name == 'student_details_S' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
+          <i class='bx bxs-user-pin'></i>
+          <span>View/Edit Profile</span>
+        </a>
+      </li>
+      {% elif nav_achievement %}
+      <li>
+        <a href="{% url 'users:profile' %}" class="{% if request.resolver_match.url_name == 'achievement_detail' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
+          <i class='bx bxs-user-circle'></i>
+          <span>View/Edit Profile</span>
+        </a>
+      </li>
+      {% endif %}
+
+      {% if request.session.active_dashboard == 'alumni' and has_alumni_achievements %}
+      <li>
+        <a href="#alumni-achievement-analytics">
+          <i class='bx bxs-bar-chart-square'></i>
+          <span>Your Achievements</span>
+        </a>
+      </li>
+      {% endif %}
+
       <!-- Responsive sidebar items: shown when navbar links are hidden at specific breakpoints -->
-      <!-- New Admission: shown at <=1460px (just above About Us per user spec) -->
+      <!-- New Admission: shown at <=1460px -->
       <li class="sidebar-show-1460">
         <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
           <i class='bx bxs-user-plus'></i>
@@ -4230,7 +4420,7 @@
         </a>
       </li>
 
-      <!-- About Us: shown at <=1660px (after Guidy) -->
+      <!-- About Us: shown at <=1660px -->
       <li class="sidebar-show-1660">
         <a href="{% url 'users:about_us' %}" class="{% if request.resolver_match.url_name == 'about_us' %}active{% endif %}">
           <i class='bx bx-info-circle'></i>
@@ -4238,7 +4428,7 @@
         </a>
       </li>
 
-      <!-- Our Services: shown at <=1560px (after About Us) -->
+      <!-- Our Services: shown at <=1560px -->
       <li class="sidebar-show-1560">
         <a href="{% url 'users:services' %}" class="{% if request.resolver_match.url_name == 'services' %}active{% endif %}">
           <i class='bx bx-briefcase'></i>
@@ -4246,7 +4436,7 @@
         </a>
       </li>
 
-      <!-- Contact: shown at <=1120px (just after Our Services) -->
+      <!-- Contact: shown at <=1120px -->
       <li class="sidebar-show-1120">
         <a href="{% url 'users:contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">
           <i class='bx bx-phone-call'></i>
@@ -4452,7 +4642,13 @@
       </a>
       {% endif %}
 
-      <!-- 9. Your Progress (if coaching student) -->
+      <!-- 9. Contact -->
+      <a href="{% url 'users:contact' %}" class="app-card">
+        <i class='bx bx-phone'></i>
+        <span>Contact</span>
+      </a>
+
+      <!-- 10. Your Progress (if coaching student) -->
       {% if profile.service_type == 'Coaching' %}
       <a href="#student-performance-hub" class="app-card" onclick="document.getElementById('student-performance-hub')?.scrollIntoView({ behavior: 'smooth' }); return false;">
         <i class='bx bx-trending-up'></i>
@@ -6979,7 +7175,7 @@
     background: rgba(15, 23, 42, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    z-index: 99999;
+    z-index: 3000010;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -7395,6 +7591,135 @@ document.addEventListener('DOMContentLoaded', function() {
       marqueeContainer.addEventListener('touchend', () => { isHovered = false; }, { passive: true });
       marqueeContainer.addEventListener('touchcancel', () => { isHovered = false; }, { passive: true });
   })();
+</script>
+
+<script>
+function updateScrollTrack(wrapper) {
+    if (!wrapper) return;
+    var track = wrapper.querySelector('.app-cards-scroll-track');
+    var prevBtn = wrapper.querySelector('.app-scroll-btn.prev');
+    var nextBtn = wrapper.querySelector('.app-scroll-btn.next');
+    if (!track) return;
+
+    var isScrollable = (track.scrollWidth - track.clientWidth) > 6;
+
+    if (!isScrollable) {
+        wrapper.classList.add('no-scroll');
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        track.style.justifyContent = 'center';
+        track.style.webkitMaskImage = 'none';
+        track.style.maskImage = 'none';
+        track.style.cursor = 'default';
+    } else {
+        wrapper.classList.remove('no-scroll');
+        if (prevBtn) prevBtn.style.display = 'flex';
+        if (nextBtn) nextBtn.style.display = 'flex';
+        track.style.justifyContent = 'flex-start';
+        track.style.cursor = 'grab';
+
+        var atStart = track.scrollLeft <= 4;
+        var atEnd = (track.scrollLeft + track.clientWidth) >= (track.scrollWidth - 6);
+
+        if (prevBtn) {
+            prevBtn.style.opacity = atStart ? '0.2' : '1';
+            prevBtn.style.pointerEvents = atStart ? 'none' : 'auto';
+        }
+        if (nextBtn) {
+            nextBtn.style.opacity = atEnd ? '0.2' : '1';
+            nextBtn.style.pointerEvents = atEnd ? 'none' : 'auto';
+        }
+
+        // Both corners have a smooth, slow transparent fade
+        var leftFade = atStart ? 'transparent 0%, black 18px' : 'transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px';
+        var rightFade = atEnd ? 'black calc(100% - 18px), transparent 100%' : 'black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%';
+        var mask = 'linear-gradient(to right, ' + leftFade + ', ' + rightFade + ')';
+        track.style.webkitMaskImage = mask;
+        track.style.maskImage = mask;
+    }
+}
+
+function scrollAppCards(btn, direction) {
+    var wrapper = btn.closest('.app-cards-scroll-wrapper');
+    if (!wrapper) return;
+    var track = wrapper.querySelector('.app-cards-scroll-track');
+    if (!track) return;
+    var card = track.querySelector('.app-card');
+    var scrollAmount = card ? (card.offsetWidth + 12) * 2 : 220;
+    track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    setTimeout(function() { updateScrollTrack(wrapper); }, 350);
+}
+
+function enableDragScroll(track, wrapper) {
+    if (!track || track._hasDragInit) return;
+    track._hasDragInit = true;
+
+    var isDown = false;
+    var startX = 0;
+    var scrollLeft = 0;
+    var isDragged = false;
+
+    track.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        isDown = true;
+        isDragged = false;
+        track.classList.add('grabbing');
+        startX = e.pageX - track.getBoundingClientRect().left;
+        scrollLeft = track.scrollLeft;
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (!isDown) return;
+        var x = e.pageX - track.getBoundingClientRect().left;
+        var walk = (x - startX) * 1.5;
+        if (Math.abs(walk) > 4) {
+            isDragged = true;
+        }
+        track.scrollLeft = scrollLeft - walk;
+        if (wrapper) updateScrollTrack(wrapper);
+    });
+
+    var endDrag = function() {
+        if (!isDown) return;
+        isDown = false;
+        track.classList.remove('grabbing');
+    };
+
+    window.addEventListener('mouseup', endDrag);
+
+    track.addEventListener('click', function(e) {
+        if (isDragged) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            isDragged = false;
+        }
+    }, true);
+}
+
+function initAppCardsScroll() {
+    var wrappers = document.querySelectorAll('.app-cards-scroll-wrapper');
+    wrappers.forEach(function(wrapper) {
+        var track = wrapper.querySelector('.app-cards-scroll-track');
+        updateScrollTrack(wrapper);
+        if (track) {
+            enableDragScroll(track, wrapper);
+            if (!track._hasScrollListener) {
+                track._hasScrollListener = true;
+                track.addEventListener('scroll', function() {
+                    updateScrollTrack(wrapper);
+                }, { passive: true });
+            }
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppCardsScroll);
+} else {
+    initAppCardsScroll();
+}
+window.addEventListener('resize', initAppCardsScroll, { passive: true });
+window.addEventListener('load', initAppCardsScroll, { passive: true });
 </script>
 
 {% include 'users/_banner_popup.html' %}

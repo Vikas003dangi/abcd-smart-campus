@@ -1054,7 +1054,7 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
-            z-index: 100000;
+            z-index: 3000010;
             display: none;
             align-items: center;
             justify-content: center;
@@ -1322,7 +1322,7 @@
                 margin: 0 !important;
                 padding: 0 !important;
                 background: rgba(0, 0, 0, 0.75) !important;
-                z-index: 20000 !important;
+                z-index: 3000010 !important;
                 display: none;
                 align-items: stretch !important;
                 justify-content: stretch !important;
@@ -1351,7 +1351,7 @@
                 overflow: hidden !important;
                 box-shadow: none !important;
                 transform: none !important;
-                z-index: 20001 !important;
+                z-index: 3000011 !important;
                 background: #ffffff !important;
             }
 
@@ -2120,53 +2120,15 @@
             }
         });
     </script>
-    <!-- ========================================================= -->
-    <!-- Global Styled Popup Function — available to ALL scripts    -->
-    <!-- ========================================================= -->
+    <!-- Global Styled Popup Function — delegates to CustomPopup (custom-popup.js) for proper z-index stacking -->
     <script>
-        window.showStyledPopup = function({ title = 'Notice', message = '', type = 'info', onOk = null, okText = 'OK' } = {}) {
-            const existing = document.getElementById('styledPopupOverlay');
-            if (existing) existing.remove();
-            
-            const isDark = document.body.classList.contains('dark-theme');
-            
-            const colors = {
-                warning: { border: '#ffc107', icon: '⚠️', titleColor: isDark ? '#fbbf24' : '#856404' },
-                error: { border: '#dc3545', icon: '❌', titleColor: isDark ? '#f87171' : '#721c24' },
-                info: { border: '#17a2b8', icon: 'ℹ️', titleColor: isDark ? '#38bdf8' : '#0c5460' },
-                success: { border: '#28a745', icon: '✅', titleColor: isDark ? '#34d399' : '#155724' }
-            };
-            const c = colors[type] || colors.info;
-
-            if (window.playABCDSound) {
-                if (type === 'success') {
-                    window.playABCDSound('done');
-                } else if (type === 'error' || type === 'warning') {
-                    window.playABCDSound('error');
-                }
-            }
-
-            const overlay = document.createElement('div');
-            overlay.id = 'styledPopupOverlay';
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:100000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.2s ease';
-            const box = document.createElement('div');
-            box.style.cssText = 'background:' + (isDark ? '#1e1e2d' : '#fff') + ';border:' + (isDark ? '1px solid rgba(255,255,255,0.1)' : 'none') + ';border-radius:16px;padding:26px 28px;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.35);text-align:center;animation:popIn 0.25s ease';
-            box.innerHTML = '<div style="font-size:2.5rem;margin-bottom:10px">' + c.icon + '</div>'
-                + '<h3 style="color:' + c.titleColor + ';margin-bottom:12px;font-size:1.2rem">' + title + '</h3>'
-                + '<div style="color:' + (isDark ? '#ccc' : '#555') + ';font-size:0.95rem;line-height:1.6;margin-bottom:22px">' + message + '</div>'
-                + '<button id="styledPopupOkBtn" style="background:' + c.border + ';color:#fff;border:none;padding:10px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity 0.2s">' + okText + '</button>';
-            overlay.appendChild(box);
-            document.body.appendChild(overlay);
-            const okBtn = document.getElementById('styledPopupOkBtn');
-            const closePopup = function () { overlay.remove(); if (onOk) onOk(); };
-            okBtn.addEventListener('click', closePopup);
-            overlay.addEventListener('click', function (e) { if (e.target === overlay) closePopup(); });
-        };
-        // Backwards compatibility alias
+        // Do NOT re-define window.showStyledPopup here — custom-popup.js handles it globally with correct stacking.
+        // Backwards compatibility alias for page-local calls
         function showStyledPopup(options) {
-            return window.showStyledPopup(options);
+            return window.showStyledPopup ? window.showStyledPopup(options) : Promise.resolve();
         }
     </script>
+
     <script>
         // --- CUSTOM SELECT TRANSFORMATION ---
         function initCustomSelects() {

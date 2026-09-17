@@ -673,7 +673,7 @@ html.dark-theme option:checked {
     border: 1px solid #e1e8ed;
     border-radius: 16px;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-    z-index: 999999 !important;
+    z-index: 3000030 !important;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);

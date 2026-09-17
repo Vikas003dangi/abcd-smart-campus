@@ -1225,7 +1225,7 @@
             display: flex !important;
             backdrop-filter: blur(14px) !important;
             -webkit-backdrop-filter: blur(14px) !important;
-            z-index: 30000 !important;
+            z-index: 3000010 !important;
             pointer-events: auto !important;
             animation: fadeInOverlay 0.35s ease forwards;
         }
@@ -1252,7 +1252,7 @@
             max-width: 530px;
             padding: 24px 26px 22px;
             position: relative;
-            z-index: 30001 !important;
+            z-index: 3000011 !important;
             box-shadow: 0 25px 60px rgba(15, 23, 42, 0.16), 0 0 45px rgba(234, 88, 12, 0.12);
             display: flex;
             flex-direction: column;
@@ -4544,6 +4544,325 @@
     body.dark-theme .search-nav-popup button {
       color: #c084fc;
     }
+
+    /* App Cards & Horizontal Scroll Carousel */
+    .app-cards-scroll-wrapper {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0 25px 0;
+    }
+
+    .app-cards-scroll-track {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 10px 14px 15px 14px;
+      width: 100%;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      cursor: grab;
+      user-select: none;
+      justify-content: center;
+      transition: -webkit-mask-image 0.25s ease, mask-image 0.25s ease;
+      border-radius: 20px;
+    }
+
+    .app-cards-scroll-track.grabbing {
+      cursor: grabbing;
+      scroll-behavior: auto;
+    }
+
+    .app-cards-scroll-track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-cards-scroll-wrapper.no-scroll .app-scroll-btn {
+      display: none !important;
+    }
+    .app-cards-scroll-wrapper.no-scroll .app-cards-scroll-track {
+      justify-content: center !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      cursor: default;
+    }
+
+    .app-card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px 8px;
+      text-align: center;
+      text-decoration: none;
+      color: #1e293b;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      flex: 0 0 118px;
+      min-width: 118px;
+    }
+
+    @media (max-width: 768px) {
+      .app-card {
+        flex: 0 0 95px;
+        min-width: 95px;
+        padding: 11px 5px;
+        gap: 6px;
+      }
+      .app-card i {
+        font-size: 1.5rem !important;
+      }
+      .app-card span {
+        font-size: 0.70rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-card {
+        flex: 0 0 78px;
+        min-width: 78px;
+        padding: 9px 3px;
+        gap: 5px;
+        border-radius: 13px;
+      }
+      .app-card i {
+        font-size: 1.25rem !important;
+      }
+      .app-card span {
+        font-size: 0.64rem !important;
+        line-height: 1.15;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .app-card {
+        flex: 0 0 68px;
+        min-width: 68px;
+        padding: 7px 2px;
+        gap: 4px;
+        border-radius: 11px;
+      }
+      .app-card i {
+        font-size: 1.1rem !important;
+      }
+      .app-card span {
+        font-size: 0.58rem !important;
+        line-height: 1.1;
+      }
+    }
+
+    .app-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.3);
+      background: linear-gradient(to bottom, #ffffff, #f5f3ff);
+    }
+
+    .app-card i {
+      font-size: 2.2rem;
+      color: #6366f1;
+      transition: transform 0.3s ease;
+    }
+
+    .app-card:hover i {
+      transform: scale(1.18);
+    }
+
+    .app-card span {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.1px;
+    }
+
+    body.dark-theme .app-card {
+      background: linear-gradient(135deg, #2c3240 0%, #1a1e29 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #f8fafc !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    body.dark-theme .app-card:hover {
+      background: linear-gradient(135deg, #373e4f 0%, #222735 100%) !important;
+      border-color: rgba(168, 85, 247, 0.4) !important;
+      box-shadow: 0 12px 24px rgba(168, 85, 247, 0.3) !important;
+    }
+
+    body.dark-theme .app-card i {
+      color: #a855f7;
+    }
+
+    .quick-actions-title {
+      color: #1e293b;
+      transition: color 0.3s ease;
+    }
+    body.dark-theme .quick-actions-title {
+      color: #f8fafc !important;
+    }
+
+    /* Floating Semi-Transparent Arrow Buttons Over Cards */
+    .app-scroll-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+      color: #4f46e5;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.55rem;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      z-index: 25;
+      outline: none;
+    }
+
+    .app-scroll-btn.prev {
+      left: 4px;
+    }
+
+    .app-scroll-btn.next {
+      right: 4px;
+    }
+
+    .app-scroll-btn:hover {
+      background: rgba(99, 102, 241, 0.85);
+      color: #ffffff;
+      transform: translateY(-50%) scale(1.1);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+      border-color: rgba(99, 102, 241, 0.6);
+    }
+
+    body.dark-theme .app-scroll-btn {
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      color: #c084fc;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-theme .app-scroll-btn:hover {
+      background: rgba(168, 85, 247, 0.85);
+      color: #ffffff;
+      box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+      border-color: rgba(168, 85, 247, 0.6);
+    }
+
+    @media (max-width: 600px) {
+      .home-quick-actions-section {
+        padding: 0 4px !important;
+        margin: 20px auto 10px auto !important;
+      }
+      .app-cards-scroll-track {
+        padding: 8px 4px 12px 4px !important;
+        gap: 8px !important;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
+      .quick-actions-title {
+        padding-left: 8px;
+        font-size: 1.25rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-scroll-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 1.25rem;
+      }
+      .app-scroll-btn.prev { left: 0px !important; }
+      .app-scroll-btn.next { right: 0px !important; }
+    }
+
+    /* Premium cards in extra-services remain as they were (1 per row on mobile/small screens) */
+    @media (max-width: 768px) {
+      .extra-services .services-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+      }
+    }
+
+    /* 2 in a Row ONLY for Our Services (#explore) on Small Screens down to at least 350px - Exact match to guest page feature cards */
+    @media (max-width: 599px) {
+      #explore .services-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      #explore .service-card {
+        padding: 14px 10px !important;
+        border-radius: 14px !important;
+        text-align: center;
+      }
+
+      #explore .service-card .feature-icon {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.35rem !important;
+        margin-bottom: 10px !important;
+      }
+
+      #explore .service-card h3 {
+        font-size: 0.92rem !important;
+        margin-bottom: 6px !important;
+        line-height: 1.25 !important;
+        font-weight: 700 !important;
+      }
+
+      #explore .service-card p {
+        font-size: 0.72rem !important;
+        line-height: 1.35 !important;
+      }
+    }
+
+    @media (max-width: 400px) {
+      #explore .services-grid {
+        gap: 8px !important;
+      }
+
+      #explore .service-card {
+        padding: 10px 8px !important;
+        border-radius: 12px !important;
+      }
+
+      #explore .service-card .feature-icon {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.15rem !important;
+        margin-bottom: 6px !important;
+      }
+
+      #explore .service-card h3 {
+        font-size: 0.82rem !important;
+        margin-bottom: 4px !important;
+        line-height: 1.2 !important;
+      }
+
+      #explore .service-card p {
+        font-size: 0.66rem !important;
+        line-height: 1.25 !important;
+      }
+    }
     </style>
 </head>
 
@@ -4924,15 +5243,15 @@
         <ul class="nav-sidebar" id="sidebar" style="list-style: none;">
             <li><a href="{% url 'users:home_page' %}"><i class='bx bx-home-alt'></i> Home</a></li>
             <li><a href="{% url 'users:library_availability' %}" class="{% if request.resolver_match.url_name == 'library_availability' %}active{% endif %}"><i class='bx bxs-buildings' style="color:#10b981;"></i> Library Seat Status</a></li>
-            <li><a href="{% url 'users:about_us' %}"><i class='bx bx-info-circle'></i> About Us</a></li>
-            <li><a href="{% url 'users:services' %}"><i class='bx bx-grid-alt'></i> Services</a></li>
+            <li><a href="{% url 'users:hall_of_fame' %}"><i class='bx bx-trophy' style="color:#fbbf24;"></i> ABCD's Hall Of Fame</a></li>
             <li><a href="{% url 'users:courses' %}" class="{% if 'course' in request.resolver_match.url_name %}active{% endif %}"><i class='bx bx-book-open'></i> {% if user.profile.status == 'admitted' %}Courses{% else %}Our Courses{% endif %}</a></li>
             {% if not user.is_authenticated or not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
             <li><a href="{% url 'users:admission_form' %}"><i class='bx bx-file'></i> {% if user.profile.status == 'admitted' %}New Admission{% else %}Admission{% endif %}</a></li>
             {% endif %}
+            <li><a href="{% url 'users:about_us' %}"><i class='bx bx-info-circle'></i> About Us</a></li>
+            <li><a href="{% url 'users:services' %}"><i class='bx bx-grid-alt'></i> Services</a></li>
             <li><a href="{% url 'users:contact' %}"><i class='bx bx-phone'></i> Contact</a></li>
             <li><a href="https://www.youtube.com/@englishekkhoz8279" target="_blank" rel="noopener"><i class='bx bxl-youtube' style="color:#FF0000;"></i> Free Classes on YouTube</a></li>
-            <li><a href="{% url 'users:hall_of_fame' %}"><i class='bx bx-trophy' style="color:#fbbf24;"></i> ABCD's Hall Of Fame</a></li>
             <li class="sidebar-tour-item">
                 <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
                     <i class='bx bx-compass' style="color:#0284c7;"></i> <span>Take Tour</span>
@@ -5058,48 +5377,57 @@
 
 
 
-        <section id="explore" class="services-preview" data-tour="home-action-cards">
-            <h2>Our Services</h2>
-            <div class="services-grid">
-                <div class="service-card">
-                    <div class="feature-icon"><i class='bx bxs-chalkboard icon-coaching'></i></div>
-                    <h3>Coaching Classes</h3>
-                    <p>Interactive grammar & spoken English batches led by expert teachers, focused on communication skills and personality grooming.</p>
-                </div>
-                <div class="service-card">
-                    <div class="feature-icon"><i class='bx bxs-book-reader icon-library'></i></div>
-                    <h3>Library Services</h3>
-                    <p>Peaceful multi-floor reading rooms featuring 100+ reserved seats, high-speed WiFi, and personal charging sockets at every desk.</p>
-                </div>
-                <div class="service-card">
-                    <div class="feature-icon"><i class='bx bxs-compass icon-guidance'></i></div>
-                    <h3>Expert Guidance</h3>
-                    <p>Direct guidance and exam-focused preparation roadmaps from Sandeep Sir and senior faculty with proven selection records.</p>
-                </div>
-
-                <div class="service-card">
-                    <div class="feature-icon"><i class='bx bxs-group icon-batches'></i></div>
-                    <h3>Small Batch Sizes</h3>
-                    <p>Strict limits on batch sizes to ensure personalized attention, direct student-teacher interaction, and daily doubt clearing.</p>
-                </div>
-
-                <div class="service-card">
-                    <div class="feature-icon"><i class='bx bxs-brain icon-innovative'></i></div>
-                    <h3>Innovative Teaching Methods</h3>
-                    <p>Smart class teaching using simplified concepts, audio-visual methods, and practice-based learning for quick retention.</p>
-                </div>
-
-                <div class="service-card">
-                    <div class="feature-icon"><i class='bx bxs-chat icon-support'></i></div>
-                    <h3>Student Support</h3>
-                    <p>Continuous mentorship, active peer discussions, immediate query assistance, and timely notifications on exam updates.</p>
-                </div>
+    <!-- Quick Actions Scrollable App Cards -->
+    <section class="home-quick-actions-section" style="max-width: 1200px; margin: 35px auto 15px auto; padding: 0 15px;">
+        <h2 class="quick-actions-title" style="margin-bottom: 15px; font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <i class='bx bxs-zap' style='color:#f1c40f;'></i> Quick Actions
+        </h2>
+        <div class="app-cards-scroll-wrapper">
+            <button type="button" class="app-scroll-btn prev" onclick="scrollAppCards(this, -1)" aria-label="Scroll left">
+                <i class='bx bx-chevron-left'></i>
+            </button>
+            <div class="app-cards-scroll-track">
+                <!-- 1. Library Status -->
+                <a href="{% url 'users:library_availability' %}" class="app-card">
+                    <i class='bx bx-buildings'></i>
+                    <span>Library Status</span>
+                </a>
+                <!-- 2. Courses -->
+                <a href="{% url 'users:courses' %}" class="app-card">
+                    <i class='bx bx-book-open'></i>
+                    <span>Courses</span>
+                </a>
+                <!-- 3. Contact -->
+                <a href="{% url 'users:contact' %}" class="app-card">
+                    <i class='bx bx-phone'></i>
+                    <span>Contact</span>
+                </a>
+                <!-- 4. Admission Form -->
+                {% if not user.is_authenticated or not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+                <a href="{% url 'users:admission_form' %}" class="app-card">
+                    <i class='bx bx-user-plus'></i>
+                    <span>Admission</span>
+                </a>
+                {% endif %}
+                <!-- 5. Hall of Fame -->
+                <a href="{% url 'users:hall_of_fame' %}" class="app-card">
+                    <i class='bx bx-trophy'></i>
+                    <span>Hall of Fame</span>
+                </a>
+                <!-- 6. About Us -->
+                <a href="{% url 'users:about_us' %}" class="app-card">
+                    <i class='bx bx-info-circle'></i>
+                    <span>About Us</span>
+                </a>
             </div>
-        </section>
+            <button type="button" class="app-scroll-btn next" onclick="scrollAppCards(this, 1)" aria-label="Scroll right">
+                <i class='bx bx-chevron-right'></i>
+            </button>
+        </div>
+    </section>
 
-
-    <!-- Complaint ratings widget — place into guest_page.html and home_page.html where desired -->
-    <section class="services-preview extra-services" style="padding-top: 0; margin-top: -20px; margin-bottom: 30px;">
+    <!-- Complaint ratings & Live services widget -->
+    <section class="services-preview extra-services" style="padding-top: 0; margin-top: 10px; margin-bottom: 30px;">
         <div class="services-grid" style="max-width: 1200px; margin: 0 auto;">
             <div class="service-card premium-card">
                 <div style="width: 100%;">
@@ -5151,6 +5479,45 @@
                         View Details
                     </a>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="explore" class="services-preview" data-tour="home-action-cards" style="padding-top: 10px;">
+        <h2>Our Services</h2>
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="feature-icon"><i class='bx bxs-chalkboard icon-coaching'></i></div>
+                <h3>Coaching Classes</h3>
+                <p>Interactive grammar & spoken English batches led by expert teachers, focused on communication skills and personality grooming.</p>
+            </div>
+            <div class="service-card">
+                <div class="feature-icon"><i class='bx bxs-book-reader icon-library'></i></div>
+                <h3>Library Services</h3>
+                <p>Peaceful multi-floor reading rooms featuring 100+ reserved seats, high-speed WiFi, and personal charging sockets at every desk.</p>
+            </div>
+            <div class="service-card">
+                <div class="feature-icon"><i class='bx bxs-compass icon-guidance'></i></div>
+                <h3>Expert Guidance</h3>
+                <p>Direct guidance and exam-focused preparation roadmaps from Sandeep Sir and senior faculty with proven selection records.</p>
+            </div>
+
+            <div class="service-card">
+                <div class="feature-icon"><i class='bx bxs-group icon-batches'></i></div>
+                <h3>Small Batch Sizes</h3>
+                <p>Strict limits on batch sizes to ensure personalized attention, direct student-teacher interaction, and daily doubt clearing.</p>
+            </div>
+
+            <div class="service-card">
+                <div class="feature-icon"><i class='bx bxs-brain icon-innovative'></i></div>
+                <h3>Innovative Teaching Methods</h3>
+                <p>Smart class teaching using simplified concepts, audio-visual methods, and practice-based learning for quick retention.</p>
+            </div>
+
+            <div class="service-card">
+                <div class="feature-icon"><i class='bx bxs-chat icon-support'></i></div>
+                <h3>Student Support</h3>
+                <p>Continuous mentorship, active peer discussions, immediate query assistance, and timely notifications on exam updates.</p>
             </div>
         </div>
     </section>
@@ -7296,6 +7663,135 @@
 })();
 </script>
 <!-- ================= END LOGOUT CONFIRMATION POPUP ================= -->
+
+<script>
+function updateScrollTrack(wrapper) {
+    if (!wrapper) return;
+    var track = wrapper.querySelector('.app-cards-scroll-track');
+    var prevBtn = wrapper.querySelector('.app-scroll-btn.prev');
+    var nextBtn = wrapper.querySelector('.app-scroll-btn.next');
+    if (!track) return;
+
+    var isScrollable = (track.scrollWidth - track.clientWidth) > 6;
+
+    if (!isScrollable) {
+        wrapper.classList.add('no-scroll');
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+        track.style.justifyContent = 'center';
+        track.style.webkitMaskImage = 'none';
+        track.style.maskImage = 'none';
+        track.style.cursor = 'default';
+    } else {
+        wrapper.classList.remove('no-scroll');
+        if (prevBtn) prevBtn.style.display = 'flex';
+        if (nextBtn) nextBtn.style.display = 'flex';
+        track.style.justifyContent = 'flex-start';
+        track.style.cursor = 'grab';
+
+        var atStart = track.scrollLeft <= 4;
+        var atEnd = (track.scrollLeft + track.clientWidth) >= (track.scrollWidth - 6);
+
+        if (prevBtn) {
+            prevBtn.style.opacity = atStart ? '0.2' : '1';
+            prevBtn.style.pointerEvents = atStart ? 'none' : 'auto';
+        }
+        if (nextBtn) {
+            nextBtn.style.opacity = atEnd ? '0.2' : '1';
+            nextBtn.style.pointerEvents = atEnd ? 'none' : 'auto';
+        }
+
+        // Both corners have a smooth, slow transparent fade
+        var leftFade = atStart ? 'transparent 0%, black 18px' : 'transparent 0%, rgba(0, 0, 0, 0.35) 18px, black 52px';
+        var rightFade = atEnd ? 'black calc(100% - 18px), transparent 100%' : 'black calc(100% - 52px), rgba(0, 0, 0, 0.35) calc(100% - 18px), transparent 100%';
+        var mask = 'linear-gradient(to right, ' + leftFade + ', ' + rightFade + ')';
+        track.style.webkitMaskImage = mask;
+        track.style.maskImage = mask;
+    }
+}
+
+function scrollAppCards(btn, direction) {
+    var wrapper = btn.closest('.app-cards-scroll-wrapper');
+    if (!wrapper) return;
+    var track = wrapper.querySelector('.app-cards-scroll-track');
+    if (!track) return;
+    var card = track.querySelector('.app-card');
+    var scrollAmount = card ? (card.offsetWidth + 12) * 2 : 220;
+    track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    setTimeout(function() { updateScrollTrack(wrapper); }, 350);
+}
+
+function enableDragScroll(track, wrapper) {
+    if (!track || track._hasDragInit) return;
+    track._hasDragInit = true;
+
+    var isDown = false;
+    var startX = 0;
+    var scrollLeft = 0;
+    var isDragged = false;
+
+    track.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        isDown = true;
+        isDragged = false;
+        track.classList.add('grabbing');
+        startX = e.pageX - track.getBoundingClientRect().left;
+        scrollLeft = track.scrollLeft;
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (!isDown) return;
+        var x = e.pageX - track.getBoundingClientRect().left;
+        var walk = (x - startX) * 1.5;
+        if (Math.abs(walk) > 4) {
+            isDragged = true;
+        }
+        track.scrollLeft = scrollLeft - walk;
+        if (wrapper) updateScrollTrack(wrapper);
+    });
+
+    var endDrag = function() {
+        if (!isDown) return;
+        isDown = false;
+        track.classList.remove('grabbing');
+    };
+
+    window.addEventListener('mouseup', endDrag);
+
+    track.addEventListener('click', function(e) {
+        if (isDragged) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            isDragged = false;
+        }
+    }, true);
+}
+
+function initAppCardsScroll() {
+    var wrappers = document.querySelectorAll('.app-cards-scroll-wrapper');
+    wrappers.forEach(function(wrapper) {
+        var track = wrapper.querySelector('.app-cards-scroll-track');
+        updateScrollTrack(wrapper);
+        if (track) {
+            enableDragScroll(track, wrapper);
+            if (!track._hasScrollListener) {
+                track._hasScrollListener = true;
+                track.addEventListener('scroll', function() {
+                    updateScrollTrack(wrapper);
+                }, { passive: true });
+            }
+        }
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAppCardsScroll);
+} else {
+    initAppCardsScroll();
+}
+window.addEventListener('resize', initAppCardsScroll, { passive: true });
+window.addEventListener('load', initAppCardsScroll, { passive: true });
+</script>
 
 <script src="{% static 'js/custom-popup.js' %}"></script>
 <script src="{% static 'js/site-tour.js' %}"></script>

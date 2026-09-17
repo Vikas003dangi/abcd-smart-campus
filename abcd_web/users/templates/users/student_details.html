@@ -313,12 +313,12 @@
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        display: none; z-index: 100000 !important;
+        display: none; z-index: 3000010 !important;
     }
     .modal-card {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         background: var(--profile-card-bg); border-radius: 30px; padding: 30px;
-        width: 90%; max-width: 500px; z-index: 100001 !important; display: none;
+        width: 90%; max-width: 500px; z-index: 3000011 !important; display: none;
         box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
         border: 1px solid var(--profile-border);
     }
@@ -447,8 +447,8 @@
 </div>
 
 <!-- Broad View Modal -->
-<div id="photoBroadView" class="modal-overlay" style="display:none; z-index: 100000; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);" onclick="closePhotoView()">
-    <div style="position: fixed; top: 20px; right: 20px; z-index: 100002;">
+<div id="photoBroadView" class="modal-overlay" style="display:none; z-index: 3000010; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000012;">
         <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
             <i class='bx bx-x'></i>
         </button>

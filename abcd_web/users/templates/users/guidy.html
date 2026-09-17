@@ -3922,7 +3922,7 @@ body.dark-theme .search-highlight {
 {% endif %}
 
 
-<div class="g-modal-bg" id="guidyAppModalBg" style="z-index: 99999;">
+<div class="g-modal-bg" id="guidyAppModalBg" style="z-index: 3000010;">
   <div class="g-modal" style="text-align: center; max-width: 380px;">
     <div id="guidyAppModalIcon" style="font-size: 3rem; margin-bottom: 12px;"></div>
     <h3 id="guidyAppModalTitle" style="font-weight: 800; font-size: 1.25rem; margin-bottom: 8px;"></h3>
@@ -9532,7 +9532,9 @@ function viewMedia(url, type) {
   if (type !== 'image') return;
   
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(11, 20, 26, 0.95); backdrop-filter: blur(5px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease;';
+  overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(11, 20, 26, 0.95); backdrop-filter: blur(5px); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease;';
+  const _guidyMediaZ = (typeof window.getHighestZIndex === 'function') ? window.getHighestZIndex([overlay]) + 10 : 3000060;
+  overlay.style.setProperty('z-index', _guidyMediaZ.toString(), 'important');
   
   // Header with Close & Download buttons
   const header = document.createElement('div');
@@ -10920,7 +10922,7 @@ function globalClickClose(e) {
 <script src="{% static 'js/abcd-color-picker.js' %}"></script>
 
 <!-- Custom Color Picker Board -->
-<div id="gCustomColorPickerBoard" class="custom-color-picker-board" style="display: none; position: fixed; z-index: 100001; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); width: 228px; user-select: none; -webkit-user-select: none; box-sizing: border-box; touch-action: none;">
+<div id="gCustomColorPickerBoard" class="custom-color-picker-board" style="display: none; position: fixed; z-index: 3000080; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); width: 228px; user-select: none; -webkit-user-select: none; box-sizing: border-box; touch-action: none;">
   <div class="cp-sv-container" style="position: relative; width: 100%; height: 120px; border-radius: 8px; overflow: hidden; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; line-height: 0; margin-bottom: 10px;">
     <canvas class="cp-canvas-sv" width="204" height="120" style="display: block; width: 100%; height: 100%; border-radius: 8px;"></canvas>
     <div class="cp-sv-handle" style="position: absolute; top: 0; left: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 2px rgba(0,0,0,0.9), inset 0 0 2px rgba(0,0,0,0.5); transform: translate(-50%, -50%); pointer-events: none; box-sizing: border-box; z-index: 2;"></div>

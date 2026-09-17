@@ -584,14 +584,14 @@
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            z-index: 10000; display: none;
+            z-index: 3000010; display: none;
         }
         .modal-overlay-styled.active { display: block; }
         .admission-modal-styled {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             width: min(400px, 90vw); max-height: 90vh; overflow-y: auto;
-            display: none; z-index: 10001; animation: slideIn 0.3s ease;
+            display: none; z-index: 3000011; animation: slideIn 0.3s ease;
         }
         .admission-modal-styled.active { display: block; }
         @keyframes slideIn {
@@ -633,7 +633,7 @@
             background: rgba(17, 42, 59, 0.65);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
-            z-index: 11000;
+            z-index: 3000010;
             display: none;
             align-items: center;
             justify-content: center;
@@ -1036,7 +1036,7 @@
             height: 100vh;
             background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(12px);
-            z-index: 999999;
+            z-index: 3000010;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1108,7 +1108,7 @@
             height: 10px;
             background-color: #f2d74e;
             opacity: 0;
-            z-index: 999998;
+            z-index: 3000009;
         }
 
         /* Content styles */
