@@ -71,15 +71,34 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
             )
         else:  # guidance / session
             session = ChatSession.objects.filter(id=session_id).first()
-            if not session or not session.is_active:
+            if not session:
+                return {'error': 'Guidance session not found'}
+            # If guidance request was accepted, auto-reactivate and backfill users
+            if getattr(session, 'request', None) and session.request.status == 'accepted':
+                if not session.is_active or not session.user_one_id or not session.user_two_id:
+                    session.is_active = True
+                    session.ended_by = None
+                    session.session_ended_at = None
+                    if not session.user_one_id and session.request.student:
+                        session.user_one = session.request.student
+                    if not session.user_two_id and session.request.alumni and session.request.alumni.user:
+                        session.user_two = session.request.alumni.user
+                    session.save(update_fields=['is_active', 'ended_by', 'session_ended_at', 'user_one', 'user_two'])
+            elif not session.is_active:
                 return {'error': 'Guidance session is inactive or ended'}
+
             if getattr(session, 'request', None):
                 is_participant = (
                     session.request.student_id == user.id or
                     (session.request.alumni and session.request.alumni.user_id == user.id) or
+                    session.user_one_id == user.id or
+                    session.user_two_id == user.id or
                     user.is_staff or user.is_superuser
                 )
-                other = session.request.alumni.user if (session.request.alumni and session.request.student_id == user.id) else session.request.student
+                if session.request.student_id == user.id or session.user_one_id == user.id:
+                    other = (session.request.alumni.user if session.request.alumni else None) or session.user_two
+                else:
+                    other = session.request.student or session.user_one
             else:
                 is_participant = (session.user_one_id == user.id or session.user_two_id == user.id or user.is_staff or user.is_superuser)
                 other = session.user_two if session.user_one_id == user.id else session.user_one
@@ -390,7 +409,20 @@ def check_guidy_chat_authorization(user_id, chat_type, session_id):
             return bool(direct.user1_id == user.id or direct.user2_id == user.id)
         elif chat_type == 'guidance':
             guidance = ChatSession.objects.filter(id=session_id).first()
-            if not guidance or not guidance.is_active:
+            if not guidance:
+                return False
+            # If guidance request was accepted, auto-reactivate and backfill users
+            if getattr(guidance, 'request', None) and guidance.request.status == 'accepted':
+                if not guidance.is_active or not guidance.user_one_id or not guidance.user_two_id:
+                    guidance.is_active = True
+                    guidance.ended_by = None
+                    guidance.session_ended_at = None
+                    if not guidance.user_one_id and guidance.request.student:
+                        guidance.user_one = guidance.request.student
+                    if not guidance.user_two_id and guidance.request.alumni and guidance.request.alumni.user:
+                        guidance.user_two = guidance.request.alumni.user
+                    guidance.save(update_fields=['is_active', 'ended_by', 'session_ended_at', 'user_one', 'user_two'])
+            elif not guidance.is_active:
                 return False
             if guidance.user_one_id == user.id or guidance.user_two_id == user.id:
                 return True

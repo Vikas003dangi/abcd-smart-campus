@@ -10770,7 +10770,11 @@ def guidy_seek_guidance(request, alumni_pk):
         inactive_session.is_active = True
         inactive_session.ended_by = None
         inactive_session.session_ended_at = None
-        inactive_session.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+        if not inactive_session.user_one:
+            inactive_session.user_one = request.user
+        if not inactive_session.user_two and alumni.user:
+            inactive_session.user_two = alumni.user
+        inactive_session.save(update_fields=['is_active', 'ended_by', 'session_ended_at', 'user_one', 'user_two'])
 
         req = inactive_session.request
         req.status = 'accepted'
@@ -11100,8 +11104,15 @@ def guidy_home(request):
     if is_teacher:
         # Teachers don't have pending_requests or restrictions list
         restriction_list = []
-        # Teachers participate in mentorship sessions as guides or direct participants
-        session_filter = Q(user_one=user) | Q(user_two=user) | Q(request__alumni__user=user)
+        # Teachers participate in mentorship sessions as guides, seekers, or direct participants
+        session_filter = (
+            Q(user_one=user) | 
+            Q(user_two=user) | 
+            Q(request__alumni__user=user) | 
+            Q(request__student=user)
+        )
+        if alumni_profile:
+            session_filter |= Q(request__alumni=alumni_profile)
         my_sessions = ChatSession.objects.filter(
             session_filter
         ).filter(
@@ -11117,7 +11128,7 @@ def guidy_home(request):
             deleted_for_users=user
         ).exclude(name__startswith="__direct__")
     else:
-        # For non-teachers (can be student, alumni, or BOTH)
+        # For non-teachers (can be student, alumni, guest user, or dual-role)
         if is_alumni and alumni_profile:
             pending_requests = GuidanceRequest.objects.filter(
                 alumni=alumni_profile, status='pending'
@@ -11128,16 +11139,15 @@ def guidy_home(request):
         else:
             restriction_list = []
 
-        # Query combined chat sessions where they are guide (alumni) OR seeker (student) OR direct user_one/two
-        session_filter = Q(user_one=user) | Q(user_two=user)
+        # Query combined chat sessions where user is seeker (student/guest), guide (alumni), or direct 1-to-1
+        session_filter = (
+            Q(user_one=user) | 
+            Q(user_two=user) | 
+            Q(request__student=user) | 
+            Q(request__alumni__user=user)
+        )
         if is_alumni and alumni_profile:
             session_filter |= Q(request__alumni=alumni_profile)
-        if is_student:
-            session_filter |= Q(request__student=user)
-        
-        # If neither, fallback for guest users
-        if not session_filter:
-            session_filter = Q(request__student=user)
 
         my_sessions = ChatSession.objects.filter(
             session_filter
@@ -11176,12 +11186,27 @@ def guidy_home(request):
                 if active_session.request:
                     is_participant = (
                         active_session.request.student == user or 
-                        (alumni_profile and active_session.request.alumni == alumni_profile)
+                        (active_session.request.alumni and active_session.request.alumni.user == user) or
+                        (alumni_profile and active_session.request.alumni == alumni_profile) or
+                        active_session.user_one == user or
+                        active_session.user_two == user or
+                        user.is_staff or user.is_superuser
                     )
                     if not is_participant:
                         active_session = None
+                    else:
+                        # Ensure user_one and user_two are backfilled for symmetric querying
+                        to_update = []
+                        if not active_session.user_one:
+                            active_session.user_one = active_session.request.student
+                            to_update.append('user_one')
+                        if not active_session.user_two and active_session.request.alumni and active_session.request.alumni.user:
+                            active_session.user_two = active_session.request.alumni.user
+                            to_update.append('user_two')
+                        if to_update:
+                            active_session.save(update_fields=to_update)
                 else:
-                    if user != active_session.user_one and user != active_session.user_two:
+                    if user != active_session.user_one and user != active_session.user_two and not (user.is_staff or user.is_superuser):
                         active_session = None
 
             if active_session and not active_session.is_active and active_session.session_ended_at:
@@ -11361,8 +11386,8 @@ def guidy_home(request):
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
 
-        # Keep conversation visible if it has messages OR if it is currently open/active
-        if not last and not (active_session and active_session.id == s.id):
+        # Keep conversation visible if it is active OR has messages OR is currently open
+        if not s.is_active and not last and not (active_session and active_session.id == s.id):
             continue
 
         last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
@@ -11415,8 +11440,8 @@ def guidy_home(request):
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
 
-        # Keep conversation visible if it has messages OR if it is currently open/active
-        if not last and not (active_direct and active_direct.id == s.id):
+        # Keep conversation visible if it is active OR has messages OR is currently open
+        if not s.is_active and not last and not (active_direct and active_direct.id == s.id):
             continue
 
         last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
@@ -11504,7 +11529,10 @@ def guidy_home(request):
             other_user = active_direct.user2 if active_direct.user1 == request.user else active_direct.user1
         else:
             if active_session.request:
-                other_user = active_session.request.student if active_session.request.alumni.user == request.user else active_session.request.alumni.user
+                alumni_user = active_session.request.alumni.user if active_session.request.alumni else None
+                other_user = active_session.request.student if alumni_user == request.user else alumni_user
+                if not other_user:
+                    other_user = active_session.user_two if active_session.user_one == request.user else active_session.user_one
             else:
                 other_user = active_session.user_two if active_session.user_one == request.user else active_session.user_one
         if other_user:
@@ -11698,6 +11726,13 @@ def guidy_respond(request, request_pk):
         guidance_req.status = 'accepted'
         guidance_req.save()
         session, created_session = ChatSession.objects.get_or_create(request=guidance_req)
+        session.is_active = True
+        session.ended_by = None
+        session.session_ended_at = None
+        session.user_one = guidance_req.student
+        if guidance_req.alumni and guidance_req.alumni.user:
+            session.user_two = guidance_req.alumni.user
+        session.save()
 
         # Save initial request message as the first chat Message (if any, and only once)
         if guidance_req.message and not Message.objects.filter(session=session).exists():
@@ -11719,21 +11754,49 @@ def guidy_respond(request, request_pk):
             user=guidance_req.student,
             title="Guidance Accepted",
             message=f"{alumni_profile.first_name} has accepted your guidance request. You can now start chatting!",
-            link="/guidy/",
+            link=f"/guidy/?session={session.id}",
             category="general"
         )
         send_realtime_notification(guidance_req.student.id, {
             'title': "Guidance Accepted",
             'message': f"{alumni_profile.first_name} has accepted your guidance request. Click to open chat!",
             'category': 'guidy',
-            'link': "/guidy/"
+            'link': f"/guidy/?session={session.id}"
         })
+
+        # Push real-time sidebar update to student so the contact appears in their sidebar immediately
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            cl = get_channel_layer()
+            if cl:
+                async_to_sync(cl.group_send)(
+                    f"user_{guidance_req.student.id}",
+                    {
+                        "type": "guidy_sidebar_update",
+                        "chat_type": "session",
+                        "session_id": session.id,
+                        "sender_id": request.user.id,
+                        "sender_name": get_user_display_name(request.user),
+                        "message": {
+                            "id": 0,
+                            "content": guidance_req.message or "Mentorship accepted! Say hello 👋",
+                            "timestamp": "Just now",
+                            "message_type": "text",
+                            "sender_photo": get_profile_photo_url(request.user),
+                            "is_mine": False,
+                        },
+                    }
+                )
+        except Exception:
+            pass
+
         # Notify alumni about new incoming guidance request (for context in their dashboard)
         create_notification(
             user=guidance_req.alumni.user,
             title="Chat Started",
             message=f"You accepted a guidance request from {guidance_req.student.get_full_name()}. Chat is now active.",
-            link="/guidy/",
+            link=f"/guidy/?session={session.id}",
             category="general"
         )
         return JsonResponse({'success': True, 'action': 'accepted', 'session_id': session.id})
@@ -11768,22 +11831,43 @@ def guidy_send_message(request, session_id=None, direct_id=None):
     direct_session = None
 
     if session_id:
-        session = get_object_or_404(ChatSession, id=session_id, is_active=True)
+        session = get_object_or_404(ChatSession, id=session_id)
+        if not session.is_active:
+            if session.request and session.request.status == 'accepted':
+                session.is_active = True
+                session.ended_by = None
+                session.session_ended_at = None
+                to_update = ['is_active', 'ended_by', 'session_ended_at']
+                if not session.user_one and session.request.student:
+                    session.user_one = session.request.student
+                    to_update.append('user_one')
+                if not session.user_two and session.request.alumni and session.request.alumni.user:
+                    session.user_two = session.request.alumni.user
+                    to_update.append('user_two')
+                session.save(update_fields=to_update)
+            else:
+                return JsonResponse({'success': False, 'error': 'Chat session is inactive or ended.'}, status=400)
+
         if session.request:
             is_participant = (
                 session.request.student == user or
-                session.request.alumni.user == user
+                (session.request.alumni and session.request.alumni.user == user) or
+                session.user_one == user or
+                session.user_two == user or
+                user.is_staff or user.is_superuser
             )
         else:
             is_participant = (
                 session.user_one == user or
-                session.user_two == user
+                session.user_two == user or
+                user.is_staff or user.is_superuser
             )
     elif direct_id:
         direct_session = get_object_or_404(DirectChatSession, id=direct_id, is_active=True)
         is_participant = (
             direct_session.user1 == user or
-            direct_session.user2 == user
+            direct_session.user2 == user or
+            user.is_staff or user.is_superuser
         )
     else:
         return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
@@ -11794,7 +11878,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
     # Determine other participant for block check
     if session:
         if session.request:
-            other_user = session.request.alumni.user if session.request.student == user else session.request.student
+            other_user = (session.request.alumni.user if (session.request.alumni and session.request.student == user) else session.request.student) or (session.user_two if session.user_one == user else session.user_one)
         else:
             other_user = session.user_two if session.user_one == user else session.user_one
     else:
@@ -13525,18 +13609,35 @@ def guidy_check_status(request, alumni_pk):
 
     # Check existing request
     try:
-        req = GuidanceRequest.objects.get(student=request.user, alumni=alumni)
+        req = GuidanceRequest.objects.filter(student=request.user, alumni=alumni).order_by('-created_at').first()
+        if not req:
+            return JsonResponse({'state': 'none'})
         if req.status == 'accepted':
             try:
                 session = req.chat_session
+                if not session.is_active:
+                    session.is_active = True
+                    session.ended_by = None
+                    session.session_ended_at = None
+                    if not session.user_one:
+                        session.user_one = request.user
+                    if not session.user_two and alumni.user:
+                        session.user_two = alumni.user
+                    session.save()
                 return JsonResponse({'state': 'chat_open', 'session_id': session.id})
             except ChatSession.DoesNotExist:
-                return JsonResponse({'state': 'pending'})
+                session = ChatSession.objects.create(
+                    request=req,
+                    user_one=request.user,
+                    user_two=alumni.user,
+                    is_active=True
+                )
+                return JsonResponse({'state': 'chat_open', 'session_id': session.id})
         elif req.status == 'pending':
             return JsonResponse({'state': 'pending'})
         else:  # rejected
             return JsonResponse({'state': 'none'})
-    except GuidanceRequest.DoesNotExist:
+    except Exception:
         return JsonResponse({'state': 'none'})
 
 
@@ -15128,10 +15229,13 @@ def guidy_contacts_api(request):
             'alumni', 'teachers', 'guests'
         ]
     else:
-        # Students / Alumni see only connected contacts (mentorships)
-        if is_student:
-            sessions = ChatSession.objects.filter(request__student=user, is_active=True).select_related('request__alumni__user')
-            for s in sessions:
+        # Seekers (students or guest users with mentorship) and Alumni see connected contacts
+        seeker_sessions = ChatSession.objects.filter(
+            Q(request__student=user) | Q(user_one=user),
+            is_active=True
+        ).select_related('request__alumni__user', 'user_two')
+        for s in seeker_sessions:
+            if s.request and s.request.alumni and s.request.alumni.user:
                 sections_map['contacts'].append({
                     'id': s.request.alumni.user.id,
                     'name': s.request.alumni.full_name,
@@ -15139,7 +15243,15 @@ def guidy_contacts_api(request):
                     'already_chatted': True,
                     'category': 'alumni'
                 })
-        elif is_alumni:
+            elif s.user_two:
+                sections_map['contacts'].append({
+                    'id': s.user_two.id,
+                    'name': get_user_display_name(s.user_two),
+                    'photo': get_profile_photo_url(s.user_two),
+                    'already_chatted': True,
+                    'category': 'alumni'
+                })
+        if is_alumni:
             al_profile = StudentAchievement.objects.filter(user=user, status='approved').first()
             if al_profile:
                 sessions = ChatSession.objects.filter(request__alumni=al_profile, is_active=True).select_related('request__student')

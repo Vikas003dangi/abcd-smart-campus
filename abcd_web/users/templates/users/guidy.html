@@ -2560,6 +2560,9 @@ body.dark-theme .search-highlight {
   data-csrf="{{ csrf_token }}"
   data-other-type="{{ other_type }}"
   data-other-id="{{ other_id }}"
+  data-other-name="{{ other_user_name|default:'' }}"
+  data-other-photo="{{ other_user_photo|default:'' }}"
+  data-other-verified="{{ other_is_verified|yesno:'true,false' }}"
   data-req-pk="{% if active_session %}{{ active_session.request.id }}{% endif %}"
   data-my-display-name="{{ request.user|user_display_name }}"
   data-has-created-groups="{{ has_created_groups|yesno:'true,false' }}"
@@ -4003,6 +4006,9 @@ let G_POLL_URL = cfg ? (cfg.dataset.groupPollUrl || '') : '';
 let SEARCH_URL = cfg ? (cfg.dataset.searchUrl || '') : '';
 let OTHER_TYPE = cfg ? (cfg.dataset.otherType || '') : '';
 let OTHER_ID   = cfg ? (cfg.dataset.otherId || '') : '';
+let OTHER_USER_NAME = cfg ? (cfg.dataset.otherName || '') : '';
+let OTHER_USER_PHOTO = cfg ? (cfg.dataset.otherPhoto || '') : '';
+let OTHER_IS_VERIFIED = cfg ? (cfg.dataset.otherVerified === 'true') : false;
 
 function getSidebarChatItem(chatType, chatId) {
   if (!chatType || !chatId) return null;
@@ -4076,6 +4082,31 @@ document.addEventListener('DOMContentLoaded', () => {
   clearNotificationBadges();
   if (SESSION_ID || DIRECT_ID) startPolling();
   if (GROUP_ID)   startGroupPolling();
+
+  // Ensure active session/direct chat appears in sidebar on load (e.g. from alumni profile)
+  if ((SESSION_ID || DIRECT_ID) && currentChatType && currentChatId) {
+    const existingSidebarItem = getSidebarChatItem(currentChatType, currentChatId);
+    if (!existingSidebarItem && OTHER_USER_NAME) {
+      ensureSidebarChatItem(
+        currentChatType,
+        currentChatId,
+        OTHER_USER_NAME,
+        OTHER_USER_PHOTO,
+        OTHER_IS_VERIFIED,
+        '',
+        '',
+        'text'
+      );
+    }
+  }
+
+  // Ensure WebSocket is initialized when page is ready
+  if (typeof initGuidyWebSocket === 'function') {
+    if (!chatWebSocket || chatWebSocket.readyState !== WebSocket.OPEN) {
+      initGuidyWebSocket();
+    }
+  }
+
   document.addEventListener('click', globalClickClose);
 
   // Apply jumbo emoji styles to existing history
