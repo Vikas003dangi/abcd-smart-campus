@@ -1756,19 +1756,6 @@
           <span>Contact</span>
         </a>
       </li>
-
-      <!-- 15. Take Tour Item -->
-      <li class="sidebar-tour-item">
-        <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
-          <i class='bx bx-compass' style="color:#0284c7;"></i>
-          <span>Take Tour</span>
-        </a>
-      </li>
-
-      <!-- 16. Logout -->
-      <li class="sidebar-logout-item">
-        <a href="{% url 'users:logout' %}" class="sidebar-logout-btn"><i class='bx bx-log-out'></i> Logout</a>
-      </li>
 {% endblock sidebar_nav %}
 
 {% block content %}
@@ -2267,7 +2254,7 @@
     
     let isManual = false;
     let isHovered = false;
-    let scrollSpeed = 0.80; 
+    let scrollSpeed = 0.55; 
     let animationFrame;
 
     let currentScroll = 0;

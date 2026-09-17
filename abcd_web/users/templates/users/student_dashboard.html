@@ -2185,7 +2185,77 @@
     }
 
     .fee-history {
-      margin-top: 30px;
+      margin-top: 35px;
+      margin-bottom: 25px;
+    }
+
+    .fee-history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 0 4px;
+    }
+
+    .fee-history-title {
+      font-size: clamp(1.2rem, 3.5vw, 1.75rem);
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      line-height: 1.3;
+    }
+
+    .fee-title-icon {
+      color: #6366f1;
+      font-size: 1.35em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fee-history-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    body.dark-theme .fee-history-title {
+      color: #f8fafc;
+    }
+
+    body.dark-theme .fee-title-icon {
+      color: #818cf8;
+    }
+
+    body.dark-theme .fee-history-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    @media (max-width: 480px) {
+      .fee-history-header {
+        margin-bottom: 12px;
+      }
+      .fee-history-title {
+        font-size: 1.15rem;
+      }
+      .fee-history-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+      }
     }
 
     .fee-table {
@@ -4411,15 +4481,6 @@
       </li>
       {% endif %}
 
-      <!-- Responsive sidebar items: shown when navbar links are hidden at specific breakpoints -->
-      <!-- New Admission: shown at <=1460px -->
-      <li class="sidebar-show-1460">
-        <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
-          <i class='bx bxs-user-plus'></i>
-          <span>New Admission</span>
-        </a>
-      </li>
-
       <!-- About Us: shown at <=1660px -->
       <li class="sidebar-show-1660">
         <a href="{% url 'users:about_us' %}" class="{% if request.resolver_match.url_name == 'about_us' %}active{% endif %}">
@@ -4729,6 +4790,13 @@
 
     {% if profile.status == 'admitted' and fee_records %}
     <div class="fee-history">
+      <div class="fee-history-header">
+        <h2 class="fee-history-title">
+          <i class='bx bx-receipt fee-title-icon'></i>
+          <span>Fee Payment History</span>
+        </h2>
+        <span class="fee-history-badge"><i class='bx bx-check-shield'></i> Verified Records</span>
+      </div>
       <div class="fee-table">
         <table>
           <thead>
@@ -7511,7 +7579,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       let isManual = false;
       let isHovered = false;
-      let scrollSpeed = 0.80; 
+      let scrollSpeed = 0.55; 
       let animationFrame;
       let currentScroll = 0;
 
