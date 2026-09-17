@@ -6,7 +6,8 @@
  * 2. Nested popups (e.g. popup inside a popup / wheel picker inside task modal) maintain
  *    the background lock until the very last popup is dismissed.
  * 3. Mobile touch-drag and overscroll bouncing cannot cascade from modal to background.
- * 4. Content within the modal/popup remains smoothly scrollable.
+ * 4. Content within all modals, panels (Broadcast, Notifications), sidebars, and drawers
+ *    remains smoothly scrollable with laptop touchpads (2-finger scroll), mouse wheels, and touch.
  * 5. When all popups close, the background's exact scroll position is seamlessly restored.
  */
 (function() {
@@ -22,45 +23,89 @@
   let prevBodyTouchAction = '';
   let prevBodyPaddingRight = '';
 
-  // Inject CSS rules for overscroll containment
+  // Inject CSS rules for overscroll containment and smooth touchpad/touch scrolling
   const styleEl = document.createElement('style');
   styleEl.id = 'abcd-modal-scroll-lock-styles';
   styleEl.textContent = `
     html.abcd-scroll-locked,
     body.abcd-scroll-locked {
       overflow: hidden !important;
-      touch-action: none !important;
-      -ms-touch-action: none !important;
     }
-    
-    /* Ensure modal containers contain their own scroll and don't chain to body */
-    .modal,
+
+    /* Dimmed static backdrop overlays prevent background touch dragging */
     .modal-overlay,
     .todo-modal-overlay,
     .picker-overlay,
     .custom-modal-overlay,
     .popup-overlay,
-    .layout-modal,
-    .seat-modal,
+    .seat-modal-overlay,
+    .seat-interest-overlay,
+    .choice-modal-overlay,
+    .reg-success-overlay,
+    .student-banner-overlay,
+    .fp-overlay,
     .alert-overlay,
-    [role="dialog"],
-    dialog,
-    .todo-modal,
-    .picker-card,
+    .custom-alert-overlay,
+    .banner-popup-overlay,
+    .broadcast-overlay,
+    .teacher-notif-overlay,
+    .notif-overlay,
+    #logoutConfirmOverlay {
+      touch-action: none;
+    }
+    
+    /* Ensure all modal, panel, drawer, and sidebar containers contain their own scroll
+       and allow high-precision laptop touchpad 2-finger panning and mobile touch scrolling */
+    .modal,
     .modal-dialog,
     .modal-content,
-    .modal-body {
-      overscroll-behavior: contain !important;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    /* Permit touch scrolling inside modal scrollable areas */
-    .todo-modal-body,
     .modal-body,
+    .todo-modal,
+    .todo-modal-body,
+    .picker-card,
     .drums-container,
     .drum-column,
+    .custom-modal,
+    .custom-modal-card,
+    .custom-modal-body,
+    .layout-modal,
+    .seat-modal,
+    .seat-modal-container,
+    .seat-modal-body,
+    .styled-modal-box,
+    .choice-modal-card,
+    .reg-success-card,
+    .student-banner-card,
+    .alert-card,
+    .custom-alert-card,
+    .fp-card,
+    .broadcast-panel-container,
+    .broadcast-panel,
+    .broadcast-body,
+    .teacher-notif-panel,
+    .teacher-notif-body,
+    .notif-panel,
+    .notif-body,
+    .sidebar-wrapper,
+    #sidebar,
+    .nav-sidebar,
+    #hubSidebar,
+    .hub-sidebar,
+    .g-sidebar,
+    #gSidebar,
+    .g-side-body,
+    .g-chat-list,
+    .g-chat-messages,
+    .g-messages-area,
+    .g-chats-list,
+    .g-requests-list,
+    .g-notes-list,
     .scrollable-modal-content,
-    [data-modal-scrollable="true"] {
+    [data-modal-scrollable="true"],
+    [role="dialog"],
+    dialog {
+      overscroll-behavior: contain !important;
+      -webkit-overflow-scrolling: touch !important;
       touch-action: pan-y !important;
     }
   `;
@@ -70,13 +115,25 @@
     return window.innerWidth - document.documentElement.clientWidth;
   }
 
+  function isScrollableElement(elem) {
+    if (!elem || elem === document.body || elem === document.documentElement) return false;
+    try {
+      const style = window.getComputedStyle(elem);
+      const overflowY = style.overflowY;
+      const overflowX = style.overflowX;
+      const canScrollY = (overflowY === 'auto' || overflowY === 'scroll') && (elem.scrollHeight > elem.clientHeight);
+      const canScrollX = (overflowX === 'auto' || overflowX === 'scroll') && (elem.scrollWidth > elem.clientWidth);
+      return canScrollY || canScrollX;
+    } catch (err) {
+      return false;
+    }
+  }
+
   function findScrollableParent(el, root) {
     let curr = el;
-    while (curr && curr !== root && curr !== document.body && curr !== document.documentElement) {
-      const style = window.getComputedStyle(curr);
-      const overflowY = style.overflowY;
-      const isScrollable = (overflowY === 'auto' || overflowY === 'scroll') && (curr.scrollHeight > curr.clientHeight);
-      if (isScrollable) return curr;
+    while (curr && curr !== document.body && curr !== document.documentElement) {
+      if (isScrollableElement(curr)) return curr;
+      if (root && curr === root) break;
       curr = curr.parentElement;
     }
     return null;
@@ -86,62 +143,141 @@
   function onTouchMove(e) {
     if (!isLocked) return;
 
-    // NEVER block touch interactions on sidebar, hamburger, or top navigation
-    if (e.target.closest('.sidebar-wrapper, .top-nav-menu, #sidebar, #sidebarOverlay, .hamburger-icon')) {
+    // 1. NEVER block touch interactions on sidebar, hamburger, or navigation
+    if (e.target.closest(
+      '.sidebar-wrapper, #sidebar, .nav-sidebar, #hubSidebar, .hub-sidebar, ' +
+      '.g-sidebar, #gSidebar, .top-nav-menu, .bottom-nav-menu, #mobileNav, #guestMobileNav, ' +
+      '#sidebarOverlay, .hamburger-icon'
+    )) {
       return;
     }
 
-    // Find the topmost open modal
-    let topModal = null;
-    for (const m of activeModals) {
-      topModal = m;
-    }
-
-    if (!topModal) {
-      if (e.cancelable) e.preventDefault();
+    // 2. NEVER block touch interactions on panels
+    if (e.target.closest('.broadcast-panel-container, .broadcast-panel, .teacher-notif-panel, .notif-panel')) {
       return;
     }
 
-    // Check if the touch happened inside the top modal
-    const isInsideTopModal = topModal.contains(e.target);
-    if (!isInsideTopModal) {
-      // Touching the backdrop or outside: freeze scroll completely
-      if (e.cancelable) e.preventDefault();
-      return;
-    }
-
-    // Check if the touch is on a drum column or scrollable container
-    const scrollable = findScrollableParent(e.target, topModal);
-    if (!scrollable && !e.target.closest('.drum-column')) {
-      // In modal header/footer or non-scrollable area: prevent page scrolling
-      if (e.cancelable && !['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'A'].includes(e.target.tagName)) {
-        // e.preventDefault();
+    // 3. Check if the touch happened inside any active modal or dialog element
+    const insideActiveModal = Array.from(activeModals).some(m => {
+      if (!m || !m.isConnected) return false;
+      if (m.contains(e.target)) return true;
+      if (m.id === 'broadcastOverlay') {
+        const p = document.getElementById('broadcastPanel');
+        if (p && p.contains(e.target)) return true;
       }
+      if (m.id === 'teacherNotifOverlay') {
+        const p = document.getElementById('teacherNotifPanel');
+        if (p && p.contains(e.target)) return true;
+      }
+      if (m.id === 'notifOverlay') {
+        const p = document.getElementById('notifPanel');
+        if (p && p.contains(e.target)) return true;
+      }
+      return false;
+    });
+
+    const insideDialogElement = !!e.target.closest(
+      '.modal, .modal-dialog, .modal-content, .modal-body, .todo-modal, .picker-card, ' +
+      '.seat-modal-container, .seat-modal-body, .choice-modal-card, .reg-success-card, ' +
+      '.student-banner-card, .alert-card, .custom-alert-card, .fp-card, [role="dialog"], ' +
+      'dialog, .drum-column, .drums-container, .scrollable-modal-content, [data-modal-scrollable="true"]'
+    );
+
+    if (insideActiveModal || insideDialogElement) {
+      return; // Permit smooth touch scrolling inside active modal
+    }
+
+    // 4. Touching the static backdrop overlay outside all dialogs: freeze background scroll
+    if (e.cancelable) {
+      e.preventDefault();
     }
   }
 
-  // Wheel event handler for desktop mouse
+  // Wheel event handler for desktop mouse & laptop touchpad 2-finger scroll
   function onWheel(e) {
     if (!isLocked) return;
 
-    let topModal = null;
-    for (const m of activeModals) {
-      topModal = m;
-    }
-
-    if (!topModal) {
-      e.preventDefault();
+    // 1. Sidebar & Navigation Drawers: NEVER block touchpad or wheel scrolling!
+    if (e.target.closest(
+      '.sidebar-wrapper, #sidebar, .nav-sidebar, #hubSidebar, .hub-sidebar, ' +
+      '.g-sidebar, #gSidebar, .top-nav-menu, .bottom-nav-menu, #mobileNav, #guestMobileNav'
+    )) {
       return;
     }
 
-    const isInside = topModal.contains(e.target);
-    if (!isInside) {
-      e.preventDefault();
+    // 2. Broadcast Panel: allow native touchpad scrolling, or delegate if hovering header/tabs
+    const broadcastPanel = e.target.closest('.broadcast-panel-container, .broadcast-panel');
+    if (broadcastPanel) {
+      const bBody = broadcastPanel.querySelector('.broadcast-body');
+      if (bBody && !e.target.closest('.broadcast-body') && (bBody.scrollHeight > bBody.clientHeight)) {
+        bBody.scrollTop += e.deltaY;
+        if (e.cancelable) e.preventDefault();
+      }
+      return; // Allow native touchpad / wheel scrolling inside broadcast panel!
+    }
+
+    // 3. Teacher Notification Panel: allow native touchpad scrolling, or delegate if hovering header
+    const teacherNotifPanel = e.target.closest('.teacher-notif-panel');
+    if (teacherNotifPanel) {
+      const tnBody = teacherNotifPanel.querySelector('.teacher-notif-body');
+      if (tnBody && !e.target.closest('.teacher-notif-body') && (tnBody.scrollHeight > tnBody.clientHeight)) {
+        tnBody.scrollTop += e.deltaY;
+        if (e.cancelable) e.preventDefault();
+      }
+      return; // Allow native touchpad / wheel scrolling inside teacher notif panel!
+    }
+
+    // 4. Student / Guest Notification Panel: allow native touchpad scrolling, or delegate if hovering header
+    const notifPanel = e.target.closest('.notif-panel');
+    if (notifPanel) {
+      const snBody = notifPanel.querySelector('.notif-body');
+      if (snBody && !e.target.closest('.notif-body') && (snBody.scrollHeight > snBody.clientHeight)) {
+        snBody.scrollTop += e.deltaY;
+        if (e.cancelable) e.preventDefault();
+      }
+      return; // Allow native touchpad / wheel scrolling inside notif panel!
+    }
+
+    // 5. Check if target is inside ANY active modal dialog, popup card, drum column, or scrollable area
+    const insideActiveModal = Array.from(activeModals).some(m => {
+      if (!m || !m.isConnected) return false;
+      if (m.contains(e.target)) return true;
+      if (m.id === 'broadcastOverlay') {
+        const p = document.getElementById('broadcastPanel');
+        if (p && p.contains(e.target)) return true;
+      }
+      if (m.id === 'teacherNotifOverlay') {
+        const p = document.getElementById('teacherNotifPanel');
+        if (p && p.contains(e.target)) return true;
+      }
+      if (m.id === 'notifOverlay') {
+        const p = document.getElementById('notifPanel');
+        if (p && p.contains(e.target)) return true;
+      }
+      return false;
+    });
+
+    const insideDialogElement = !!e.target.closest(
+      '.modal, .modal-dialog, .modal-content, .modal-body, .todo-modal, .picker-card, ' +
+      '.seat-modal-container, .seat-modal-body, .choice-modal-card, .reg-success-card, ' +
+      '.student-banner-card, .alert-card, .custom-alert-card, .fp-card, [role="dialog"], ' +
+      'dialog, .drum-column, .drums-container, .scrollable-modal-content, [data-modal-scrollable="true"]'
+    );
+
+    if (insideActiveModal || insideDialogElement) {
+      // Inside active modal/dialog: allow native smooth touchpad / mouse wheel scrolling!
       return;
     }
 
-    const scrollable = findScrollableParent(e.target, topModal);
-    if (!scrollable && !e.target.closest('.drum-column')) {
+    // 6. Check if target or any ancestor is scrollable anywhere on the screen
+    const scrollable = findScrollableParent(e.target, document.body);
+    if (scrollable) {
+      return; // Has a scrollable container, allow native scroll!
+    }
+
+    // 7. Otherwise, the wheel event occurred on the static dimmed backdrop overlay or dead background:
+    // Block wheel event to prevent background page scroll chaining!
+    if (e.cancelable) {
       e.preventDefault();
     }
   }
@@ -168,7 +304,6 @@
 
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
 
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('wheel', onWheel, { passive: false });
@@ -235,8 +370,11 @@
     '.tour-popup',
     '.banner-popup-overlay',
     '.broadcast-overlay',
+    '.broadcast-panel-container',
     '.teacher-notif-overlay',
+    '.teacher-notif-panel',
     '.notif-overlay',
+    '.notif-panel',
     '#logoutConfirmOverlay',
     '#logoutConfirmModal',
     '[class*="-modal"]',
@@ -247,16 +385,22 @@
   function isElementModalOpen(el) {
     if (!el || !el.isConnected) return false;
 
-    // Never treat sidebar elements, overlays, or top navigation as background-locking modals
+    // Never treat sidebar elements, navigation drawers, or search menus as background-locking modals
     if (el.classList.contains('sidebar-overlay') ||
         el.classList.contains('sidebar-wrapper') ||
         el.classList.contains('nav-sidebar') ||
+        el.classList.contains('hub-sidebar') ||
+        el.classList.contains('g-sidebar') ||
         el.classList.contains('mobile-search-overlay') ||
         el.classList.contains('hero-overlay-static') ||
         el.id === 'sidebarOverlay' ||
         el.id === 'sidebar' ||
+        el.id === 'hubSidebar' ||
+        el.id === 'gSidebar' ||
         el.closest('.sidebar-wrapper') ||
-        el.closest('.top-nav-menu')) {
+        el.closest('.top-nav-menu') ||
+        el.closest('.bottom-nav-menu') ||
+        el.closest('.g-sidebar')) {
       return false;
     }
 
@@ -299,6 +443,13 @@
 
   function scanAndSyncModals() {
     try {
+      // First clean up disconnected or closed modals from activeModals
+      for (const m of activeModals) {
+        if (!m || !m.isConnected || !isElementModalOpen(m)) {
+          activeModals.delete(m);
+        }
+      }
+
       const candidateElements = document.querySelectorAll(MODAL_SELECTOR);
       let foundAnyOpen = false;
 
