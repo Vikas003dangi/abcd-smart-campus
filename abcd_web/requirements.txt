@@ -12,6 +12,8 @@ tzdata==2025.2
 
 # Real-Time ASGI, WebSockets & Server
 channels==4.3.2
+channels-redis==4.2.1
+redis==5.2.1
 daphne==4.2.3
 Twisted==26.4.0
 autobahn==26.7.1
