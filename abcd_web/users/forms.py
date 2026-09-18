@@ -46,8 +46,8 @@ class StudentProfileForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your first name'})
     )
     last_name = forms.CharField(
-        max_length=50, required=True, 
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your last name'})
+        max_length=50, required=False, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter your last name (optional)'})
     )
     email = forms.EmailField(
         required=False, 
@@ -141,29 +141,32 @@ class StudentProfileForm(forms.ModelForm):
             
             existing = existing_ach or existing_prof
             if existing:
-                # Pre-populate and disable name, sex, dob fields
+                # Pre-populate and only lock fields if they are non-empty
                 if existing_ach:
-                    first_name = existing_ach.first_name
-                    last_name = existing_ach.last_name
-                    sex = existing_ach.gender.capitalize() if existing_ach.gender else 'Male'
+                    first_name = (existing_ach.first_name or '').strip()
+                    last_name = (existing_ach.last_name or '').strip()
+                    sex = existing_ach.gender.capitalize() if existing_ach.gender else ''
                     if sex not in ['Male', 'Female', 'Other']:
-                        sex = 'Male'
+                        sex = 'Male' if sex else ''
                     dob = existing_ach.dob
                 else:
-                    first_name, *rest = (existing_prof.full_name or '').split(' ', 1)
-                    last_name = rest[0] if rest else ''
-                    sex = existing_prof.sex
+                    first_name, *rest = (existing_prof.full_name or '').strip().split(' ', 1)
+                    last_name = rest[0].strip() if rest else ''
+                    sex = existing_prof.sex or ''
                     dob = existing_prof.dob
 
-                self.initial['first_name'] = first_name
-                self.initial['last_name'] = last_name
-                self.initial['sex'] = sex
-                self.initial['dob'] = dob
-
-                self.fields['first_name'].disabled = True
-                self.fields['last_name'].disabled = True
-                self.fields['sex'].disabled = True
-                self.fields['dob'].disabled = True
+                if first_name:
+                    self.initial['first_name'] = first_name
+                    self.fields['first_name'].disabled = True
+                if last_name:
+                    self.initial['last_name'] = last_name
+                    self.fields['last_name'].disabled = True
+                if sex:
+                    self.initial['sex'] = sex
+                    self.fields['sex'].disabled = True
+                if dob:
+                    self.initial['dob'] = dob
+                    self.fields['dob'].disabled = True
 
         # Pre-populate email from existing profile, achievement, or user model
         if 'email' in self.fields and not self.initial.get('email'):
@@ -177,14 +180,14 @@ class StudentProfileForm(forms.ModelForm):
                                         (user.email if user.email else '')
 
     def clean_first_name(self):
-        first_name = self.cleaned_data['first_name']
+        first_name = (self.cleaned_data.get('first_name') or '').strip()
         if not re.match(r'^[A-Za-z ]+$', first_name):
             raise forms.ValidationError('First name can only contain letters and spaces.')
         return first_name
 
     def clean_last_name(self):
-        last_name = self.cleaned_data['last_name']
-        if not re.match(r'^[A-Za-z ]+$', last_name):
+        last_name = (self.cleaned_data.get('last_name') or '').strip()
+        if last_name and not re.match(r'^[A-Za-z ]+$', last_name):
             raise forms.ValidationError('Last name can only contain letters and spaces.')
         return last_name
         
@@ -292,7 +295,9 @@ class StudentProfileForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        instance.full_name = f"{self.cleaned_data['first_name']} {self.cleaned_data['last_name']}"
+        fn = (self.cleaned_data.get('first_name') or '').strip()
+        ln = (self.cleaned_data.get('last_name') or '').strip()
+        instance.full_name = f"{fn} {ln}".strip() if ln else fn
         email_val = self.cleaned_data.get('email')
         if email_val:
             instance.email = email_val

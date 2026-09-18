@@ -1860,13 +1860,13 @@
             loadLayout('Ground Floor', 'ground-floor-wrapper');
             loadLayout('1st Floor', 'first-floor-wrapper');
 
-            // Refresh seat data every 5 seconds for live updates (paused if tab is hidden)
+            // Refresh seat data every 20 seconds for live updates (paused if tab is hidden)
             setInterval(() => {
                 if (!document.hidden) {
                     loadLayout('Ground Floor', 'ground-floor-wrapper');
                     loadLayout('1st Floor', 'first-floor-wrapper');
                 }
-            }, 5000);
+            }, 20000);
 
             // Real-time WebSocket instant updates
             try {

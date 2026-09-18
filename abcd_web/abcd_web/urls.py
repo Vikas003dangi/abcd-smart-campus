@@ -71,10 +71,12 @@ urlpatterns = [
     path('robots.txt', robots_txt_view, name='robots_txt'),
     path('sitemap.xml', sitemap_xml_view, name='sitemap_xml'),
 
-    # Media files serving (works in both DEBUG and Production)
-    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-
     # All your app's URLs, including the home page, are now handled here
     path('', include('users.urls')),
     path('auth/', include('social_django.urls', namespace='social')),
 ]
+
+# Media files serving (Local development or fallback when Cloudinary is not configured)
+# In production with Cloudinary, media files load directly from Cloudinary CDN to protect Render bandwidth.
+if settings.DEBUG or not getattr(settings, 'CLOUDINARY_CLOUD_NAME', None):
+    urlpatterns.insert(len(urlpatterns) - 2, re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}))

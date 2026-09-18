@@ -2261,9 +2261,19 @@
             // Add listeners safely
             if (genderSelect) genderSelect.addEventListener('change', handleFormLogic);
             if (serviceSelect) serviceSelect.addEventListener('change', handleFormLogic);
-            if (registrationTypeSelect) registrationTypeSelect.addEventListener('change', handleFormLogic);
             // Run on page load
             handleFormLogic();
+
+            // Synchronize custom select triggers with server pre-filled values
+            document.querySelectorAll('select.form-control').forEach(select => {
+                const wrapper = select.nextElementSibling;
+                if (wrapper && wrapper.classList.contains('abcd-select-wrapper')) {
+                    const span = wrapper.querySelector('.abcd-select-trigger span');
+                    if (span && select.selectedIndex >= 0) {
+                        span.textContent = select.options[select.selectedIndex]?.text || 'Select...';
+                    }
+                }
+            });
 
             // --- Restore preview if seat data already present (e.g., after validation errors) ---
             if (selectedSeatHidden && selectedSeatHidden.value) {

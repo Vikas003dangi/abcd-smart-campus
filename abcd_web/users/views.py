@@ -3486,12 +3486,23 @@ def admission_form_view(request):
         if has_profile:
             first_name, *rest = (profile.full_name or '').split(' ', 1)
             last_name = rest[0] if rest else ''
+
+            # Auto-fill the remaining service for dual-service admission
+            remaining_service = None
+            if not coaching_registered and library_registered:
+                remaining_service = 'Coaching'
+            elif not library_registered and coaching_registered:
+                remaining_service = 'Library'
+
             initial = {
                 'first_name': first_name,
                 'last_name': last_name,
                 'email': profile.email or profile.user.email,
                 'is_new_registration': 'False',
             }
+            if remaining_service:
+                initial['service_type'] = remaining_service
+
             form = StudentProfileForm(instance=profile, initial=initial, user=request.user, disabled_services=disabled_services)
         else:
             initial = {'is_new_registration': 'True', 'email': request.user.email or ''}
@@ -3522,23 +3533,21 @@ def admission_form_view(request):
             messages.info(request, "We found your existing record. Your request will be treated as an already admitted student.")
             is_new_choice = False
 
-        # Duplicate check (read-only)
+        # Duplicate check: only warn if student is ALREADY ADMITTED to this exact service and exact same seat/batch
         if has_profile:
-            is_duplicate = True
-            if service_type != profile.service_type:
-                is_duplicate = False
-            elif service_type == 'Coaching':
-                if cleaned.get('batch') != profile.batch:
-                    is_duplicate = False
-            elif service_type == 'Library':
-                floor_val = (cleaned.get('floor') or request.POST.get('floor') or '').strip()
-                seat_val = (cleaned.get('selected_seat') or request.POST.get('selected_seat') or '').strip()
-                if floor_val != (profile.seat.floor if profile.seat else None) or \
-                   seat_val != (profile.seat.seat_number if profile.seat else None):
-                    is_duplicate = False
+            is_duplicate = False
+            if profile.status == 'admitted':
+                if service_type == 'Coaching' and (profile.service_type in ['Coaching', 'Both']):
+                    if cleaned.get('batch') == profile.batch and not profile.coaching_pending:
+                        is_duplicate = True
+                elif service_type == 'Library' and (profile.service_type in ['Library', 'Both']):
+                    floor_val = (cleaned.get('floor') or request.POST.get('floor') or '').strip()
+                    seat_val = (cleaned.get('selected_seat') or request.POST.get('selected_seat') or '').strip()
+                    if profile.seat and floor_val == profile.seat.floor and seat_val == profile.seat.seat_number and not profile.library_pending:
+                        is_duplicate = True
             
             if is_duplicate:
-                dup_msg = "You already have an active admission with these exact details."
+                dup_msg = f"You already have an active admission in {service_type} with these exact details."
                 messages.warning(request, dup_msg)
                 if is_ajax:
                     return JsonResponse({
@@ -3587,8 +3596,19 @@ def admission_form_view(request):
                             student_profile.service_type = profile.service_type
                             student_profile.status = 'admitted'
                             student_profile.is_admitted = True
+                        elif profile.status == 'pending':
+                            # Student was already pending for first service, now requesting both
+                            student_profile.status = 'pending'
+                            student_profile.is_admitted = False
+                        else:
+                            # Preserve existing status (e.g. 'on_hold', etc.)
+                            student_profile.status = profile.status
+                            student_profile.is_admitted = profile.is_admitted
+
                         if service_type == 'Coaching':
                             student_profile.coaching_pending = True
+                            if cleaned.get('batch'):
+                                student_profile.batch = cleaned.get('batch')
                         elif service_type == 'Library':
                             student_profile.library_pending = True
 
@@ -3745,10 +3765,13 @@ def admission_form_view(request):
                     # 4. Coaching Logic
                     else:
                         student_profile.save()
-                        if student_profile.seat_id is not None or student_profile.shift != 'full':
-                            student_profile.seat = None
-                            student_profile.shift = 'full'
-                            student_profile.save(update_fields=['seat', 'shift'])
+                        # Only clear seat if student is NOT an admitted or pending library student!
+                        is_library_user = (profile and (profile.service_type in ['Library', 'Both'] or profile.library_pending or profile.seat_id is not None))
+                        if not is_library_user:
+                            if student_profile.seat_id is not None or student_profile.shift != 'full':
+                                student_profile.seat = None
+                                student_profile.shift = 'full'
+                                student_profile.save(update_fields=['seat', 'shift'])
                         
                         deferred_actions.append(lambda: send_admin_alert_email(
                             subject="Coaching Admission Submission",
@@ -4237,6 +4260,10 @@ def student_dashboard_view(request):
     except Exception:
         achievements = []
 
+    pending_library_seat = None
+    if getattr(profile, 'library_pending', False):
+        pending_library_seat = SeatAssignment.objects.filter(student=profile, is_active=False).select_related('seat').first()
+
     context = {
         'profile': profile,
         'nav_achievement': achievement,
@@ -4244,6 +4271,7 @@ def student_dashboard_view(request):
         "unread_count": unread_count,
         "achievements": achievements,
         "show_marquee": len(achievements) > 0,
+        "pending_library_seat": pending_library_seat,
     }
 
     if profile.status == 'admitted':
@@ -16742,6 +16770,7 @@ def robots_txt_view(request):
         "Disallow: /api/",
         "Disallow: /auth/",
         "Disallow: /post-login/",
+        "Disallow: /media/",
         "",
         f"Sitemap: {site_url}/sitemap.xml",
     ]

@@ -797,9 +797,9 @@
             });
     }
 
-    // High precision: Check memory every 1 second, fetch server every 10 seconds
+    // High precision: Check memory every 1 second, fetch server every 30 seconds
     setInterval(tickGlobalDueAlarmsInMemory, 1000);
-    setInterval(checkGlobalDueAlarms, 10000);
+    setInterval(checkGlobalDueAlarms, 30000);
     setTimeout(checkGlobalDueAlarms, 1000);
 
     // Also run immediately on page visibility change or tab focus (e.g. mobile phone unlocked / tab resumed)

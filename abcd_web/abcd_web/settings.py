@@ -126,6 +126,7 @@ MIDDLEWARE = [
     'users.db_utils.CanonicalDomainRedirectMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise static middleware
+    'django.middleware.gzip.GZipMiddleware',       # Compresses dynamic HTML & JSON payloads (cuts sizes up to 70%)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -213,7 +214,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"  # for production collectstatic
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # -------------------------------
 # MEDIA & CLOUDINARY STORAGE
@@ -241,7 +242,7 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
             "BACKEND": "users.storage.SmartMediaCloudinaryStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
 else:
@@ -250,10 +251,13 @@ else:
             "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
 WHITENOISE_MANIFEST_STRICT = False
+# Aggressive Browser Caching for WhiteNoise static assets (massively cuts Render bandwidth egress)
+# Sets Cache-Control: max-age=31536000 (1 year) so clients cache images, audio, CSS, JS locally
+WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024  # 15MB for sticky note images / rich content
 FILE_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024

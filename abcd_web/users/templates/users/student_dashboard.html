@@ -4600,11 +4600,29 @@
         <div class="pending-message" style="margin-top: 6px; font-size: 0.9rem;">
           🔄 Your admission request is under review. You'll receive a notification once approved by our admin team.
         </div>
+        {% elif profile.coaching_pending and profile.library_pending %}
+        <div class="pending-message" style="margin-top: 8px; font-size: 0.92rem; background: rgba(99, 102, 241, 0.12); border-left: 3px solid #6366f1; padding: 8px 14px; border-radius: 6px; color: #4338ca; font-weight: 500;">
+          ⏳ Your Coaching & Library admission requests are currently under review by our administration.
+        </div>
+        {% elif profile.coaching_pending %}
+        <div class="pending-message" style="margin-top: 8px; font-size: 0.92rem; background: rgba(99, 102, 241, 0.12); border-left: 3px solid #6366f1; padding: 8px 14px; border-radius: 6px; color: #4338ca; font-weight: 500;">
+          ⏳ Your <strong>Coaching Admission request</strong> (Batch: {{ profile.get_batch_display|default:profile.batch|default:"Selected" }}) is under review by administration.
+        </div>
+        {% elif profile.library_pending %}
+        <div class="pending-message" style="margin-top: 8px; font-size: 0.92rem; background: rgba(99, 102, 241, 0.12); border-left: 3px solid #6366f1; padding: 8px 14px; border-radius: 6px; color: #4338ca; font-weight: 500;">
+          ⏳ Your <strong>Library Admission request</strong> {% if pending_library_seat %}(Seat {{ pending_library_seat.seat.seat_number }}, {{ pending_library_seat.seat.floor }}){% endif %} is under review by administration.
+        </div>
         {% endif %}
       </div>
       <div class="status-badge status-{{ profile.status }}" style="margin: 0;">
         {% if profile.status == 'admitted' %}
-        ✅ Admitted Student
+          {% if profile.coaching_pending %}
+          ✅ Admitted (Coaching Pending ⏳)
+          {% elif profile.library_pending %}
+          ✅ Admitted (Library Pending ⏳)
+          {% else %}
+          ✅ Admitted Student
+          {% endif %}
         {% elif profile.status == 'on_hold' %}
         ⏸️ Admission On Hold
         {% elif profile.status == 'pending' %}
@@ -4654,6 +4672,14 @@
           <span class="info-label">Batch:</span>
           <span class="info-value">{{ profile.get_batch_display }}</span>
         </div>
+        {% if profile.library_pending %}
+        <div class="info-item" style="background: rgba(99, 102, 241, 0.08); border-radius: 6px; padding: 8px 12px; margin-top: 6px; border-left: 3px solid #6366f1;">
+          <span class="info-label" style="color: #4f46e5; font-weight: 600;">Library Request:</span>
+          <span class="info-value" style="color: #4338ca; font-weight: 600;">
+            Pending Approval ⏳ {% if pending_library_seat %}(Seat {{ pending_library_seat.seat.seat_number }}, {{ pending_library_seat.seat.floor }}){% endif %}
+          </span>
+        </div>
+        {% endif %}
         {% elif profile.service_type == 'Library' %}
         <div class="info-item">
           <span class="label">Floor:</span>
@@ -4677,6 +4703,27 @@
           </span>
         </div>
         {% endif %}
+        {% if profile.coaching_pending %}
+        <div class="info-item" style="background: rgba(99, 102, 241, 0.08); border-radius: 6px; padding: 8px 12px; margin-top: 6px; border-left: 3px solid #6366f1;">
+          <span class="info-label" style="color: #4f46e5; font-weight: 600;">Coaching Request:</span>
+          <span class="info-value" style="color: #4338ca; font-weight: 600;">
+            Pending Approval ⏳ ({{ profile.get_batch_display|default:profile.batch|default:"Selected" }})
+          </span>
+        </div>
+        {% endif %}
+        {% elif profile.service_type == 'Both' %}
+        <div class="info-item">
+          <span class="info-label">Batch:</span>
+          <span class="info-value">{{ profile.get_batch_display|default:profile.batch }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Floor:</span>
+          <span class="value">{{ profile.seat.floor|default:"Not Assigned" }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Seat Number:</span>
+          <span class="value">{{ profile.seat.seat_number|default:"Not Assigned" }}</span>
+        </div>
         {% endif %}
 
         {% if admitted_student %}
@@ -6818,12 +6865,12 @@
     function toggleNotifications() { toggleNotificationsPanel(); }
     function markAllNotificationsRead() { markAllAsRead(); }
 
-    // Live notification background sync (every 6 seconds when tab is active)
+    // Live notification background sync (every 25 seconds when tab is active)
     setInterval(() => {
       if (!document.hidden && typeof loadNotifications === 'function') {
         loadNotifications(true);
       }
-    }, 6000);
+    }, 25000);
 
     // --- DOM LOGIC ---
     document.addEventListener('DOMContentLoaded', function () {
