@@ -657,7 +657,7 @@ function goBackOrHomeBase(event) {
         <!-- TOP RESUME HEADER -->
         <div class="cv-header">
             <div class="cv-photo-wrapper">
-                    <img src="{{ achievement.user|user_photo }}" class="cv-photo" alt="{{ achievement.first_name }}">
+                    <img src="{{ achievement.photo_url }}" class="cv-photo" alt="{{ achievement.first_name }}">
 
                 {% if not user.is_staff and not can_edit %}
                 <!-- GUIDY: Seek Guidance Button -->

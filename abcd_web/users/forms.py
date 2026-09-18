@@ -327,10 +327,17 @@ class EditStudentProfileForm(forms.ModelForm):
 
         # If student is editing, restrict sensitive fields
         if self.user_editing and not self.user_editing.is_staff:
-            restricted_fields = ['status', 'service_type', 'batch', 'full_name', 'sex', 'dob', 'email']
-            for field_name in restricted_fields:
+            admin_only_fields = ['status', 'service_type', 'batch']
+            for field_name in admin_only_fields:
                 if field_name in self.fields:
                     self.fields[field_name].disabled = True
+
+            # If student is already admitted, restrict personal identity fields.
+            # But if status is pending, allow editing so applicant can correct their submission!
+            if self.instance and self.instance.status == 'admitted':
+                for field_name in ['full_name', 'sex', 'dob', 'email']:
+                    if field_name in self.fields:
+                        self.fields[field_name].disabled = True
 
         # Common styling
         for field in self.fields.values():
@@ -603,9 +610,12 @@ class EditAlumniProfileForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if user_editing and not user_editing.is_staff:
-            for field_name in ['first_name', 'last_name', 'gender', 'dob']:
-                if field_name in self.fields:
-                    self.fields[field_name].disabled = True
+            # If achievement is already approved, protect verified identity fields.
+            # But if achievement is still pending, allow applicant to freely correct their details!
+            if self.instance and self.instance.status == 'approved':
+                for field_name in ['first_name', 'last_name', 'gender', 'dob']:
+                    if field_name in self.fields:
+                        self.fields[field_name].disabled = True
         for field_name, field in self.fields.items():
             if field_name != 'photo':
                 existing = field.widget.attrs.get('class', '')

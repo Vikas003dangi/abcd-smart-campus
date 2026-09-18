@@ -1323,8 +1323,10 @@
                 const amtDisplay = (typeof m.amount === 'number' && m.amount > 0) ? `₹${m.amount}` : (m.amount === 'Paid' || m.amount === 0 ? 'Paid' : `₹${m.amount}`);
                 const borderColor = isDark ? '#334155' : '#f1f5f9';
                 const textColor = isDark ? '#f1f5f9' : '#1e293b';
+                let monthDisplay = (m.month || '').trim();
+                monthDisplay = monthDisplay.replace(/^\((\d{2})\)\s*(.+)$/, '$2 (20$1)').replace(/^\((\d{4})\)\s*(.+)$/, '$2 ($1)');
                 const row = `<tr style="border-bottom: 1px solid ${borderColor};">
-                    <td style="padding: 12px 20px; font-weight: 600; color: ${textColor};">${m.month}</td>
+                    <td style="padding: 12px 20px; font-weight: 600; color: ${textColor};">${monthDisplay}</td>
                     <td style="padding: 12px 20px; text-align: right; font-weight: 700; color: #10b981;">${amtDisplay}</td>
                 </tr>`;
                 tableBody.innerHTML += row;

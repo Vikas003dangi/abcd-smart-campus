@@ -8263,6 +8263,9 @@ def edit_student_view(request, student_id):
 
             messages.success(request, f"Profile for {student.full_name} has been updated.")
 
+            if student.user:
+                cache.delete(f"student_context_data_{student.user.id}")
+
             # Redirect back to appropriate details page
             if request.user.is_staff:
                 return redirect('users:student_details', student_id=student.id)
@@ -9122,6 +9125,7 @@ def process_fees_view(request, student_id):
                             "year": year,
                             "amount": amount_val,
                             "date": payment_date.strftime('%d %b %Y'),
+                            "payment_date": payment_date,
                             "type": "paid"
                         })
                     elif action_type == 'mark_as_paid':
@@ -9135,6 +9139,7 @@ def process_fees_view(request, student_id):
                             "year": year,
                             "amount": 0,
                             "date": p_date.strftime('%d %b %Y'),
+                            "payment_date": None,
                             "type": "marked"
                         })
                     elif action_type == 'delete_fee':
@@ -9185,6 +9190,7 @@ def process_fees_view(request, student_id):
                                 "year": year,
                                 "amount": amount_to_add,
                                 "date": payment_date.strftime('%d %b %Y'),
+                                "payment_date": payment_date,
                                 "type": "paid"
                             })
 
@@ -9206,6 +9212,7 @@ def process_fees_view(request, student_id):
                                 "year": year,
                                 "amount": amount_to_edit,
                                 "date": payment_date.strftime('%d %b %Y'),
+                                "payment_date": payment_date,
                                 "type": "paid"
                             })
 
@@ -9224,6 +9231,7 @@ def process_fees_view(request, student_id):
                                 "year": year,
                                 "amount": 0,
                                 "date": payment.date_paid.strftime('%d %b %Y'),
+                                "payment_date": None,
                                 "type": "marked"
                             })
             
@@ -9312,17 +9320,24 @@ def process_fees_view(request, student_id):
                         if item.get("type") == "deleted":
                             continue
 
-                        # Deriving year suffix (e.g. 2026 -> 26)
-                        y_suffix = str(item.get("year"))[-2:]
-                        m_display = f"({y_suffix}) {item.get('month')}"
+                        # Format month display as Month (Year) e.g. "September (2026)"
+                        m_display = f"{item.get('month')} ({item.get('year')})"
                         amt = item.get("amount")
                         
                         # Requirement: If amount is 0 but marked paid, show "Paid" text in snapshot
                         amt_display = amt if amt > 0 else "Paid"
                         
+                        p_date_obj = item.get("payment_date")
+                        if p_date_obj and item.get("type") == "paid":
+                            parsed_dt = _safe_fee_date(p_date_obj)
+                            p_date_str = parsed_dt.strftime('%d/%m/%Y') if parsed_dt else "---"
+                        else:
+                            p_date_str = "---"
+                        
                         fee_snapshots.append({
                             "month": m_display,
                             "amount": amt_display,
+                            "payment_date": p_date_str,
                             "status": "paid"
                         })
                         if isinstance(amt, (int, float)):
@@ -10309,6 +10324,8 @@ def edit_alumni_view(request, pk=None):
                 u.save(update_fields=['first_name', 'last_name'])
             if u and full_n:
                 StudentProfile.objects.filter(user=u).update(full_name=full_n)
+            if u:
+                cache.delete(f"student_context_data_{u.id}")
             messages.success(request, "Profile updated successfully!")
             return redirect('users:achievement_detail', pk=achievement.pk)
     else:

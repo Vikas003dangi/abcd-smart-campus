@@ -624,6 +624,9 @@
                             {% if achievement.photo %}
                                 <img id="photoPreviewCustom" src="{{ achievement.photo.url }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
                                 <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
+                            {% elif achievement.photo_url and "default_avatar" not in achievement.photo_url and "user.png" not in achievement.photo_url %}
+                                <img id="photoPreviewCustom" src="{{ achievement.photo_url }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
                             {% else %}
                                 <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
                                 <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: flex;"></i>

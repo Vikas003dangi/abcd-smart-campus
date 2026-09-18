@@ -7490,8 +7490,8 @@
         {% for student in pending_new_coaching_students %}
         <div class="request-item">
           <div style="display: flex; align-items: center; gap: 15px;">
-            {% if student.user|has_user_photo %}
-            <img src="{{ student.user|user_photo }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
+            {% if student.user|has_user_photo or student.photo %}
+            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
             {% endif %}
             <div>
               <strong>{{ student.full_name }}</strong><br>
@@ -7565,8 +7565,8 @@
         {% for student in pending_existing_coaching_students %}
         <div class="request-item">
           <div style="display: flex; align-items: center; gap: 15px;">
-            {% if student.user|has_user_photo %}
-            <img src="{{ student.user|user_photo }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
+            {% if student.user|has_user_photo or student.photo %}
+            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
             {% endif %}
             <div>
               <strong>{{ student.full_name }}</strong><br>
@@ -7645,8 +7645,8 @@
                       special-seat-request shift-special-request
                   {% endif %}">
           <div style="display: flex; align-items: center; gap: 15px;">
-            {% if student.user|has_user_photo %}
-            <img src="{{ student.user|user_photo }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
+            {% if student.user|has_user_photo or student.photo %}
+            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
             {% endif %}
             <div>
               <strong>{{ student.full_name }}</strong><br>
@@ -7763,8 +7763,8 @@
                   {% endif %}">
 
           <div style="display: flex; align-items: center; gap: 15px;">
-            {% if student.user|has_user_photo %}
-            <img src="{{ student.user|user_photo }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
+            {% if student.user|has_user_photo or student.photo %}
+            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
             {% endif %}
             <div>
               <strong>{{ student.full_name }}</strong><br>
@@ -7940,8 +7940,8 @@
         {% for ach in pending_achievements %}
         <div class="request-item">
           <div style="display: flex; align-items: center; gap: 15px;">
-            {% if ach.user|has_user_photo %}
-            <img src="{{ ach.user|user_photo }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
+            {% if ach.user|has_user_photo or ach.photo %}
+            <img src="{{ ach.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
             {% endif %}
             <div>
               <strong>{{ ach.first_name }} {{ ach.last_name }}</strong><br>

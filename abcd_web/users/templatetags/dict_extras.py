@@ -9,9 +9,14 @@ def dict_lookup(dictionary, key):
     return dictionary.get(key)
 
 @register.filter
-def user_photo(user_or_obj):
+def user_photo(user_or_obj, dashboard_type=None):
     if not user_or_obj:
         return "/static/data/user.png"
+    if hasattr(user_or_obj, 'photo_url'):
+        try:
+            return user_or_obj.photo_url
+        except Exception:
+            pass
     if hasattr(user_or_obj, 'photo') and user_or_obj.photo:
         try:
             url = user_or_obj.photo.url
@@ -21,7 +26,19 @@ def user_photo(user_or_obj):
             pass
     user = getattr(user_or_obj, 'user', user_or_obj)
     from users.utils import get_profile_photo_url
-    return get_profile_photo_url(user)
+    return get_profile_photo_url(user, dashboard_type=dashboard_type)
+
+@register.simple_tag(takes_context=True)
+def current_user_photo(context):
+    request = context.get('request')
+    user = context.get('user')
+    if not user or not getattr(user, 'is_authenticated', False):
+        return "/static/data/user.png"
+    active_dash = None
+    if request and hasattr(request, 'session'):
+        active_dash = request.session.get('active_dashboard')
+    from users.utils import get_profile_photo_url
+    return get_profile_photo_url(user, dashboard_type=active_dash)
 
 @register.filter
 def user_display_name(user):

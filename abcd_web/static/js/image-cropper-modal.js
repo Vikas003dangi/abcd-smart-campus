@@ -182,32 +182,37 @@
             }
 
             canvas.toBlob((blob) => {
-                doneBtnEl.disabled = false;
-                doneBtnEl.innerHTML = originalText;
+                try {
+                    if (!blob) {
+                        ABCDImageCropper.close();
+                        return;
+                    }
 
-                if (!blob) {
+                    const filename = opts.fileName || 'profile_photo.jpg';
+                    const file = new File([blob], filename, { type: mimeType, lastModified: Date.now() });
+                    const dataUrl = canvas.toDataURL(mimeType, quality);
+
+                    const result = {
+                        blob: blob,
+                        file: file,
+                        dataUrl: dataUrl,
+                        canvas: canvas,
+                        width: canvas.width,
+                        height: canvas.height
+                    };
+
+                    if (typeof opts.onDone === 'function') {
+                        opts.onDone(result);
+                    }
+
                     ABCDImageCropper.close();
-                    return;
+                } catch (callbackErr) {
+                    console.error("ABCDImageCropper toBlob error:", callbackErr);
+                    ABCDImageCropper.close();
+                } finally {
+                    doneBtnEl.disabled = false;
+                    doneBtnEl.innerHTML = originalText;
                 }
-
-                const filename = opts.fileName || 'profile_photo.jpg';
-                const file = new File([blob], filename, { type: mimeType, lastModified: Date.now() });
-                const dataUrl = canvas.toDataURL(mimeType, quality);
-
-                const result = {
-                    blob: blob,
-                    file: file,
-                    dataUrl: dataUrl,
-                    canvas: canvas,
-                    width: width,
-                    height: height
-                };
-
-                if (typeof opts.onDone === 'function') {
-                    opts.onDone(result);
-                }
-
-                ABCDImageCropper.close();
             }, mimeType, quality);
 
         } catch (err) {

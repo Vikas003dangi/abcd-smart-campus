@@ -376,7 +376,7 @@
         <!-- Photo Header -->
         <div class="photo-container">
             <div class="photo-frame" onclick="viewPhoto()">
-                <img src="{{ student.user|user_photo }}" alt="{{ student.full_name }}" id="profile-img-main">
+                <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" id="profile-img-main">
                 <div class="photo-overlay">SEE</div>
             </div>
             <div class="edit-photo-btn" onclick="openPhotoManager()" title="Manage Photo">

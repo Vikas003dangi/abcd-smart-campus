@@ -1,0 +1,38 @@
+﻿{% load static %}
+{% if not request.user.is_authenticated %}
+<!-- Non-logged in visitors / guests CTA -->
+<div class="cta-banner {% if is_top %}cta-banner-top{% else %}cta-banner-center{% endif %}">
+    <div class="cta-content">
+        <h3>🚀 Ready to shape your career?</h3>
+        <p>Join ABCD Coaching & Library to master English grammar, gain speaking confidence, and enjoy our peaceful, fully-equipped study hall.</p>
+    </div>
+    <div class="cta-actions">
+        <a href="{% url 'users:admission_form' %}" class="cta-btn primary"><i class='bx bx-edit'></i> Get Admission</a>
+        <a href="{% url 'users:register' %}" class="cta-btn secondary">Register Now</a>
+    </div>
+</div>
+{% elif is_teacher %}
+<!-- Teachers: No CTA needed -->
+{% elif nav_achievement %}
+<!-- Alumni who has already submitted achievement -->
+<div class="cta-banner {% if is_top %}cta-banner-top{% else %}cta-banner-center{% endif %}">
+    <div class="cta-content">
+        <h3>✏️ Keep your achievement profile updated</h3>
+        <p>Has your job designation, employer, or city changed? Keep your details current to guide new students.</p>
+    </div>
+    <div class="cta-actions">
+        <a href="{% url 'users:edit_alumni' %}" class="cta-btn primary"><i class='bx bx-edit-alt'></i> Update Success Story</a>
+    </div>
+</div>
+{% else %}
+<!-- Logged in students who haven't submitted yet -->
+<div class="cta-banner {% if is_top %}cta-banner-top{% else %}cta-banner-center{% endif %}">
+    <div class="cta-content">
+        <h3>🏆 Share your success with our community!</h3>
+        <p>Cleared an exam or secured a placement? Inspire your peers and future aspirants by listing your achievement here.</p>
+    </div>
+    <div class="cta-actions">
+        <a href="{% url 'users:achievement_form' %}" class="cta-btn primary"><i class='bx bx-trophy'></i> Submit Achievement</a>
+    </div>
+</div>
+{% endif %}

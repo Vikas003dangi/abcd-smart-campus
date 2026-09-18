@@ -1698,10 +1698,12 @@ def get_user_dashboard_type(user):
     return 'guest'
 
 
-def get_profile_photo_url(user):
+def get_profile_photo_url(user, dashboard_type=None):
     """
     Centralized profile photo selector enforcing Priority Cascade:
     1. Uploaded photo in DB (StudentProfile/StudentAchievement) with cache-buster.
+       - If dashboard_type == 'alumni', prioritizes StudentAchievement photo, fallback to StudentProfile photo.
+       - If dashboard_type == 'student' (or None), prioritizes StudentProfile photo, fallback to StudentAchievement photo.
     2. Google OAuth picture.
     3. Default UI-Avatar.
     """
@@ -1724,25 +1726,43 @@ def get_profile_photo_url(user):
     elif email_clean == 'vd19055@gmail.com' or username_clean in ['vaku', 'vikas', 'vd19055']:
         return "/static/data/favicon/web-app-manifest-512x512.png"
 
-    # Priority 1: StudentProfile Photo / StudentAchievement Photo
+    # Priority 1: StudentProfile Photo / StudentAchievement Photo (Contextually prioritized)
     from .models import StudentProfile, StudentAchievement
-    profile = StudentProfile.objects.filter(user=user).first()
-    if profile and profile.photo:
-        try:
-            p_url = profile.photo.url
-            if p_url:
-                return p_url
-        except Exception:
-            pass
 
-    achievement = StudentAchievement.objects.filter(user=user).first()
-    if achievement and achievement.photo:
-        try:
-            a_url = achievement.photo.url
-            if a_url:
-                return a_url
-        except Exception:
-            pass
+    if dashboard_type == 'alumni':
+        achievement = StudentAchievement.objects.filter(user=user).first()
+        if achievement and achievement.photo:
+            try:
+                return achievement.photo_url
+            except Exception:
+                pass
+        profile = StudentProfile.objects.filter(user=user).first()
+        if profile and profile.photo:
+            try:
+                return profile.photo_url
+            except Exception:
+                pass
+        if achievement:
+            return achievement.photo_url
+        if profile:
+            return profile.photo_url
+    else:
+        profile = StudentProfile.objects.filter(user=user).first()
+        if profile and profile.photo:
+            try:
+                return profile.photo_url
+            except Exception:
+                pass
+        achievement = StudentAchievement.objects.filter(user=user).first()
+        if achievement and achievement.photo:
+            try:
+                return achievement.photo_url
+            except Exception:
+                pass
+        if profile:
+            return profile.photo_url
+        if achievement:
+            return achievement.photo_url
 
     # Priority 2: Google OAuth picture
     try:

@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import math
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -384,9 +385,21 @@ def _build_payment_table(elements, styles, transaction):
     months = transaction.months_snapshot or []
     n = len(months)
     expiry = transaction.expiry_date.strftime('%d/%m/%Y') if transaction.expiry_date else "N/A"
-    pay_dt = transaction.payment_date.strftime('%d/%m/%Y')
 
+    row_dates = []
     for m in months:
+        # Column 1: Month Paid format -> e.g. "September (2026)"
+        month_raw = str(m.get('month') or '').strip()
+        m_match2 = re.match(r'^\((\d{2})\)\s*(.+)$', month_raw)
+        m_match4 = re.match(r'^\((\d{4})\)\s*(.+)$', month_raw)
+        if m_match2:
+            month_display = f"{m_match2.group(2).strip()} (20{m_match2.group(1)})"
+        elif m_match4:
+            month_display = f"{m_match4.group(2).strip()} ({m_match4.group(1)})"
+        else:
+            month_display = month_raw
+
+        # Column 2: Amount Paid (Untouched)
         amt = m.get('amount')
         if amt == "Paid":
             display = "Paid"
@@ -395,7 +408,22 @@ def _build_payment_table(elements, styles, transaction):
                 display = f"Rs. {int(amt)}"
             except Exception:
                 display = f"Rs. {amt}"
-        data.append([m.get('month'), display, expiry, pay_dt])
+
+        # Column 4: Payment Date
+        pd_val = m.get('payment_date')
+        if pd_val is not None and str(pd_val).strip() != '':
+            row_pay_dt = str(pd_val).strip()
+        else:
+            # Fallback for older transactions
+            if amt == "Paid" or amt == 0:
+                row_pay_dt = "---"
+            elif transaction.payment_date:
+                row_pay_dt = transaction.payment_date.strftime('%d/%m/%Y')
+            else:
+                row_pay_dt = "---"
+
+        row_dates.append(row_pay_dt)
+        data.append([month_display, display, expiry, row_pay_dt])
 
     tbl = Table(data, colWidths=[2.0 * inch, 1.4 * inch, 1.4 * inch, 1.4 * inch])
     ts = TableStyle([
@@ -410,9 +438,28 @@ def _build_payment_table(elements, styles, transaction):
         ('TOPPADDING', (0, 0), (-1, -1), 7),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
     ])
+
     if n > 1:
+        # Column 3: Expiry Date always spans all rows (Untouched)
         ts.add('SPAN', (2, 1), (2, n))
-        ts.add('SPAN', (3, 1), (3, n))
+
+        # Column 4: Payment Date merge logic
+        valid_dates = [d for d in row_dates if d and d != "---"]
+        unique_dates = list(dict.fromkeys(valid_dates))
+
+        if len(unique_dates) == 1:
+            # Only one distinct date selected among months (others marked as paid or same date)
+            data[1][3] = unique_dates[0]
+            ts.add('SPAN', (3, 1), (3, n))
+        elif len(unique_dates) == 0:
+            # All months were marked as paid without specific dates
+            data[1][3] = "---"
+            ts.add('SPAN', (3, 1), (3, n))
+        else:
+            # Multiple different payment dates selected across months
+            # Keep row-by-row dates, do not merge
+            pass
+
     tbl.setStyle(ts)
     elements.append(tbl)
     elements.append(Spacer(1, 40))

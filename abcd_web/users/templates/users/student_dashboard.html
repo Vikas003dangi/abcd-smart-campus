@@ -5052,7 +5052,7 @@
       </a>
       {% if user.is_authenticated %}
       <a href="{% url 'users:profile' %}" class="bnav-item" title="Profile">
-          <img src="{{ user|user_photo }}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          <img src="{% current_user_photo %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
           <span>Profile</span>
       </a>
       {% else %}
@@ -5109,7 +5109,11 @@
       </a>
 
       <a href="{% url 'users:profile' %}" class="bnav-item" title="Profile">
-          <img src="{{ user|user_photo }}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          {% if request.session.active_dashboard == 'alumni' or request.session.active_dashboard != 'student' and nav_achievement %}
+              <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          {% else %}
+              <img src="{% if profile %}{{ profile.photo_url }}{% else %}{{ user|user_photo:'student' }}{% endif %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          {% endif %}
           <span>Profile</span>
       </a>
       {% endif %}

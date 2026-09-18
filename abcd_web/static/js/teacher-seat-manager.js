@@ -4220,8 +4220,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-
-  // Toggle UI when changing type select (library/coaching/manual)
+  const manualAssignPhotoPreviewContainer = document.getElementById('manualAssignPhotoPreviewContainer');
+  if (manualAssignPhotoPreviewContainer) {
+    manualAssignPhotoPreviewContainer.style.cursor = 'pointer';
+    manualAssignPhotoPreviewContainer.addEventListener('click', function(e) {
+      if (manualAssignPhotoBase64 && window.ABCDImageCropper) {
+        window.ABCDImageCropper.open({
+          image: manualAssignPhotoBase64,
+          aspectRatio: 1,
+          shape: 'circle',
+          title: 'Crop Student Photo',
+          outputWidth: 600,
+          outputHeight: 600,
+          onDone: function(result) {
+            manualAssignPhotoPreview.src = result.dataUrl;
+            manualAssignPhotoPreview.style.display = 'block';
+            if (manualAssignPhotoPlaceholder) manualAssignPhotoPlaceholder.style.display = 'none';
+            manualAssignPhotoBase64 = result.dataUrl;
+          }
+        });
+      } else if (manualAssignPhotoInput) {
+        manualAssignPhotoInput.click();
+      }
+    });
+  }
   if (studentAssignType) {
     studentAssignType.addEventListener('change', () => {
       toggleAssignModeUI();

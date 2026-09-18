@@ -288,7 +288,10 @@
                     <div style="position: relative; width: 120px; height: 120px;">
                         <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); cursor: pointer;" onclick="openPhotoActionModal()">
                             {% if student.photo %}
-                                <img id="photoPreviewCustom" src="{{ student.user|user_photo }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                <img id="photoPreviewCustom" src="{{ student.photo.url }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                                <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
+                            {% elif student.photo_url and "default_avatar" not in student.photo_url and "user.png" not in student.photo_url %}
+                                <img id="photoPreviewCustom" src="{{ student.photo_url }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
                                 <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
                             {% else %}
                                 <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
