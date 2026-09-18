@@ -169,3 +169,26 @@
 <link rel="stylesheet" href="/static/css/site-tour.css?v=37">
 <script src="/static/js/site-tour.js?v=37"></script>
 <script src="/static/js/abcd-modal-scroll-lock.js?v=4"></script>
+<script>
+    // Ensure ABCD Audio Engine is globally available on all dashboard pages
+    if (!window.playABCDSound && !document.querySelector('script[src*="abcd-sound.js"]')) {
+        const snd = document.createElement('script');
+        snd.src = '/static/js/abcd-sound.js';
+        snd.async = true;
+        document.head.appendChild(snd);
+    }
+    // Ensure Web Push & Service Worker subscription sync is active on all dashboard pages
+    if (!document.querySelector('script[src*="push-permission.js"]')) {
+        const pp = document.createElement('script');
+        pp.src = '/static/js/push-permission.js?v=5';
+        pp.async = true;
+        document.head.appendChild(pp);
+    }
+    // Ensure Universal CustomPopup is globally available on all dashboard pages
+    if (!window.CustomPopup && !document.querySelector('script[src*="custom-popup.js"]')) {
+        const cp = document.createElement('script');
+        cp.src = '/static/js/custom-popup.js?v=20260918';
+        cp.async = true;
+        document.head.appendChild(cp);
+    }
+</script>

@@ -576,6 +576,65 @@ var CustomPopup = window.CustomPopup || (function () {
 // Make globally available
 window.CustomPopup = CustomPopup;
 
+// Universal guard: Prevent ANY script from triggering native browser "Leave site?" prompts
+(function neutralizeNativeLeaveSitePrompts() {
+    if (typeof window === 'undefined') return;
+    
+    // 1. Intercept addEventListener for beforeunload to block e.returnValue & e.preventDefault
+    const origAddEventListener = window.addEventListener;
+    window.addEventListener = function (type, listener, options) {
+        if (type === 'beforeunload' && typeof listener === 'function') {
+            const safeListener = function (event) {
+                try {
+                    const origPrevent = event ? event.preventDefault : null;
+                    if (event) {
+                        event.preventDefault = function () {}; // Neutralize
+                    }
+                    listener.apply(this, arguments);
+                    if (event && 'returnValue' in event) {
+                        delete event.returnValue;
+                    }
+                    return undefined;
+                } catch (err) {
+                    console.warn('Protected beforeunload listener error:', err);
+                }
+            };
+            return origAddEventListener.call(this, type, safeListener, options);
+        }
+        return origAddEventListener.call(this, type, listener, options);
+    };
+
+    // 2. Prevent window.onbeforeunload assignment from returning string or setting returnValue
+    try {
+        let _onbeforeunload = null;
+        Object.defineProperty(window, 'onbeforeunload', {
+            get: function () { return _onbeforeunload; },
+            set: function (fn) {
+                if (typeof fn === 'function') {
+                    _onbeforeunload = function (e) {
+                        try {
+                            fn.apply(this, arguments);
+                            if (e && 'returnValue' in e) delete e.returnValue;
+                        } catch (err) {}
+                        return undefined; // Never return string that prompts leave site
+                    };
+                } else {
+                    _onbeforeunload = null;
+                }
+            },
+            configurable: true,
+            enumerable: true
+        });
+    } catch (e) {}
+
+    // 3. Fallback capturing listener on window beforeunload
+    origAddEventListener.call(window, 'beforeunload', function (e) {
+        if (e && 'returnValue' in e) {
+            delete e.returnValue;
+        }
+    }, { capture: true });
+})();
+
 // Automatically bridge standard browser dialogs to CustomPopup for seamless compatibility
 window.alert = function (message) {
     const title = arguments.length > 1 ? arguments[1] : 'Notice';

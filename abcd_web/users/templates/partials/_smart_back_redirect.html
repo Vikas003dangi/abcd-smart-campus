@@ -258,6 +258,14 @@
             document.head.appendChild(snd);
         }
 
+        // Ensure Web Push & Service Worker subscription sync is active on all pages
+        if (!document.querySelector('script[src*="push-permission.js"]')) {
+            const pp = document.createElement('script');
+            pp.src = '/static/js/push-permission.js?v=5';
+            pp.async = true;
+            document.head.appendChild(pp);
+        }
+
         // Universal Background Scroll Lock for any Modal / Popup
         if (!window.__ABCD_MODAL_SCROLL_LOCK__ && !document.querySelector('script[src*="abcd-modal-scroll-lock.js"]')) {
             const msl = document.createElement('script');
@@ -270,6 +278,14 @@
         if (!window.openCustomColorPickerBoard && !document.querySelector('script[src*="abcd-color-picker.js"]')) {
             const cp = document.createElement('script');
             cp.src = '/static/js/abcd-color-picker.js?v=1';
+            cp.async = true;
+            document.head.appendChild(cp);
+        }
+
+        // Ensure Universal CustomPopup is globally available on all pages
+        if (!window.CustomPopup && !document.querySelector('script[src*="custom-popup.js"]')) {
+            const cp = document.createElement('script');
+            cp.src = '/static/js/custom-popup.js?v=20260918';
             cp.async = true;
             document.head.appendChild(cp);
         }

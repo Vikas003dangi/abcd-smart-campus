@@ -27,6 +27,11 @@
     <link rel="stylesheet" href="{% static 'css/seat-patterns-enhanced.css' %}">
     <link rel="stylesheet" href="{% static 'css/site-tour.css' %}">
     <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
+    <script src="{% static 'js/custom-popup.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="{% static 'js/image-cropper-modal.js' %}"></script>
     <style>
         /* Hide lamp icon - bxs-lamp does not exist in Boxicons */
         .lamp-icon {
@@ -1821,7 +1826,7 @@
                     {% with cur_photo=existing_photo_url %}
                     <!-- Premium Profile Photo Upload Wrapper -->
                     <div style="position: relative; width: 120px; height: 120px;">
-                        <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                        <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); cursor: pointer;" onclick="handleAvatarClick()" title="Click to adjust/crop photo">
                             <img id="photoPreviewCustom" 
                                  src="{% if cur_photo %}{{ cur_photo }}{% endif %}" 
                                  data-initial-src="{% if cur_photo %}{{ cur_photo }}{% endif %}" 
@@ -1858,6 +1863,7 @@
             </form>
         </div>
     </div>
+
     {% include 'users/_seat_layout_modal.html' %}
     <!-- ========================================================= -->
     <!-- Shift Selection Popup (Admission Form | Shift Seats 40–53) -->
@@ -2359,114 +2365,19 @@
                 });
             }
             if (!photoInput) return;
-            photoInput.addEventListener('change', function () {
-                const file = this.files && this.files[0];
-                const previewImgCustom = document.getElementById('photoPreviewCustom');
-                const placeholderCustom = document.getElementById('photoPlaceholderCustom');
-                const captionText = document.getElementById('photoCaptionText');
-                const initialSrc = previewImgCustom ? previewImgCustom.getAttribute('data-initial-src') : "";
 
-                const resetPhoto = () => {
-                    this.value = "";
-                    if (previewImgCustom) {
-                        if (initialSrc) {
-                            previewImgCustom.src = initialSrc;
-                            previewImgCustom.style.display = "block";
-                        } else {
-                            previewImgCustom.src = "";
-                            previewImgCustom.style.display = "none";
-                        }
-                    }
-                    if (placeholderCustom) {
-                        placeholderCustom.style.display = initialSrc ? "none" : "flex";
-                    }
-                    if (captionText) {
-                        if (initialSrc) {
-                            captionText.innerHTML = `Current Profile Photo <span style="font-size: 0.75rem; font-weight: normal; color: #4f46e5;">(Click camera to change)</span>`;
-                            captionText.style.color = "#64748b";
-                        } else {
-                            captionText.textContent = "Passport size photo (Optional)";
-                            captionText.style.color = "#64748b";
-                        }
-                    }
-                };
-
-                if (!file) {
-                    resetPhoto();
-                    return;
-                }
-
-                // 1. Format validation (JPG, JPEG, PNG, WEBP)
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-                const fileName = (file.name || '').toLowerCase();
-                const validExtension = /\.(jpe?g|png|webp)$/i.test(fileName);
-                const validType = allowedTypes.includes(file.type) || validExtension;
-
-                if (!validType) {
-                    window.showStyledPopup({
-                        title: 'Invalid Photo Format',
-                        message: `
-                            <div style="text-align: left; font-size: 0.92rem; line-height: 1.55;">
-                                <p style="margin-bottom: 10px;">
-                                    The selected file is not in a supported image format.
-                                </p>
-                                <div class="popup-info-box">
-                                    <strong style="color: #b45309; display: block; margin-bottom: 4px;">Acceptable Formats:</strong>
-                                    <span>Only <strong>JPG, JPEG, PNG, or WEBP</strong> files are accepted.</span>
-                                </div>
-                            </div>
-                        `,
-                        type: 'warning',
-                        okText: 'Understood'
-                    });
-                    resetPhoto();
-                    return;
-                }
-
-                // 2. File size validation (Max 2MB)
-                const maxSizeBytes = 2 * 1024 * 1024;
-                if (file.size > maxSizeBytes) {
-                    const currentSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                    window.showStyledPopup({
-                        title: 'Photo Too Large',
-                        message: `
-                            <div style="text-align: left; font-size: 0.92rem; line-height: 1.55;">
-                                <p style="margin-bottom: 10px;">
-                                    Your photo is <strong>${currentSizeMB} MB</strong>, which exceeds the <strong>2MB</strong> limit.
-                                </p>
-                                <div class="popup-info-box">
-                                    <strong style="color: #b45309; display: block; margin-bottom: 4px;">Requirements:</strong>
-                                    <span>• Maximum size: <strong>2MB</strong><br>• Formats: <strong>JPG, PNG, WEBP</strong></span>
-                                </div>
-                                <div class="popup-tip-box">
-                                    <strong style="color: #4f46e5; display: block; margin-bottom: 3px;">💡 Quick Tip:</strong>
-                                    <span>Want to use this photo? Compress it online at <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;font-weight:600;">tinypng.com</a> or <a href="https://compressjpeg.com" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;font-weight:600;">compressjpeg.com</a> to bring it under 2MB.</span>
-                                </div>
-                            </div>
-                        `,
-                        type: 'warning',
-                        okText: 'Got It'
-                    });
-                    resetPhoto();
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    if (previewImgCustom) {
-                        previewImgCustom.src = e.target.result;
-                        previewImgCustom.style.display = "block";
-                    }
-                    if (placeholderCustom) {
-                        placeholderCustom.style.display = "none";
-                    }
-                    if (captionText) {
-                        captionText.innerHTML = initialSrc 
-                            ? `<span style="color: #4f46e5; font-weight: 600;">✓ New photo selected (replaces current photo)</span>`
-                            : `<span style="color: #4f46e5; font-weight: 600;">✓ Photo selected</span>`;
-                    }
-                };
-                reader.readAsDataURL(file);
+            // Attach Centralized Cropper Component to Profile Photo Input (1:1 circular avatar)
+            ABCDImageCropper.attach({
+                input: photoInput,
+                preview: '#photoPreviewCustom',
+                placeholder: '#photoPlaceholderCustom',
+                statusText: '#photoCaptionText',
+                aspectRatio: 1,
+                shape: 'circle',
+                outputWidth: 600,
+                outputHeight: 600,
+                title: 'Adjust Profile Photo',
+                maxSizeMB: 2
             });
         });
         if (window.history && window.history.replaceState) {
@@ -2525,6 +2436,9 @@
                     const data = await response.json();
 
                     if (response.ok && data.status === 'success') {
+                        if (window.admissionDraftManager) {
+                            window.admissionDraftManager.markSubmitting();
+                        }
                         // Success! Display flying toast animation
                         const toast = document.createElement('div');
                         toast.className = 'flying-toast';
@@ -2558,8 +2472,6 @@
                         await window.showStyledAlert("Application Notice", errMsg, data.show_duplicate_popup ? "info" : "error");
                     } else if (window.CustomPopup) {
                         await CustomPopup.alert(errMsg, "Application Notice");
-                    } else {
-                        alert(errMsg.replace(/<br>/g, '\n'));
                     }
                     return;
                 }
@@ -2587,14 +2499,60 @@
                     await window.showStyledAlert("Network Error", "Unable to connect to the server. Please check your internet connection and try again.", "error");
                 } else if (window.CustomPopup) {
                     await CustomPopup.alert("Unable to connect to the server. Please check your internet connection.", "Network Error");
-                } else {
-                    alert("Unable to connect to the server. Please check your internet connection.");
                 }
             }
         });
     })();
     </script>
     <script src="{% static 'js/custom-popup.js' %}"></script>
+    <script src="{% static 'js/form-draft-manager.js' %}?v=1"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.ABCDFormDraftManager) {
+                window.admissionDraftManager = new ABCDFormDraftManager({
+                    form: '#admissionForm',
+                    storageKey: 'abcd_draft_admission',
+                    formName: 'Admission Form',
+                    excludeFields: ['photo', 'csrfmiddlewaretoken'],
+                    customSerializer: function (form) {
+                        const checkedFloor = form.querySelector('input[name="floor_radio"]:checked');
+                        return {
+                            floor_radio: checkedFloor ? checkedFloor.value : ''
+                        };
+                    },
+                    customRestorer: function (form, data) {
+                        if (data.floor_radio) {
+                            const r = form.querySelector(`input[name="floor_radio"][value="${data.floor_radio}"]`);
+                            if (r) {
+                                r.checked = true;
+                                r.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                        // Update seat preview UI if seat data is restored
+                        setTimeout(function () {
+                            const seatHidden = document.getElementById('id_selected_seat');
+                            const hiddenFloor = document.getElementById('id_floor_hidden');
+                            if (seatHidden && seatHidden.value) {
+                                const floorLabel = hiddenFloor && hiddenFloor.value ? hiddenFloor.value : 'Selected floor';
+                                const shiftInput = document.getElementById('id_shift_preference');
+                                const shiftValue = shiftInput ? shiftInput.value : 'full';
+                                let previewText = `Seat ${seatHidden.value} (${floorLabel}) selected`;
+                                if (shiftValue && shiftValue !== 'full') {
+                                    const shiftCap = shiftValue.charAt(0).toUpperCase() + shiftValue.slice(1);
+                                    previewText += ` - ${shiftCap}`;
+                                }
+                                const preview = document.getElementById('selectedSeatPreview');
+                                if (preview) {
+                                    preview.textContent = previewText;
+                                    preview.className = 'seat-selected-success';
+                                }
+                            }
+                        }, 60);
+                    }
+                });
+            }
+        });
+    </script>
     <script>window.__disablePermissionPrompts = true;</script>
     <script src="{% static 'js/site-tour.js' %}"></script>
 </body>

@@ -7,11 +7,16 @@
 {{ block.super }}
 <meta name="disable-permission-prompts" content="true">
 <script>window.__disablePermissionPrompts = true;</script>
+<script src="{% static 'js/custom-popup.js' %}"></script>
 {% endblock %}
 
 {% block extra_css %}
 {{ block.super }}
 <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
 <style>
     /* --- SHARED STYLES FROM ADMISSION FORM --- */
     .form-container {
@@ -534,6 +539,7 @@
     body.dark-theme .abcd-modal-header h3 {
         color: #fff;
     }
+
 </style>
 {% endblock %}
 
@@ -685,7 +691,7 @@
                 
                 <!-- Premium Profile Photo Upload Wrapper -->
                 <div style="position: relative; width: 120px; height: 120px;">
-                    <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+                    <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); cursor: pointer;" onclick="handleAvatarClick()" title="Click to adjust/crop photo">
                         <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
                         <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1;"></i>
                     </div>
@@ -1017,95 +1023,47 @@
         document.getElementById('durationModal').classList.remove('active');
     }
 
-    // --- Photo Preview & Validation ---
+    // --- Centralized Photo Preview, Validation & Cropping ---
     const photoIn = document.getElementById('id_photo');
-    if (photoIn) {
-        photoIn.addEventListener('change', function() {
-            const file = this.files && this.files[0];
-            const previewImgCustom = document.getElementById('photoPreviewCustom');
-            const placeholderCustom = document.getElementById('photoPlaceholderCustom');
-            
-            if (!file) return;
-
-            const resetPhoto = () => {
-                this.value = '';
-                if (previewImgCustom) {
-                    previewImgCustom.src = '';
-                    previewImgCustom.style.display = 'none';
-                }
-                if (placeholderCustom) {
-                    placeholderCustom.style.display = 'flex';
-                }
-            };
-
-            // 1. Format validation (JPG, JPEG, PNG, WEBP)
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            const fileName = (file.name || '').toLowerCase();
-            const validExtension = /\.(jpe?g|png|webp)$/i.test(fileName);
-            const validType = allowedTypes.includes(file.type) || validExtension;
-
-            if (!validType) {
-                showStyledPopup({
-                    title: 'Invalid Photo Format',
-                    message: `
-                        <div style="text-align: left; font-size: 0.92rem; line-height: 1.55;">
-                            <p style="margin-bottom: 10px;">
-                                The selected file is not in a supported image format.
-                            </p>
-                            <div class="popup-info-box">
-                                <strong style="color: #b45309; display: block; margin-bottom: 4px;">Acceptable Formats:</strong>
-                                <span>Only <strong>JPG, JPEG, PNG, or WEBP</strong> files are accepted.</span>
-                            </div>
-                        </div>
-                    `,
-                    type: 'warning',
-                    okText: 'Understood'
-                });
-                resetPhoto();
-                return;
-            }
-
-            // 2. File size validation (Max 2MB)
-            const maxSizeBytes = 2 * 1024 * 1024;
-            if (file.size > maxSizeBytes) {
-                const currentSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                showStyledPopup({
-                    title: 'Photo Too Large',
-                    message: `
-                        <div style="text-align: left; font-size: 0.92rem; line-height: 1.55;">
-                            <p style="margin-bottom: 10px;">
-                                Your photo is <strong>${currentSizeMB} MB</strong>, which exceeds the <strong>2MB</strong> limit.
-                            </p>
-                            <div class="popup-info-box">
-                                <strong style="color: #b45309; display: block; margin-bottom: 4px;">Requirements:</strong>
-                                <span>• Maximum size: <strong>2MB</strong><br>• Formats: <strong>JPG, PNG, WEBP</strong></span>
-                            </div>
-                            <div class="popup-tip-box">
-                                <strong style="color: #4f46e5; display: block; margin-bottom: 3px;">💡 Quick Tip:</strong>
-                                <span>Want to use this photo? Compress it online at <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;font-weight:600;">tinypng.com</a> or <a href="https://compressjpeg.com" target="_blank" rel="noopener noreferrer" style="color:#4f46e5;text-decoration:underline;font-weight:600;">compressjpeg.com</a> to bring it under 2MB.</span>
-                            </div>
-                        </div>
-                    `,
-                    type: 'warning',
-                    okText: 'Got It'
-                });
-                resetPhoto();
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                if (previewImgCustom) {
-                    previewImgCustom.src = e.target.result;
-                    previewImgCustom.style.display = 'block';
-                }
-                if (placeholderCustom) {
-                    placeholderCustom.style.display = 'none';
-                }
-            };
-            reader.readAsDataURL(file);
+    if (photoIn && window.ABCDImageCropper) {
+        ABCDImageCropper.attach({
+            input: photoIn,
+            preview: '#photoPreviewCustom',
+            placeholder: '#photoPlaceholderCustom',
+            aspectRatio: 1,
+            shape: 'circle',
+            outputWidth: 600,
+            outputHeight: 600,
+            title: 'Adjust Profile Photo',
+            maxSizeMB: 2
         });
     }
+
+    window.handleAvatarClick = function() {
+        const previewImg = document.getElementById('photoPreviewCustom');
+        if (previewImg && previewImg.src && previewImg.style.display !== 'none' && !previewImg.src.endsWith('/')) {
+            if (window.ABCDImageCropper) {
+                ABCDImageCropper.open({
+                    image: previewImg.src,
+                    title: 'Adjust Profile Photo',
+                    aspectRatio: 1,
+                    shape: 'circle',
+                    outputWidth: 600,
+                    outputHeight: 600,
+                    onDone: function(result) {
+                        try {
+                            const dt = new DataTransfer();
+                            dt.items.add(result.file);
+                            if (photoIn) photoIn.files = dt.files;
+                        } catch(e) {}
+                        previewImg.src = result.dataUrl;
+                    }
+                });
+            }
+        } else if (photoIn) {
+            photoIn.click();
+        }
+    };
 
     // --- Star Rating ---
     const stars = document.querySelectorAll('#starRating i');
@@ -1212,6 +1170,9 @@
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
+                    if (window.achievementDraftManager) {
+                        window.achievementDraftManager.markSubmitting();
+                    }
                     // Success! Display flying toast
                     const toast = document.createElement('div');
                     toast.className = 'flying-toast';
@@ -1250,8 +1211,6 @@
                     await window.showStyledAlert("Story Submission Notice", errMsg, "error");
                 } else if (window.CustomPopup) {
                     await CustomPopup.alert(errMsg, "Submission Notice");
-                } else {
-                    alert(errMsg.replace(/<br>/g, '\n'));
                 }
                 return;
             }
@@ -1278,13 +1237,67 @@
                 await window.showStyledAlert("Network Error", "Unable to connect to the server. Please check your internet connection and try again.", "error");
             } else if (window.CustomPopup) {
                 await CustomPopup.alert("Unable to connect to the server. Please check your internet connection.", "Network Error");
-            } else {
-                alert("Unable to connect to the server. Please check your internet connection.");
             }
         }
     });
 })();
 </script>
 <script src="{% static 'js/custom-popup.js' %}"></script>
+<script src="{% static 'js/form-draft-manager.js' %}?v=1"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.ABCDFormDraftManager) {
+            window.achievementDraftManager = new ABCDFormDraftManager({
+                form: '#achievementForm',
+                storageKey: 'abcd_draft_achievement',
+                formName: 'Achievement Form',
+                excludeFields: ['photo', 'csrfmiddlewaretoken'],
+                customSerializer: function (form) {
+                    const titles = Array.from(form.querySelectorAll('input[name="other_achievement_title[]"]')).map(i => i.value);
+                    const years = Array.from(form.querySelectorAll('input[name="other_achievement_year[]"]')).map(i => i.value);
+                    const ratingIn = form.querySelector('#id_rating');
+                    return {
+                        other_titles: titles,
+                        other_years: years,
+                        rating: ratingIn ? ratingIn.value : '0'
+                    };
+                },
+                customRestorer: function (form, data) {
+                    if (data.rating) {
+                        const ratingIn = form.querySelector('#id_rating');
+                        if (ratingIn) {
+                            ratingIn.value = data.rating;
+                            if (typeof setStars === 'function') setStars(data.rating);
+                        }
+                    }
+                    if (data.other_titles && Array.isArray(data.other_titles) && data.other_titles.length > 0) {
+                        const list = document.getElementById('otherAchievementsList');
+                        if (list) {
+                            while (list.querySelectorAll('.dynamic-row').length < data.other_titles.length) {
+                                if (typeof addAchievementRow === 'function') addAchievementRow();
+                            }
+                            const titleInputs = list.querySelectorAll('input[name="other_achievement_title[]"]');
+                            const yearInputs = list.querySelectorAll('input[name="other_achievement_year[]"]');
+                            data.other_titles.forEach((t, idx) => {
+                                if (titleInputs[idx]) titleInputs[idx].value = t;
+                                if (data.other_years && data.other_years[idx] && yearInputs[idx]) {
+                                    yearInputs[idx].value = data.other_years[idx];
+                                }
+                            });
+                        }
+                    }
+                    setTimeout(function () {
+                        const durDisp = document.getElementById('duration_display');
+                        const yEl = document.getElementById('id_duration_years');
+                        const dEl = document.getElementById('id_duration_days');
+                        if (durDisp && yEl && dEl && (yEl.value || dEl.value)) {
+                            durDisp.value = `${yEl.value || 0} Years, ${dEl.value || 0} Days`;
+                        }
+                    }, 50);
+                }
+            });
+        }
+    });
+</script>
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

@@ -1051,12 +1051,12 @@
 
 <script>
     async function showAlert(title, message) {
-        if (typeof window.showStyledAlert === 'function') {
+        if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+            await window.CustomPopup.alert(message, title);
+        } else if (typeof window.showStyledAlert === 'function' && window.showStyledAlert !== showAlert) {
             await window.showStyledAlert(title, message);
         } else if (typeof window.showStyledPopup === 'function') {
             window.showStyledPopup({ title: title, message: message, type: 'info' });
-        } else {
-            alert(`${title}: ${message}`);
         }
     }
     if (typeof window.showStyledAlert !== 'function') {
@@ -2447,12 +2447,9 @@
             });
         }
 
-        window.addEventListener('beforeunload', function (e) {
-            if (window.allowPageUnload) return;
-            if (sessionSavedActions.length > 0) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
+        // Unload listener - NO native browser prompts
+        window.addEventListener('beforeunload', function () {
+            // Unload cleanly without native browser dialogs
         });
 
         function getUnsavedCard() {
@@ -3010,7 +3007,7 @@
 
 <script src="{% static 'js/custom-popup.js' %}"></script>
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
-<script src="{% static 'js/push-permission.js' %}"></script>
+<script src="{% static 'js/push-permission.js' %}?v=5"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 {% include 'partials/_smart_back_redirect.html' %}
 </body>

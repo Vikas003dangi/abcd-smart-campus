@@ -1,0 +1,335 @@
+/* ==========================================================================
+   ABCD SMART CAMPUS - CENTRALIZED IMAGE CROPPER MODAL STYLES
+   ========================================================================== */
+
+/* ── Dynamic Scrim & High-Contrast Bounding Box ── */
+.cropper-container {
+    width: 100% !important;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.cropper-bg {
+    background-image: none !important;
+    background-color: #0b1120 !important;
+}
+
+/* Outer Scrim / Vignette: Balanced 52% Dark Overlay */
+.cropper-modal {
+    background-color: rgba(11, 17, 32, 0.52) !important;
+    opacity: 1 !important;
+    z-index: 1 !important;
+}
+
+.cropper-crop-box {
+    z-index: 100 !important;
+}
+
+.cropper-face {
+    background-color: transparent !important;
+    opacity: 0 !important;
+}
+
+/* The View Box: Keep strictly rectangular with overflow hidden so image never leaks */
+.cropper-view-box {
+    overflow: hidden !important;
+    outline: 2px solid #ffffff !important;
+    outline-offset: -1px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 4px 15px rgba(0, 0, 0, 0.35) !important;
+    background-color: transparent !important;
+    z-index: 101 !important;
+    opacity: 1 !important;
+}
+
+/* Cloned image inside view-box MUST remain in 100% original full brightness and unwarped */
+.cropper-view-box img {
+    border-radius: 0 !important;
+    filter: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+/* Optional Inner Circular Guideline (Active when target is circular avatar) */
+.cropper-view-box.is-circle::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50% !important;
+    border: 2px dashed rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(0, 0, 0, 0.5) !important;
+    pointer-events: none !important;
+    z-index: 105 !important;
+}
+
+/* High-Contrast Rule-of-Thirds Grid Lines */
+.cropper-dashed {
+    border: 0 dashed rgba(255, 255, 255, 0.85) !important;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9)) !important;
+}
+.cropper-dashed.dashed-h {
+    border-top-width: 1px !important;
+    border-bottom-width: 1px !important;
+}
+.cropper-dashed.dashed-v {
+    border-left-width: 1px !important;
+    border-right-width: 1px !important;
+}
+
+/* High-Contrast Touch-Friendly Resize Handles */
+.cropper-point {
+    background-color: #6366f1 !important;
+    width: 12px !important;
+    height: 12px !important;
+    border-radius: 50% !important;
+    border: 2.5px solid #ffffff !important;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.6) !important;
+    opacity: 1 !important;
+    z-index: 110 !important;
+}
+.cropper-point.point-n,
+.cropper-point.point-s,
+.cropper-point.point-e,
+.cropper-point.point-w {
+    width: 10px !important;
+    height: 10px !important;
+    background-color: #a855f7 !important;
+}
+
+/* ── Modal Overlay & Dialog Card (Dual-Theme) ── */
+.abcd-crop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.78);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 3000010 !important;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.abcd-crop-overlay.is-active {
+    display: block;
+    opacity: 1;
+}
+
+.abcd-crop-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.96);
+    background: #ffffff;
+    color: #1e293b;
+    border-radius: 26px;
+    padding: 22px 24px 20px;
+    width: 92%;
+    max-width: 520px;
+    z-index: 3000011 !important;
+    display: none;
+    opacity: 0;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+    border: 1px solid #e2e8f0;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.abcd-crop-modal.is-active {
+    display: block;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+body.dark-theme .abcd-crop-modal {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
+}
+
+/* Header */
+.abcd-crop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+.abcd-crop-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.abcd-crop-header h3 {
+    margin: 0;
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+}
+body.dark-theme .abcd-crop-header h3 {
+    color: #f1f5f9;
+}
+.abcd-crop-ratio-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+body.dark-theme .abcd-crop-ratio-badge {
+    background: rgba(99, 102, 241, 0.25);
+    color: #a5b4fc;
+}
+.abcd-crop-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+.abcd-crop-close-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Image Viewport Container */
+.abcd-crop-viewport {
+    width: 100%;
+    max-height: 360px;
+    min-height: 220px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #0f172a;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.abcd-crop-viewport img {
+    max-width: 100%;
+    display: block;
+}
+
+/* Toolbar Controls */
+.abcd-crop-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 14px;
+    margin-bottom: 4px;
+}
+.abcd-crop-tool-btn {
+    padding: 7px 11px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    line-height: 1;
+    font-family: inherit;
+}
+.abcd-crop-tool-btn:hover {
+    background: #6366f1;
+    color: #ffffff;
+    border-color: #6366f1;
+    transform: translateY(-1px);
+}
+.abcd-crop-tool-btn.danger:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+body.dark-theme .abcd-crop-tool-btn {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+    border-color: rgba(255, 255, 255, 0.14);
+}
+body.dark-theme .abcd-crop-tool-btn:hover {
+    background: #6366f1;
+    color: #ffffff;
+    border-color: #6366f1;
+}
+body.dark-theme .abcd-crop-tool-btn.danger:hover {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
+/* Footer Action Buttons */
+.abcd-crop-footer {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+}
+.abcd-crop-pill-btn {
+    padding: 11px 26px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.25s ease;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+.abcd-crop-pill-btn.btn-done {
+    background: #6366f1;
+    color: white;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+}
+.abcd-crop-pill-btn.btn-cancel {
+    background: rgba(0, 0, 0, 0.06);
+    color: #64748b;
+}
+body.dark-theme .abcd-crop-pill-btn.btn-cancel {
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+.abcd-crop-pill-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+}
+
+@media (max-width: 480px) {
+    .abcd-crop-modal {
+        padding: 16px 16px 14px;
+        width: 95%;
+    }
+    .abcd-crop-tool-btn {
+        padding: 6px 9px;
+        font-size: 0.75rem;
+    }
+    .abcd-crop-viewport {
+        max-height: 280px;
+    }
+}

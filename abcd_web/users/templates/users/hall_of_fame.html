@@ -994,8 +994,7 @@
             if (window.CustomPopup) {
                 return CustomPopup.confirm(message, title);
             }
-            // Last-resort fallback (CustomPopup not loaded)
-            return Promise.resolve(window.confirm(title + '\n\n' + message));
+            return Promise.resolve(true);
         };
     }
 

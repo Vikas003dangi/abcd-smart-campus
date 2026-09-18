@@ -1131,7 +1131,7 @@ def _fire_reminder(task, title, email_notify):
             link='/todo/',
             category=category,
             sound='/static/audio/alarm.mp3' if is_alarm else '/static/audio/PWA.mp3',
-            meta={'is_alarm': is_alarm, 'note': meta.get('note', ''), 'task_id': task.id},
+            meta={'is_alarm': is_alarm, 'note': meta.get('note', ''), 'task_id': task.id, 'source': 'todo'},
             tag=f"abcd-reminder-{task.id}"
         )
     except Exception as notif_err:

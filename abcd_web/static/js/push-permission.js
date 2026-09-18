@@ -64,6 +64,88 @@
         return false;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // CRITICAL: Silently refresh the push subscription on ALL pages — including
+    // excluded pages like dashboards — when permission is already granted.
+    // Without this, Chrome's periodic subscription rotation causes stale entries
+    // in the DB, pywebpush gets 404/410, deletes the sub, and the user gets
+    // ZERO push notifications indefinitely.
+    // ─────────────────────────────────────────────────────────────────────────
+    if (Notification.permission === 'granted') {
+        (function () {
+            function _b64ToKey(b64Str) {
+                var pad = '='.repeat((4 - b64Str.length % 4) % 4);
+                var b64 = (b64Str + pad).replace(/-/g, '+').replace(/_/g, '/');
+                var raw = window.atob(b64);
+                var arr = new Uint8Array(raw.length);
+                for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+                return arr;
+            }
+            function _csrf() {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var c = cookies[i].trim();
+                    if (c.startsWith('csrftoken=')) return decodeURIComponent(c.substring(10));
+                }
+                return '';
+            }
+            (async function () {
+                try {
+                    // 1. Get VAPID public key (from page, meta tag, or API fallback)
+                    var vapidKey = window.VAPID_PUBLIC_KEY;
+                    if (!vapidKey) {
+                        var m = document.querySelector('meta[name="vapid-public-key"]');
+                        if (m) vapidKey = m.getAttribute('content');
+                    }
+                    if (!vapidKey) {
+                        try {
+                            var resp = await fetch('/api/vapid-public-key/');
+                            var kd = await resp.json();
+                            if (kd && kd.vapid_public_key) {
+                                vapidKey = kd.vapid_public_key;
+                                window.VAPID_PUBLIC_KEY = vapidKey;
+                            }
+                        } catch (e) {}
+                    }
+                    if (!vapidKey) return;
+
+                    // 2. Register service worker
+                    var reg;
+                    try {
+                        reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+                    } catch (e) {
+                        try { reg = await navigator.serviceWorker.register('/static/sw.js'); } catch (e2) { return; }
+                    }
+                    await navigator.serviceWorker.ready;
+
+                    // 3. Get existing subscription or create a new one
+                    var sub = await reg.pushManager.getSubscription();
+                    if (!sub) {
+                        try {
+                            sub = await reg.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: _b64ToKey(vapidKey)
+                            });
+                        } catch (e) { return; }
+                    }
+                    if (!sub) return;
+
+                    // 4. Save (or refresh) subscription in DB — silent, no UI
+                    var payload = sub.toJSON ? sub.toJSON() : JSON.parse(JSON.stringify(sub));
+                    await fetch('/api/save-push-subscription/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': _csrf()
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (e) { /* Silent: never break page load */ }
+            })();
+        })();
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (isPageExcluded()) {
         window.promptNotificationForAction = function () { return Promise.resolve(false); };
         window.ensureNotificationPermission = window.promptNotificationForAction;

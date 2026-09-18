@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
 <style>
   /* -------- PREMIUM THEME & BRANDING -------- */
   :root {
@@ -867,10 +868,6 @@
     .leaderboard-slide {
       padding: 0 30px;
     }
-    .cropper-buttons-container {
-      flex-direction: column !important;
-      gap: 10px !important;
-    }
     .hero-title {
       font-size: 1.25rem;
     }
@@ -1462,24 +1459,12 @@
   </div>
 </div>
 
-<!-- Photo Cropper Modal -->
-<div id="photoCropperModal" class="modal" style="z-index: 3000;">
-  <div class="modal-content" style="max-width: 450px; border-radius: var(--card-radius);">
-    <h3 style="margin-bottom: 15px; font-family: 'Righteous';">Refine Photo</h3>
-    <div style="max-height: 400px; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; border-radius: 12px;">
-      <img id="cropperImageTarget" src="" style="max-width: 100%; max-height: 400px;" crossorigin="anonymous">
-    </div>
-    <div class="cropper-buttons-container" style="margin-top: 25px; display: flex; justify-content: space-between; gap: 15px;">
-      <button class="btn btn-secondary w-100" onclick="closeCropper()" style="border-radius: 12px;">Cancel</button>
-      <button class="btn btn-primary w-100" onclick="applyCrop()" style="background: var(--primary-gradient); border: none; border-radius: 12px;">Set Circular Photo</button>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
 <script>
 
   // CARD SCALE RESPONSIVENESS
@@ -1568,7 +1553,6 @@
   }
 
   // PHOTO EDITOR
-  let cropper = null;
   function togglePhotoMenu(e) {
     e.stopPropagation();
     const menu = document.getElementById('photoEditMenu');
@@ -1584,43 +1568,31 @@
   function handlePhotoUpload(e) {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (evt) => openCropper(evt.target.result);
-      reader.readAsDataURL(file);
+      openCropper(file);
+      e.target.value = '';
     }
   }
 
-  function openCropper(src) {
-    const img = document.getElementById('cropperImageTarget');
-    img.src = src;
-    document.getElementById('photoCropperModal').style.display = 'flex';
-    if(cropper) cropper.destroy();
-    setTimeout(() => {
-      cropper = new Cropper(img, { 
-        aspectRatio: 1, 
-        viewMode: 1, 
-        dragMode: 'move',
-        cropBoxResizable: false,
-        ready() {
-          const cropperElem = document.querySelector('.cropper-view-box');
-          if(cropperElem) cropperElem.style.borderRadius = '50%';
+  function openCropper(imageSource) {
+    if (window.ABCDImageCropper) {
+      window.ABCDImageCropper.open({
+        image: imageSource,
+        aspectRatio: 1,
+        shape: 'circle',
+        title: 'Refine Student Photo',
+        outputWidth: 500,
+        outputHeight: 500,
+        onDone: function(result) {
+          const avatar = document.getElementById('greetingAvatar');
+          avatar.src = result.dataUrl;
+          avatar.style.backgroundColor = "transparent";
         }
       });
-    }, 100);
-  }
-
-  function applyCrop() {
-    if(!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ width: 500, height: 500 });
-    const avatar = document.getElementById('greetingAvatar');
-    avatar.src = canvas.toDataURL('image/jpeg');
-    avatar.style.backgroundColor = "transparent";
-    closeCropper();
+    }
   }
 
   function closeCropper() {
-    document.getElementById('photoCropperModal').style.display = 'none';
-    if(cropper) cropper.destroy();
+    if (window.ABCDImageCropper) window.ABCDImageCropper.close();
   }
 
   // SHARING
@@ -1869,10 +1841,10 @@
   'use strict';
 
   window.showStyledAlert = window.showStyledAlert || function(title, message) {
-    if (typeof showStyledPopup === 'function') {
+    if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+      window.CustomPopup.alert(message, title);
+    } else if (typeof showStyledPopup === 'function') {
       showStyledPopup({ title: title, message: message, type: 'info' });
-    } else {
-      alert(`${title}: ${message}`);
     }
   };
 

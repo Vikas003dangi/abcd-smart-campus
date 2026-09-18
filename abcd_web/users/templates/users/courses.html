@@ -764,12 +764,12 @@
     }
 
     async function showAlert(title, message) {
-        if (typeof window.showStyledAlert === 'function') {
+        if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+            await window.CustomPopup.alert(message, title);
+        } else if (typeof window.showStyledAlert === 'function' && window.showStyledAlert !== showAlert) {
             await window.showStyledAlert(title, message);
         } else if (typeof window.showStyledPopup === 'function') {
             window.showStyledPopup({ title: title, message: message, type: 'info' });
-        } else {
-            alert(`${title}: ${message}`);
         }
     }
     if (typeof window.showStyledAlert !== 'function') {
@@ -897,7 +897,12 @@
         })
         .catch(err => {
             console.error('Interaction failed:', err);
-            alert('Unable to update course: ' + (err.message || err));
+            const msg = 'Unable to update course: ' + (err.message || err);
+            if (window.CustomPopup) {
+                window.CustomPopup.alert(msg, 'Error');
+            } else if (typeof window.showStyledAlert === 'function') {
+                window.showStyledAlert('Error', msg);
+            }
         });
     }
 </script>

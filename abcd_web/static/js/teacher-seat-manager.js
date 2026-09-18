@@ -4182,20 +4182,40 @@ document.addEventListener('DOMContentLoaded', () => {
     manualAssignPhotoInput.addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
-        if (file.size > 2 * 1024 * 1024) {
-          window.CustomPopup.alert('Image size should be less than 2MB', 'File Too Large');
+        if (file.size > 5 * 1024 * 1024) {
+          window.CustomPopup.alert('Image size should be less than 5MB', 'File Too Large');
           manualAssignPhotoInput.value = '';
           return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          manualAssignPhotoPreview.src = event.target.result;
-          manualAssignPhotoPreview.style.display = 'block';
-          if (manualAssignPhotoPlaceholder) manualAssignPhotoPlaceholder.style.display = 'none';
-          manualAssignPhotoBase64 = event.target.result;
-        };
-        reader.readAsDataURL(file);
+        if (window.ABCDImageCropper) {
+          window.ABCDImageCropper.open({
+            image: file,
+            aspectRatio: 1,
+            shape: 'circle',
+            title: 'Crop Student Photo',
+            outputWidth: 600,
+            outputHeight: 600,
+            onDone: function(result) {
+              manualAssignPhotoPreview.src = result.dataUrl;
+              manualAssignPhotoPreview.style.display = 'block';
+              if (manualAssignPhotoPlaceholder) manualAssignPhotoPlaceholder.style.display = 'none';
+              manualAssignPhotoBase64 = result.dataUrl;
+            },
+            onCancel: function() {
+              manualAssignPhotoInput.value = '';
+            }
+          });
+        } else {
+          const reader = new FileReader();
+          reader.onload = function(event) {
+            manualAssignPhotoPreview.src = event.target.result;
+            manualAssignPhotoPreview.style.display = 'block';
+            if (manualAssignPhotoPlaceholder) manualAssignPhotoPlaceholder.style.display = 'none';
+            manualAssignPhotoBase64 = event.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
       }
     });
   }

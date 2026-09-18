@@ -40,6 +40,8 @@
     <link rel="stylesheet" href="{% static 'css/seat-patterns-enhanced.css' %}">
     <link rel="stylesheet" href="{% static 'css/teacher-seat-manager.css' %}">
     <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
 
     <style>
         /* --- PREMIUM DESIGN SYSTEM --- */
@@ -2952,10 +2954,10 @@
         const STUDENT_DETAILS_URL_BASE = "{% url 'users:student_details' 0 %}"; 
 
         window.showStyledAlert = window.showStyledAlert || function(title, message) {
-            if (typeof window.showStyledPopup === 'function') {
+            if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+                window.CustomPopup.alert(message, title);
+            } else if (typeof window.showStyledPopup === 'function') {
                 window.showStyledPopup({ title: title, message: message, type: 'info' });
-            } else {
-                alert(`${title}: ${message}`);
             }
         };
     </script>
@@ -3009,6 +3011,8 @@
         <i class='bx bx-moon' id="themeIcon"></i>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="{% static 'js/image-cropper-modal.js' %}"></script>
     <script src="{% static 'js/teacher-seat-manager.js' %}"></script>
     <script>
         // --- Theme Persistence ---
@@ -3502,7 +3506,7 @@
     </script>
 
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
-<script src="{% static 'js/push-permission.js' %}"></script>
+<script src="{% static 'js/push-permission.js' %}?v=5"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 {% include 'partials/_smart_back_redirect.html' %}
 </body>

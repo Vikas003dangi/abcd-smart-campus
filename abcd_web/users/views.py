@@ -15108,6 +15108,7 @@ def todo_update_reminder(request, task_id):
         return JsonResponse({'success': False, 'error': str(e)})
 
 
+@csrf_exempt
 @login_required
 @require_POST
 def todo_reminder_action(request, task_id):

@@ -361,12 +361,12 @@
 
 <script>
     async function showAlert(title, message) {
-        if (typeof window.showStyledAlert === 'function') {
+        if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+            await window.CustomPopup.alert(message, title);
+        } else if (typeof window.showStyledAlert === 'function' && window.showStyledAlert !== showAlert) {
             await window.showStyledAlert(title, message);
         } else if (typeof window.showStyledPopup === 'function') {
             window.showStyledPopup({ title: title, message: message, type: 'info' });
-        } else {
-            alert(`${title}: ${message}`);
         }
     }
     if (typeof window.showStyledAlert !== 'function') {
@@ -424,8 +424,6 @@
             proceed = await window.showStyledConfirm("Forgot Password", confirmMsg, false, true);
         } else if (window.CustomPopup) {
             proceed = await CustomPopup.confirm(confirmMsg, "Forgot Password");
-        } else {
-            proceed = confirm(confirmMsg);
         }
         if (!proceed) return;
 
@@ -459,16 +457,14 @@
                     await window.showStyledAlert("OTP Request Notice", data.message || "Failed to trigger password reset.", "error");
                 } else if (window.CustomPopup) {
                     await CustomPopup.alert(data.message || "Failed to trigger password reset.", "OTP Request Notice");
-                } else {
-                    alert(data.message || "Failed to trigger password reset.");
                 }
             }
         } catch (err) {
             console.error("Forgot password OTP error:", err);
             if (window.showStyledAlert) {
                 await window.showStyledAlert("Network Error", "Unable to connect to the server. Please check your internet connection.", "error");
-            } else {
-                alert("Unable to connect to the server. Please check your internet connection.");
+            } else if (window.CustomPopup) {
+                await CustomPopup.alert("Unable to connect to the server. Please check your internet connection.", "Network Error");
             }
         }
     }

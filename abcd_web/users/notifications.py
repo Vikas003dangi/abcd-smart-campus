@@ -892,7 +892,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
                     )
                 },
                 headers={
-                    "Urgency": "high" if is_alarm else "normal",
+                    "Urgency": "high" if (is_alarm or is_reminder) else "normal",
                     "Topic": topic_header or "abcd-alert"
                 },
                 ttl=86400,

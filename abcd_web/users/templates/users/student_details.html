@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
 <style>
     :root {
         --z-modal-overlay: 100000;
@@ -130,82 +131,6 @@
     body.dark-theme .no-photo {
         background: rgba(255, 255, 255, 0.05);
         color: #475569;
-    }
-
-    /* ── High-Contrast, Vivid Profile Photo Cropper Styles ── */
-    .cropper-container {
-        width: 100% !important;
-        border-radius: 18px;
-        overflow: hidden;
-    }
-
-    .cropper-bg {
-        background-image: none !important;
-        background-color: #0f172a !important;
-    }
-
-    /* Semi-transparent outer dark vignette */
-    .cropper-modal {
-        background-color: rgba(15, 23, 42, 0.5) !important;
-        opacity: 1 !important;
-        z-index: 1 !important;
-    }
-
-    /* Force Crop Box to sit above the vignette */
-    .cropper-crop-box {
-        z-index: 100 !important;
-    }
-
-    /* Remove any dulling mask inside crop area */
-    .cropper-face {
-        background-color: transparent !important;
-        opacity: 0 !important;
-        border-radius: 50% !important;
-    }
-
-    /* Circular View Box with High-Contrast Vivid Outline */
-    .cropper-view-box {
-        border-radius: 50% !important;
-        outline: 2.5px solid #6366f1 !important;
-        outline-color: #6366f1 !important;
-        box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95), 0 0 25px rgba(99, 102, 241, 0.5) !important;
-        background-color: transparent !important;
-        z-index: 101 !important;
-        opacity: 1 !important;
-        overflow: visible !important;
-    }
-
-    /* Cloned image inside view-box MUST remain in 100% full original brightness */
-    .cropper-view-box img {
-        border-radius: 50% !important;
-        filter: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        display: block !important;
-    }
-
-    /* Bright Dashed Grid Guidelines */
-    .cropper-dashed {
-        border: 0 dashed rgba(255, 255, 255, 0.85) !important;
-    }
-    .cropper-dashed.dashed-h {
-        border-top-width: 1px !important;
-        border-bottom-width: 1px !important;
-    }
-    .cropper-dashed.dashed-v {
-        border-left-width: 1px !important;
-        border-right-width: 1px !important;
-    }
-
-    /* High-Contrast Interactive Corner/Center Points */
-    .cropper-point {
-        background-color: #6366f1 !important;
-        width: 10px !important;
-        height: 10px !important;
-        border-radius: 50% !important;
-        border: 2px solid #ffffff !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
-        opacity: 0.95 !important;
     }
 
     .student-name {
@@ -466,21 +391,6 @@
         </h3>
         <button type="button" onclick="closePhotoManager()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
     </div>
-    
-    <div id="cropperWrapper" style="display:none; margin-bottom: 20px;">
-        <div style="width: 100%; max-height: 360px; overflow: hidden; border-radius: 18px; background: #0f172a; position: relative;">
-            <img id="cropperImg" src="" style="max-width: 100%; display: block;" crossorigin="anonymous">
-        </div>
-        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px;">
-            <button class="pill-btn btn-indigo" onclick="saveCrop(event)" style="padding: 12px 28px;">
-                <i class='bx bx-check'></i> Save
-            </button>
-            <button class="pill-btn btn-grey" onclick="cancelCrop()" style="padding: 12px 28px;">
-                Cancel
-            </button>
-        </div>
-    </div>
-
     <div id="photoActions">
         <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
             <label class="pill-btn btn-indigo" style="cursor: pointer; justify-content: center;">
@@ -546,6 +456,7 @@
 <div id="deleteModalOverlay" class="modal-overlay" onclick="closeDeleteModal()"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
 <script>
     let cropperInstance = null;
 
@@ -567,135 +478,69 @@
     }
 
     function closePhotoManager() {
-        if (cropperInstance) cancelCrop();
         document.getElementById('photoManagerModal').style.display = 'none';
         document.getElementById('photoManagerOverlay').style.display = 'none';
     }
 
     function handleFileSelect(event) {
-        const file = event.target.files[0];
+        const file = event.target.files && event.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                initCropper(e.target.result);
-            };
-            reader.readAsDataURL(file);
+            closePhotoManager();
+            openStudentPhotoCropper(file);
         }
     }
 
     function startAdjustment() {
         const img = document.querySelector('.photo-frame #profile-img-main');
-        if (img) initCropper(img.src);
-        else window.showStyledAlert("No Photo", "No photo to adjust. Please upload a photo first.");
-    }
-
-    function initCropper(src) {
-        const wrapper = document.getElementById('cropperWrapper');
-        const img = document.getElementById('cropperImg');
-        const actions = document.getElementById('photoActions');
-        
-        img.src = src;
-        wrapper.style.display = 'block';
-        actions.style.display = 'none';
-        
-        if (cropperInstance) cropperInstance.destroy();
-        
-        // Wait for image to load and container to render
-        img.onload = () => {
-            // Small delay to ensure container size is calculated
-            setTimeout(() => {
-                cropperInstance = new Cropper(img, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    dragMode: 'move',
-                    autoCropArea: 0.8,
-                    restore: false,
-                    guides: true,
-                    center: true,
-                    highlight: false,
-                    cropBoxMovable: true,
-                    cropBoxResizable: true,
-                    toggleDragModeOnDblclick: false,
-                    checkCrossOrigin: false,
-                    ready: function() {
-                        console.log("Cropper is ready");
-                    }
-                });
-            }, 100);
-        };
-        // If image already cached/loaded
-        if (img.complete) img.onload();
-    }
-
-    function cancelCrop() {
-        if (cropperInstance) {
-            cropperInstance.destroy();
-            cropperInstance = null;
+        if (img && img.src && !img.src.endsWith('/')) {
+            closePhotoManager();
+            openStudentPhotoCropper(img.src);
+        } else {
+            window.showStyledAlert("No Photo", "No photo to adjust. Please upload a photo first.");
         }
-        document.getElementById('cropperWrapper').style.display = 'none';
-        document.getElementById('photoActions').style.display = 'block';
     }
 
-    async function saveCrop(event) {
-        if (!cropperInstance) {
-            await window.showStyledAlert("Please Wait", "Tool not ready. Please wait.");
-            return;
-        }
-        
-        const saveBtn = event.target.closest('button');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Saving...";
+    function openStudentPhotoCropper(srcOrFile) {
+        if (!window.ABCDImageCropper) return;
+        ABCDImageCropper.open({
+            image: srcOrFile,
+            title: 'Adjust Profile Photo',
+            aspectRatio: 1,
+            shape: 'circle',
+            outputWidth: 600,
+            outputHeight: 600,
+            onDone: async function(result) {
+                const formData = new FormData();
+                formData.append('photo_base64', result.dataUrl);
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                const csrf = csrfInput ? csrfInput.value : '{{ csrf_token }}';
+                formData.append('csrfmiddlewaretoken', csrf);
 
-        try {
-            const canvas = cropperInstance.getCroppedCanvas({ 
-                width: 600, 
-                height: 600,
-                fillColor: '#fff',
-            });
-
-            if (!canvas) throw new Error("Canvas failed");
-
-            // Use DataURL for maximum reliability
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            const formData = new FormData();
-            formData.append('photo_base64', dataUrl);
-            
-            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-            const csrf = csrfInput ? csrfInput.value : '{{ csrf_token }}';
-            formData.append('csrfmiddlewaretoken', csrf);
-
-            fetch("{% url 'users:upload_profile_photo' student.id %}", {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': csrf
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    window.location.reload();
-                } else {
-                    return response.json().then(data => {
-                        throw new Error(data.message || "Status " + response.status);
-                    }).catch(() => {
-                        throw new Error("Server error " + response.status);
+                try {
+                    const response = await fetch("{% url 'users:upload_profile_photo' student.id %}", {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': csrf
+                        }
                     });
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        const data = await response.json().catch(() => ({}));
+                        window.showStyledAlert("Upload Failed", data.message || "Server error while saving photo");
+                    }
+                } catch(e) {
+                    console.error("Upload error:", e);
+                    window.showStyledAlert("Upload Failed", "An error occurred while uploading your photo.");
                 }
-            })
-            .catch(err => {
-                console.error("Upload error:", err);
-                window.showStyledAlert("Upload Failed", err.message);
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = originalText;
-            });
-
-        } catch (e) {
-            window.showStyledAlert("Process Failed", e.message);
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = originalText;
-        }
+            },
+            onCancel: function() {
+                const input = document.getElementById('photoInput');
+                if (input) input.value = '';
+            }
+        });
     }
 
     function closeDeleteModal() {

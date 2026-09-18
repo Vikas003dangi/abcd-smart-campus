@@ -5837,10 +5837,10 @@ document.addEventListener('click', function(e) {
     }
 
     window.showStyledAlert = window.showStyledAlert || function(title, message) {
-        if (typeof showStyledPopup === 'function') {
+        if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+            window.CustomPopup.alert(message, title);
+        } else if (typeof showStyledPopup === 'function') {
             showStyledPopup({ title: title, message: message, type: 'info' });
-        } else {
-            alert(`${title}: ${message}`);
         }
     };
 

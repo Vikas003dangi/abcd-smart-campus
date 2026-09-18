@@ -7,6 +7,7 @@
 {% block extra_css %}
 {{ block.super }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
 <style>
     *, *::before, *::after {
         box-sizing: border-box;
@@ -401,81 +402,6 @@
         color: #475569;
     }
 
-    /* ── High-Contrast, Vivid Profile Photo Cropper Styles ── */
-    .cropper-container {
-        width: 100% !important;
-        border-radius: 18px;
-        overflow: hidden;
-    }
-
-    .cropper-bg {
-        background-image: none !important;
-        background-color: #0f172a !important;
-    }
-
-    /* Semi-transparent outer dark vignette */
-    .cropper-modal {
-        background-color: rgba(15, 23, 42, 0.5) !important;
-        opacity: 1 !important;
-        z-index: 1 !important;
-    }
-
-    /* Force Crop Box to sit above the vignette */
-    .cropper-crop-box {
-        z-index: 100 !important;
-    }
-
-    /* Remove any dulling mask inside crop area */
-    .cropper-face {
-        background-color: transparent !important;
-        opacity: 0 !important;
-        border-radius: 50% !important;
-    }
-
-    /* Circular View Box with High-Contrast Vivid Outline */
-    .cropper-view-box {
-        border-radius: 50% !important;
-        outline: 2.5px solid #6366f1 !important;
-        outline-color: #6366f1 !important;
-        box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.95), 0 0 25px rgba(99, 102, 241, 0.5) !important;
-        background-color: transparent !important;
-        z-index: 101 !important;
-        opacity: 1 !important;
-        overflow: visible !important;
-    }
-
-    /* Cloned image inside view-box MUST remain in 100% full original brightness */
-    .cropper-view-box img {
-        border-radius: 50% !important;
-        filter: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        display: block !important;
-    }
-
-    /* Bright Dashed Grid Guidelines */
-    .cropper-dashed {
-        border: 0 dashed rgba(255, 255, 255, 0.85) !important;
-    }
-    .cropper-dashed.dashed-h {
-        border-top-width: 1px !important;
-        border-bottom-width: 1px !important;
-    }
-    .cropper-dashed.dashed-v {
-        border-left-width: 1px !important;
-        border-right-width: 1px !important;
-    }
-
-    /* High-Contrast Interactive Corner/Center Points */
-    .cropper-point {
-        background-color: #6366f1 !important;
-        width: 10px !important;
-        height: 10px !important;
-        border-radius: 50% !important;
-        border: 2px solid #ffffff !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
-        opacity: 0.95 !important;
-    }
 
     .button-row {
         display: flex;
@@ -918,23 +844,7 @@
         </div>
     </div>
 
-    <!-- Photo Cropper Modal -->
-    <div class="modal-overlay" id="cropOverlay"></div>
-    <div class="modal-card" id="cropModal" style="max-width: 500px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
-                <i class='bx bx-crop'></i> Adjust Photo
-            </h3>
-            <button type="button" onclick="document.getElementById('btnCropCancel').click()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
-        </div>
-        <div style="width: 100%; max-height: 360px; overflow: hidden; border-radius: 18px; background: #0f172a; position: relative;">
-            <img id="cropImg" src="" style="max-width: 100%; display: block;">
-        </div>
-        <div style="margin-top: 25px; display: flex; gap: 12px;">
-            <button class="btn-pill btn-save" style="flex: 1;" id="btnCropDone">Done</button>
-            <button class="btn-pill btn-cancel" style="flex: 1;" id="btnCropCancel">Cancel</button>
-        </div>
-    </div>
+    <!-- Photo Actions Modal -->
 
     <!-- Photo Actions Modal -->
     <div class="modal-overlay" id="photoActionOverlay" style="display: none;" onclick="closePhotoActionModal()"></div>
@@ -963,14 +873,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
 <script>
     async function showAlert(title, message) {
-        if (typeof window.showStyledAlert === 'function') {
+        if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+            await window.CustomPopup.alert(message, title);
+        } else if (typeof window.showStyledAlert === 'function' && window.showStyledAlert !== showAlert) {
             await window.showStyledAlert(title, message);
         } else if (typeof window.showStyledPopup === 'function') {
             window.showStyledPopup({ title: title, message: message, type: 'info' });
-        } else {
-            alert(`${title}: ${message}`);
         }
     }
     if (typeof window.showStyledAlert !== 'function') {
@@ -1267,78 +1178,25 @@
             };
         }
 
-        // Photo Cropper Logic
+        // Photo Cropper Logic via ABCDImageCropper
         const photoInput = document.getElementById('id_photo');
-        const cropModal = document.getElementById('cropModal');
-        const cropOverlay = document.getElementById('cropOverlay');
-        const cropImg = document.getElementById('cropImg');
-        let cropperInstance = null;
-
-        window.initCropper = function(src) {
-            cropImg.src = src;
-            cropModal.style.display = 'block';
-            cropOverlay.style.display = 'block';
-            
-            if (cropperInstance) cropperInstance.destroy();
-            
-            cropImg.onload = () => {
-                cropperInstance = new Cropper(cropImg, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    autoCropArea: 0.8,
-                    checkCrossOrigin: false,
-                });
-            };
-            if (cropImg.complete) cropImg.onload();
-        };
-
-        if (photoInput) {
-            photoInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        window.initCropper(event.target.result);
-                    };
-                    reader.readAsDataURL(file);
+        if (photoInput && window.ABCDImageCropper) {
+            ABCDImageCropper.attach({
+                input: photoInput,
+                preview: '#photoPreviewCustom',
+                placeholder: '#photoPlaceholderCustom',
+                aspectRatio: 1,
+                shape: 'circle',
+                outputWidth: 600,
+                outputHeight: 600,
+                title: 'Adjust Profile Photo',
+                maxSizeMB: 2,
+                onDone: function(res) {
+                    const clearCheckbox = document.querySelector('input[type="checkbox"][name="photo-clear"]');
+                    if (clearCheckbox) clearCheckbox.checked = false;
                 }
             });
         }
-
-        document.getElementById('btnCropCancel').onclick = () => {
-            cropModal.style.display = 'none';
-            cropOverlay.style.display = 'none';
-            photoInput.value = "";
-            if (cropperInstance) cropperInstance.destroy();
-        };
-
-        document.getElementById('btnCropDone').onclick = () => {
-            if (!cropperInstance) return;
-            const canvas = cropperInstance.getCroppedCanvas({ width: 600, height: 600 });
-            canvas.toBlob((blob) => {
-                const file = new File([blob], "profile_photo.jpg", { type: "image/jpeg" });
-                const dataTransfer = new DataTransfer();
-                dataTransfer.items.add(file);
-                photoInput.files = dataTransfer.files;
-                
-                // Clear Django delete checkbox since we are uploading a new photo
-                const clearCheckbox = document.querySelector('input[type="checkbox"][name="photo-clear"]');
-                if (clearCheckbox) clearCheckbox.checked = false;
-                
-                // Update preview
-                const previewImg = document.getElementById('photoPreviewCustom');
-                const placeholder = document.getElementById('photoPlaceholderCustom');
-                if (previewImg) {
-                    previewImg.src = canvas.toDataURL('image/jpeg');
-                    previewImg.style.display = 'block';
-                }
-                if (placeholder) placeholder.style.display = 'none';
-                
-                cropModal.style.display = 'none';
-                cropOverlay.style.display = 'none';
-                cropperInstance.destroy();
-            }, 'image/jpeg', 0.9);
-        };
 
         // Global Photo Actions functions
         window.openPhotoActionModal = function() {
@@ -1370,8 +1228,25 @@
         window.triggerPhotoCrop = function() {
             window.closePhotoActionModal();
             const previewImg = document.getElementById('photoPreviewCustom');
-            if (previewImg && previewImg.src) {
-                window.initCropper(previewImg.src);
+            if (previewImg && previewImg.src && window.ABCDImageCropper) {
+                ABCDImageCropper.open({
+                    image: previewImg.src,
+                    title: 'Adjust Profile Photo',
+                    aspectRatio: 1,
+                    shape: 'circle',
+                    outputWidth: 600,
+                    outputHeight: 600,
+                    onDone: function(res) {
+                        try {
+                            const dt = new DataTransfer();
+                            dt.items.add(res.file);
+                            if (photoInput) photoInput.files = dt.files;
+                        } catch(e) {}
+                        previewImg.src = res.dataUrl;
+                        const clearCheckbox = document.querySelector('input[type="checkbox"][name="photo-clear"]');
+                        if (clearCheckbox) clearCheckbox.checked = false;
+                    }
+                });
             }
         };
 

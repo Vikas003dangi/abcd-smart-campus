@@ -5,238 +5,8 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
 <style>
-  /* Cropper Styles - High Vibrance Selection & Bright Highlight */
-  .cropper-container-wrapper {
-    max-width: 100%;
-    max-height: 400px;
-    margin-bottom: 20px;
-    background: #f1f1f1;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  #cropperImage { max-width: 100%; display: block; }
-  
-  .cropper-container {
-    border-radius: 14px;
-    overflow: hidden;
-  }
-
-  .cropper-bg {
-    background-image: none !important;
-    background-color: #0f172a !important;
-  }
-
-  /* Unselected outer vignette - Keep strictly below crop box */
-  .cropper-modal {
-    background-color: rgba(15, 23, 42, 0.45) !important;
-    opacity: 1 !important;
-    z-index: 1 !important;
-  }
-
-  /* Force Crop Box to sit WAY ABOVE the dark vignette */
-  .cropper-crop-box {
-    z-index: 100 !important;
-  }
-
-  /* Remove any overlay mask inside the selected area */
-  .cropper-face {
-    background-color: transparent !important;
-    opacity: 0 !important;
-    display: none !important;
-  }
-
-  /* Selected crop box frame - Vibrant Electric Blue Outline */
-  .cropper-view-box {
-    outline: 2px solid #3b82f6 !important;
-    outline-offset: 0 !important;
-    border: none !important;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5) !important;
-    background-color: transparent !important;
-    z-index: 101 !important;
-    opacity: 1 !important;
-  }
-
-  /* Cloned image inside view-box MUST remain in 100% PURE ORIGINAL NATURAL FULL BRIGHTNESS */
-  .cropper-view-box img {
-    filter: none !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block !important;
-    mix-blend-mode: normal !important;
-  }
-
-  /* Electric Blue Rule of Thirds Grid Lines */
-  .cropper-dashed {
-    border: 0 solid rgba(59, 130, 246, 0.5) !important;
-  }
-  .cropper-dashed.dashed-h {
-    border-top-width: 1px !important;
-    border-bottom-width: 1px !important;
-  }
-  .cropper-dashed.dashed-v {
-    border-left-width: 1px !important;
-    border-right-width: 1px !important;
-  }
-
-  /* Electric Blue Corner Brackets (L-shaped) */
-  .cropper-point.point-nw {
-    width: 22px !important;
-    height: 22px !important;
-    background: transparent !important;
-    border-top: 4px solid #3b82f6 !important;
-    border-left: 4px solid #3b82f6 !important;
-    top: -4px !important;
-    left: -4px !important;
-    opacity: 1 !important;
-    border-radius: 0 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-  .cropper-point.point-ne {
-    width: 22px !important;
-    height: 22px !important;
-    background: transparent !important;
-    border-top: 4px solid #3b82f6 !important;
-    border-right: 4px solid #3b82f6 !important;
-    top: -4px !important;
-    right: -4px !important;
-    opacity: 1 !important;
-    border-radius: 0 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-  .cropper-point.point-sw {
-    width: 22px !important;
-    height: 22px !important;
-    background: transparent !important;
-    border-bottom: 4px solid #3b82f6 !important;
-    border-left: 4px solid #3b82f6 !important;
-    bottom: -4px !important;
-    left: -4px !important;
-    opacity: 1 !important;
-    border-radius: 0 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-  .cropper-point.point-se {
-    width: 22px !important;
-    height: 22px !important;
-    background: transparent !important;
-    border-bottom: 4px solid #3b82f6 !important;
-    border-right: 4px solid #3b82f6 !important;
-    bottom: -4px !important;
-    right: -4px !important;
-    opacity: 1 !important;
-    border-radius: 0 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-
-  /* Electric Blue Mid-side Handles */
-  .cropper-point.point-n {
-    width: 30px !important;
-    height: 6px !important;
-    background-color: #3b82f6 !important;
-    border: 1px solid #ffffff !important;
-    top: -4px !important;
-    margin-left: -15px !important;
-    border-radius: 3px !important;
-    opacity: 1 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-  .cropper-point.point-s {
-    width: 30px !important;
-    height: 6px !important;
-    background-color: #3b82f6 !important;
-    border: 1px solid #ffffff !important;
-    bottom: -4px !important;
-    margin-left: -15px !important;
-    border-radius: 3px !important;
-    opacity: 1 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-  .cropper-point.point-e {
-    width: 6px !important;
-    height: 30px !important;
-    background-color: #3b82f6 !important;
-    border: 1px solid #ffffff !important;
-    right: -4px !important;
-    margin-top: -15px !important;
-    border-radius: 3px !important;
-    opacity: 1 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-  .cropper-point.point-w {
-    width: 6px !important;
-    height: 30px !important;
-    background-color: #3b82f6 !important;
-    border: 1px solid #ffffff !important;
-    left: -4px !important;
-    margin-top: -15px !important;
-    border-radius: 3px !important;
-    opacity: 1 !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8) !important;
-    z-index: 110 !important;
-  }
-
-  /* Edge lines */
-  .cropper-line {
-    background-color: #3b82f6 !important;
-    opacity: 0.8 !important;
-  }
-
-  /* Tool buttons styling for Cropper Toolbar */
-  .tc-crop-tool-btn {
-    padding: 8px 14px !important;
-    border-radius: 10px !important;
-    font-size: 0.85rem !important;
-    font-weight: 600 !important;
-    background: #ffffff !important;
-    color: #334155 !important;
-    border: 1px solid #cbd5e1 !important;
-    cursor: pointer;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    transition: all 0.2s ease !important;
-  }
-
-  .tc-crop-tool-btn:hover {
-    background: #6366f1 !important;
-    color: #ffffff !important;
-    border-color: #6366f1 !important;
-    transform: translateY(-1px) !important;
-  }
-
-  .tc-crop-tool-btn.danger:hover {
-    background: #ef4444 !important;
-    color: #ffffff !important;
-    border-color: #ef4444 !important;
-  }
-
-  body.dark-theme .tc-crop-tool-btn {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #f1f5f9 !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-  }
-
-  body.dark-theme .tc-crop-tool-btn:hover {
-    background: #6366f1 !important;
-    color: #ffffff !important;
-    border-color: #6366f1 !important;
-  }
-
-  .tc-crop-modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 20px;
-  }
-
   .tc-preview-actions {
     position: absolute;
     bottom: 12px;
@@ -1508,42 +1278,6 @@
   </div>
 </div>
 
-<!-- ===== IMAGE CROP MODAL ===== -->
-<div id="cropModal" class="tc-modal-bg">
-  <div class="tc-modal-box" style="max-width: 880px; width: 95%;">
-    <button class="tc-modal-close" onclick="closeCropModal()"><i class='bx bx-x'></i></button>
-    <div style="margin-bottom: 16px;">
-      <h2 style="font-weight: 800; font-size: 1.4rem; margin: 0 0 6px 0;">✂ Crop Your Course Thumbnail (16:9)</h2>
-      <p style="margin: 0; font-size: 0.88rem; opacity: 0.7;">Pan, zoom, or adjust the 16:9 selection handles to frame your cover image.</p>
-    </div>
-    
-    <div class="tc-crop-container" style="background: #1e293b; border-radius: 16px; overflow: hidden; margin-bottom: 16px; height: 440px; border: 1px solid rgba(99, 102, 241, 0.25);">
-      <img id="cropperImage" src="" alt="To Crop" style="max-width: 100%; display: block;">
-    </div>
-
-    <!-- Interactive Cropper Toolbar Controls -->
-    <div class="tc-crop-toolbar" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; padding: 10px 14px; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 14px;">
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-        <button type="button" class="tc-crop-tool-btn" onclick="zoomCropper(0.1)" title="Zoom In"><i class='bx bx-zoom-in'></i> Zoom In</button>
-        <button type="button" class="tc-crop-tool-btn" onclick="zoomCropper(-0.1)" title="Zoom Out"><i class='bx bx-zoom-out'></i> Zoom Out</button>
-        <div style="width: 1px; height: 20px; background: rgba(148, 163, 184, 0.3); margin: 0 4px;"></div>
-        <button type="button" class="tc-crop-tool-btn" onclick="rotateCropper(-90)" title="Rotate Left (-90°)"><i class='bx bx-undo'></i> Rotate Left</button>
-        <button type="button" class="tc-crop-tool-btn" onclick="rotateCropper(90)" title="Rotate Right (+90°)"><i class='bx bx-redo'></i> Rotate Right</button>
-        <div style="width: 1px; height: 20px; background: rgba(148, 163, 184, 0.3); margin: 0 4px;"></div>
-        <button type="button" class="tc-crop-tool-btn" onclick="flipHCropper()" title="Flip Horizontal"><i class='bx bx-reflect-vertical'></i> Flip</button>
-      </div>
-      <div>
-        <button type="button" class="tc-crop-tool-btn danger" onclick="resetCropper()" title="Reset Selection"><i class='bx bx-refresh'></i> Reset</button>
-      </div>
-    </div>
-    
-    <div style="display: flex; justify-content: flex-end; gap: 14px;">
-      <button type="button" class="tc-modal-cancel-btn" onclick="closeCropModal()">Cancel</button>
-      <button type="button" class="tc-modal-submit-btn" onclick="applyCrop()"><i class='bx bx-crop'></i> Apply Crop & Save</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===== YOUTUBE SYNC WIZARD ===== -->
 <div id="ytWizard" class="tc-modal-bg">
   <div class="tc-modal-box yt-wizard-box">
@@ -1731,6 +1465,7 @@
 {% block extra_js %}
 <!-- Cropper.js JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
 <script>
   const csrfToken = '{{ csrf_token }}';
   let cropper = null;
@@ -1847,7 +1582,7 @@
     }
   }
 
-  // === CROPPER LOGIC ===
+  // === CROPPER LOGIC VIA CENTRALIZED ABCDImageCropper ===
   function handleThumbSelection(input, type = 'manual') {
     activeInputType = type;
     if (input.files && input.files[0]) {
@@ -1859,89 +1594,43 @@
     }
   }
 
-  let cropperFlipH = false;
-
   function openCropModal(imageSrc) {
-    const modal = document.getElementById('cropModal');
-    const image = document.getElementById('cropperImage');
-    image.src = imageSrc;
-    modal.classList.add('open');
-    cropperFlipH = false;
-    
-    if (cropper) cropper.destroy();
-    
-    setTimeout(() => {
-      cropper = new Cropper(image, {
-        aspectRatio: 16 / 9,
-        viewMode: 1,
-        dragMode: 'move', // Prevents drawing new crop boxes when clicking!
-        cropBoxMovable: true,
-        cropBoxResizable: true,
-        toggleDragModeOnDblclick: false,
-        autoCropArea: 0.9,
-        responsive: true,
-        restore: false,
-        checkCrossOrigin: false,
-        highlight: false,
-        guides: true,
-        center: true,
-        background: false,
-      });
-    }, 350);
+    if (!window.ABCDImageCropper) return;
+    ABCDImageCropper.open({
+      image: imageSrc,
+      title: 'Adjust Course Thumbnail (16:9)',
+      aspectRatio: 16 / 9,
+      shape: 'rect',
+      outputWidth: 1280,
+      outputHeight: 720,
+      onDone: function(result) {
+        const croppedDataUrl = result.dataUrl;
+        if (activeInputType === 'manual') {
+          document.getElementById('thumbPreviewImg').src = croppedDataUrl;
+          document.getElementById('thumbPreview').style.display = 'block';
+          document.getElementById('croppedThumbData').value = croppedDataUrl;
+        } else if (activeInputType === 'edit') {
+          document.getElementById('editThumbPreviewImg').src = croppedDataUrl;
+          document.getElementById('editThumbPreview').style.display = 'block';
+          document.getElementById('editCroppedThumbData').value = croppedDataUrl;
+          document.getElementById('editRemoveThumb').value = "0";
+        } else if (activeInputType === 'yt') {
+          document.getElementById('ytCroppedThumbData').value = croppedDataUrl;
+          const label = document.querySelector('#ytManualThumbGroup div[style*="font-size:0.8rem"]');
+          if (label) label.textContent = '✅ Custom thumbnail ready';
+        } else if (activeInputType === 'yt-pl') {
+          document.getElementById('ytPlCroppedThumbData').value = croppedDataUrl;
+          const label = document.querySelector('#ytPlManualThumbGroup div[style*="font-size:0.8rem"]');
+          if (label) label.textContent = '✅ Custom thumbnail ready';
+        }
+      }
+    });
   }
 
   function closeCropModal() {
-    document.getElementById('cropModal').classList.remove('open');
-    if (cropper) cropper.destroy();
-    cropper = null;
-    cropperFlipH = false;
-  }
-
-  function zoomCropper(delta) {
-    if (cropper) cropper.zoom(delta);
-  }
-
-  function rotateCropper(degree) {
-    if (cropper) cropper.rotate(degree);
-  }
-
-  function flipHCropper() {
-    if (!cropper) return;
-    cropperFlipH = !cropperFlipH;
-    cropper.scaleX(cropperFlipH ? -1 : 1);
-  }
-
-  function resetCropper() {
-    if (!cropper) return;
-    cropperFlipH = false;
-    cropper.reset();
-  }
-
-  function applyCrop() {
-    if (!cropper) return;
-    const canvas = cropper.getCroppedCanvas({ width: 1280, height: 720 });
-    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    
-    if (activeInputType === 'manual') {
-      document.getElementById('thumbPreviewImg').src = croppedDataUrl;
-      document.getElementById('thumbPreview').style.display = 'block';
-      document.getElementById('croppedThumbData').value = croppedDataUrl;
-    } else if (activeInputType === 'edit') {
-      document.getElementById('editThumbPreviewImg').src = croppedDataUrl;
-      document.getElementById('editThumbPreview').style.display = 'block';
-      document.getElementById('editCroppedThumbData').value = croppedDataUrl;
-      document.getElementById('editRemoveThumb').value = "0";
-    } else if (activeInputType === 'yt') {
-      document.getElementById('ytCroppedThumbData').value = croppedDataUrl;
-      const label = document.querySelector('#ytManualThumbGroup div[style*="font-size:0.8rem"]');
-      if (label) label.textContent = '✅ Custom thumbnail ready';
-    } else if (activeInputType === 'yt-pl') {
-      document.getElementById('ytPlCroppedThumbData').value = croppedDataUrl;
-      const label = document.querySelector('#ytPlManualThumbGroup div[style*="font-size:0.8rem"]');
-      if (label) label.textContent = '✅ Custom thumbnail ready';
+    if (window.ABCDImageCropper) {
+      ABCDImageCropper.close();
     }
-    
-    closeCropModal();
   }
 
   function reCropImage(type = 'manual') {
@@ -2274,7 +1963,7 @@
     const msg = `Are you sure you want to permanently delete "${courseTitle}" and all its study materials, thumbnails, and storage files?\n\nThis action is permanent and cannot be undone.`;
     const confirmed = typeof window.showStyledConfirm === 'function'
       ? await window.showStyledConfirm('Delete Course', msg)
-      : confirm(`Permanently delete "${courseTitle}"?`);
+      : (window.CustomPopup ? await window.CustomPopup.confirm(msg, 'Delete Course') : false);
       
     if (!confirmed) return;
 
@@ -2293,6 +1982,8 @@
           showToast(data.message || 'Course deleted successfully', 'success');
         } else if (typeof window.showStyledAlert === 'function') {
           await window.showStyledAlert('Deleted', data.message || 'Course deleted successfully');
+        } else if (window.CustomPopup) {
+          await window.CustomPopup.alert(data.message || 'Course deleted successfully', 'Deleted');
         }
         
         // Smoothly animate and remove card from DOM
@@ -2318,8 +2009,8 @@
       } else {
         if (typeof window.showStyledAlert === 'function') {
           await window.showStyledAlert('Error', data.error || 'Failed to delete course');
-        } else {
-          alert(data.error || 'Failed to delete course');
+        } else if (window.CustomPopup) {
+          await window.CustomPopup.alert(data.error || 'Failed to delete course', 'Error');
         }
       }
     } catch (err) {

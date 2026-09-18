@@ -1396,7 +1396,11 @@
 
     function downloadCurrentReceiptPdf() {
         if (!activeTxId) {
-            alert("Transaction ID missing.");
+            if (window.CustomPopup) {
+                window.CustomPopup.alert("Transaction ID missing.", "Error");
+            } else if (typeof window.showStyledAlert === 'function') {
+                window.showStyledAlert("Error", "Transaction ID missing.");
+            }
             return;
         }
         const downloadBtn = document.getElementById('mDownloadBtn');
@@ -1445,7 +1449,12 @@
             })
             .catch(err => {
                 console.error("Download error:", err);
-                alert("Error downloading receipt: " + err.message + "\n\nNote: If this is a 404 error, please restart your Django server (python manage.py runserver) so the new URL route is loaded by Django.");
+                const msg = "Error downloading receipt: " + err.message + "\n\nNote: If this is a 404 error, please restart your Django server (python manage.py runserver) so the new URL route is loaded by Django.";
+                if (window.CustomPopup) {
+                    window.CustomPopup.alert(msg, "Download Error");
+                } else if (typeof window.showStyledAlert === 'function') {
+                    window.showStyledAlert("Download Error", msg);
+                }
             })
             .finally(() => {
                 downloadBtn.innerHTML = originalHtml;

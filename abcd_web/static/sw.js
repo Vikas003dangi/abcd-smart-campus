@@ -125,6 +125,7 @@ self.addEventListener('push', function (event) {
         actions: isAlarm
             ? [
                 { action: 'open_alarm', title: 'Open' },
+                { action: 'snooze', title: 'Snooze 15m' },
                 { action: 'dismiss', title: 'Dismiss' }
               ]
             : (isReminder
@@ -231,11 +232,24 @@ self.addEventListener('notificationclick', function (event) {
         self.navigator.clearAppBadge().catch(function () {});
     }
 
+    const notifData = (event.notification && event.notification.data) ? event.notification.data : {};
+
     if (event.action === 'dismiss') {
         return;
     }
 
-    const notifData = (event.notification && event.notification.data) ? event.notification.data : {};
+    if (event.action === 'snooze') {
+        if (notifData.taskId) {
+            event.waitUntil(
+                fetch('/todo/reminder/' + encodeURIComponent(notifData.taskId) + '/action/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'snooze', minutes: 15 })
+                }).catch(function () {})
+            );
+        }
+        return;
+    }
     let targetUrl = notifData.url || '/';
 
     const isNotifGuidy = isGuidyPayload(notifData, targetUrl);

@@ -6,9 +6,8 @@ if (typeof window.showStyledPopup === 'undefined') {
         if (window.CustomPopup) {
             return window.CustomPopup.show(options);
         }
-        // Absolute last resort: native alert
-        alert((options.title ? options.title + '\n' : '') + (options.message || ''));
-        if (options.onOk) options.onOk();
+        if (options && options.onOk) options.onOk();
+        return Promise.resolve(true);
     };
 }
 if (typeof showStyledPopup === 'undefined') {

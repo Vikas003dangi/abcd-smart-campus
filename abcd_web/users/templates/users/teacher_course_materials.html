@@ -1516,7 +1516,7 @@
         const titleEscaped = materialTitle ? `"${materialTitle}"` : 'this material';
         const confirmed = typeof window.showStyledConfirm === 'function'
             ? await window.showStyledConfirm('Delete Material', `Are you sure you want to <b>delete</b> ${titleEscaped} permanently?`)
-            : confirm(`Are you sure you want to delete ${materialTitle} permanently?`);
+            : (window.CustomPopup ? await window.CustomPopup.confirm(`Are you sure you want to delete ${materialTitle} permanently?`, 'Delete Material') : false);
 
         if (!confirmed) return;
 
@@ -1562,8 +1562,8 @@
                 btn.style.pointerEvents = 'auto';
                 if (typeof window.showStyledAlert === 'function') {
                     await window.showStyledAlert('Delete Error', data.error || 'Failed to delete material.');
-                } else {
-                    alert(data.error || 'Failed to delete material.');
+                } else if (window.CustomPopup) {
+                    await window.CustomPopup.alert(data.error || 'Failed to delete material.', 'Delete Error');
                 }
             }
         } catch (err) {
@@ -1572,8 +1572,8 @@
             btn.style.pointerEvents = 'auto';
             if (typeof window.showStyledAlert === 'function') {
                 await window.showStyledAlert('Network Error', 'A network error occurred while deleting.');
-            } else {
-                alert('A network error occurred while deleting.');
+            } else if (window.CustomPopup) {
+                await window.CustomPopup.alert('A network error occurred while deleting.', 'Network Error');
             }
         }
     }
