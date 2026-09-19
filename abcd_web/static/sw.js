@@ -326,3 +326,45 @@ self.addEventListener('notificationclick', function (event) {
         })
     );
 });
+
+// -----------------------------------------------------------------------------
+// LIGHTWEIGHT STALE-WHILE-REVALIDATE CACHE FOR INSTANT APP LAUNCH (<100ms)
+// -----------------------------------------------------------------------------
+const STATIC_CACHE_NAME = 'abcd-static-shell-v1';
+
+self.addEventListener('fetch', function (event) {
+    const request = event.request;
+    if (request.method !== 'GET') return;
+
+    let url;
+    try {
+        url = new URL(request.url);
+    } catch (e) {
+        return;
+    }
+
+    // Only cache local static assets (CSS, JS, Fonts, Icons)
+    // Exclude audio (.mp3) to prevent large storage usage
+    if (url.origin === self.location.origin && url.pathname.startsWith('/static/')) {
+        if (url.pathname.endsWith('.mp3') || url.pathname.endsWith('.mp4') || url.pathname.endsWith('.webm')) {
+            return;
+        }
+
+        event.respondWith(
+            caches.open(STATIC_CACHE_NAME).then(function (cache) {
+                return cache.match(request).then(function (cachedResponse) {
+                    const fetchPromise = fetch(request).then(function (networkResponse) {
+                        if (networkResponse && networkResponse.status === 200) {
+                            cache.put(request, networkResponse.clone());
+                        }
+                        return networkResponse;
+                    }).catch(function () {
+                        return cachedResponse;
+                    });
+                    return cachedResponse || fetchPromise;
+                });
+            })
+        );
+    }
+});
+

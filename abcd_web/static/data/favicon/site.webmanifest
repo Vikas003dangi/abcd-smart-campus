@@ -27,8 +27,8 @@
       "purpose": "any maskable"
     }
   ],
-  "theme_color": "#e09fd5",
-  "background_color": "#f3b0f1",
+  "theme_color": "#faf6f0",
+  "background_color": "#f7bcf3",
   "launch_handler": {
     "client_mode": "focus-existing"
   },
