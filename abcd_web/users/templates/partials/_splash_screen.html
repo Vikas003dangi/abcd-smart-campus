@@ -1,0 +1,307 @@
+{% load static %}
+<style>
+  /* ==========================================================================
+     ABCD DEDICATED APP LAUNCH SPLASH SCREEN (MOBILE PWA / TWA COLD START)
+     ========================================================================== */
+  #abcd-app-splash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      /* Full-bleed liquid aurora gradient (matching Screenshot 2: soft pink -> purple -> warm golden amber) */
+      background: linear-gradient(168deg, #f7bcf3 0%, #e2a5f8 25%, #fde68a 70%, #fef08a 100%);
+      background-size: 150% 150%;
+      animation: abcdSplashAurora 6.5s ease-in-out infinite alternate;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000000; /* Above all */
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+      box-sizing: border-box;
+      pointer-events: auto;
+  }
+
+  /* Dark Theme Splash ("not too much dark" - rich deep violet plum) */
+  #abcd-app-splash.dark-theme {
+      background: linear-gradient(168deg, #180f2b 0%, #2b133d 35%, #421657 70%, #1c0d30 100%);
+      background-size: 150% 150%;
+      animation: abcdSplashAurora 6.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes abcdSplashAurora {
+      0% { background-position: 0% 15%; }
+      50% { background-position: 100% 85%; }
+      100% { background-position: 0% 15%; }
+  }
+
+  #abcd-app-splash.splash-hidden {
+      opacity: 0 !important;
+      transform: scale(1.04) !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+  }
+
+  .abcd-splash-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      max-width: 420px;
+      width: 100%;
+  }
+
+  /* Emblem Container directly on the screen (NO white/squircle box) */
+  .abcd-splash-emblem-stage {
+      position: relative;
+      width: clamp(210px, 52vw, 290px);
+      height: clamp(210px, 52vw, 290px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: abcdSplashFloat 3s ease-in-out infinite alternate;
+      will-change: transform;
+  }
+
+  @keyframes abcdSplashFloat {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-8px); }
+  }
+
+  /* Breathing Warm Bulb Glow Halo */
+  .abcd-splash-bulb-glow {
+      position: absolute;
+      top: 9%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(254, 240, 138, 0.9) 0%, rgba(245, 158, 11, 0.45) 45%, rgba(232, 121, 249, 0) 70%);
+      pointer-events: none;
+      z-index: 1;
+      animation: abcdSplashGlowPulse 2.2s ease-in-out infinite alternate;
+      will-change: transform, opacity;
+  }
+
+  #abcd-app-splash.dark-theme .abcd-splash-bulb-glow {
+      background: radial-gradient(circle, rgba(254, 240, 138, 0.95) 0%, rgba(245, 158, 11, 0.5) 40%, rgba(168, 85, 247, 0) 70%);
+  }
+
+  @keyframes abcdSplashGlowPulse {
+      0% { transform: translateX(-50%) scale(0.85); opacity: 0.55; }
+      100% { transform: translateX(-50%) scale(1.18); opacity: 0.95; }
+  }
+
+  /* Direct Emblem Art */
+  .abcd-splash-emblem-art {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      position: relative;
+      z-index: 2;
+      user-select: none;
+      -webkit-user-drag: none;
+  }
+
+  #abcd-app-splash.light-theme .splash-dark-art { display: none !important; }
+  #abcd-app-splash.light-theme .splash-light-art { 
+      display: block !important; 
+      filter: drop-shadow(0 6px 16px rgba(120, 53, 15, 0.15));
+  }
+
+  #abcd-app-splash.dark-theme .splash-light-art { display: none !important; }
+  #abcd-app-splash.dark-theme .splash-dark-art { 
+      display: block !important;
+      filter: drop-shadow(0 0 20px rgba(254, 240, 138, 0.45)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  }
+
+  /* Sleek Minimalist Progress Line */
+  .abcd-splash-progress {
+      width: 150px;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 16px 0 10px 0;
+  }
+
+  #abcd-app-splash.dark-theme .abcd-splash-progress {
+      background: rgba(255, 255, 255, 0.12);
+  }
+
+  .abcd-splash-progress-fill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #9333ea, #e11d48, #f59e0b);
+      border-radius: 12px;
+      animation: abcdSplashProgressAnim 1.6s ease-in-out infinite;
+      transform-origin: left;
+  }
+
+  #abcd-app-splash.dark-theme .abcd-splash-progress-fill {
+      background: linear-gradient(90deg, #c084fc, #f43f5e, #fde047);
+  }
+
+  @keyframes abcdSplashProgressAnim {
+      0% { transform: scaleX(0) translateX(0); }
+      50% { transform: scaleX(0.55) translateX(55%); }
+      100% { transform: scaleX(0) translateX(190%); }
+  }
+
+  .abcd-splash-tagline {
+      color: #581c87;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      animation: abcdSplashTextPulse 1.4s infinite alternate;
+  }
+
+  #abcd-app-splash.dark-theme .abcd-splash-tagline {
+      color: #f3e8ff;
+  }
+
+  @keyframes abcdSplashTextPulse {
+      0% { opacity: 0.5; }
+      100% { opacity: 1; }
+  }
+</style>
+
+<!-- Dedicated Mobile Launch Splash Screen -->
+<div id="abcd-app-splash" class="light-theme">
+  <script>
+      (function() {
+          // Immediately sync initial theme before first paint
+          const splashEl = document.getElementById('abcd-app-splash');
+          const savedTheme = localStorage.getItem('theme');
+          const isDark = (savedTheme === 'dark' || savedTheme === 'dark-theme');
+          if (isDark && splashEl) {
+              splashEl.classList.add('dark-theme');
+              splashEl.classList.remove('light-theme');
+          }
+      })();
+  </script>
+
+  <div class="abcd-splash-inner">
+    <!-- Live Animated Emblem Stage -->
+    <div class="abcd-splash-emblem-stage">
+      <div class="abcd-splash-bulb-glow"></div>
+      <img src="{% static 'data/favicon/splash-emblem.png' %}" alt="ABCD Smart Campus" class="abcd-splash-emblem-art splash-light-art" draggable="false">
+      <img src="{% static 'data/favicon/splash-emblem-dark.png' %}" alt="ABCD Smart Campus" class="abcd-splash-emblem-art splash-dark-art" draggable="false">
+    </div>
+
+    <!-- Sleek Progress Line -->
+    <div class="abcd-splash-progress">
+      <div class="abcd-splash-progress-fill"></div>
+    </div>
+    
+    <span class="abcd-splash-tagline">Empowering Your Learning...</span>
+  </div>
+</div>
+
+<script>
+(function() {
+    // -------------------------------------------------------------------------
+    // 1. ADAPTIVE STATUS BAR COLOR CONTROLLER (CRISP CREAM / DARK PLUM)
+    // -------------------------------------------------------------------------
+    const LIGHT_STATUS_BAR = '#faf6f0'; // Warm cream with crisp dark icons
+    const DARK_STATUS_BAR  = '#180f2b'; // Rich deep plum night (not too dark)
+
+    function getOrCreateThemeMeta() {
+        let meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = 'theme-color';
+            document.head.appendChild(meta);
+        }
+        return meta;
+    }
+
+    function syncStatusBar() {
+        const saved = localStorage.getItem('theme');
+        const isDark = document.body.classList.contains('dark-theme') || saved === 'dark' || saved === 'dark-theme';
+        const meta = getOrCreateThemeMeta();
+        meta.setAttribute('content', isDark ? DARK_STATUS_BAR : LIGHT_STATUS_BAR);
+        
+        const splashEl = document.getElementById('abcd-app-splash');
+        if (splashEl) {
+            if (isDark) {
+                splashEl.classList.add('dark-theme');
+                splashEl.classList.remove('light-theme');
+            } else {
+                splashEl.classList.add('light-theme');
+                splashEl.classList.remove('dark-theme');
+            }
+        }
+    }
+
+    syncStatusBar();
+    document.addEventListener('DOMContentLoaded', syncStatusBar);
+    window.addEventListener('load', syncStatusBar);
+
+    // Auto-listen to dynamic theme switches (e.g. tapping moon/sun toggle)
+    if (window.MutationObserver) {
+        const themeObserver = new MutationObserver(function(mutations) {
+            for (let i = 0; i < mutations.length; i++) {
+                if (mutations[i].attributeName === 'class') {
+                    syncStatusBar();
+                    break;
+                }
+            }
+        });
+        themeObserver.observe(document.body, { attributes: true });
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. LAUNCH SPLASH LIFECYCLE CONTROLLER
+    // -------------------------------------------------------------------------
+    const splash = document.getElementById('abcd-app-splash');
+    if (!splash) return;
+
+    // Check if splash was already shown in this session (e.g. internal navigation)
+    // Only show on cold launch / first app entry!
+    const isColdLaunch = !sessionStorage.getItem('abcd_splash_session_active');
+    if (!isColdLaunch) {
+        // Hide immediately without flashing during internal page clicks
+        splash.style.display = 'none';
+        return;
+    }
+
+    sessionStorage.setItem('abcd_splash_session_active', 'true');
+
+    const splashStartTime = Date.now();
+    const MIN_SPLASH_TIME = 850; // Smooth motion animation window (0.85s)
+    let isDismissed = false;
+
+    function dismissSplash() {
+        if (isDismissed) return;
+        const elapsed = Date.now() - splashStartTime;
+        const remaining = Math.max(0, MIN_SPLASH_TIME - elapsed);
+
+        setTimeout(() => {
+            if (isDismissed) return;
+            isDismissed = true;
+            splash.classList.add('splash-hidden');
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 400);
+        }, remaining);
+    }
+
+    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+        dismissSplash();
+    } else {
+        document.addEventListener('DOMContentLoaded', dismissSplash);
+        window.addEventListener('load', dismissSplash);
+    }
+
+    // Fallback safety watchdog (max 2.2s so it NEVER blocks user on slow networks)
+    setTimeout(dismissSplash, 2200);
+})();
+</script>

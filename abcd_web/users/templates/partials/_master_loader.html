@@ -1,15 +1,12 @@
 <style>
-  /* --- MASTER BRAND SPLASH OVERLAY STYLE --- */
+  /* --- MASTER LOADER OVERLAY STYLE --- */
   .master-loader-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      /* Default / Light Theme: Vibrant Aurora matching Screenshot 2 (Pink -> Purple -> Warm Golden Amber) */
-      background: linear-gradient(168deg, #f7bcf3 0%, #e2a5f8 25%, #fde68a 70%, #fef08a 100%);
-      background-size: 150% 150%;
-      animation: abcdAuroraShift 6.5s ease-in-out infinite alternate;
+      background: radial-gradient(circle at center, #111a2e 0%, #080d1a 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -17,26 +14,50 @@
       z-index: 9999999;
       opacity: 1;
       visibility: visible;
-      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      will-change: opacity, transform;
+      transition: opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
-  /* --- DARK THEME STYLE (Rich deep plum/violet, "not too much dark") --- */
-  .master-loader-overlay.dark-theme {
-      background: linear-gradient(168deg, #180f2b 0%, #2b133d 35%, #421657 70%, #1c0d30 100%);
-      background-size: 150% 150%;
-      animation: abcdAuroraShift 6.5s ease-in-out infinite alternate;
+  /* --- LIGHT THEME STYLE OVERRIDES --- */
+  .master-loader-overlay.light-theme {
+      background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
   }
 
-  @keyframes abcdAuroraShift {
-      0% { background-position: 0% 15%; }
-      50% { background-position: 100% 85%; }
-      100% { background-position: 0% 15%; }
+  .master-loader-overlay.light-theme .loader-brand {
+      color: #1e293b;
+      text-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+  }
+
+  .master-loader-overlay.light-theme .loader-subtitle {
+      color: #4f46e5;
+  }
+
+  .master-loader-overlay.light-theme .loader-status-text {
+      color: #475569;
+  }
+
+  .master-loader-overlay.light-theme .circle-core {
+      background-color: #f1f5f9;
+  }
+
+  .master-loader-overlay.light-theme .glowing-bg {
+      fill: rgba(99, 102, 241, 0.02);
+      stroke: rgba(99, 102, 241, 0.1);
+  }
+
+  .master-loader-overlay.light-theme .loader-progress-bar {
+      background: rgba(0, 0, 0, 0.05);
+  }
+
+  .master-loader-overlay.light-theme .orbit-ring-1 {
+      stroke: rgba(139, 92, 246, 0.25);
+  }
+
+  .master-loader-overlay.light-theme .orbit-ring-2 {
+      stroke: rgba(168, 85, 247, 0.2);
   }
 
   .master-loader-overlay.fade-out {
       opacity: 0 !important;
-      transform: scale(1.03) !important;
       visibility: hidden !important;
       pointer-events: none !important;
   }
@@ -50,100 +71,253 @@
       padding: 20px;
       width: 100%;
       max-width: 450px;
-      box-sizing: border-box;
   }
 
-  /* Animated Emblem Stage (Exact Bulb + Open Book + ABCD Text) */
-  .abcd-splash-emblem-wrap {
+  /* Mascot SVG Styling & Animations */
+  .mascot-wrapper {
+      width: clamp(140px, 25vw, 240px);
+      height: clamp(140px, 25vw, 240px);
+      margin-bottom: 20px;
       position: relative;
-      width: clamp(210px, 50vw, 290px);
-      height: clamp(210px, 50vw, 290px);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 8px;
-      animation: abcdEmblemFloat 3s ease-in-out infinite alternate;
-      will-change: transform;
   }
 
-  @keyframes abcdEmblemFloat {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-8px); }
-  }
-
-  /* Glowing Warm Bulb Aura (Breathing Enlightenment Motion) */
-  .abcd-bulb-aura-glow {
-      position: absolute;
-      top: 9%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(254, 240, 138, 0.9) 0%, rgba(245, 158, 11, 0.45) 45%, rgba(232, 121, 249, 0) 70%);
-      pointer-events: none;
-      z-index: 1;
-      animation: abcdBulbHaloPulse 2.2s ease-in-out infinite alternate;
-      will-change: transform, opacity;
-  }
-
-  .master-loader-overlay.dark-theme .abcd-bulb-aura-glow {
-      background: radial-gradient(circle, rgba(254, 240, 138, 0.95) 0%, rgba(245, 158, 11, 0.5) 40%, rgba(168, 85, 247, 0) 70%);
-  }
-
-  @keyframes abcdBulbHaloPulse {
-      0% { transform: translateX(-50%) scale(0.85); opacity: 0.55; }
-      100% { transform: translateX(-50%) scale(1.18); opacity: 0.95; }
-  }
-
-  /* Emblem Artwork */
-  .abcd-splash-art {
+  .abcd-mascot-svg {
       width: 100%;
       height: 100%;
-      object-fit: contain;
-      position: relative;
-      z-index: 2;
-      user-select: none;
-      -webkit-user-drag: none;
+      overflow: visible;
   }
 
-  .master-loader-overlay.light-theme .emblem-dark { display: none !important; }
-  .master-loader-overlay.light-theme .emblem-light { 
-      display: block !important; 
-      filter: drop-shadow(0 6px 16px rgba(120, 53, 15, 0.15));
+  /* Base Mascot SVG Elements Colors */
+  .glowing-bg {
+      fill: rgba(99, 102, 241, 0.05);
+      stroke: rgba(99, 102, 241, 0.15);
+      stroke-width: 1.5;
   }
 
-  .master-loader-overlay.dark-theme .emblem-light { display: none !important; }
-  .master-loader-overlay.dark-theme .emblem-dark { 
-      display: block !important;
-      filter: drop-shadow(0 0 20px rgba(254, 240, 138, 0.45)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  .orbit-ring {
+      fill: none;
+      stroke-width: 1.5;
+      transform-origin: 100px 100px;
   }
 
-  /* Sleek Progress Bar */
+  .orbit-ring-1 {
+      stroke: rgba(139, 92, 246, 0.4);
+      animation: loaderOrbitRing 8s linear infinite;
+  }
+
+  .orbit-ring-2 {
+      stroke: rgba(168, 85, 247, 0.3);
+      animation: loaderOrbitRingInverse 12s linear infinite;
+  }
+
+  .book-cover {
+      fill: #4c1d95;
+      stroke: #6d28d9;
+      stroke-width: 1.5;
+  }
+
+  .book-page {
+      fill: #ffffff;
+      stroke: #e2e8f0;
+      stroke-width: 1;
+  }
+
+  .owl-body {
+      fill: #3b82f6;
+      animation: loaderHoverOwl 3s ease-in-out infinite alternate;
+      transform-origin: 100px 105px;
+  }
+
+  .owl-belly {
+      fill: #eff6ff;
+  }
+
+  .owl-feather {
+      fill: #1d4ed8;
+  }
+
+  .owl-eye-white {
+      fill: #ffffff;
+  }
+
+  .owl-eye-pupil {
+      fill: #1e293b;
+  }
+
+  .owl-eye-shine {
+      fill: #ffffff;
+  }
+
+  .glasses-frame {
+      fill: none;
+      stroke: #f59e0b;
+      stroke-width: 2.5;
+  }
+
+  .glasses-bridge {
+      stroke: #f59e0b;
+      stroke-width: 3;
+  }
+
+  .owl-beak {
+      fill: #f59e0b;
+  }
+
+  .owl-wing {
+      fill: #2563eb;
+      transform-origin: 100px 105px;
+  }
+
+  .left-wing {
+      animation: loaderWingFlapLeft 3s ease-in-out infinite alternate;
+  }
+
+  .right-wing {
+      animation: loaderWingFlapRight 3s ease-in-out infinite alternate;
+  }
+
+  .cap-top {
+      fill: #1e293b;
+      stroke: #475569;
+      stroke-width: 1;
+  }
+
+  .cap-base {
+      fill: #0f172a;
+  }
+
+  .cap-tassel {
+      stroke: #f59e0b;
+      stroke-width: 1.5;
+      fill: none;
+  }
+
+  .cap-tassel-end {
+      fill: #f59e0b;
+  }
+
+  .sparkle {
+      fill: #fcd34d;
+      opacity: 0.8;
+  }
+
+  .sparkle-1 {
+      animation: loaderPulseGlow 1.5s ease-in-out infinite alternate;
+  }
+
+  .sparkle-2 {
+      animation: loaderPulseGlow 1.5s ease-in-out infinite alternate-reverse;
+  }
+
+  /* Animations */
+  @keyframes loaderHoverOwl {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-10px); }
+  }
+
+  @keyframes loaderWingFlapLeft {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-6deg); }
+  }
+
+  @keyframes loaderWingFlapRight {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(6deg); }
+  }
+
+  @keyframes loaderOrbitRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+  }
+
+  @keyframes loaderOrbitRingInverse {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+  }
+
+  @keyframes loaderPulseGlow {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Spinner Box */
+  .spinner-box {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: transparent;
+      margin-bottom: 20px;
+  }
+
+  .circle-border {
+      width: 40px;
+      height: 40px;
+      padding: 3px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      background: linear-gradient(0deg, rgba(99, 102, 241, 0.1) 33%, rgba(99, 102, 241, 1) 100%);
+      animation: loaderSpin 0.8s linear infinite;
+  }
+
+  .circle-core {
+      width: 100%;
+      height: 100%;
+      background-color: #080d1a;
+      border-radius: 50%;
+  }
+
+  .master-loader-overlay.light-theme .circle-core {
+      background-color: #f1f5f9;
+  }
+
+  @keyframes loaderSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+  }
+
+  /* Brand Typography Styles */
+  .loader-brand {
+      color: #ffffff;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      margin: 5px 0;
+      font-family: 'Righteous', sans-serif, system-ui;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.25);
+  }
+
+  .loader-subtitle {
+      color: #7b61ff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+  }
+
   .loader-progress-bar {
-      width: 150px;
+      width: 140px;
       height: 4px;
-      background: rgba(0, 0, 0, 0.08);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
       overflow: hidden;
-      margin: 14px 0 10px 0;
-  }
-
-  .master-loader-overlay.dark-theme .loader-progress-bar {
-      background: rgba(255, 255, 255, 0.12);
+      margin-bottom: 12px;
   }
 
   .loader-progress-fill {
       width: 100%;
       height: 100%;
-      background: linear-gradient(90deg, #9333ea, #e11d48, #f59e0b);
-      border-radius: 12px;
-      animation: loaderProgressInfinite 1.6s ease-in-out infinite;
+      background: linear-gradient(90deg, #7b61ff, #a855f7);
+      border-radius: 10px;
+      animation: loaderProgressInfinite 1.8s ease-in-out infinite;
       transform-origin: left;
-  }
-
-  .master-loader-overlay.dark-theme .loader-progress-fill {
-      background: linear-gradient(90deg, #c084fc, #f43f5e, #fde047);
   }
 
   @keyframes loaderProgressInfinite {
@@ -153,20 +327,15 @@
   }
 
   .loader-status-text {
-      color: #581c87;
-      font-size: 0.84rem;
-      font-weight: 600;
-      letter-spacing: 0.4px;
-      margin-top: 2px;
-      animation: loaderPulseOpacity 1.4s infinite alternate;
-  }
-
-  .master-loader-overlay.dark-theme .loader-status-text {
-      color: #f3e8ff;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      animation: loaderPulseOpacity 1.2s infinite alternate;
   }
 
   @keyframes loaderPulseOpacity {
-      0% { opacity: 0.5; }
+      0% { opacity: 0.45; }
       100% { opacity: 1; }
   }
 
@@ -501,8 +670,7 @@
       (function() {
           const savedTheme = localStorage.getItem('theme');
           const loader = document.getElementById('master-loader');
-          const isDark = (savedTheme === 'dark' || savedTheme === 'dark-theme');
-          if (isDark) {
+          if (savedTheme === 'dark' || savedTheme === 'dark-theme') {
               loader.classList.add('dark-theme');
               loader.classList.remove('light-theme');
           } else {
@@ -513,19 +681,69 @@
   </script>
   
   <div class="loader-content">
-    <!-- Animated Brand Splash Emblem Stage (Exact Bulb + Open Book + ABCD Text) -->
-    <div class="abcd-splash-emblem-wrap">
-      <div class="abcd-bulb-aura-glow"></div>
-      <img src="{% static 'data/favicon/splash-emblem.png' %}" alt="ABCD Smart Campus" class="abcd-splash-art emblem-light" draggable="false">
-      <img src="{% static 'data/favicon/splash-emblem-dark.png' %}" alt="ABCD Smart Campus" class="abcd-splash-art emblem-dark" draggable="false">
+    <div class="mascot-wrapper">
+      <svg class="abcd-mascot-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <circle class="glowing-bg" cx="100" cy="100" r="85" />
+        <ellipse class="orbit-ring orbit-ring-1" cx="100" cy="100" rx="90" ry="25" />
+        <ellipse class="orbit-ring orbit-ring-2" cx="100" cy="100" rx="25" ry="90" />
+
+        <g class="book-group">
+          <path class="book-cover" d="M40 145 C 70 135, 100 145, 100 145 C 100 145, 130 135, 160 145 L 165 160 C 135 150, 100 160, 100 160 C 100 160, 65 150, 35 160 Z" />
+          <path class="book-page" d="M45 142 C 72 133, 98 142, 98 142 L 98 155 C 98 155, 72 146, 45 155 Z" />
+          <path class="book-page" d="M155 142 C 128 133, 102 142, 102 142 L 102 155 C 102 155, 128 146, 155 155 Z" />
+        </g>
+
+        <g class="owl-group">
+          <ellipse class="owl-body" cx="100" cy="105" rx="35" ry="42" />
+          <ellipse class="owl-belly" cx="100" cy="108" rx="25" ry="32" />
+
+          <polygon class="owl-feather" points="68,75 80,68 85,82" />
+          <polygon class="owl-feather" points="132,75 120,68 115,82" />
+
+          <circle class="owl-eye-white" cx="85" cy="95" r="12" />
+          <circle class="owl-eye-pupil" cx="87" cy="95" r="6" />
+          <circle class="owl-eye-shine" cx="89" cy="93" r="2.5" />
+          
+          <circle class="owl-eye-white" cx="115" cy="95" r="12" />
+          <circle class="owl-eye-pupil" cx="113" cy="95" r="6" />
+          <circle class="owl-eye-shine" cx="111" cy="93" r="2.5" />
+          
+          <circle class="glasses-frame" cx="85" cy="95" r="14" />
+          <circle class="glasses-frame" cx="115" cy="95" r="14" />
+          <line class="glasses-bridge" x1="99" y1="95" x2="101" y2="95" />
+
+          <polygon class="owl-beak" points="100,103 96,110 104,110" />
+
+          <path class="owl-wing left-wing" d="M65 105 C 55 110, 52 125, 62 132 C 67 122, 67 112, 65 105" />
+          <path class="owl-wing right-wing" d="M135 105 C 145 110, 148 125, 138 132 C 133 122, 133 112, 135 105" />
+
+          <polygon class="cap-top" points="100,53 130,62 100,71 70,62" />
+          <rect class="cap-base" x="88" y="66" width="24" height="8" rx="2" />
+          <path class="cap-tassel" d="M130 62 L 134 76 L 132 80" />
+          <circle class="cap-tassel-end" cx="132" cy="81" r="2.5" />
+        </g>
+
+        <path class="sparkle sparkle-1" d="M35 60 L 37 65 L 42 67 L 37 69 L 35 74 L 33 69 L 28 67 L 33 65 Z" />
+        <path class="sparkle sparkle-2" d="M165 60 L 167 65 L 172 67 L 167 69 L 165 74 L 163 69 L 158 67 L 163 65 Z" />
+      </svg>
     </div>
 
-    <!-- Sleek Glowing Progress Line -->
+    <!-- Spinner Rings -->
+    <div class="spinner-box">
+      <div class="circle-border">
+        <div class="circle-core"></div>
+      </div>
+    </div>
+
+    <!-- Brand Typography & Status -->
+    <h2 class="loader-brand">ABCD</h2>
+    <p class="loader-subtitle">COACHING & LIBRARY</p>
+    
     <div class="loader-progress-bar">
       <div class="loader-progress-fill"></div>
     </div>
     
-    <p class="loader-status-text" id="loader-status-msg">Empowering Your Learning...</p>
+    <p class="loader-status-text" id="loader-status-msg">Loading Excellence...</p>
 
     <!-- Error/Offline Fallback UI -->
     <div class="loader-error-box" id="loader-error-container">
@@ -591,64 +809,13 @@
 <script>
   (function() {
       // ----------------------------------------------------------------------
-      // 1. ADAPTIVE STATUS BAR THEME-COLOR CONTROLLER (NO MORE BRIGHT PINK!)
-      // ----------------------------------------------------------------------
-      const LIGHT_STATUS_BAR = '#faf6f0'; // Warm cream with crisp dark icons
-      const DARK_STATUS_BAR  = '#180f2b'; // Rich deep plum night (not too dark)
-
-      function getOrCreateThemeMeta() {
-          let meta = document.querySelector('meta[name="theme-color"]');
-          if (!meta) {
-              meta = document.createElement('meta');
-              meta.name = 'theme-color';
-              document.head.appendChild(meta);
-          }
-          return meta;
-      }
-
-      function syncStatusBarTheme() {
-          const saved = localStorage.getItem('theme');
-          const isDark = document.body.classList.contains('dark-theme') || saved === 'dark' || saved === 'dark-theme';
-          const meta = getOrCreateThemeMeta();
-          meta.setAttribute('content', isDark ? DARK_STATUS_BAR : LIGHT_STATUS_BAR);
-          
-          const loaderEl = document.getElementById('master-loader');
-          if (loaderEl) {
-              if (isDark) {
-                  loaderEl.classList.add('dark-theme');
-                  loaderEl.classList.remove('light-theme');
-              } else {
-                  loaderEl.classList.add('light-theme');
-                  loaderEl.classList.remove('dark-theme');
-              }
-          }
-      }
-
-      syncStatusBarTheme();
-      document.addEventListener('DOMContentLoaded', syncStatusBarTheme);
-      window.addEventListener('load', syncStatusBarTheme);
-
-      // Listen for dynamic theme switch (e.g. moon/sun toggle)
-      if (window.MutationObserver) {
-          const themeObserver = new MutationObserver(function(mutations) {
-              for (let i = 0; i < mutations.length; i++) {
-                  if (mutations[i].attributeName === 'class') {
-                      syncStatusBarTheme();
-                      break;
-                  }
-              }
-          });
-          themeObserver.observe(document.body, { attributes: true });
-      }
-
-      // ----------------------------------------------------------------------
-      // 2. MASTER BRAND SPLASH ENGINE WITH SMOOTH TIMING
+      // 1. MASTER LOADER ENGINE & INTENT INTERCEPTION SAFEGUARDS
       // ----------------------------------------------------------------------
       const loader = document.getElementById('master-loader');
       if (!loader) return;
 
       const phrases = [
-          "Empowering Your Learning...",
+          "Loading Excellence...",
           "Preparing your dashboard...",
           "Setting up the desk...",
           "Aligning the books...",
@@ -660,37 +827,30 @@
           statusMsg.textContent = phrases[Math.floor(Math.random() * phrases.length)];
       }
 
-      const splashStartTime = Date.now();
-      const MIN_SPLASH_TIME = 750; // Smooth motion animation window (0.75s)
       let watchdogTimer = null;
-      let isHidden = false;
+      let showDebounceTimer = null;
       window.__isHandlingExternalIntent = false;
       window.__isLightboxOpen = false;
 
       // Hide loader safely
       window.hideMasterLoader = function() {
-          if (isHidden) return;
-          const elapsed = Date.now() - splashStartTime;
-          const remaining = Math.max(0, MIN_SPLASH_TIME - elapsed);
-
+          clearTimeout(watchdogTimer);
+          clearTimeout(showDebounceTimer);
+          loader.classList.add('fade-out');
           setTimeout(() => {
-              if (isHidden) return;
-              isHidden = true;
-              clearTimeout(watchdogTimer);
-              loader.classList.add('fade-out');
-              setTimeout(() => {
-                  loader.style.display = 'none';
-                  resetErrorUI();
-              }, 350);
-          }, remaining);
+              loader.style.display = 'none';
+              resetErrorUI();
+          }, 180);
       };
 
       function resetErrorUI() {
           const errorContainer = document.getElementById('loader-error-container');
           const progressBar = document.querySelector('.loader-progress-bar');
+          const spinner = document.querySelector('.spinner-box');
           if (errorContainer) errorContainer.style.display = 'none';
           if (statusMsg) statusMsg.style.display = 'block';
           if (progressBar) progressBar.style.display = 'block';
+          if (spinner) spinner.style.display = 'flex';
       }
 
       if (document.readyState === 'interactive' || document.readyState === 'complete') {
