@@ -5,7 +5,19 @@ self.addEventListener('install', function (event) {
 });
 
 self.addEventListener('activate', function (event) {
-    event.waitUntil(self.clients.claim());
+    event.waitUntil(
+        caches.keys().then(function (keys) {
+            return Promise.all(
+                keys.filter(function (key) {
+                    return key !== STATIC_CACHE_NAME;
+                }).map(function (key) {
+                    return caches.delete(key);
+                })
+            );
+        }).then(function () {
+            return self.clients.claim();
+        })
+    );
 });
 
 let activeChatState = { chatType: null, chatId: null, timestamp: 0 };
@@ -328,9 +340,9 @@ self.addEventListener('notificationclick', function (event) {
 });
 
 // -----------------------------------------------------------------------------
-// LIGHTWEIGHT STALE-WHILE-REVALIDATE CACHE FOR INSTANT APP LAUNCH (<100ms)
+// LIGHTWEIGHT CACHE FOR INSTANT APP LAUNCH (<100ms)
 // -----------------------------------------------------------------------------
-const STATIC_CACHE_NAME = 'abcd-static-shell-v1';
+const STATIC_CACHE_NAME = 'abcd-static-shell-v2';
 
 self.addEventListener('fetch', function (event) {
     const request = event.request;
@@ -350,6 +362,27 @@ self.addEventListener('fetch', function (event) {
             return;
         }
 
+        // For critical interactive scripts (abcd-sound.js, custom-popup.js), use Network-First to guarantee fresh audio logic
+        const isCriticalScript = url.pathname.includes('abcd-sound.js') || url.pathname.includes('custom-popup.js');
+
+        if (isCriticalScript) {
+            event.respondWith(
+                fetch(request).then(function (networkResponse) {
+                    if (networkResponse && networkResponse.status === 200) {
+                        const copy = networkResponse.clone();
+                        caches.open(STATIC_CACHE_NAME).then(function (cache) {
+                            cache.put(request, copy);
+                        });
+                    }
+                    return networkResponse;
+                }).catch(function () {
+                    return caches.match(request);
+                })
+            );
+            return;
+        }
+
+        // Stale-while-revalidate for fonts, images, stylesheets
         event.respondWith(
             caches.open(STATIC_CACHE_NAME).then(function (cache) {
                 return cache.match(request).then(function (cachedResponse) {

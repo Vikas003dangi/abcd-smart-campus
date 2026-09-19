@@ -14,7 +14,11 @@
     <link rel="shortcut icon" href="{% static 'data/favicon/favicon.ico' %}" />
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'data/favicon/apple-touch-icon.png' %}" />
     <meta name="apple-mobile-web-app-title" content="ABCD (coaching & library)" />
+    <meta name="theme-color" content="#ffffff" id="theme-color-meta" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1329" />
     <link rel="manifest" href="{% static 'data/favicon/site.webmanifest' %}" />
+    <script src="{% static 'js/abcd-theme.js' %}"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -4910,7 +4914,6 @@
 
 <body data-page="public-preview">
     {% include 'partials/_master_loader.html' %}
-    {% include 'partials/_splash_screen.html' %}
     {% if not user.is_authenticated %}
     <div class="alert-overlay" id="alert-overlay">
         <div class="welcome-modal-card">
@@ -7836,9 +7839,7 @@ window.addEventListener('resize', initAppCardsScroll, { passive: true });
 window.addEventListener('load', initAppCardsScroll, { passive: true });
 </script>
 
-<script src="{% static 'js/custom-popup.js' %}"></script>
 <script src="{% static 'js/site-tour.js' %}"></script>
-<script src="{% static 'js/abcd-sound.js' %}"></script>
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
 <script src="{% static 'js/push-permission.js' %}?v=5"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>

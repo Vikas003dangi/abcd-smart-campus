@@ -26,13 +26,75 @@
         'pwa': '/static/audio/PWA.mp3',
         'alarms and reminders': '/static/audio/alarms and reminders.mp3',
         'alarms%20and%20reminders': '/static/audio/alarms and reminders.mp3',
+        '/static/audio/alarms and reminders.mp3': '/static/audio/alarms and reminders.mp3',
+        '/static/audio/alarms%20and%20reminders.mp3': '/static/audio/alarms and reminders.mp3',
+        '/static/audio/alarm.mp3': '/static/audio/alarm.mp3',
+        '/static/audio/pwa.mp3': '/static/audio/PWA.mp3',
+        '/static/audio/PWA.mp3': '/static/audio/PWA.mp3',
         'course_reminder': '/static/audio/alarms and reminders.mp3'
     };
 
-    // Cached Audio objects pool
+    // Cached Audio objects pool & Web Audio buffer cache
     const audioPool = {};
+    const soundBuffers = {};
+    const bufferLoadingPromises = {};
+    let sharedAudioCtx = null;
     let isAudioUnlocked = false;
     let lastButtonSoundTime = 0;
+
+    function getAudioContext() {
+        if (!sharedAudioCtx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                try {
+                    sharedAudioCtx = new AudioCtx();
+                } catch (e) {}
+            }
+        }
+        return sharedAudioCtx;
+    }
+
+    async function loadSoundBuffer(name, url) {
+        if (soundBuffers[name]) return soundBuffers[name];
+        if (bufferLoadingPromises[name]) return bufferLoadingPromises[name];
+
+        bufferLoadingPromises[name] = (async function () {
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return null;
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const ab = await res.arrayBuffer();
+                const decoded = await ctx.decodeAudioData(ab);
+                soundBuffers[name] = decoded;
+                return decoded;
+            } catch (e) {
+                return null;
+            }
+        })();
+
+        return bufferLoadingPromises[name];
+    }
+
+    function playViaWebAudio(buffer, volume) {
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return false;
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(function () {});
+            }
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            const gain = ctx.createGain();
+            gain.gain.value = Math.max(0, Math.min(1, volume));
+            source.connect(gain);
+            gain.connect(ctx.destination);
+            source.start(0);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
 
     // Check if an alarm or loud reminder is actively ringing
     function isAlarmOrLoudAlertPlaying() {
@@ -55,64 +117,52 @@
 
     // Pre-cache small UI interaction sounds (load large alert/alarm audio files on-demand)
     function initAudioPool() {
-        ['button', 'send', 'receive', 'done', 'error', 'pwa'].forEach(function (key) {
+        const smallSounds = ['button', 'send', 'receive', 'done', 'error', 'pwa'];
+        smallSounds.forEach(function (key) {
+            const soundPath = SOUND_PATHS[key];
+            if (!soundPath) return;
+
+            // 1. Preload HTML5 Audio
             try {
                 if (!audioPool[key]) {
-                    const audio = new Audio(SOUND_PATHS[key]);
+                    const audio = new Audio(soundPath);
                     audio.preload = 'auto';
                     audioPool[key] = audio;
                 }
-            } catch (e) {
-                // Ignore audio init errors
-            }
+            } catch (e) {}
+
+            // 2. Pre-fetch & decode Web Audio buffer
+            loadSoundBuffer(key, soundPath);
         });
     }
 
     // Unlock audio context on first user interaction (browser autoplay policy)
     function unlockAudio() {
-        if (isAudioUnlocked) return;
-
         try {
-            // 1. Resume Web Audio Context if available
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) {
-                try {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {
-                        ctx.resume().catch(function () {});
-                    }
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    gain.gain.value = 0.0001;
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(0);
-                    osc.stop(0.01);
-                } catch (ce) {}
+            const ctx = getAudioContext();
+            if (ctx && ctx.state === 'suspended') {
+                ctx.resume().catch(function () {});
             }
 
-            // 2. Prime HTML5 Audio with a standalone scratch instance (DO NOT touch audioPool['button'])
-            const scratch = new Audio(SOUND_PATHS['button']);
-            scratch.volume = 0.01;
-            const promise = scratch.play();
-            if (promise !== undefined) {
-                promise.then(function () {
-                    scratch.pause();
-                    scratch.currentTime = 0;
-                }).catch(function () {});
+            if (!isAudioUnlocked) {
+                // Prime HTML5 Audio with an isolated scratch instance
+                const scratch = new Audio(SOUND_PATHS['button']);
+                scratch.volume = 0.01;
+                const promise = scratch.play();
+                if (promise !== undefined) {
+                    promise.then(function () {
+                        scratch.pause();
+                        scratch.currentTime = 0;
+                    }).catch(function () {});
+                }
+                isAudioUnlocked = true;
             }
-            isAudioUnlocked = true;
-            ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function (evt) {
-                document.removeEventListener(evt, unlockAudio, { capture: true });
-            });
-        } catch (e) {
-            // Keep listeners attached to retry on next user interaction
-        }
+        } catch (e) {}
     }
 
     // Register interaction listeners to unlock
     ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function (evt) {
-        document.addEventListener(evt, unlockAudio, { capture: true });
+        document.addEventListener(evt, unlockAudio, { capture: true, passive: true });
     });
 
     /**
@@ -150,12 +200,25 @@
             });
         }
 
+        // 1. Try Web Audio buffer first (instant, 0 latency, immune to async autoplay restriction once unlocked)
+        const buffer = soundBuffers[normalizedName];
+        if (buffer && playViaWebAudio(buffer, vol)) {
+            return;
+        }
+
+        // 2. If buffer is not decoded yet, kick off decoding in background for next time
+        if (!buffer && !bufferLoadingPromises[normalizedName]) {
+            loadSoundBuffer(normalizedName, soundSrc);
+        }
+
+        // 3. Fallback to HTMLAudioElement (works immediately on synchronous user gestures)
         try {
             const poolAudio = audioPool[normalizedName];
             if (poolAudio) {
-                // If audio element is idle, reuse directly for instant playback
                 if (poolAudio.paused || poolAudio.ended) {
-                    poolAudio.currentTime = 0;
+                    if (poolAudio.readyState > 0) {
+                        try { poolAudio.currentTime = 0; } catch (e) {}
+                    }
                     poolAudio.volume = Math.max(0, Math.min(1, vol));
                     const p = poolAudio.play();
                     if (p !== undefined) {
@@ -167,7 +230,6 @@
                     }
                     return;
                 } else {
-                    // Overlapping sound: play via fresh Audio instance
                     const fresh = new Audio(soundSrc);
                     fresh.volume = Math.max(0, Math.min(1, vol));
                     const p = fresh.play();
@@ -178,18 +240,13 @@
                 }
             }
 
-            // Fresh instance fallback if pool entry is not ready
             const snd = new Audio(soundSrc);
             snd.volume = Math.max(0, Math.min(1, vol));
             const playPromise = snd.play();
             if (playPromise !== undefined) {
-                playPromise.catch(function (err) {
-                    console.debug('ABCD Audio playback note:', normalizedName, err.message);
-                });
+                playPromise.catch(function () {});
             }
-        } catch (e) {
-            // Audio not supported or failed
-        }
+        } catch (e) {}
     }
 
     // Comprehensive selector for interactive elements across all ABCD pages:
@@ -252,25 +309,33 @@
         '.quick-action-btn'
     ].join(', ');
 
-    // Global click sound listener for interactive elements (Capture phase guarantees execution)
-    document.addEventListener('click', function (e) {
+    // Global click sound listener for interactive elements
+    // Uses pointerdown in capture phase for instant 0ms tactile response on touches/clicks
+    function handleInteractionButtonSound(e) {
         if (!isSoundEnabled()) return;
 
         const target = e.target;
         if (!target) return;
 
         // Skip elements explicitly marked with .no-sound
-        if (target.closest('.no-sound, [data-no-sound="true"]')) return;
+        if (target.closest && target.closest('.no-sound, [data-no-sound="true"]')) return;
 
         // Trigger sound on any interactive button, seat, close X, or control
-        const isClickable = target.closest(CLICKABLE_SELECTOR);
+        const isClickable = target.closest && target.closest(CLICKABLE_SELECTOR);
         if (isClickable) {
             const now = Date.now();
-            // Debounce clicks slightly (60ms) to allow natural rapid clicks while preventing harsh machine-gun audio
-            if (now - lastButtonSoundTime > 60) {
+            if (now - lastButtonSoundTime > 80) {
                 lastButtonSoundTime = now;
                 playABCDSound('button', 0.85);
             }
+        }
+    }
+
+    document.addEventListener('pointerdown', handleInteractionButtonSound, true);
+    document.addEventListener('click', function (e) {
+        // Fallback for keyboard interactions (Enter or Space key on focused buttons where pointerdown does not fire)
+        if (e.detail === 0) {
+            handleInteractionButtonSound(e);
         }
     }, true);
 
@@ -930,7 +995,7 @@
     window.playABCDSound = playABCDSound;
     window.playDoneSound = function () { playABCDSound('done'); };
     window.playErrorSound = function () { playABCDSound('error'); };
-    window.playButtonSound = function () { playABCDSound('button', 0.45); };
+    window.playButtonSound = function () { playABCDSound('button', 0.85); };
     window.startABCDAlarm = startABCDAlarm;
     window.stopABCDAlarm = stopABCDAlarm;
     window.isABCDAlarmPlaying = isAlarmOrLoudAlertPlaying;

@@ -6,6 +6,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=overlays-content">
+  <meta name="theme-color" content="#2563eb">
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
   <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
@@ -7906,8 +7907,6 @@ window.addEventListener('load', initAppCardsScroll, { passive: true });
 </script>
 
 {% include 'users/_banner_popup.html' %}
-<script src="{% static 'js/custom-popup.js' %}?v=20260916-2"></script>
-<script src="{% static 'js/abcd-sound.js' %}"></script>
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
 <script src="{% static 'js/push-permission.js' %}?v=5"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
