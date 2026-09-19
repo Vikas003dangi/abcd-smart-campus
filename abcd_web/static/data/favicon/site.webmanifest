@@ -28,7 +28,7 @@
     }
   ],
   "theme_color": "#e09fd5",
-  "background_color": "#854c7a",
+  "background_color": "#f3b0f1",
   "launch_handler": {
     "client_mode": "focus-existing"
   },

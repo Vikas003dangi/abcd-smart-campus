@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Export</title>
+  <style>@font-face{font-display:block;font-family:KaTeX_AMS;font-style:normal;font-weight:400;src:url(fonts/KaTeX_AMS-Regular.woff2) format("woff2"),url(fonts/KaTeX_AMS-Regular.woff) format("woff"),url(fonts/KaTeX_AMS-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Caligraphic;font-style:normal;font-weight:700;src:url(fonts/KaTeX_Caligraphic-Bold.woff2) format("woff2"),url(fonts/KaTeX_Caligraphic-Bold.woff) format("woff"),url(fonts/KaTeX_Caligraphic-Bold.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Caligraphic;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Caligraphic-Regular.woff2) format("woff2"),url(fonts/KaTeX_Caligraphic-Regular.woff) format("woff"),url(fonts/KaTeX_Caligraphic-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Fraktur;font-style:normal;font-weight:700;src:url(fonts/KaTeX_Fraktur-Bold.woff2) format("woff2"),url(fonts/KaTeX_Fraktur-Bold.woff) format("woff"),url(fonts/KaTeX_Fraktur-Bold.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Fraktur;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Fraktur-Regular.woff2) format("woff2"),url(fonts/KaTeX_Fraktur-Regular.woff) format("woff"),url(fonts/KaTeX_Fraktur-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:normal;font-weight:700;src:url(fonts/KaTeX_Main-Bold.woff2) format("woff2"),url(fonts/KaTeX_Main-Bold.woff) format("woff"),url(fonts/KaTeX_Main-Bold.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:italic;font-weight:700;src:url(fonts/KaTeX_Main-BoldItalic.woff2) format("woff2"),url(fonts/KaTeX_Main-BoldItalic.woff) format("woff"),url(fonts/KaTeX_Main-BoldItalic.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:italic;font-weight:400;src:url(fonts/KaTeX_Main-Italic.woff2) format("woff2"),url(fonts/KaTeX_Main-Italic.woff) format("woff"),url(fonts/KaTeX_Main-Italic.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Main;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Main-Regular.woff2) format("woff2"),url(fonts/KaTeX_Main-Regular.woff) format("woff"),url(fonts/KaTeX_Main-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Math;font-style:italic;font-weight:700;src:url(fonts/KaTeX_Math-BoldItalic.woff2) format("woff2"),url(fonts/KaTeX_Math-BoldItalic.woff) format("woff"),url(fonts/KaTeX_Math-BoldItalic.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Math;font-style:italic;font-weight:400;src:url(fonts/KaTeX_Math-Italic.woff2) format("woff2"),url(fonts/KaTeX_Math-Italic.woff) format("woff"),url(fonts/KaTeX_Math-Italic.ttf) format("truetype")}@font-face{font-display:block;font-family:"KaTeX_SansSerif";font-style:normal;font-weight:700;src:url(fonts/KaTeX_SansSerif-Bold.woff2) format("woff2"),url(fonts/KaTeX_SansSerif-Bold.woff) format("woff"),url(fonts/KaTeX_SansSerif-Bold.ttf) format("truetype")}@font-face{font-display:block;font-family:"KaTeX_SansSerif";font-style:italic;font-weight:400;src:url(fonts/KaTeX_SansSerif-Italic.woff2) format("woff2"),url(fonts/KaTeX_SansSerif-Italic.woff) format("woff"),url(fonts/KaTeX_SansSerif-Italic.ttf) format("truetype")}@font-face{font-display:block;font-family:"KaTeX_SansSerif";font-style:normal;font-weight:400;src:url(fonts/KaTeX_SansSerif-Regular.woff2) format("woff2"),url(fonts/KaTeX_SansSerif-Regular.woff) format("woff"),url(fonts/KaTeX_SansSerif-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Script;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Script-Regular.woff2) format("woff2"),url(fonts/KaTeX_Script-Regular.woff) format("woff"),url(fonts/KaTeX_Script-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size1;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Size1-Regular.woff2) format("woff2"),url(fonts/KaTeX_Size1-Regular.woff) format("woff"),url(fonts/KaTeX_Size1-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size2;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Size2-Regular.woff2) format("woff2"),url(fonts/KaTeX_Size2-Regular.woff) format("woff"),url(fonts/KaTeX_Size2-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size3;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Size3-Regular.woff2) format("woff2"),url(fonts/KaTeX_Size3-Regular.woff) format("woff"),url(fonts/KaTeX_Size3-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Size4;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Size4-Regular.woff2) format("woff2"),url(fonts/KaTeX_Size4-Regular.woff) format("woff"),url(fonts/KaTeX_Size4-Regular.ttf) format("truetype")}@font-face{font-display:block;font-family:KaTeX_Typewriter;font-style:normal;font-weight:400;src:url(fonts/KaTeX_Typewriter-Regular.woff2) format("woff2"),url(fonts/KaTeX_Typewriter-Regular.woff) format("woff"),url(fonts/KaTeX_Typewriter-Regular.ttf) format("truetype")}.katex{font:normal 1.21em KaTeX_Main,Times New Roman,serif;line-height:1.2;text-indent:0;text-rendering:auto}.katex *{-ms-high-contrast-adjust:none!important;border-color:currentColor}.katex .katex-version:after{content:"0.16.38"}.katex .katex-mathml{clip:rect(1px,1px,1px,1px);border:0;height:1px;overflow:hidden;padding:0;position:absolute;width:1px}.katex .katex-html>.newline{display:block}.katex .base{position:relative;white-space:nowrap;width:-webkit-min-content;width:-moz-min-content;width:min-content}.katex .base,.katex .strut{display:inline-block}.katex .textbf{font-weight:700}.katex .textit{font-style:italic}.katex .textrm{font-family:KaTeX_Main}.katex .textsf{font-family:KaTeX_SansSerif}.katex .texttt{font-family:KaTeX_Typewriter}.katex .mathnormal{font-family:KaTeX_Math;font-style:italic}.katex .mathit{font-family:KaTeX_Main;font-style:italic}.katex .mathrm{font-style:normal}.katex .mathbf{font-family:KaTeX_Main;font-weight:700}.katex .boldsymbol{font-family:KaTeX_Math;font-style:italic;font-weight:700}.katex .amsrm,.katex .mathbb,.katex .textbb{font-family:KaTeX_AMS}.katex .mathcal{font-family:KaTeX_Caligraphic}.katex .mathfrak,.katex .textfrak{font-family:KaTeX_Fraktur}.katex .mathboldfrak,.katex .textboldfrak{font-family:KaTeX_Fraktur;font-weight:700}.katex .mathtt{font-family:KaTeX_Typewriter}.katex .mathscr,.katex .textscr{font-family:KaTeX_Script}.katex .mathsf,.katex .textsf{font-family:KaTeX_SansSerif}.katex .mathboldsf,.katex .textboldsf{font-family:KaTeX_SansSerif;font-weight:700}.katex .mathitsf,.katex .mathsfit,.katex .textitsf{font-family:KaTeX_SansSerif;font-style:italic}.katex .mainrm{font-family:KaTeX_Main;font-style:normal}.katex .vlist-t{border-collapse:collapse;display:inline-table;table-layout:fixed}.katex .vlist-r{display:table-row}.katex .vlist{display:table-cell;position:relative;vertical-align:bottom}.katex .vlist>span{display:block;height:0;position:relative}.katex .vlist>span>span{display:inline-block}.katex .vlist>span>.pstrut{overflow:hidden;width:0}.katex .vlist-t2{margin-right:-2px}.katex .vlist-s{display:table-cell;font-size:1px;min-width:2px;vertical-align:bottom;width:2px}.katex .vbox{align-items:baseline;display:inline-flex;flex-direction:column}.katex .hbox{width:100%}.katex .hbox,.katex .thinbox{display:inline-flex;flex-direction:row}.katex .thinbox{max-width:0;width:0}.katex .msupsub{text-align:left}.katex .mfrac>span>span{text-align:center}.katex .mfrac .frac-line{border-bottom-style:solid;display:inline-block;width:100%}.katex .hdashline,.katex .hline,.katex .mfrac .frac-line,.katex .overline .overline-line,.katex .rule,.katex .underline .underline-line{min-height:1px}.katex .mspace{display:inline-block}.katex .smash{display:inline;line-height:0}.katex .clap,.katex .llap,.katex .rlap{position:relative;width:0}.katex .clap>.inner,.katex .llap>.inner,.katex .rlap>.inner{position:absolute}.katex .clap>.fix,.katex .llap>.fix,.katex .rlap>.fix{display:inline-block}.katex .llap>.inner{right:0}.katex .clap>.inner,.katex .rlap>.inner{left:0}.katex .clap>.inner>span{margin-left:-50%;margin-right:50%}.katex .rule{border:0 solid;display:inline-block;position:relative}.katex .hline,.katex .overline .overline-line,.katex .underline .underline-line{border-bottom-style:solid;display:inline-block;width:100%}.katex .hdashline{border-bottom-style:dashed;display:inline-block;width:100%}.katex .sqrt>.root{margin-left:.2777777778em;margin-right:-.5555555556em}.katex .fontsize-ensurer.reset-size1.size1,.katex .sizing.reset-size1.size1{font-size:1em}.katex .fontsize-ensurer.reset-size1.size2,.katex .sizing.reset-size1.size2{font-size:1.2em}.katex .fontsize-ensurer.reset-size1.size3,.katex .sizing.reset-size1.size3{font-size:1.4em}.katex .fontsize-ensurer.reset-size1.size4,.katex .sizing.reset-size1.size4{font-size:1.6em}.katex .fontsize-ensurer.reset-size1.size5,.katex .sizing.reset-size1.size5{font-size:1.8em}.katex .fontsize-ensurer.reset-size1.size6,.katex .sizing.reset-size1.size6{font-size:2em}.katex .fontsize-ensurer.reset-size1.size7,.katex .sizing.reset-size1.size7{font-size:2.4em}.katex .fontsize-ensurer.reset-size1.size8,.katex .sizing.reset-size1.size8{font-size:2.88em}.katex .fontsize-ensurer.reset-size1.size9,.katex .sizing.reset-size1.size9{font-size:3.456em}.katex .fontsize-ensurer.reset-size1.size10,.katex .sizing.reset-size1.size10{font-size:4.148em}.katex .fontsize-ensurer.reset-size1.size11,.katex .sizing.reset-size1.size11{font-size:4.976em}.katex .fontsize-ensurer.reset-size2.size1,.katex .sizing.reset-size2.size1{font-size:.8333333333em}.katex .fontsize-ensurer.reset-size2.size2,.katex .sizing.reset-size2.size2{font-size:1em}.katex .fontsize-ensurer.reset-size2.size3,.katex .sizing.reset-size2.size3{font-size:1.1666666667em}.katex .fontsize-ensurer.reset-size2.size4,.katex .sizing.reset-size2.size4{font-size:1.3333333333em}.katex .fontsize-ensurer.reset-size2.size5,.katex .sizing.reset-size2.size5{font-size:1.5em}.katex .fontsize-ensurer.reset-size2.size6,.katex .sizing.reset-size2.size6{font-size:1.6666666667em}.katex .fontsize-ensurer.reset-size2.size7,.katex .sizing.reset-size2.size7{font-size:2em}.katex .fontsize-ensurer.reset-size2.size8,.katex .sizing.reset-size2.size8{font-size:2.4em}.katex .fontsize-ensurer.reset-size2.size9,.katex .sizing.reset-size2.size9{font-size:2.88em}.katex .fontsize-ensurer.reset-size2.size10,.katex .sizing.reset-size2.size10{font-size:3.4566666667em}.katex .fontsize-ensurer.reset-size2.size11,.katex .sizing.reset-size2.size11{font-size:4.1466666667em}.katex .fontsize-ensurer.reset-size3.size1,.katex .sizing.reset-size3.size1{font-size:.7142857143em}.katex .fontsize-ensurer.reset-size3.size2,.katex .sizing.reset-size3.size2{font-size:.8571428571em}.katex .fontsize-ensurer.reset-size3.size3,.katex .sizing.reset-size3.size3{font-size:1em}.katex .fontsize-ensurer.reset-size3.size4,.katex .sizing.reset-size3.size4{font-size:1.1428571429em}.katex .fontsize-ensurer.reset-size3.size5,.katex .sizing.reset-size3.size5{font-size:1.2857142857em}.katex .fontsize-ensurer.reset-size3.size6,.katex .sizing.reset-size3.size6{font-size:1.4285714286em}.katex .fontsize-ensurer.reset-size3.size7,.katex .sizing.reset-size3.size7{font-size:1.7142857143em}.katex .fontsize-ensurer.reset-size3.size8,.katex .sizing.reset-size3.size8{font-size:2.0571428571em}.katex .fontsize-ensurer.reset-size3.size9,.katex .sizing.reset-size3.size9{font-size:2.4685714286em}.katex .fontsize-ensurer.reset-size3.size10,.katex .sizing.reset-size3.size10{font-size:2.9628571429em}.katex .fontsize-ensurer.reset-size3.size11,.katex .sizing.reset-size3.size11{font-size:3.5542857143em}.katex .fontsize-ensurer.reset-size4.size1,.katex .sizing.reset-size4.size1{font-size:.625em}.katex .fontsize-ensurer.reset-size4.size2,.katex .sizing.reset-size4.size2{font-size:.75em}.katex .fontsize-ensurer.reset-size4.size3,.katex .sizing.reset-size4.size3{font-size:.875em}.katex .fontsize-ensurer.reset-size4.size4,.katex .sizing.reset-size4.size4{font-size:1em}.katex .fontsize-ensurer.reset-size4.size5,.katex .sizing.reset-size4.size5{font-size:1.125em}.katex .fontsize-ensurer.reset-size4.size6,.katex .sizing.reset-size4.size6{font-size:1.25em}.katex .fontsize-ensurer.reset-size4.size7,.katex .sizing.reset-size4.size7{font-size:1.5em}.katex .fontsize-ensurer.reset-size4.size8,.katex .sizing.reset-size4.size8{font-size:1.8em}.katex .fontsize-ensurer.reset-size4.size9,.katex .sizing.reset-size4.size9{font-size:2.16em}.katex .fontsize-ensurer.reset-size4.size10,.katex .sizing.reset-size4.size10{font-size:2.5925em}.katex .fontsize-ensurer.reset-size4.size11,.katex .sizing.reset-size4.size11{font-size:3.11em}.katex .fontsize-ensurer.reset-size5.size1,.katex .sizing.reset-size5.size1{font-size:.5555555556em}.katex .fontsize-ensurer.reset-size5.size2,.katex .sizing.reset-size5.size2{font-size:.6666666667em}.katex .fontsize-ensurer.reset-size5.size3,.katex .sizing.reset-size5.size3{font-size:.7777777778em}.katex .fontsize-ensurer.reset-size5.size4,.katex .sizing.reset-size5.size4{font-size:.8888888889em}.katex .fontsize-ensurer.reset-size5.size5,.katex .sizing.reset-size5.size5{font-size:1em}.katex .fontsize-ensurer.reset-size5.size6,.katex .sizing.reset-size5.size6{font-size:1.1111111111em}.katex .fontsize-ensurer.reset-size5.size7,.katex .sizing.reset-size5.size7{font-size:1.3333333333em}.katex .fontsize-ensurer.reset-size5.size8,.katex .sizing.reset-size5.size8{font-size:1.6em}.katex .fontsize-ensurer.reset-size5.size9,.katex .sizing.reset-size5.size9{font-size:1.92em}.katex .fontsize-ensurer.reset-size5.size10,.katex .sizing.reset-size5.size10{font-size:2.3044444444em}.katex .fontsize-ensurer.reset-size5.size11,.katex .sizing.reset-size5.size11{font-size:2.7644444444em}.katex .fontsize-ensurer.reset-size6.size1,.katex .sizing.reset-size6.size1{font-size:.5em}.katex .fontsize-ensurer.reset-size6.size2,.katex .sizing.reset-size6.size2{font-size:.6em}.katex .fontsize-ensurer.reset-size6.size3,.katex .sizing.reset-size6.size3{font-size:.7em}.katex .fontsize-ensurer.reset-size6.size4,.katex .sizing.reset-size6.size4{font-size:.8em}.katex .fontsize-ensurer.reset-size6.size5,.katex .sizing.reset-size6.size5{font-size:.9em}.katex .fontsize-ensurer.reset-size6.size6,.katex .sizing.reset-size6.size6{font-size:1em}.katex .fontsize-ensurer.reset-size6.size7,.katex .sizing.reset-size6.size7{font-size:1.2em}.katex .fontsize-ensurer.reset-size6.size8,.katex .sizing.reset-size6.size8{font-size:1.44em}.katex .fontsize-ensurer.reset-size6.size9,.katex .sizing.reset-size6.size9{font-size:1.728em}.katex .fontsize-ensurer.reset-size6.size10,.katex .sizing.reset-size6.size10{font-size:2.074em}.katex .fontsize-ensurer.reset-size6.size11,.katex .sizing.reset-size6.size11{font-size:2.488em}.katex .fontsize-ensurer.reset-size7.size1,.katex .sizing.reset-size7.size1{font-size:.4166666667em}.katex .fontsize-ensurer.reset-size7.size2,.katex .sizing.reset-size7.size2{font-size:.5em}.katex .fontsize-ensurer.reset-size7.size3,.katex .sizing.reset-size7.size3{font-size:.5833333333em}.katex .fontsize-ensurer.reset-size7.size4,.katex .sizing.reset-size7.size4{font-size:.6666666667em}.katex .fontsize-ensurer.reset-size7.size5,.katex .sizing.reset-size7.size5{font-size:.75em}.katex .fontsize-ensurer.reset-size7.size6,.katex .sizing.reset-size7.size6{font-size:.8333333333em}.katex .fontsize-ensurer.reset-size7.size7,.katex .sizing.reset-size7.size7{font-size:1em}.katex .fontsize-ensurer.reset-size7.size8,.katex .sizing.reset-size7.size8{font-size:1.2em}.katex .fontsize-ensurer.reset-size7.size9,.katex .sizing.reset-size7.size9{font-size:1.44em}.katex .fontsize-ensurer.reset-size7.size10,.katex .sizing.reset-size7.size10{font-size:1.7283333333em}.katex .fontsize-ensurer.reset-size7.size11,.katex .sizing.reset-size7.size11{font-size:2.0733333333em}.katex .fontsize-ensurer.reset-size8.size1,.katex .sizing.reset-size8.size1{font-size:.3472222222em}.katex .fontsize-ensurer.reset-size8.size2,.katex .sizing.reset-size8.size2{font-size:.4166666667em}.katex .fontsize-ensurer.reset-size8.size3,.katex .sizing.reset-size8.size3{font-size:.4861111111em}.katex .fontsize-ensurer.reset-size8.size4,.katex .sizing.reset-size8.size4{font-size:.5555555556em}.katex .fontsize-ensurer.reset-size8.size5,.katex .sizing.reset-size8.size5{font-size:.625em}.katex .fontsize-ensurer.reset-size8.size6,.katex .sizing.reset-size8.size6{font-size:.6944444444em}.katex .fontsize-ensurer.reset-size8.size7,.katex .sizing.reset-size8.size7{font-size:.8333333333em}.katex .fontsize-ensurer.reset-size8.size8,.katex .sizing.reset-size8.size8{font-size:1em}.katex .fontsize-ensurer.reset-size8.size9,.katex .sizing.reset-size8.size9{font-size:1.2em}.katex .fontsize-ensurer.reset-size8.size10,.katex .sizing.reset-size8.size10{font-size:1.4402777778em}.katex .fontsize-ensurer.reset-size8.size11,.katex .sizing.reset-size8.size11{font-size:1.7277777778em}.katex .fontsize-ensurer.reset-size9.size1,.katex .sizing.reset-size9.size1{font-size:.2893518519em}.katex .fontsize-ensurer.reset-size9.size2,.katex .sizing.reset-size9.size2{font-size:.3472222222em}.katex .fontsize-ensurer.reset-size9.size3,.katex .sizing.reset-size9.size3{font-size:.4050925926em}.katex .fontsize-ensurer.reset-size9.size4,.katex .sizing.reset-size9.size4{font-size:.462962963em}.katex .fontsize-ensurer.reset-size9.size5,.katex .sizing.reset-size9.size5{font-size:.5208333333em}.katex .fontsize-ensurer.reset-size9.size6,.katex .sizing.reset-size9.size6{font-size:.5787037037em}.katex .fontsize-ensurer.reset-size9.size7,.katex .sizing.reset-size9.size7{font-size:.6944444444em}.katex .fontsize-ensurer.reset-size9.size8,.katex .sizing.reset-size9.size8{font-size:.8333333333em}.katex .fontsize-ensurer.reset-size9.size9,.katex .sizing.reset-size9.size9{font-size:1em}.katex .fontsize-ensurer.reset-size9.size10,.katex .sizing.reset-size9.size10{font-size:1.2002314815em}.katex .fontsize-ensurer.reset-size9.size11,.katex .sizing.reset-size9.size11{font-size:1.4398148148em}.katex .fontsize-ensurer.reset-size10.size1,.katex .sizing.reset-size10.size1{font-size:.2410800386em}.katex .fontsize-ensurer.reset-size10.size2,.katex .sizing.reset-size10.size2{font-size:.2892960463em}.katex .fontsize-ensurer.reset-size10.size3,.katex .sizing.reset-size10.size3{font-size:.337512054em}.katex .fontsize-ensurer.reset-size10.size4,.katex .sizing.reset-size10.size4{font-size:.3857280617em}.katex .fontsize-ensurer.reset-size10.size5,.katex .sizing.reset-size10.size5{font-size:.4339440694em}.katex .fontsize-ensurer.reset-size10.size6,.katex .sizing.reset-size10.size6{font-size:.4821600771em}.katex .fontsize-ensurer.reset-size10.size7,.katex .sizing.reset-size10.size7{font-size:.5785920926em}.katex .fontsize-ensurer.reset-size10.size8,.katex .sizing.reset-size10.size8{font-size:.6943105111em}.katex .fontsize-ensurer.reset-size10.size9,.katex .sizing.reset-size10.size9{font-size:.8331726133em}.katex .fontsize-ensurer.reset-size10.size10,.katex .sizing.reset-size10.size10{font-size:1em}.katex .fontsize-ensurer.reset-size10.size11,.katex .sizing.reset-size10.size11{font-size:1.1996142719em}.katex .fontsize-ensurer.reset-size11.size1,.katex .sizing.reset-size11.size1{font-size:.2009646302em}.katex .fontsize-ensurer.reset-size11.size2,.katex .sizing.reset-size11.size2{font-size:.2411575563em}.katex .fontsize-ensurer.reset-size11.size3,.katex .sizing.reset-size11.size3{font-size:.2813504823em}.katex .fontsize-ensurer.reset-size11.size4,.katex .sizing.reset-size11.size4{font-size:.3215434084em}.katex .fontsize-ensurer.reset-size11.size5,.katex .sizing.reset-size11.size5{font-size:.3617363344em}.katex .fontsize-ensurer.reset-size11.size6,.katex .sizing.reset-size11.size6{font-size:.4019292605em}.katex .fontsize-ensurer.reset-size11.size7,.katex .sizing.reset-size11.size7{font-size:.4823151125em}.katex .fontsize-ensurer.reset-size11.size8,.katex .sizing.reset-size11.size8{font-size:.578778135em}.katex .fontsize-ensurer.reset-size11.size9,.katex .sizing.reset-size11.size9{font-size:.6945337621em}.katex .fontsize-ensurer.reset-size11.size10,.katex .sizing.reset-size11.size10{font-size:.8336012862em}.katex .fontsize-ensurer.reset-size11.size11,.katex .sizing.reset-size11.size11{font-size:1em}.katex .delimsizing.size1{font-family:KaTeX_Size1}.katex .delimsizing.size2{font-family:KaTeX_Size2}.katex .delimsizing.size3{font-family:KaTeX_Size3}.katex .delimsizing.size4{font-family:KaTeX_Size4}.katex .delimsizing.mult .delim-size1>span{font-family:KaTeX_Size1}.katex .delimsizing.mult .delim-size4>span{font-family:KaTeX_Size4}.katex .nulldelimiter{display:inline-block;width:.12em}.katex .delimcenter,.katex .op-symbol{position:relative}.katex .op-symbol.small-op{font-family:KaTeX_Size1}.katex .op-symbol.large-op{font-family:KaTeX_Size2}.katex .accent>.vlist-t,.katex .op-limits>.vlist-t{text-align:center}.katex .accent .accent-body{position:relative}.katex .accent .accent-body:not(.accent-full){width:0}.katex .overlay{display:block}.katex .mtable .vertical-separator{display:inline-block;min-width:1px}.katex .mtable .arraycolsep{display:inline-block}.katex .mtable .col-align-c>.vlist-t{text-align:center}.katex .mtable .col-align-l>.vlist-t{text-align:left}.katex .mtable .col-align-r>.vlist-t{text-align:right}.katex .svg-align{text-align:left}.katex svg{fill:currentColor;stroke:currentColor;display:block;height:inherit;position:absolute;width:100%}.katex svg path{stroke:none}.katex svg{fill-rule:nonzero;fill-opacity:1;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1}.katex img{border-style:none;max-height:none;max-width:none;min-height:0;min-width:0}.katex .stretchy{display:block;overflow:hidden;position:relative;width:100%}.katex .stretchy:after,.katex .stretchy:before{content:""}.katex .hide-tail{overflow:hidden;position:relative;width:100%}.katex .halfarrow-left{left:0;overflow:hidden;position:absolute;width:50.2%}.katex .halfarrow-right{overflow:hidden;position:absolute;right:0;width:50.2%}.katex .brace-left{left:0;overflow:hidden;position:absolute;width:25.1%}.katex .brace-center{left:25%;overflow:hidden;position:absolute;width:50%}.katex .brace-right{overflow:hidden;position:absolute;right:0;width:25.1%}.katex .x-arrow-pad{padding:0 .5em}.katex .cd-arrow-pad{padding:0 .55556em 0 .27778em}.katex .mover,.katex .munder,.katex .x-arrow{text-align:center}.katex .boxpad{padding:0 .3em}.katex .fbox,.katex .fcolorbox{border:.04em solid;box-sizing:border-box}.katex .cancel-pad{padding:0 .2em}.katex .cancel-lap{margin-left:-.2em;margin-right:-.2em}.katex .sout{border-bottom-style:solid;border-bottom-width:.08em}.katex .angl{border-right:.049em solid;border-top:.049em solid;box-sizing:border-box;margin-right:.03889em}.katex .anglpad{padding:0 .03889em}.katex .eqn-num:before{content:"(" counter(katexEqnNo) ")";counter-increment:katexEqnNo}.katex .mml-eqn-num:before{content:"(" counter(mmlEqnNo) ")";counter-increment:mmlEqnNo}.katex .mtr-glue{width:50%}.katex .cd-vert-arrow{display:inline-block;position:relative}.katex .cd-label-left{display:inline-block;position:absolute;right:calc(50% + .3em);text-align:left}.katex .cd-label-right{display:inline-block;left:calc(50% + .3em);position:absolute;text-align:right}.katex-display{display:block;margin:1em 0;text-align:center}.katex-display>.katex{display:block;text-align:center;white-space:nowrap}.katex-display>.katex>.katex-html{display:block;position:relative}.katex-display>.katex>.katex-html>.tag{position:absolute;right:0}.katex-display.leqno>.katex>.katex-html>.tag{left:0;right:auto}.katex-display.fleqn>.katex{padding-left:2em;text-align:left}body{counter-reset:katexEqnNo mmlEqnNo}
+</style>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #24292e;
+      background: #fff;
+      margin: 0;
+      padding: 0;
+    }
+    .markdown-body {
+      margin: 0;
+      padding: 0;
+      word-wrap: break-word;
+    }
+    /* Headings */
+    .markdown-body h1, .markdown-body h2, .markdown-body h3,
+    .markdown-body h4, .markdown-body h5, .markdown-body h6 {
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      line-height: 1.25;
+      color: #24292e;
+    }
+    .markdown-body h1:first-child,
+    .markdown-body h2:first-child,
+    .markdown-body h3:first-child {
+      margin-top: 0;
+    }
+    .markdown-body h1 {
+      font-size: 2em;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid #eaecef;
+    }
+    .markdown-body h2 {
+      font-size: 1.5em;
+      padding-bottom: 0.3em;
+      border-bottom: 1px solid #eaecef;
+    }
+    .markdown-body h3 { font-size: 1.25em; }
+    .markdown-body h4 { font-size: 1em; }
+    .markdown-body h5 { font-size: 0.875em; }
+    .markdown-body h6 { font-size: 0.85em; opacity: 0.8; }
+    /* Paragraphs & text */
+    .markdown-body p { margin-top: 0; margin-bottom: 16px; }
+    .markdown-body a { color: #0366d6; text-decoration: none; }
+    .markdown-body a:hover { text-decoration: underline; }
+    .markdown-body strong { font-weight: 600; }
+    /* Code */
+    .markdown-body code {
+      font-family: "SF Mono", Monaco, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      padding: 0.2em 0.4em;
+      background: rgba(27, 31, 35, 0.05);
+      border-radius: 4px;
+    }
+    .markdown-body pre {
+      margin-top: 0;
+      margin-bottom: 16px;
+      padding: 16px;
+      overflow: auto;
+      background: #f6f8fa;
+      border-radius: 6px;
+      line-height: 1.45;
+    }
+    .markdown-body pre code {
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+      font-size: 0.9em;
+    }
+    /* Lists */
+    .markdown-body ul, .markdown-body ol {
+      margin-top: 0;
+      margin-bottom: 16px;
+      padding-left: 2em;
+    }
+    .markdown-body li { margin-bottom: 4px; }
+    .markdown-body li + li { margin-top: 4px; }
+    /* Blockquotes */
+    .markdown-body blockquote {
+      margin: 0 0 16px 0;
+      padding: 0 1em;
+      border-left: 4px solid #dfe2e5;
+      color: #6a737d;
+    }
+    /* Tables */
+    .markdown-body table {
+      margin-bottom: 16px;
+      border-collapse: collapse;
+      border-spacing: 0;
+      width: auto;
+      overflow: auto;
+    }
+    .markdown-body table th, .markdown-body table td {
+      padding: 8px 16px;
+      border: 1px solid #dfe2e5;
+    }
+    .markdown-body table th {
+      font-weight: 600;
+      background: #f6f8fa;
+    }
+    .markdown-body table tr:nth-child(2n) {
+      background: #f6f8fa;
+    }
+    /* Horizontal rule */
+    .markdown-body hr {
+      height: 1px;
+      margin: 24px 0;
+      padding: 0;
+      background-color: #e1e4e8;
+      border: 0;
+    }
+    /* Images */
+    .markdown-body img { max-width: 100%; border-radius: 4px; }
+    /* Task lists */
+    .markdown-body input[type="checkbox"] {
+      margin-right: 0.5em;
+      vertical-align: middle;
+    }
+
+    /* ========== Print / PDF styles ========== */
+    @media print {
+      body { background: #fff; }
+      .markdown-body pre,
+      .markdown-body code,
+      .markdown-body blockquote,
+      .markdown-body table,
+      .markdown-body img,
+      .markdown-body .mermaid {
+        page-break-inside: avoid;
+      }
+      .markdown-body h1,
+      .markdown-body h2,
+      .markdown-body h3,
+      .markdown-body h4,
+      .markdown-body h5,
+      .markdown-body h6 {
+        page-break-after: avoid;
+        page-break-inside: avoid;
+      }
+      .markdown-body p {
+        orphans: 3;
+        widows: 3;
+      }
+      .markdown-body tr {
+        page-break-inside: avoid;
+      }
+      .markdown-body a { color: #0366d6; }
+      .markdown-body a[href^="http"]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.85em;
+        color: #6a737d;
+      }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js" crossorigin="anonymous"></script>
+  <script>
+    mermaid.initialize({startOnLoad: false, theme: 'default'});
+    document.addEventListener('DOMContentLoaded', async () => {
+      await mermaid.run();
+      document.body.setAttribute('data-mermaid-done', 'true');
+    });
+  </script>
+</head>
+<body>
+  <article class="markdown-body">
+    <h1 id="%F0%9F%93%B1-abcd-campus-%E2%80%94-complete-twa-%26-google-play-store-publishing-guide" tabindex="-1">📱 ABCD Campus — Complete TWA &amp; Google Play Store Publishing Guide</h1>
+<blockquote>
+<p><strong>Authoritative, Step-by-Step Blueprint Tailored Specifically to the ABCD Smart Campus Architecture</strong><br>
+<em>Everything you need to know about building, publishing, auto-updating, background notifications, and install banners.</em></p>
+</blockquote>
+<hr>
+<h2 id="%F0%9F%93%91-table-of-contents" tabindex="-1">📑 Table of Contents</h2>
+<ol>
+<li><a href="#1-deep-scan-findings">Deep Scan Findings (What is Already Built in ABCD)</a></li>
+<li><a href="#2-twa-fundamentals">TWA Fundamentals: Website Changes vs Play Store Updates</a></li>
+<li><a href="#3-background-notifications-when-closed">How Background Notifications &amp; Alarms Work When App is Closed</a></li>
+<li><a href="#4-step-by-step-generation">Step-by-Step: How to Generate APK &amp; AAB (100% Free)</a>
+<ul>
+<li><a href="#method-1-pwabuilder-recommended">Method 1: PWABuilder Cloud (Recommended — Zero Java/SDK Setup)</a></li>
+<li><a href="#method-2-local-bubblewrap-cli">Method 2: Local Bubblewrap CLI</a></li>
+</ul>
+</li>
+<li><a href="#5-google-play-console-upload-flow">The Google Play Console Upload Flow</a></li>
+<li><a href="#6-digital-asset-links--app-signing">Digital Asset Links &amp; Google Play App Signing (CRITICAL)</a></li>
+<li><a href="#7-smart-banner--install-strategy">Smart Banner &amp; Install Strategy (Industry Best Practices)</a></li>
+<li><a href="#8-installing-on-desktops--laptops">Installing ABCD on Desktops &amp; Laptops</a></li>
+<li><a href="#9-pre-launch-checklist">Pre-Launch &amp; Post-Launch Checklist</a></li>
+</ol>
+<hr>
+<h2 id="1.-deep-scan-findings" tabindex="-1">1. Deep Scan Findings</h2>
+<p>A thorough scan of your codebase confirms that <strong>95% of the technical foundation is already complete</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Status in ABCD Project</th>
+<th>File Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Web Manifest</strong></td>
+<td>✅ Complete with 96px, 192px, 512px maskable icons, standalone display mode, purple theme colors, and <code>in.abcdcampus.app</code> package ID</td>
+<td>[site.webmanifest](file:///b:/ABCD/abcd_web/static/data/favicon/site.webmanifest)</td>
+</tr>
+<tr>
+<td><strong>Service Worker</strong></td>
+<td>✅ Full push listener, custom audio playback, actions (Stop/Snooze/Open), notification grouping, and background alarm dispatch</td>
+<td>[sw.js](file:///b:/ABCD/abcd_web/static/sw.js)</td>
+</tr>
+<tr>
+<td><strong>Digital Asset Links View</strong></td>
+<td>✅ Pre-configured endpoint serving <code>/.well-known/assetlinks.json</code> with package <code>in.abcdcampus.app</code> and configurable SHA-256 fingerprint</td>
+<td>[users/views.py](file:///b:/ABCD/abcd_web/users/views.py#L16895)</td>
+</tr>
+<tr>
+<td><strong>Asset Links Route</strong></td>
+<td>✅ Mapped in root URLs</td>
+<td>[abcd_web/urls.py](file:///b:/ABCD/abcd_web/abcd_web/urls.py#L48)</td>
+</tr>
+<tr>
+<td><strong>Smart App Detection</strong></td>
+<td>✅ Sophisticated logic with <code>getInstalledRelatedApps()</code>, Android Intent (<code>intent://...#Intent;package=in.abcdcampus.app;end</code>), and protocol fallback</td>
+<td>[app-install-prompt.js](file:///b:/ABCD/abcd_web/static/js/app-install-prompt.js)</td>
+</tr>
+<tr>
+<td><strong>Smart Banner &amp; Modals</strong></td>
+<td>✅ Sleek top banner and VIP learning experience modal with benefits</td>
+<td>[app-install-prompt.js](file:///b:/ABCD/abcd_web/static/js/app-install-prompt.js)</td>
+</tr>
+<tr>
+<td><strong>Push Backend (VAPID)</strong></td>
+<td>✅ <code>send_push</code> pipeline with <code>sound</code>, <code>is_alarm</code>, <code>is_reminder</code>, and custom payload fields</td>
+<td>[users/notifications.py](file:///b:/ABCD/abcd_web/users/notifications.py)</td>
+</tr>
+<tr>
+<td><strong>High-Res App Icons</strong></td>
+<td>✅ All present in favicon folder: <code>favicon-96x96.png</code>, <code>web-app-manifest-192x192.png</code>, <code>web-app-manifest-512x512.png</code></td>
+<td>[static/data/favicon/](file:///b:/ABCD/abcd_web/static/data/favicon)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="2.-twa-fundamentals" tabindex="-1">2. TWA Fundamentals</h2>
+<h3 id="q%3A-%E2%80%9Cif-i-change-or-fix-anything-on-the-site%2C-do-i-need-to-update-the-apk%2Faab-on-google-play-store%3F%E2%80%9D" tabindex="-1">Q: “If I change or fix anything on the site, do I need to update the APK/AAB on Google Play Store?”</h3>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>NO! You DO NOT need to build a new APK/AAB or republish to Google Play Store.</strong></p>
+</blockquote>
+<h3 id="why-does-this-happen%3F-(how-twa-works)" tabindex="-1">Why does this happen? (How TWA Works)</h3>
+<ul>
+<li>A traditional native app (built in Java, Kotlin, Flutter, or React Native) compiles code into a bundle. Every HTML/CSS/JS or logic change requires a new build and 2–3 days for Google review.</li>
+<li>A <strong>Trusted Web Activity (TWA)</strong> is Google Chrome’s official technology that wraps your live website in a borderless, full-screen Android app shell.</li>
+<li>When a student opens the ABCD app on Android, the shell <strong>instantly loads <code>https://abcdcampus.in</code> live from your Render server</strong>.</li>
+<li><strong>Result</strong>:
+<ul>
+<li>Whenever you push code to GitHub and Render redeploys, <strong>every single user’s app updates instantly in real time</strong>.</li>
+<li>Bug fixes, new features in Guidy, library seat updates, audio changes, and design adjustments are reflected immediately with zero download or update required from Play Store!</li>
+</ul>
+</li>
+</ul>
+<h3 id="when-would-you-ever-need-to-republish-a-new-aab-to-play-store%3F" tabindex="-1">When WOULD you ever need to republish a new AAB to Play Store?</h3>
+<p>Only in these 3 rare cases:</p>
+<ol>
+<li>You change the Android app icon that appears on the phone’s home screen.</li>
+<li>You change the splash screen background color or app name in Android OS settings.</li>
+<li>Once a year, Google Play requires bumping the target Android SDK version (e.g. from Android 14 to Android 15).</li>
+</ol>
+<hr>
+<h2 id="3.-background-notifications-when-closed" tabindex="-1">3. Background Notifications When Closed</h2>
+<h3 id="q%3A-%E2%80%9Chow-to-ensure-that-even-when-tabs%2Fbrowser-are-completely-closed%2C-guidy-messages%2C-reminders%2C-and-alarms-still-ring-on-the-device%3F%E2%80%9D" tabindex="-1">Q: “How to ensure that even when tabs/browser are completely closed, Guidy messages, reminders, and alarms still ring on the device?”</h3>
+<h3 id="the-delivery-flow%3A" tabindex="-1">The Delivery Flow:</h3>
+<div class="mermaid">flowchart TD
+    A[Event Occurs: Guidy Message / To-Do Reminder / Seat Update] --&gt; B[Django Backend users/notifications.py]
+    B --&gt;|VAPID Web Push Payload| C[Google FCM Push Server]
+    C --&gt;|Persistent OS Socket| D[Android Google Play Services on Phone]
+    D --&gt;|Wakes up in background| E[Service Worker static/sw.js]
+    E --&gt;|Reads sound, title, is_alarm| F[Plays Custom Audio &amp; Displays Notification]
+    F --&gt;|If Alarm is ON| G[Rings alarm.mp3 continuously + Full Screen Modal]
+    F --&gt;|If Reminder| H[Plays alarms and reminders.mp3]
+    F --&gt;|If Guidy Message| I[Plays receive.mp3]
+</div><h3 id="why-it-works-even-with-browser-closed%3A" tabindex="-1">Why It Works Even With Browser Closed:</h3>
+<ol>
+<li>The phone’s operating system maintains a permanent, ultra-low-power network connection to Google’s push servers via <strong>Google Play Services</strong>.</li>
+<li>When your server sends a push notification, Google’s servers wake up your Service Worker on the user’s phone, even if Chrome, the browser, and the ABCD app are closed or killed from recent tasks.</li>
+<li>The Service Worker receives the <code>push</code> event, reads the payload (<code>sound</code>, <code>is_alarm</code>, <code>category</code>), and calls <code>self.registration.showNotification()</code>.</li>
+</ol>
+<h3 id="crucial-steps-on-the-user%E2%80%99s-phone%3A" tabindex="-1">Crucial Steps on the User’s Phone:</h3>
+<p>Modern Android versions (Android 13+) and aggressive phone skins (MIUI/Xiaomi, Realme, Vivo, Oppo, Samsung) have aggressive battery optimizations. To ensure 100% instant ring:</p>
+<ol>
+<li><strong>Notification Permission</strong>: Android 13+ asks: <em>“Allow ABCD Campus to send notifications?”</em> The user must tap <strong>Allow</strong>.</li>
+<li><strong>Battery Optimization (For Alarms)</strong>: In phone <em>Settings → Apps → ABCD Campus → Battery</em>, recommend setting to <strong>“Unrestricted”</strong>.</li>
+<li><strong>Auto-Start (MIUI/Vivo/Oppo)</strong>: Enable <em>“Autostart”</em> so background alarms fire on schedule even after device reboot.</li>
+</ol>
+<hr>
+<h2 id="4.-step-by-step-generation" tabindex="-1">4. Step-by-Step Generation</h2>
+<p>You need two files:</p>
+<ul>
+<li><strong><code>.apk</code></strong>: For installing directly on your Android phone to test immediately before publishing.</li>
+<li><strong><code>.aab</code> (Android App Bundle)</strong>: The exact format required by Google Play Console for store upload.</li>
+</ul>
+<hr>
+<h3 id="method-1%3A-pwabuilder-(recommended-%E2%80%94-zero-java%2Fsdk-setup)" tabindex="-1">Method 1: PWABuilder (Recommended — Zero Java/SDK Setup)</h3>
+<p><em>PWABuilder is Microsoft’s official open-source tool that uses Google’s Bubblewrap on cloud build servers. You don’t need to install Java, Android Studio, or Android SDK on your computer.</em></p>
+<ol>
+<li>Open <a href="https://www.pwabuilder.com">https://www.pwabuilder.com</a> in your browser.</li>
+<li>Enter your live domain: <code>https://abcdcampus.in</code> and click <strong>Start</strong>.</li>
+<li>PWABuilder will audit your PWA (Manifest, Service Worker, Security) — you will get a high score because your manifest and service worker are already compliant.</li>
+<li>Click <strong>Package for Stores</strong> → Choose <strong>Android</strong> → Click <strong>Generate</strong>.</li>
+<li>In the Android Package Options dialog, fill in:
+<ul>
+<li><strong>Package ID</strong>: <code>in.abcdcampus.app</code></li>
+<li><strong>App Name</strong>: <code>ABCD Coaching &amp; Library</code></li>
+<li><strong>Short Name</strong>: <code>ABCD Campus</code></li>
+<li><strong>Version Name</strong>: <code>1.0.0</code></li>
+<li><strong>Version Code</strong>: <code>1</code></li>
+<li><strong>Display Mode</strong>: <code>Standalone</code></li>
+<li><strong>Status Bar Color</strong>: <code>#e09fd5</code></li>
+<li><strong>Nav Bar Color</strong>: <code>#854c7a</code></li>
+<li><strong>Splash Screen Color</strong>: <code>#854c7a</code></li>
+<li><strong>Notifications</strong>: Check <strong>Enable Web Push Notifications</strong> and <strong>Notification Delegation</strong>.</li>
+</ul>
+</li>
+<li><strong>Signing Key</strong>:
+<ul>
+<li>Choose <strong>Create New Keystore</strong>.</li>
+<li>Fill in your details (Alias: <code>abcd</code>, Password: create a strong password).</li>
+<li>
+<blockquote>
+<p>[!CAUTION]
+<strong>Download and save this <code>.keystore</code> file and its password in Google Drive or a safe backup!</strong> You need this key whenever you want to update the app in the future.</p>
+</blockquote>
+</li>
+</ul>
+</li>
+<li>Click <strong>Generate Bundle</strong>.</li>
+<li>PWABuilder will compile and provide a <code>.zip</code> download containing:
+<ul>
+<li><code>app-release-bundle.aab</code> (upload this to Play Store)</li>
+<li><code>app-release.apk</code> (install this on your phone to test)</li>
+<li><code>assetlinks.json</code> (contains your SHA-256 fingerprint!)</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="method-2%3A-local-bubblewrap-cli" tabindex="-1">Method 2: Local Bubblewrap CLI</h3>
+<p><em>If you prefer running the build locally on your Windows command prompt:</em></p>
+<ol>
+<li><strong>Install Java JDK 17</strong>:
+<ul>
+<li>Download from <a href="https://adoptium.net/temurin/releases/?version=17">Adoptium Temurin 17</a> or install via PowerShell:<pre><code class="language-powershell">winget install EclipseAdoptium.Temurin.17.JDK
+</code></pre>
+</li>
+</ul>
+</li>
+<li><strong>Install Bubblewrap globally</strong>:<pre><code class="language-powershell">npm install -g @bubblewrap/cli
+</code></pre>
+</li>
+<li><strong>Initialize the TWA</strong>:<pre><code class="language-powershell">mkdir b:\ABCD\abcd-twa
+cd b:\ABCD\abcd-twa
+bubblewrap init --manifest=https://abcdcampus.in/static/data/favicon/site.webmanifest
+</code></pre>
+<em>(Bubblewrap will auto-download the Android command-line SDK tools and prompt you to create a keystore)</em>.</li>
+<li><strong>Build APK and AAB</strong>:<pre><code class="language-powershell">bubblewrap build
+</code></pre>
+</li>
+</ol>
+<hr>
+<h2 id="5.-google-play-console-upload-flow" tabindex="-1">5. Google Play Console Upload Flow</h2>
+<p>Since your friend has granted user access to their Google Play Developer account on your email:</p>
+<ol>
+<li>Log in to <a href="https://play.google.com/console">play.google.com/console</a> with your Gmail.</li>
+<li>Click <strong>Create App</strong>:
+<ul>
+<li><strong>App name</strong>: ABCD Coaching &amp; Library</li>
+<li><strong>Default language</strong>: English (India) - en-IN</li>
+<li><strong>App or game</strong>: App</li>
+<li><strong>Free or paid</strong>: Free</li>
+<li>Accept the Developer Program Policies.</li>
+</ul>
+</li>
+<li><strong>Dashboard Setup Tasks (Required by Google)</strong>:
+<ul>
+<li><strong>Privacy Policy</strong>: Provide URL <code>https://abcdcampus.in/privacy-policy</code> (or your platform terms).</li>
+<li><strong>App Access</strong>: Choose <em>“All functionality is available without special access”</em> or provide demo credentials (<code>demo_student</code> / <code>password</code>).</li>
+<li><strong>Ads</strong>: Select <em>“No, my app does not contain ads”</em>.</li>
+<li><strong>Content Rating</strong>: Fill in the questionnaire (Education / Utility → No violent or adult content).</li>
+<li><strong>Target Audience</strong>: Age 13 and above.</li>
+<li><strong>Government Apps</strong>: No.</li>
+<li><strong>Financial Features</strong>: None (or student fee receipt viewer).</li>
+</ul>
+</li>
+<li><strong>Store Listing</strong>:
+<ul>
+<li><strong>Short description</strong> (up to 80 chars): <em>Smart campus app for library seats, courses, fee tracking &amp; Guidy chat.</em></li>
+<li><strong>Full description</strong>: Highlight library availability, fee calendar, student-teacher chat, and study reminders.</li>
+<li><strong>App Icon</strong>: Upload <code>web-app-manifest-512x512.png</code> (512x512 PNG).</li>
+<li><strong>Feature Graphic</strong>: 1024x500 PNG banner image.</li>
+<li><strong>Phone Screenshots</strong>: Take 3–5 screenshots from your phone showing the dashboard, library seat matrix, Guidy chat, and student profile.</li>
+</ul>
+</li>
+<li><strong>Releases → Production / Closed Testing</strong>:
+<ul>
+<li>Create a new release.</li>
+<li>Upload the <code>.aab</code> file (<code>app-release-bundle.aab</code>).</li>
+<li>Release name: <code>1.0.0</code>.</li>
+<li>Click <strong>Save</strong> and <strong>Review Release</strong>.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="6.-digital-asset-links-%26-app-signing" tabindex="-1">6. Digital Asset Links &amp; App Signing</h2>
+<blockquote>
+<p>[!WARNING]
+<strong>The Most Common Mistake</strong>: When you upload your <code>.aab</code> to Google Play, Google uses <strong>Google Play App Signing</strong>. Google re-signs your app with <em>their</em> private key. If Google’s SHA-256 fingerprint is not in <code>assetlinks.json</code>, the browser URL bar will show up at the top of your app!</p>
+</blockquote>
+<h3 id="how-to-fix-this-in-2-minutes%3A" tabindex="-1">How to Fix This in 2 Minutes:</h3>
+<ol>
+<li>In Google Play Console, navigate to <strong>Setup → App Integrity</strong>.</li>
+<li>Under <strong>App Signing</strong>, find the section <strong>“App signing key certificate”</strong>.</li>
+<li>Copy the <strong>SHA-256 certificate fingerprint</strong> (it looks like <code>12:34:56:78:AB:CD:...</code>).</li>
+<li>In your Render Dashboard:
+<ul>
+<li>Go to <strong>Environment Variables</strong>.</li>
+<li>Add/Update:<pre><code class="language-env">TWA_SHA256_FINGERPRINT=YOUR_COPIED_SHA256_HERE
+</code></pre>
+</li>
+<li>If you want both local test APKs and Play Store to work simultaneously, you can pass comma-separated fingerprints or update <code>users/views.py</code> to support multiple fingerprints.</li>
+</ul>
+</li>
+<li>Verify your endpoint in your browser:<pre><code>https://abcdcampus.in/.well-known/assetlinks.json
+</code></pre>
+</li>
+<li>Google will automatically verify the domain ownership within a few hours. Once verified, the URL bar disappears completely, giving users a 100% native full-screen experience.</li>
+</ol>
+<hr>
+<h2 id="7.-smart-banner-%26-install-strategy" tabindex="-1">7. Smart Banner &amp; Install Strategy</h2>
+<h3 id="q%3A-%E2%80%9Cwhat-should-happen-when-the-user-visits-from-a-mobile-browser%3F-should-we-prompt-browser-install-or-redirect-to-play-store%3F%E2%80%9D" tabindex="-1">Q: “What should happen when the user visits from a mobile browser? Should we prompt browser install or redirect to Play Store?”</h3>
+<h3 id="what-big-tech-does-(twitter%2C-linkedin%2C-flipkart%2C-reddit)%3A" tabindex="-1">What Big Tech Does (Twitter, LinkedIn, Flipkart, Reddit):</h3>
+<p>On Android mobile browsers:</p>
+<ol>
+<li><strong>Redirect to Google Play Store is the Golden Standard</strong>:
+<ul>
+<li>In India, 95%+ of students prefer installing from the <strong>Google Play Store</strong> rather than a browser popup.</li>
+<li>Play Store provides the recognizable “Verified by Play Protect” seal, auto-updates, and instant credibility.</li>
+</ul>
+</li>
+<li><strong>Behavior Matrix</strong>:
+<ul>
+<li><strong>On Android Mobile</strong>: When user taps <strong>INSTALL</strong> in your top smart banner or modal, redirect them directly to:<pre><code>market://details?id=in.abcdcampus.app
+</code></pre>
+<em>(Fallback: <code>https://play.google.com/store/apps/details?id=in.abcdcampus.app</code>)</em>.
+This opens the Google Play Store app directly on their phone with a big green <strong>Install</strong> button!</li>
+<li><strong>If App is Already Installed on Phone</strong>:
+Your code in [app-install-prompt.js](file:///b:/ABCD/abcd_web/static/js/app-install-prompt.js) automatically detects it via <code>getInstalledRelatedApps()</code> and changes the banner button to <strong>OPEN</strong>. Tapping it launches the app immediately via the native Android Intent!</li>
+<li><strong>On iOS / iPhone</strong>:
+Google Play Store doesn’t exist on iOS. The modal automatically displays the iOS Safari instructions: <em>“Tap Share → Add to Home Screen”</em>.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="8.-installing-on-desktops-%26-laptops" tabindex="-1">8. Installing on Desktops &amp; Laptops</h2>
+<h3 id="q%3A-%E2%80%9Ccan-our-app-be-installed-on-laptops-and-desktops-too%3F%E2%80%9D" tabindex="-1">Q: “Can our app be installed on laptops and desktops too?”</h3>
+<blockquote>
+<p>[!NOTE]
+<strong>YES! On Windows, Mac, and Linux, your app installs as a Desktop PWA.</strong></p>
+</blockquote>
+<h3 id="how-desktop-users-install-abcd%3A" tabindex="-1">How Desktop Users Install ABCD:</h3>
+<ol>
+<li>When visiting <code>https://abcdcampus.in</code> on Google Chrome or Microsoft Edge on a laptop:
+<ul>
+<li>A small <strong>“Install ABCD Campus”</strong> icon (an icon with a computer and down arrow) appears in the browser’s URL address bar on the right.</li>
+<li>Or, clicking <strong>Install App</strong> in the navigation menu triggers the native desktop install prompt.</li>
+</ul>
+</li>
+<li>Once installed:
+<ul>
+<li>An <strong>ABCD Coaching &amp; Library shortcut</strong> is added to the Windows Desktop and Start Menu.</li>
+<li>The app opens in its own dedicated, clean window without browser tabs or address bars.</li>
+<li>Supports native Windows notifications!</li>
+</ul>
+</li>
+<li><strong>Chromebooks (ChromeOS)</strong>:
+<ul>
+<li>Chromebooks natively support the Google Play Store! Students on Chromebooks can download the exact same Play Store app.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="9.-pre-launch-checklist" tabindex="-1">9. Pre-Launch Checklist</h2>
+<ul class="contains-task-list">
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5001310"> Verify <code>https://abcdcampus.in</code><label class="task-list-item-label" for="task-item-5001310"> Verify `https://abcdcampus.in` is running live on HTTPS with valid SSL.</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3673708"><label class="task-list-item-label" for="task-item-3673708"> Test push notification on your own phone using the web version first.</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5358060"> Generate <code>.aab</code> and <code>.apk</code><label class="task-list-item-label" for="task-item-5358060"> Generate `.aab` and `.apk` via PWABuilder (or Bubblewrap).</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-5194136"> Install the <code>.apk</code><label class="task-list-item-label" for="task-item-5194136"> Install the `.apk` on your phone via USB or WhatsApp/Drive to test UI feel.</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-3691996"><label class="task-list-item-label" for="task-item-3691996"> Create App in Google Play Console using your friend's developer account.</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-4774639"> Copy the SHA-256 fingerprint from Google Play Console <strong>App Integrity</strong> into <code>TWA_SHA256_FINGERPRINT</code><label class="task-list-item-label" for="task-item-4774639"> Copy the SHA-256 fingerprint from Google Play Console **App Integrity** into `TWA_SHA256_FINGERPRINT`.</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-6749969"><label class="task-list-item-label" for="task-item-6749969"> Submit App for review (Review typically takes 1 to 3 days).</label></li>
+<li class="task-list-item"><input class="task-list-item-checkbox" disabled="" type="checkbox" id="task-item-1831651"><label class="task-list-item-label" for="task-item-1831651"> Once published, test downloading directly from Google Play Store!</label></li>
+</ul>
+
+  </article>
+</body>
+</html>
