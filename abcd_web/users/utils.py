@@ -744,70 +744,81 @@ def sync_active_holds():
     """
     Transitions approved future holds into active holds when the start date meets today.
     """
-    from django.utils import timezone
-    from dateutil.relativedelta import relativedelta
-    from .models import SeatHoldRequest, SeatAssignment
-    import re
+    try:
+        from django.utils import timezone
+        from dateutil.relativedelta import relativedelta
+        from .models import SeatHoldRequest, SeatAssignment
+        import re
 
-    today = timezone.localtime(timezone.now()).date()
-    approved_requests = SeatHoldRequest.objects.filter(status='approved')
+        today = timezone.localtime(timezone.now()).date()
+        approved_requests = SeatHoldRequest.objects.filter(status='approved').select_related('seat', 'student')
 
-    for req in approved_requests:
-        start_date = req.start_date
-        if start_date > today:
-            continue
+        for req in approved_requests:
+            try:
+                start_date = req.start_date
+                if not start_date or start_date > today:
+                    continue
 
-        duration_str = req.duration_text.lower()
-        months = 0
-        days = 0
+                duration_str = (req.duration_text or '').lower().strip()
+                months = 0
+                days = 0
 
-        m = re.match(r'^(\d+)\s*month(s)?(?:\s+(\d+)\s*day(s)?)?$', duration_str)
-        if m:
-            months = int(m.group(1))
-            if m.group(3):
-                days = int(m.group(3))
-        else:
-            d = re.match(r'^(\d+)\s*day(s)?$', duration_str)
-            if d:
-                days = int(d.group(1))
-            else:
-                days = 15
+                m = re.match(r'^(\d+)\s*month(s)?(?:\s+(\d+)\s*day(s)?)?$', duration_str)
+                if m:
+                    months = int(m.group(1))
+                    if m.group(3):
+                        days = int(m.group(3))
+                else:
+                    d = re.match(r'^(\d+)\s*day(s)?$', duration_str)
+                    if d:
+                        days = int(d.group(1))
+                    else:
+                        days = 15
 
-        end_date = start_date + relativedelta(months=months, days=days)
-        if end_date < today:
-            continue
+                end_date = start_date + relativedelta(months=months, days=days)
+                if end_date < today:
+                    continue
 
-        seat = req.seat
-        student = req.student
+                seat = req.seat
+                student = req.student
+                if not seat or not student:
+                    continue
 
-        # Activate hold on Seat
-        seat.status = 'on_hold'
-        seat.hold_status = 'active'
-        seat.hold_student = student
-        seat.hold_start_date = start_date
-        seat.hold_end_date = end_date
-        seat.save()
+                # Activate hold on Seat
+                seat.status = 'on_hold'
+                seat.hold_status = 'active'
+                seat.hold_student = student
+                seat.hold_start_date = start_date
+                seat.hold_end_date = end_date
+                seat.save()
 
-        # Activate hold on Assignment
-        owner_assignment = SeatAssignment.objects.filter(
-            seat=seat,
-            student=student,
-            is_active=True
-        ).first()
+                # Activate hold on Assignment
+                owner_assignment = SeatAssignment.objects.filter(
+                    seat=seat,
+                    student=student,
+                    is_active=True
+                ).first()
 
-        if owner_assignment:
-            owner_assignment.hold_status = 'active'
-            owner_assignment.hold_start_date = start_date
-            owner_assignment.hold_end_date = end_date
-            owner_assignment.save()
+                if owner_assignment:
+                    owner_assignment.hold_status = 'active'
+                    owner_assignment.hold_start_date = start_date
+                    owner_assignment.hold_end_date = end_date
+                    owner_assignment.save()
 
-            # Sync student status
-            student.status = 'on_hold'
-            student.save(update_fields=['status'])
+                    # Sync student status
+                    student.status = 'on_hold'
+                    student.save(update_fields=['status'])
 
-            # Recalculate fee expiry with hold extension
-            from .views import _recalc_fee_expiry_with_hold
-            _recalc_fee_expiry_with_hold(student)
+                    # Recalculate fee expiry with hold extension
+                    try:
+                        from .views import _recalc_fee_expiry_with_hold
+                        _recalc_fee_expiry_with_hold(student)
+                    except Exception:
+                        pass
+            except Exception as single_err:
+                logger.warning(f"Error syncing individual hold request: {single_err}")
+    except Exception as e:
+        logger.error(f"Error in sync_active_holds: {e}")
 
 # -------------------------------------------------------------------
 def process_expired_holds():

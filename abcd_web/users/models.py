@@ -282,7 +282,7 @@ class StudentProfile(models.Model):
                         pass
                 return self.photo.url
             except Exception:
-                return self.photo.url
+                pass
         
         try:
             StudentAchievement = apps.get_model('users', 'StudentAchievement')
@@ -299,7 +299,7 @@ class StudentProfile(models.Model):
                             pass
                     return achievement.photo.url
                 except Exception:
-                    return achievement.photo.url
+                    pass
         except Exception:
             pass
             
@@ -1776,7 +1776,7 @@ class StudentAchievement(models.Model):
                         pass
                 return self.photo.url
             except Exception:
-                return self.photo.url
+                pass
         
         try:
             profile = StudentProfile.objects.filter(user=self.user).first()
@@ -1792,7 +1792,7 @@ class StudentAchievement(models.Model):
                             pass
                     return profile.photo.url
                 except Exception:
-                    return profile.photo.url
+                    pass
         except Exception:
             pass
             

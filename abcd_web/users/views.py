@@ -4211,10 +4211,20 @@ def get_public_seat_status_api(request):
 @login_required
 def student_dashboard_view(request):
     if not cache.get('holds_synced'):
-        sync_active_holds()
-        cache.set('holds_synced', True, 60 * 5)
+        try:
+            sync_active_holds()
+            cache.set('holds_synced', True, 60 * 5)
+        except Exception as se:
+            logger.warning(f"Error in student_dashboard_view sync_active_holds: {se}")
+
     try:
-        profile = StudentProfile.objects.select_related('seat').get(user=request.user)
+        profile = StudentProfile.objects.select_related('seat').filter(user=request.user).first()
+        if not profile:
+            achievement = StudentAchievement.objects.filter(user=request.user).first()
+            if achievement:
+                return redirect('users:alumni_dashboard')
+            return redirect('users:guest_page')
+
         # If student profile is just an empty skeleton (no DOB and not admitted), send to guest page or alumni
         if not profile.is_admitted and not profile.dob:
             achievement = StudentAchievement.objects.filter(user=request.user).first()
@@ -4226,8 +4236,8 @@ def student_dashboard_view(request):
         achievement = StudentAchievement.objects.filter(user=request.user).first()
         if achievement and not profile.is_admitted and not profile.dob:
             return redirect('users:alumni_dashboard')
-    except StudentProfile.DoesNotExist:
-        # Shifting Logic: If admission deleted, check if Alumni remains
+    except Exception as pe:
+        logger.error(f"Error resolving profile in student_dashboard_view: {pe}")
         achievement = StudentAchievement.objects.filter(user=request.user).first()
         if achievement:
             return redirect('users:alumni_dashboard')
@@ -4236,7 +4246,6 @@ def student_dashboard_view(request):
     # -------------------------------
     # AUTO-EXPIRE OLD NOTIFICATIONS
     # -------------------------------
-    
     all_notifications = Notification.objects.filter(
         user=request.user
     ).order_by('-created_at')
@@ -4262,8 +4271,12 @@ def student_dashboard_view(request):
 
     pending_library_seat = None
     if getattr(profile, 'library_pending', False):
-        pending_library_seat = SeatAssignment.objects.filter(student=profile, is_active=False).select_related('seat').first()
+        try:
+            pending_library_seat = SeatAssignment.objects.filter(student=profile, is_active=False).select_related('seat').first()
+        except Exception:
+            pending_library_seat = None
 
+    now = timezone.now()
     context = {
         'profile': profile,
         'nav_achievement': achievement,
@@ -4272,62 +4285,59 @@ def student_dashboard_view(request):
         "achievements": achievements,
         "show_marquee": len(achievements) > 0,
         "pending_library_seat": pending_library_seat,
+        "today": now.date(),
+        "expiry_threshold": now.date() + timedelta(days=10),
     }
 
     if profile.status == 'admitted':
-        # Get all payments for this student
-        payments_qs = Payment.objects.filter(student=profile)
+        try:
+            # Get all payments for this student
+            payments_qs = Payment.objects.filter(student=profile)
 
-        # Order by payment date (latest first), then by year
-        fee_records = payments_qs.order_by('-date_paid', '-year')
+            # Order by payment date (latest first), then by year
+            fee_records = payments_qs.order_by('-date_paid', '-year')
 
-        # Send to template
-        context['fee_records'] = fee_records
+            # Send to template
+            context['fee_records'] = fee_records
 
-        # --- LEADERBOARD LOGIC ---
-        if profile.service_type == 'Coaching' and profile.batch:
-            records = PerformanceRecord.objects.filter(batch=profile.batch).prefetch_related(
-                Prefetch(
-                    'scores',
-                    queryset=StudentScore.objects.select_related('student').order_by('-marks_obtained')
-                )
-            ).order_by('-created_at')[:5]
-            
-            records_list = []
-            for r in records:
-                scores = []
-                for s in r.scores.all():
-                    s_photo_url = None
-                    if s.student and s.student.photo:
-                        try:
-                            s_photo_url = s.student.photo.url
-                        except (ValueError, AttributeError):
-                            s_photo_url = None
+            # --- LEADERBOARD LOGIC ---
+            if profile.service_type in ['Coaching', 'Both'] and profile.batch:
+                records = PerformanceRecord.objects.filter(batch=profile.batch).prefetch_related(
+                    Prefetch(
+                        'scores',
+                        queryset=StudentScore.objects.select_related('student').order_by('-marks_obtained')
+                    )
+                ).order_by('-created_at')[:5]
+                
+                records_list = []
+                for r in records:
+                    scores = []
+                    for s in r.scores.all():
+                        s_photo_url = None
+                        if s.student and s.student.photo:
+                            try:
+                                s_photo_url = s.student.photo.url
+                            except (ValueError, AttributeError):
+                                s_photo_url = None
 
-                    scores.append({
-                        'id': str(s.student.id) if s.student else '',
-                        'name': s.student.full_name if s.student else 'Unknown',
-                        'marks': s.marks_obtained,
-                        'photo_url': s_photo_url
+                        scores.append({
+                            'id': str(s.student.id) if s.student else '',
+                            'name': s.student.full_name if s.student else 'Unknown',
+                            'marks': s.marks_obtained,
+                            'photo_url': s_photo_url
+                        })
+                    records_list.append({
+                        'id': str(r.id),
+                        'topic': r.topic,
+                        'total': r.total_marks,
+                        'percent': r.show_in_percentage,
+                        'marks': r.show_in_marks,
+                        'scores': scores
                     })
-                records_list.append({
-                    'id': str(r.id),
-                    'topic': r.topic,
-                    'total': r.total_marks,
-                    'percent': r.show_in_percentage,
-                    'marks': r.show_in_marks,
-                    'scores': scores
-                })
-            context['performance_records_json'] = json.dumps(records_list)
-            context['has_performance'] = len(records_list) > 0
-            
-            # --- Notification Logic ---
-            now = timezone.now()
-            context['today'] = now.date()
-            context['expiry_threshold'] = now.date() + timedelta(days=10)
-            context['notifications'] = Notification.objects.filter(user=request.user).order_by("-created_at")[:10]
-
-
+                context['performance_records_json'] = json.dumps(records_list)
+                context['has_performance'] = len(records_list) > 0
+        except Exception as le:
+            logger.warning(f"Error loading student fee / leaderboard records: {le}")
 
     return render(request, 'users/student_dashboard.html', context)
 

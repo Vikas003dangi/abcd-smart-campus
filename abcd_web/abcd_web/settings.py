@@ -243,6 +243,9 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
         },
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "OPTIONS": {
+                "manifest_strict": False,
+            },
         },
     }
 else:
@@ -252,6 +255,9 @@ else:
         },
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "OPTIONS": {
+                "manifest_strict": False,
+            },
         },
     }
 WHITENOISE_MANIFEST_STRICT = False
