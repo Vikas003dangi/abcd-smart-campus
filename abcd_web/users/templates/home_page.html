@@ -5361,7 +5361,7 @@
                             {% for ach in achievements %}
                             <div class="ach-card-item" data-url="{% url 'users:achievement_detail' ach.id %}" onclick="window.location.href=this.getAttribute('data-url')">
                                 <div class="circle-view">
-                                    <img src="{{ ach.photo.url }}" alt="{{ ach.first_name }}">
+                                    <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }}">
                                     <div class="circle-overlay">
                                         <div class="overlay-name">{{ ach.first_name }}</div>
                                         <div class="overlay-post">{{ ach.short_achievement }}</div>
@@ -5370,7 +5370,7 @@
                                 
                                 <div class="expanded-view">
                                     <div class="exp-photo-wrap">
-                                        <img src="{{ ach.photo.url }}" alt="{{ ach.first_name }} {{ ach.last_name }}">
+                                        <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }} {{ ach.last_name }}">
                                     </div>
                                     <div class="exp-details">
                                         <h4>{{ ach.first_name }} {{ ach.last_name }}</h4>
