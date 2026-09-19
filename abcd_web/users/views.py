@@ -3378,7 +3378,7 @@ def post_login_router(request):
 
     profile = StudentProfile.objects.filter(user=request.user).first()
     achievement = StudentAchievement.objects.filter(user=request.user).first()
-    has_valid_profile = profile and (profile.is_admitted or profile.dob or profile.father_name)
+    has_valid_profile = bool(profile and (profile.is_admitted or profile.dob or getattr(profile, 'status', None) == 'admitted'))
 
     # Priority 1: Dual Identity users (Admitted Student + Alumni)
     if has_valid_profile and achievement:
@@ -3421,7 +3421,7 @@ def smart_back_router(request):
 
     profile = StudentProfile.objects.filter(user=request.user).first()
     achievement = StudentAchievement.objects.filter(user=request.user).first()
-    has_valid_profile = profile and (profile.is_admitted or profile.dob or profile.father_name)
+    has_valid_profile = bool(profile and (profile.is_admitted or profile.dob or getattr(profile, 'status', None) == 'admitted'))
 
     # Dual Identity users
     if has_valid_profile and achievement:

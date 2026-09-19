@@ -616,7 +616,7 @@
         }
     }
     async function handleForgotPassword() {
-        const userEmail = "{{ request.user.email|default:profile.email|default:'' }}";
+        const userEmail = "{% if request.user.email %}{{ request.user.email }}{% elif student.email %}{{ student.email }}{% elif profile.email %}{{ profile.email }}{% endif %}";
         let proceed = false;
         const confirmMsg = userEmail 
             ? `We will send a password reset OTP to ${userEmail}. Proceed?`
