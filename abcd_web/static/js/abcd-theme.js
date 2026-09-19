@@ -1,14 +1,14 @@
 // =============================================================================
 // ABCD DYNAMIC STATUS BAR & THEME CONTROLLER
-// Automatically synchronizes native mobile status bar (time, battery, wifi)
-// with the active app theme in real-time, matching YouTube and Twitter.
+// Real-time synchronization of native mobile status bar (time, battery, wifi)
+// with the active app theme, engineered for Chrome, WebAPK, and Android TWAs.
 // =============================================================================
 (function () {
   'use strict';
 
-  // Harmonized theme colors matching ABCD's design system & gradients:
-  // Dashboard views: top body gradient is #fff2de (light) & #17022c (dark plum)
-  // Guidy views: slate-900 header is #0f172a (dark) & #ffffff (light)
+  // Harmonized theme colors matching ABCD's design tokens:
+  // Dashboard / Seats: top gradient slice is #fff2de (light) & #17022c (dark plum)
+  // Guidy: slate-900 header #0f172a (dark) & #ffffff (light)
   // Home & other views: clean white #ffffff (light) & dark navy #0b1329 (dark)
   const COLOR_LIGHT_DEFAULT   = '#ffffff';
   const COLOR_LIGHT_DASHBOARD = '#fff2de';
@@ -16,20 +16,20 @@
   const COLOR_DARK_GUIDY      = '#0f172a';
   const COLOR_DARK_DASHBOARD  = '#17022c';
 
-  function isDarkActive() {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark' || saved === 'dark-theme') return true;
-    if (saved === 'light' || saved === 'light-theme') return false;
+  let currentAppliedColor = null;
 
-    if (document.body) {
-      if (document.body.classList.contains('dark-theme') || document.body.classList.contains('dark')) {
-        return true;
-      }
+  function isDarkActive() {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'dark' || saved === 'dark-theme') return true;
+      if (saved === 'light' || saved === 'light-theme') return false;
+    } catch (e) {}
+
+    if (document.body && (document.body.classList.contains('dark-theme') || document.body.classList.contains('dark'))) {
+      return true;
     }
-    if (document.documentElement) {
-      if (document.documentElement.classList.contains('dark-theme') || document.documentElement.classList.contains('dark')) {
-        return true;
-      }
+    if (document.documentElement && (document.documentElement.classList.contains('dark-theme') || document.documentElement.classList.contains('dark'))) {
+      return true;
     }
     return false;
   }
@@ -41,6 +41,9 @@
 
     const isDashboard = path.includes('dashboard') ||
                         path.includes('seat') ||
+                        path.includes('calendar') ||
+                        path.includes('admission') ||
+                        path.includes('register') ||
                         pageKey.includes('dashboard') ||
                         pageKey.includes('seat') ||
                         !!document.querySelector('.top-nav-menu');
@@ -59,68 +62,73 @@
     }
   }
 
+  // Forces Android Chrome / TWA to update the system status bar by replacing the meta node
+  function updateThemeColorMeta(color) {
+    if (currentAppliedColor === color) {
+      const existing = document.getElementById('theme-color-meta');
+      if (existing && existing.getAttribute('content') === color) {
+        return;
+      }
+    }
+    currentAppliedColor = color;
+
+    // Remove all existing theme-color meta tags
+    const existingMetas = document.querySelectorAll('meta[name="theme-color"]');
+    existingMetas.forEach(function (m) {
+      try { m.remove(); } catch (e) {}
+    });
+
+    // Create a fresh new meta element (triggers Chrome Android WebContents node-added observer)
+    const newMeta = document.createElement('meta');
+    newMeta.name = 'theme-color';
+    newMeta.id = 'theme-color-meta';
+    newMeta.content = color;
+
+    const targetContainer = document.head || document.documentElement;
+    if (targetContainer) {
+      targetContainer.appendChild(newMeta);
+    }
+  }
+
   function syncThemeColor() {
     const isDark = isDarkActive();
     const color = getActiveThemeColor();
 
     // 1. Maintain dark-theme class on root element to prevent white flicker
-    if (isDark) {
-      if (!document.documentElement.classList.contains('dark-theme')) {
+    if (document.documentElement) {
+      if (isDark && !document.documentElement.classList.contains('dark-theme')) {
         document.documentElement.classList.add('dark-theme');
-      }
-    } else {
-      if (document.documentElement.classList.contains('dark-theme')) {
+      } else if (!isDark && document.documentElement.classList.contains('dark-theme')) {
         document.documentElement.classList.remove('dark-theme');
       }
     }
 
-    // 2. Manage single canonical meta[name="theme-color"]
-    let targetMeta = document.getElementById('theme-color-meta');
-    const allMetas = document.querySelectorAll('meta[name="theme-color"]');
-
-    if (!targetMeta && allMetas.length > 0) {
-      targetMeta = allMetas[0];
-      targetMeta.id = 'theme-color-meta';
-    }
-
-    // Remove any conflicting or secondary meta tags (especially with media attributes)
-    allMetas.forEach(function (m) {
-      if (m !== targetMeta) {
-        m.remove();
-      }
-    });
-
-    if (!targetMeta) {
-      targetMeta = document.createElement('meta');
-      targetMeta.name = 'theme-color';
-      targetMeta.id = 'theme-color-meta';
-      if (document.head) {
-        document.head.appendChild(targetMeta);
-      } else {
-        document.documentElement.appendChild(targetMeta);
-      }
-    }
-
-    // Crucial: remove media query attribute so Chrome on Android dynamically respects content
-    if (targetMeta.hasAttribute('media')) {
-      targetMeta.removeAttribute('media');
-    }
-
-    if (targetMeta.getAttribute('content') !== color) {
-      targetMeta.setAttribute('content', color);
-    }
+    // 2. Dispatch the fresh theme-color meta node
+    updateThemeColorMeta(color);
   }
 
-  // 1. Synchronous early execution in <head>
+  // 1. Immediate execution in <head>
   syncThemeColor();
 
-  // 2. Re-sync on DOM ready and window load
+  // 2. Execution on DOM stages
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', syncThemeColor);
   }
   window.addEventListener('load', syncThemeColor);
 
-  // 3. MutationObserver on <html> and <body> for reactive class changes
+  // 3. Intercept localStorage.setItem('theme') so ANY in-app toggle updates status bar instantly
+  try {
+    const origSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function (key, val) {
+      origSetItem(key, val);
+      if (key === 'theme') {
+        setTimeout(syncThemeColor, 0);
+        setTimeout(syncThemeColor, 60);
+      }
+    };
+  } catch (e) {}
+
+  // 4. MutationObserver on <html> and <body> for reactive class updates
   function initObservers() {
     syncThemeColor();
 
@@ -147,23 +155,23 @@
     document.addEventListener('DOMContentLoaded', initObservers);
   }
 
-  // 4. Global click listener on theme toggle controls for instant response
+  // 5. Global click listener for all theme toggle buttons across the app
   document.addEventListener('click', function (e) {
-    const btn = e.target.closest('#themeToggle, #themeBtn, .theme-toggle-btn, .theme-toggle, [onclick*="toggleTheme"]');
+    const btn = e.target.closest('#theme-toggle, #themeToggle, #themeBtn, .theme-toggle, .theme-toggle-btn, [onclick*="toggleTheme"]');
     if (btn) {
       setTimeout(syncThemeColor, 0);
-      setTimeout(syncThemeColor, 100);
+      setTimeout(syncThemeColor, 60);
+      setTimeout(syncThemeColor, 200);
     }
   }, true);
 
-  // 5. Storage event for cross-tab sync
+  // 6. Cross-tab storage and custom events
   window.addEventListener('storage', function (e) {
     if (e.key === 'theme') {
       syncThemeColor();
     }
   });
 
-  // 6. Custom event support
   window.addEventListener('themechange', syncThemeColor);
   window.addEventListener('themeChanged', syncThemeColor);
 

@@ -342,7 +342,7 @@ self.addEventListener('notificationclick', function (event) {
 // -----------------------------------------------------------------------------
 // LIGHTWEIGHT CACHE FOR INSTANT APP LAUNCH (<100ms)
 // -----------------------------------------------------------------------------
-const STATIC_CACHE_NAME = 'abcd-static-shell-v3';
+const STATIC_CACHE_NAME = 'abcd-static-shell-v4';
 
 self.addEventListener('fetch', function (event) {
     const request = event.request;

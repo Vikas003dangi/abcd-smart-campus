@@ -16,7 +16,7 @@
     <meta name="apple-mobile-web-app-title" content="ABCD (coaching & library)" />
     <meta name="theme-color" content="#ffffff" id="theme-color-meta" />
     <link rel="manifest" href="{% static 'data/favicon/site.webmanifest' %}" />
-    <script src="{% static 'js/abcd-theme.js' %}"></script>
+    <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -4911,6 +4911,7 @@
 </head>
 
 <body data-page="public-preview">
+    {% include 'partials/_app_splash.html' %}
     {% include 'partials/_master_loader.html' %}
     {% if not user.is_authenticated %}
     <div class="alert-overlay" id="alert-overlay">

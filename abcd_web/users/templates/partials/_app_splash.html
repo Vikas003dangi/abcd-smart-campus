@@ -1,0 +1,230 @@
+{% load static %}
+<!-- ==========================================================================
+     ABCD GEMINI-STYLE FLUID ANIMATED GRADIENT LAUNCH SPLASH
+     Shown strictly on cold app launch / initial session entry.
+     Never disturbs internal page loading or the master loader.
+     ========================================================================== -->
+<style>
+  #app-launch-splash {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Live Gemini-style fluid animated gradient */
+    background: linear-gradient(-45deg, #17022c, #4c1d95, #7c3aed, #2563eb, #0f172a);
+    background-size: 400% 400%;
+    animation: abcdFluidGradientSweep 7s ease-in-out infinite;
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: scale(1);
+    opacity: 1;
+    will-change: transform, opacity, background-position;
+  }
+
+  /* Light Theme Variant - Luminous Sunrise Aurora */
+  #app-launch-splash.splash-light {
+    background: linear-gradient(-45deg, #2e1065, #7e22ce, #db2777, #f59e0b, #3b82f6);
+    background-size: 400% 400%;
+    animation: abcdFluidGradientSweep 7s ease-in-out infinite;
+  }
+
+  @keyframes abcdFluidGradientSweep {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Ambient Aurora Orb Glow */
+  .splash-ambient-glow {
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(236, 72, 153, 0.2) 45%, rgba(0, 0, 0, 0) 70%);
+    filter: blur(28px);
+    animation: splashGlowPulse 3s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+
+  @keyframes splashGlowPulse {
+    0%   { transform: scale(0.85); opacity: 0.5; }
+    100% { transform: scale(1.2); opacity: 0.9; }
+  }
+
+  /* Centered Emblem Stage */
+  .splash-stage {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .splash-logo-wrap {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: splashEmblemFloat 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes splashEmblemFloat {
+    0%   { transform: translateY(0) scale(0.98); }
+    100% { transform: translateY(-7px) scale(1.02); }
+  }
+
+  .splash-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 16px rgba(192, 132, 252, 0.35));
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .splash-brand-title {
+    color: #ffffff;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    font-family: 'Righteous', 'Segoe UI', sans-serif;
+  }
+
+  .splash-tagline {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.86rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    margin-bottom: 22px;
+    animation: splashTextPulse 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes splashTextPulse {
+    0%   { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+
+  /* Minimalist Fluid Progress Line */
+  .splash-progress-track {
+    width: 140px;
+    height: 3.5px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    backdrop-filter: blur(4px);
+  }
+
+  .splash-progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #c084fc, #f43f5e, #fde047);
+    border-radius: 999px;
+    animation: splashProgressSweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    transform-origin: left;
+  }
+
+  @keyframes splashProgressSweep {
+    0%   { transform: scaleX(0) translateX(0); }
+    50%  { transform: scaleX(0.6) translateX(60%); }
+    100% { transform: scaleX(0.2) translateX(350%); }
+  }
+
+  /* Smooth Dismissal Class */
+  #app-launch-splash.fade-out {
+    opacity: 0 !important;
+    transform: scale(1.05) !important;
+    pointer-events: none !important;
+  }
+</style>
+
+<div id="app-launch-splash" aria-hidden="true">
+  <div class="splash-ambient-glow"></div>
+  <div class="splash-stage">
+    <div class="splash-logo-wrap">
+      <img src="{% static 'data/favicon/web-app-manifest-512x512.png' %}" alt="ABCD Smart Campus" class="splash-logo-img" draggable="false" />
+    </div>
+    <div class="splash-brand-title">ABCD CAMPUS</div>
+    <div class="splash-tagline">Empowering Your Learning</div>
+    <div class="splash-progress-track">
+      <div class="splash-progress-bar"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // 1. FAST-CHECK: Cold launch guard
+    // If the splash was already shown in this tab/session, dismiss immediately before first paint!
+    const SPLASH_SESSION_KEY = 'abcd_launch_splash_completed';
+    const splashEl = document.getElementById('app-launch-splash');
+    if (!splashEl) return;
+
+    if (sessionStorage.getItem(SPLASH_SESSION_KEY)) {
+      splashEl.style.display = 'none';
+      splashEl.remove();
+      return;
+    }
+
+    // 2. Set theme-appropriate gradient palette
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      const isDark = (savedTheme === 'dark' || savedTheme === 'dark-theme' || (savedTheme !== 'light' && savedTheme !== 'light-theme' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
+      if (!isDark) {
+        splashEl.classList.add('splash-light');
+      }
+    } catch(e) {}
+
+    sessionStorage.setItem(SPLASH_SESSION_KEY, 'true');
+
+    // 3. Smooth Dismissal Controller
+    const launchStartTime = Date.now();
+    const MIN_DISPLAY_MS = 900; // Brief, silky 0.9s fluid motion window
+    let isDismissed = false;
+
+    function dismissSplash() {
+      if (isDismissed) return;
+      const elapsed = Date.now() - launchStartTime;
+      const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
+
+      setTimeout(function() {
+        if (isDismissed) return;
+        isDismissed = true;
+        splashEl.classList.add('fade-out');
+
+        setTimeout(function() {
+          try { splashEl.remove(); } catch(e) { splashEl.style.display = 'none'; }
+          if (typeof window.syncThemeColor === 'function') {
+            window.syncThemeColor();
+          }
+        }, 500);
+      }, remaining);
+    }
+
+    if (document.readyState === 'complete') {
+      dismissSplash();
+    } else {
+      window.addEventListener('load', dismissSplash);
+    }
+
+    // Safety watchdog: max 2.2s so it NEVER hangs on slow networks
+    setTimeout(dismissSplash, 2200);
+  })();
+</script>
