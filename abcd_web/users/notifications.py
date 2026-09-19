@@ -860,6 +860,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         "category": category,
         "source": source,
         "is_alarm": is_alarm,
+        "is_reminder": is_reminder,
         "task_id": task_id,
     }
 

@@ -25,6 +25,7 @@
         'reminder': '/static/audio/PWA.mp3',
         'pwa': '/static/audio/PWA.mp3',
         'alarms and reminders': '/static/audio/alarms and reminders.mp3',
+        'alarms%20and%20reminders': '/static/audio/alarms and reminders.mp3',
         'course_reminder': '/static/audio/alarms and reminders.mp3'
     };
 
@@ -38,7 +39,7 @@
         if (activeAlarmAudio && !activeAlarmAudio.paused && !activeAlarmAudio.ended) return true;
         const poolAlarm = audioPool['alarm'];
         if (poolAlarm && !poolAlarm.paused && !poolAlarm.ended) return true;
-        const poolAr = audioPool['alarms and reminders'];
+        const poolAr = audioPool['alarms and reminders'] || audioPool['alarms%20and%20reminders'];
         if (poolAr && !poolAr.paused && !poolAr.ended) return true;
         return false;
     }
@@ -54,11 +55,13 @@
 
     // Pre-cache small UI interaction sounds (load large alert/alarm audio files on-demand)
     function initAudioPool() {
-        ['button', 'send', 'receive', 'done', 'error'].forEach(function (key) {
+        ['button', 'send', 'receive', 'done', 'error', 'pwa'].forEach(function (key) {
             try {
-                const audio = new Audio(SOUND_PATHS[key]);
-                audio.preload = 'auto';
-                audioPool[key] = audio;
+                if (!audioPool[key]) {
+                    const audio = new Audio(SOUND_PATHS[key]);
+                    audio.preload = 'auto';
+                    audioPool[key] = audio;
+                }
             } catch (e) {
                 // Ignore audio init errors
             }
@@ -70,20 +73,36 @@
         if (isAudioUnlocked) return;
 
         try {
-            // Prime audio context using the tiny 1.5KB button sound
-            const primer = audioPool['button'] || new Audio(SOUND_PATHS['button']);
-            audioPool['button'] = primer;
-            primer.volume = 0.001;
-            const promise = primer.play();
+            // 1. Resume Web Audio Context if available
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                try {
+                    const ctx = new AudioCtx();
+                    if (ctx.state === 'suspended') {
+                        ctx.resume().catch(function () {});
+                    }
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    gain.gain.value = 0.0001;
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(0);
+                    osc.stop(0.01);
+                } catch (ce) {}
+            }
+
+            // 2. Prime HTML5 Audio with a standalone scratch instance (DO NOT touch audioPool['button'])
+            const scratch = new Audio(SOUND_PATHS['button']);
+            scratch.volume = 0.01;
+            const promise = scratch.play();
             if (promise !== undefined) {
                 promise.then(function () {
-                    primer.pause();
-                    primer.currentTime = 0;
-                    primer.volume = 1.0;
+                    scratch.pause();
+                    scratch.currentTime = 0;
                 }).catch(function () {});
             }
             isAudioUnlocked = true;
-            ['click', 'touchstart', 'keydown'].forEach(function (evt) {
+            ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function (evt) {
                 document.removeEventListener(evt, unlockAudio, { capture: true });
             });
         } catch (e) {
@@ -92,7 +111,7 @@
     }
 
     // Register interaction listeners to unlock
-    ['click', 'touchstart', 'keydown'].forEach(function (evt) {
+    ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function (evt) {
         document.addEventListener(evt, unlockAudio, { capture: true });
     });
 
@@ -178,6 +197,9 @@
     const CLICKABLE_SELECTOR = [
         'button',
         '.btn',
+        'a.btn',
+        'a[class*="-btn"]',
+        'a[class*="btn-"]',
         '.btn-action',
         '.action-btn',
         '[role="button"]',
@@ -205,7 +227,29 @@
         '.abcd-select-option',
         '.icon-btn',
         '.hub-search-btn',
-        '.bnav-item'
+        '.bnav-item',
+        '.action-card',
+        '.clickable',
+        '[data-action]',
+        '.tab',
+        '.pill',
+        '.chip',
+        '.filter-btn',
+        '.filter-chip',
+        '.form-submit',
+        '.submit-btn',
+        '.save-btn',
+        '.cancel-btn',
+        '.custom-btn',
+        '.g-btn',
+        '.g-send-btn',
+        '.g-chat-item',
+        '.g-req-card',
+        '.g-req-accept',
+        '.g-req-reject',
+        '[onclick]',
+        '.floating-btn',
+        '.quick-action-btn'
     ].join(', ');
 
     // Global click sound listener for interactive elements (Capture phase guarantees execution)
@@ -225,7 +269,7 @@
             // Debounce clicks slightly (60ms) to allow natural rapid clicks while preventing harsh machine-gun audio
             if (now - lastButtonSoundTime > 60) {
                 lastButtonSoundTime = now;
-                playABCDSound('button', 0.45);
+                playABCDSound('button', 0.85);
             }
         }
     }, true);
@@ -439,29 +483,20 @@
         // - customSoundSrc if specified (e.g. '/static/audio/alarms and reminders.mp3')
         // - To-Do Alarm: alarm.mp3
         // - To-Do Reminder without alarm: PWA.mp3
-        let soundKey;
         let soundSrc;
         if (customSoundSrc) {
             soundSrc = SOUND_PATHS[customSoundSrc] || customSoundSrc;
-            soundKey = customSoundSrc.includes('alarms and reminders') ? 'alarms and reminders' : 'alarm';
         } else if (isAlarmMode) {
-            soundKey = 'alarm';
             soundSrc = SOUND_PATHS['alarm'] || '/static/audio/alarm.mp3';
         } else {
-            soundKey = 'reminder';
-            soundSrc = SOUND_PATHS['reminder'] || '/static/audio/PWA.mp3';
+            soundSrc = SOUND_PATHS['pwa'] || '/static/audio/PWA.mp3';
         }
 
         function tryPlayAlarmAudio() {
             if (!isSoundEnabled()) return;
             try {
                 if (!activeAlarmAudio) {
-                    if (audioPool[soundKey]) {
-                        activeAlarmAudio = audioPool[soundKey];
-                    } else {
-                        activeAlarmAudio = new Audio(soundSrc);
-                        audioPool[soundKey] = activeAlarmAudio;
-                    }
+                    activeAlarmAudio = new Audio(soundSrc);
                     activeAlarmAudio.loop = false;
                     activeAlarmAudio.volume = 1.0;
                     activeAlarmAudio.onended = function () {
@@ -853,19 +888,28 @@
             if (!event.data) return;
 
             if (event.data.type === 'ABCD_ALARM_PUSH') {
-                // STRICT CHECK: Never fire alarm for Guidy chat or without valid alarm task!
+                // STRICT CHECK: Never fire alarm for Guidy chat!
                 if (event.data.isGuidy || (event.data.url && event.data.url.includes('/guidy'))) return;
                 const titleStr = String(event.data.title || '');
                 if (titleStr.includes('Guidy') || titleStr.includes('ABCD Asst')) return;
 
-                if ((event.data.isAlarm || event.data.isReminder) && (event.data.taskId || event.data.isAlarm === true)) {
-                    startABCDAlarm(event.data.title, event.data.body, event.data.taskId, event.data.isAlarm !== false);
-                }
+                startABCDAlarm(
+                    event.data.title,
+                    event.data.body,
+                    event.data.taskId,
+                    event.data.isAlarm,
+                    event.data.sound
+                );
             } else if (event.data.type === 'ABCD_GUIDY_MESSAGE') {
                 // Subtle Guidy chat chime if user is on any other page
                 const isGuidyPage = window.location.pathname.includes('/guidy');
                 if (!isGuidyPage && window.playABCDSound) {
-                    playABCDSound('receive', 0.6);
+                    playABCDSound('receive', 0.85);
+                }
+            } else if (event.data.type === 'ABCD_NOTIFICATION_PUSH') {
+                // General PWA Notification chime (Fee, Seat, Announcement, etc.)
+                if (window.playABCDSound) {
+                    playABCDSound('pwa', 0.85);
                 }
             }
         });

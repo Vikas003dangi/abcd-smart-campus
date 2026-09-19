@@ -22,6 +22,10 @@
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
   <link rel="stylesheet" href="{% static 'css/site-tour.css' %}">
+  <script src="{% static 'js/custom-popup.js' %}"></script>
+  <script src="{% static 'js/abcd-sound.js' %}"></script>
+  {% block extra_head %}{% endblock %}
+  {% block extra_css %}{% endblock %}
   <style>
     * {
       margin: 0;

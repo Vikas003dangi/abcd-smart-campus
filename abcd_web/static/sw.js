@@ -79,11 +79,15 @@ self.addEventListener('push', function (event) {
         } else {
             isAlarm = (catLower === 'alarm' || (data.source === 'todo' && tagLower.includes('alarm')));
         }
-        isReminder = !isAlarm && ((catLower === 'reminder' && (data.source === 'todo' || data.task_id)) || (data.source === 'todo' && tagLower.includes('reminder')));
+        if (typeof data.is_reminder === 'boolean') {
+            isReminder = data.is_reminder;
+        } else {
+            isReminder = !isAlarm && (catLower === 'reminder' || catLower.includes('reminder') || tagLower.includes('reminder') || (data.source === 'todo' && Boolean(data.task_id)));
+        }
     }
 
     const isAudioAlert = isAlarm || isReminder;
-    const isTodo = (data.source === 'todo') || (data.url && data.url.includes('/todo'));
+    const isTodo = (data.source === 'todo') || (data.url && data.url.includes('/todo')) || Boolean(data.task_id);
 
     let sound = data.sound;
     if (!sound) {
@@ -106,6 +110,7 @@ self.addEventListener('push', function (event) {
         body: bodyText,
         icon: icon,
         badge: badge,
+        sound: sound,
         tag: data.tag || (data.task_id ? 'abcd-reminder-' + data.task_id : (isAlarm ? 'abcd-alarm-active' : 'abcd-notification')),
         renotify: (isAlarm || isReminder) ? true : false,
         requireInteraction: isAlarm ? true : false,
@@ -147,9 +152,9 @@ self.addEventListener('push', function (event) {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-            // 1. Broadcast to open tabs: ONLY if it is an actual user alarm or reminder (NEVER for Guidy)!
+            // 1. Broadcast to open tabs:
             if (clientList && clientList.length > 0) {
-                if ((isAlarm || isReminder) && !isGuidy && (data.task_id || data.is_alarm || data.source === 'todo')) {
+                if ((isAlarm || isReminder) && !isGuidy) {
                     clientList.forEach(function (client) {
                         try {
                             client.postMessage({
@@ -158,6 +163,7 @@ self.addEventListener('push', function (event) {
                                 body: data.body,
                                 sound: sound,
                                 isAlarm: isAlarm,
+                                isReminder: isReminder,
                                 taskId: data.task_id || null,
                                 url: data.url
                             });
@@ -170,6 +176,19 @@ self.addEventListener('push', function (event) {
                                 type: 'ABCD_GUIDY_MESSAGE',
                                 title: title,
                                 body: data.body,
+                                url: data.url
+                            });
+                        } catch (err) {}
+                    });
+                } else {
+                    // General PWA Notification -> broadcast so open tab chimes PWA.mp3
+                    clientList.forEach(function (client) {
+                        try {
+                            client.postMessage({
+                                type: 'ABCD_NOTIFICATION_PUSH',
+                                title: title,
+                                body: data.body,
+                                sound: sound || '/static/audio/PWA.mp3',
                                 url: data.url
                             });
                         } catch (err) {}

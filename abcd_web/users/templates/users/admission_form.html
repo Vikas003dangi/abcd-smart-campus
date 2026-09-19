@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
     <script src="{% static 'js/custom-popup.js' %}"></script>
+    <script src="{% static 'js/abcd-sound.js' %}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="{% static 'js/image-cropper-modal.js' %}"></script>
     <style>
@@ -2450,6 +2451,10 @@
                             window.admissionDraftManager.markSubmitting();
                         }
                         // Success! Display flying toast animation
+                        try {
+                            if (window.playABCDSound) window.playABCDSound('done');
+                            else new Audio('/static/audio/done.mp3').play().catch(function () {});
+                        } catch (se) {}
                         const toast = document.createElement('div');
                         toast.className = 'flying-toast';
                         toast.innerHTML = '<span class="toast-check">✓</span> Application Submitted';
@@ -2488,6 +2493,10 @@
 
                 // If server responded with HTML redirect
                 if (response.ok && response.redirected) {
+                    try {
+                        if (window.playABCDSound) window.playABCDSound('done');
+                        else new Audio('/static/audio/done.mp3').play().catch(function () {});
+                    } catch (se) {}
                     const toast = document.createElement('div');
                     toast.className = 'flying-toast';
                     toast.innerHTML = '<span class="toast-check">✓</span> Application Submitted';

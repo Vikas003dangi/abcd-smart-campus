@@ -1465,7 +1465,7 @@ def process_offline_learning_reminders():
         t = (r.title or "").lower()
         is_alarm = t.startswith('one-time reminder') or t.startswith('daily reminder') or 'reminder' in t
         category = "reminder" if is_alarm else "schedule"
-        sound = "/static/audio/alarms and reminders.mp3" if is_alarm else "/static/audio/PWA.mp3"
+        sound = "/static/audio/alarms and reminders.mp3"
 
         create_notification(
             user=r.user,

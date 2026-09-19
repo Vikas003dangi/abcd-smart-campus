@@ -376,14 +376,35 @@ var CustomPopup = window.CustomPopup || (function () {
         popupContainer.classList.add('visible');
         document.body.classList.add('modal-open');
 
-        // Play appropriate sound effect
-        if (window.playABCDSound) {
-            if (type === 'success') {
-                window.playABCDSound('done');
-            } else if (type === 'error' || type === 'warning') {
-                window.playABCDSound('error');
+        // Play appropriate sound effect (Success -> done.mp3, Error/Restriction/Warning -> error.mp3)
+        try {
+            const titleLower = (title || '').toLowerCase();
+            const msgLower = (message || '').toLowerCase();
+            const isErrorOrRestriction = (type === 'error' || type === 'warning' ||
+                titleLower.includes('error') || titleLower.includes('restrict') || titleLower.includes('failed') ||
+                titleLower.includes('denied') || titleLower.includes('invalid') || titleLower.includes('missing') ||
+                titleLower.includes('conflict') || titleLower.includes('warning') || titleLower.includes('alert') ||
+                titleLower.includes('notice') || msgLower.includes('error') || msgLower.includes('please correct') ||
+                msgLower.includes('restricted') || msgLower.includes('failed') || msgLower.includes('locked'));
+
+            const isSuccess = (type === 'success' || titleLower.includes('success') || titleLower.includes('approved') ||
+                titleLower.includes('submitted') || titleLower.includes('done') || titleLower.includes('completed') ||
+                titleLower.includes('verified') || msgLower.includes('successfully'));
+
+            if (isSuccess && !isErrorOrRestriction) {
+                if (window.playABCDSound) {
+                    window.playABCDSound('done');
+                } else {
+                    new Audio('/static/audio/done.mp3').play().catch(function () {});
+                }
+            } else if (isErrorOrRestriction) {
+                if (window.playABCDSound) {
+                    window.playABCDSound('error');
+                } else {
+                    new Audio('/static/audio/error.mp3').play().catch(function () {});
+                }
             }
-        }
+        } catch (se) {}
 
         // Return promise
         return new Promise((resolve) => {
@@ -433,15 +454,33 @@ var CustomPopup = window.CustomPopup || (function () {
      * Show an alert-style popup (single OK button)
      * @param {string} message - Alert message
      * @param {string} title - Optional title
+     * @param {string} [type=null] - Optional type override ('error', 'warning', 'success', 'alert')
      * @returns {Promise}
      */
-    function alert(message, title = 'Notice') {
+    function alert(message, title = 'Notice', type = null) {
+        let alertType = type;
+        if (!alertType) {
+            const titleLower = (title || '').toLowerCase();
+            const msgLower = (message || '').toLowerCase();
+            if (titleLower.includes('success') || titleLower.includes('approved') || titleLower.includes('submitted') || titleLower.includes('done')) {
+                alertType = 'success';
+            } else if (titleLower.includes('error') || titleLower.includes('restrict') || titleLower.includes('failed') || titleLower.includes('denied') || msgLower.includes('error') || msgLower.includes('restricted')) {
+                alertType = 'error';
+            } else if (titleLower.includes('warning') || titleLower.includes('conflict') || titleLower.includes('missing')) {
+                alertType = 'warning';
+            } else {
+                alertType = 'alert';
+            }
+        }
+
+        const okBtnClass = alertType === 'error' ? 'btn-danger' : (alertType === 'success' ? 'btn-success' : 'btn-primary');
+
         return show({
             title,
             message: `<p>${message}</p>`,
-            type: 'alert',
+            type: alertType,
             buttons: [
-                { label: 'OK', value: true, class: 'btn-primary' }
+                { label: 'OK', value: true, class: okBtnClass }
             ]
         });
     }
@@ -650,8 +689,8 @@ window.prompt = function (message, defaultVal) {
     return CustomPopup.prompt(message, 'Input Required', defaultVal);
 };
 
-window.showStyledAlert = function (title, message) {
-    return CustomPopup.alert(message, title);
+window.showStyledAlert = function (title, message, type = null) {
+    return CustomPopup.alert(message, title, type);
 };
 
 window.showStyledConfirm = function (title, message) {

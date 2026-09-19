@@ -456,10 +456,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                                       (n.title && n.title.toLowerCase().includes('alarm')) ||
                                                       (n.title && n.title.toLowerCase().includes('reminder'));
 
-                            // Zero overlap rule: Do not play standard receive chime if an alarm/reminder is ringing or this is an alarm/reminder
+                            // Zero overlap rule: Do not play standard notification chime if an alarm/reminder is ringing or this is an alarm/reminder
                             if (!isAlarmOrReminder && !(window.isABCDAlarmPlaying && window.isABCDAlarmPlaying())) {
                                 if (window.playABCDSound) {
-                                    window.playABCDSound('receive');
+                                    const notifSound = (n.category === 'guidy' || (n.link && n.link.includes('/guidy'))) ? 'receive' : 'pwa';
+                                    window.playABCDSound(notifSound);
                                 }
                             }
                             if (typeof window.showToast === 'function') {
