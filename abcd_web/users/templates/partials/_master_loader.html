@@ -841,6 +841,9 @@
               loader.style.display = 'none';
               resetErrorUI();
           }, 180);
+          if (typeof window.syncThemeColor === 'function') {
+              window.syncThemeColor();
+          }
       };
 
       function resetErrorUI() {

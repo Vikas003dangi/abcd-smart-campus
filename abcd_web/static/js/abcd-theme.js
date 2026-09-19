@@ -1,79 +1,127 @@
 // =============================================================================
 // ABCD DYNAMIC STATUS BAR & THEME CONTROLLER
 // Automatically synchronizes native mobile status bar (time, battery, wifi)
-// with the active app theme in real-time, just like YouTube and Twitter.
+// with the active app theme in real-time, matching YouTube and Twitter.
 // =============================================================================
 (function () {
   'use strict';
 
-  // Harmonized theme colors matching ABCD's design system:
-  // Light: #ffffff yields crisp dark system status bar icons (time, battery, wifi)
-  // Dark: Deep night tones yield crisp white system status bar icons
-  const COLOR_LIGHT = '#ffffff';
-  const COLOR_DARK_DEFAULT = '#0b1329';    // Dark navy for home page & common views
-  const COLOR_DARK_GUIDY = '#0f172a';      // Slate-900 matching Guidy chats header
-  const COLOR_DARK_DASHBOARD = '#17022c';  // Rich plum night matching dashboard header
+  // Harmonized theme colors matching ABCD's design system & gradients:
+  // Dashboard views: top body gradient is #fff2de (light) & #17022c (dark plum)
+  // Guidy views: slate-900 header is #0f172a (dark) & #ffffff (light)
+  // Home & other views: clean white #ffffff (light) & dark navy #0b1329 (dark)
+  const COLOR_LIGHT_DEFAULT   = '#ffffff';
+  const COLOR_LIGHT_DASHBOARD = '#fff2de';
+  const COLOR_DARK_DEFAULT    = '#0b1329';
+  const COLOR_DARK_GUIDY      = '#0f172a';
+  const COLOR_DARK_DASHBOARD  = '#17022c';
+
+  function isDarkActive() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'dark-theme') return true;
+    if (saved === 'light' || saved === 'light-theme') return false;
+
+    if (document.body) {
+      if (document.body.classList.contains('dark-theme') || document.body.classList.contains('dark')) {
+        return true;
+      }
+    }
+    if (document.documentElement) {
+      if (document.documentElement.classList.contains('dark-theme') || document.documentElement.classList.contains('dark')) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   function getActiveThemeColor() {
-    // 1. Determine if dark theme is currently active
-    const saved = localStorage.getItem('theme');
-    let isDark = false;
-    if (document.body) {
-      isDark = document.body.classList.contains('dark-theme') || 
-               document.body.classList.contains('dark') ||
-               saved === 'dark' || saved === 'dark-theme';
+    const isDark = isDarkActive();
+    const path = (window.location.pathname || '').toLowerCase();
+    const pageKey = (document.body && document.body.dataset && document.body.dataset.pageKey) ? document.body.dataset.pageKey.toLowerCase() : '';
+
+    const isDashboard = path.includes('dashboard') ||
+                        path.includes('seat') ||
+                        pageKey.includes('dashboard') ||
+                        pageKey.includes('seat') ||
+                        !!document.querySelector('.top-nav-menu');
+
+    const isGuidy = path.includes('guidy') ||
+                    pageKey.includes('guidy') ||
+                    !!document.querySelector('.g-wrapper');
+
+    if (isDark) {
+      if (isGuidy) return COLOR_DARK_GUIDY;
+      if (isDashboard) return COLOR_DARK_DASHBOARD;
+      return COLOR_DARK_DEFAULT;
     } else {
-      isDark = saved === 'dark' || saved === 'dark-theme';
+      if (isDashboard) return COLOR_LIGHT_DASHBOARD;
+      return COLOR_LIGHT_DEFAULT;
     }
-
-    if (!isDark) {
-      return COLOR_LIGHT;
-    }
-
-    // 2. Select page-appropriate dark header color
-    const path = window.location.pathname || '';
-    if (path.includes('/guidy') || 
-        (document.body && document.body.dataset && document.body.dataset.pageKey === 'guidy') ||
-        !!document.querySelector('.g-wrapper')) {
-      return COLOR_DARK_GUIDY;
-    }
-
-    if (path.includes('/dashboard') || 
-        (document.body && document.body.dataset && document.body.dataset.pageKey && document.body.dataset.pageKey.includes('dashboard'))) {
-      return COLOR_DARK_DASHBOARD;
-    }
-
-    return COLOR_DARK_DEFAULT;
   }
 
   function syncThemeColor() {
+    const isDark = isDarkActive();
     const color = getActiveThemeColor();
-    let metas = document.querySelectorAll('meta[name="theme-color"]');
 
-    if (!metas || metas.length === 0) {
-      const meta = document.createElement('meta');
-      meta.name = 'theme-color';
-      meta.content = color;
-      document.head.appendChild(meta);
+    // 1. Maintain dark-theme class on root element to prevent white flicker
+    if (isDark) {
+      if (!document.documentElement.classList.contains('dark-theme')) {
+        document.documentElement.classList.add('dark-theme');
+      }
     } else {
-      metas.forEach(function (m) {
-        m.setAttribute('content', color);
-      });
+      if (document.documentElement.classList.contains('dark-theme')) {
+        document.documentElement.classList.remove('dark-theme');
+      }
+    }
+
+    // 2. Manage single canonical meta[name="theme-color"]
+    let targetMeta = document.getElementById('theme-color-meta');
+    const allMetas = document.querySelectorAll('meta[name="theme-color"]');
+
+    if (!targetMeta && allMetas.length > 0) {
+      targetMeta = allMetas[0];
+      targetMeta.id = 'theme-color-meta';
+    }
+
+    // Remove any conflicting or secondary meta tags (especially with media attributes)
+    allMetas.forEach(function (m) {
+      if (m !== targetMeta) {
+        m.remove();
+      }
+    });
+
+    if (!targetMeta) {
+      targetMeta = document.createElement('meta');
+      targetMeta.name = 'theme-color';
+      targetMeta.id = 'theme-color-meta';
+      if (document.head) {
+        document.head.appendChild(targetMeta);
+      } else {
+        document.documentElement.appendChild(targetMeta);
+      }
+    }
+
+    // Crucial: remove media query attribute so Chrome on Android dynamically respects content
+    if (targetMeta.hasAttribute('media')) {
+      targetMeta.removeAttribute('media');
+    }
+
+    if (targetMeta.getAttribute('content') !== color) {
+      targetMeta.setAttribute('content', color);
     }
   }
 
-  // 1. Synchronous early execution
+  // 1. Synchronous early execution in <head>
   syncThemeColor();
 
-  // 2. Execute on DOM ready and full window load
+  // 2. Re-sync on DOM ready and window load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', syncThemeColor);
   }
   window.addEventListener('load', syncThemeColor);
 
-  // 3. MutationObserver on <body> to catch dynamic theme switches (sun/moon button)
-  function initObserver() {
-    if (!document.body) return;
+  // 3. MutationObserver on <html> and <body> for reactive class changes
+  function initObservers() {
     syncThemeColor();
 
     const observer = new MutationObserver(function (mutations) {
@@ -85,22 +133,41 @@
       }
     });
 
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    if (document.documentElement) {
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    }
+    if (document.body) {
+      observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    }
   }
 
   if (document.body) {
-    initObserver();
+    initObservers();
   } else {
-    document.addEventListener('DOMContentLoaded', initObserver);
+    document.addEventListener('DOMContentLoaded', initObservers);
   }
 
-  // 4. Listen for storage changes across tabs
+  // 4. Global click listener on theme toggle controls for instant response
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('#themeToggle, #themeBtn, .theme-toggle-btn, .theme-toggle, [onclick*="toggleTheme"]');
+    if (btn) {
+      setTimeout(syncThemeColor, 0);
+      setTimeout(syncThemeColor, 100);
+    }
+  }, true);
+
+  // 5. Storage event for cross-tab sync
   window.addEventListener('storage', function (e) {
     if (e.key === 'theme') {
       syncThemeColor();
     }
   });
 
-  // Expose helper globally
+  // 6. Custom event support
+  window.addEventListener('themechange', syncThemeColor);
+  window.addEventListener('themeChanged', syncThemeColor);
+
+  // Expose globally
   window.syncThemeColor = syncThemeColor;
+  window.updateThemeColor = syncThemeColor;
 })();

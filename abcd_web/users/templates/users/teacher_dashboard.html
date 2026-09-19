@@ -6,6 +6,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=overlays-content" />
+  <meta name="theme-color" content="#fff2de" id="theme-color-meta" />
+  <script src="{% static 'js/abcd-theme.js' %}"></script>
   <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
   <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
   <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
@@ -6046,7 +6048,6 @@
 
 <body data-page-key="teacher_dashboard">
   {% include 'partials/_master_loader.html' %}
-  {% include 'partials/_splash_screen.html' %}
   <!-- ================= ADMISSION REQUEST MODAL ================= -->
   <div id="admissionModalOverlay" class="modal-overlay"></div>
   <div id="admissionModal" class="admission-modal">

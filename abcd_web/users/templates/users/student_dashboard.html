@@ -6,7 +6,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=overlays-content">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#fff2de" id="theme-color-meta">
+  <script src="{% static 'js/abcd-theme.js' %}"></script>
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
   <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
@@ -4191,7 +4192,6 @@
 
 <body data-page-key="student_dashboard">
   {% include 'partials/_master_loader.html' %}
-  {% include 'partials/_splash_screen.html' %}
   <!-- Top Navigation Menu -->
   {% block top_nav %}
   <nav class="top-nav-menu" data-tour="student-header">

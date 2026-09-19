@@ -27,11 +27,8 @@
       "purpose": "any maskable"
     }
   ],
-  "theme_color": "#faf6f0",
-  "background_color": "#f7bcf3",
-  "launch_handler": {
-    "client_mode": "focus-existing"
-  },
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
   "protocol_handlers": [
     {
       "protocol": "web+abcd",

@@ -342,7 +342,7 @@ self.addEventListener('notificationclick', function (event) {
 // -----------------------------------------------------------------------------
 // LIGHTWEIGHT CACHE FOR INSTANT APP LAUNCH (<100ms)
 // -----------------------------------------------------------------------------
-const STATIC_CACHE_NAME = 'abcd-static-shell-v2';
+const STATIC_CACHE_NAME = 'abcd-static-shell-v3';
 
 self.addEventListener('fetch', function (event) {
     const request = event.request;
@@ -362,8 +362,11 @@ self.addEventListener('fetch', function (event) {
             return;
         }
 
-        // For critical interactive scripts (abcd-sound.js, custom-popup.js), use Network-First to guarantee fresh audio logic
-        const isCriticalScript = url.pathname.includes('abcd-sound.js') || url.pathname.includes('custom-popup.js');
+        // For critical interactive scripts and manifest, use Network-First to guarantee fresh updates
+        const isCriticalScript = url.pathname.includes('abcd-sound.js') || 
+                                 url.pathname.includes('custom-popup.js') || 
+                                 url.pathname.includes('abcd-theme.js') ||
+                                 url.pathname.includes('site.webmanifest');
 
         if (isCriticalScript) {
             event.respondWith(
