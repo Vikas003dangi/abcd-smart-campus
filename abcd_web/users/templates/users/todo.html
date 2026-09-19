@@ -12753,6 +12753,9 @@
         const btnText = document.getElementById('saveReminderBtnText');
         if (btnText) btnText.textContent = '🔔 Set Reminder';
         loadReminders();
+        if (typeof window.checkGlobalDueAlarms === 'function') {
+          window.checkGlobalDueAlarms();
+        }
         showSuccessToast(reminderEditingTaskId ? 'Reminder updated!' : 'Reminder added!');
         reminderEditingTaskId = null;
       } else {

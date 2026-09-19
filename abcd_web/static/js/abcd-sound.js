@@ -797,9 +797,9 @@
             });
     }
 
-    // High precision: Check memory every 1 second, fetch server every 30 seconds
+    // High precision: Check memory every 1 second, fetch server every 15 seconds
     setInterval(tickGlobalDueAlarmsInMemory, 1000);
-    setInterval(checkGlobalDueAlarms, 30000);
+    setInterval(checkGlobalDueAlarms, 15000);
     setTimeout(checkGlobalDueAlarms, 1000);
 
     // Also run immediately on page visibility change or tab focus (e.g. mobile phone unlocked / tab resumed)
@@ -893,6 +893,8 @@
     window.setABCDSoundEnabled = setSoundEnabled;
     window.isABCDSoundEnabled = isSoundEnabled;
     window.unlockABCDAudio = unlockAudio;
+    window.checkGlobalDueAlarms = checkGlobalDueAlarms;
+    window.syncABCDReminders = checkGlobalDueAlarms;
 
     // Initialize preloading and URL trigger on DOM load or immediate
     if (document.readyState === 'loading') {

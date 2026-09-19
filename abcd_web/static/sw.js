@@ -124,17 +124,17 @@ self.addEventListener('push', function (event) {
         },
         actions: isAlarm
             ? [
-                { action: 'open_alarm', title: 'Open' },
-                { action: 'snooze', title: 'Snooze 15m' },
-                { action: 'dismiss', title: 'Dismiss' }
+                { action: 'stop', title: 'Stop ⏹' },
+                { action: 'snooze', title: 'Snooze 15m ⏱' },
+                { action: 'open_alarm', title: 'Open ↗' }
               ]
             : (isReminder
                 ? [
-                    { action: 'open_reminder', title: 'Open' },
-                    { action: 'dismiss', title: 'Dismiss' }
+                    { action: 'open_reminder', title: 'Open ↗' },
+                    { action: 'stop', title: 'Dismiss ✕' }
                   ]
                 : [
-                    { action: 'open', title: 'Open' }
+                    { action: 'open', title: 'Open ↗' }
                   ]
             )
     };
@@ -234,7 +234,16 @@ self.addEventListener('notificationclick', function (event) {
 
     const notifData = (event.notification && event.notification.data) ? event.notification.data : {};
 
-    if (event.action === 'dismiss') {
+    if (event.action === 'stop' || event.action === 'dismiss') {
+        if (notifData.taskId) {
+            event.waitUntil(
+                fetch('/todo/reminder/' + encodeURIComponent(notifData.taskId) + '/action/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'stop' })
+                }).catch(function () {})
+            );
+        }
         return;
     }
 

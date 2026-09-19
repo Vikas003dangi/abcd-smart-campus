@@ -295,12 +295,10 @@ def start_background_scheduler():
         if is_runserver and os.environ.get('RUN_MAIN') != 'true':
             return
 
-        # 3. On Production with Neon PostgreSQL, disable continuous internal polling to allow Neon scale-to-zero sleep.
-        database_url = os.environ.get('DATABASE_URL', '')
+        # 3. Allow embedded scheduler by default unless explicitly disabled
         disable_embedded = os.environ.get('DISABLE_EMBEDDED_SCHEDULER', '').lower() in ['1', 'true', 'yes']
-        force_embedded = os.environ.get('FORCE_EMBEDDED_SCHEDULER', '').lower() in ['1', 'true', 'yes']
-        if ('neon.tech' in database_url or disable_embedded) and not force_embedded:
-            logger.info("[ABCD] Serverless PostgreSQL (Neon) detected: Embedded background scheduler loop disabled so Neon can scale to 0 CU (Sleep mode) when idle. Scheduled automation runs via external cron-job.org.")
+        if disable_embedded:
+            logger.info("[ABCD] Embedded background scheduler loop explicitly disabled via DISABLE_EMBEDDED_SCHEDULER. Scheduled automation runs via external cron.")
             return
 
         # 4. Mark started and spawn background daemon thread (for local dev or non-serverless setups)

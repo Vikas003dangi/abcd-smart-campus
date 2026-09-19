@@ -14988,47 +14988,6 @@ def todo_add_reminder(request):
             is_pinned=False,
         )
 
-        # If user requested email notifications, send immediate confirmation email
-        if metadata.get('email_notify'):
-            try:
-                target_email = get_user_notification_email(request.user)
-                if target_email:
-                    schedule_info = ''
-                    if recurrence == 'once' and delete_at:
-                        local_dt = timezone.localtime(delete_at)
-                        schedule_info = local_dt.strftime('%d %b %Y at %I:%M %p')
-                    elif recurrence == 'daily':
-                        schedule_info = f"Every Day at {metadata.get('time_str', '00:00')}"
-                    elif recurrence == 'weekly':
-                        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-                        d_str = ', '.join([day_names[d] for d in metadata.get('days_of_week', []) if 0 <= d < 7])
-                        schedule_info = f"Every Week on {d_str} at {metadata.get('time_str', '00:00')}"
-                    elif recurrence == 'monthly':
-                        schedule_info = f"Day {metadata.get('day_of_month', 1)} of every month at {metadata.get('time_str', '00:00')}"
-                    elif recurrence == 'every_n_days':
-                        schedule_info = f"Every {metadata.get('interval_days', 1)} days at {metadata.get('time_str', '00:00')}"
-
-                    send_html_email(
-                        subject=f"Reminder Scheduled: {title}",
-                        to_email=target_email,
-                        template="emails/todo_reminder_scheduled.html",
-                        context={
-                            "user_name": get_user_display_name(request.user) or request.user.username,
-                            "title": title,
-                            "schedule_info": schedule_info,
-                            "note": metadata.get('note', ''),
-                            "recurrence": recurrence,
-                            "todo_url": f"{settings.SITE_URL}/todo/",
-                        },
-                        fail_silently=True,
-                        run_async=True
-                    )
-                    logger.info(f"[To-Do Reminder] Sent scheduled confirmation email for '{title}' to {target_email}")
-                else:
-                    logger.warning(f"[To-Do Reminder] Could not find email address to notify user {request.user.username}")
-            except Exception as email_err:
-                logger.error(f"[To-Do Reminder] Failed sending scheduled confirmation email: {email_err}")
-
         # If it was scheduled for right now or past, run processor immediately
         if delete_at and timezone.localtime(timezone.now()) >= delete_at:
             try:
@@ -15109,45 +15068,6 @@ def todo_update_reminder(request, task_id):
             task.last_notified_at = None
 
         task.save()
-
-        if current_meta.get('email_notify') and any(k in data for k in schedule_keys):
-            try:
-                target_email = get_user_notification_email(request.user)
-                if target_email:
-                    rec_val = current_meta.get('recurrence', 'once')
-                    schedule_info = ''
-                    if rec_val == 'once' and task.delete_at:
-                        local_dt = timezone.localtime(task.delete_at)
-                        schedule_info = local_dt.strftime('%d %b %Y at %I:%M %p')
-                    elif rec_val == 'daily':
-                        schedule_info = f"Every Day at {current_meta.get('time_str', '00:00')}"
-                    elif rec_val == 'weekly':
-                        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-                        d_str = ', '.join([day_names[d] for d in current_meta.get('days_of_week', []) if 0 <= d < 7])
-                        schedule_info = f"Every Week on {d_str} at {current_meta.get('time_str', '00:00')}"
-                    elif rec_val == 'monthly':
-                        schedule_info = f"Day {current_meta.get('day_of_month', 1)} of every month at {current_meta.get('time_str', '00:00')}"
-                    elif rec_val == 'every_n_days':
-                        schedule_info = f"Every {current_meta.get('interval_days', 1)} days at {current_meta.get('time_str', '00:00')}"
-
-                    send_html_email(
-                        subject=f"Reminder Updated: {current_meta.get('title', 'Reminder')}",
-                        to_email=target_email,
-                        template="emails/todo_reminder_scheduled.html",
-                        context={
-                            "user_name": get_user_display_name(request.user) or request.user.username,
-                            "title": current_meta.get('title', 'Reminder'),
-                            "schedule_info": schedule_info,
-                            "note": current_meta.get('note', ''),
-                            "recurrence": rec_val,
-                            "todo_url": f"{settings.SITE_URL}/todo/",
-                        },
-                        fail_silently=True,
-                        run_async=True
-                    )
-            except Exception as email_err:
-                logger.error(f"[To-Do Reminder] Failed sending updated reminder email: {email_err}")
-
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
