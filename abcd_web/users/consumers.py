@@ -165,11 +165,13 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
 
                     for r in recipients_list:
                         try:
-                            # If recipient currently has this exact chat open live, do not spam push or DB unread notifications
+                            # If recipient currently has this exact chat open live or is active in Guidy, do not spam DB unread notifications
                             active_in_chat = cache.get(f"guidy_active_chat_{r.id}")
                             is_reading_live = (active_in_chat == f"{c_type}_{s_id}")
+                            is_on_guidy = bool(cache.get(f"guidy_presence_{r.id}"))
                         except Exception:
                             is_reading_live = False
+                            is_on_guidy = False
 
                         try:
                             cache.delete(f"guidy_badge_count_{r.id}")
@@ -178,7 +180,7 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                             new_badge_val = 1
 
                         push_delivered = False
-                        if not is_reading_live:
+                        if not is_reading_live and not is_on_guidy:
                             try:
                                 notif = Notification.objects.filter(user=r, category='guidy', is_read=False).first()
                                 if notif:
@@ -472,6 +474,15 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         except Exception:
             pass
 
+    @database_sync_to_async
+    def purge_guidy_notifications(self):
+        try:
+            from users.models import Notification
+            if self.user and self.user.is_authenticated:
+                Notification.objects.filter(user=self.user, category='guidy').delete()
+        except Exception:
+            pass
+
     async def connect(self):
         self.chat_type = self.scope['url_route']['kwargs']['chat_type']
         self.session_id = self.scope['url_route']['kwargs']['session_id']
@@ -498,6 +509,7 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         # Keep presence cache and active chat cache alive
         await self.update_user_presence(True)
         await self.update_active_chat()
+        await self.purge_guidy_notifications()
 
         # Mark all pending messages sent to this user as delivered, and notify senders
         try:
@@ -749,9 +761,9 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             from django.core.cache import cache
             if self.user and self.user.is_authenticated:
                 if is_online:
-                    cache.set(f"guidy_presence_{self.user.id}", True, timeout=35)
+                    cache.set(f"site_presence_{self.user.id}", True, timeout=35)
                 else:
-                    cache.delete(f"guidy_presence_{self.user.id}")
+                    cache.delete(f"site_presence_{self.user.id}")
         except Exception:
             pass
 

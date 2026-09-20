@@ -10022,6 +10022,7 @@ function toggleFullscreenMode() {
     if (btn) btn.setAttribute('title', 'Toggle Fullscreen');
     localStorage.setItem('guidyFullscreen', 'false');
     document.body.style.removeProperty('overflow');
+    document.documentElement.style.removeProperty('overflow');
   }
   if (typeof syncGuidyVisualViewport === 'function') {
     syncGuidyVisualViewport();

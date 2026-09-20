@@ -13743,6 +13743,7 @@
       if (btn) btn.setAttribute('title', 'Toggle Fullscreen');
       localStorage.setItem('todoFullscreen', 'false');
       document.body.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('overflow');
     }
   }
 

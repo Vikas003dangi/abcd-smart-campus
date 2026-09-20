@@ -4449,6 +4449,7 @@ def alumni_dashboard_view(request):
 def mark_notifications_read(request):
     if request.method == "POST":
         now = timezone.now()
+        Notification.objects.filter(user=request.user, category='guidy').delete()
         Notification.objects.filter(
             user=request.user,
             is_read=False
@@ -10880,7 +10881,8 @@ def guidy_seek_guidance(request, alumni_pk):
             title="New Guidance Request",
             message=f"{request.user.get_full_name() or request.user.username} has sent you a guidance request.",
             link="/guidy/",
-            category="general"
+            category="guidy",
+            meta={'type': 'guidance_request', 'request_id': req.id}
         )
 
         # Push real-time WS event to alumni so their Requests tab updates without refresh
