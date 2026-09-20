@@ -119,3 +119,8 @@ student_photos/
 .DS_Store
 Thumbs.db
 .playwright-mcp/
+abcd-twa/
+*.apk
+*.aab
+*.keystore
+*.idsig

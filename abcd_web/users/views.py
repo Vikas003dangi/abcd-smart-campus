@@ -16922,11 +16922,14 @@ def assetlinks_json_view(request):
     from django.http import HttpResponse
     from django.conf import settings
 
-    default_fingerprint = getattr(
-        settings,
-        'TWA_SHA256_FINGERPRINT',
-        '3E:D0:6F:09:A1:39:5A:F3:D5:7B:A2:3E:68:5A:91:DE:3C:A9:39:E6:9E:EE:48:88:65:6B:42:DE:3E:9F:8B:71'
-    )
+    fingerprints = [
+        '82:08:DD:0C:A6:9A:00:87:B1:A0:37:75:57:D3:2E:D2:63:67:AA:BF:B1:29:32:C1:64:01:59:D0:1F:32:53:CE',
+        '3E:D0:6F:09:A1:39:5A:F3:D5:7B:A2:3E:68:5A:91:DE:3C:A9:39:E6:9E:EE:48:88:65:6B:42:DE:3E:9F:8B:71',
+    ]
+    configured_fingerprint = getattr(settings, 'TWA_SHA256_FINGERPRINT', None)
+    if configured_fingerprint and configured_fingerprint not in fingerprints:
+        fingerprints.append(configured_fingerprint)
+
     assetlinks = [
         {
             "relation": [
@@ -16936,7 +16939,7 @@ def assetlinks_json_view(request):
             "target": {
                 "namespace": "android_app",
                 "package_name": "in.abcdcampus.app",
-                "sha256_cert_fingerprints": [default_fingerprint]
+                "sha256_cert_fingerprints": fingerprints
             }
         }
     ]
