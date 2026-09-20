@@ -4307,10 +4307,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Mobile Visual Viewport & Keyboard Resizing (WhatsApp style) ──
   function syncGuidyVisualViewport() {
-    if (window.innerWidth > 768) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-
     const gShellElem = document.getElementById('gShell');
     const isChat = gShellElem && (gShellElem.classList.contains('chat-active') || document.body.classList.contains('chat-active'));
     const isFs = document.body.classList.contains('g-fullscreen-active');
@@ -4337,6 +4333,9 @@ document.addEventListener('DOMContentLoaded', () => {
       document.documentElement.style.removeProperty('--guidy-vv-top');
       return;
     }
+    if (window.innerWidth > 768) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
 
     const height = Math.round(vv.height);
     const top = Math.round(vv.offsetTop);
@@ -10022,6 +10021,7 @@ function toggleFullscreenMode() {
     if (icon) icon.className = 'bx bx-fullscreen';
     if (btn) btn.setAttribute('title', 'Toggle Fullscreen');
     localStorage.setItem('guidyFullscreen', 'false');
+    document.body.style.removeProperty('overflow');
   }
   if (typeof syncGuidyVisualViewport === 'function') {
     syncGuidyVisualViewport();

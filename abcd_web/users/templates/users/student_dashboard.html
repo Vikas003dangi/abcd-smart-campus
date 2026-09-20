@@ -8,7 +8,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content">
   <meta name="color-scheme" content="light" id="color-scheme-meta">
   <meta name="theme-color" content="#fff2de" id="theme-color-meta">
-  <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v4"></script>
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff2de">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#fff2de">
+  <script>
+    (function(){
+      try {
+        var s = localStorage.getItem('theme');
+        var d = (s === 'dark' || s === 'dark-theme');
+        var c = d ? '#17022c' : '#fff2de';
+        var cs = document.getElementById('color-scheme-meta');
+        if (cs) cs.content = d ? 'dark' : 'light';
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        metas.forEach(function(m){ m.content = c; });
+      } catch(e){}
+    })();
+  </script>
+  <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v7"></script>
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
   <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
@@ -6436,6 +6451,9 @@
         }
 
         localStorage.setItem('theme', theme);
+        if (typeof window.syncThemeColor === 'function') {
+          window.syncThemeColor();
+        }
       });
     }
 

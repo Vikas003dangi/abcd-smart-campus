@@ -5,7 +5,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content">
-    <meta name="color-scheme" content="light dark">
     <meta name="google-site-verification" content="3kZlVyMNLfztAa3hPSHbBXzd6OxHgl582SFfNyO0h2w" />
 
 
@@ -16,9 +15,24 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'data/favicon/apple-touch-icon.png' %}" />
     <meta name="apple-mobile-web-app-title" content="ABCD (coaching & library)" />
     <meta name="color-scheme" content="light" id="color-scheme-meta">
-    <meta name="theme-color" content="#ffffff" id="theme-color-meta" />
+    <meta name="theme-color" content="#fff2de" id="theme-color-meta" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff2de">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#fff2de">
+    <script>
+      (function(){
+        try {
+          var s = localStorage.getItem('theme');
+          var d = (s === 'dark' || s === 'dark-theme');
+          var c = d ? '#17022c' : '#fff2de';
+          var cs = document.getElementById('color-scheme-meta');
+          if (cs) cs.content = d ? 'dark' : 'light';
+          var metas = document.querySelectorAll('meta[name="theme-color"]');
+          metas.forEach(function(m){ m.content = c; });
+        } catch(e){}
+      })();
+    </script>
     <link rel="manifest" href="{% static 'data/favicon/site.webmanifest' %}" />
-    <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v4"></script>
+    <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v7"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -5881,6 +5895,9 @@
                 const isDark = body.classList.contains('dark-theme');
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
                 if (themeIcon) themeIcon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+                if (typeof window.syncThemeColor === 'function') {
+                    window.syncThemeColor();
+                }
             });
         }
 

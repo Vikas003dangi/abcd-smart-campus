@@ -55,16 +55,9 @@
     const head = document.head || document.documentElement;
     if (!head) return;
 
-    // 1. Purge any media-query theme-color tags (these cause Android to lock to device OS dark mode)
-    const mediaTags = document.querySelectorAll('meta[name="theme-color"][media]');
-    mediaTags.forEach(function (tag) {
-      tag.remove();
-    });
-
-    // 2. Set color-scheme meta explicitly to 'light' or 'dark' (NOT 'light dark').
-    // This instructs Android OS WindowInsetsController to set:
-    // - Dark icons (time, battery, wifi in black) when 'light'
-    // - Light icons (time, battery, wifi in white) when 'dark'
+    // 1. Set color-scheme meta explicitly to 'light' or 'dark'.
+    // In Android WindowInsetsController, 'light' forces dark/black icons (time, battery),
+    // and 'dark' forces light/white icons.
     let colorSchemeMeta = document.getElementById('color-scheme-meta') || document.querySelector('meta[name="color-scheme"]');
     if (!colorSchemeMeta) {
       colorSchemeMeta = document.createElement('meta');
@@ -73,23 +66,40 @@
       head.appendChild(colorSchemeMeta);
     }
     const targetScheme = isDark ? 'dark' : 'light';
-    if (colorSchemeMeta.getAttribute('content') !== targetScheme) {
-      colorSchemeMeta.setAttribute('content', targetScheme);
-    }
+    colorSchemeMeta.setAttribute('content', targetScheme);
 
-    // 3. Single canonical theme-color meta tag
-    // Removing and re-inserting or updating the tag guarantees that Chromium's C++
-    // WebContentsImpl::DidUpdateThemeColor() notifies the Android Activity to change the status bar.
-    let themeMeta = document.getElementById('theme-color-meta') || document.querySelector('meta[name="theme-color"]:not([media])');
-    if (!themeMeta) {
-      themeMeta = document.createElement('meta');
-      themeMeta.name = 'theme-color';
-      themeMeta.id = 'theme-color-meta';
-      head.appendChild(themeMeta);
-    }
-    if (themeMeta.getAttribute('content') !== color) {
-      themeMeta.setAttribute('content', color);
-    }
+    // 2. Remove ALL existing theme-color meta tags (both with and without media queries).
+    // In Chromium C++ / Android WebAPK, removing and appending fresh elements triggers
+    // HTMLMetaElement::InsertedInto(), which calls Android's Window.setStatusBarColor().
+    const oldTags = document.querySelectorAll('meta[name="theme-color"]');
+    oldTags.forEach(function (tag) {
+      tag.remove();
+    });
+
+    // 3. Create 3 fresh theme-color tags with the active color:
+    // a) Default tag (for all standard browsers)
+    const metaDefault = document.createElement('meta');
+    metaDefault.name = 'theme-color';
+    metaDefault.id = 'theme-color-meta';
+    metaDefault.content = color;
+    head.appendChild(metaDefault);
+
+    // b) Light media query tag
+    const metaLight = document.createElement('meta');
+    metaLight.name = 'theme-color';
+    metaLight.media = '(prefers-color-scheme: light)';
+    metaLight.content = color;
+    head.appendChild(metaLight);
+
+    // c) Dark media query tag
+    // CRITICAL: When the user's Android phone is in System Dark Mode,
+    // Chromium checks this tag. Setting this to the current app color (even when light #fff2de)
+    // forces Chromium on Android system dark mode to apply the app's chosen color!
+    const metaDark = document.createElement('meta');
+    metaDark.name = 'theme-color';
+    metaDark.media = '(prefers-color-scheme: dark)';
+    metaDark.content = color;
+    head.appendChild(metaDark);
   }
 
   function sync() {
