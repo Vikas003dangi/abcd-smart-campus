@@ -52,7 +52,7 @@ def student_context(request):
         if active_dash in ('student', 'alumni'):
             if active_dash == 'alumni' and StudentAchievement.objects.filter(user=request.user, status='approved').exists():
                 dtype = 'alumni'
-            elif active_dash == 'student' and StudentProfile.objects.filter(user=request.user, is_admitted=True).exists():
+            elif active_dash == 'student' and StudentProfile.objects.filter(user=request.user, status='admitted').exists():
                 dtype = 'student'
 
         if dtype is None:

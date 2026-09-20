@@ -1,4 +1,31 @@
 <style>
+  /* ══════════════════════════════════════════════════════════════════════════════
+     GLOBAL MOBILE TAP HIGHLIGHT & FOCUS BOX SUPPRESSION
+     Eliminates the Android/WebKit default rectangular highlight box on tap/click
+     ══════════════════════════════════════════════════════════════════════════════ */
+  *,
+  *::before,
+  *::after {
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+  }
+
+  :focus:not(:focus-visible) {
+      outline: none !important;
+      box-shadow: none !important;
+  }
+
+  button:focus:not(:focus-visible),
+  a:focus:not(:focus-visible),
+  input:focus:not(:focus-visible),
+  select:focus:not(:focus-visible),
+  textarea:focus:not(:focus-visible),
+  [role="button"]:focus:not(:focus-visible),
+  [tabindex]:focus:not(:focus-visible) {
+      outline: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+  }
+
   /* --- MASTER LOADER OVERLAY STYLE --- */
   .master-loader-overlay {
       position: fixed;

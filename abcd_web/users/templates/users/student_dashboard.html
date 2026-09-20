@@ -7714,8 +7714,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       let isManual = false;
       let isHovered = false;
-      let scrollSpeed = 0.55; 
+      const pixelsPerSecond = 50; // Smooth tuned autoscroll speed (~50px/sec across 60Hz/90Hz/120Hz)
       let animationFrame;
+      let lastTime = 0;
       let currentScroll = 0;
 
       function ensureMarqueeContentFilled() {
@@ -7736,9 +7737,14 @@ document.addEventListener('DOMContentLoaded', function() {
           }
       }
 
-      function animateMarquee() {
+      function animateMarquee(currentTime) {
+          if (!lastTime) lastTime = currentTime;
+          const delta = (currentTime - lastTime) / 1000;
+          lastTime = currentTime;
+
           if (!isManual && !isHovered && marqueeContainer && marqueeContent) {
-              currentScroll += scrollSpeed;
+              const dt = (delta > 0 && delta < 0.1) ? delta : (1 / 60);
+              currentScroll += pixelsPerSecond * dt;
               const halfWidth = marqueeContent.scrollWidth / 2;
               if (halfWidth > 0 && currentScroll >= halfWidth) {
                   currentScroll = currentScroll - halfWidth;
@@ -7755,7 +7761,8 @@ document.addEventListener('DOMContentLoaded', function() {
           ensureMarqueeContentFilled();
           currentScroll = 0;
           marqueeContainer.scrollLeft = 0;
-          animateMarquee();
+          lastTime = 0;
+          animationFrame = requestAnimationFrame(animateMarquee);
       }, 300);
 
       window.addEventListener('resize', () => {
