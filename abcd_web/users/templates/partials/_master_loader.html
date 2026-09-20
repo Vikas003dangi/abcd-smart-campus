@@ -887,6 +887,7 @@
 
       let watchdogTimer = null;
       let showDebounceTimer = null;
+      let navigationSafetyTimer = null;
       window.__isHandlingExternalIntent = false;
       window.__isLightboxOpen = false;
 
@@ -894,14 +895,18 @@
       window.hideMasterLoader = function() {
           clearTimeout(watchdogTimer);
           clearTimeout(showDebounceTimer);
+          clearTimeout(navigationSafetyTimer);
+          if (!loader) return;
           loader.classList.add('fade-out');
           setTimeout(() => {
               loader.style.display = 'none';
               resetErrorUI();
           }, 180);
-          if (typeof window.syncThemeColor === 'function') {
-              window.syncThemeColor();
-          }
+          try {
+              if (typeof window.syncThemeColor === 'function') {
+                  window.syncThemeColor();
+              }
+          } catch (e) {}
       };
 
       function resetErrorUI() {
@@ -914,6 +919,7 @@
           if (spinner) spinner.style.display = 'flex';
       }
 
+      // 1. Immediate dismissal on document ready
       if (document.readyState === 'interactive' || document.readyState === 'complete') {
           window.hideMasterLoader();
       } else {
@@ -921,13 +927,18 @@
           window.addEventListener('load', window.hideMasterLoader);
       }
 
+      // 2. Guaranteed Safety Fallback: NEVER trap mobile users behind a loader for more than 2.5s
+      setTimeout(function() {
+          window.hideMasterLoader();
+      }, 2500);
+
       function startWatchdog() {
           clearTimeout(watchdogTimer);
           watchdogTimer = setTimeout(() => {
               if (document.visibilityState === 'visible' && !loader.classList.contains('fade-out')) {
                   showErrorUI("Could Not Load Page", "The page is taking longer than usual to load. Please check your internet connection.");
               }
-          }, 25000);
+          }, 6000);
       }
 
       if (!loader.classList.contains('fade-out')) {
@@ -967,7 +978,7 @@
           startWatchdog();
       });
 
-      // Crucial: When returning from external apps (WhatsApp, Phone Call, Maps, Mail), instantly dismiss loader!
+      // Crucial: When returning from external apps (WhatsApp, Phone Call, Maps, Mail, Google OAuth), instantly dismiss loader!
       window.addEventListener('pageshow', function(event) {
           window.hideMasterLoader();
       });
@@ -980,6 +991,13 @@
 
       window.addEventListener('focus', function() {
           window.hideMasterLoader();
+      });
+
+      // Allow tapping the loader to dismiss it if it persists
+      loader.addEventListener('click', function(e) {
+          if (e.target === loader || e.target.closest('.loader-btn-cancel') || e.target.closest('#loader-error-container')) {
+              window.hideMasterLoader();
+          }
       });
 
       function triggerLoader() {
@@ -998,6 +1016,11 @@
               if (!navigator.onLine) {
                   showOfflineUI();
               }
+              // Safety fallback: if navigation stalls or does not complete in 5s, dismiss loader
+              clearTimeout(navigationSafetyTimer);
+              navigationSafetyTimer = setTimeout(() => {
+                  window.hideMasterLoader();
+              }, 5000);
           }, 200);
       }
 
@@ -1022,27 +1045,32 @@
               return true;
           }
 
-          // 2. WhatsApp & External Messaging Domains
+          // 2. OAuth / Google Sign-In & External Auth
+          if (h.includes('/auth/login/') || h.includes('google-oauth2') || link.classList.contains('google-btn') || link.closest('.google-btn')) {
+              return true;
+          }
+
+          // 3. WhatsApp & External Messaging Domains
           if (h.includes('wa.me') || h.includes('api.whatsapp.com') || h.includes('web.whatsapp.com')) {
               return true;
           }
 
-          // 3. Maps & Location Domains
+          // 4. Maps & Location Domains
           if (h.includes('maps.google.') || h.includes('maps.app.goo.gl') || h.includes('google.com/maps')) {
               return true;
           }
 
-          // 4. Social Media External Domains
-          if (h.includes('instagram.com') || h.includes('youtube.com') || h.includes('youtu.be') || h.includes('facebook.com') || h.includes('twitter.com') || h.includes('t.me')) {
+          // 5. Social Media External Domains
+          if (h.includes('instagram.com') || h.includes('youtube.com') || h.includes('youtu.be') || h.includes('facebook.com') || h.includes('twitter.com') || h.includes('t.me') || h.includes('accounts.google.com')) {
               return true;
           }
 
-          // 5. Image & Media File Formats (Handled by Lightbox or direct view)
+          // 6. Image & Media File Formats (Handled by Lightbox or direct view)
           if (/\.(jpe?g|png|webp|gif|svg|bmp|pdf|mp4|webm|ogg|mp3|wav)(\?.*)?$/i.test(h) || h.includes('/media/') || h.includes('res.cloudinary.com')) {
               return true;
           }
 
-          // 6. Explicit Attributes / Classes & SPA Containers
+          // 7. Explicit Attributes / Classes & SPA Containers
           if (link.hasAttribute('download') || 
               link.hasAttribute('data-no-loader') || 
               link.hasAttribute('data-preview-media') || 
@@ -1059,7 +1087,7 @@
               return true;
           }
 
-          // 7. New Tab targets
+          // 8. New Tab targets
           if (link.getAttribute('target') === '_blank') {
               return true;
           }
