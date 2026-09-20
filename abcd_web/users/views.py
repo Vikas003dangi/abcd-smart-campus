@@ -4250,6 +4250,8 @@ def student_dashboard_view(request):
             return redirect('users:alumni_dashboard')
         return redirect('users:guest_page')
 
+    request.session['active_dashboard'] = 'student'
+
     # -------------------------------
     # AUTO-EXPIRE OLD NOTIFICATIONS
     # -------------------------------
