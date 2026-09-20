@@ -26,6 +26,9 @@
           if (cs) cs.content = d ? 'dark' : 'light';
           var metas = document.querySelectorAll('meta[name="theme-color"]');
           metas.forEach(function(m){ m.content = c; });
+          if (d && document.documentElement) {
+            document.documentElement.classList.add('dark-theme');
+          }
         } catch(e){}
       })();
     </script>
@@ -53,7 +56,7 @@
         .messages-container {
             position: fixed;
             top: 20px;
-            right: 20px;
+            right: 75px;
             z-index: 9999;
             width: 350px;
         }
@@ -216,6 +219,9 @@
             border-radius: 8px;
             font-size: 0.9rem;
             font-weight: 500;
+            background: #ffffff;
+            color: #112a3b;
+            transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .Registration-form-box .input-box {
@@ -1164,10 +1170,497 @@
             transform: translateY(-2px);
             box-shadow: 0 12px 25px rgba(102, 126, 234, 0.35);
         }
+
+        /* ============================================================
+           DARK THEME STYLES FOR REGISTER / LOGIN
+           Matches ABCD signature purple/violet dark palette
+        ============================================================ */
+        body.dark-theme,
+        html.dark-theme body {
+            background: linear-gradient(to top, #140570, #300448da, #17022c) !important;
+            color: #f8fafc;
+        }
+
+        body.dark-theme .Login-Registration_card,
+        html.dark-theme .Login-Registration_card {
+            background-color: rgba(23, 8, 44, 0.75);
+            border: 1.5px solid rgba(168, 85, 247, 0.25);
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(124, 58, 237, 0.15);
+        }
+
+        body.dark-theme .form-box,
+        html.dark-theme .form-box {
+            color: #f8fafc;
+        }
+
+        body.dark-theme .Login-Registration_card h1,
+        html.dark-theme .Login-Registration_card h1,
+        body.dark-theme .Registration-form-box h1,
+        html.dark-theme .Registration-form-box h1 {
+            color: #ffffff;
+            text-shadow: 0 2px 10px rgba(168, 85, 247, 0.3);
+        }
+
+        body.dark-theme .Login-Registration_card p,
+        html.dark-theme .Login-Registration_card p {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .social-text,
+        html.dark-theme .social-text {
+            color: #94a3b8;
+        }
+
+        body.dark-theme .input-box input,
+        html.dark-theme .input-box input {
+            background: rgba(30, 16, 56, 0.85);
+            color: #ffffff;
+            border: 1.5px solid rgba(168, 85, 247, 0.35);
+        }
+
+        body.dark-theme .input-box input::placeholder,
+        html.dark-theme .input-box input::placeholder {
+            color: #94a3b8;
+        }
+
+        body.dark-theme .input-box input:focus,
+        html.dark-theme .input-box input:focus {
+            outline: none;
+            border-color: #a855f7;
+            background: rgba(38, 20, 70, 0.95);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.45);
+        }
+
+        body.dark-theme .input-box i,
+        html.dark-theme .input-box i {
+            color: #a855f7;
+        }
+
+        body.dark-theme .input-box input:focus + i,
+        html.dark-theme .input-box input:focus + i {
+            color: #c084fc;
+        }
+
+        body.dark-theme .forgot-link a,
+        html.dark-theme .forgot-link a {
+            color: #c084fc;
+        }
+
+        body.dark-theme .forgot-link a:hover,
+        html.dark-theme .forgot-link a:hover {
+            color: #e9d5ff;
+            text-decoration: underline;
+        }
+
+        body.dark-theme .login-btn,
+        body.dark-theme .register-btn,
+        html.dark-theme .login-btn,
+        html.dark-theme .register-btn {
+            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+            color: #ffffff;
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
+        }
+
+        body.dark-theme .login-btn:hover,
+        body.dark-theme .register-btn:hover,
+        html.dark-theme .login-btn:hover,
+        html.dark-theme .register-btn:hover {
+            background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
+            color: #ffffff;
+            border: 1px solid #c084fc;
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
+        }
+
+        body.dark-theme .login-btn:active,
+        body.dark-theme .register-btn:active,
+        html.dark-theme .login-btn:active,
+        html.dark-theme .register-btn:active {
+            background: #5b21b6;
+        }
+
+        body.dark-theme .google-btn,
+        html.dark-theme .google-btn {
+            background: rgba(30, 16, 56, 0.9);
+            border: 1.5px solid rgba(168, 85, 247, 0.35);
+            color: #f1f5f9;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark-theme .google-btn:hover,
+        html.dark-theme .google-btn:hover {
+            background: rgba(45, 24, 84, 0.95);
+            border-color: #a855f7;
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+        }
+
+        /* Toggle Panel & Box */
+        body.dark-theme .toggle-box::before,
+        html.dark-theme .toggle-box::before {
+            background: linear-gradient(135deg, #1e0936 0%, #120324 100%);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            box-shadow: inset 0 0 30px rgba(124, 58, 237, 0.15);
+        }
+
+        body.dark-theme .toggle-panel,
+        html.dark-theme .toggle-panel {
+            color: #f8fafc;
+        }
+
+        body.dark-theme .toggle-panel h1,
+        html.dark-theme .toggle-panel h1 {
+            color: #ffffff;
+            text-shadow: 0 2px 10px rgba(168, 85, 247, 0.4);
+        }
+
+        body.dark-theme .toggle-panel p,
+        html.dark-theme .toggle-panel p {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .toggle-panel .register-btn,
+        body.dark-theme .toggle-panel .login-btn,
+        html.dark-theme .toggle-panel .register-btn,
+        html.dark-theme .toggle-panel .login-btn {
+            background: transparent;
+            color: #c084fc;
+            border: 2px solid #a855f7;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+        }
+
+        body.dark-theme .toggle-panel .register-btn:hover,
+        body.dark-theme .toggle-panel .login-btn:hover,
+        html.dark-theme .toggle-panel .register-btn:hover,
+        html.dark-theme .toggle-panel .login-btn:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+            color: #ffffff;
+            border: 2px solid #c084fc;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+        }
+
+        /* Alerts & Error bubbles */
+        body.dark-theme .alert,
+        html.dark-theme .alert {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        body.dark-theme .alert-success,
+        html.dark-theme .alert-success {
+            background-color: rgba(21, 87, 36, 0.35);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-left: 5px solid #22c55e;
+        }
+
+        body.dark-theme .alert-error,
+        html.dark-theme .alert-error {
+            background-color: rgba(114, 28, 36, 0.35);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-left: 5px solid #ef4444;
+        }
+
+        body.dark-theme .alert-info,
+        html.dark-theme .alert-info {
+            background-color: rgba(12, 84, 96, 0.35);
+            color: #7dd3fc;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-left: 5px solid #06b6d4;
+        }
+
+        body.dark-theme .alert-warning,
+        html.dark-theme .alert-warning {
+            background-color: rgba(133, 100, 4, 0.35);
+            color: #fde047;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            border-left: 5px solid #eab308;
+        }
+
+        body.dark-theme .register-errors-container,
+        html.dark-theme .register-errors-container {
+            background: rgba(114, 28, 36, 0.35);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        body.dark-theme .error-message-list li,
+        html.dark-theme .error-message-list li {
+            background: rgba(114, 28, 36, 0.35) !important;
+            color: #fca5a5 !important;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        body.dark-theme #reg_email_typo_hint,
+        html.dark-theme #reg_email_typo_hint {
+            background: rgba(120, 53, 15, 0.35) !important;
+            color: #fde68a !important;
+            border: 1px solid rgba(245, 158, 11, 0.4) !important;
+        }
+
+        body.dark-theme #reg_email_typo_hint strong,
+        html.dark-theme #reg_email_typo_hint strong {
+            color: #fef08a !important;
+        }
+
+        /* Forgot Password / OTP Modals */
+        body.dark-theme .fp-overlay,
+        html.dark-theme .fp-overlay {
+            background: rgba(5, 1, 10, 0.85);
+        }
+
+        body.dark-theme .fp-card,
+        html.dark-theme .fp-card {
+            background: #17072b;
+            border: 1.5px solid rgba(168, 85, 247, 0.3);
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7), 0 0 30px rgba(124, 58, 237, 0.2);
+            color: #f8fafc;
+        }
+
+        body.dark-theme .fp-header,
+        html.dark-theme .fp-header {
+            background: linear-gradient(135deg, #4c1d95 0%, #2e1065 100%);
+            border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        body.dark-theme .fp-step-dot,
+        html.dark-theme .fp-step-dot {
+            background: #241142;
+            border-color: rgba(168, 85, 247, 0.3);
+            color: #94a3b8;
+        }
+
+        body.dark-theme .fp-step-dot.active,
+        html.dark-theme .fp-step-dot.active {
+            background: #17072b;
+            border-color: #a855f7;
+            color: #c084fc;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+
+        body.dark-theme .fp-step-dot.done,
+        html.dark-theme .fp-step-dot.done {
+            background: linear-gradient(135deg, #7c3aed, #6366f1);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        body.dark-theme .fp-step-line,
+        html.dark-theme .fp-step-line {
+            background: rgba(168, 85, 247, 0.25);
+        }
+
+        body.dark-theme .fp-step-line.done,
+        html.dark-theme .fp-step-line.done {
+            background: linear-gradient(90deg, #7c3aed, #6366f1);
+        }
+
+        body.dark-theme .fp-body .fp-desc,
+        html.dark-theme .fp-body .fp-desc {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .fp-field label,
+        html.dark-theme .fp-field label {
+            color: #c084fc;
+        }
+
+        body.dark-theme .fp-field input,
+        html.dark-theme .fp-field input {
+            background: #23103e;
+            color: #ffffff;
+            border: 1.5px solid rgba(168, 85, 247, 0.3);
+        }
+
+        body.dark-theme .fp-field input:focus,
+        html.dark-theme .fp-field input:focus {
+            background: #2d1450;
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+
+        body.dark-theme .fp-field input::placeholder,
+        html.dark-theme .fp-field input::placeholder {
+            color: #94a3b8;
+        }
+
+        body.dark-theme .fp-field .fp-eye,
+        html.dark-theme .fp-field .fp-eye {
+            color: #a855f7;
+        }
+
+        body.dark-theme .fp-otp-box,
+        html.dark-theme .fp-otp-box {
+            background: #23103e;
+            color: #ffffff;
+            border: 1.5px solid rgba(168, 85, 247, 0.3);
+        }
+
+        body.dark-theme .fp-otp-box:focus,
+        html.dark-theme .fp-otp-box:focus {
+            background: #2d1450;
+            border-color: #a855f7;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+        }
+
+        body.dark-theme .fp-otp-hint,
+        html.dark-theme .fp-otp-hint {
+            color: #94a3b8;
+        }
+
+        body.dark-theme .fp-resend-link,
+        body.dark-theme .fp-resend-btn,
+        html.dark-theme .fp-resend-link,
+        html.dark-theme .fp-resend-btn {
+            color: #c084fc !important;
+        }
+
+        body.dark-theme .fp-btn-secondary,
+        html.dark-theme .fp-btn-secondary {
+            background: #29124a;
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .fp-btn-secondary:hover,
+        html.dark-theme .fp-btn-secondary:hover {
+            background: #381a64;
+            color: #ffffff;
+        }
+
+        body.dark-theme .fp-btn-primary,
+        html.dark-theme .fp-btn-primary {
+            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+        }
+
+        body.dark-theme .fp-btn-primary:hover,
+        html.dark-theme .fp-btn-primary:hover {
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.6);
+        }
+
+        body.dark-theme .fp-msg.fp-err,
+        html.dark-theme .fp-msg.fp-err {
+            background: rgba(183, 28, 28, 0.3);
+            color: #fca5a5;
+            border-left: 3px solid #ef4444;
+        }
+
+        body.dark-theme .fp-msg.fp-ok,
+        html.dark-theme .fp-msg.fp-ok {
+            background: rgba(27, 94, 32, 0.3);
+            color: #86efac;
+            border-left: 3px solid #22c55e;
+        }
+
+        body.dark-theme #fp_email_typo_hint,
+        html.dark-theme #fp_email_typo_hint {
+            background: rgba(120, 53, 15, 0.35) !important;
+            color: #fde68a !important;
+            border: 1px solid rgba(245, 158, 11, 0.4) !important;
+        }
+
+        body.dark-theme #fp_email_typo_hint strong,
+        html.dark-theme #fp_email_typo_hint strong {
+            color: #fef08a !important;
+        }
+
+        body.dark-theme .fp-strength-bar,
+        html.dark-theme .fp-strength-bar {
+            background: #29124a;
+        }
+
+        /* Status & Alert Modals */
+        body.dark-theme .modal-overlay-styled,
+        html.dark-theme .modal-overlay-styled {
+            background: rgba(5, 1, 10, 0.85);
+        }
+
+        body.dark-theme .admission-modal-styled,
+        html.dark-theme .admission-modal-styled {
+            background: #17072b;
+            border: 1.5px solid rgba(168, 85, 247, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 25px rgba(124, 58, 237, 0.2);
+            color: #f8fafc;
+        }
+
+        body.dark-theme .modal-header-styled,
+        html.dark-theme .modal-header-styled {
+            background: linear-gradient(135deg, #4c1d95 0%, #2e1065 100%);
+            border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        body.dark-theme .modal-body-styled,
+        html.dark-theme .modal-body-styled {
+            color: #cbd5e1;
+        }
+
+        body.dark-theme .modal-footer-styled,
+        html.dark-theme .modal-footer-styled {
+            border-top: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        body.dark-theme .btn-primary-styled,
+        html.dark-theme .btn-primary-styled {
+            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+            color: #ffffff;
+        }
+
+        /* Floating Theme Toggle Button */
+        .theme-toggle-fixed {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            cursor: pointer;
+            z-index: 99999;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+            border: none;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .theme-toggle-fixed:hover {
+            transform: scale(1.08) rotate(15deg);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        body.dark-theme .theme-toggle-fixed,
+        html.dark-theme .theme-toggle-fixed {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+            color: #fde047;
+        }
+
+        body.dark-theme .theme-toggle-fixed:hover,
+        html.dark-theme .theme-toggle-fixed:hover {
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            .theme-toggle-fixed {
+                top: 15px;
+                right: 15px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+        }
     </style>
 
 </head>
 <body>
+    <!-- Theme Toggle Floating Button -->
+    <button type="button" class="theme-toggle-fixed" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme" title="Toggle Theme">
+        <i class='bx bx-moon' id="themeIcon"></i>
+    </button>
+
     {% include 'partials/_master_loader.html' %}
 
     <!--MESSAGES CONTAINER-->
@@ -1503,6 +1996,39 @@
         loginBtn.addEventListener('click', () => {
             Login_Registration_Card.classList.remove('active');
         });
+
+        // --- Theme Toggle Logic ---
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark-theme');
+            if (isDark) {
+                document.documentElement.classList.add('dark-theme');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark-theme');
+                localStorage.setItem('theme', 'light');
+            }
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+            }
+            if (typeof window.syncThemeColor === 'function') {
+                window.syncThemeColor();
+            }
+        }
+        window.toggleTheme = toggleTheme;
+
+        (function initThemeIcon() {
+            const s = localStorage.getItem('theme');
+            const isDark = (s === 'dark' || s === 'dark-theme');
+            if (isDark) {
+                document.body.classList.add('dark-theme');
+                if (document.documentElement) document.documentElement.classList.add('dark-theme');
+            }
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+            }
+        })();
 
         // --- SCRIPT FOR AUTO-HIDING MESSAGES & PASSWORD TOGGLE ---
         document.addEventListener('DOMContentLoaded', function() {
