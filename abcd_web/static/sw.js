@@ -1,6 +1,6 @@
 // static/sw.js - ABCD & Guidy PWA Service Worker for Background Web Push & App Badging
 
-const STATIC_CACHE_NAME = 'abcd-static-v20260920-v6';
+const STATIC_CACHE_NAME = 'abcd-static-v20260920-v8';
 
 self.addEventListener('install', function (event) {
     self.skipWaiting();
@@ -342,9 +342,8 @@ self.addEventListener('notificationclick', function (event) {
 });
 
 // -----------------------------------------------------------------------------
-// LIGHTWEIGHT CACHE FOR INSTANT APP LAUNCH (<100ms)
+// LIGHTWEIGHT CACHE FOR INSTANT APP LAUNCH (<100ms) & OFFLINE RESILIENCE
 // -----------------------------------------------------------------------------
-const STATIC_CACHE_NAME = 'abcd-static-shell-v4';
 
 self.addEventListener('fetch', function (event) {
     const request = event.request;
@@ -354,6 +353,22 @@ self.addEventListener('fetch', function (event) {
     try {
         url = new URL(request.url);
     } catch (e) {
+        return;
+    }
+
+    // 1. Navigation requests (HTML pages): Network-first with branded offline fallback
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request).catch(function () {
+                return caches.match(request).then(function (cached) {
+                    if (cached) return cached;
+                    return new Response(
+                        '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline - ABCD Campus</title><style>body{margin:0;padding:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#17022c;color:#fff;font-family:system-ui,-apple-system,sans-serif;text-align:center;box-sizing:border-box;padding:20px}.card{max-width:360px;width:100%;padding:32px 24px;border-radius:24px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(10px)}h2{margin:0 0 8px;font-size:1.4rem}p{color:rgba(255,255,255,0.7);font-size:0.95rem;line-height:1.5;margin:0 0 24px}button{background:linear-gradient(135deg,#6c63ff,#764ba2);color:#fff;border:none;padding:12px 28px;border-radius:30px;font-size:1rem;font-weight:600;cursor:pointer;box-shadow:0 4px 14px rgba(108,99,255,0.4);transition:transform .15s}button:active{transform:scale(0.96)}</style></head><body><div class="card"><div style="font-size:3rem;margin-bottom:12px">📡</div><h2>You Are Offline</h2><p>Please check your internet or Wi-Fi connection and tap below to retry.</p><button onclick="window.location.reload()">Retry Connection</button></div></body></html>',
+                        { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+                    );
+                });
+            })
+        );
         return;
     }
 
