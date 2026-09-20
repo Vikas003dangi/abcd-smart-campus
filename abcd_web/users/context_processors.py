@@ -47,12 +47,16 @@ def student_context(request):
             'VAPID_PUBLIC_KEY': getattr(settings, 'VAPID_PUBLIC_KEY', ''),
         }
         
+        from django.db.models import Q
         from .utils import get_user_dashboard_type
         dtype = get_user_dashboard_type(request.user)
         if active_dash in ('student', 'alumni'):
             if active_dash == 'alumni' and StudentAchievement.objects.filter(user=request.user, status='approved').exists():
                 dtype = 'alumni'
-            elif active_dash == 'student' and StudentProfile.objects.filter(user=request.user, status='admitted').exists():
+            elif active_dash == 'student' and StudentProfile.objects.filter(
+                Q(status='admitted') | Q(is_admitted=True),
+                user=request.user
+            ).exists():
                 dtype = 'student'
 
         if dtype is None:

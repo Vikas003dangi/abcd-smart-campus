@@ -14165,7 +14165,10 @@ def todo_hub_page(request):
     if active_dash in ('student', 'alumni'):
         if active_dash == 'alumni' and StudentAchievement.objects.filter(user=user, status='approved').exists():
             dashboard_type = 'alumni'
-        elif active_dash == 'student' and StudentProfile.objects.filter(user=user, status='admitted').exists():
+        elif active_dash == 'student' and StudentProfile.objects.filter(
+            Q(status='admitted') | Q(is_admitted=True),
+            user=user
+        ).exists():
             dashboard_type = 'student'
 
     if dashboard_type is None and user.is_authenticated:
