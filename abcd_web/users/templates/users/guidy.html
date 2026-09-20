@@ -4315,8 +4315,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const isChat = gShellElem && (gShellElem.classList.contains('chat-active') || document.body.classList.contains('chat-active'));
     const isFs = document.body.classList.contains('g-fullscreen-active');
     
-    // Only constrain heights when in active chat mode or fullscreen mode
-    if (!isChat && !isFs) return;
+    // Only constrain heights when in active chat mode or fullscreen mode.
+    // When returning to normal view, cleanly remove inline overrides so page scrolls freely.
+    if (!isChat && !isFs) {
+      const gMainElem = document.getElementById('gMain') || document.querySelector('.g-main');
+      if (gMainElem) {
+        gMainElem.style.removeProperty('height');
+        gMainElem.style.removeProperty('max-height');
+        gMainElem.style.removeProperty('top');
+        gMainElem.style.removeProperty('bottom');
+      }
+      const gWrapElem = document.querySelector('.g-wrap');
+      if (gWrapElem) {
+        gWrapElem.style.removeProperty('height');
+        gWrapElem.style.removeProperty('max-height');
+        gWrapElem.style.removeProperty('top');
+        gWrapElem.style.removeProperty('bottom');
+      }
+      document.body.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('--guidy-vv-height');
+      document.documentElement.style.removeProperty('--guidy-vv-top');
+      return;
+    }
 
     const height = Math.round(vv.height);
     const top = Math.round(vv.offsetTop);
@@ -10002,6 +10022,9 @@ function toggleFullscreenMode() {
     if (icon) icon.className = 'bx bx-fullscreen';
     if (btn) btn.setAttribute('title', 'Toggle Fullscreen');
     localStorage.setItem('guidyFullscreen', 'false');
+  }
+  if (typeof syncGuidyVisualViewport === 'function') {
+    syncGuidyVisualViewport();
   }
 }
 

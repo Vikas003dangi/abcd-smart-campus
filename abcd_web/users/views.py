@@ -3380,8 +3380,15 @@ def post_login_router(request):
     achievement = StudentAchievement.objects.filter(user=request.user).first()
     has_valid_profile = bool(profile and (profile.is_admitted or profile.dob or getattr(profile, 'status', None) == 'admitted'))
 
-    # Priority 1: Dual Identity users (Admitted Student + Alumni)
+    # Priority 1: Dual Identity users (respect current active dashboard session)
     if has_valid_profile and achievement:
+        active_dash = request.session.get('active_dashboard')
+        if active_dash == 'alumni':
+            return redirect('users:alumni_dashboard')
+        elif active_dash == 'student':
+            return redirect('users:student_dashboard')
+        
+        # Default if no active session
         if profile.is_admitted or profile.dob:
             request.session['active_dashboard'] = 'student'
             return redirect('users:student_dashboard')
@@ -14133,14 +14140,14 @@ def dismiss_fee_expired_alerts(request):
 from .models import TodoTask
 from .utils import get_user_dashboard_type
 
-def _get_base_template(user):
-    dtype = get_user_dashboard_type(user)
+def _get_base_template(user, dashboard_type=None):
+    dtype = dashboard_type or get_user_dashboard_type(user)
     if dtype is None and user and user.is_authenticated:
         dtype = 'guest'
     mapping = {
         'teacher': 'users/teacher_dashboard.html',
         'student': 'users/student_dashboard.html',
-        'alumni':  'users/student_dashboard.html',
+        'alumni':  'users/alumni_dashboard.html',
         'guest':   'users/guest_page.html',
     }
     return mapping.get(dtype, 'home_page.html')
@@ -14150,6 +14157,13 @@ def todo_hub_page(request):
     """Renders the main To-Do Hub container."""
     user = request.user
     dashboard_type = get_user_dashboard_type(user)
+    active_dash = request.session.get('active_dashboard')
+    if active_dash in ('student', 'alumni'):
+        if active_dash == 'alumni' and StudentAchievement.objects.filter(user=user, status='approved').exists():
+            dashboard_type = 'alumni'
+        elif active_dash == 'student' and StudentProfile.objects.filter(user=user, is_admitted=True).exists():
+            dashboard_type = 'student'
+
     if dashboard_type is None and user.is_authenticated:
         dashboard_type = 'guest'
     
@@ -14183,7 +14197,7 @@ def todo_hub_page(request):
         }
 
     context = {
-        'base_dashboard': _get_base_template(user),
+        'base_dashboard': _get_base_template(user, dashboard_type=dashboard_type),
         'dashboard_type': dashboard_type,
         'notifications': all_notifications[:15],
         **extra,

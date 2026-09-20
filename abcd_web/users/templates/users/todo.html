@@ -3027,7 +3027,7 @@
   <!-- Fullscreen Mode Top Bar -->
   <div class="todo-fs-header" id="todoFsHeader">
     <div class="todo-fs-header-content">
-      <a href="{% if user.is_staff %}{% url 'users:teacher_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}" class="todo-fs-back-btn" id="todoFsBackBtn" onclick="handleTodoFsBack(event)" title="Back to Dashboard">
+      <a href="{% if user.is_staff %}{% url 'users:teacher_dashboard' %}{% elif is_alumni or dashboard_type == 'alumni' %}{% url 'users:alumni_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}" class="todo-fs-back-btn" id="todoFsBackBtn" onclick="handleTodoFsBack(event)" title="Back to Dashboard">
         <i class='bx bx-left-arrow-alt'></i>
       </a>
       <h2 class="todo-fs-heading">ABCD <span class="todo-fs-divider">|</span> To Do Hub</h2>
@@ -13709,12 +13709,13 @@
       if (icon) icon.className = 'bx bx-fullscreen';
       if (btn) btn.setAttribute('title', 'Toggle Fullscreen');
       localStorage.setItem('todoFullscreen', 'false');
+      document.body.style.removeProperty('overflow');
     }
   }
 
   function handleTodoFsBack(event) {
     if (event) event.preventDefault();
-    const dashboardUrl = "{% if user.is_staff %}{% url 'users:teacher_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}";
+    const dashboardUrl = "{% if user.is_staff %}{% url 'users:teacher_dashboard' %}{% elif is_alumni or dashboard_type == 'alumni' %}{% url 'users:alumni_dashboard' %}{% else %}{% url 'users:student_dashboard' %}{% endif %}";
     window.location.href = dashboardUrl;
   }
 

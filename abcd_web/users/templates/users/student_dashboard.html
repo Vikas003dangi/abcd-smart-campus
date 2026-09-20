@@ -5,9 +5,12 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=overlays-content">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content">
+  <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#fff2de" id="theme-color-meta">
-  <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v2"></script>
+  <meta name="theme-color" content="#fff2de" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#17022c" media="(prefers-color-scheme: dark)">
+  <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v3"></script>
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
   <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
@@ -4191,7 +4194,6 @@
 </head>
 
 <body data-page-key="student_dashboard">
-  {% include 'partials/_app_splash.html' %}
   {% include 'partials/_master_loader.html' %}
   <!-- Top Navigation Menu -->
   {% block top_nav %}

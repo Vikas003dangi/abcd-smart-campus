@@ -27,7 +27,6 @@
       "purpose": "any maskable"
     }
   ],
-  "theme_color": "#17022c",
   "background_color": "#17022c",
   "protocol_handlers": [
     {

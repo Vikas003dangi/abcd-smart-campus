@@ -160,9 +160,9 @@
         } catch (e) {}
     }
 
-    // Register interaction listeners to unlock
-    ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function (evt) {
-        document.addEventListener(evt, unlockAudio, { capture: true, passive: true });
+    // Register one-time interaction listener to unlock Web Audio on first user gesture
+    ['click', 'touchstart', 'keydown'].forEach(function (evt) {
+        document.addEventListener(evt, unlockAudio, { once: true, passive: true });
     });
 
     /**
@@ -331,13 +331,8 @@
         }
     }
 
-    document.addEventListener('pointerdown', handleInteractionButtonSound, true);
-    document.addEventListener('click', function (e) {
-        // Fallback for keyboard interactions (Enter or Space key on focused buttons where pointerdown does not fire)
-        if (e.detail === 0) {
-            handleInteractionButtonSound(e);
-        }
-    }, true);
+    // Passive click sound listener on interactive elements
+    document.addEventListener('click', handleInteractionButtonSound, { passive: true });
 
     // -------------------------------------------------------------
     // Continuous Alarm Engine & Full-Screen Ringing Modal

@@ -1,5 +1,7 @@
 // static/sw.js - ABCD & Guidy PWA Service Worker for Background Web Push & App Badging
 
+const STATIC_CACHE_NAME = 'abcd-static-v20260920-v3';
+
 self.addEventListener('install', function (event) {
     self.skipWaiting();
 });

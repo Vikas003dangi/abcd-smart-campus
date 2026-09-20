@@ -266,13 +266,6 @@
             document.head.appendChild(pp);
         }
 
-        // Universal Background Scroll Lock for any Modal / Popup
-        if (!window.__ABCD_MODAL_SCROLL_LOCK__ && !document.querySelector('script[src*="abcd-modal-scroll-lock.js"]')) {
-            const msl = document.createElement('script');
-            msl.src = '/static/js/abcd-modal-scroll-lock.js?v=4';
-            msl.async = true;
-            document.head.appendChild(msl);
-        }
 
         // Universal Custom Color Picker for all pages
         if (!window.openCustomColorPickerBoard && !document.querySelector('script[src*="abcd-color-picker.js"]')) {

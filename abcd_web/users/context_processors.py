@@ -27,7 +27,8 @@ def student_context(request):
         if not request.user.is_authenticated:
             return default_context
 
-        cache_key = f"student_context_data_{request.user.id}"
+        active_dash = request.session.get('active_dashboard', '')
+        cache_key = f"student_context_data_{request.user.id}_{active_dash}"
         try:
             cached = cache.get(cache_key)
             if cached is not None:
@@ -48,6 +49,12 @@ def student_context(request):
         
         from .utils import get_user_dashboard_type
         dtype = get_user_dashboard_type(request.user)
+        if active_dash in ('student', 'alumni'):
+            if active_dash == 'alumni' and StudentAchievement.objects.filter(user=request.user, status='approved').exists():
+                dtype = 'alumni'
+            elif active_dash == 'student' and StudentProfile.objects.filter(user=request.user, is_admitted=True).exists():
+                dtype = 'student'
+
         if dtype is None:
             dtype = 'guest'
         if dtype == 'guest' and request.session.get('active_dashboard') in ['student', 'alumni']:
@@ -56,7 +63,7 @@ def student_context(request):
         mapping = {
             'teacher': 'users/teacher_dashboard.html',
             'student': 'users/student_dashboard.html',
-            'alumni':  'users/student_dashboard.html',
+            'alumni':  'users/alumni_dashboard.html',
             'guest':   'users/guest_page.html',
         }
         context['base_template'] = mapping.get(dtype, 'home_page.html')
