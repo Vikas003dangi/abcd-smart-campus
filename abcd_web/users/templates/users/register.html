@@ -327,19 +327,25 @@
             max-width: 260px;
             display: inline-flex;
             align-items: center;
-            /* gap: 4px; */
-            padding: 8px;
+            justify-content: center;
+            gap: 10px;
+            padding: 9px 22px;
             border-radius: 999px;
             border: 1px solid #ddd;
             text-decoration: none;
             background: #fff;
-            font-size: 0.85rem;
+            color: #374151;
+            font-size: 0.88rem;
+            font-weight: 600;
             box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease, border-color 0.2s ease;
         }
 
         .google-btn img {
             height: 20px;
+            width: 20px;
+            object-fit: contain;
+            display: block;
         }
 
         .google-btn:hover {
@@ -1177,15 +1183,18 @@
         ============================================================ */
         body.dark-theme,
         html.dark-theme body {
-            background: linear-gradient(to top, #140570, #300448da, #17022c) !important;
+            background: linear-gradient(180deg, #17022c 0%, #110524 50%, #06010d 100%) !important;
             color: #f8fafc;
+            min-height: 100vh;
         }
 
         body.dark-theme .Login-Registration_card,
         html.dark-theme .Login-Registration_card {
-            background-color: rgba(23, 8, 44, 0.75);
+            background-color: rgba(20, 10, 36, 0.75);
             border: 1.5px solid rgba(168, 85, 247, 0.25);
-            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(124, 58, 237, 0.15);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), 0 0 35px rgba(124, 58, 237, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
 
         body.dark-theme .form-box,
@@ -1198,7 +1207,9 @@
         body.dark-theme .Registration-form-box h1,
         html.dark-theme .Registration-form-box h1 {
             color: #ffffff;
-            text-shadow: 0 2px 10px rgba(168, 85, 247, 0.3);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 12px rgba(168, 85, 247, 0.35);
         }
 
         body.dark-theme .Login-Registration_card p,
@@ -1209,13 +1220,16 @@
         body.dark-theme .social-text,
         html.dark-theme .social-text {
             color: #94a3b8;
+            font-weight: 500;
         }
 
         body.dark-theme .input-box input,
         html.dark-theme .input-box input {
-            background: rgba(30, 16, 56, 0.85);
+            background: #1c0e35;
             color: #ffffff;
-            border: 1.5px solid rgba(168, 85, 247, 0.35);
+            border: 1.5px solid rgba(168, 85, 247, 0.3);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-size: 0.92rem;
         }
 
         body.dark-theme .input-box input::placeholder,
@@ -1227,13 +1241,13 @@
         html.dark-theme .input-box input:focus {
             outline: none;
             border-color: #a855f7;
-            background: rgba(38, 20, 70, 0.95);
-            box-shadow: 0 0 12px rgba(168, 85, 247, 0.45);
+            background: #251346;
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25), inset 0 2px 4px rgba(0, 0, 0, 0.15);
         }
 
         body.dark-theme .input-box i,
         html.dark-theme .input-box i {
-            color: #a855f7;
+            color: #a78bfa;
         }
 
         body.dark-theme .input-box input:focus + i,
@@ -1244,6 +1258,7 @@
         body.dark-theme .forgot-link a,
         html.dark-theme .forgot-link a {
             color: #c084fc;
+            font-weight: 500;
         }
 
         body.dark-theme .forgot-link a:hover,
@@ -1256,50 +1271,55 @@
         body.dark-theme .register-btn,
         html.dark-theme .login-btn,
         html.dark-theme .register-btn {
-            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #4338ca 100%);
             color: #ffffff;
-            border: 1px solid rgba(168, 85, 247, 0.5);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.35);
+            font-weight: 600;
         }
 
         body.dark-theme .login-btn:hover,
         body.dark-theme .register-btn:hover,
         html.dark-theme .login-btn:hover,
         html.dark-theme .register-btn:hover {
-            background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
+            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 50%, #4f46e5 100%);
             color: #ffffff;
             border: 1px solid #c084fc;
-            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+            transform: translateY(-2px);
         }
 
         body.dark-theme .login-btn:active,
         body.dark-theme .register-btn:active,
         html.dark-theme .login-btn:active,
         html.dark-theme .register-btn:active {
-            background: #5b21b6;
+            background: #3730a3;
+            transform: translateY(0);
         }
 
         body.dark-theme .google-btn,
         html.dark-theme .google-btn {
-            background: rgba(30, 16, 56, 0.9);
-            border: 1.5px solid rgba(168, 85, 247, 0.35);
+            background: #1c0e35;
+            border: 1.5px solid rgba(168, 85, 247, 0.3);
             color: #f1f5f9;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
         }
 
         body.dark-theme .google-btn:hover,
         html.dark-theme .google-btn:hover {
-            background: rgba(45, 24, 84, 0.95);
+            background: #271448;
             border-color: #a855f7;
-            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+            color: #ffffff;
+            box-shadow: 0 5px 16px rgba(124, 58, 237, 0.35);
+            transform: translateY(-1px);
         }
 
-        /* Toggle Panel & Box */
+        /* Toggle Panel & Curved Sheet */
         body.dark-theme .toggle-box::before,
         html.dark-theme .toggle-box::before {
-            background: linear-gradient(135deg, #1e0936 0%, #120324 100%);
-            border: 1px solid rgba(168, 85, 247, 0.25);
-            box-shadow: inset 0 0 30px rgba(124, 58, 237, 0.15);
+            background: linear-gradient(145deg, #31185c 0%, #200d3d 100%);
+            border: 1.5px solid rgba(192, 132, 252, 0.4);
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 15px 45px rgba(0, 0, 0, 0.6), 0 0 35px rgba(168, 85, 247, 0.25);
         }
 
         body.dark-theme .toggle-panel,
@@ -1310,32 +1330,36 @@
         body.dark-theme .toggle-panel h1,
         html.dark-theme .toggle-panel h1 {
             color: #ffffff;
-            text-shadow: 0 2px 10px rgba(168, 85, 247, 0.4);
+            font-weight: 700;
+            text-shadow: 0 2px 14px rgba(192, 132, 252, 0.5);
         }
 
         body.dark-theme .toggle-panel p,
         html.dark-theme .toggle-panel p {
-            color: #cbd5e1;
+            color: #e2e8f0;
+            font-size: 1.15rem;
         }
 
         body.dark-theme .toggle-panel .register-btn,
         body.dark-theme .toggle-panel .login-btn,
         html.dark-theme .toggle-panel .register-btn,
         html.dark-theme .toggle-panel .login-btn {
-            background: transparent;
-            color: #c084fc;
-            border: 2px solid #a855f7;
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+            background: #f5f3ff;
+            color: #2e1065;
+            border: 2px solid #c084fc;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35), 0 0 18px rgba(192, 132, 252, 0.3);
+            font-weight: 700;
         }
 
         body.dark-theme .toggle-panel .register-btn:hover,
         body.dark-theme .toggle-panel .login-btn:hover,
         html.dark-theme .toggle-panel .register-btn:hover,
         html.dark-theme .toggle-panel .login-btn:hover {
-            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
-            color: #ffffff;
-            border: 2px solid #c084fc;
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+            background: #ffffff;
+            color: #1e0936;
+            border: 2px solid #e9d5ff;
+            box-shadow: 0 6px 24px rgba(192, 132, 252, 0.55);
+            transform: translateY(-2px);
         }
 
         /* Alerts & Error bubbles */
