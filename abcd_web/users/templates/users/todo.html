@@ -12292,15 +12292,48 @@
         updateReminderPermissionNotice();
         if (granted) {
           showSuccessToast('Notifications activated! Alarms will ring reliably.');
+        } else if (('Notification' in window) && Notification.permission === 'denied') {
+          if (typeof showABCDModal === 'function') {
+            showABCDModal({
+              title: 'Notifications Blocked',
+              message: 'Notifications are blocked in your browser or device settings. Please allow notifications in your browser or phone app settings so your study alarms can ring.',
+              type: 'warning'
+            });
+          }
         }
       } else if ('Notification' in window) {
-        const perm = await Notification.requestPermission();
+        const perm = await new Promise((resolve) => {
+          try {
+            const p = Notification.requestPermission(resolve);
+            if (p && typeof p.then === 'function') {
+              p.then(resolve).catch(() => resolve(Notification.permission || 'denied'));
+            }
+          } catch (e) {
+            resolve(Notification.permission || 'denied');
+          }
+        });
         updateReminderPermissionNotice();
         if (perm === 'granted') {
           if (typeof window.registerServiceWorkerAndSync === 'function') {
             await window.registerServiceWorkerAndSync();
           }
           showSuccessToast('Notifications activated! Alarms will ring reliably.');
+        } else if (perm === 'denied') {
+          if (typeof showABCDModal === 'function') {
+            showABCDModal({
+              title: 'Notifications Blocked',
+              message: 'Notifications are blocked in your browser or device settings. Please allow notifications in your browser or phone app settings so your study alarms can ring.',
+              type: 'warning'
+            });
+          }
+        }
+      } else {
+        if (typeof showABCDModal === 'function') {
+          showABCDModal({
+            title: 'Notifications Unsupported',
+            message: 'Push notifications are not supported on this browser or device.',
+            type: 'error'
+          });
         }
       }
     } catch (e) {

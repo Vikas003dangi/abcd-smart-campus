@@ -146,13 +146,6 @@
     }
     // ─────────────────────────────────────────────────────────────────────────
 
-    if (isPageExcluded()) {
-        window.promptNotificationForAction = function () { return Promise.resolve(false); };
-        window.ensureNotificationPermission = window.promptNotificationForAction;
-        window.showABCDNotificationPrompt = function () {};
-        return;
-    }
-
     let bubble = null;
     let pendingCallback = null;
 
@@ -396,8 +389,8 @@
     }
 
     function showBubble(options = {}) {
-        if (isPageExcluded()) return;
-        if (window.__abcd_active_prompt && window.__abcd_active_prompt !== 'notification') {
+        if (isPageExcluded() && !options.force) return;
+        if (window.__abcd_active_prompt && window.__abcd_active_prompt !== 'notification' && !options.force) {
             return;
         }
         if (bubble && bubble.parentNode) {
@@ -412,11 +405,11 @@
     }
 
     function showBrowserPromptGuide() {
-        if (isPageExcluded() || !bubble) return;
+        if (!bubble) return;
         const isApp = isRunningAsApp();
         const guideText = isApp
             ? 'Please tap <strong>"Allow"</strong> on the device permission dialog to activate live notifications.'
-            : 'Please click <strong>"Allow"</strong> on the browser prompt at the top-left to activate live notifications on this device.';
+            : 'Please click <strong>"Allow"</strong> on the browser prompt to activate live notifications on this device.';
 
         bubble.innerHTML = `
             <div class="abcd-push-header">
@@ -437,7 +430,6 @@
     }
 
     function showDeniedInstructions() {
-        if (isPageExcluded()) return;
         injectStyles();
         if (!bubble) {
             bubble = document.createElement('div');
@@ -554,6 +546,12 @@
     // 4. Permission Request Triggered on User Action
     async function requestNotificationPermission() {
         try {
+            if (!('Notification' in window)) {
+                alert('Notifications are not supported by this browser.');
+                dismissPrompt(true);
+                return;
+            }
+
             if (Notification.permission === 'denied') {
                 showDeniedInstructions();
                 if (typeof pendingCallback === 'function') {
@@ -566,7 +564,17 @@
             // Guide user to the browser/device prompt
             showBrowserPromptGuide();
 
-            const permission = await Notification.requestPermission();
+            const permission = await new Promise((resolve) => {
+                try {
+                    const p = Notification.requestPermission(resolve);
+                    if (p && typeof p.then === 'function') {
+                        p.then(resolve).catch(() => resolve(Notification.permission || 'denied'));
+                    }
+                } catch (e) {
+                    resolve(Notification.permission || 'denied');
+                }
+            });
+
             if (permission === 'granted') {
                 localStorage.setItem(ALLOWED_KEY, 'true');
                 localStorage.setItem('abcd_push_user_consented', 'true');
@@ -706,7 +714,8 @@
             showBubble({
                 title: title,
                 body: body,
-                allowBtnText: 'Allow Alerts'
+                allowBtnText: 'Allow Alerts',
+                force: true
             });
         });
     };
@@ -725,7 +734,17 @@
             return false;
         }
         try {
-            const perm = await Notification.requestPermission();
+            const perm = await new Promise((resolve) => {
+                try {
+                    const p = Notification.requestPermission(resolve);
+                    if (p && typeof p.then === 'function') {
+                        p.then(resolve).catch(() => resolve(Notification.permission || 'denied'));
+                    }
+                } catch (e) {
+                    resolve(Notification.permission || 'denied');
+                }
+            });
+
             if (perm === 'granted') {
                 localStorage.setItem(ALLOWED_KEY, 'true');
                 localStorage.setItem('abcd_push_user_consented', 'true');
@@ -750,7 +769,7 @@
         } else if (Notification.permission === 'granted') {
             window.testDeviceNotification();
         } else {
-            showBubble();
+            showBubble({ force: true });
         }
     };
 
