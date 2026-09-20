@@ -261,7 +261,7 @@
         // Ensure Web Push & Service Worker subscription sync is active on all pages
         if (!document.querySelector('script[src*="push-permission.js"]')) {
             const pp = document.createElement('script');
-            pp.src = '/static/js/push-permission.js?v=5';
+            pp.src = '/static/js/push-permission.js?v=6';
             pp.async = true;
             document.head.appendChild(pp);
         }

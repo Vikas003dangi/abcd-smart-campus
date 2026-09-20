@@ -8,7 +8,12 @@
     const SNOOZE_KEY = 'abcd_push_snooze_until';
     const SNOOZE_DURATION_MS = 3 * 24 * 60 * 60 * 1000; // 3 days (occasional reminder)
 
-    // 1. Check feature support
+    // 1. Check feature support and single initialization guard
+    if (window.__abcd_push_permission_initialized) {
+        return;
+    }
+    window.__abcd_push_permission_initialized = true;
+
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
         return;
     }
@@ -177,9 +182,10 @@
                 padding: 20px 22px;
                 color: #1e293b;
                 font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18), 0 0 25px rgba(108, 99, 255, 0.15);
-                z-index: 3000050 !important;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22), 0 0 30px rgba(108, 99, 255, 0.18);
+                z-index: 9999999 !important;
                 pointer-events: auto !important;
+                touch-action: manipulation !important;
                 transform: translateY(130%);
                 opacity: 0;
                 transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
@@ -234,12 +240,17 @@
                 background: transparent;
                 border: none;
                 color: #94a3b8;
-                font-size: 1.3rem;
-                cursor: pointer;
-                padding: 4px;
+                font-size: 1.35rem;
+                cursor: pointer !important;
+                pointer-events: auto !important;
+                touch-action: manipulation !important;
+                padding: 6px;
                 line-height: 1;
                 border-radius: 50%;
                 transition: color 0.2s, background 0.2s;
+                -webkit-tap-highlight-color: transparent !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
             }
             .abcd-push-close:hover {
                 color: #0f172a;
@@ -268,36 +279,52 @@
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: #ffffff;
                 border: none;
-                padding: 10px 16px;
+                padding: 11px 16px;
                 border-radius: 12px;
                 font-size: 0.88rem;
                 font-weight: 700;
-                cursor: pointer;
+                cursor: pointer !important;
+                pointer-events: auto !important;
+                touch-action: manipulation !important;
                 box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 6px;
                 transition: transform 0.15s, box-shadow 0.15s;
+                -webkit-tap-highlight-color: transparent !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
             }
             .abcd-push-btn-allow:hover {
                 transform: translateY(-1px);
                 box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
             }
+            .abcd-push-btn-allow:active {
+                transform: scale(0.97);
+            }
             .abcd-push-btn-later {
                 background: rgba(0, 0, 0, 0.04);
                 color: #64748b;
                 border: 1px solid rgba(0, 0, 0, 0.08);
-                padding: 10px 14px;
+                padding: 11px 16px;
                 border-radius: 12px;
                 font-size: 0.88rem;
                 font-weight: 600;
-                cursor: pointer;
+                cursor: pointer !important;
+                pointer-events: auto !important;
+                touch-action: manipulation !important;
                 transition: background 0.2s, color 0.2s;
+                -webkit-tap-highlight-color: transparent !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
             }
             .abcd-push-btn-later:hover {
                 background: rgba(0, 0, 0, 0.08);
                 color: #0f172a;
+            }
+            .abcd-push-btn-later:active {
+                transform: scale(0.97);
             }
             body.dark-theme .abcd-push-btn-later {
                 background: rgba(255, 255, 255, 0.08);
@@ -347,10 +374,28 @@
         document.head.appendChild(style);
     }
 
+    // Global unified push action handler
+    window.__abcdHandlePushAction = function (e, action) {
+        if (e) {
+            if (typeof e.preventDefault === 'function' && e.cancelable) e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        }
+        if (action === 'allow') {
+            requestNotificationPermission();
+        } else if (action === 'dismiss') {
+            dismissPrompt(true);
+        }
+    };
+
     // 3. Build and attach HTML bubble element with optional custom text
     function buildBubble(options = {}) {
-        if (bubble) return;
         injectStyles();
+
+        // Remove any stale or duplicate bubbles in DOM first
+        document.querySelectorAll('#abcdPushBubble, .abcd-push-bubble').forEach(el => {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
+        bubble = null;
 
         const title = options.title || 'Enable Notifications';
         const body = options.body || 'Get instant alerts for class updates, live library seat availability, and Guidy study support.';
@@ -367,35 +412,69 @@
                     </div>
                     <span>${title}</span>
                 </div>
-                <button class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close">&times;</button>
+                <button type="button" class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close" data-push-dismiss="true" onclick="window.__abcdHandlePushAction(event, 'dismiss')">&times;</button>
             </div>
             <div class="abcd-push-body">
                 ${body}
             </div>
             <div class="abcd-push-actions">
-                <button class="abcd-push-btn-allow" id="abcdPushAllowBtn">
+                <button type="button" class="abcd-push-btn-allow" id="abcdPushAllowBtn" data-push-allow="true" onclick="window.__abcdHandlePushAction(event, 'allow')">
                     <i class='bx bx-check-shield'></i> ${allowBtnText}
                 </button>
-                <button class="abcd-push-btn-later" id="abcdPushLaterBtn">Not Now</button>
+                <button type="button" class="abcd-push-btn-later" id="abcdPushLaterBtn" data-push-dismiss="true" onclick="window.__abcdHandlePushAction(event, 'dismiss')">Not Now</button>
             </div>
         `;
 
         document.body.appendChild(bubble);
 
-        // Click listeners
-        document.getElementById('abcdPushAllowBtn').addEventListener('click', requestNotificationPermission);
-        document.getElementById('abcdPushLaterBtn').addEventListener('click', () => dismissPrompt(true));
-        document.getElementById('abcdPushCloseBtn').addEventListener('click', () => dismissPrompt(true));
+        // Bind direct click and touch handlers as backup
+        const allowBtn = bubble.querySelector('#abcdPushAllowBtn');
+        const laterBtn = bubble.querySelector('#abcdPushLaterBtn');
+        const closeBtn = bubble.querySelector('#abcdPushCloseBtn');
+
+        if (allowBtn) {
+            allowBtn.addEventListener('click', (e) => window.__abcdHandlePushAction(e, 'allow'));
+            allowBtn.addEventListener('touchend', (e) => window.__abcdHandlePushAction(e, 'allow'), { passive: true });
+        }
+        if (laterBtn) {
+            laterBtn.addEventListener('click', (e) => window.__abcdHandlePushAction(e, 'dismiss'));
+            laterBtn.addEventListener('touchend', (e) => window.__abcdHandlePushAction(e, 'dismiss'), { passive: true });
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => window.__abcdHandlePushAction(e, 'dismiss'));
+            closeBtn.addEventListener('touchend', (e) => window.__abcdHandlePushAction(e, 'dismiss'), { passive: true });
+        }
+    }
+
+    // Global capture-phase event delegation: guarantees clicks & touches ALWAYS respond even if intercepted
+    if (!window.__abcd_push_delegation_bound) {
+        window.__abcd_push_delegation_bound = true;
+
+        const onAction = (e) => {
+            const allow = e.target.closest('#abcdPushAllowBtn, [data-push-allow]');
+            if (allow) {
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                requestNotificationPermission();
+                return;
+            }
+            const dismiss = e.target.closest('#abcdPushLaterBtn, #abcdPushCloseBtn, #abcdPushDeniedCloseBtn, [data-push-dismiss]');
+            if (dismiss) {
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                dismissPrompt(true);
+                return;
+            }
+        };
+
+        document.addEventListener('click', onAction, true);
+        document.addEventListener('touchend', onAction, { passive: true, capture: true });
     }
 
     function showBubble(options = {}) {
         if (isPageExcluded() && !options.force) return;
         if (window.__abcd_active_prompt && window.__abcd_active_prompt !== 'notification' && !options.force) {
             return;
-        }
-        if (bubble && bubble.parentNode) {
-            bubble.parentNode.removeChild(bubble);
-            bubble = null;
         }
         buildBubble(options);
         window.__abcd_active_prompt = 'notification';
@@ -431,19 +510,20 @@
 
     function showDeniedInstructions() {
         injectStyles();
-        if (!bubble) {
-            bubble = document.createElement('div');
-            bubble.className = 'abcd-push-bubble';
-            bubble.id = 'abcdPushBubble';
-            document.body.appendChild(bubble);
-        }
+        document.querySelectorAll('#abcdPushBubble, .abcd-push-bubble').forEach(el => {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
+        bubble = document.createElement('div');
+        bubble.className = 'abcd-push-bubble';
+        bubble.id = 'abcdPushBubble';
+        document.body.appendChild(bubble);
         window.__abcd_active_prompt = 'notification';
 
         const isApp = isRunningAsApp();
         const stepsHtml = isApp ? `
             <ol style="margin: 8px 0 0 16px; padding: 0; font-size: 0.85rem; line-height: 1.6;">
                 <li>Open your device <strong>Settings</strong>.</li>
-                <li>Tap <strong>Apps</strong> &gt; <strong>ABCD Smart Campus</strong>.</li>
+                <li>Tap <strong>Apps</strong> &gt; <strong>ABCD Campus</strong>.</li>
                 <li>Tap <strong>Notifications</strong> and switch to <strong>Allowed</strong>.</li>
             </ol>
         ` : `
@@ -462,14 +542,14 @@
                     </div>
                     <span>${isApp ? 'App Notifications Disabled' : 'Notifications Blocked'}</span>
                 </div>
-                <button class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close">&times;</button>
+                <button type="button" class="abcd-push-close" id="abcdPushCloseBtn" aria-label="Close" data-push-dismiss="true" onclick="window.__abcdHandlePushAction(event, 'dismiss')">&times;</button>
             </div>
             <div class="abcd-push-body">
                 Notifications are currently turned off on your device. To enable them:
                 ${stepsHtml}
             </div>
             <div class="abcd-push-actions">
-                <button class="abcd-push-btn-allow" id="abcdPushDeniedCloseBtn" style="background: #475569;">
+                <button type="button" class="abcd-push-btn-allow" id="abcdPushDeniedCloseBtn" data-push-dismiss="true" style="background: #475569;" onclick="window.__abcdHandlePushAction(event, 'dismiss')">
                     Got It
                 </button>
             </div>
@@ -478,8 +558,8 @@
             if (bubble) bubble.classList.add('show');
         });
 
-        const closeBtn = document.getElementById('abcdPushCloseBtn');
-        const gotItBtn = document.getElementById('abcdPushDeniedCloseBtn');
+        const closeBtn = bubble.querySelector('#abcdPushCloseBtn');
+        const gotItBtn = bubble.querySelector('#abcdPushDeniedCloseBtn');
         if (closeBtn) closeBtn.addEventListener('click', () => dismissPrompt(true));
         if (gotItBtn) gotItBtn.addEventListener('click', () => dismissPrompt(true));
     }
@@ -544,7 +624,10 @@
     }
 
     // 4. Permission Request Triggered on User Action
+    let isRequestingPermission = false;
     async function requestNotificationPermission() {
+        if (isRequestingPermission) return;
+        isRequestingPermission = true;
         try {
             if (!('Notification' in window)) {
                 alert('Notifications are not supported by this browser.');
@@ -561,19 +644,32 @@
                 return;
             }
 
+            if (Notification.permission === 'granted') {
+                dismissPrompt(false);
+                await registerServiceWorkerAndSync({ sendWelcome: false });
+                if (typeof pendingCallback === 'function') {
+                    pendingCallback(true);
+                    pendingCallback = null;
+                }
+                return;
+            }
+
             // Guide user to the browser/device prompt
             showBrowserPromptGuide();
 
-            const permission = await new Promise((resolve) => {
-                try {
-                    const p = Notification.requestPermission(resolve);
-                    if (p && typeof p.then === 'function') {
-                        p.then(resolve).catch(() => resolve(Notification.permission || 'denied'));
-                    }
-                } catch (e) {
-                    resolve(Notification.permission || 'denied');
+            let permission;
+            try {
+                const req = Notification.requestPermission();
+                if (req && typeof req.then === 'function') {
+                    permission = await req;
+                } else {
+                    permission = await new Promise((res) => Notification.requestPermission(res));
                 }
-            });
+            } catch (err) {
+                permission = await new Promise((res) => {
+                    try { Notification.requestPermission(res); } catch (e) { res(Notification.permission || 'denied'); }
+                });
+            }
 
             if (permission === 'granted') {
                 localStorage.setItem(ALLOWED_KEY, 'true');
@@ -583,6 +679,7 @@
                 dismissPrompt(false);
 
                 const reg = await registerServiceWorkerAndSync({ sendWelcome: false });
+                playChime('/static/audio/PWA.mp3');
 
                 if (typeof pendingCallback === 'function') {
                     pendingCallback(true);
@@ -600,6 +697,8 @@
         } catch (e) {
             console.error('Error requesting notification permission:', e);
             dismissPrompt(true);
+        } finally {
+            setTimeout(() => { isRequestingPermission = false; }, 1000);
         }
     }
 
