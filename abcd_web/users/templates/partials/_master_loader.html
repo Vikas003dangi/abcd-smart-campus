@@ -1,29 +1,60 @@
 <style>
   /* ══════════════════════════════════════════════════════════════════════════════
      GLOBAL MOBILE TAP HIGHLIGHT & FOCUS BOX SUPPRESSION
-     Eliminates the Android/WebKit default rectangular highlight box on tap/click
+     Eliminates Android/WebKit rectangular tap highlight boxes & outlines on click
      ══════════════════════════════════════════════════════════════════════════════ */
   *,
   *::before,
   *::after {
       -webkit-tap-highlight-color: transparent !important;
       -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+      -webkit-focus-ring-color: transparent !important;
   }
 
-  :focus:not(:focus-visible) {
-      outline: none !important;
-      box-shadow: none !important;
-  }
-
-  button:focus:not(:focus-visible),
-  a:focus:not(:focus-visible),
-  input:focus:not(:focus-visible),
-  select:focus:not(:focus-visible),
-  textarea:focus:not(:focus-visible),
-  [role="button"]:focus:not(:focus-visible),
-  [tabindex]:focus:not(:focus-visible) {
+  :focus,
+  :focus-visible,
+  :focus-within,
+  :active,
+  *:focus,
+  *:focus-visible,
+  *:active {
       outline: none !important;
       -webkit-tap-highlight-color: transparent !important;
+      -webkit-focus-ring-color: transparent !important;
+  }
+
+  button,
+  a,
+  [role="button"],
+  [tabindex],
+  .btn,
+  .icon-btn,
+  .modal-close-btn,
+  .modal-close,
+  .close-btn {
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+      outline: none !important;
+      -webkit-touch-callout: none;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════════
+     DISABLE STICKY HOVER ON TOUCH DEVICES (MOBILE & TABLETS)
+     Preserves full hover effects for desktops / devices with an actual cursor
+     ══════════════════════════════════════════════════════════════════════════════ */
+  @media (hover: none), (pointer: coarse) {
+      button:hover,
+      a:hover,
+      [role="button"]:hover,
+      .btn:hover,
+      .icon-btn:hover,
+      .modal-close-btn:hover,
+      .modal-close:hover,
+      .close-btn:hover,
+      .action-btn:hover {
+          outline: none !important;
+          box-shadow: none !important;
+      }
   }
 
   /* --- MASTER LOADER OVERLAY STYLE --- */
