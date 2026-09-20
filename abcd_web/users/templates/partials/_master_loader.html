@@ -65,13 +65,14 @@
       width: 100%;
       height: 100%;
       background: radial-gradient(circle at center, #111a2e 0%, #080d1a 100%);
-      display: flex;
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 9999999;
-      opacity: 1;
-      visibility: visible;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
       transition: opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
@@ -898,6 +899,9 @@
           clearTimeout(navigationSafetyTimer);
           if (!loader) return;
           loader.classList.add('fade-out');
+          loader.style.opacity = '0';
+          loader.style.visibility = 'hidden';
+          loader.style.pointerEvents = 'none';
           setTimeout(() => {
               loader.style.display = 'none';
               resetErrorUI();
@@ -1011,6 +1015,9 @@
               }
               resetErrorUI();
               loader.style.display = 'flex';
+              loader.style.opacity = '1';
+              loader.style.visibility = 'visible';
+              loader.style.pointerEvents = 'auto';
               loader.classList.remove('fade-out');
               startWatchdog();
               if (!navigator.onLine) {

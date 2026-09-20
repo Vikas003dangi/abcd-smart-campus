@@ -65,6 +65,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 if not DEBUG:
     SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 # -------------------------------
 # SITE / DOMAIN SETTINGS
