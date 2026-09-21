@@ -99,12 +99,6 @@
         let confirmBtn = null;
         let closeBtn = null;
 
-        // Survive bfcache / reload during exit flow
-        try {
-            if (sessionStorage.getItem('abcd_exiting') === '1') {
-                isExiting = true;
-            }
-        } catch(e) {}
 
         function getDOMElements() {
             if (!overlay) overlay = document.getElementById('abcdExitOverlay');
@@ -250,14 +244,8 @@
 
         function executeExit() {
             isExiting = true;
-            try { sessionStorage.setItem('abcd_exiting', '1'); } catch(e) {}
             hideExitModal();
             doActualExit();
-        }
-
-        // If page loaded while exit was in progress (bfcache restore / reload), resume exit
-        if (isExiting) {
-            setTimeout(doActualExit, 50);
         }
 
         // 2. The Popstate Interceptor (Triggers on the very first Back button press!)
