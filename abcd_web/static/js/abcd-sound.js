@@ -115,24 +115,21 @@
         localStorage.setItem(SOUND_STORAGE_KEY, enabled ? 'true' : 'false');
     }
 
-    // Pre-cache small UI interaction sounds (load large alert/alarm audio files on-demand)
+    // Pre-cache small UI interaction sounds (instantiate Audio objects with preload='none' so page load is superfast)
     function initAudioPool() {
         const smallSounds = ['button', 'send', 'receive', 'done', 'error', 'pwa'];
         smallSounds.forEach(function (key) {
             const soundPath = SOUND_PATHS[key];
             if (!soundPath) return;
 
-            // 1. Preload HTML5 Audio
+            // Pre-instantiate HTML5 Audio elements without blocking initial page load
             try {
                 if (!audioPool[key]) {
                     const audio = new Audio(soundPath);
-                    audio.preload = 'auto';
+                    audio.preload = 'none';
                     audioPool[key] = audio;
                 }
             } catch (e) {}
-
-            // 2. Pre-fetch & decode Web Audio buffer
-            loadSoundBuffer(key, soundPath);
         });
     }
 
@@ -145,6 +142,13 @@
             }
 
             if (!isAudioUnlocked) {
+                // Pre-fetch & decode Web Audio buffers now that user has interacted
+                const smallSounds = ['button', 'send', 'receive', 'done', 'error', 'pwa'];
+                smallSounds.forEach(function (key) {
+                    const soundPath = SOUND_PATHS[key];
+                    if (soundPath) loadSoundBuffer(key, soundPath);
+                });
+
                 // Prime HTML5 Audio with an isolated scratch instance
                 const scratch = new Audio(SOUND_PATHS['button']);
                 scratch.volume = 0.01;
@@ -869,13 +873,19 @@
         });
     }
 
+    let isUserUnauthenticated = false;
     function checkGlobalDueAlarms() {
-        if (isCheckingGlobalAlarms) return;
+        if (isCheckingGlobalAlarms || isUserUnauthenticated) return;
+        const path = (window.location.pathname || '').toLowerCase();
+        if (path === '/login/' || path.startsWith('/auth/')) return;
         isCheckingGlobalAlarms = true;
 
         fetch('/todo/get-tasks/?category=REMINDER')
             .then(function (r) {
                 if (!r || !r.ok || r.redirected) {
+                    if (r && r.redirected) {
+                        isUserUnauthenticated = true;
+                    }
                     return null;
                 }
                 return r.json();

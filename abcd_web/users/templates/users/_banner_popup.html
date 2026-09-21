@@ -11,7 +11,7 @@
 
         <!-- Top Brand Header (Shown for Text Banners or Brand Accent) -->
         <div id="bannerBrandHeader" class="banner-brand-header">
-            <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="banner-brand-logo" onerror="this.onerror=null; this.src='https://files.catbox.moe/7qd1rr.png';">
+            <img src="{% static 'data/light-logo.png' %}" alt="ABCD Logo" class="banner-brand-logo" onerror="this.onerror=null; this.src='{% static 'data/dark-logo.png' %}';">
             <span class="banner-brand-tag">Announcement</span>
         </div>
 
@@ -505,13 +505,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function scheduleNotifConnect() {
-        setTimeout(connect, 1500);
+        setTimeout(connect, 800);
     }
 
-    if (document.readyState === 'complete') {
-        scheduleNotifConnect();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', scheduleNotifConnect);
     } else {
-        window.addEventListener('load', scheduleNotifConnect);
+        scheduleNotifConnect();
     }
 })();
 {% endif %}

@@ -13863,15 +13863,15 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
     function initTeacherLiveUpdates() {
         startPollingLoop();
         fetchTeacherLiveStats();
-        setTimeout(initTeacherWebSocket, 1000);
+        setTimeout(initTeacherWebSocket, 800);
     }
 
-    if (document.readyState === 'complete') {
-        setTimeout(initTeacherLiveUpdates, 1000);
-    } else {
-        window.addEventListener('load', () => {
-            setTimeout(initTeacherLiveUpdates, 1000);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initTeacherLiveUpdates, 200);
         });
+    } else {
+        setTimeout(initTeacherLiveUpdates, 200);
     }
 
     window.refreshTeacherLiveStats = fetchTeacherLiveStats;
@@ -14009,7 +14009,6 @@ window.addEventListener('load', initAppCardsScroll, { passive: true });
 </script>
 
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
-<script defer src="{% static 'js/abcd-sound.js' %}"></script>
 <script defer src="{% static 'js/push-permission.js' %}?v=6"></script>
 <script defer src="{% static 'js/app-install-prompt.js' %}"></script>
 <script defer src="{% static 'js/site-tour.js' %}"></script>
