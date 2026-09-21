@@ -154,7 +154,7 @@
 
         const opts = activeOptions;
         const mimeType = opts.mimeType || 'image/jpeg';
-        const quality = typeof opts.quality === 'number' ? opts.quality : 0.9;
+        const quality = typeof opts.quality === 'number' ? opts.quality : 0.88;
 
         const originalText = doneBtnEl.innerHTML;
         doneBtnEl.disabled = true;
@@ -168,8 +168,8 @@
             };
 
             if (opts.aspectRatio && !isNaN(opts.aspectRatio)) {
-                canvasOptions.width = opts.outputWidth || 600;
-                canvasOptions.height = opts.outputHeight || 600;
+                canvasOptions.width = opts.outputWidth || 500;
+                canvasOptions.height = opts.outputHeight || 500;
             } else {
                 if (opts.outputWidth) canvasOptions.maxWidth = opts.outputWidth;
                 if (opts.outputHeight) canvasOptions.maxHeight = opts.outputHeight;
@@ -178,14 +178,13 @@
             const canvas = cropperInstance.getCroppedCanvas(canvasOptions);
 
             if (!canvas) {
-                throw new Error("Unable to extract cropped canvas");
+                throw new Error("Unable to extract cropped canvas. Please try again.");
             }
 
-            canvas.toBlob((blob) => {
+            canvas.toBlob(async (blob) => {
                 try {
                     if (!blob) {
-                        ABCDImageCropper.close();
-                        return;
+                        throw new Error("Failed to generate image data.");
                     }
 
                     const filename = opts.fileName || 'profile_photo.jpg';
@@ -202,13 +201,22 @@
                     };
 
                     if (typeof opts.onDone === 'function') {
-                        opts.onDone(result);
+                        doneBtnEl.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Saving...";
+                        // Wait for async onDone to complete before closing modal
+                        await Promise.resolve(opts.onDone(result));
                     }
 
                     ABCDImageCropper.close();
                 } catch (callbackErr) {
-                    console.error("ABCDImageCropper toBlob error:", callbackErr);
-                    ABCDImageCropper.close();
+                    console.error("ABCDImageCropper save error:", callbackErr);
+                    const msg = callbackErr.message || "An error occurred while saving the photo.";
+                    if (window.showStyledAlert) {
+                        window.showStyledAlert("Save Failed", msg);
+                    } else {
+                        alert(msg);
+                    }
+                    doneBtnEl.disabled = false;
+                    doneBtnEl.innerHTML = originalText;
                 } finally {
                     doneBtnEl.disabled = false;
                     doneBtnEl.innerHTML = originalText;
@@ -217,9 +225,14 @@
 
         } catch (err) {
             console.error("Cropper processing error:", err);
+            const msg = err.message || "Could not crop image. Please try again.";
+            if (window.showStyledAlert) {
+                window.showStyledAlert("Crop Failed", msg);
+            } else {
+                alert(msg);
+            }
             doneBtnEl.disabled = false;
             doneBtnEl.innerHTML = originalText;
-            ABCDImageCropper.close();
         }
     }
 
@@ -237,10 +250,10 @@
                 title: 'Adjust Image',
                 aspectRatio: 1, // 1 (1:1), 16/9, 4/3, or NaN / null for freeform
                 shape: 'circle', // 'circle' or 'rect'
-                outputWidth: 600,
-                outputHeight: 600,
+                outputWidth: 500,
+                outputHeight: 500,
                 mimeType: 'image/jpeg',
-                quality: 0.9,
+                quality: 0.88,
                 fileName: 'image.jpg',
                 onDone: null,
                 onCancel: null
@@ -287,13 +300,33 @@
                     reader.onload = (e) => callback(e.target.result);
                     reader.readAsDataURL(imgSource);
                 } else if (typeof imgSource === 'string') {
-                    callback(imgSource);
+                    if (imgSource.startsWith('data:') || imgSource.startsWith('blob:')) {
+                        callback(imgSource);
+                    } else {
+                        // Remote or absolute URL: fetch as Blob to eliminate CORS/tainted canvas issues
+                        const sep = imgSource.includes('?') ? '&' : '?';
+                        const bustUrl = `${imgSource}${sep}_cb=${Date.now()}`;
+                        fetch(bustUrl, { mode: 'cors' })
+                            .then(res => {
+                                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                                return res.blob();
+                            })
+                            .then(blob => {
+                                const blobUrl = URL.createObjectURL(blob);
+                                callback(blobUrl);
+                            })
+                            .catch(err => {
+                                console.warn("ABCDImageCropper: Blob fetch fallback:", err);
+                                callback(bustUrl);
+                            });
+                    }
                 } else if (imgSource.src) {
-                    callback(imgSource.src);
+                    resolveSource(imgSource.src);
                 }
             };
 
             resolveSource((src) => {
+                targetImgEl.crossOrigin = 'anonymous';
                 targetImgEl.src = src;
 
                 // Show Modal
@@ -330,7 +363,7 @@
                             cropBoxMovable: true,
                             cropBoxResizable: true,
                             toggleDragModeOnDblclick: false,
-                            checkCrossOrigin: false,
+                            checkCrossOrigin: true,
                             ready: function () {
                                 const viewBox = modalEl.querySelector('.cropper-view-box');
                                 if (viewBox) {

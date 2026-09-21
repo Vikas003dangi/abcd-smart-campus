@@ -3867,15 +3867,15 @@
 <!-- "To add Fee" Modal -->
 {% if user.is_staff %}
 <div class="todo-modal-overlay" id="feeModal">
-  <div class="todo-modal" style="max-width: 650px; display: flex; flex-direction: column; max-height: 90vh;">
+  <div class="todo-modal fee-modal-card">
     <!-- Header -->
     <div class="todo-modal-header fee-form-header">
-      <div style="display: flex; align-items: center; gap: 15px;">
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
         <label class="fee-toggle-switch">
           <input type="checkbox" id="autoDeleteToggle" checked onchange="toggleDurationPicker()">
           <span class="fee-slider round"></span>
         </label>
-        <span style="font-weight: 600; font-size: 1rem;">Auto-Delete</span>
+        <span style="font-weight: 600; font-size: 0.95rem;">Auto-Delete</span>
 
         <div id="durationPickerContainer" style="display: flex; align-items: center; gap: 8px;">
           <!-- Hidden inputs for backend logic compatibility -->
@@ -3883,7 +3883,7 @@
           <input type="hidden" id="durationUnit" value="hours">
 
           <!-- Premium Scrollable Selector Pill -->
-          <div id="autoDeletePill" onclick="openAutoDeletePicker()" style="font-size: 0.78rem; font-weight: 700; padding: 6px 12px; border-radius: 16px; 
+          <div id="autoDeletePill" onclick="openAutoDeletePicker()" style="font-size: 0.78rem; font-weight: 700; padding: 5px 12px; border-radius: 16px; 
                       background: rgba(123, 97, 255, 0.1); color: #7b61ff; cursor: pointer; 
                       white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
                       border: 1px solid rgba(123, 97, 255, 0.2); transition: all 0.2s ease;">
@@ -3895,23 +3895,26 @@
       <button class="todo-modal-close" onclick="closeFeeModal()">&times;</button>
     </div>
 
-    <!-- Search Bar Row -->
-    <div style="padding: 15px 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 10px;">
-      <input type="text" class="fee-form-input" id="feeStudentFilter" placeholder="Search students by name..."
-        onkeyup="filterStudentList()" style="flex: 1;">
-      <!-- "Add" button could trigger a manual add if someone is missing, but usually it's just filtering -->
+    <!-- Search & Add Custom Action Row (Always Above the List) -->
+    <div class="fee-search-action-row">
+      <div class="fee-search-wrap">
+        <i class='bx bx-search'></i>
+        <input type="text" class="fee-form-input" id="feeStudentFilter" placeholder="Search students by name..."
+          onkeyup="filterStudentList()">
+      </div>
+      <button type="button" onclick="addManualStudentRow()" id="addCustomNameBtn" class="fee-add-custom-btn" title="Add student not in list">
+        <i class='bx bx-plus'></i> <span>Add Custom Name</span>
+      </button>
     </div>
 
-    <!-- Scrollable Student List -->
-    <div class="todo-modal-body" style="flex: 1; overflow-y: auto; padding: 0;" id="feeStudentListContainer">
-      <!-- Injected via JS -->
-      <div style="padding: 20px; text-align: center; color: #64748b;">Loading students...</div>
+    <!-- Scrollable Student List Container -->
+    <div class="todo-modal-body fee-student-list-body" id="feeStudentListContainer">
+      <div style="padding: 24px; text-align: center; color: #64748b;">Loading students...</div>
     </div>
 
-    <!-- Footer -->
-    <div class="fee-form-footer fee-modal-footer-container"
-      style="padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-      <span id="selectedCount" style="font-weight: 600; color: #475569;">0 selected</span>
+    <!-- Sticky Footer -->
+    <div class="fee-form-footer fee-modal-footer-container">
+      <span id="selectedCount" style="font-weight: 600; font-size: 0.9rem;">0 selected</span>
       <div style="display: flex; gap: 10px;">
         <button type="button" class="btn-secondary" onclick="closeFeeModal()">Cancel</button>
         <button type="button" class="btn-primary" onclick="submitFeeTask()">Save</button>
@@ -4056,6 +4059,266 @@
   body.dark-theme .todo-modal-footer {
     background: #110821 !important;
     border-color: #32254e !important;
+  }
+
+  /* Fee Modal Enhanced Layout & Keyboard Responsiveness */
+  #feeModal.todo-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    padding: 16px;
+    box-sizing: border-box;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    z-index: 2000;
+  }
+
+  #feeModal .fee-modal-card {
+    width: 100%;
+    max-width: 650px;
+    max-height: min(88vh, 88dvh);
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    margin: auto;
+    transition: transform 0.2s ease, max-height 0.2s ease;
+  }
+
+  #feeModal .fee-form-header {
+    flex-shrink: 0;
+    padding: 14px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #feeModal .fee-search-action-row {
+    flex-shrink: 0;
+    padding: 12px 18px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: #ffffff;
+  }
+
+  #feeModal .fee-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+  }
+
+  #feeModal .fee-search-wrap i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 1.15rem;
+    pointer-events: none;
+  }
+
+  #feeModal .fee-form-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #feeModal .fee-form-input:focus {
+    border-color: #7b61ff;
+    box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.15);
+  }
+
+  #feeModal .fee-add-custom-btn {
+    background: linear-gradient(135deg, rgba(123, 97, 255, 0.12) 0%, rgba(123, 97, 255, 0.05) 100%);
+    color: #7b61ff;
+    border: 1.5px dashed #7b61ff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  #feeModal .fee-add-custom-btn:hover {
+    background: rgba(123, 97, 255, 0.18);
+    transform: translateY(-1px);
+  }
+
+  #feeModal .fee-add-custom-btn:active {
+    transform: translateY(0);
+  }
+
+  #feeModal .fee-student-list-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 0;
+    min-height: 120px;
+  }
+
+  #feeModal .student-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s ease;
+  }
+
+  #feeModal .student-row:hover {
+    background: #f8fafc;
+  }
+
+  #feeModal .student-row.custom-student-row {
+    background: rgba(123, 97, 255, 0.04);
+    border-left: 3px solid #7b61ff;
+    padding-left: 15px;
+  }
+
+  #feeModal .student-row.custom-student-row:hover {
+    background: rgba(123, 97, 255, 0.08);
+  }
+
+  #feeModal .fee-form-footer {
+    flex-shrink: 0;
+    padding: 12px 20px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+  }
+
+  /* Dark Theme for Fee Modal */
+  body.dark-theme #feeModal .fee-modal-card {
+    background: #110821;
+    border: 1px solid #32254e;
+    color: #f8fafc;
+  }
+
+  body.dark-theme #feeModal .fee-form-header {
+    background: #150928;
+    border-bottom-color: #32254e;
+  }
+
+  body.dark-theme #feeModal .fee-search-action-row {
+    background: #180b2d;
+    border-bottom-color: #32254e;
+  }
+
+  body.dark-theme #feeModal .fee-form-input,
+  body.dark-theme #feeModal .manual-name-input,
+  body.dark-theme #feeModal .money-input {
+    background: #23123f !important;
+    border-color: #432e6b !important;
+    color: #f8fafc !important;
+  }
+
+  body.dark-theme #feeModal .fee-form-input:focus,
+  body.dark-theme #feeModal .manual-name-input:focus,
+  body.dark-theme #feeModal .money-input:focus {
+    border-color: #7b61ff !important;
+  }
+
+  body.dark-theme #feeModal .student-row {
+    border-bottom-color: #23123f;
+  }
+
+  body.dark-theme #feeModal .student-row:hover {
+    background: rgba(123, 97, 255, 0.08);
+  }
+
+  body.dark-theme #feeModal .student-row.custom-student-row {
+    background: rgba(123, 97, 255, 0.08);
+    border-left-color: #7b61ff;
+  }
+
+  body.dark-theme #feeModal .student-name {
+    color: #f1f5f9 !important;
+  }
+
+  body.dark-theme #feeModal .student-service {
+    color: #94a3b8 !important;
+  }
+
+  body.dark-theme #feeModal .fee-form-footer {
+    background: #150928 !important;
+    border-top-color: #32254e !important;
+  }
+
+  body.dark-theme #feeModal #selectedCount {
+    color: #cbd5e1 !important;
+  }
+
+  body.dark-theme #feeModal .btn-secondary {
+    background: #23123f;
+    border-color: #432e6b;
+    color: #cbd5e1;
+  }
+
+  /* Responsive Mobile Keyboard Adjustments */
+  @media (max-width: 768px) {
+    #feeModal.todo-modal-overlay {
+      padding: 8px;
+      align-items: flex-end;
+    }
+
+    #feeModal .fee-modal-card {
+      max-width: 100% !important;
+      max-height: min(86vh, 86dvh) !important;
+      margin: auto 0 0 0 !important;
+      border-radius: 20px 20px 0 0 !important;
+    }
+
+    #feeModal .fee-search-action-row {
+      padding: 10px 14px;
+      flex-wrap: wrap;
+    }
+
+    #feeModal .fee-search-wrap {
+      flex: 1 1 100%;
+    }
+
+    #feeModal .fee-add-custom-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 7px 12px;
+    }
+
+    #feeModal .student-row {
+      padding: 8px 14px;
+      gap: 8px;
+    }
+
+    #feeModal .money-input {
+      width: 72px !important;
+      font-size: 0.85rem !important;
+    }
   }
 
   .btn-secondary {
@@ -7497,60 +7760,79 @@
     container.innerHTML = '';
 
     if (students.length === 0) {
-      container.innerHTML = '<div style="padding: 20px; text-align: center; color: #64748b;">No students found.</div>';
+      container.innerHTML = '<div style="padding: 24px; text-align: center; color: #64748b;">No students found.</div>';
+      return;
     }
 
-    students.forEach(st => {
+    // Separate manual/custom students so they always show at the top of results
+    const customStudents = students.filter(st => st.id.toString().startsWith('m_'));
+    const regularStudents = students.filter(st => !st.id.toString().startsWith('m_'));
+    const orderedStudents = [...customStudents, ...regularStudents];
+
+    orderedStudents.forEach(st => {
       const isChecked = selectedStudents[st.id] ? 'checked' : '';
       const amountValue = selectedStudents[st.id] ? selectedStudents[st.id].amount : '';
-
-      let avatarHtml;
-      let nameHtml;
-
-      if (st.id.toString().startsWith('m_')) {
-        const currentName = (selectedStudents[st.id] && selectedStudents[st.id].name) || st.name || '';
-        avatarHtml = `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;"><i class='bx bx-user'></i></div>`;
-        nameHtml = `<input type="text" class="manual-name-input" data-id="${st.id}" value="${currentName}" placeholder="Enter Name..." style="width: 100%; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-weight: 600; color: #1e293b; font-size: 0.9rem;">`;
-      } else {
-        avatarHtml = st.photo_url
-          ? `<img src="${st.photo_url}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
-          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(st.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${getStudentInitials(st.name)}</div>`;
-        nameHtml = `<h4 class="student-name" style="margin: 0 0 4px 0; font-weight: 600; color: #1e293b;">${st.name}</h4>`;
-      }
+      const isCustom = st.id.toString().startsWith('m_');
 
       const row = document.createElement('div');
-      row.className = 'student-row';
-      row.style.display = 'flex';
-      row.style.alignItems = 'center';
-      row.style.gap = '12px';
-      row.innerHTML = `
-        <input type="checkbox" class="student-checkbox" data-id="${st.id}" ${isChecked} style="width: 18px; height: 18px; cursor: pointer;">
-        ${avatarHtml}
-        <div class="student-info" style="flex: 1;">
-          ${nameHtml}
-          <p class="student-service" style="margin: 0; font-size: 0.8rem; color: #64748b;">${st.detail}</p>
-        </div>
-        <input type="number" class="money-input" data-id="${st.id}" value="${amountValue}" placeholder="₹ Amount" min="0" style="width: 80px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
-      `;
+      row.className = isCustom ? 'student-row custom-student-row' : 'student-row';
+      row.dataset.id = st.id;
+
+      if (isCustom) {
+        const currentName = (selectedStudents[st.id] && selectedStudents[st.id].name) || st.name || '';
+        row.innerHTML = `
+          <input type="checkbox" class="student-checkbox" data-id="${st.id}" ${isChecked} style="width: 18px; height: 18px; cursor: pointer; accent-color: #7b61ff; flex-shrink: 0;">
+          <div class="student-photo-initials" style="width: 38px; height: 38px; border-radius: 50%; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+            <i class='bx bx-user'></i>
+          </div>
+          <div class="student-info" style="flex: 1; min-width: 0;">
+            <input type="text" class="manual-name-input" data-id="${st.id}" value="${currentName}" placeholder="Enter Name..." style="width: 100%; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #1e293b; font-size: 0.9rem; box-sizing: border-box; outline: none;">
+            <div style="font-size: 0.72rem; color: #7b61ff; font-weight: 600; margin-top: 2px;">Custom Entry</div>
+          </div>
+          <input type="number" class="money-input" data-id="${st.id}" value="${amountValue}" placeholder="₹ Amount" min="0" style="width: 82px; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 600; font-size: 0.9rem; outline: none; flex-shrink: 0;">
+          <button type="button" class="btn-remove-custom" onclick="removeManualStudentRow('${st.id}')" title="Remove custom entry" style="background: none; border: none; color: #ef4444; font-size: 1.25rem; cursor: pointer; padding: 4px 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0;">
+            <i class='bx bx-trash'></i>
+          </button>
+        `;
+      } else {
+        const avatarHtml = st.photo_url
+          ? `<img src="${st.photo_url}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
+          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(st.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${getStudentInitials(st.name)}</div>`;
+        const nameHtml = `<h4 class="student-name" style="margin: 0 0 3px 0; font-weight: 600; color: #1e293b; font-size: 0.92rem;">${st.name}</h4>`;
+
+        row.innerHTML = `
+          <input type="checkbox" class="student-checkbox" data-id="${st.id}" ${isChecked} style="width: 18px; height: 18px; cursor: pointer; accent-color: #7b61ff; flex-shrink: 0;">
+          ${avatarHtml}
+          <div class="student-info" style="flex: 1; min-width: 0;">
+            ${nameHtml}
+            <p class="student-service" style="margin: 0; font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${st.detail}</p>
+          </div>
+          <input type="number" class="money-input" data-id="${st.id}" value="${amountValue}" placeholder="₹ Amount" min="0" style="width: 82px; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 600; font-size: 0.9rem; outline: none; flex-shrink: 0;">
+        `;
+      }
+
       container.appendChild(row);
     });
-
-    const addBtnContainer = document.createElement('div');
-    addBtnContainer.style.padding = "10px 20px 20px 20px";
-    addBtnContainer.style.textAlign = "center";
-    addBtnContainer.innerHTML = `<button type="button" onclick="addManualStudentRow()" style="background: rgba(123, 97, 255, 0.1); color: #7b61ff; border: 1px dashed rgba(123, 97, 255, 0.4); padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px;"><i class='bx bx-plus' style="font-size: 1.1rem;"></i> Add Custom Name</button>`;
-    container.appendChild(addBtnContainer);
   }
 
   function filterStudentList() {
-    const query = document.getElementById('feeStudentFilter').value.toLowerCase();
-    const filtered = allStudentsData.filter(st => st.name.toLowerCase().includes(query) || st.detail.toLowerCase().includes(query));
+    const query = (document.getElementById('feeStudentFilter').value || '').toLowerCase().trim();
+    if (!query) {
+      renderStudentList(allStudentsData);
+      return;
+    }
+    const filtered = allStudentsData.filter(st => {
+      const name = (st.name || '').toLowerCase();
+      const detail = (st.detail || '').toLowerCase();
+      return name.includes(query) || detail.includes(query);
+    });
     renderStudentList(filtered);
   }
 
   function updateSelectedCount() {
     const checked = Object.keys(selectedStudents).length;
-    document.getElementById('selectedCount').textContent = `${checked} selected`;
+    const el = document.getElementById('selectedCount');
+    if (el) el.textContent = `${checked} selected`;
   }
 
   function addManualStudentRow() {
@@ -7562,22 +7844,88 @@
       photo_url: null,
       isManual: true
     };
-    allStudentsData.push(newStudent);
+    // Put at the very beginning of the list
+    allStudentsData.unshift(newStudent);
 
     // Auto select
     selectedStudents[manualId] = { checked: true, amount: '', name: '' };
+    updateSelectedCount();
 
     // Clear search and render
-    document.getElementById('feeStudentFilter').value = '';
+    const filterInput = document.getElementById('feeStudentFilter');
+    if (filterInput) filterInput.value = '';
     filterStudentList();
 
     setTimeout(() => {
-      const input = document.querySelector(`.manual-name-input[data-id="${manualId}"]`);
-      if (input) input.focus();
       const container = document.getElementById('feeStudentListContainer');
-      container.scrollTop = container.scrollHeight;
-    }, 50);
+      if (container) container.scrollTop = 0;
+      const input = document.querySelector(`.manual-name-input[data-id="${manualId}"]`);
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 60);
   }
+
+  function removeManualStudentRow(id) {
+    allStudentsData = allStudentsData.filter(s => s.id !== id);
+    delete selectedStudents[id];
+    updateSelectedCount();
+    filterStudentList();
+  }
+
+  // Keyboard responsiveness for Fee Modal
+  (function initFeeModalKeyboardHandler() {
+    function adjustForKeyboard() {
+      const feeOverlay = document.getElementById('feeModal');
+      if (!feeOverlay || !feeOverlay.classList.contains('active')) return;
+      const modal = feeOverlay.querySelector('.todo-modal');
+      if (!modal) return;
+
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const fullH = window.innerHeight;
+      const isKeyboardOpen = (fullH - vh) > 130;
+
+      if (isKeyboardOpen) {
+        feeOverlay.style.setProperty('align-items', 'flex-start', 'important');
+        feeOverlay.style.setProperty('padding-top', '8px', 'important');
+        feeOverlay.style.setProperty('padding-bottom', '8px', 'important');
+        feeOverlay.style.setProperty('height', vh + 'px', 'important');
+        modal.style.setProperty('max-height', Math.max(220, vh - 16) + 'px', 'important');
+        modal.style.setProperty('margin', '0 auto', 'important');
+
+        const active = document.activeElement;
+        if (active && (active.classList.contains('money-input') || active.classList.contains('manual-name-input') || active.id === 'feeStudentFilter')) {
+          setTimeout(() => {
+            active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 80);
+        }
+      } else {
+        feeOverlay.style.removeProperty('align-items');
+        feeOverlay.style.removeProperty('padding-top');
+        feeOverlay.style.removeProperty('padding-bottom');
+        feeOverlay.style.removeProperty('height');
+        modal.style.removeProperty('max-height');
+        modal.style.removeProperty('margin');
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', adjustForKeyboard);
+      window.visualViewport.addEventListener('scroll', adjustForKeyboard);
+    }
+    window.addEventListener('resize', adjustForKeyboard);
+
+    document.addEventListener('focusin', function(e) {
+      const feeModal = document.getElementById('feeModal');
+      if (!feeModal || !feeModal.classList.contains('active')) return;
+      if (e.target.matches('.money-input, .manual-name-input, #feeStudentFilter')) {
+        setTimeout(() => {
+          e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+      }
+    });
+  })();
 </script>
 {% endif %}
 

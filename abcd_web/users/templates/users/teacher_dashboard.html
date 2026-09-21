@@ -15,6 +15,11 @@
       try {
         var s = localStorage.getItem('theme');
         var d = (s === 'dark' || s === 'dark-theme');
+        if (d) {
+          document.documentElement.classList.add('dark-theme');
+        } else if (s === 'light' || s === 'light-theme') {
+          document.documentElement.classList.remove('dark-theme');
+        }
         var c = d ? '#17022c' : '#fff2de';
         var cs = document.getElementById('color-scheme-meta');
         if (cs) cs.content = d ? 'dark' : 'light';

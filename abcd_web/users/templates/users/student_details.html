@@ -287,7 +287,7 @@
         <!-- Photo Header -->
         <div class="photo-container">
             <div class="photo-frame" onclick="viewPhoto()">
-                <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" id="profile-img-main">
+                <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" id="profile-img-main" crossorigin="anonymous">
                 <div class="photo-overlay">SEE</div>
             </div>
             <div class="edit-photo-btn" onclick="openPhotoManager()" title="Manage Photo">
@@ -379,14 +379,14 @@
         </button>
     </div>
     <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 30px;" onclick="event.stopPropagation()">
-        <img id="broadViewImg" src="" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15);">
+        <img id="broadViewImg" src="" crossorigin="anonymous" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15);">
     </div>
 </div>
 
 <!-- Photo Manager Modal -->
 <div id="photoManagerModal" class="modal-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
+        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--profile-text); display: flex; align-items: center; gap: 8px;">
             <i class='bx bxs-camera'></i> Profile Photo
         </h3>
         <button type="button" onclick="closePhotoManager()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
@@ -514,8 +514,8 @@
             title: 'Adjust Profile Photo',
             aspectRatio: 1,
             shape: 'circle',
-            outputWidth: 600,
-            outputHeight: 600,
+            outputWidth: 500,
+            outputHeight: 500,
             onDone: async function(result) {
                 const formData = new FormData();
                 formData.append('photo_base64', result.dataUrl);
@@ -523,24 +523,27 @@
                 const csrf = csrfInput ? csrfInput.value : '{{ csrf_token }}';
                 formData.append('csrfmiddlewaretoken', csrf);
 
-                try {
-                    const response = await fetch("{% url 'users:upload_profile_photo' student.id %}", {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRFToken': csrf
-                        }
-                    });
-                    if (response.ok) {
-                        window.location.reload();
-                    } else {
-                        const data = await response.json().catch(() => ({}));
-                        window.showStyledAlert("Upload Failed", data.message || "Server error while saving photo");
+                const response = await fetch("{% url 'users:upload_profile_photo' student.id %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrf
                     }
-                } catch(e) {
-                    console.error("Upload error:", e);
-                    window.showStyledAlert("Upload Failed", "An error occurred while uploading your photo.");
+                });
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.status === 'success') {
+                    const newUrl = data.photo_url || result.dataUrl;
+                    const img = document.getElementById('profile-img-main');
+                    if (img) img.src = newUrl;
+                    const broadImg = document.getElementById('broadViewImg');
+                    if (broadImg) broadImg.src = newUrl;
+                    if (window.showStyledToast) {
+                        window.showStyledToast("Photo updated successfully!", "success");
+                    }
+                    setTimeout(() => window.location.reload(), 400);
+                } else {
+                    throw new Error(data.message || "Server error while saving photo");
                 }
             },
             onCancel: function() {

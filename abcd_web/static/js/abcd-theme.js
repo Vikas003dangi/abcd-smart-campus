@@ -104,31 +104,72 @@
 
   function sync() {
     const isDark = isDarkThemeActive();
+    if (document.documentElement) {
+      if (isDark) {
+        document.documentElement.classList.add('dark-theme');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark-theme');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    }
+    if (document.body) {
+      if (isDark) {
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+      }
+    }
     applyStatusBarColor(getTargetColor(isDark), isDark);
   }
 
   // Expose globally so any theme toggle function can call window.syncThemeColor() directly
   window.syncThemeColor = sync;
 
-  // Early class assignment to avoid white flash on dark reload
-  try {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark' || saved === 'dark-theme') {
-      if (document.body) {
-        document.body.classList.add('dark-theme');
-      } else {
-        document.documentElement.classList.add('dark-theme');
-      }
-    }
-  } catch (e) {}
+  // Ultra-fast immediate theme application to prevent white/light flash
+  (function initEarlyTheme() {
+    try {
+      const saved = localStorage.getItem('theme');
+      const isDark = (saved === 'dark' || saved === 'dark-theme');
 
-  // 1. Initial fast synchronous execution in <head>
+      if (isDark) {
+        document.documentElement.classList.add('dark-theme');
+        document.documentElement.setAttribute('data-theme', 'dark');
+        // Inject instant high-priority CSS guard to prevent any white flash during initial parse
+        const darkBg = getTargetColor(true);
+        let guard = document.getElementById('abcd-early-theme-guard');
+        if (!guard) {
+          guard = document.createElement('style');
+          guard.id = 'abcd-early-theme-guard';
+          guard.textContent = 'html.dark-theme, html.dark-theme body { background-color: ' + darkBg + ' !important; color: #f8fafc !important; }';
+          (document.head || document.documentElement).appendChild(guard);
+        }
+      } else if (saved === 'light' || saved === 'light-theme') {
+        document.documentElement.classList.remove('dark-theme');
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+
+      // Fast-attach to <body> BEFORE first paint as soon as browser parser creates it
+      if (document.body) {
+        if (isDark) document.body.classList.add('dark-theme');
+        else document.body.classList.remove('dark-theme');
+      } else if (window.MutationObserver) {
+        const bodyObserver = new MutationObserver(function (mutations, obs) {
+          if (document.body) {
+            if (isDark) document.body.classList.add('dark-theme');
+            else document.body.classList.remove('dark-theme');
+            obs.disconnect();
+          }
+        });
+        bodyObserver.observe(document.documentElement, { childList: true });
+      }
+    } catch (e) {}
+  })();
+
+  // 1. Synchronous initial run in <head>
   sync();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
-      if (document.documentElement.classList.contains('dark-theme') && document.body && !document.body.classList.contains('dark-theme')) {
-        document.body.classList.add('dark-theme');
-      }
       sync();
     }, { once: true });
   }

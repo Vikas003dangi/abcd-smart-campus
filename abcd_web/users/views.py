@@ -9109,12 +9109,20 @@ def upload_profile_photo(request, student_id):
                 image = Image.open(io.BytesIO(decoded_data))
                 image.verify()
                 
-                data = ContentFile(decoded_data, name=f"profile_{student_id}.{ext}")
-                if student.photo:
-                    student.photo.delete(save=False)
+                import time
+                timestamp = int(time.time())
+                data = ContentFile(decoded_data, name=f"profile_{student_id}_{timestamp}.{ext}")
+                old_photo = student.photo
                 student.photo = data
                 student.save()
-                return JsonResponse({'status': 'success'})
+                if old_photo:
+                    try:
+                        import threading
+                        threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
+                    except Exception:
+                        pass
+                new_url = student.photo.url if student.photo else ''
+                return JsonResponse({'status': 'success', 'photo_url': new_url})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': f'Invalid image data: {str(e)}'}, status=400)
                 
@@ -9131,11 +9139,20 @@ def upload_profile_photo(request, student_id):
                 image.verify()
                 photo_file.seek(0)
                 
-                if student.photo:
-                    student.photo.delete(save=False)
-                student.photo = photo_file
+                import time
+                timestamp = int(time.time())
+                data = ContentFile(photo_file.read(), name=f"profile_{student_id}_{timestamp}.{ext}")
+                old_photo = student.photo
+                student.photo = data
                 student.save()
-                return JsonResponse({'status': 'success'})
+                if old_photo:
+                    try:
+                        import threading
+                        threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
+                    except Exception:
+                        pass
+                new_url = student.photo.url if student.photo else ''
+                return JsonResponse({'status': 'success', 'photo_url': new_url})
             except Exception as e:
                 return JsonResponse({'status': 'error', 'message': f'Invalid image file: {str(e)}'}, status=400)
     
@@ -16246,15 +16263,33 @@ def guidy_update_teacher_profile(request):
                 decoded_data = base64.b64decode(imgstr)
                 image = Image.open(io.BytesIO(decoded_data))
                 image.verify()
-                data = ContentFile(decoded_data, name=f"teacher_{user.id}.{ext}")
-                if profile.photo:
+                import time
+                timestamp = int(time.time())
+                data = ContentFile(decoded_data, name=f"teacher_{user.id}_{timestamp}.{ext}")
+                old_photo = profile.photo
+                profile.photo = data
+                profile.save()
+                if old_photo:
                     try:
-                        profile.photo.delete(save=False)
+                        import threading
+                        threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
                     except Exception:
                         pass
-                profile.photo = data
         elif 'photo' in request.FILES:
-            profile.photo = request.FILES['photo']
+            import time
+            uploaded = request.FILES['photo']
+            ext = (uploaded.name.split('.')[-1] if '.' in uploaded.name else 'jpg').lower()
+            timestamp = int(time.time())
+            data = ContentFile(uploaded.read(), name=f"teacher_{user.id}_{timestamp}.{ext}")
+            old_photo = profile.photo
+            profile.photo = data
+            profile.save()
+            if old_photo:
+                try:
+                    import threading
+                    threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
+                except Exception:
+                    pass
 
         profile.save()
 
