@@ -7712,10 +7712,8 @@
 
     // Confirm → navigate to logout (use replace to avoid keeping authenticated session in history stack)
     logoutBtn.addEventListener('click', function() {
-        if (logoutUrl) {
-            hideLogoutPopup();
-            window.location.replace(logoutUrl);
-        }
+        var targetUrl = logoutUrl || "{% url 'users:logout' %}";
+        window.location.replace(targetUrl);
     });
 
     // Anti-bfcache: If restored from cache, reload to verify authentication
