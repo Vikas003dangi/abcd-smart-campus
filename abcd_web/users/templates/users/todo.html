@@ -7816,7 +7816,7 @@
       } else {
         const safeName = escapeHtml(st.name || '');
         const safeDetail = escapeHtml(st.detail || '');
-        const safePhotoUrl = st.photo_url ? encodeURI(st.photo_url) : null;
+        const safePhotoUrl = st.photo_url ? escapeHtml(st.photo_url) : null;
         const avatarHtml = safePhotoUrl
           ? `<img src="${safePhotoUrl}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
           : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(st.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${escapeHtml(getStudentInitials(st.name))}</div>`;

@@ -66,7 +66,12 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
         try:
             name_str = str(name)
             rtype = self._get_resource_type(name_str)
-            clean_name = os.path.splitext(name_str)[0] if rtype in ['image', 'video'] else name_str
+            root, ext = os.path.splitext(name_str)
+            recognized_media_exts = {
+                '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.tiff', '.ico', '.svg',
+                '.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.mp3', '.wav', '.ogg'
+            }
+            clean_name = root if (rtype in ['image', 'video'] and ext.lower() in recognized_media_exts) else name_str
             response = cloudinary.uploader.destroy(clean_name, invalidate=True, resource_type=rtype)
             return response.get('result') in ['ok', 'not found']
         except Exception:

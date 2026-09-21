@@ -9122,8 +9122,7 @@ def upload_profile_photo(request, student_id):
                 student.save()
                 if old_photo_name and old_photo_storage:
                     try:
-                        import threading
-                        threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
+                        old_photo_storage.delete(old_photo_name)
                     except Exception:
                         pass
                 new_url = student.photo.url if student.photo else ''
@@ -9153,8 +9152,7 @@ def upload_profile_photo(request, student_id):
                 student.save()
                 if old_photo_name and old_photo_storage:
                     try:
-                        import threading
-                        threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
+                        old_photo_storage.delete(old_photo_name)
                     except Exception:
                         pass
                 new_url = student.photo.url if student.photo else ''
@@ -16265,51 +16263,63 @@ def guidy_update_teacher_profile(request):
             if ';base64,' in photo_base64:
                 format_part, imgstr = photo_base64.split(';base64,')
                 raw_ext = format_part.split('/')[-1].lower()
-                ext = 'jpg' if raw_ext in ('jpeg', 'jpg') else ('png' if raw_ext == 'png' else ('webp' if raw_ext == 'webp' else 'jpg'))
+                if raw_ext in ('jpeg', 'jpg'):
+                    ext = 'jpg'
+                elif raw_ext == 'png':
+                    ext = 'png'
+                elif raw_ext == 'webp':
+                    ext = 'webp'
+                else:
+                    return JsonResponse({'success': False, 'message': 'Allowed image formats are JPG, PNG, and WebP.'}, status=400)
+
                 try:
                     decoded_data = base64.b64decode(imgstr)
-                    if len(decoded_data) <= 5 * 1024 * 1024:
-                        image = Image.open(io.BytesIO(decoded_data))
-                        image.verify()
-                        import time
-                        timestamp = int(time.time())
-                        data = ContentFile(decoded_data, name=f"teacher_{user.id}_{timestamp}.{ext}")
-                        old_photo_name = profile.photo.name if profile.photo else None
-                        old_photo_storage = profile.photo.storage if (profile.photo and hasattr(profile.photo, 'storage')) else None
-                        profile.photo = data
-                        profile.save()
-                        if old_photo_name and old_photo_storage:
-                            try:
-                                import threading
-                                threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
-                            except Exception:
-                                pass
-                except Exception:
-                    pass
-        elif 'photo' in request.FILES:
-            from PIL import Image
-            uploaded = request.FILES['photo']
-            ext = (uploaded.name.split('.')[-1] if '.' in uploaded.name else '').lower()
-            if ext in ['jpg', 'jpeg', 'png', 'webp'] and uploaded.size <= 5 * 1024 * 1024:
-                try:
-                    image = Image.open(uploaded)
+                    if len(decoded_data) > 5 * 1024 * 1024:
+                        return JsonResponse({'success': False, 'message': 'Image size exceeds 5MB limit.'}, status=400)
+                    image = Image.open(io.BytesIO(decoded_data))
                     image.verify()
-                    uploaded.seek(0)
                     import time
                     timestamp = int(time.time())
-                    data = ContentFile(uploaded.read(), name=f"teacher_{user.id}_{timestamp}.{ext}")
+                    data = ContentFile(decoded_data, name=f"teacher_{user.id}_{timestamp}.{ext}")
                     old_photo_name = profile.photo.name if profile.photo else None
                     old_photo_storage = profile.photo.storage if (profile.photo and hasattr(profile.photo, 'storage')) else None
                     profile.photo = data
                     profile.save()
                     if old_photo_name and old_photo_storage:
                         try:
-                            import threading
-                            threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
+                            old_photo_storage.delete(old_photo_name)
                         except Exception:
                             pass
-                except Exception:
-                    pass
+                except Exception as e:
+                    return JsonResponse({'success': False, 'message': f'Invalid image data: {str(e)}'}, status=400)
+            else:
+                return JsonResponse({'success': False, 'message': 'Malformed base64 image data.'}, status=400)
+        elif 'photo' in request.FILES:
+            from PIL import Image
+            uploaded = request.FILES['photo']
+            ext = (uploaded.name.split('.')[-1] if '.' in uploaded.name else '').lower()
+            if ext not in ['jpg', 'jpeg', 'png', 'webp']:
+                return JsonResponse({'success': False, 'message': 'Allowed image formats are JPG, PNG, and WebP.'}, status=400)
+            if uploaded.size > 5 * 1024 * 1024:
+                return JsonResponse({'success': False, 'message': 'File size exceeds 5MB limit.'}, status=400)
+            try:
+                image = Image.open(uploaded)
+                image.verify()
+                uploaded.seek(0)
+                import time
+                timestamp = int(time.time())
+                data = ContentFile(uploaded.read(), name=f"teacher_{user.id}_{timestamp}.{ext}")
+                old_photo_name = profile.photo.name if profile.photo else None
+                old_photo_storage = profile.photo.storage if (profile.photo and hasattr(profile.photo, 'storage')) else None
+                profile.photo = data
+                profile.save()
+                if old_photo_name and old_photo_storage:
+                    try:
+                        old_photo_storage.delete(old_photo_name)
+                    except Exception:
+                        pass
+            except Exception as e:
+                return JsonResponse({'success': False, 'message': f'Invalid image file: {str(e)}'}, status=400)
 
         profile.save()
 
