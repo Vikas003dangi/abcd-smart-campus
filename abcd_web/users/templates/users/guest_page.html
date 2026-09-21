@@ -3465,7 +3465,7 @@
         <span>Services</span>
     </a>
     <a href="{% url 'users:profile' %}" class="bnav-item" id="bnavProfile" title="Profile" aria-label="Profile">
-        <i class='bx bx-user'></i>
+        <img src="{% current_user_photo %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
         <span>Profile</span>
     </a>
 </div>
@@ -4378,13 +4378,6 @@
             window.openNoProfilePopup = openNoProfilePopup;
             window.closeNoProfilePopup = closeNoProfilePopup;
 
-            if (bnavProfile) {
-                bnavProfile.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openNoProfilePopup();
-                });
-            }
 
             if (closeBtn && popup) {
                 closeBtn.addEventListener('click', closeNoProfilePopup);

@@ -269,25 +269,48 @@ def home_page_view(request):
 
         return redirect('users:guest_page')
         
-    youtube_videos = get_latest_youtube_videos()
-    preview_courses = get_accessible_courses(request.user)[:3]
-    _ach_pool = list(
-        StudentAchievement.objects.filter(status='approved')
-        .order_by('-id')
-    )
-    if len(_ach_pool) > 50:
-        achievements = random.sample(_ach_pool, 50)
-    else:
-        achievements = _ach_pool
-    resolved_complaints_count = Complaint.objects.filter(status='resolved').count()
-    
+    try:
+        youtube_videos = get_latest_youtube_videos()
+    except Exception:
+        youtube_videos = []
+
+    try:
+        accessible_courses = get_accessible_courses(request.user)
+        preview_courses = list(accessible_courses[:3])
+        courses_count = accessible_courses.count()
+    except Exception:
+        preview_courses = []
+        courses_count = 0
+
+    try:
+        _ach_pool = list(
+            StudentAchievement.objects.filter(status='approved')
+            .order_by('-id')
+        )
+        if len(_ach_pool) > 50:
+            achievements = random.sample(_ach_pool, 50)
+        else:
+            achievements = _ach_pool
+    except Exception:
+        achievements = []
+
+    try:
+        resolved_complaints_count = Complaint.objects.filter(status='resolved').count()
+    except Exception:
+        resolved_complaints_count = 0
+
+    try:
+        avail_seats_count = get_available_seats_count()
+    except Exception:
+        avail_seats_count = 0
+
     return render(request, 'home_page.html', {
         "youtube_videos": youtube_videos,
         "preview_courses": preview_courses,
         "achievements": achievements,
         "res_count": resolved_complaints_count,
-        "avail_seats_count": get_available_seats_count(),
-        "courses_count": get_accessible_courses(request.user).count(),
+        "avail_seats_count": avail_seats_count,
+        "courses_count": courses_count,
     })
 
 
@@ -3167,11 +3190,11 @@ def set_new_user_flag(backend, strategy, details, response, user=None, is_new=Fa
 
 
 
-@login_required
 @never_cache
 def logout_view(request):
-    logout(request)
-    messages.info(request, "You have been logged out.")
+    if request.user.is_authenticated:
+        logout(request)
+        messages.info(request, "You have been logged out.")
     response = redirect('users:home_page')
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response['Pragma'] = 'no-cache'

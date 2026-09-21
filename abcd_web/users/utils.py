@@ -1794,16 +1794,9 @@ def get_profile_photo_url(user, dashboard_type=None):
     # Check direct gender attribute if present
     u_gender = (getattr(user, 'gender', None) or getattr(user, 'sex', None) or '').lower()
     if u_gender == 'male':
-        return "/static/data/avatar_male.png"
+        return "/static/data/default_avatar_male.png"
     elif u_gender == 'female':
-        return "/static/data/avatar_female.png"
-
-    # Priority 3: Default UI-Avatar
-    name = (user.get_full_name() if hasattr(user, 'get_full_name') else '') or getattr(user, 'username', '')
-    if name:
-        import urllib.parse
-        encoded_name = urllib.parse.quote_plus(name)
-        return f"https://ui-avatars.com/api/?name={encoded_name}&background=random"
+        return "/static/data/default_avatar_female.png"
 
     return "/static/data/default_avatar.png"
 

@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 {% load dict_extras %}
 <!DOCTYPE html>
 <html lang="en">
@@ -8736,12 +8736,7 @@
     <a href="{% url 'users:teacher_profile_details' %}" class="bnav-item {% if request.resolver_match.url_name == 'teacher_profile_details' or request.resolver_match.url_name == 'profile' %}active{% endif %}" title="Profile">
       {% with t_photo=user|user_photo:'teacher' %}
         {% with final_photo=photo_url|default:t_photo %}
-          {% if final_photo and 'data/user.png' not in final_photo %}
-            <img src="{{ final_photo }}" alt="Profile" class="bnav-profile-circle" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block';">
-            <i class='bx bx-user' style="display: none;"></i>
-          {% else %}
-            <i class='bx bx-user'></i>
-          {% endif %}
+          <img src="{% if final_photo and 'data/user.png' not in final_photo %}{{ final_photo }}{% else %}{% current_user_photo %}{% endif %}" alt="Profile" class="bnav-profile-circle" onerror="this.src='/static/data/default_avatar.png';">
         {% endwith %}
       {% endwith %}
       <span>Profile</span>

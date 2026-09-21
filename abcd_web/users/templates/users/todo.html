@@ -3504,9 +3504,20 @@
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
           <div style="display:flex; align-items:center; gap:8px;">
             <i class='bx bx-bell-off' style="font-size:1.3rem; flex-shrink:0;"></i>
-            <span>Enable notifications so your alarm rings even when your screen is locked.</span>
+            <span id="reminderNotificationNoticeText">Enable notifications so your alarm rings even when your screen is locked.</span>
           </div>
           <button type="button" id="enableAlarmNotifBtn" onclick="enableAlarmNotificationsNow()" style="background:#f59e0b; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:0.8rem; font-weight:700; cursor:pointer; white-space:nowrap; box-shadow:0 2px 8px rgba(245,158,11,0.3);">Enable</button>
+        </div>
+      </div>
+
+      <!-- Battery Optimization Tip for reliable background alarms -->
+      <div id="batteryOptimizationNotice" style="display:none; margin-top:10px; padding:10px 14px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:12px; font-size:0.8rem; color:#4f46e5;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class='bx bx-battery' style="font-size:1.2rem; flex-shrink:0;"></i>
+            <span>For alarms when screen is locked, set App Battery to <strong>Unrestricted</strong> in phone settings.</span>
+          </div>
+          <button type="button" onclick="showModalAlert('Battery Optimization Guide', 'To prevent Android from silencing alarms when your phone sleeps:\n\n1. Open Phone Settings > Apps > ABCD Campus (or Chrome).\n2. Tap Battery (or App Battery Usage).\n3. Select Unrestricted (or turn OFF Battery Optimization).\n\nThis ensures background alarms ring reliably on time!')" style="background:#6366f1; color:#fff; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:600; cursor:pointer; white-space:nowrap;">Guide</button>
         </div>
       </div>
 
@@ -12306,10 +12317,33 @@
 
   function updateReminderPermissionNotice() {
     const notice = document.getElementById('reminderNotificationNotice');
-    if (!notice) return;
+    const noticeText = document.getElementById('reminderNotificationNoticeText');
+    const btn = document.getElementById('enableAlarmNotifBtn');
+    const battNotice = document.getElementById('batteryOptimizationNotice');
     const alarmOn = document.getElementById('reminderAlarmToggle')?.checked;
+
+    if (battNotice) {
+      battNotice.style.display = alarmOn ? 'block' : 'none';
+    }
+
+    if (!notice) return;
     if (alarmOn && ('Notification' in window) && Notification.permission !== 'granted') {
       notice.style.display = 'block';
+      if (Notification.permission === 'denied') {
+        if (noticeText) noticeText.textContent = 'Notifications are blocked in settings. Alarms cannot ring while screen is off.';
+        if (btn) {
+          btn.textContent = 'Settings Guide';
+          btn.style.background = '#ef4444';
+          btn.style.boxShadow = '0 2px 8px rgba(239,68,68,0.3)';
+        }
+      } else {
+        if (noticeText) noticeText.textContent = 'Enable notifications so your alarm rings even when your screen is locked.';
+        if (btn) {
+          btn.textContent = 'Enable';
+          btn.style.background = '#f59e0b';
+          btn.style.boxShadow = '0 2px 8px rgba(245,158,11,0.3)';
+        }
+      }
     } else {
       notice.style.display = 'none';
     }
@@ -12317,6 +12351,14 @@
 
   window.enableAlarmNotificationsNow = async function () {
     const btn = document.getElementById('enableAlarmNotifBtn');
+    if (('Notification' in window) && Notification.permission === 'denied') {
+      showModalAlert(
+        'Allow Notifications for Alarms',
+        'Notifications are currently blocked in your phone or browser settings.\n\nTo allow alarms to ring:\n\n1. In the ABCD Campus App:\n   Open Phone Settings > Apps > ABCD Campus > Notifications > Turn ON.\n\n2. In Chrome / Browser:\n   Tap the lock or tune icon next to the address bar > Site Settings / Permissions > Notifications > Allow.\n\nOnce allowed, return here and set your reminder!'
+      );
+      return;
+    }
+
     if (btn) {
       btn.disabled = true;
       btn.textContent = 'Enabling...';
@@ -12326,15 +12368,12 @@
         const granted = await window.requestAlarmNotificationPermission();
         updateReminderPermissionNotice();
         if (granted) {
-          showSuccessToast('Notifications activated! Alarms will ring reliably.');
+          if (typeof showSuccessToast === 'function') showSuccessToast('Notifications activated! Alarms will ring reliably.');
         } else if (('Notification' in window) && Notification.permission === 'denied') {
-          if (typeof showABCDModal === 'function') {
-            showABCDModal({
-              title: 'Notifications Blocked',
-              message: 'Notifications are blocked in your browser or device settings. Please allow notifications in your browser or phone app settings so your study alarms can ring.',
-              type: 'warning'
-            });
-          }
+          showModalAlert(
+            'Notifications Blocked',
+            'Notifications are blocked in your browser or device settings. Please allow notifications in your phone Settings > Apps > ABCD Campus > Notifications.'
+          );
         }
       } else if ('Notification' in window) {
         const perm = await new Promise((resolve) => {
@@ -12352,31 +12391,25 @@
           if (typeof window.registerServiceWorkerAndSync === 'function') {
             await window.registerServiceWorkerAndSync();
           }
-          showSuccessToast('Notifications activated! Alarms will ring reliably.');
+          if (typeof showSuccessToast === 'function') showSuccessToast('Notifications activated! Alarms will ring reliably.');
         } else if (perm === 'denied') {
-          if (typeof showABCDModal === 'function') {
-            showABCDModal({
-              title: 'Notifications Blocked',
-              message: 'Notifications are blocked in your browser or device settings. Please allow notifications in your browser or phone app settings so your study alarms can ring.',
-              type: 'warning'
-            });
-          }
+          showModalAlert(
+            'Notifications Blocked',
+            'Notifications are blocked in your browser or device settings. Please allow notifications in your phone Settings > Apps > ABCD Campus > Notifications.'
+          );
         }
       } else {
-        if (typeof showABCDModal === 'function') {
-          showABCDModal({
-            title: 'Notifications Unsupported',
-            message: 'Push notifications are not supported on this browser or device.',
-            type: 'error'
-          });
-        }
+        showModalAlert(
+          'Notifications Unsupported',
+          'Push notifications are not supported on this browser or device.'
+        );
       }
     } catch (e) {
       console.error('Error enabling notifications:', e);
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.textContent = 'Enable';
+        btn.textContent = (('Notification' in window) && Notification.permission === 'denied') ? 'Settings Guide' : 'Enable';
       }
     }
   };
