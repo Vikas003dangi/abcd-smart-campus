@@ -963,35 +963,46 @@ window.showABCDModal = function (opts) {
             }
         };
 
+        let isHandlingMutation = false;
         const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
-                    handleVisibilityChange(mutation.target);
-                } else if (mutation.type === 'childList') {
-                    mutation.addedNodes.forEach((node) => {
-                        if (node.nodeType === 1) {
-                            handleVisibilityChange(node);
-                            // CATCH-ALL: Auto-elevate any newly-appended fixed-position overlay
-                            // that doesn't have a recognized modal class (e.g. inline JS overlays)
-                            if (node.parentNode === document.body) {
-                                try {
-                                    const cs = window.getComputedStyle(node);
-                                    if (cs.position === 'fixed' && cs.display !== 'none') {
-                                        const zVal = parseInt(node.style.zIndex || cs.zIndex, 10);
-                                        // Only elevate if it's clearly a deliberate overlay (z > 1000) but below our safe stack
-                                        if (!isNaN(zVal) && zVal > 1000 && zVal < 3000000) {
-                                            const safeZ = (typeof window.getHighestZIndex === 'function')
-                                                ? window.getHighestZIndex([node]) + 10
-                                                : 3000060;
-                                            node.style.setProperty('z-index', safeZ.toString(), 'important');
+            if (isHandlingMutation) return;
+            isHandlingMutation = true;
+            try {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+                        // Skip body and html attribute changes (e.g. theme toggles) from modal visibility handling
+                        if (mutation.target === document.body || mutation.target === document.documentElement) return;
+                        if (mutation.target.classList && (mutation.target.classList.contains('abcd-select-wrapper') || mutation.target.classList.contains('abcd-select-dropdown'))) return;
+                        handleVisibilityChange(mutation.target);
+                    } else if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === 1) {
+                                if (node.classList && (node.classList.contains('abcd-select-wrapper') || node.classList.contains('abcd-select-dropdown') || node.classList.contains('abcd-select-option'))) return;
+                                handleVisibilityChange(node);
+                                // CATCH-ALL: Auto-elevate any newly-appended fixed-position overlay
+                                // that doesn't have a recognized modal class (e.g. inline JS overlays)
+                                if (node.parentNode === document.body) {
+                                    try {
+                                        const cs = window.getComputedStyle(node);
+                                        if (cs.position === 'fixed' && cs.display !== 'none') {
+                                            const zVal = parseInt(node.style.zIndex || cs.zIndex, 10);
+                                            // Only elevate if it's clearly a deliberate overlay (z > 1000) but below our safe stack
+                                            if (!isNaN(zVal) && zVal > 1000 && zVal < 3000000) {
+                                                const safeZ = (typeof window.getHighestZIndex === 'function')
+                                                    ? window.getHighestZIndex([node]) + 10
+                                                    : 3000060;
+                                                node.style.setProperty('z-index', safeZ.toString(), 'important');
+                                            }
                                         }
-                                    }
-                                } catch(e) {}
+                                    } catch(e) {}
+                                }
                             }
-                        }
-                    });
-                }
-            });
+                        });
+                    }
+                });
+            } finally {
+                isHandlingMutation = false;
+            }
         });
 
         if (document.body) {

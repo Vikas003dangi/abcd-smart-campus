@@ -33,21 +33,21 @@
   }
 
   function isDarkThemeActive() {
-    if (document.body && document.body.classList) {
-      if (document.body.classList.contains('dark-theme') || document.body.classList.contains('dark')) {
-        return true;
-      }
-    }
-    if (document.documentElement && document.documentElement.classList) {
-      if (document.documentElement.classList.contains('dark-theme') || document.documentElement.classList.contains('dark')) {
-        return true;
-      }
-    }
     try {
       const saved = localStorage.getItem('theme');
       if (saved === 'dark' || saved === 'dark-theme') return true;
       if (saved === 'light' || saved === 'light-theme') return false;
     } catch (e) {}
+    if (document.documentElement && document.documentElement.classList) {
+      if (document.documentElement.classList.contains('dark-theme') || document.documentElement.classList.contains('dark')) {
+        return true;
+      }
+    }
+    if (document.body && document.body.classList) {
+      if (document.body.classList.contains('dark-theme') || document.body.classList.contains('dark')) {
+        return true;
+      }
+    }
     return false;
   }
 
@@ -56,8 +56,6 @@
     if (!head) return;
 
     // 1. Set color-scheme meta explicitly to 'light' or 'dark'.
-    // In Android WindowInsetsController, 'light' forces dark/black icons (time, battery),
-    // and 'dark' forces light/white icons.
     let colorSchemeMeta = document.getElementById('color-scheme-meta') || document.querySelector('meta[name="color-scheme"]');
     if (!colorSchemeMeta) {
       colorSchemeMeta = document.createElement('meta');
@@ -66,11 +64,18 @@
       head.appendChild(colorSchemeMeta);
     }
     const targetScheme = isDark ? 'dark' : 'light';
-    colorSchemeMeta.setAttribute('content', targetScheme);
+    const currentScheme = colorSchemeMeta.getAttribute('content');
+    if (currentScheme !== targetScheme) {
+      colorSchemeMeta.setAttribute('content', targetScheme);
+    }
 
-    // 2. Remove ALL existing theme-color meta tags (both with and without media queries).
-    // In Chromium C++ / Android WebAPK, removing and appending fresh elements triggers
-    // HTMLMetaElement::InsertedInto(), which calls Android's Window.setStatusBarColor().
+    // Fast check: if primary meta tag already matches target color, avoid DOM thrashing
+    const existingDefault = document.getElementById('theme-color-meta');
+    if (existingDefault && existingDefault.getAttribute('content') === color && currentScheme === targetScheme) {
+      return;
+    }
+
+    // 2. Remove ALL existing theme-color meta tags
     const oldTags = document.querySelectorAll('meta[name="theme-color"]');
     oldTags.forEach(function (tag) {
       tag.remove();
@@ -92,9 +97,6 @@
     head.appendChild(metaLight);
 
     // c) Dark media query tag
-    // CRITICAL: When the user's Android phone is in System Dark Mode,
-    // Chromium checks this tag. Setting this to the current app color (even when light #fff2de)
-    // forces Chromium on Android system dark mode to apply the app's chosen color!
     const metaDark = document.createElement('meta');
     metaDark.name = 'theme-color';
     metaDark.media = '(prefers-color-scheme: dark)';
@@ -102,25 +104,45 @@
     head.appendChild(metaDark);
   }
 
+  let isSyncing = false;
+
   function sync() {
-    const isDark = isDarkThemeActive();
-    if (document.documentElement) {
-      if (isDark) {
-        document.documentElement.classList.add('dark-theme');
-        document.documentElement.setAttribute('data-theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark-theme');
-        document.documentElement.setAttribute('data-theme', 'light');
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
+      const isDark = isDarkThemeActive();
+      if (document.documentElement) {
+        if (isDark) {
+          if (!document.documentElement.classList.contains('dark-theme')) {
+            document.documentElement.classList.add('dark-theme');
+          }
+          if (document.documentElement.getAttribute('data-theme') !== 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } else {
+          if (document.documentElement.classList.contains('dark-theme')) {
+            document.documentElement.classList.remove('dark-theme');
+          }
+          if (document.documentElement.getAttribute('data-theme') !== 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        }
       }
-    }
-    if (document.body) {
-      if (isDark) {
-        document.body.classList.add('dark-theme');
-      } else {
-        document.body.classList.remove('dark-theme');
+      if (document.body) {
+        if (isDark) {
+          if (!document.body.classList.contains('dark-theme')) {
+            document.body.classList.add('dark-theme');
+          }
+        } else {
+          if (document.body.classList.contains('dark-theme')) {
+            document.body.classList.remove('dark-theme');
+          }
+        }
       }
+      applyStatusBarColor(getTargetColor(isDark), isDark);
+    } finally {
+      isSyncing = false;
     }
-    applyStatusBarColor(getTargetColor(isDark), isDark);
   }
 
   // Expose globally so any theme toggle function can call window.syncThemeColor() directly
@@ -178,9 +200,14 @@
   // 2. Single passive MutationObserver exclusively on <body> class attribute
   if (window.MutationObserver) {
     const observer = new MutationObserver(function (mutations) {
+      if (isSyncing) return;
       for (let i = 0; i < mutations.length; i++) {
         if (mutations[i].attributeName === 'class') {
-          sync();
+          const isDark = isDarkThemeActive();
+          const hasDark = document.body && document.body.classList.contains('dark-theme');
+          if (isDark !== hasDark) {
+            sync();
+          }
           break;
         }
       }
