@@ -1718,17 +1718,22 @@ def get_profile_photo_url(user, dashboard_type=None):
     2. Google OAuth picture.
     3. Default UI-Avatar.
     """
-    if not user or not user.is_authenticated:
+    if not user or isinstance(user, str) or not getattr(user, 'is_authenticated', False):
+        if isinstance(user, str) and user.strip():
+            return user
         return "/static/data/user.png"
 
+    user_pk = getattr(user, 'pk', None)
+
     # Priority 0: Teacher Photo overrides
-    from .models import TeacherProfile
-    teacher_prof = TeacherProfile.objects.filter(user=user).first()
-    if teacher_prof and teacher_prof.photo:
-        try:
-            return teacher_prof.photo.url
-        except Exception:
-            pass
+    if user_pk:
+        from .models import TeacherProfile
+        teacher_prof = TeacherProfile.objects.filter(user=user).first()
+        if teacher_prof and teacher_prof.photo:
+            try:
+                return teacher_prof.photo.url
+            except Exception:
+                pass
 
     email_clean = (user.email or '').strip().lower()
     username_clean = (user.username or '').strip().lower()
@@ -1738,59 +1743,69 @@ def get_profile_photo_url(user, dashboard_type=None):
         return "/static/data/favicon/web-app-manifest-512x512.png"
 
     # Priority 1: StudentProfile Photo / StudentAchievement Photo (Contextually prioritized)
-    from .models import StudentProfile, StudentAchievement
-
-    if dashboard_type == 'alumni':
-        achievement = StudentAchievement.objects.filter(user=user).first()
-        if achievement and achievement.photo:
-            try:
+    if user_pk:
+        from .models import StudentProfile, StudentAchievement
+        if dashboard_type == 'alumni':
+            achievement = StudentAchievement.objects.filter(user=user).first()
+            if achievement and achievement.photo:
+                try:
+                    return achievement.photo_url
+                except Exception:
+                    pass
+            profile = StudentProfile.objects.filter(user=user).first()
+            if profile and profile.photo:
+                try:
+                    return profile.photo_url
+                except Exception:
+                    pass
+            if achievement:
                 return achievement.photo_url
-            except Exception:
-                pass
-        profile = StudentProfile.objects.filter(user=user).first()
-        if profile and profile.photo:
-            try:
+            if profile:
                 return profile.photo_url
-            except Exception:
-                pass
-        if achievement:
-            return achievement.photo_url
-        if profile:
-            return profile.photo_url
-    else:
-        profile = StudentProfile.objects.filter(user=user).first()
-        if profile and profile.photo:
-            try:
+        else:
+            profile = StudentProfile.objects.filter(user=user).first()
+            if profile and profile.photo:
+                try:
+                    return profile.photo_url
+                except Exception:
+                    pass
+            achievement = StudentAchievement.objects.filter(user=user).first()
+            if achievement and achievement.photo:
+                try:
+                    return achievement.photo_url
+                except Exception:
+                    pass
+            if profile:
                 return profile.photo_url
-            except Exception:
-                pass
-        achievement = StudentAchievement.objects.filter(user=user).first()
-        if achievement and achievement.photo:
-            try:
+            if achievement:
                 return achievement.photo_url
-            except Exception:
-                pass
-        if profile:
-            return profile.photo_url
-        if achievement:
-            return achievement.photo_url
 
-    # Priority 2: Google OAuth picture
-    try:
-        from social_django.models import UserSocialAuth
-        social_user = UserSocialAuth.objects.filter(user=user, provider='google-oauth2').first()
-        if social_user:
-            pic_url = social_user.extra_data.get('picture') or social_user.extra_data.get('image')
-            if pic_url:
-                return pic_url
-    except Exception:
-        pass
+        # Priority 2: Google OAuth picture
+        try:
+            from social_django.models import UserSocialAuth
+            social_user = UserSocialAuth.objects.filter(user=user, provider='google-oauth2').first()
+            if social_user:
+                pic_url = social_user.extra_data.get('picture') or social_user.extra_data.get('image')
+                if pic_url:
+                    return pic_url
+        except Exception:
+            pass
+
+    # Check direct gender attribute if present
+    u_gender = (getattr(user, 'gender', None) or getattr(user, 'sex', None) or '').lower()
+    if u_gender == 'male':
+        return "/static/data/avatar_male.png"
+    elif u_gender == 'female':
+        return "/static/data/avatar_female.png"
 
     # Priority 3: Default UI-Avatar
-    import urllib.parse
-    name = user.get_full_name() or user.username
-    encoded_name = urllib.parse.quote_plus(name)
-    return f"https://ui-avatars.com/api/?name={encoded_name}&background=random"
+    name = (user.get_full_name() if hasattr(user, 'get_full_name') else '') or getattr(user, 'username', '')
+    if name:
+        import urllib.parse
+        encoded_name = urllib.parse.quote_plus(name)
+        return f"https://ui-avatars.com/api/?name={encoded_name}&background=random"
+
+    return "/static/data/default_avatar.png"
 
 
 def get_user_display_name(user):

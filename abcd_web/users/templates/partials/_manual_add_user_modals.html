@@ -1,0 +1,1495 @@
+{% load static %}
+<!-- ═══════════════════════════════════════════════════════════════
+     TEACHER "+ ADD MANUALLY" SYSTEM (Coaching, Library, Hall of Fame)
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+/* Modal overlays & cards */
+.mam-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 2000050;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+.mam-overlay.active {
+    display: flex !important;
+}
+.mam-card {
+    background: #ffffff;
+    border-radius: 26px;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 25px 70px rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,0,0,0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    animation: mamPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+}
+body.dark-theme .mam-card {
+    background: #1e293b;
+    border-color: rgba(255,255,255,0.1);
+    color: #f8fafc;
+}
+@keyframes mamPopIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.mam-hdr {
+    padding: 20px 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    background: #f8fafc;
+}
+body.dark-theme .mam-hdr {
+    background: #0f172a;
+    border-color: rgba(255,255,255,0.08);
+}
+.mam-hdr h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1e293b;
+}
+body.dark-theme .mam-hdr h3 {
+    color: #f8fafc;
+}
+.mam-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.7rem;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    transition: all 0.2s;
+}
+.mam-close-btn:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.mam-body {
+    padding: 26px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Choice Cards */
+.mam-choice-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+.mam-choice-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    border: 2px solid #e2e8f0;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+}
+body.dark-theme .mam-choice-btn {
+    background: #0f172a;
+    border-color: #334155;
+}
+.mam-choice-btn:hover {
+    border-color: #6366f1;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15);
+}
+.mam-choice-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+.mam-choice-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+body.dark-theme .mam-choice-title {
+    color: #f8fafc;
+}
+.mam-choice-desc {
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* Form Groups & Controls */
+.mam-form-section-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6366f1;
+    margin: 20px 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.mam-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+.mam-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+.mam-form-group.full-width {
+    grid-column: 1 / -1;
+}
+.mam-form-group label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+body.dark-theme .mam-form-group label {
+    color: #94a3b8;
+}
+.mam-input, .mam-select, .mam-textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid #d1d5db;
+    background: #f8fafc;
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 0.92rem;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+body.dark-theme .mam-input,
+body.dark-theme .mam-select,
+body.dark-theme .mam-textarea {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f8fafc;
+}
+.mam-input:focus, .mam-select:focus, .mam-textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.mam-pwd-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.mam-pwd-toggle {
+    position: absolute;
+    right: 14px;
+    cursor: pointer;
+    font-size: 1.25rem;
+    color: #94a3b8;
+}
+
+/* User Picker Items */
+.mam-search-bar {
+    position: relative;
+    margin-bottom: 18px;
+}
+.mam-search-bar input {
+    padding-left: 42px;
+}
+.mam-search-bar i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.3rem;
+    color: #94a3b8;
+}
+.mam-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 380px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.mam-user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.15s;
+    cursor: pointer;
+}
+body.dark-theme .mam-user-item {
+    background: #0f172a;
+    border-color: #334155;
+}
+.mam-user-item:hover {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.05);
+}
+.mam-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.mam-user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #6366f1;
+}
+.mam-user-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #1e293b;
+}
+body.dark-theme .mam-user-name {
+    color: #f8fafc;
+}
+.mam-user-meta {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+/* Action Buttons */
+.mam-footer {
+    padding: 18px 26px;
+    background: #f8fafc;
+    border-top: 1px solid rgba(0,0,0,0.07);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+body.dark-theme .mam-footer {
+    background: #0f172a;
+    border-color: rgba(255,255,255,0.08);
+}
+.mam-btn {
+    padding: 11px 22px;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.mam-btn-grey {
+    background: #e2e8f0;
+    color: #475569;
+}
+body.dark-theme .mam-btn-grey {
+    background: #334155;
+    color: #cbd5e1;
+}
+.mam-btn-primary {
+    background: #6366f1;
+    color: white;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+}
+.mam-btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Wheel Picker in Partial */
+.mam-wheel-container {
+    display: flex;
+    height: 200px;
+    background: #f8f9fa;
+    border: 2px solid #e1e8ed;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 40%, black 60%, transparent);
+    box-sizing: border-box;
+}
+body.dark-theme .mam-wheel-container {
+    background: #272738 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.mam-wheel-col {
+    flex: 1;
+    height: 100%;
+    overflow-y: scroll;
+    scrollbar-width: none;
+    text-align: center;
+    scroll-snap-type: y mandatory;
+    padding: 80px 0;
+    box-sizing: border-box;
+}
+.mam-wheel-col::-webkit-scrollbar { display: none; }
+.mam-wheel-item {
+    height: 40px;
+    line-height: 40px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #999;
+    scroll-snap-align: center;
+    transition: 0.2s;
+}
+body.dark-theme .mam-wheel-item { color: #94a3b8; }
+.mam-wheel-item.selected {
+    color: #6366f1;
+    transform: scale(1.15);
+}
+body.dark-theme .mam-wheel-item.selected { color: #c084fc; }
+.mam-wheel-highlight {
+    position: absolute;
+    top: 80px; left: 0; right: 0;
+    height: 40px;
+    background: rgba(99, 102, 241, 0.1);
+    border-top: 1px solid rgba(99, 102, 241, 0.3);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+    pointer-events: none;
+}
+body.dark-theme .mam-wheel-highlight {
+    background: rgba(192, 132, 252, 0.12);
+    border-color: rgba(192, 132, 252, 0.3);
+}
+
+@media (max-width: 600px) {
+    .mam-form-row { grid-template-columns: 1fr; gap: 0; }
+    .mam-card { max-width: 100%; border-radius: 20px; }
+}
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     1. CHOICE MODAL (Choose Existing vs Add New)
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="mamChoiceModalOverlay" class="mam-overlay" onclick="ABCDManualAddManager.closeChoiceModal()">
+    <div class="mam-card" style="max-width: 480px;" onclick="event.stopPropagation()">
+        <div class="mam-hdr">
+            <h3 id="mamChoiceTitle"><i class='bx bx-user-plus'></i> Add Student</h3>
+            <button type="button" class="mam-close-btn" onclick="ABCDManualAddManager.closeChoiceModal()">&times;</button>
+        </div>
+        <div class="mam-body">
+            <p style="margin: 0 0 20px 0; color: #64748b; font-size: 0.92rem; line-height: 1.5;">
+                How would you like to add this user?
+            </p>
+            <div class="mam-choice-grid">
+                <button type="button" class="mam-choice-btn" onclick="ABCDManualAddManager.chooseOption('existing')">
+                    <div class="mam-choice-icon" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">
+                        <i class='bx bx-user-check'></i>
+                    </div>
+                    <div>
+                        <div class="mam-choice-title">Choose Existing User</div>
+                        <div class="mam-choice-desc">Select an existing student or alumni to upgrade/add this service without re-entering credentials.</div>
+                    </div>
+                </button>
+
+                <button type="button" class="mam-choice-btn" onclick="ABCDManualAddManager.chooseOption('new')">
+                    <div class="mam-choice-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+                        <i class='bx bx-user-plus'></i>
+                    </div>
+                    <div>
+                        <div class="mam-choice-title">Add New User</div>
+                        <div class="mam-choice-desc">Create a brand new user account with new login username and password.</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+        <div class="mam-footer">
+            <button type="button" class="mam-btn mam-btn-grey" onclick="ABCDManualAddManager.closeChoiceModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     2. EXISTING USER SEARCH & PICKER MODAL
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="mamPickerModalOverlay" class="mam-overlay" onclick="ABCDManualAddManager.closePickerModal()">
+    <div class="mam-card" style="max-width: 580px;" onclick="event.stopPropagation()">
+        <div class="mam-hdr">
+            <h3 id="mamPickerTitle"><i class='bx bx-search'></i> Select Existing User</h3>
+            <button type="button" class="mam-close-btn" onclick="ABCDManualAddManager.closePickerModal()">&times;</button>
+        </div>
+        <div class="mam-body">
+            <!-- Step 1: User Selection List -->
+            <div id="mamPickerStep1">
+                <div class="mam-search-bar">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="mamPickerSearchInput" class="mam-input" placeholder="Search by name, username, or mobile..." oninput="ABCDManualAddManager.filterExistingUsers(this.value)">
+                </div>
+                <div id="mamPickerUserList" class="mam-user-list">
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">Loading candidate users...</div>
+                </div>
+            </div>
+
+            <!-- Step 2: Service Configuration for Selected User -->
+            <div id="mamPickerStep2" style="display: none;">
+                <div id="mamPickerSelectedUserCard" style="display: flex; align-items: center; gap: 14px; padding: 14px; background: rgba(99, 102, 241, 0.08); border-radius: 16px; margin-bottom: 20px;">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <div id="mamPickerServiceFields">
+                    <!-- Injected dynamically for Coaching vs Library vs Alumni -->
+                </div>
+            </div>
+        </div>
+        <div class="mam-footer">
+            <button type="button" id="mamPickerBackBtn" class="mam-btn mam-btn-grey" style="display: none;" onclick="ABCDManualAddManager.backToPickerStep1()">
+                <i class='bx bx-arrow-back'></i> Back
+            </button>
+            <button type="button" class="mam-btn mam-btn-grey" onclick="ABCDManualAddManager.closePickerModal()">Cancel</button>
+            <button type="button" id="mamPickerSubmitBtn" class="mam-btn mam-btn-primary" style="display: none;" onclick="ABCDManualAddManager.submitExistingUser()">
+                <i class='bx bx-check'></i> Confirm & Add
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     3. FULL MANUAL CREATION MODAL (Add New User)
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="mamNewUserModalOverlay" class="mam-overlay" onclick="ABCDManualAddManager.closeNewUserModal()">
+    <div class="mam-card" style="max-width: 620px;" onclick="event.stopPropagation()">
+        <div class="mam-hdr">
+            <h3 id="mamNewUserTitle"><i class='bx bx-user-plus'></i> Add New Student</h3>
+            <button type="button" class="mam-close-btn" onclick="ABCDManualAddManager.closeNewUserModal()">&times;</button>
+        </div>
+        <div class="mam-body">
+            <form id="mamNewUserForm" onsubmit="ABCDManualAddManager.submitNewUser(event)">
+                <!-- Avatar Section -->
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;">
+                    <div style="position: relative; width: 120px; height: 120px;">
+                        <div id="mamPhotoPreviewContainer" onclick="ABCDManualAddManager.reAdjustPhoto()" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.06); cursor: pointer;" title="Click to adjust/change photo">
+                            <img id="mamPhotoPreview" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                            <i id="mamPhotoPlaceholder" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1;"></i>
+                        </div>
+                        <label for="mamPhotoFileInput" style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+                            <i class='bx bxs-camera'></i>
+                            <input type="file" id="mamPhotoFileInput" accept="image/*" style="display: none;" onchange="ABCDManualAddManager.handlePhotoSelected(this)">
+                        </label>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 8px; font-weight: 500;">Passport size photo (Optional)</p>
+                </div>
+
+                <!-- Personal Info -->
+                <div class="mam-form-section-title"><i class='bx bx-user'></i> Personal Information</div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>First Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="mamNewFirstName" class="mam-input" placeholder="e.g. Rahul" required>
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Last Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="mamNewLastName" class="mam-input" placeholder="e.g. Kumar" required>
+                    </div>
+                </div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Gender <span style="color: #ef4444;">*</span></label>
+                        <select id="mamNewGender" class="mam-select">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Date of Birth <span style="color: #94a3b8; font-weight: normal;">(Optional)</span></label>
+                        <input type="text" id="mamNewDOB" class="mam-input" placeholder="Select Date of Birth" readonly style="cursor: pointer;" onclick="ABCDManualAddManager.openBirthdayModal()">
+                    </div>
+                </div>
+                <div class="mam-form-group">
+                    <label>Email Address <span style="color: #94a3b8; font-weight: normal;">(Optional)</span></label>
+                    <input type="email" id="mamNewEmail" class="mam-input" placeholder="e.g. rahul@example.com">
+                </div>
+
+                <!-- Account Credentials -->
+                <div class="mam-form-section-title"><i class='bx bx-lock-alt'></i> Account Credentials</div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Username <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="mamNewUsername" class="mam-input" placeholder="e.g. rahul_123" required autocomplete="new-username">
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Password <span style="color: #ef4444;">*</span></label>
+                        <div class="mam-pwd-wrap">
+                            <input type="password" id="mamNewPassword" class="mam-input" placeholder="••••••••" required autocomplete="new-password">
+                            <i class='bx bx-show mam-pwd-toggle' onclick="ABCDManualAddManager.togglePasswordVisibility('mamNewPassword', this)" title="Show/Hide"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Details -->
+                <div class="mam-form-section-title"><i class='bx bx-phone'></i> Contact Details</div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Mobile Number <span style="color: #ef4444;">*</span></label>
+                        <input type="tel" id="mamNewMobile" class="mam-input" placeholder="10-digit mobile" maxlength="10" required>
+                    </div>
+                    <div class="mam-form-group">
+                        <label>WhatsApp Number <span style="color: #94a3b8; font-weight: normal;">(Optional)</span></label>
+                        <input type="tel" id="mamNewWhatsapp" class="mam-input" placeholder="10-digit WhatsApp" maxlength="10">
+                    </div>
+                </div>
+                <div class="mam-form-group" style="margin-top: -6px; margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; text-transform: none; cursor: pointer; color: #64748b;">
+                        <input type="checkbox" id="mamNewWhatsappSame" style="width: 18px; height: 18px; accent-color: #6366f1;" onchange="ABCDManualAddManager.syncWhatsapp()">
+                        WhatsApp same as mobile number
+                    </label>
+                </div>
+
+                <!-- Dynamic Service Configuration -->
+                <div id="mamNewServiceSpecificFields">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <div class="mam-footer" style="padding: 20px 0 0 0; margin-top: 20px; background: none; border-top: 1px solid rgba(0,0,0,0.07);">
+                    <button type="button" class="mam-btn mam-btn-grey" onclick="ABCDManualAddManager.closeNewUserModal()">Cancel</button>
+                    <button type="submit" id="mamNewSubmitBtn" class="mam-btn mam-btn-primary">
+                        <i class='bx bx-user-plus'></i> Submit & Admit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     4. BIRTHDAY WHEEL PICKER MODAL
+     ═══════════════════════════════════════════════════════════════ -->
+<div id="mamBirthdayModalOverlay" class="mam-overlay" style="z-index: 2000070;" onclick="ABCDManualAddManager.closeBirthdayModal()">
+    <div class="mam-card" style="max-width: 400px;" onclick="event.stopPropagation()">
+        <div class="mam-hdr">
+            <h3><i class='bx bx-calendar'></i> Set Birthday</h3>
+            <button type="button" class="mam-close-btn" onclick="ABCDManualAddManager.closeBirthdayModal()">&times;</button>
+        </div>
+        <div class="mam-body" style="padding: 24px;">
+            <div class="mam-wheel-container">
+                <div class="mam-wheel-col" id="mam-wheel-birth-year"></div>
+                <div class="mam-wheel-col" id="mam-wheel-birth-month"></div>
+                <div class="mam-wheel-col" id="mam-wheel-birth-day"></div>
+                <div class="mam-wheel-highlight"></div>
+            </div>
+            <button type="button" class="mam-btn mam-btn-primary" style="width: 100%; justify-content: center; margin-top: 20px;" onclick="ABCDManualAddManager.submitBirthday()">
+                Done
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     5. CONTROLLER JAVASCRIPT
+     ═══════════════════════════════════════════════════════════════ -->
+<script>
+window.ABCDManualAddManager = (function() {
+    let currentContext = 'coaching'; // 'coaching', 'library', 'alumni'
+    let candidateUsersCache = [];
+    let selectedExistingUser = null;
+    let newPhotoBase64 = null;
+    const librarySeatsCache = {};
+
+    // Batches available for Coaching
+    const coachingBatches = [
+        'Grammar Batch 1',
+        'Grammar Batch 2',
+        'Grammar Batch 3',
+        'Grammar Batch 4',
+        'Spoken English 1',
+        'Spoken English 2'
+    ];
+
+    function preloadLibrarySeats() {
+        ['Ground Floor', '1st Floor'].forEach(floor => {
+            fetch(`/api/teacher/get-available-seats/?floor=${encodeURIComponent(floor)}`)
+                .then(r => r.json())
+                .then(d => {
+                    librarySeatsCache[floor] = d.seats || [];
+                    renderSeatsIfMatching(floor);
+                })
+                .catch(err => console.error('Error preloading seats for ' + floor, err));
+        });
+    }
+
+    function renderSeatsIfMatching(floor) {
+        const newFloorEl = document.getElementById('mamNewFloorSelect');
+        if (newFloorEl && newFloorEl.value === floor) {
+            populateSeatSelect('mamNewSeatSelect', floor);
+        }
+        const pickerFloorEl = document.getElementById('mamPickerFloorSelect');
+        if (pickerFloorEl && pickerFloorEl.value === floor) {
+            populateSeatSelect('mamPickerSeatSelect', floor);
+        }
+    }
+
+    function populateSeatSelect(selectId, floor) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const seats = librarySeatsCache[floor];
+        if (!seats) {
+            select.innerHTML = '<option value="">Loading available seats...</option>';
+            return;
+        }
+
+        if (seats.length === 0) {
+            select.innerHTML = '<option value="">No available seats on this floor</option>';
+            return;
+        }
+
+        let opts = '<option value="">-- Choose Available Seat / Shift --</option>';
+        seats.forEach(s => {
+            if (!s.is_shift_enabled) {
+                opts += `<option value="${s.id}|full">Seat ${s.seat_number} - Available (Full Day)</option>`;
+            } else {
+                if (s.has_morning) {
+                    opts += `<option value="${s.id}|morning">Seat ${s.seat_number} - Available (Morning Shift: 8 AM - 2 PM)</option>`;
+                }
+                if (s.has_evening) {
+                    opts += `<option value="${s.id}|evening">Seat ${s.seat_number} - Available (Evening Shift: 2 PM - 8 PM)</option>`;
+                }
+                if (s.has_full) {
+                    opts += `<option value="${s.id}|full">Seat ${s.seat_number} - Available (Full Day: 8 AM - 8 PM)</option>`;
+                }
+            }
+        });
+        select.innerHTML = opts;
+    }
+
+    function open(context) {
+        currentContext = context || 'coaching';
+        selectedExistingUser = null;
+        newPhotoBase64 = null;
+
+        if (currentContext === 'library') {
+            preloadLibrarySeats();
+        }
+
+        // Set titles
+        const titles = {
+            'coaching': 'Add Coaching Student',
+            'library': 'Add Library Student',
+            'alumni': 'Add to Hall of Fame'
+        };
+        const titleText = titles[currentContext] || 'Add Student';
+        const titleEl = document.getElementById('mamChoiceTitle');
+        if (titleEl) titleEl.innerHTML = `<i class='bx bx-user-plus'></i> ${titleText}`;
+
+        const choiceOverlay = document.getElementById('mamChoiceModalOverlay');
+        if (choiceOverlay) choiceOverlay.classList.add('active');
+    }
+
+    function closeChoiceModal() {
+        const choiceOverlay = document.getElementById('mamChoiceModalOverlay');
+        if (choiceOverlay) choiceOverlay.classList.remove('active');
+    }
+
+    function chooseOption(mode) {
+        closeChoiceModal();
+        if (mode === 'existing') {
+            openPickerModal();
+        } else {
+            openNewUserModal();
+        }
+    }
+
+    /* ---------------- Picker / Existing User Logic ---------------- */
+    async function openPickerModal() {
+        const pickerOverlay = document.getElementById('mamPickerModalOverlay');
+        if (pickerOverlay) pickerOverlay.classList.add('active');
+
+        document.getElementById('mamPickerStep1').style.display = 'block';
+        document.getElementById('mamPickerStep2').style.display = 'none';
+        document.getElementById('mamPickerBackBtn').style.display = 'none';
+        document.getElementById('mamPickerSubmitBtn').style.display = 'none';
+
+        const listContainer = document.getElementById('mamPickerUserList');
+        listContainer.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><i class="bx bx-loader-alt bx-spin" style="font-size: 1.5rem;"></i><br>Loading users...</div>';
+
+        try {
+            const resp = await fetch(`/api/teacher/get-users-for-manual/?context=${currentContext}`);
+            const data = await resp.json();
+            candidateUsersCache = data.users || [];
+            renderUserList(candidateUsersCache);
+        } catch (e) {
+            console.error(e);
+            listContainer.innerHTML = '<div style="text-align: center; padding: 30px; color: #ef4444;">Failed to load candidate users.</div>';
+        }
+    }
+
+    function closePickerModal() {
+        const pickerOverlay = document.getElementById('mamPickerModalOverlay');
+        if (pickerOverlay) pickerOverlay.classList.remove('active');
+    }
+
+    function renderUserList(users) {
+        const listContainer = document.getElementById('mamPickerUserList');
+        if (!users || users.length === 0) {
+            listContainer.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;">No eligible users found for this service.</div>';
+            return;
+        }
+
+        let html = '';
+        users.forEach((u, idx) => {
+            html += `
+                <div class="mam-user-item" onclick="ABCDManualAddManager.selectUser(${idx})">
+                    <div class="mam-user-info">
+                        <img src="${u.photo_url}" class="mam-user-avatar" alt="${u.full_name}">
+                        <div>
+                            <div class="mam-user-name">${u.full_name}</div>
+                            <div class="mam-user-meta">@${u.username} &bull; ${u.current_service}</div>
+                        </div>
+                    </div>
+                    <button type="button" class="mam-btn mam-btn-primary" style="padding: 6px 14px; font-size: 0.8rem;">Select</button>
+                </div>
+            `;
+        });
+        listContainer.innerHTML = html;
+    }
+
+    function filterExistingUsers(query) {
+        query = (query || '').toLowerCase().trim();
+        if (!query) {
+            renderUserList(candidateUsersCache);
+            return;
+        }
+        const filtered = candidateUsersCache.filter(u => 
+            (u.full_name && u.full_name.toLowerCase().includes(query)) ||
+            (u.username && u.username.toLowerCase().includes(query)) ||
+            (u.mobile_number && u.mobile_number.includes(query))
+        );
+        renderUserList(filtered);
+    }
+
+    function selectUser(index) {
+        selectedExistingUser = candidateUsersCache[index];
+        if (!selectedExistingUser) return;
+
+        document.getElementById('mamPickerStep1').style.display = 'none';
+        document.getElementById('mamPickerStep2').style.display = 'block';
+        document.getElementById('mamPickerBackBtn').style.display = 'inline-flex';
+        document.getElementById('mamPickerSubmitBtn').style.display = 'inline-flex';
+
+        // Render selected user card
+        const card = document.getElementById('mamPickerSelectedUserCard');
+        card.innerHTML = `
+            <img src="${selectedExistingUser.photo_url}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1;">
+            <div>
+                <div style="font-weight: 800; font-size: 1rem; color: #1e293b;">${selectedExistingUser.full_name}</div>
+                <div style="font-size: 0.82rem; color: #64748b;">@${selectedExistingUser.username} &bull; ${selectedExistingUser.mobile_number || 'No mobile'}</div>
+                <div style="font-size: 0.8rem; color: #6366f1; font-weight: 700; margin-top: 2px;">Current: ${selectedExistingUser.current_service}</div>
+            </div>
+        `;
+
+        // Render service-specific configuration fields
+        const container = document.getElementById('mamPickerServiceFields');
+        if (currentContext === 'coaching') {
+            let batchOpts = '<option value="none">No batch yet (assign later)</option>';
+            coachingBatches.forEach(b => {
+                batchOpts += `<option value="${b}">${b}</option>`;
+            });
+            container.innerHTML = `
+                <div class="mam-form-section-title"><i class='bx bxs-graduation'></i> Coaching Enrollment</div>
+                <div class="mam-form-group">
+                    <label>Select Coaching Batch <span style="color:#ef4444;">*</span></label>
+                    <select id="mamPickerBatchSelect" class="mam-select">
+                        ${batchOpts}
+                    </select>
+                </div>
+            `;
+        } else if (currentContext === 'library') {
+            container.innerHTML = `
+                <div class="mam-form-section-title"><i class='bx bxs-book-reader'></i> Library Allotment</div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Select Floor / Library <span style="color:#ef4444;">*</span></label>
+                        <select id="mamPickerFloorSelect" class="mam-select" onchange="ABCDManualAddManager.handlePickerFloorChange(this.value)">
+                            <option value="none">No floor/seat yet (assign later)</option>
+                            <option value="Ground Floor" selected>Ground Floor</option>
+                            <option value="1st Floor">1st Floor</option>
+                        </select>
+                    </div>
+                    <div class="mam-form-group" id="mamPickerSeatWrap" style="display: flex;">
+                        <label>Select Available Seat / Shift <span style="color:#ef4444;">*</span></label>
+                        <select id="mamPickerSeatSelect" class="mam-select">
+                            <option value="">Loading available seats...</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => handlePickerFloorChange('Ground Floor'), 0);
+        } else if (currentContext === 'alumni') {
+            const currentYear = new Date().getFullYear();
+            container.innerHTML = `
+                <div class="mam-form-section-title"><i class='bx bxs-trophy'></i> Hall of Fame Achievement</div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Current Post / Designation <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="mamPickerPost" class="mam-input" placeholder="e.g. Sub Inspector (MP Police)">
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Selection Year <span style="color:#ef4444;">*</span></label>
+                        <input type="number" id="mamPickerYear" class="mam-input" value="${currentYear}">
+                    </div>
+                </div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Short Achievement Tag <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="mamPickerShortAch" class="mam-input" placeholder="e.g. MP SI, SSC CGL">
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Working City <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="mamPickerCity" class="mam-input" placeholder="e.g. Bhopal">
+                    </div>
+                </div>
+                <div class="mam-form-group">
+                    <label>Services Used at ABCD</label>
+                    <select id="mamPickerServiceUsed" class="mam-select">
+                        <option value="both">Both (Library & Coaching)</option>
+                        <option value="library">Library Only</option>
+                        <option value="coaching">Coaching Only</option>
+                    </select>
+                </div>
+                <div class="mam-form-group">
+                    <label>Experience / Feedback for ABCD</label>
+                    <textarea id="mamPickerFeedback" class="mam-textarea" rows="2" placeholder="Experience at ABCD..."></textarea>
+                </div>
+            `;
+        }
+    }
+
+    function backToPickerStep1() {
+        document.getElementById('mamPickerStep1').style.display = 'block';
+        document.getElementById('mamPickerStep2').style.display = 'none';
+        document.getElementById('mamPickerBackBtn').style.display = 'none';
+        document.getElementById('mamPickerSubmitBtn').style.display = 'none';
+    }
+
+    async function handlePickerFloorChange(floorVal) {
+        const seatWrap = document.getElementById('mamPickerSeatWrap');
+        const seatSelect = document.getElementById('mamPickerSeatSelect');
+        if (floorVal === 'none') {
+            if (seatWrap) seatWrap.style.display = 'none';
+            if (seatSelect) seatSelect.value = '';
+            return;
+        }
+        if (seatWrap) seatWrap.style.display = 'flex';
+
+        if (librarySeatsCache[floorVal]) {
+            populateSeatSelect('mamPickerSeatSelect', floorVal);
+        } else {
+            if (seatSelect) seatSelect.innerHTML = '<option value="">Loading available seats...</option>';
+            try {
+                const resp = await fetch(`/api/teacher/get-available-seats/?floor=${encodeURIComponent(floorVal)}`);
+                const data = await resp.json();
+                librarySeatsCache[floorVal] = data.seats || [];
+                populateSeatSelect('mamPickerSeatSelect', floorVal);
+            } catch (e) {
+                if (seatSelect) seatSelect.innerHTML = '<option value="">Error loading available seats</option>';
+            }
+        }
+    }
+
+    async function submitExistingUser() {
+        if (!selectedExistingUser) return;
+        const payload = {
+            context: currentContext,
+            mode: 'existing',
+            user_id: selectedExistingUser.user_id
+        };
+
+        if (currentContext === 'coaching') {
+            const batchEl = document.getElementById('mamPickerBatchSelect');
+            payload.batch = batchEl ? batchEl.value : 'none';
+        } else if (currentContext === 'library') {
+            const floorEl = document.getElementById('mamPickerFloorSelect');
+            const seatEl = document.getElementById('mamPickerSeatSelect');
+            payload.floor = floorEl ? floorEl.value : 'none';
+            if (payload.floor !== 'none') {
+                const val = seatEl ? seatEl.value : '';
+                if (!val) {
+                    if (window.showStyledAlert) window.showStyledAlert("Select Seat", "Please select an available seat or choose 'No floor/seat yet'.");
+                    else alert("Please select an available seat or choose 'No floor/seat yet'.");
+                    return;
+                }
+                const parts = val.split('|');
+                payload.seat_id = parts[0];
+                payload.shift = parts[1] || 'full';
+            }
+        } else if (currentContext === 'alumni') {
+            const postEl = document.getElementById('mamPickerPost');
+            const yearEl = document.getElementById('mamPickerYear');
+            const shortEl = document.getElementById('mamPickerShortAch');
+            const cityEl = document.getElementById('mamPickerCity');
+            const usedEl = document.getElementById('mamPickerServiceUsed');
+            const fbEl = document.getElementById('mamPickerFeedback');
+
+            if (!postEl || !postEl.value.trim() || !shortEl || !shortEl.value.trim() || !cityEl || !cityEl.value.trim()) {
+                if (window.showStyledAlert) window.showStyledAlert("Required Fields", "Please enter post, short achievement, and city.");
+                else alert("Please enter post, short achievement, and city.");
+                return;
+            }
+            payload.current_post = postEl.value.trim();
+            payload.selection_year = yearEl ? yearEl.value : new Date().getFullYear();
+            payload.short_achievement = shortEl.value.trim();
+            payload.working_city = cityEl.value.trim();
+            payload.services_used = usedEl ? usedEl.value : 'both';
+            payload.experience_feedback = fbEl ? fbEl.value.trim() : '';
+        }
+
+        const submitBtn = document.getElementById('mamPickerSubmitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Saving...';
+        }
+
+        try {
+            const csrf = getCsrfToken();
+            const resp = await fetch('/api/teacher/add-manual/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf
+                },
+                body: JSON.stringify(payload)
+            });
+            const resData = await resp.json();
+            if (resp.ok && resData.status === 'success') {
+                closePickerModal();
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Success", resData.message || "Student enrolled successfully!", "success");
+                } else {
+                    alert(resData.message || "Success!");
+                }
+                window.location.reload();
+            } else {
+                if (window.showStyledAlert) window.showStyledAlert("Error", resData.message || "Failed to update user.");
+                else alert(resData.message || "Failed to update user.");
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bx bx-check"></i> Confirm & Add';
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            if (window.showStyledAlert) window.showStyledAlert("Network Error", "Unable to save user details.");
+            else alert("Network error.");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bx bx-check"></i> Confirm & Add';
+            }
+        }
+    }
+
+    /* ---------------- New User Logic ---------------- */
+    function openNewUserModal() {
+        const modalOverlay = document.getElementById('mamNewUserModalOverlay');
+        if (modalOverlay) modalOverlay.classList.add('active');
+
+        // Reset form
+        const form = document.getElementById('mamNewUserForm');
+        if (form) form.reset();
+        newPhotoBase64 = null;
+        const preview = document.getElementById('mamPhotoPreview');
+        const placeholder = document.getElementById('mamPhotoPlaceholder');
+        if (preview) { preview.src = ''; preview.style.display = 'none'; }
+        if (placeholder) placeholder.style.display = 'flex';
+
+        // Dynamic Title
+        const titles = {
+            'coaching': 'Add New Coaching Student',
+            'library': 'Add New Library Student',
+            'alumni': 'Add New Alumni to Hall of Fame'
+        };
+        const titleEl = document.getElementById('mamNewUserTitle');
+        if (titleEl) titleEl.innerHTML = `<i class='bx bx-user-plus'></i> ${titles[currentContext] || 'Add New Student'}`;
+
+        // Dynamic service fields in new user form
+        const container = document.getElementById('mamNewServiceSpecificFields');
+        if (currentContext === 'coaching') {
+            let batchOpts = '<option value="none">No batch yet (assign later)</option>';
+            coachingBatches.forEach(b => {
+                batchOpts += `<option value="${b}">${b}</option>`;
+            });
+            container.innerHTML = `
+                <div class="mam-form-section-title"><i class='bx bxs-graduation'></i> Coaching Enrollment</div>
+                <div class="mam-form-group">
+                    <label>Select Coaching Batch <span style="color:#ef4444;">*</span></label>
+                    <select id="mamNewBatchSelect" class="mam-select">
+                        ${batchOpts}
+                    </select>
+                </div>
+            `;
+        } else if (currentContext === 'library') {
+            container.innerHTML = `
+                <div class="mam-form-section-title"><i class='bx bxs-book-reader'></i> Library Allotment</div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Select Floor / Library <span style="color:#ef4444;">*</span></label>
+                        <select id="mamNewFloorSelect" class="mam-select" onchange="ABCDManualAddManager.handleNewFloorChange(this.value)">
+                            <option value="none">No floor/seat yet (assign later)</option>
+                            <option value="Ground Floor" selected>Ground Floor</option>
+                            <option value="1st Floor">1st Floor</option>
+                        </select>
+                    </div>
+                    <div class="mam-form-group" id="mamNewSeatWrap" style="display: flex;">
+                        <label>Select Available Seat / Shift <span style="color:#ef4444;">*</span></label>
+                        <select id="mamNewSeatSelect" class="mam-select">
+                            <option value="">Loading available seats...</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => handleNewFloorChange('Ground Floor'), 0);
+        } else if (currentContext === 'alumni') {
+            const currentYear = new Date().getFullYear();
+            container.innerHTML = `
+                <div class="mam-form-section-title"><i class='bx bxs-trophy'></i> Hall of Fame Details</div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Current Post / Designation <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="mamNewPost" class="mam-input" placeholder="e.g. Sub Inspector (MP Police)" required>
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Selection Year <span style="color:#ef4444;">*</span></label>
+                        <input type="number" id="mamNewYear" class="mam-input" value="${currentYear}" required>
+                    </div>
+                </div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Short Achievement Tag <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="mamNewShortAch" class="mam-input" placeholder="e.g. MP SI, SSC CGL" required>
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Working City <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="mamNewCity" class="mam-input" placeholder="e.g. Bhopal" required>
+                    </div>
+                </div>
+                <div class="mam-form-row">
+                    <div class="mam-form-group">
+                        <label>Services Used at ABCD <span style="color:#ef4444;">*</span></label>
+                        <select id="mamNewServiceUsed" class="mam-select">
+                            <option value="both">Both (Library & Coaching)</option>
+                            <option value="library">Library Only</option>
+                            <option value="coaching">Coaching Only</option>
+                        </select>
+                    </div>
+                    <div class="mam-form-group">
+                        <label>Rating (1 - 5 Stars)</label>
+                        <select id="mamNewRating" class="mam-select">
+                            <option value="5" selected>5 Stars (Top Achiever)</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mam-form-group">
+                    <label>About Yourself / Story <span style="color:#94a3b8; font-weight:normal;">(Optional)</span></label>
+                    <textarea id="mamNewAbout" class="mam-textarea" rows="2" placeholder="Write something inspiring..."></textarea>
+                </div>
+                <div class="mam-form-group">
+                    <label>Experience / Feedback for ABCD <span style="color:#94a3b8; font-weight:normal;">(Optional)</span></label>
+                    <textarea id="mamNewFeedback" class="mam-textarea" rows="2" placeholder="Experience at ABCD library/coaching..."></textarea>
+                </div>
+            `;
+        }
+    }
+
+    function closeNewUserModal() {
+        const modalOverlay = document.getElementById('mamNewUserModalOverlay');
+        if (modalOverlay) modalOverlay.classList.remove('active');
+    }
+
+    async function handleNewFloorChange(floorVal) {
+        const seatWrap = document.getElementById('mamNewSeatWrap');
+        const seatSelect = document.getElementById('mamNewSeatSelect');
+        if (floorVal === 'none') {
+            if (seatWrap) seatWrap.style.display = 'none';
+            if (seatSelect) seatSelect.value = '';
+            return;
+        }
+        if (seatWrap) seatWrap.style.display = 'flex';
+
+        if (librarySeatsCache[floorVal]) {
+            populateSeatSelect('mamNewSeatSelect', floorVal);
+        } else {
+            if (seatSelect) seatSelect.innerHTML = '<option value="">Loading available seats...</option>';
+            try {
+                const resp = await fetch(`/api/teacher/get-available-seats/?floor=${encodeURIComponent(floorVal)}`);
+                const data = await resp.json();
+                librarySeatsCache[floorVal] = data.seats || [];
+                populateSeatSelect('mamNewSeatSelect', floorVal);
+            } catch (e) {
+                if (seatSelect) seatSelect.innerHTML = '<option value="">Error loading available seats</option>';
+            }
+        }
+    }
+
+    function syncWhatsapp() {
+        const check = document.getElementById('mamNewWhatsappSame');
+        const mobile = document.getElementById('mamNewMobile');
+        const whatsapp = document.getElementById('mamNewWhatsapp');
+        if (check && check.checked && mobile && whatsapp) {
+            whatsapp.value = mobile.value;
+            whatsapp.readOnly = true;
+        } else if (whatsapp) {
+            whatsapp.readOnly = false;
+        }
+    }
+
+    function togglePasswordVisibility(inputId, icon) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'bx bx-hide mam-pwd-toggle';
+        } else {
+            input.type = 'password';
+            icon.className = 'bx bx-show mam-pwd-toggle';
+        }
+    }
+
+    /* ---------------- Photo Cropping ---------------- */
+    function handlePhotoSelected(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (window.ABCDImageCropper) {
+            ABCDImageCropper.open({
+                image: file,
+                title: 'Crop Profile Photo',
+                shape: 'circle',
+                aspectRatio: 1,
+                outputWidth: 600,
+                outputHeight: 600,
+                onDone: function(result) {
+                    newPhotoBase64 = result.dataUrl;
+                    const preview = document.getElementById('mamPhotoPreview');
+                    const placeholder = document.getElementById('mamPhotoPlaceholder');
+                    if (preview) { preview.src = result.dataUrl; preview.style.display = 'block'; }
+                    if (placeholder) placeholder.style.display = 'none';
+                    input.value = '';
+                },
+                onCancel: function() {
+                    input.value = '';
+                }
+            });
+        } else {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                newPhotoBase64 = e.target.result;
+                const preview = document.getElementById('mamPhotoPreview');
+                const placeholder = document.getElementById('mamPhotoPlaceholder');
+                if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+                if (placeholder) placeholder.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function reAdjustPhoto() {
+        if (newPhotoBase64 && window.ABCDImageCropper) {
+            ABCDImageCropper.open({
+                image: newPhotoBase64,
+                title: 'Adjust Profile Photo',
+                shape: 'circle',
+                aspectRatio: 1,
+                outputWidth: 600,
+                outputHeight: 600,
+                onDone: function(result) {
+                    newPhotoBase64 = result.dataUrl;
+                    const preview = document.getElementById('mamPhotoPreview');
+                    if (preview) preview.src = result.dataUrl;
+                }
+            });
+        } else {
+            const input = document.getElementById('mamPhotoFileInput');
+            if (input) input.click();
+        }
+    }
+
+    /* ---------------- Submit New User ---------------- */
+    async function submitNewUser(event) {
+        event.preventDefault();
+
+        const firstName = document.getElementById('mamNewFirstName').value.trim();
+        const lastName = document.getElementById('mamNewLastName').value.trim();
+        const gender = document.getElementById('mamNewGender').value;
+        const dob = document.getElementById('mamNewDOB').value;
+        const email = document.getElementById('mamNewEmail').value.trim();
+        const username = document.getElementById('mamNewUsername').value.trim();
+        const password = document.getElementById('mamNewPassword').value;
+        const mobile = document.getElementById('mamNewMobile').value.trim();
+        const whatsapp = document.getElementById('mamNewWhatsapp').value.trim();
+
+        const payload = {
+            context: currentContext,
+            mode: 'new',
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`,
+            gender: gender,
+            dob: dob || null,
+            email: email || '',
+            username: username,
+            password: password,
+            mobile_number: mobile,
+            whatsapp_number: whatsapp || mobile,
+            profile_photo: newPhotoBase64
+        };
+
+        if (currentContext === 'coaching') {
+            const batchEl = document.getElementById('mamNewBatchSelect');
+            payload.batch = batchEl ? batchEl.value : 'none';
+        } else if (currentContext === 'library') {
+            const floorEl = document.getElementById('mamNewFloorSelect');
+            const seatEl = document.getElementById('mamNewSeatSelect');
+            payload.floor = floorEl ? floorEl.value : 'none';
+            if (payload.floor !== 'none') {
+                const val = seatEl ? seatEl.value : '';
+                if (!val) {
+                    if (window.showStyledAlert) window.showStyledAlert("Select Seat", "Please select an available seat or choose 'No floor/seat yet'.");
+                    else alert("Please select an available seat or choose 'No floor/seat yet'.");
+                    return;
+                }
+                const parts = val.split('|');
+                payload.seat_id = parts[0];
+                payload.shift = parts[1] || 'full';
+            }
+        } else if (currentContext === 'alumni') {
+            payload.current_post = document.getElementById('mamNewPost').value.trim();
+            payload.selection_year = document.getElementById('mamNewYear').value;
+            payload.short_achievement = document.getElementById('mamNewShortAch').value.trim();
+            payload.working_city = document.getElementById('mamNewCity').value.trim();
+            payload.services_used = document.getElementById('mamNewServiceUsed').value;
+            payload.rating = document.getElementById('mamNewRating').value;
+            payload.about_yourself = document.getElementById('mamNewAbout').value.trim();
+            payload.experience_feedback = document.getElementById('mamNewFeedback').value.trim();
+        }
+
+        const submitBtn = document.getElementById('mamNewSubmitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting...';
+        }
+
+        try {
+            const csrf = getCsrfToken();
+            const resp = await fetch('/api/teacher/add-manual/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf
+                },
+                body: JSON.stringify(payload)
+            });
+            const resData = await resp.json();
+            if (resp.ok && resData.status === 'success') {
+                closeNewUserModal();
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Success", resData.message || "Student created successfully!", "success");
+                } else {
+                    alert(resData.message || "Success!");
+                }
+                window.location.reload();
+            } else {
+                if (window.showStyledAlert) window.showStyledAlert("Error", resData.message || "Failed to create user.");
+                else alert(resData.message || "Failed to create user.");
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bx bx-user-plus"></i> Submit & Admit';
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            if (window.showStyledAlert) window.showStyledAlert("Network Error", "Unable to create user.");
+            else alert("Network error.");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bx bx-user-plus"></i> Submit & Admit';
+            }
+        }
+    }
+
+    /* ---------------- Wheel Picker Engine ---------------- */
+    function openBirthdayModal() {
+        const modal = document.getElementById('mamBirthdayModalOverlay');
+        if (!modal) return;
+        modal.classList.add('active');
+
+        const years = [];
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear - 8; y >= currentYear - 100; y--) {
+            years.push(y.toString());
+        }
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        const currentVal = document.getElementById('mamNewDOB') ? document.getElementById('mamNewDOB').value : '';
+        let defaultYear = '2000';
+        let defaultMonth = 'Jan';
+        let defaultDay = '01';
+
+        if (currentVal && currentVal.split('-').length === 3) {
+            const parts = currentVal.split('-');
+            defaultYear = parts[0];
+            const monthIdx = parseInt(parts[1], 10) - 1;
+            if (monthIdx >= 0 && monthIdx < 12) defaultMonth = months[monthIdx];
+            defaultDay = parts[2];
+        }
+
+        const yearVal = parseInt(defaultYear, 10);
+        const monthIndex = months.indexOf(defaultMonth);
+        const daysInMonth = new Date(yearVal, monthIndex + 1, 0).getDate();
+        const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
+        initWheel('mam-wheel-birth-year', years, defaultYear, syncBirthdayDays);
+        initWheel('mam-wheel-birth-month', months, defaultMonth, syncBirthdayDays);
+        initWheel('mam-wheel-birth-day', days, defaultDay);
+    }
+
+    function closeBirthdayModal() {
+        const modal = document.getElementById('mamBirthdayModalOverlay');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function syncBirthdayDays() {
+        const year = parseInt(getWheelValue('mam-wheel-birth-year'), 10);
+        const monthStr = getWheelValue('mam-wheel-birth-month');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthIndex = months.indexOf(monthStr);
+        if (isNaN(year) || monthIndex === -1) return;
+
+        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        let dayToSelect = parseInt(getWheelValue('mam-wheel-birth-day'), 10) || 1;
+        if (dayToSelect > daysInMonth) dayToSelect = daysInMonth;
+
+        const days = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+        initWheel('mam-wheel-birth-day', days, dayToSelect.toString().padStart(2, '0'));
+    }
+
+    function submitBirthday() {
+        const y = getWheelValue('mam-wheel-birth-year');
+        const moStr = getWheelValue('mam-wheel-birth-month');
+        const d = getWheelValue('mam-wheel-birth-day');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mo = (months.indexOf(moStr) + 1).toString().padStart(2, '0');
+
+        const dobInput = document.getElementById('mamNewDOB');
+        if (dobInput) dobInput.value = `${y}-${mo}-${d}`;
+        closeBirthdayModal();
+    }
+
+    function initWheel(containerId, items, defaultValue, onScrollChange) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        items.forEach(val => {
+            const item = document.createElement('div');
+            item.className = 'mam-wheel-item';
+            item.textContent = val;
+            item.dataset.value = val;
+            container.appendChild(item);
+        });
+
+        const targetIndex = items.indexOf(defaultValue);
+        if (targetIndex !== -1) {
+            container.scrollTop = targetIndex * 40;
+            const targetEl = container.children[targetIndex];
+            if (targetEl) targetEl.classList.add('selected');
+        }
+
+        let isScrolling;
+        container.onscroll = () => {
+            clearTimeout(isScrolling);
+            isScrolling = setTimeout(() => {
+                const scrollPos = container.scrollTop;
+                const activeIndex = Math.round(scrollPos / 40);
+                Array.from(container.children).forEach((child, idx) => {
+                    if (idx === activeIndex) child.classList.add('selected');
+                    else child.classList.remove('selected');
+                });
+                if (onScrollChange) onScrollChange();
+            }, 60);
+        };
+    }
+
+    function getWheelValue(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return '';
+        const scrollPos = container.scrollTop;
+        const activeIndex = Math.round(scrollPos / 40);
+        const item = container.children[activeIndex];
+        return item ? (item.dataset.value || item.textContent) : '';
+    }
+
+    function getCsrfToken() {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (input && input.value) return input.value;
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && meta.content) return meta.content;
+        return '';
+    }
+
+    return {
+        open,
+        closeChoiceModal,
+        chooseOption,
+        closePickerModal,
+        filterExistingUsers,
+        selectUser,
+        backToPickerStep1,
+        handlePickerFloorChange,
+        submitExistingUser,
+        closeNewUserModal,
+        handleNewFloorChange,
+        syncWhatsapp,
+        togglePasswordVisibility,
+        handlePhotoSelected,
+        reAdjustPhoto,
+        submitNewUser,
+        openBirthdayModal,
+        closeBirthdayModal,
+        submitBirthday
+    };
+})();
+
+// Global alias
+window.ABCDManualAddManager = ABCDManualAddManager;
+window.openManualAddOptionModal = function(context) {
+    ABCDManualAddManager.open(context);
+};
+</script>

@@ -49,6 +49,8 @@
             '/student_dashboard',
             '/teacher_dashboard',
             '/alumni_dashboard',
+            '/guidy',
+            '/todo',
         ];
         for (let i = 0; i < excludedPaths.length; i++) {
             if (path.includes(excludedPaths[i])) return true;

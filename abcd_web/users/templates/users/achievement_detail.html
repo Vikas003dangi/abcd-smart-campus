@@ -657,7 +657,7 @@ function goBackOrHomeBase(event) {
         <!-- TOP RESUME HEADER -->
         <div class="cv-header">
             <div class="cv-photo-wrapper">
-                    <img src="{{ achievement.photo_url }}" class="cv-photo" alt="{{ achievement.first_name }}">
+                    <img src="{{ achievement.photo_url }}" class="cv-photo" id="alumni-profile-img" alt="{{ achievement.first_name }}" onclick="viewPhoto()" style="cursor: pointer;" title="Click to view photo">
 
                 {% if not user.is_staff and not can_edit %}
                 <!-- GUIDY: Seek Guidance Button -->
@@ -912,5 +912,39 @@ function goBackOrHomeBase(event) {
         </div>
     </div>
 </div>
+
+<!-- WhatsApp-Style Fullscreen Photo Broad View Modal -->
+<div id="photoBroadView" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index: 3000010; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000012;">
+        <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <i class='bx bx-x'></i>
+        </button>
+    </div>
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 30px;" onclick="event.stopPropagation()">
+        <img id="broadViewImg" src="" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15);">
+    </div>
+</div>
+
+<script>
+function viewPhoto() {
+    const img = document.getElementById('alumni-profile-img');
+    if (img && img.src) {
+        document.getElementById('broadViewImg').src = img.src;
+        document.getElementById('photoBroadView').style.display = 'block';
+    }
+}
+
+function closePhotoView() {
+    const modal = document.getElementById('photoBroadView');
+    if (modal) modal.style.display = 'none';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closePhotoView();
+    }
+});
+</script>
+
 {% include 'partials/_smart_back_redirect.html' with context_aware=True %}
 {% endblock %}

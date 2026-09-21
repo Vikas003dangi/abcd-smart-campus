@@ -12,6 +12,8 @@ def dict_lookup(dictionary, key):
 def user_photo(user_or_obj, dashboard_type=None):
     if not user_or_obj:
         return "/static/data/user.png"
+    if isinstance(user_or_obj, str):
+        return user_or_obj
     if hasattr(user_or_obj, 'photo_url'):
         try:
             return user_or_obj.photo_url

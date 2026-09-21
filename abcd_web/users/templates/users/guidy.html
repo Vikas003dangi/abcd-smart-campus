@@ -15,8 +15,15 @@
 
 {% block extra_css %}
 {{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+body.dark-theme #guidyPhotoManagerModal {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
 .self-profile-heading {
   font-size: 1.25rem !important;
 }
@@ -1799,10 +1806,10 @@ body.dark-theme .g-search-inner.glow-focus-highlight, body.dark-theme .g-sidebar
 
 .g-floating-add-btn {
   position: absolute;
-  bottom: 20px;
+  bottom: 24px;
   right: 20px;
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
   border-radius: 14px;
   background: var(--g-primary-s);
   color: white;
@@ -1813,6 +1820,8 @@ body.dark-theme .g-search-inner.glow-focus-highlight, body.dark-theme .g-sidebar
   box-shadow: 0 4px 14px rgba(108, 99, 255, 0.4);
   cursor: pointer;
   z-index: 100;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .g-floating-add-btn:hover {
@@ -1822,7 +1831,7 @@ body.dark-theme .g-search-inner.glow-focus-highlight, body.dark-theme .g-sidebar
 
 .g-floating-fullscreen-btn {
   position: absolute;
-  bottom: 80px;
+  bottom: 96px;
   right: 20px;
   width: 50px;
   height: 50px;
@@ -1836,8 +1845,10 @@ body.dark-theme .g-search-inner.glow-focus-highlight, body.dark-theme .g-sidebar
   font-size: 1.4rem;
   box-shadow: 0 4px 12px var(--g-border);
   cursor: pointer;
-  z-index: 100;
-  opacity: 0.75;
+  z-index: 105;
+  opacity: 0.85;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .g-floating-fullscreen-btn:hover {
@@ -2800,12 +2811,12 @@ body.dark-theme .search-highlight {
     </div>
 
     <!-- Floating Fullscreen Toggle Button -->
-    <div class="g-floating-fullscreen-btn" id="sidebarFullscreenBtn" onclick="toggleFullscreenMode()" title="Toggle Fullscreen">
+    <div class="g-floating-fullscreen-btn" id="sidebarFullscreenBtn" onclick="toggleFullscreenMode(event)" title="Toggle Fullscreen">
       <i class='bx bx-fullscreen' id="fullscreenIcon"></i>
     </div>
 
     <!-- Floating Add Chat / Group FAB -->
-    <div class="g-floating-add-btn" id="sidebarFabBtn" onclick="handleFabClick()" title="Add New">
+    <div class="g-floating-add-btn" id="sidebarFabBtn" onclick="handleFabClick(event)" title="Add New">
       <i class='bx bx-plus' id="fabIcon"></i>
     </div>
 
@@ -3420,22 +3431,14 @@ body.dark-theme .search-highlight {
         <!-- Avatar Section -->
         <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; z-index: 1;">
           <div class="g-my-avatar-wrapper" style="position: relative; width: 140px; height: 140px;">
-            <img src="{{ my_photo }}" class="g-my-avatar" id="selfPaneAvatarImg" alt="Me" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--g-primary-s);">
+            <img src="{{ my_photo }}" class="g-my-avatar" id="selfPaneAvatarImg" alt="Me" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--g-primary-s); cursor: pointer;" onclick="viewGuidyPhoto(this.src)" title="Click to view photo">
             {% if is_teacher %}
               <!-- Pencil Icon (Always visible for teacher in self profile) -->
-              <div id="teacherPhotoPencilIcon" onclick="triggerTeacherPhotoUpload()" style="position: absolute; bottom: 5px; right: 5px; background: var(--g-primary-s); color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--g-side-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 2;" title="Change Photo">
+              <div id="teacherPhotoPencilIcon" onclick="openGuidyPhotoManager()" style="position: absolute; bottom: 5px; right: 5px; background: var(--g-primary-s); color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid var(--g-side-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 2;" title="Change Photo">
                 <i class='bx bxs-pencil' style="font-size: 1.15rem;"></i>
               </div>
             {% endif %}
           </div>
-          {% if is_teacher %}
-            {% if my_teacher_profile.photo %}
-              <button onclick="removeTeacherPhoto()" id="selfPaneRemovePhotoBtn" style="background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; display: inline-block;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">Remove Photo</button>
-            {% else %}
-              <button onclick="removeTeacherPhoto()" id="selfPaneRemovePhotoBtn" style="background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 700; cursor: pointer; padding: 6px 12px; border-radius: 8px; transition: background 0.2s; display: none;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='none'">Remove Photo</button>
-            {% endif %}
-            <input type="file" id="teacherPhotoFileInput" accept="image/*" style="display: none;" onchange="handleTeacherPhotoSelected(this)">
-          {% endif %}
         </div>
 
         <!-- Details Section -->
@@ -3647,6 +3650,47 @@ body.dark-theme .search-highlight {
     </div>
   </div>
 </div>
+
+<!-- WhatsApp-Style Fullscreen Photo Broad View Modal -->
+<div id="photoBroadView" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index: 3000010; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000012;">
+        <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <i class='bx bx-x'></i>
+        </button>
+    </div>
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 30px;" onclick="event.stopPropagation()">
+        <img id="broadViewImg" src="" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15);">
+    </div>
+</div>
+
+{% if is_teacher %}
+<!-- Teacher Guidy Photo Manager Modal -->
+<div id="guidyPhotoManagerOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); z-index:3000010;" onclick="closeGuidyPhotoManager()"></div>
+<div id="guidyPhotoManagerModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#ffffff; border-radius:24px; padding:28px; width:90%; max-width:440px; z-index:3000011; box-shadow:0 25px 70px rgba(0,0,0,0.35); border:1px solid var(--g-border);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="margin:0; display:flex; align-items:center; gap:10px; font-size:1.25rem; font-weight:800; color:var(--g-text);">
+            <i class='bx bxs-camera' style="color:var(--g-primary-s);"></i> Profile Photo
+        </h3>
+        <button type="button" onclick="closeGuidyPhotoManager()" aria-label="Close" style="background:none; border:none; font-size:1.6rem; color:#94a3b8; cursor:pointer; line-height:1; display:flex; align-items:center;"><i class='bx bx-x'></i></button>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr; gap:12px;">
+        <label id="guidyUploadLabel" onclick="triggerGuidyFileInput(event)" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border-radius:30px; font-weight:700; font-size:0.92rem; background:var(--g-primary-s); color:white; cursor:pointer; box-shadow:0 10px 20px rgba(108,99,255,0.25); transition:all 0.2s; position:relative; overflow:hidden;">
+            <i class='bx bx-upload'></i>
+            <span id="guidyUploadText">{% if my_teacher_profile.photo %}Change Photo{% else %}Upload Photo{% endif %}</span>
+            <input type="file" id="guidyTeacherFileInput" accept="image/*" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;" onchange="handleGuidyTeacherFileSelect(event)">
+        </label>
+        <button type="button" id="guidyAdjustBtn" onclick="startGuidyTeacherPhotoAdjustment()" style="display:{% if my_teacher_profile.photo %}flex{% else %}none{% endif %}; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border-radius:30px; font-weight:700; font-size:0.92rem; background:#6366f1; color:white; border:none; cursor:pointer; box-shadow:0 10px 20px rgba(99,102,241,0.25); transition:all 0.2s;">
+            <i class='bx bx-crop'></i> Adjust & Crop
+        </button>
+        <button type="button" id="guidyRemoveBtn" onclick="removeGuidyTeacherPhotoAction()" style="display:{% if my_teacher_profile.photo %}flex{% else %}none{% endif %}; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border-radius:30px; font-weight:700; font-size:0.92rem; background:#fee2e2; color:#ef4444; border:none; cursor:pointer; transition:all 0.2s;">
+            <i class='bx bx-trash'></i> Remove Photo
+        </button>
+        <button type="button" onclick="closeGuidyPhotoManager()" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 20px; border-radius:30px; font-weight:700; font-size:0.92rem; background:rgba(0,0,0,0.06); color:var(--g-sub); border:none; cursor:pointer; transition:all 0.2s;">
+            Cancel
+        </button>
+    </div>
+</div>
+{% endif %}
 
 <!-- Dual Identity Procedure Modal -->
 <div class="g-modal-bg" id="dualProcedureModal">
@@ -8602,15 +8646,18 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
   }
 }
 
-window.handleCustomSmartBack = function() {
-  if (window.innerWidth <= 768) {
-    // 1. Close self profile pane if open
-    const selfPane = document.getElementById('guidySelfProfilePane');
-    if (selfPane && selfPane.style.display !== 'none') {
-      closeSelfProfilePane();
-      return true;
+window.handleCustomSmartBack = async function() {
+  // 1. Close self profile pane if open (works on mobile and desktop)
+  const selfPane = document.getElementById('guidySelfProfilePane');
+  if (selfPane && selfPane.style.display !== 'none') {
+    const closed = await closeSelfProfilePane();
+    if (closed === false) {
+      return true; // User cancelled discard, stay in edit mode
     }
+    return true; // Self profile pane closed cleanly
+  }
 
+  if (window.innerWidth <= 768) {
     // 2. Close blocked contacts sidebar if open
     const blockedSidebar = document.getElementById('blockedContactsSidebar');
     if (blockedSidebar && blockedSidebar.style.display !== 'none') {
@@ -8825,7 +8872,7 @@ function renderDrawer(d) {
 
     // Group Photo Element (margin moved to container)
     const photoEl = d.photo
-      ? `<img src="${d.photo}" style="width:130px;height:130px;border-radius:50%;object-fit:cover;display:block;border:4px solid var(--g-primary-s);box-shadow:0 8px 30px rgba(108,99,255,.25);" alt="${d.name}">`
+      ? `<img src="${d.photo}" style="width:130px;height:130px;border-radius:50%;object-fit:cover;display:block;border:4px solid var(--g-primary-s);box-shadow:0 8px 30px rgba(108,99,255,.25);cursor:pointer;" onclick="viewGuidyPhoto('${d.photo}')" title="Click to view photo" alt="${d.name}">`
       : `<div style="width:130px;height:130px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#764ba2);color:white;font-size:3.5rem;display:flex;align-items:center;justify-content:center;border:4px solid var(--g-primary-s);"><i class='bx bx-group'></i></div>`;
 
     // Add & Remove icon buttons (styled to match user screenshot with theme support)
@@ -9007,7 +9054,7 @@ function renderDrawer(d) {
     _drawerGroupData = null;
     // Individual profile drawer (original clean version)
     const photoEl = d.photo
-      ? `<img src="${d.photo}" style="width:130px;height:130px;border-radius:50%;object-fit:cover;display:block;margin:24px auto 14px;border:4px solid var(--g-primary-s);box-shadow:0 8px 30px rgba(108,99,255,.25);" alt="${d.name}">`
+      ? `<img src="${d.photo}" style="width:130px;height:130px;border-radius:50%;object-fit:cover;display:block;margin:24px auto 14px;border:4px solid var(--g-primary-s);box-shadow:0 8px 30px rgba(108,99,255,.25);cursor:pointer;" onclick="viewGuidyPhoto('${d.photo}')" title="Click to view photo" alt="${d.name}">`
       : `<div style="width:130px;height:130px;border-radius:50%;background:var(--g-primary);color:white;font-size:3rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:24px auto 14px;border:4px solid var(--g-primary-s);">${d.name.charAt(0)}</div>`;
 
     let detailHtml = '';
@@ -10008,7 +10055,11 @@ function updateSuggestionHighlight(items) {
 
 // Modify input in HTML search bar to call searchInChatDebounced instead of searchInChat
 // Fullscreen functionality
-function toggleFullscreenMode() {
+function toggleFullscreenMode(event) {
+  if (event) {
+    if (typeof event.stopPropagation === 'function') event.stopPropagation();
+    if (typeof event.preventDefault === 'function' && event.cancelable) event.preventDefault();
+  }
   const isFullscreen = document.body.classList.toggle('g-fullscreen-active');
   const icon = document.getElementById('fullscreenIcon');
   const btn = document.getElementById('sidebarFullscreenBtn');
@@ -10132,99 +10183,290 @@ document.addEventListener('DOMContentLoaded', () => {
 let selectedPhotoFile = null;
 let removePhotoFlag = false;
 let isTeacherEditMode = false;
+let teacherEditBaseline = null;
 
-function toggleTeacherEditMode() {
-  isTeacherEditMode = !isTeacherEditMode;
-  
+function triggerGuidyFileInput(e) {
+  if (e && e.target && e.target.id === 'guidyTeacherFileInput') return;
+  const input = document.getElementById('guidyTeacherFileInput');
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
+
+function getTeacherFormValues() {
+  return {
+    name: (document.getElementById('editTeacherName')?.value || '').trim(),
+    role: (document.getElementById('editTeacherRole')?.value || '').trim(),
+    d1: (document.getElementById('editTeacherDetail1')?.value || '').trim(),
+    d2: (document.getElementById('editTeacherDetail2')?.value || '').trim(),
+    d3: (document.getElementById('editTeacherDetail3')?.value || '').trim(),
+    about: (document.getElementById('editTeacherAbout')?.value || '').trim(),
+    emails: (document.getElementById('editTeacherEmails')?.value || '').trim(),
+    mobileNumbers: (document.getElementById('editTeacherMobileNumbers')?.value || '').trim(),
+    whatsappNumbers: (document.getElementById('editTeacherWhatsappNumbers')?.value || '').trim(),
+  };
+}
+
+function isTeacherProfileDirty() {
+  if (!isTeacherEditMode || !teacherEditBaseline) return false;
+  if (selectedPhotoFile || removePhotoFlag) return true;
+  const current = getTeacherFormValues();
+  for (const key in teacherEditBaseline) {
+    if (current[key] !== teacherEditBaseline[key]) return true;
+  }
+  return false;
+}
+
+function revertTeacherProfileEdits() {
+  if (!teacherEditBaseline) return;
+  if (document.getElementById('editTeacherName')) document.getElementById('editTeacherName').value = teacherEditBaseline.name;
+  if (document.getElementById('editTeacherRole')) document.getElementById('editTeacherRole').value = teacherEditBaseline.role;
+  if (document.getElementById('editTeacherDetail1')) document.getElementById('editTeacherDetail1').value = teacherEditBaseline.d1;
+  if (document.getElementById('editTeacherDetail2')) document.getElementById('editTeacherDetail2').value = teacherEditBaseline.d2;
+  if (document.getElementById('editTeacherDetail3')) document.getElementById('editTeacherDetail3').value = teacherEditBaseline.d3;
+  if (document.getElementById('editTeacherAbout')) document.getElementById('editTeacherAbout').value = teacherEditBaseline.about;
+  if (document.getElementById('editTeacherEmails')) document.getElementById('editTeacherEmails').value = teacherEditBaseline.emails;
+  if (document.getElementById('editTeacherMobileNumbers')) document.getElementById('editTeacherMobileNumbers').value = teacherEditBaseline.mobileNumbers;
+  if (document.getElementById('editTeacherWhatsappNumbers')) document.getElementById('editTeacherWhatsappNumbers').value = teacherEditBaseline.whatsappNumbers;
+  selectedPhotoFile = null;
+  removePhotoFlag = false;
+}
+
+function exitTeacherEditModeClean() {
+  isTeacherEditMode = false;
+  teacherEditBaseline = null;
   const readView = document.getElementById('teacherProfileReadView');
   const editView = document.getElementById('teacherProfileEditView');
   const editBtn = document.getElementById('teacherProfileEditBtn');
   const saveBtn = document.getElementById('teacherProfileSaveBtn');
-  
-  if (isTeacherEditMode) {
+  if (readView) readView.style.display = 'flex';
+  if (editView) editView.style.display = 'none';
+  if (editBtn) editBtn.textContent = 'Edit';
+  if (saveBtn) saveBtn.style.display = 'none';
+}
+
+async function toggleTeacherEditMode() {
+  if (!isTeacherEditMode) {
+    teacherEditBaseline = getTeacherFormValues();
+    isTeacherEditMode = true;
+    const readView = document.getElementById('teacherProfileReadView');
+    const editView = document.getElementById('teacherProfileEditView');
+    const editBtn = document.getElementById('teacherProfileEditBtn');
+    const saveBtn = document.getElementById('teacherProfileSaveBtn');
     if (readView) readView.style.display = 'none';
     if (editView) editView.style.display = 'flex';
     if (editBtn) editBtn.textContent = 'Cancel';
     if (saveBtn) saveBtn.style.display = 'block';
   } else {
-    if (readView) readView.style.display = 'flex';
-    if (editView) editView.style.display = 'none';
-    if (editBtn) editBtn.textContent = 'Edit';
-    
-    // Discard unstaged changes
-    if (selectedPhotoFile || removePhotoFlag) {
-      selectedPhotoFile = null;
-      removePhotoFlag = false;
-      const avatarImg = document.getElementById('selfPaneAvatarImg');
-      if (avatarImg) avatarImg.src = "{{ my_photo }}";
-      const removeBtn = document.getElementById('selfPaneRemovePhotoBtn');
-      if (removeBtn) {
-        removeBtn.style.display = "{{ my_teacher_profile.photo }}" ? "inline-block" : "none";
-      }
+    // User clicked 'Cancel' button
+    if (isTeacherProfileDirty()) {
+      const discard = window.showStyledPopup ? await window.showStyledPopup({
+        title: 'Discard Changes?',
+        message: 'You have unsaved changes in your profile. Are you sure you want to discard them?',
+        type: 'confirm',
+        confirmText: 'Discard Changes',
+        cancelText: 'Continue Editing',
+        isDestructive: true
+      }) : confirm('You have unsaved changes. Discard them?');
+      if (!discard) return;
     }
-    if (saveBtn) saveBtn.style.display = 'none';
+    revertTeacherProfileEdits();
+    exitTeacherEditModeClean();
   }
 }
 
-// Photo upload for teachers
-function triggerTeacherPhotoUpload() {
-  const fileInput = document.getElementById('teacherPhotoFileInput');
-  if (fileInput) fileInput.click();
+// Photo broad view (WhatsApp-style zoom preview)
+function viewGuidyPhoto(src) {
+  if (!src) {
+    const avatar = document.getElementById('selfPaneAvatarImg');
+    src = avatar ? avatar.src : '';
+  }
+  if (!src) return;
+  const modal = document.getElementById('photoBroadView');
+  const img = document.getElementById('broadViewImg');
+  if (modal && img) {
+    img.src = src;
+    modal.style.display = 'flex';
+  }
 }
 
-function handleTeacherPhotoSelected(input) {
-  if (!input.files || !input.files[0]) return;
-  selectedPhotoFile = input.files[0];
-  removePhotoFlag = false;
-  
-  // Show local preview immediately
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const avatarImg = document.getElementById('selfPaneAvatarImg');
-    if (avatarImg) {
-      if (avatarImg.tagName === 'IMG') {
-        avatarImg.src = e.target.result;
+function closePhotoView() {
+  const modal = document.getElementById('photoBroadView');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Photo management for teachers in Guidy
+function openGuidyPhotoManager() {
+  const modal = document.getElementById('guidyPhotoManagerModal');
+  const overlay = document.getElementById('guidyPhotoManagerOverlay');
+  if (modal && overlay) {
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+  }
+}
+
+function closeGuidyPhotoManager() {
+  const modal = document.getElementById('guidyPhotoManagerModal');
+  const overlay = document.getElementById('guidyPhotoManagerOverlay');
+  if (modal) modal.style.display = 'none';
+  if (overlay) overlay.style.display = 'none';
+}
+
+function triggerTeacherPhotoUpload() {
+  openGuidyPhotoManager();
+}
+
+function handleGuidyTeacherFileSelect(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  closeGuidyPhotoManager();
+  openGuidyTeacherPhotoCropper(file);
+}
+
+function startGuidyTeacherPhotoAdjustment() {
+  closeGuidyPhotoManager();
+  const avatarImg = document.getElementById('selfPaneAvatarImg');
+  if (avatarImg && avatarImg.src) {
+    openGuidyTeacherPhotoCropper(avatarImg.src);
+  } else {
+    if (window.showStyledAlert) {
+      window.showStyledAlert("No Photo", "No photo to adjust. Please upload a photo first.");
+    } else {
+      alert("No photo to adjust. Please upload a photo first.");
+    }
+  }
+}
+
+function openGuidyTeacherPhotoCropper(srcOrFile) {
+  if (!window.ABCDImageCropper) {
+    if (window.showToast) showToast('Image cropper loading, please try again in a moment', 'warning');
+    return;
+  }
+  ABCDImageCropper.open({
+    image: srcOrFile,
+    title: 'Adjust Teacher Photo',
+    aspectRatio: 1,
+    shape: 'circle',
+    outputWidth: 600,
+    outputHeight: 600,
+    onDone: async function(result) {
+      const formData = new FormData();
+      formData.append('photo_base64', result.dataUrl);
+      formData.append('csrfmiddlewaretoken', CSRF);
+
+      try {
+        const response = await fetch('/guidy/profile/teacher/update/', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': CSRF
+          }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.success) {
+          const avatarImg = document.getElementById('selfPaneAvatarImg');
+          if (avatarImg) avatarImg.src = data.photo_url || result.dataUrl;
+          if (window.showToast) {
+            showToast("Profile photo updated successfully!");
+          } else if (window.showStyledAlert) {
+            await window.showStyledAlert("Success", "Profile photo updated successfully!", "success");
+          }
+          const uploadText = document.getElementById('guidyUploadText');
+          if (uploadText) uploadText.textContent = 'Change Photo';
+          const adjustBtn = document.getElementById('guidyAdjustBtn');
+          const removeBtn = document.getElementById('guidyRemoveBtn');
+          if (adjustBtn) adjustBtn.style.display = 'flex';
+          if (removeBtn) removeBtn.style.display = 'flex';
+        } else {
+          if (window.showToast) {
+            showToast(data.error || "Server error while saving photo", "error");
+          } else {
+            alert(data.error || "Server error while saving photo");
+          }
+        }
+      } catch(e) {
+        console.error("Upload error:", e);
+        if (window.showToast) {
+          showToast("An error occurred while uploading your photo.", "error");
+        }
+      }
+    },
+    onCancel: function() {
+      const input = document.getElementById('guidyTeacherFileInput');
+      if (input) input.value = '';
+    }
+  });
+}
+
+async function removeGuidyTeacherPhotoAction() {
+  closeGuidyPhotoManager();
+  const confirmed = window.showStyledPopup ? await window.showStyledPopup({
+    title: 'Remove Photo',
+    message: 'Are you sure you want to <b>remove</b> your profile photo?',
+    type: 'confirm',
+    confirmText: 'Remove Photo',
+    cancelText: 'Cancel',
+    isDestructive: true
+  }) : (window.showStyledConfirm ? await window.showStyledConfirm('Remove Photo', 'Are you sure you want to <b>remove</b> your profile photo?') : confirm('Are you sure you want to remove your profile photo?'));
+  if (!confirmed) return;
+
+  const formData = new FormData();
+  formData.append('remove_photo', 'true');
+  formData.append('csrfmiddlewaretoken', CSRF);
+
+  try {
+    const response = await fetch('/guidy/profile/teacher/update/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': CSRF
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok && data.success) {
+      const avatarImg = document.getElementById('selfPaneAvatarImg');
+      if (avatarImg && data.photo_url) {
+        avatarImg.src = data.photo_url;
+      }
+      const uploadText = document.getElementById('guidyUploadText');
+      if (uploadText) uploadText.textContent = 'Upload Photo';
+      const adjustBtn = document.getElementById('guidyAdjustBtn');
+      const removeBtn = document.getElementById('guidyRemoveBtn');
+      if (adjustBtn) adjustBtn.style.display = 'none';
+      if (removeBtn) removeBtn.style.display = 'none';
+      if (window.showToast) {
+        showToast("Profile photo removed.");
+      } else if (window.showStyledAlert) {
+        await window.showStyledAlert("Removed", "Profile photo removed.", "success");
+      }
+    } else {
+      if (window.showToast) {
+        showToast(data.error || "Failed to remove photo.", "error");
       } else {
-        const parent = avatarImg.parentElement;
-        const newImg = document.createElement('img');
-        newImg.src = e.target.result;
-        newImg.className = 'g-my-avatar';
-        newImg.id = 'selfPaneAvatarImg';
-        newImg.style.cssText = 'width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--g-primary-s);';
-        parent.replaceChild(newImg, avatarImg);
+        alert(data.error || "Failed to remove photo.");
       }
     }
-    // Show save button
-    const saveBtn = document.getElementById('teacherProfileSaveBtn');
-    if (saveBtn) saveBtn.style.display = 'block';
-  };
-  reader.readAsDataURL(selectedPhotoFile);
+  } catch(e) {
+    console.error("Remove error:", e);
+    if (window.showToast) showToast("Error removing photo", "error");
+  }
 }
 
 function removeTeacherPhoto() {
-  removePhotoFlag = true;
-  selectedPhotoFile = null;
-  
-  // Preview default static image
-  const avatarImg = document.getElementById('selfPaneAvatarImg');
-  if (avatarImg) {
-    const email = "{{ request.user.email|lower }}";
-    const uname = "{{ request.user.username|lower }}";
-    if (email === 'abcd2013baq@gmail.com' || uname === 'sandy' || uname === 'sandeep' || uname === 'sandeepananda' || uname === 'abcd2013baq') {
-      avatarImg.src = "/static/data/sandeep sir photo.jpeg";
-    } else {
-      avatarImg.src = "/static/data/favicon/web-app-manifest-512x512.png";
-    }
-  }
-  
-  // Hide remove photo button
-  const removeBtn = document.getElementById('selfPaneRemovePhotoBtn');
-  if (removeBtn) removeBtn.style.display = 'none';
-  
-  // Show save button
-  const saveBtn = document.getElementById('teacherProfileSaveBtn');
-  if (saveBtn) saveBtn.style.display = 'block';
+  removeGuidyTeacherPhotoAction();
 }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closePhotoView();
+    closeGuidyPhotoManager();
+  }
+});
 
 async function saveTeacherProfile() {
   const name = document.getElementById('editTeacherName') ? document.getElementById('editTeacherName').value : '';
@@ -10274,7 +10516,22 @@ async function saveTeacherProfile() {
     }
     if (d.success) {
       showToast('Profile updated successfully!');
-      setTimeout(() => window.location.reload(), 1000);
+      // Update read view text in-place
+      const nameEl = document.getElementById('readTeacherNameText');
+      if (nameEl) nameEl.innerHTML = `${name} <i class='bx bxs-badge-check g-verified-tick'></i>`;
+      const roleEl = document.getElementById('readTeacherRoleText');
+      if (roleEl) roleEl.textContent = role;
+      const d1El = document.getElementById('readTeacherD1Text');
+      if (d1El) d1El.textContent = d1 || 'Founder & Head Faculty';
+      const d2El = document.getElementById('readTeacherD2Text');
+      if (d2El) d2El.textContent = d2 || 'English Grammar Teacher';
+      const d3El = document.getElementById('readTeacherD3Text');
+      if (d3El) d3El.textContent = d3 || 'Library Owner';
+      const aboutEl = document.getElementById('readTeacherAboutText');
+      if (aboutEl) aboutEl.textContent = about || 'No bio written yet.';
+
+      // Exit edit mode cleanly
+      exitTeacherEditModeClean();
     } else {
       showToast(d.error || 'Update failed', 'error');
     }
@@ -10284,15 +10541,20 @@ async function saveTeacherProfile() {
 }
 
 // FAB Click Router
-function handleFabClick() {
+function handleFabClick(event) {
+  if (event) {
+    if (typeof event.stopPropagation === 'function') event.stopPropagation();
+    if (typeof event.preventDefault === 'function' && event.cancelable) event.preventDefault();
+  }
   const tab = getActiveTab();
+  const configEl = typeof cfg !== 'undefined' ? cfg : document.getElementById('guidyConfig');
   if (tab === 'chats') {
-    const isTeacher = cfg.dataset.isTeacher === 'true';
+    const isTeacher = configEl && configEl.dataset.isTeacher === 'true';
     if (isTeacher) {
       openContactListModal('direct');
     } else {
-      const isAlumni = cfg.dataset.isAlumni === 'true';
-      const isStudent = cfg.dataset.isStudent === 'true';
+      const isAlumni = configEl && configEl.dataset.isAlumni === 'true';
+      const isStudent = configEl && configEl.dataset.isStudent === 'true';
       if (isAlumni && isStudent) {
         openDualProcedure();
       } else if (isAlumni) {
@@ -10303,6 +10565,9 @@ function handleFabClick() {
     }
   } else if (tab === 'groups') {
     openContactListModal('group');
+  } else {
+    // requests or any other tab
+    openContactListModal('direct');
   }
 }
 
@@ -10351,6 +10616,7 @@ document.addEventListener('click', (event) => {
 });
 
 function openSelfProfilePane() {
+  exitTeacherEditModeClean();
   const pane = document.getElementById('guidySelfProfilePane');
   const isTeacher = Boolean("{{ is_teacher }}" === "True" || "{{ is_teacher }}" === "true");
   if (pane) {
@@ -10393,7 +10659,27 @@ function openSelfProfilePane() {
   if (dropdown) dropdown.style.display = 'none';
 }
 
-function closeSelfProfilePane() {
+async function closeSelfProfilePane() {
+  if (isTeacherEditMode) {
+    if (isTeacherProfileDirty()) {
+      const discard = window.showStyledPopup ? await window.showStyledPopup({
+        title: 'Discard Changes?',
+        message: 'You have unsaved changes in your profile. Are you sure you want to discard them?',
+        type: 'confirm',
+        confirmText: 'Discard Changes',
+        cancelText: 'Continue Editing',
+        isDestructive: true
+      }) : confirm('You have unsaved changes. Discard them?');
+      if (!discard) {
+        return false;
+      }
+    }
+    revertTeacherProfileEdits();
+    exitTeacherEditModeClean();
+  } else {
+    exitTeacherEditModeClean();
+  }
+
   const pane = document.getElementById('guidySelfProfilePane');
   if (pane) {
     pane.style.display = 'none';
@@ -11195,6 +11481,8 @@ function globalClickClose(e) {
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
 <script src="{% static 'js/push-permission.js' %}?v=6"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
 
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

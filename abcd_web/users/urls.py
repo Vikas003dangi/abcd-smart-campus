@@ -77,6 +77,7 @@ urlpatterns = [
     # Teacher Dashboard
     # ============================
     path('teacher/', views.teacher_dashboard_view, name='teacher_dashboard'),
+    path('teacher/profile/', views.teacher_profile_details_view, name='teacher_profile_details'),
     path('api/teacher/live-stats/', views.teacher_live_stats_api, name='teacher_live_stats_api'),
 
     # Students CRED
@@ -201,6 +202,11 @@ urlpatterns = [
     path('api/update_contact_info/', views.update_contact_info_api, name='api_update_contact_info'),
     path('teacher/seat_switch/<int:pk>/approve/', views.approve_seat_switch, name='approve_seat_switch'),
     path('teacher/seat_switch/<int:pk>/reject/', views.reject_seat_switch, name='reject_seat_switch'),
+
+    # Teacher Add Manually APIs (Coaching, Library, Hall of Fame)
+    path('api/teacher/get-users-for-manual/', views.teacher_get_users_for_manual_api, name='api_teacher_get_users_for_manual'),
+    path('api/teacher/get-available-seats/', views.teacher_get_available_seats_api, name='api_teacher_get_available_seats'),
+    path('api/teacher/add-manual/', views.teacher_add_manual_api, name='api_teacher_add_manual'),
 
     # Push Notification Subscription API
     path("api/save-push-subscription/", views.save_push_subscription, name="save_push_subscription"),

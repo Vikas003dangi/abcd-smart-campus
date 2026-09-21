@@ -4947,7 +4947,7 @@ if (sessionStorage.getItem('abcd_choice_modal_shown')) {
     } catch(e) {}
 }
 
-// Clear session storage keys whenever user clicks logout link anywhere
+// Clear session storage keys and replace history on logout
 document.addEventListener('click', function(e) {
     const link = e.target.closest('a[href*="logout"]');
     if (link) {
@@ -4955,6 +4955,17 @@ document.addEventListener('click', function(e) {
             sessionStorage.removeItem('abcd_choice_modal_shown');
             sessionStorage.removeItem('abcd_welcome_popup_shown');
         } catch(err) {}
+        if (link.href && link.href.indexOf('logout') !== -1) {
+            e.preventDefault();
+            window.location.replace(link.href);
+        }
+    }
+});
+
+// Anti-bfcache: If restored from cache, reload to verify authentication
+window.addEventListener('pageshow', function(e) {
+    if (e.persisted) {
+        window.location.reload();
     }
 });
 </script>

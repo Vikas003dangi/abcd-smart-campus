@@ -302,7 +302,12 @@ class StudentProfile(models.Model):
                     pass
         except Exception:
             pass
-            
+
+        sex = (getattr(self, 'sex', '') or '').strip().lower()
+        if sex == 'male':
+            return "/static/data/default_avatar_male.png"
+        elif sex == 'female':
+            return "/static/data/default_avatar_female.png"
         return "/static/data/default_avatar.png"
 
     @property
@@ -1795,7 +1800,12 @@ class StudentAchievement(models.Model):
                     pass
         except Exception:
             pass
-            
+
+        gender = (getattr(self, 'gender', '') or '').strip().lower()
+        if gender == 'male':
+            return "/static/data/default_avatar_male.png"
+        elif gender == 'female':
+            return "/static/data/default_avatar_female.png"
         return "/static/data/default_avatar.png"
 
     def save(self, *args, **kwargs):
@@ -2414,6 +2424,32 @@ class TeacherProfile(models.Model):
 
     def __str__(self):
         return f"Teacher: {self.display_name or self.user.username}"
+
+    @property
+    def photo_url(self):
+        """
+        Returns the teacher photo URL with cache buster if custom photo exists,
+        or falls back to central get_profile_photo_url.
+        """
+        if self.photo:
+            try:
+                storage = getattr(self.photo, 'storage', None)
+                if isinstance(storage, FileSystemStorage):
+                    try:
+                        f_path = self.photo.path
+                        if f_path and os.path.exists(f_path):
+                            return f"{self.photo.url}?v={int(os.path.getmtime(f_path))}"
+                    except (NotImplementedError, AttributeError, ValueError, OSError):
+                        pass
+                return self.photo.url
+            except Exception:
+                pass
+        try:
+            user = self.user
+        except Exception:
+            user = None
+        from users.utils import get_profile_photo_url
+        return get_profile_photo_url(user, dashboard_type='teacher')
 
 
 @receiver(post_save, sender=User)

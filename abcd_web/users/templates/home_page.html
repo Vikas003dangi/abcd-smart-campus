@@ -7710,8 +7710,19 @@
         logoutUrl = null;
     }
 
+    // Confirm → navigate to logout (use replace to avoid keeping authenticated session in history stack)
     logoutBtn.addEventListener('click', function() {
-        if (logoutUrl) window.location.href = logoutUrl;
+        if (logoutUrl) {
+            hideLogoutPopup();
+            window.location.replace(logoutUrl);
+        }
+    });
+
+    // Anti-bfcache: If restored from cache, reload to verify authentication
+    window.addEventListener('pageshow', function(e) {
+        if (e.persisted) {
+            window.location.reload();
+        }
     });
 
     goBackBtn.addEventListener('click', hideLogoutPopup);

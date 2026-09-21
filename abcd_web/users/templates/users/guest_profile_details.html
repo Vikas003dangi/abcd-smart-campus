@@ -279,8 +279,8 @@
 <div class="profile-card-wrapper">
     <div class="profile-details-card">
         <div class="profile-pic-container">
-            <div class="profile-pic-frame">
-                <img src="{{ user|user_photo }}" alt="{{ user.username }}">
+            <div class="profile-pic-frame" onclick="viewPhoto()" style="cursor: pointer;" title="Click to view photo">
+                <img src="{{ user|user_photo }}" alt="{{ user.username }}" id="profile-img-main">
             </div>
         </div>
         
@@ -468,7 +468,40 @@
             }
         }
     }
+
+    function viewPhoto() {
+        const img = document.getElementById('profile-img-main');
+        if (img && img.src) {
+            document.getElementById('broadViewImg').src = img.src;
+            document.getElementById('photoBroadView').style.display = 'block';
+        }
+    }
+
+    function closePhotoView() {
+        const modal = document.getElementById('photoBroadView');
+        if (modal) modal.style.display = 'none';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePhotoView();
+            closeChangePasswordModal();
+        }
+    });
 </script>
+
+<!-- WhatsApp-Style Fullscreen Photo Broad View Modal -->
+<div id="photoBroadView" class="chg-pwd-overlay" style="display:none; z-index: 3000010; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000012;">
+        <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <i class='bx bx-x'></i>
+        </button>
+    </div>
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 30px;" onclick="event.stopPropagation()">
+        <img id="broadViewImg" src="" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15);">
+    </div>
+</div>
+
 {% include 'partials/password_reset_modal.html' %}
 {% url 'users:guest_page' as resolved_back_url %}
 {% include 'partials/_smart_back_redirect.html' with back_url_path=resolved_back_url %}

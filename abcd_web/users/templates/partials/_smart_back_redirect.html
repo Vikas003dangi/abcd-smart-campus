@@ -36,7 +36,7 @@
                 // 1. Check custom page back hook (e.g. Guidy mobile chat close)
                 if (typeof window.handleCustomSmartBack === 'function') {
                     try {
-                        const handled = window.handleCustomSmartBack();
+                        const handled = await window.handleCustomSmartBack();
                         if (handled) {
                             try {
                                 window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);

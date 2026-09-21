@@ -1,0 +1,938 @@
+{% extends base_template %}
+{% load static %}
+{% load dict_extras %}
+
+{% block title %}Teacher Profile - {{ teacher_profile.display_name|default:request.user.get_full_name|default:request.user.username }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
+<style>
+    :root {
+        --z-modal-overlay: 100000;
+        --z-modal: 100001;
+        --profile-primary: #6366f1;
+        --profile-card-bg: #ffffff;
+        --profile-text: #1e293b;
+        --profile-muted: #64748b;
+        --profile-border: #e2e8f0;
+        --profile-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+    }
+
+    body.dark-theme {
+        --profile-card-bg: rgba(30, 41, 59, 0.7);
+        --profile-text: #f1f5f9;
+        --profile-muted: #94a3b8;
+        --profile-border: rgba(255, 255, 255, 0.1);
+        --profile-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    .profile-wrapper {
+        padding: 100px 20px 40px;
+        display: flex;
+        justify-content: center;
+        min-height: calc(100vh - 100px);
+    }
+
+    .profile-card {
+        width: 100%;
+        max-width: 600px;
+        background: var(--profile-card-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 40px;
+        padding: 40px;
+        position: relative;
+        box-shadow: var(--profile-shadow);
+        border: 1px solid var(--profile-border);
+        height: fit-content;
+        transition: background 0.3s, border-color 0.3s;
+    }
+
+    /* Half-Circle Out Photo Header */
+    .photo-container {
+        position: absolute;
+        top: -65px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        border: 6px solid var(--profile-card-bg);
+        background: var(--profile-card-bg);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+        overflow: visible;
+    }
+
+    .photo-frame {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .photo-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .photo-frame:hover img {
+        transform: scale(1.08);
+    }
+
+    .photo-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.38);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.25s ease;
+        color: white; font-weight: 700; font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+
+    .photo-frame:hover .photo-overlay {
+        opacity: 1;
+    }
+
+    .edit-photo-btn {
+        position: absolute;
+        bottom: 4px; right: 4px;
+        width: 36px; height: 36px;
+        background: var(--profile-primary);
+        color: white;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.15rem;
+        border: 3px solid var(--profile-card-bg);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        cursor: pointer;
+        z-index: 20;
+        transition: transform 0.2s ease, background 0.2s;
+    }
+
+    .edit-photo-btn:hover {
+        transform: scale(1.12);
+        background: #4f46e5;
+    }
+
+    .teacher-name-heading {
+        text-align: center;
+        font-size: 1.9rem;
+        font-weight: 800;
+        color: var(--profile-text);
+        margin: 65px 0 6px;
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .teacher-role-sub {
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--profile-primary);
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 30px;
+    }
+
+    .details-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-bottom: 35px;
+    }
+
+    .detail-row {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--profile-border);
+        transition: background 0.2s ease;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        width: 120px;
+        font-weight: 700;
+        color: var(--profile-primary);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+    }
+
+    .detail-value {
+        flex: 1;
+        font-weight: 600;
+        color: var(--profile-text);
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        word-break: break-word;
+    }
+
+    .detail-value a {
+        color: var(--profile-text);
+        text-decoration: none;
+        transition: color 0.15s;
+    }
+
+    .detail-value a:hover {
+        color: var(--profile-primary);
+    }
+
+    .contact-item-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--profile-text);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.15s;
+    }
+
+    .contact-item-link:hover {
+        color: var(--profile-primary);
+    }
+
+    .footer-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .pill-btn {
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 0.92rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.25s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-grey { background: rgba(0,0,0,0.06); color: var(--profile-muted); }
+    body.dark-theme .btn-grey { background: rgba(255,255,255,0.08); color: #cbd5e1; }
+
+    .btn-indigo {
+        background: var(--profile-primary);
+        color: white;
+        box-shadow: 0 10px 20px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn-danger {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .pill-btn:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.05);
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: none; z-index: 3000010 !important;
+    }
+
+    .modal-card {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: #ffffff; border-radius: 28px; padding: 30px;
+        width: 90%; max-width: 500px; z-index: 3000011 !important; display: none;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+        border: 1px solid var(--profile-border);
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    body.dark-theme .modal-card {
+        background: #1e293b;
+        color: #f1f5f9;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Modal Form Styling for Change Password & Edit Profile */
+    .styled-modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.92);
+        width: 90%;
+        max-width: 520px;
+        background: #ffffff;
+        border: 1px solid var(--profile-border);
+        padding: 30px;
+        border-radius: 24px;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+        z-index: 3000011 !important;
+        transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        opacity: 0;
+        max-height: 88vh;
+        overflow-y: auto;
+    }
+
+    body.dark-theme .styled-modal {
+        background: #1e293b;
+        color: #f1f5f9;
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .styled-modal.active {
+        display: block;
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    .modal-hdr {
+        font-size: 1.35rem;
+        font-weight: 800;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--profile-text);
+    }
+
+    .modal-close {
+        cursor: pointer;
+        font-size: 1.7rem;
+        color: #94a3b8;
+        transition: color 0.15s;
+    }
+
+    .modal-close:hover {
+        color: var(--profile-text);
+    }
+
+    .styled-modal .form-group {
+        margin-bottom: 15px;
+        text-align: left;
+    }
+
+    .styled-modal .form-group label {
+        display: block;
+        font-weight: 700;
+        font-size: 0.78rem;
+        color: var(--profile-primary);
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .styled-modal .form-group input,
+    .styled-modal .form-group textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid #d1d5db;
+        background: #f8fafc;
+        color: #1e293b;
+        font-weight: 600;
+        font-size: 0.92rem;
+        transition: all 0.25s ease;
+        box-sizing: border-box;
+    }
+
+    body.dark-theme .styled-modal .form-group input,
+    body.dark-theme .styled-modal .form-group textarea {
+        background: #0f172a;
+        border-color: #334155;
+        color: #f8fafc;
+    }
+
+    .styled-modal .form-group input:focus,
+    .styled-modal .form-group textarea:focus {
+        outline: none;
+        border-color: var(--profile-primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+    }
+
+    @media (max-width: 480px) {
+        .profile-card { padding: 25px 16px; }
+        .teacher-name-heading { font-size: 1.55rem; }
+        .detail-row {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 5px !important;
+            padding: 12px 14px !important;
+        }
+        .detail-label {
+            width: auto !important;
+            font-size: 0.75rem;
+        }
+        .detail-value {
+            font-size: 0.95rem;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-wrapper">
+    <div class="profile-card">
+        <!-- Photo Header -->
+        <div class="photo-container">
+            <div class="photo-frame" onclick="viewPhoto()" title="Click to view photo">
+                <img src="{{ photo_url }}" alt="{{ teacher_profile.display_name|default:request.user.username }}" id="profile-img-main">
+                <div class="photo-overlay">SEE</div>
+            </div>
+            <div class="edit-photo-btn" onclick="openPhotoManager()" title="Change Profile Photo">
+                <i class='bx bxs-pencil'></i>
+            </div>
+        </div>
+
+        <h1 class="teacher-name-heading">
+            <span>{{ teacher_profile.display_name|default:request.user.get_full_name|default:request.user.username }}</span>
+            <i class='bx bxs-badge-check' style="color: #25d366;" title="Verified Teacher"></i>
+        </h1>
+        <div class="teacher-role-sub">{{ teacher_profile.role_title|default:'Teacher' }}</div>
+
+        <div class="details-list">
+            <div class="detail-row">
+                <span class="detail-label">Experience</span>
+                <span class="detail-value">{{ teacher_profile.detail1|default:'Founder & Head Faculty' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Subjects</span>
+                <span class="detail-value">{{ teacher_profile.detail2|default:'English Grammar & Spoken' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Extra Role</span>
+                <span class="detail-value">{{ teacher_profile.detail3|default:'Library Owner' }}</span>
+            </div>
+            <div class="detail-row" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+                <span class="detail-label">About / Bio</span>
+                <span class="detail-value" style="font-size: 0.92rem; line-height: 1.5; color: var(--profile-muted); white-space: pre-line;">{{ teacher_profile.about|default:'No bio written yet.' }}</span>
+            </div>
+
+            <!-- Mobiles -->
+            <div class="detail-row">
+                <span class="detail-label">Mobile</span>
+                <span class="detail-value">
+                    {% if mobiles_list %}
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            {% for m in mobiles_list %}
+                                <a href="tel:{{ m }}" class="contact-item-link">
+                                    <i class='bx bx-phone' style="color: var(--profile-primary);"></i> {{ m }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span style="color: var(--profile-muted); font-style: italic;">Not provided</span>
+                    {% endif %}
+                </span>
+            </div>
+
+            <!-- Whatsapps -->
+            <div class="detail-row">
+                <span class="detail-label">WhatsApp</span>
+                <span class="detail-value">
+                    {% if whatsapps_list %}
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            {% for w in whatsapps_list %}
+                                <a href="https://wa.me/{{ w.clean }}" target="_blank" class="contact-item-link">
+                                    <i class='bx bxl-whatsapp' style="color: #25d366; font-size: 1.15rem;"></i> {{ w.original }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span style="color: var(--profile-muted); font-style: italic;">Not provided</span>
+                    {% endif %}
+                </span>
+            </div>
+
+            <!-- Emails -->
+            <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">
+                    {% if emails_list %}
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            {% for e in emails_list %}
+                                <a href="mailto:{{ e }}" class="contact-item-link">
+                                    <i class='bx bx-envelope' style="color: var(--profile-primary);"></i> {{ e }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <span style="color: var(--profile-muted); font-style: italic;">Not provided</span>
+                    {% endif %}
+                </span>
+            </div>
+
+            <div class="detail-row">
+                <span class="detail-label">Username</span>
+                <span class="detail-value">{{ request.user.username }}</span>
+            </div>
+
+            <div class="detail-row" style="flex-direction: column; align-items: stretch; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <span class="detail-label">Password</span>
+                    <span class="detail-value">*****</span>
+                </div>
+                <span class="meta-label" style="display: block; font-size: 0.75rem; color: #94a3b8; text-align: right; margin-top: 4px;">{{ password_date_display }}</span>
+            </div>
+        </div>
+
+        <div class="footer-actions">
+            <a href="{% url 'users:teacher_dashboard' %}" class="pill-btn btn-grey">
+                <i class='bx bx-arrow-back'></i> Back
+            </a>
+            <button onclick="openChangePasswordModal()" class="pill-btn btn-grey">
+                <i class='bx bxs-key'></i> Change Password
+            </button>
+            <button onclick="openEditTeacherProfileModal()" class="pill-btn btn-indigo">
+                <i class='bx bxs-edit-alt'></i> Edit Profile
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- WhatsApp-Style Fullscreen Photo Broad View Modal -->
+<div id="photoBroadView" class="modal-overlay" style="display:none; z-index: 3000010; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000012;">
+        <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <i class='bx bx-x'></i>
+        </button>
+    </div>
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 30px;" onclick="event.stopPropagation()">
+        <img id="broadViewImg" src="" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15);">
+    </div>
+</div>
+
+<!-- Photo Manager Modal -->
+<div id="photoManagerModal" class="modal-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem;">
+            <i class='bx bxs-camera'></i> Profile Photo
+        </h3>
+        <button type="button" onclick="closePhotoManager()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
+    </div>
+    <div id="photoActions">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+            <label class="pill-btn btn-indigo" style="cursor: pointer; justify-content: center;">
+                <i class='bx bx-upload'></i> 
+                <span>{% if has_custom_photo %}Change Photo{% else %}Upload Photo{% endif %}</span>
+                <input type="file" id="teacherPhotoInput" accept="image/*" style="display:none;" onchange="handleTeacherFileSelect(event)">
+            </label>
+            
+            {% if has_custom_photo %}
+            <button class="pill-btn btn-indigo" onclick="startTeacherPhotoAdjustment()" style="justify-content: center; background: #6366f1;">
+                <i class='bx bx-crop'></i> Adjust & Crop
+            </button>
+            <button type="button" class="pill-btn btn-danger" style="justify-content: center;" onclick="removeTeacherPhotoAction()">
+                <i class='bx bx-trash'></i> Remove Photo
+            </button>
+            {% endif %}
+            
+            <button class="pill-btn btn-grey" onclick="closePhotoManager()" style="justify-content: center;">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+<div id="photoManagerOverlay" class="modal-overlay" onclick="closePhotoManager()"></div>
+
+<!-- EDIT TEACHER PROFILE MODAL -->
+<div class="modal-overlay" id="editProfileOverlay" onclick="closeEditTeacherProfileModal()"></div>
+<div class="styled-modal" id="editProfileModal">
+    <div class="modal-hdr">
+        <span>Edit Teacher Profile</span>
+        <i class='bx bx-x modal-close' onclick="closeEditTeacherProfileModal()"></i>
+    </div>
+    <form id="editTeacherProfileForm" onsubmit="handleSaveTeacherProfile(event)">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="editName">Display Name</label>
+            <input type="text" id="editName" name="name" value="{{ teacher_profile.display_name|default:request.user.get_full_name|default:request.user.username }}" required placeholder="e.g. Sandeep Sir">
+        </div>
+        <div class="form-group">
+            <label for="editRole">Role Title</label>
+            <input type="text" id="editRole" name="role_title" value="{{ teacher_profile.role_title|default:'Teacher' }}" required placeholder="e.g. Teacher">
+        </div>
+        <div class="form-group">
+            <label for="editDetail1">Experience / Heading</label>
+            <input type="text" id="editDetail1" name="detail1" value="{{ teacher_profile.detail1|default:'' }}" placeholder="e.g. Founder & Head Faculty">
+        </div>
+        <div class="form-group">
+            <label for="editDetail2">Subjects</label>
+            <input type="text" id="editDetail2" name="detail2" value="{{ teacher_profile.detail2|default:'' }}" placeholder="e.g. English Grammar & Spoken">
+        </div>
+        <div class="form-group">
+            <label for="editDetail3">Extra Role</label>
+            <input type="text" id="editDetail3" name="detail3" value="{{ teacher_profile.detail3|default:'' }}" placeholder="e.g. Library Owner">
+        </div>
+        <div class="form-group">
+            <label for="editAbout">About / Bio</label>
+            <textarea id="editAbout" name="about" rows="3" placeholder="Tell students and visitors about your experience and methodology...">{{ teacher_profile.about|default:'' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="editMobiles">Mobile Number(s) (comma separated)</label>
+            <input type="text" id="editMobiles" name="mobile_numbers" value="{{ teacher_profile.mobile_numbers|default:teacher_profile.mobile_number|default:'' }}" placeholder="e.g. +919876543210, +919988776655">
+        </div>
+        <div class="form-group">
+            <label for="editWhatsapps">WhatsApp Number(s) (comma separated)</label>
+            <input type="text" id="editWhatsapps" name="whatsapp_numbers" value="{{ teacher_profile.whatsapp_numbers|default:'' }}" placeholder="e.g. +919876543210">
+        </div>
+        <div class="form-group">
+            <label for="editEmails">Email Address(es) (comma separated)</label>
+            <input type="text" id="editEmails" name="emails" value="{{ teacher_profile.emails|default:request.user.email|default:'' }}" placeholder="e.g. abcd2013baq@gmail.com">
+        </div>
+        <div style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="pill-btn btn-grey" onclick="closeEditTeacherProfileModal()">Cancel</button>
+            <button type="submit" class="pill-btn btn-indigo" id="saveTeacherProfileSubmitBtn">Save Changes</button>
+        </div>
+    </form>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="modal-overlay" id="pwdOverlay" onclick="closeChangePasswordModal()"></div>
+<div class="styled-modal" id="pwdModal">
+    <div class="modal-hdr">
+        <span>Change Password</span>
+        <i class='bx bx-x modal-close' onclick="closeChangePasswordModal()"></i>
+    </div>
+    <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="current_password">Current Password</label>
+            <input type="password" id="current_password" name="current_password" required placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+            <label for="new_password">New Password</label>
+            <input type="password" id="new_password" name="new_password" required placeholder="Enter new password">
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">Confirm New Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required placeholder="Confirm new password">
+        </div>
+        <div style="margin-top: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <button type="button" class="pill-btn btn-grey" onclick="handleForgotPassword()" style="font-size: 0.8rem; padding: 8px 16px;">Forgot Password?</button>
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="pill-btn btn-grey" onclick="closeChangePasswordModal()">Cancel</button>
+                <button type="submit" class="pill-btn btn-indigo">Update Password</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
+<script>
+    // --- PHOTO BROAD VIEW (ZOOM PREVIEW) ---
+    function viewPhoto() {
+        const img = document.getElementById('profile-img-main');
+        if (img && img.src) {
+            document.getElementById('broadViewImg').src = img.src;
+            document.getElementById('photoBroadView').style.display = 'block';
+        }
+    }
+
+    function closePhotoView() {
+        document.getElementById('photoBroadView').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePhotoView();
+            closePhotoManager();
+            closeEditTeacherProfileModal();
+            closeChangePasswordModal();
+        }
+    });
+
+    // --- PHOTO MANAGER ---
+    function openPhotoManager() {
+        document.getElementById('photoManagerModal').style.display = 'block';
+        document.getElementById('photoManagerOverlay').style.display = 'block';
+    }
+
+    function closePhotoManager() {
+        document.getElementById('photoManagerModal').style.display = 'none';
+        document.getElementById('photoManagerOverlay').style.display = 'none';
+    }
+
+    function handleTeacherFileSelect(event) {
+        const file = event.target.files && event.target.files[0];
+        if (file) {
+            closePhotoManager();
+            openTeacherPhotoCropper(file);
+        }
+    }
+
+    function startTeacherPhotoAdjustment() {
+        const img = document.getElementById('profile-img-main');
+        if (img && img.src && !img.src.endsWith('/')) {
+            closePhotoManager();
+            openTeacherPhotoCropper(img.src);
+        } else {
+            if (window.showStyledAlert) {
+                window.showStyledAlert("No Photo", "No photo to adjust. Please upload a photo first.");
+            }
+        }
+    }
+
+    function openTeacherPhotoCropper(srcOrFile) {
+        if (!window.ABCDImageCropper) return;
+        ABCDImageCropper.open({
+            image: srcOrFile,
+            title: 'Adjust Teacher Photo',
+            aspectRatio: 1,
+            shape: 'circle',
+            outputWidth: 600,
+            outputHeight: 600,
+            onDone: async function(result) {
+                const formData = new FormData();
+                formData.append('photo_base64', result.dataUrl);
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                const csrf = csrfInput ? csrfInput.value : '{{ csrf_token }}';
+                formData.append('csrfmiddlewaretoken', csrf);
+
+                try {
+                    const response = await fetch("{% url 'users:guidy_update_teacher_profile' %}", {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': csrf
+                        }
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (response.ok && data.success) {
+                        if (window.showStyledAlert) {
+                            await window.showStyledAlert("Success", "Profile photo updated successfully!", "success");
+                        }
+                        window.location.reload();
+                    } else {
+                        if (window.showStyledAlert) {
+                            window.showStyledAlert("Upload Failed", data.error || "Server error while saving photo");
+                        }
+                    }
+                } catch(e) {
+                    console.error("Upload error:", e);
+                    if (window.showStyledAlert) {
+                        window.showStyledAlert("Upload Failed", "An error occurred while uploading your photo.");
+                    }
+                }
+            },
+            onCancel: function() {
+                const input = document.getElementById('teacherPhotoInput');
+                if (input) input.value = '';
+            }
+        });
+    }
+
+    async function removeTeacherPhotoAction() {
+        closePhotoManager();
+        const confirmed = window.showStyledConfirm 
+            ? await window.showStyledConfirm('Remove Photo', 'Are you sure you want to <b>remove</b> your profile photo?')
+            : confirm('Are you sure you want to remove your profile photo?');
+        if (!confirmed) return;
+
+        const formData = new FormData();
+        formData.append('remove_photo', 'true');
+        const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrf = csrfInput ? csrfInput.value : '{{ csrf_token }}';
+        formData.append('csrfmiddlewaretoken', csrf);
+
+        try {
+            const response = await fetch("{% url 'users:guidy_update_teacher_profile' %}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrf
+                }
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Success", "Profile photo removed.", "success");
+                }
+                window.location.reload();
+            } else {
+                if (window.showStyledAlert) {
+                    window.showStyledAlert("Error", data.error || "Failed to remove photo.");
+                }
+            }
+        } catch(e) {
+            console.error("Remove photo error:", e);
+        }
+    }
+
+    // --- EDIT TEACHER PROFILE MODAL ---
+    function openEditTeacherProfileModal() {
+        document.getElementById('editProfileOverlay').classList.add('active');
+        document.getElementById('editProfileModal').classList.add('active');
+    }
+
+    function closeEditTeacherProfileModal() {
+        document.getElementById('editProfileOverlay').classList.remove('active');
+        document.getElementById('editProfileModal').classList.remove('active');
+    }
+
+    async function handleSaveTeacherProfile(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('saveTeacherProfileSubmitBtn');
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            const response = await fetch("{% url 'users:guidy_update_teacher_profile' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": formData.get("csrf_token") || "{{ csrf_token }}",
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Success", "Profile details updated successfully!", "success");
+                }
+                closeEditTeacherProfileModal();
+                window.location.reload();
+            } else {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Error", data.error || "Failed to update profile.", "error");
+                }
+            }
+        } catch(err) {
+            console.error(err);
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Error", "An error occurred. Please try again.", "error");
+            }
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    // --- CHANGE PASSWORD MODAL ---
+    function openChangePasswordModal() {
+        document.getElementById('pwdOverlay').classList.add('active');
+        document.getElementById('pwdModal').classList.add('active');
+    }
+
+    function closeChangePasswordModal() {
+        document.getElementById('pwdOverlay').classList.remove('active');
+        document.getElementById('pwdModal').classList.remove('active');
+        document.getElementById('changePasswordForm').reset();
+    }
+
+    async function handleChangePassword(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        try {
+            const response = await fetch("{% url 'users:change_password' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": formData.get("csrf_token") || "{{ csrf_token }}",
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            });
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.status === 'success') {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Success", data.message || "Password changed successfully!", "success");
+                }
+                closeChangePasswordModal();
+                window.location.reload();
+            } else {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("Error", data.message || "Failed to change password.", "error");
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Error", "An error occurred. Please try again.", "error");
+            }
+        }
+    }
+
+    async function handleForgotPassword() {
+        const userEmail = "{{ request.user.email }}";
+        let proceed = false;
+        const confirmMsg = userEmail 
+            ? `We will send a password reset OTP to ${userEmail}. Proceed?`
+            : "We will send a password reset OTP to your registered email. Proceed?";
+
+        if (window.showStyledConfirm) {
+            proceed = await window.showStyledConfirm("Forgot Password", confirmMsg, false, true);
+        } else if (window.CustomPopup) {
+            proceed = await CustomPopup.confirm(confirmMsg, "Forgot Password");
+        }
+        if (!proceed) return;
+
+        window.__activeResetEmail = userEmail;
+
+        const formData = new FormData();
+        formData.append("email", userEmail);
+
+        try {
+            if (window.showStyledToast) {
+                window.showStyledToast("Sending verification OTP...", "info");
+            }
+            const response = await fetch("{% url 'users:forgot_password' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json"
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                closeChangePasswordModal();
+                if (typeof showAuthOtpModal === 'function') {
+                    showAuthOtpModal();
+                }
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("OTP Sent", data.message || "Password reset OTP sent to your email!", "success");
+                }
+            } else {
+                if (window.showStyledAlert) {
+                    await window.showStyledAlert("OTP Request Notice", data.message || "Failed to trigger password reset.", "error");
+                }
+            }
+        } catch (err) {
+            console.error("Forgot password OTP error:", err);
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Network Error", "Unable to connect to the server. Please check your internet connection.", "error");
+            }
+        }
+    }
+
+    if (window.history && window.history.replaceState) {
+        history.replaceState(null, null, window.location.href);
+    }
+</script>
+{% include 'partials/password_reset_modal.html' %}
+{% include 'partials/_smart_back_redirect.html' %}
+{% endblock %}

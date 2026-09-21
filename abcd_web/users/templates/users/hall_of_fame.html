@@ -9,7 +9,33 @@
 
 {% block extra_css %}
 {{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
 <style>
+    .hall-add-manual-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        color: #ffffff;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    .hall-add-manual-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
+        background: linear-gradient(135deg, #6d28d9, #5b21b6);
+    }
+    body.dark-theme .hall-add-manual-btn {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
     /* --- CSS VARIABLES FOR DYNAMIC THEME SUPPORT --- */
     :root {
         --hall-primary: #7c3aed;
@@ -952,9 +978,12 @@
             </div>
         </div>
 
-        <div class="edit-btn-wrapper">
+        <div class="edit-btn-wrapper" style="display: flex; gap: 8px; align-items: center;">
             <button class="hall-edit-btn" id="masterEditBtn" onclick="toggleEditMode()">
                 <i class='bx bx-edit-alt'></i> Edit
+            </button>
+            <button type="button" class="hall-add-manual-btn" onclick="openManualAddOptionModal('alumni')">
+                <i class='bx bx-plus-circle'></i> Add Manually
             </button>
         </div>
         {% endif %}
@@ -1430,5 +1459,8 @@
         };
     })();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
+{% include 'partials/_manual_add_user_modals.html' %}
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

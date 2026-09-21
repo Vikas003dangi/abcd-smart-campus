@@ -2828,12 +2828,12 @@
   }
 
   /* ══════════════════════════════════════════════════════
-     TO-DO HUB FLOATING FULLSCREEN TOGGLE BUTTON
+     TO-DO HUB FLOATING FULLSCREEN TOGGLE & CONTEXT FAB
   ══════════════════════════════════════════════════════ */
   .todo-floating-fullscreen-btn {
     position: absolute;
-    bottom: 100px;
-    right: 35px;
+    bottom: 104px;
+    right: 33px;
     width: 50px;
     height: 50px;
     border-radius: 14px;
@@ -2846,8 +2846,10 @@
     font-size: 1.4rem;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     cursor: pointer;
-    z-index: 100;
+    z-index: 105;
     opacity: 0.85;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .todo-floating-fullscreen-btn:hover {
@@ -2869,14 +2871,47 @@
     box-shadow: 0 6px 20px rgba(167, 139, 250, 0.35);
   }
 
-  /* Responsive Positioning for Fullscreen Floating Button */
-  @media (max-width: 650px) {
+  #todoContextFab {
+    position: absolute;
+    bottom: 28px;
+    right: 30px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #7b61ff;
+    color: #fff;
+    border: none;
+    font-size: 2.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(123, 97, 255, 0.4);
+    z-index: 100;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  #todoContextFab:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba(123, 97, 255, 0.6);
+  }
+
+  /* Responsive Positioning for Fullscreen & FAB Floating Buttons */
+  @media (max-width: 768px) {
     .todo-floating-fullscreen-btn {
-      bottom: 108px !important;
+      bottom: 96px !important;
       right: 20px !important;
       width: 48px !important;
       height: 48px !important;
       font-size: 1.3rem !important;
+    }
+    #todoContextFab {
+      bottom: 24px !important;
+      right: 20px !important;
+      width: 50px !important;
+      height: 50px !important;
+      font-size: 1.7rem !important;
     }
   }
 
@@ -3101,15 +3136,12 @@
     </div>
 
     <!-- Floating Fullscreen Toggle Button -->
-    <div class="todo-floating-fullscreen-btn" id="todoFloatingFullscreenBtn" onclick="toggleTodoFullscreenMode()" title="Toggle Fullscreen">
+    <div class="todo-floating-fullscreen-btn" id="todoFloatingFullscreenBtn" onclick="toggleTodoFullscreenMode(event)" title="Toggle Fullscreen">
       <i class='bx bx-fullscreen' id="todoFullscreenIcon"></i>
     </div>
 
     <!-- Context-Aware FAB -->
-    <button id="todoContextFab" data-tour="todo-add-btn" onclick="handleContextFabClick()"
-      style="position: absolute; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: #7b61ff; color: #fff; border: none; font-size: 2.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(123, 97, 255, 0.4); z-index: 100; transition: transform 0.2s ease, box-shadow 0.2s ease;"
-      onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(123, 97, 255, 0.6)';"
-      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(123, 97, 255, 0.4)';">
+    <button id="todoContextFab" data-tour="todo-add-btn" onclick="handleContextFabClick(event)" title="Add New">
       <i class='bx bx-plus'></i>
     </button>
   </div>
@@ -4128,14 +4160,6 @@
     .fee-form-footer {
       padding: 12px 16px !important;
       gap: 8px !important;
-    }
-
-    #todoContextFab {
-      width: 48px !important;
-      height: 48px !important;
-      font-size: 1.6rem !important;
-      bottom: 50px !important;
-      right: 20px !important;
     }
   }
 
@@ -5188,17 +5212,28 @@
     window.closeModalOverlay('newMenuModal');
   }
 
-  function handleContextFabClick() {
-    if (currentTab === 'fees') {
-      openFeeModal();
-    } else if (currentTab === 'breakdown') {
-      openBreakdownModal();
-    } else if (currentTab === 'todos') {
-      openTodoModal();
-    } else if (currentTab === 'reminders') {
-      openReminderModal();
-    } else if (currentTab === 'notebook') {
-      openNoteModal();
+  function handleContextFabClick(event) {
+    if (event) {
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.preventDefault === 'function' && event.cancelable) event.preventDefault();
+    }
+    try {
+      if (currentTab === 'fees' && typeof openFeeModal === 'function') {
+        openFeeModal();
+      } else if (currentTab === 'breakdown' && typeof openBreakdownModal === 'function') {
+        openBreakdownModal();
+      } else if (currentTab === 'todos' && typeof openTodoModal === 'function') {
+        openTodoModal();
+      } else if (currentTab === 'reminders' && typeof openReminderModal === 'function') {
+        openReminderModal();
+      } else if (currentTab === 'notebook' && typeof openNoteModal === 'function') {
+        openNoteModal();
+      } else {
+        openNewModal();
+      }
+    } catch(err) {
+      console.warn('handleContextFabClick error, falling back to openNewModal:', err);
+      openNewModal();
     }
   }
 
@@ -13729,7 +13764,11 @@
 
 <!-- Fullscreen Mode Handler for To-Do Hub -->
 <script>
-  function toggleTodoFullscreenMode() {
+  function toggleTodoFullscreenMode(event) {
+    if (event) {
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
+      if (typeof event.preventDefault === 'function' && event.cancelable) event.preventDefault();
+    }
     const isFullscreen = document.body.classList.toggle('todo-fullscreen-active');
     const icon = document.getElementById('todoFullscreenIcon');
     const btn = document.getElementById('todoFloatingFullscreenBtn');

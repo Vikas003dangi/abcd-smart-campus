@@ -693,6 +693,13 @@
         document.getElementById('photoManagerOverlay').style.display = 'none';
     }
 
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePhotoView();
+            closePhotoManager();
+        }
+    });
+
     function handleFileSelect(event) {
         const file = event.target.files && event.target.files[0];
         if (file) {

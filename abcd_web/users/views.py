@@ -3168,10 +3168,15 @@ def set_new_user_flag(backend, strategy, details, response, user=None, is_new=Fa
 
 
 @login_required
+@never_cache
 def logout_view(request):
     logout(request)
     messages.info(request, "You have been logged out.")
-    return redirect('users:home_page')
+    response = redirect('users:home_page')
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 @login_required
@@ -3199,7 +3204,7 @@ def profile_view(request):
             return redirect('users:achievement_detail', pk=ach.pk)
         return redirect('users:guest_profile_details')
     elif dtype == 'teacher':
-        return redirect('users:teacher_dashboard')
+        return redirect('users:teacher_profile_details')
     else:
         return redirect('users:guest_profile_details')
 
@@ -3239,6 +3244,47 @@ def guest_profile_details_view(request):
     return render(request, 'users/guest_profile_details.html', {
         'base_template': base_template,
         'password_date_display': _get_password_date_display(request),
+    })
+
+
+@login_required
+def teacher_profile_details_view(request):
+    """
+    Renders the Teacher Profile details page for logged-in staff/teachers.
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        return redirect('users:profile')
+    
+    from users.models import TeacherProfile
+    from users.utils import get_profile_photo_url
+    
+    teacher_prof, _ = TeacherProfile.objects.get_or_create(user=request.user)
+    
+    mobiles = [m.strip() for m in (teacher_prof.mobile_numbers or '').split(',') if m.strip()]
+    if not mobiles and teacher_prof.mobile_number:
+        mobiles = [teacher_prof.mobile_number.strip()]
+        
+    whatsapps = []
+    raw_wa = [w.strip() for w in (teacher_prof.whatsapp_numbers or '').split(',') if w.strip()]
+    for w in raw_wa:
+        clean = ''.join(c for c in w if c.isdigit())
+        whatsapps.append({'original': w, 'clean': clean})
+        
+    emails = [e.strip() for e in (teacher_prof.emails or '').split(',') if e.strip()]
+    if not emails and request.user.email:
+        emails = [request.user.email.strip()]
+
+    photo_url = get_profile_photo_url(request.user)
+
+    return render(request, 'users/teacher_profile_details.html', {
+        'teacher_profile': teacher_prof,
+        'base_template': 'users/teacher_dashboard.html',
+        'password_date_display': _get_password_date_display(request),
+        'photo_url': photo_url,
+        'has_custom_photo': bool(teacher_prof.photo),
+        'mobiles_list': mobiles,
+        'whatsapps_list': whatsapps,
+        'emails_list': emails,
     })
 
 
@@ -4216,6 +4262,7 @@ def get_public_seat_status_api(request):
 # -------------------------------------------------------------------
 # VIEW: Renders the "Student Dashboard" page
 @login_required
+@never_cache
 def student_dashboard_view(request):
     if not cache.get('holds_synced'):
         try:
@@ -4352,6 +4399,7 @@ def student_dashboard_view(request):
 
 
 @login_required
+@never_cache
 def alumni_dashboard_view(request):
     profile = StudentProfile.objects.filter(user=request.user).first()
     achievement = StudentAchievement.objects.filter(user=request.user).first()
@@ -5142,6 +5190,7 @@ def student_details_S_view(request):
 
 @login_required
 @user_passes_test(lambda u: u.is_staff)
+@never_cache
 def teacher_dashboard_view(request):
     if not cache.get('holds_synced'):
         sync_active_holds()
@@ -5676,6 +5725,7 @@ def teacher_dashboard_view(request):
         'total_courses': Course.objects.count(),
         'total_admitted_students_count': StudentProfile.objects.filter(status__in=['admitted', 'on_hold']).count(),
         'new_requests_alert': new_requests_alert,
+        'photo_url': get_profile_photo_url(request.user, dashboard_type='teacher'),
     }
 
 
@@ -6351,6 +6401,669 @@ def get_student_list_api(request):
     except Exception as e:
         print("get_student_list_api error:", str(e))
         return JsonResponse({'students': []})
+
+
+# -------------------------------------------------------------------
+# TEACHER ADD MANUALLY APIs (Coaching, Library, Hall of Fame)
+# -------------------------------------------------------------------
+@login_required
+@user_passes_test(lambda u: u.is_staff or getattr(u, 'role', None) == 'Teacher')
+def teacher_get_users_for_manual_api(request):
+    """
+    Returns candidate existing users who can be added to another service.
+    GET params:
+      - context: 'coaching', 'library', 'alumni'
+      - q: search keyword
+    """
+    context = (request.GET.get('context') or 'coaching').lower().strip()
+    query = (request.GET.get('q') or '').lower().strip()
+
+    candidate_users = []
+    seen_user_ids = set()
+
+    try:
+        if context == 'coaching':
+            # Candidates: Library students (not in coaching) or Alumni (not in coaching)
+            lib_profiles = StudentProfile.objects.filter(
+                service_type__in=['Library'],
+                status__in=['admitted', 'approved']
+            ).exclude(service_type__in=['Coaching', 'Both']).select_related('user', 'seat')
+            
+            if query:
+                lib_profiles = lib_profiles.filter(
+                    Q(full_name__icontains=query) | Q(user__username__icontains=query) | Q(mobile_number__icontains=query)
+                )
+
+            for p in lib_profiles:
+                if p.user.id in seen_user_ids:
+                    continue
+                seen_user_ids.add(p.user.id)
+                candidate_users.append({
+                    'id': p.id,
+                    'user_id': p.user.id,
+                    'full_name': p.full_name,
+                    'username': p.user.username,
+                    'email': p.email or p.user.email or '',
+                    'mobile_number': p.mobile_number or '',
+                    'whatsapp_number': p.whatsapp_number or '',
+                    'current_service': f"Library Student (Seat: {p.seat.seat_number if p.seat else 'No Seat'})",
+                    'photo_url': get_profile_photo_url(p.user),
+                    'gender': p.sex or 'Male',
+                    'dob': str(p.dob) if p.dob else ''
+                })
+
+            # Also check approved Alumni who don't have coaching
+            alumni_qs = StudentAchievement.objects.filter(status='approved').select_related('user')
+            if query:
+                alumni_qs = alumni_qs.filter(
+                    Q(first_name__icontains=query) | Q(last_name__icontains=query) | Q(user__username__icontains=query) | Q(mobile_number__icontains=query)
+                )
+            for al in alumni_qs:
+                if al.user.id in seen_user_ids:
+                    continue
+                has_coaching = StudentProfile.objects.filter(user=al.user, service_type__in=['Coaching', 'Both']).exists()
+                if not has_coaching:
+                    seen_user_ids.add(al.user.id)
+                    candidate_users.append({
+                        'id': f"user_{al.user.id}",
+                        'user_id': al.user.id,
+                        'full_name': al.full_name,
+                        'username': al.user.username,
+                        'email': al.email or al.user.email or '',
+                        'mobile_number': al.mobile_number or '',
+                        'whatsapp_number': al.whatsapp_number or '',
+                        'current_service': f"Alumni ({al.short_achievement or al.current_post})",
+                        'photo_url': get_profile_photo_url(al.user),
+                        'gender': al.gender or 'Male',
+                        'dob': str(al.dob) if al.dob else ''
+                    })
+
+        elif context == 'library':
+            # Candidates: Coaching students (not in library) or Alumni (not in library)
+            coaching_profiles = StudentProfile.objects.filter(
+                service_type__in=['Coaching'],
+                status__in=['admitted', 'approved']
+            ).exclude(service_type__in=['Library', 'Both']).select_related('user')
+
+            if query:
+                coaching_profiles = coaching_profiles.filter(
+                    Q(full_name__icontains=query) | Q(user__username__icontains=query) | Q(mobile_number__icontains=query)
+                )
+
+            for p in coaching_profiles:
+                if p.user.id in seen_user_ids:
+                    continue
+                seen_user_ids.add(p.user.id)
+                candidate_users.append({
+                    'id': p.id,
+                    'user_id': p.user.id,
+                    'full_name': p.full_name,
+                    'username': p.user.username,
+                    'email': p.email or p.user.email or '',
+                    'mobile_number': p.mobile_number or '',
+                    'whatsapp_number': p.whatsapp_number or '',
+                    'current_service': f"Coaching Student ({p.batch or 'No Batch'})",
+                    'photo_url': get_profile_photo_url(p.user),
+                    'gender': p.sex or 'Male',
+                    'dob': str(p.dob) if p.dob else ''
+                })
+
+            # Also check approved Alumni who don't have library
+            alumni_qs = StudentAchievement.objects.filter(status='approved').select_related('user')
+            if query:
+                alumni_qs = alumni_qs.filter(
+                    Q(first_name__icontains=query) | Q(last_name__icontains=query) | Q(user__username__icontains=query) | Q(mobile_number__icontains=query)
+                )
+            for al in alumni_qs:
+                if al.user.id in seen_user_ids:
+                    continue
+                has_library = StudentProfile.objects.filter(user=al.user, service_type__in=['Library', 'Both']).exists()
+                if not has_library:
+                    seen_user_ids.add(al.user.id)
+                    candidate_users.append({
+                        'id': f"user_{al.user.id}",
+                        'user_id': al.user.id,
+                        'full_name': al.full_name,
+                        'username': al.user.username,
+                        'email': al.email or al.user.email or '',
+                        'mobile_number': al.mobile_number or '',
+                        'whatsapp_number': al.whatsapp_number or '',
+                        'current_service': f"Alumni ({al.short_achievement or al.current_post})",
+                        'photo_url': get_profile_photo_url(al.user),
+                        'gender': al.gender or 'Male',
+                        'dob': str(al.dob) if al.dob else ''
+                    })
+
+        elif context == 'alumni':
+            # Candidates: Admitted students (Library, Coaching, Both) who do not have an approved achievement yet
+            approved_alumni_user_ids = set(StudentAchievement.objects.filter(status='approved').values_list('user_id', flat=True))
+            students_qs = StudentProfile.objects.filter(
+                status__in=['admitted', 'approved']
+            ).exclude(user_id__in=approved_alumni_user_ids).select_related('user', 'seat')
+
+            if query:
+                students_qs = students_qs.filter(
+                    Q(full_name__icontains=query) | Q(user__username__icontains=query) | Q(mobile_number__icontains=query)
+                )
+
+            for p in students_qs:
+                if p.user.id in seen_user_ids:
+                    continue
+                seen_user_ids.add(p.user.id)
+                candidate_users.append({
+                    'id': p.id,
+                    'user_id': p.user.id,
+                    'full_name': p.full_name,
+                    'username': p.user.username,
+                    'email': p.email or p.user.email or '',
+                    'mobile_number': p.mobile_number or '',
+                    'whatsapp_number': p.whatsapp_number or '',
+                    'current_service': f"{p.service_type} Student",
+                    'photo_url': get_profile_photo_url(p.user),
+                    'gender': p.sex or 'Male',
+                    'dob': str(p.dob) if p.dob else ''
+                })
+
+        # Sort alphabetically
+        candidate_users.sort(key=lambda x: x['full_name'].lower())
+        return JsonResponse({'users': candidate_users})
+    except Exception as e:
+        logger.error(f"Error in teacher_get_users_for_manual_api: {e}")
+        return JsonResponse({'users': []})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or getattr(u, 'role', None) == 'Teacher')
+def teacher_get_available_seats_api(request):
+    """
+    Returns available seats on a given floor, directly synced with Teacher Seat Status.
+    Ultra-fast execution using single-query prefetch_related and natural numeric seat sorting.
+    """
+    floor = request.GET.get('floor') or 'Ground Floor'
+    seats = Seat.objects.filter(floor=floor).prefetch_related('assignments')
+
+    def parse_seat_num(s):
+        try:
+            return int(''.join(filter(str.isdigit, str(s.seat_number))))
+        except Exception:
+            return 999999
+
+    sorted_seats = sorted(seats, key=parse_seat_num)
+
+    results = []
+    for s in sorted_seats:
+        # Enforce Ground Floor 40-53 shift definition
+        if s.floor == 'Ground Floor' and 40 <= parse_seat_num(s) <= 53:
+            s.is_shift_enabled = True
+        else:
+            s.is_shift_enabled = False
+
+        if s.is_locked:
+            continue
+
+        active_assigns = [a for a in s.assignments.all() if a.is_active]
+        has_morning = any(a.shift_type == 'morning' for a in active_assigns)
+        has_evening = any(a.shift_type == 'evening' for a in active_assigns)
+        has_full = any(a.shift_type == 'full' for a in active_assigns) or (not s.is_shift_enabled and bool(active_assigns))
+        has_assignment_hold = any(a.hold_status == 'active' for a in active_assigns)
+        locked_shifts = [x.strip() for x in (s.locked_shifts or '').split(',') if x.strip()]
+
+        if s.status == 'on_hold' or has_assignment_hold:
+            continue
+
+        if not s.is_shift_enabled:
+            # Regular seat: either available for full day or occupied
+            if s.status == 'available' and not has_full and not active_assigns:
+                results.append({
+                    'id': s.id,
+                    'seat_number': s.seat_number,
+                    'floor': s.floor,
+                    'is_shift_enabled': False,
+                    'available_shifts': ['full'],
+                    'has_morning': False,
+                    'has_evening': False,
+                    'has_full': True,
+                    'label': f"Seat {s.seat_number} - Available (Full Day)"
+                })
+        else:
+            # Shift seat (Ground Floor 40-53)
+            avail_shifts = []
+            m_avail = not has_morning and not has_full and 'morning' not in locked_shifts
+            e_avail = not has_evening and not has_full and 'evening' not in locked_shifts
+            full_avail = not has_morning and not has_evening and not has_full and 'full' not in locked_shifts
+
+            if m_avail: avail_shifts.append('morning')
+            if e_avail: avail_shifts.append('evening')
+            if full_avail: avail_shifts.append('full')
+
+            if avail_shifts:
+                results.append({
+                    'id': s.id,
+                    'seat_number': s.seat_number,
+                    'floor': s.floor,
+                    'is_shift_enabled': True,
+                    'available_shifts': avail_shifts,
+                    'has_morning': m_avail,
+                    'has_evening': e_avail,
+                    'has_full': full_avail,
+                    'label': f"Seat {s.seat_number}"
+                })
+
+    return JsonResponse({'seats': results})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff or getattr(u, 'role', None) == 'Teacher')
+@require_POST
+def teacher_add_manual_api(request):
+    """
+    Unified API for adding students/alumni manually across:
+    - Coaching Students Tab
+    - Library Students Tab
+    - Hall of Fame
+    Supports both mode='new' and mode='existing'.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        data = request.POST.dict()
+
+    context = (data.get('context') or '').lower().strip()
+    mode = (data.get('mode') or 'new').lower().strip()
+
+    if context not in ['coaching', 'library', 'alumni']:
+        return JsonResponse({'status': 'error', 'message': 'Invalid context specified.'}, status=400)
+
+    try:
+        with transaction.atomic():
+            if mode == 'new':
+                first_name = (data.get('first_name') or '').strip()
+                last_name = (data.get('last_name') or '').strip()
+                full_name = (data.get('full_name') or f"{first_name} {last_name}").strip()
+                username = (data.get('username') or '').strip()
+                password = data.get('password') or ''
+                gender = data.get('gender') or data.get('sex') or 'Male'
+                dob_val = data.get('dob') or None
+                email = (data.get('email') or '').strip()
+                mobile_number = (data.get('mobile_number') or '').strip()
+                whatsapp_number = (data.get('whatsapp_number') or '').strip()
+                profile_photo_base64 = data.get('profile_photo')
+
+                if not first_name or not last_name:
+                    return JsonResponse({'status': 'error', 'message': 'First name and last name are required.'}, status=400)
+                if not username:
+                    return JsonResponse({'status': 'error', 'message': 'Username is required.'}, status=400)
+                if not password:
+                    return JsonResponse({'status': 'error', 'message': 'Password is required.'}, status=400)
+                if not mobile_number and not whatsapp_number:
+                    return JsonResponse({'status': 'error', 'message': 'Please provide a mobile number.'}, status=400)
+
+                if not mobile_number: mobile_number = whatsapp_number
+                if not whatsapp_number: whatsapp_number = mobile_number
+
+                # Check unique username
+                if User.objects.filter(username__iexact=username).exists():
+                    return JsonResponse({'status': 'error', 'message': f'Username "{username}" is already taken. Please choose another.'}, status=400)
+
+                # Check unique email if given
+                if email:
+                    email = email.lower()
+                    if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+                        return JsonResponse({'status': 'error', 'message': 'Please enter a valid email address.'}, status=400)
+                    if User.objects.filter(email__iexact=email).exists() or \
+                       StudentProfile.objects.filter(email__iexact=email).exists() or \
+                       StudentAchievement.objects.filter(email__iexact=email).exists():
+                        return JsonResponse({'status': 'error', 'message': f'Email "{email}" is already registered.'}, status=400)
+
+                # Duplicate contact check
+                existing_contact = StudentProfile.objects.filter(
+                    Q(mobile_number=mobile_number) | Q(whatsapp_number=whatsapp_number)
+                ).first()
+                if existing_contact:
+                    return JsonResponse({'status': 'error', 'message': f'Student with this contact number already exists: {existing_contact.full_name}'}, status=400)
+
+                # Create user
+                new_user = User.objects.create_user(
+                    username=username,
+                    password=password,
+                    email=email or '',
+                    first_name=first_name,
+                    last_name=last_name
+                )
+
+                # Photo file extraction
+                photo_file = None
+                if profile_photo_base64 and profile_photo_base64.startswith('data:image'):
+                    try:
+                        import base64
+                        from django.core.files.base import ContentFile
+                        from PIL import Image
+                        import io
+                        format_str, imgstr = profile_photo_base64.split(';base64,')
+                        ext = format_str.split('/')[-1]
+                        decoded_bytes = base64.b64decode(imgstr)
+                        pil_img = Image.open(io.BytesIO(decoded_bytes))
+                        pil_img.verify()
+                        photo_file = ContentFile(decoded_bytes, name=f"manual_{new_user.id}_{int(timezone.now().timestamp())}.{ext}")
+                    except Exception as pe:
+                        logger.warning(f"Error decoding manual profile photo: {pe}")
+
+                if context == 'coaching':
+                    batch_val = data.get('batch')
+                    if not batch_val or batch_val == 'none':
+                        batch_val = None
+
+                    profile = StudentProfile.objects.create(
+                        user=new_user,
+                        full_name=full_name,
+                        sex=gender,
+                        dob=dob_val or None,
+                        service_type='Coaching',
+                        email=email or '',
+                        mobile_number=mobile_number,
+                        whatsapp_number=whatsapp_number,
+                        batch=batch_val,
+                        status='admitted',
+                        is_admitted=True,
+                        is_manual_pending=False,
+                        approved_at=timezone.now()
+                    )
+                    if photo_file:
+                        profile.photo = photo_file
+                        profile.save(update_fields=['photo'])
+
+                    create_notification(
+                        user=new_user,
+                        title="Admission Confirmed",
+                        message=f"Welcome to ABCD Coaching! You have been enrolled in {batch_val or 'our coaching programme'}.",
+                        category="admission"
+                    )
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'Coaching student "{full_name}" added successfully!'
+                    })
+
+                elif context == 'library':
+                    floor_val = data.get('floor') or 'none'
+                    seat_id_val = data.get('seat_id')
+                    shift_val = data.get('shift', 'full')
+
+                    target_seat = None
+                    if floor_val != 'none' and seat_id_val and str(seat_id_val).isdigit():
+                        target_seat = Seat.objects.filter(id=int(seat_id_val)).first()
+
+                    profile = StudentProfile.objects.create(
+                        user=new_user,
+                        full_name=full_name,
+                        sex=gender,
+                        dob=dob_val or None,
+                        service_type='Library',
+                        email=email or '',
+                        mobile_number=mobile_number,
+                        whatsapp_number=whatsapp_number,
+                        seat=target_seat,
+                        status='admitted',
+                        is_admitted=True,
+                        is_manual_pending=False,
+                        approved_at=timezone.now()
+                    )
+                    if photo_file:
+                        profile.photo = photo_file
+                        profile.save(update_fields=['photo'])
+
+                    if target_seat:
+                        # Create seat assignment
+                        SeatAssignment.objects.create(
+                            seat=target_seat,
+                            student=profile,
+                            shift_type=shift_val,
+                            is_active=True
+                        )
+                        # Auto update seat status if full
+                        if not target_seat.is_shift_enabled:
+                            target_seat.status = 'occupied'
+                            target_seat.save(update_fields=['status'])
+                        else:
+                            active_now = SeatAssignment.objects.filter(seat=target_seat, is_active=True)
+                            has_m = active_now.filter(shift_type='morning').exists()
+                            has_e = active_now.filter(shift_type='evening').exists()
+                            has_f = active_now.filter(shift_type='full').exists()
+                            if has_f or (has_m and has_e):
+                                target_seat.status = 'occupied'
+                                target_seat.save(update_fields=['status'])
+
+                    create_notification(
+                        user=new_user,
+                        title="Admission Confirmed",
+                        message=f"Welcome to ABCD Library! Your admission has been confirmed.",
+                        category="admission"
+                    )
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'Library student "{full_name}" added successfully!'
+                    })
+
+                elif context == 'alumni':
+                    current_post = (data.get('current_post') or '').strip()
+                    selection_year = data.get('selection_year') or datetime.now().year
+                    short_achievement = (data.get('short_achievement') or '').strip()
+                    working_city = (data.get('working_city') or '').strip()
+                    services_used = data.get('services_used') or 'both'
+                    duration_years = data.get('duration_years') or 0
+                    duration_days = data.get('duration_days') or 0
+                    about_yourself = (data.get('about_yourself') or '').strip()
+                    experience_feedback = (data.get('experience_feedback') or '').strip()
+                    rating = int(data.get('rating') or 5)
+
+                    if not current_post:
+                        return JsonResponse({'status': 'error', 'message': 'Current post is required.'}, status=400)
+                    if not short_achievement:
+                        return JsonResponse({'status': 'error', 'message': 'Short achievement is required.'}, status=400)
+                    if not working_city:
+                        return JsonResponse({'status': 'error', 'message': 'Working city is required.'}, status=400)
+
+                    ach = StudentAchievement.objects.create(
+                        user=new_user,
+                        first_name=first_name,
+                        last_name=last_name,
+                        gender=gender,
+                        dob=dob_val or '2000-01-01',
+                        email=email or '',
+                        mobile_number=mobile_number,
+                        whatsapp_number=whatsapp_number,
+                        current_post=current_post,
+                        selection_year=int(selection_year),
+                        short_achievement=short_achievement,
+                        working_city=working_city,
+                        services_used=services_used,
+                        duration_years=int(duration_years),
+                        duration_days=int(duration_days),
+                        about_yourself=about_yourself or "Proud alumnus of ABCD.",
+                        experience_feedback=experience_feedback or "Great learning environment at ABCD.",
+                        abcd_feedback=experience_feedback or "Great learning environment at ABCD.",
+                        rating=rating,
+                        status='approved',
+                        approved_at=timezone.now()
+                    )
+                    if photo_file:
+                        ach.photo = photo_file
+                        ach.save(update_fields=['photo'])
+
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'Alumni "{full_name}" added to Hall of Fame successfully!'
+                    })
+
+            elif mode == 'existing':
+                user_id = data.get('user_id')
+                if not user_id:
+                    return JsonResponse({'status': 'error', 'message': 'No user selected.'}, status=400)
+
+                target_user = User.objects.filter(id=int(user_id)).first()
+                if not target_user:
+                    return JsonResponse({'status': 'error', 'message': 'Selected user does not exist.'}, status=404)
+
+                profile = StudentProfile.objects.filter(user=target_user).first()
+                ach = StudentAchievement.objects.filter(user=target_user, status='approved').first()
+
+                if context == 'coaching':
+                    batch_val = data.get('batch')
+                    if not batch_val or batch_val == 'none':
+                        batch_val = None
+
+                    if profile:
+                        if profile.service_type in ['Library', None, '']:
+                            profile.service_type = 'Both'
+                        profile.batch = batch_val
+                        profile.save(update_fields=['service_type', 'batch'])
+                    elif ach:
+                        # User is Alumni: create dual identity StudentProfile
+                        profile = StudentProfile.objects.create(
+                            user=target_user,
+                            full_name=ach.full_name,
+                            sex=ach.gender or 'Male',
+                            dob=ach.dob,
+                            service_type='Coaching',
+                            email=ach.email or target_user.email or '',
+                            mobile_number=ach.mobile_number or '',
+                            whatsapp_number=ach.whatsapp_number or '',
+                            photo=ach.photo,
+                            batch=batch_val,
+                            status='admitted',
+                            is_admitted=True,
+                            is_manual_pending=False,
+                            approved_at=timezone.now()
+                        )
+
+                    create_notification(
+                        user=target_user,
+                        title="Coaching Enrollment Confirmed",
+                        message=f"You have been enrolled in {batch_val or 'ABCD coaching'}. Access both services now.",
+                        category="admission"
+                    )
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'"{target_user.get_full_name() or target_user.username}" enrolled into Coaching successfully!'
+                    })
+
+                elif context == 'library':
+                    floor_val = data.get('floor') or 'none'
+                    seat_id_val = data.get('seat_id')
+                    shift_val = data.get('shift', 'full')
+
+                    target_seat = None
+                    if floor_val != 'none' and seat_id_val and str(seat_id_val).isdigit():
+                        target_seat = Seat.objects.filter(id=int(seat_id_val)).first()
+
+                    if profile:
+                        if profile.service_type in ['Coaching', None, '']:
+                            profile.service_type = 'Both'
+                        if target_seat:
+                            profile.seat = target_seat
+                        profile.save(update_fields=['service_type', 'seat'])
+                    elif ach:
+                        # User is Alumni: create dual identity StudentProfile
+                        profile = StudentProfile.objects.create(
+                            user=target_user,
+                            full_name=ach.full_name,
+                            sex=ach.gender or 'Male',
+                            dob=ach.dob,
+                            service_type='Library',
+                            email=ach.email or target_user.email or '',
+                            mobile_number=ach.mobile_number or '',
+                            whatsapp_number=ach.whatsapp_number or '',
+                            photo=ach.photo,
+                            seat=target_seat,
+                            status='admitted',
+                            is_admitted=True,
+                            is_manual_pending=False,
+                            approved_at=timezone.now()
+                        )
+
+                    if target_seat and profile:
+                        SeatAssignment.objects.create(
+                            seat=target_seat,
+                            student=profile,
+                            shift_type=shift_val,
+                            is_active=True
+                        )
+                        if not target_seat.is_shift_enabled:
+                            target_seat.status = 'occupied'
+                            target_seat.save(update_fields=['status'])
+                        else:
+                            active_now = SeatAssignment.objects.filter(seat=target_seat, is_active=True)
+                            has_m = active_now.filter(shift_type='morning').exists()
+                            has_e = active_now.filter(shift_type='evening').exists()
+                            has_f = active_now.filter(shift_type='full').exists()
+                            if has_f or (has_m and has_e):
+                                target_seat.status = 'occupied'
+                                target_seat.save(update_fields=['status'])
+
+                    create_notification(
+                        user=target_user,
+                        title="Library Service Activated",
+                        message=f"Your Library service is active (Seat: {target_seat.seat_number if target_seat else 'No Seat'}).",
+                        category="admission"
+                    )
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'"{target_user.get_full_name() or target_user.username}" enrolled into Library successfully!'
+                    })
+
+                elif context == 'alumni':
+                    current_post = (data.get('current_post') or '').strip()
+                    selection_year = data.get('selection_year') or datetime.now().year
+                    short_achievement = (data.get('short_achievement') or '').strip()
+                    working_city = (data.get('working_city') or '').strip()
+                    services_used = data.get('services_used') or (profile.service_type.lower() if profile else 'both')
+                    duration_years = data.get('duration_years') or 0
+                    duration_days = data.get('duration_days') or 0
+                    about_yourself = (data.get('about_yourself') or '').strip()
+                    experience_feedback = (data.get('experience_feedback') or '').strip()
+                    rating = int(data.get('rating') or 5)
+
+                    if not current_post or not short_achievement or not working_city:
+                        return JsonResponse({'status': 'error', 'message': 'Post, short achievement, and city are required.'}, status=400)
+
+                    name_parts = (profile.full_name if profile else target_user.get_full_name() or target_user.username).split()
+                    fn = name_parts[0] if name_parts else 'Achiever'
+                    ln = " ".join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+                    new_ach = StudentAchievement.objects.create(
+                        user=target_user,
+                        first_name=fn,
+                        last_name=ln,
+                        gender=profile.sex if profile else 'Male',
+                        dob=profile.dob if (profile and profile.dob) else '2000-01-01',
+                        email=profile.email if (profile and profile.email) else target_user.email or '',
+                        mobile_number=profile.mobile_number if profile else '',
+                        whatsapp_number=profile.whatsapp_number if profile else '',
+                        photo=profile.photo if profile else None,
+                        current_post=current_post,
+                        selection_year=int(selection_year),
+                        short_achievement=short_achievement,
+                        working_city=working_city,
+                        services_used=services_used,
+                        duration_years=int(duration_years),
+                        duration_days=int(duration_days),
+                        about_yourself=about_yourself or "Proud alumnus of ABCD.",
+                        experience_feedback=experience_feedback or "Great learning environment at ABCD.",
+                        abcd_feedback=experience_feedback or "Great learning environment at ABCD.",
+                        rating=rating,
+                        status='approved',
+                        approved_at=timezone.now()
+                    )
+
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': f'"{fn} {ln}" added to Hall of Fame as an Alumni successfully!'
+                    })
+
+            return JsonResponse({'status': 'error', 'message': 'Unknown mode.'}, status=400)
+
+    except Exception as e:
+        logger.error(f"Error in teacher_add_manual_api: {e}", exc_info=True)
+        return JsonResponse({'status': 'error', 'message': f'An unexpected error occurred: {str(e)}'}, status=500)
 
 
 # -------------------------------------------------------------------
@@ -15482,6 +16195,7 @@ def guidy_update_teacher_profile(request):
 
         photo_action = request.POST.get('photo_action')
         remove_photo = request.POST.get('remove_photo')
+        photo_base64 = request.POST.get('photo_base64')
         
         if photo_action == 'remove' or remove_photo == 'true':
             if profile.photo:
@@ -15496,6 +16210,26 @@ def guidy_update_teacher_profile(request):
                     except (NotImplementedError, AttributeError, ValueError, OSError):
                         pass
             profile.photo = None
+        elif photo_base64:
+            import base64
+            import io
+            from django.core.files.base import ContentFile
+            from PIL import Image
+
+            if ';base64,' in photo_base64:
+                format_part, imgstr = photo_base64.split(';base64,')
+                raw_ext = format_part.split('/')[-1].lower()
+                ext = 'jpg' if raw_ext in ('jpeg', 'jpg') else ('png' if raw_ext == 'png' else ('webp' if raw_ext == 'webp' else 'jpg'))
+                decoded_data = base64.b64decode(imgstr)
+                image = Image.open(io.BytesIO(decoded_data))
+                image.verify()
+                data = ContentFile(decoded_data, name=f"teacher_{user.id}.{ext}")
+                if profile.photo:
+                    try:
+                        profile.photo.delete(save=False)
+                    except Exception:
+                        pass
+                profile.photo = data
         elif 'photo' in request.FILES:
             profile.photo = request.FILES['photo']
 

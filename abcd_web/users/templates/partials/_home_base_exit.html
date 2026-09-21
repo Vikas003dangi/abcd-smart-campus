@@ -1,7 +1,87 @@
 {% load static %}
+<style>
+    body.dark-theme #abcdExitModal {
+        background: #181d29 !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.65) !important;
+    }
+    body.dark-theme #abcdExitModal #abcdExitPrompt {
+        color: #f1f5f9 !important;
+    }
+    body.dark-theme #abcdExitModal p {
+        color: #94a3b8 !important;
+    }
+    body.dark-theme #abcdExitCancelBtn {
+        background: #242b3b !important;
+        border-color: #3b4458 !important;
+        color: #e2e8f0 !important;
+    }
+    body.dark-theme #abcdExitCancelBtn:hover {
+        background: #2d364a !important;
+        border-color: #4f5b75 !important;
+    }
+    #abcdExitConfirmBtn {
+        background: rgba(232, 69, 90, 0.08) !important;
+        border: 1.5px solid #e8455a !important;
+        color: #e8455a !important;
+        transition: all 0.15s ease !important;
+    }
+    #abcdExitConfirmBtn:hover {
+        background: rgba(232, 69, 90, 0.18) !important;
+        border-color: #c0392b !important;
+        color: #c0392b !important;
+        transform: translateY(-1px);
+    }
+    #abcdExitConfirmBtn:active {
+        background: rgba(232, 69, 90, 0.28) !important;
+        transform: scale(0.98);
+    }
+    body.dark-theme #abcdExitConfirmBtn {
+        background: rgba(232, 69, 90, 0.14) !important;
+        border: 1.5px solid #ff6b7d !important;
+        color: #ff6b7d !important;
+    }
+    body.dark-theme #abcdExitConfirmBtn:hover {
+        background: rgba(232, 69, 90, 0.26) !important;
+        border-color: #ff4757 !important;
+        color: #ff4757 !important;
+    }
+    @keyframes abcdExitModalShake {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        20%, 60% { transform: translate(-52%, -50%) scale(1); }
+        40%, 80% { transform: translate(-48%, -50%) scale(1); }
+    }
+    .abcd-exit-modal-shake {
+        animation: abcdExitModalShake 0.32s ease-in-out !important;
+    }
+</style>
+
+<!-- ================= ABCD UNIVERSAL EXIT CONFIRMATION MODAL ================= -->
+<div id="abcdExitOverlay" class="abcd-exit-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;z-index:3000100;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity 0.22s ease;"></div>
+<div id="abcdExitModal" class="abcd-exit-modal" role="dialog" aria-modal="true" aria-labelledby="abcdExitTitle" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.92);background:#ffffff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,0.35);width:min(400px,88vw);display:none;z-index:3000101;opacity:0;transition:opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);overflow:hidden;border:1px solid rgba(0,0,0,0.08);">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);color:#ffffff;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:rgba(232,69,90,0.22);color:#ff6b7d;font-size:1.25rem;">
+                <i class='bx bx-exit'></i>
+            </span>
+            <h3 id="abcdExitTitle" style="margin:0;font-size:1.08rem;font-weight:700;letter-spacing:0.2px;color:#ffffff;">Exit ABCD Smart Campus</h3>
+        </div>
+        <button type="button" id="abcdExitCloseBtn" aria-label="Close" style="background:none;border:none;font-size:1.6rem;cursor:pointer;color:#94a3b8;line-height:1;transition:color 0.15s, transform 0.15s;padding:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;" onmouseover="this.style.color='#ffffff';this.style.transform='scale(1.1)'" onmouseout="this.style.color='#94a3b8';this.style.transform='scale(1)'">&times;</button>
+    </div>
+    <div style="padding:24px 22px 16px;text-align:center;">
+        <p style="margin:0 0 8px;font-size:1.02rem;font-weight:700;color:#0f172a;" id="abcdExitPrompt">Are you sure you want to exit?</p>
+        <p style="margin:0;font-size:0.86rem;color:#64748b;line-height:1.45;">Press <strong>Exit</strong> to close the application or leave the site. You can return anytime.</p>
+    </div>
+    <div style="padding:14px 22px 20px;display:flex;gap:12px;justify-content:center;">
+        <button type="button" id="abcdExitCancelBtn" style="flex:1;padding:10px 18px;font-weight:600;border:1.5px solid #cbd5e1;border-radius:10px;cursor:pointer;background:#ffffff;color:#334155;font-size:0.92rem;transition:all 0.15s ease;" onmouseover="this.style.borderColor='#94a3b8';this.style.background='#f8fafc'" onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#ffffff'">Cancel</button>
+        <button type="button" id="abcdExitConfirmBtn" style="flex:1;padding:10px 18px;font-weight:700;border:1.5px solid #e8455a;border-radius:10px;cursor:pointer;background:rgba(232,69,90,0.08);color:#e8455a;font-size:0.92rem;transition:all 0.15s ease;" onmouseover="this.style.background='rgba(232,69,90,0.18)';this.style.borderColor='#c0392b';this.style.color='#c0392b'" onmouseout="this.style.background='rgba(232,69,90,0.08)';this.style.borderColor='#e8455a';this.style.color='#e8455a'">Exit</button>
+    </div>
+</div>
+
 <script>
     (function() {
-        const cleanPath = window.location.pathname.replace(/\/$/, '') || '/';
+        const rawPath = window.location.pathname.toLowerCase();
+        const cleanPath = rawPath.replace(/\/$/, '') || '/';
         const isHomeBase = cleanPath === '/' || 
                            cleanPath === '/home' ||
                            cleanPath === '/guest-home' || 
@@ -11,21 +91,197 @@
 
         if (!isHomeBase) return;
 
-        function ensureHomeTrap() {
+        let isModalVisible = false;
+        let isExiting = false;
+        let overlay = null;
+        let modal = null;
+        let cancelBtn = null;
+        let confirmBtn = null;
+        let closeBtn = null;
+
+        function getDOMElements() {
+            if (!overlay) overlay = document.getElementById('abcdExitOverlay');
+            if (!modal) modal = document.getElementById('abcdExitModal');
+            if (!cancelBtn) cancelBtn = document.getElementById('abcdExitCancelBtn');
+            if (!confirmBtn) confirmBtn = document.getElementById('abcdExitConfirmBtn');
+            if (!closeBtn) closeBtn = document.getElementById('abcdExitCloseBtn');
+        }
+
+        // 1. The Bulletproof History Wall
+        function armHomeTrap() {
+            if (isExiting) return;
             try {
-                if (history.state !== 'home_trap') {
-                    window.history.pushState('home_trap', document.title, window.location.href);
+                if (!history.state || !history.state.abcd_home_wall) {
+                    window.history.pushState({ abcd_home_wall: true, path: cleanPath }, document.title, window.location.href);
                 }
             } catch(e) {}
         }
 
-        // 1. Push a state immediately to create the wall
-        ensureHomeTrap();
-        window.addEventListener('pointerdown', ensureHomeTrap, { once: true, passive: true });
-        
-        // 2. The Invisible Wall: If they press back, just push the wall back up. Do nothing else.
+        armHomeTrap();
+        window.addEventListener('pointerdown', armHomeTrap, { once: true, passive: true });
+
+        function showExitModal() {
+            if (isExiting) return;
+            getDOMElements();
+            if (!overlay || !modal) return;
+
+            if (isModalVisible) {
+                // If already visible and back pressed again, shake modal for visual feedback
+                modal.classList.remove('abcd-exit-modal-shake');
+                void modal.offsetWidth;
+                modal.classList.add('abcd-exit-modal-shake');
+                return;
+            }
+
+            isModalVisible = true;
+
+            var highestZ = 3000100;
+            if (typeof window.getHighestZIndex === 'function') {
+                highestZ = Math.max(highestZ, window.getHighestZIndex([overlay, modal]));
+            }
+            overlay.style.setProperty('z-index', highestZ.toString(), 'important');
+            modal.style.setProperty('z-index', (highestZ + 1).toString(), 'important');
+
+            overlay.style.display = 'block';
+            modal.style.display = 'block';
+            void modal.offsetWidth;
+
+            overlay.style.opacity = '1';
+            overlay.style.pointerEvents = 'auto';
+            modal.style.opacity = '1';
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+
+            if (typeof window.syncModalScrollLock === 'function') {
+                window.syncModalScrollLock();
+            }
+
+            if (cancelBtn) cancelBtn.focus();
+        }
+
+        function hideExitModal() {
+            getDOMElements();
+            if (!overlay || !modal) return;
+            isModalVisible = false;
+
+            overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none';
+            modal.style.opacity = '0';
+            modal.style.transform = 'translate(-50%, -50%) scale(0.92)';
+
+            setTimeout(function() {
+                if (!isModalVisible) {
+                    overlay.style.display = 'none';
+                    modal.style.display = 'none';
+                    if (typeof window.syncModalScrollLock === 'function') {
+                        window.syncModalScrollLock();
+                    }
+                }
+            }, 220);
+        }
+
+        function executeExit() {
+            isExiting = true;
+            hideExitModal();
+
+            // A. Native Android App Bridges (APK / AAB / WebViews)
+            if (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') {
+                window.AndroidApp.closeApp();
+                return;
+            }
+            if (window.Android && typeof window.Android.exitApp === 'function') {
+                window.Android.exitApp();
+                return;
+            }
+            if (window.Android && typeof window.Android.finish === 'function') {
+                window.Android.finish();
+                return;
+            }
+            if (window.navigator && window.navigator.app && typeof window.navigator.app.exitApp === 'function') {
+                window.navigator.app.exitApp();
+                return;
+            }
+
+            // B. Standalone PWA / Android TWA / Supported Browser Windows
+            try {
+                window.close();
+            } catch(e) {}
+
+            // C. Pop history back (in Android TWA / Custom Tabs, popping back when at root finishes the activity)
+            try {
+                window.history.back();
+            } catch(e) {}
+
+            // D. Web Browsers: Check for external referrer
+            if (document.referrer) {
+                try {
+                    var refUrl = new URL(document.referrer);
+                    if (refUrl.origin !== window.location.origin) {
+                        window.location.replace(document.referrer);
+                        return;
+                    }
+                } catch(e) {}
+            }
+
+            // E. Web Browser Fallback (if browser sandbox blocks window.close and no external referrer)
+            setTimeout(function() {
+                document.body.innerHTML = `
+                    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;color:#ffffff;font-family:system-ui,-apple-system,sans-serif;padding:20px;text-align:center;">
+                        <div style="max-width:420px;background:#1e293b;border-radius:20px;padding:36px 28px;box-shadow:0 20px 50px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);">
+                            <div style="width:60px;height:60px;margin:0 auto 18px;border-radius:16px;background:rgba(232,69,90,0.15);color:#ff6b7d;display:flex;align-items:center;justify-content:center;font-size:1.8rem;">
+                                <i class='bx bx-check-circle'></i>
+                            </div>
+                            <h2 style="margin:0 0 10px;font-size:1.35rem;font-weight:700;">You have exited ABCD</h2>
+                            <p style="margin:0 0 24px;color:#94a3b8;font-size:0.92rem;line-height:1.5;">You can safely close this browser tab or window.</p>
+                            <button onclick="window.location.replace('${window.location.pathname}')" style="padding:11px 26px;font-weight:700;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#e8455a 0%,#c0392b 100%);color:#ffffff;font-size:0.92rem;box-shadow:0 4px 15px rgba(232,69,90,0.35);">
+                                Return to ABCD Smart Campus
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }, 180);
+        }
+
+        // 2. The Popstate Interceptor (Triggers on the very first Back button press!)
         window.addEventListener('popstate', function(event) {
-            ensureHomeTrap();
+            if (isExiting) return;
+
+            // Synchronously re-arm the trap to prevent escaping backwards into prior history
+            try {
+                window.history.pushState({ abcd_home_wall: true, path: cleanPath }, document.title, window.location.href);
+            } catch(e) {}
+
+            // Display the exit confirmation modal
+            showExitModal();
+        });
+
+        // 3. Bind UI event listeners
+        function initModalEvents() {
+            getDOMElements();
+            if (cancelBtn) cancelBtn.addEventListener('click', hideExitModal);
+            if (closeBtn) closeBtn.addEventListener('click', hideExitModal);
+            if (overlay) overlay.addEventListener('click', hideExitModal);
+            if (confirmBtn) confirmBtn.addEventListener('click', executeExit);
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && isModalVisible) {
+                    hideExitModal();
+                }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initModalEvents);
+        } else {
+            initModalEvents();
+        }
+
+        // 4. Anti-bfcache: If restored from browser bfcache, reload to verify authentication
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                window.location.reload();
+            } else {
+                armHomeTrap();
+            }
         });
     })();
 

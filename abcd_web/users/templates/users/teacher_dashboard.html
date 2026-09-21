@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 {% load dict_extras %}
 <!DOCTYPE html>
 <html lang="en">
@@ -40,11 +40,43 @@
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
   <link rel="stylesheet" href="{% static 'css/site-tour.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
   <script src="{% static 'js/custom-popup.js' %}"></script>
   <script src="{% static 'js/abcd-sound.js' %}"></script>
   {% block extra_head %}{% endblock %}
   {% block extra_css %}{% endblock %}
   <style>
+    .btn-add-manual {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-add-manual:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    }
+    .btn-add-manual:active {
+      transform: translateY(0);
+    }
+    .btn-add-manual i {
+      font-size: 1.1rem;
+    }
+    body.dark-theme .btn-add-manual {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
     * {
       margin: 0;
       padding: 0;
@@ -3107,6 +3139,39 @@
     body.dark-theme .bnav-item.active::after {
       background: #c084fc;
       box-shadow: 0 0 6px #c084fc;
+    }
+
+    /* Profile photo circle in bottom nav */
+    .bnav-profile-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #7b61ff;
+      box-shadow: 0 2px 6px rgba(123, 97, 255, 0.3);
+      display: inline-block;
+      vertical-align: middle;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .bnav-item:hover .bnav-profile-circle,
+    .bnav-item:active .bnav-profile-circle {
+      transform: translateY(-2px) scale(1.08) translate3d(0, 0, 0);
+      box-shadow: 0 3px 8px rgba(123, 97, 255, 0.45);
+    }
+    .bnav-item.active .bnav-profile-circle {
+      box-shadow: 0 0 0 2px #7b61ff, 0 2px 8px rgba(123, 97, 255, 0.45) !important;
+      transform: translateY(-2px) scale(1.08) !important;
+    }
+    body.dark-theme .bnav-profile-circle {
+      border-color: #c084fc;
+      box-shadow: 0 2px 6px rgba(192, 132, 252, 0.3);
+    }
+    body.dark-theme .bnav-item:hover .bnav-profile-circle,
+    body.dark-theme .bnav-item:active .bnav-profile-circle {
+      box-shadow: 0 3px 8px rgba(192, 132, 252, 0.5);
+    }
+    body.dark-theme .bnav-item.active .bnav-profile-circle {
+      box-shadow: 0 0 0 2px #c084fc, 0 2px 8px rgba(192, 132, 252, 0.5) !important;
     }
 
     /* Suppress Bottom Nav when virtual keyboard is open or mobile search is active */
@@ -6192,7 +6257,7 @@
           <div class="custom-dropdown-options">
             <div data-value="all">All Sections</div>
             <div data-value="requests">Admission Request</div>
-            <div data-value="achievements">Achievement Requests</div>
+            <div data-value="achievements">Alumni Requests</div>
             <div data-value="holds">Hold / Switch Requests</div>
             <div data-value="coaching">Coaching</div>
             <div data-value="library">Library</div>
@@ -6203,7 +6268,7 @@
         <select name="section_filter" id="hiddenSectionFilter" style="display: none;" data-no-enhance="true">
           <option value="all" {% if section_filter == 'all' %}selected{% endif %}>All Sections</option>
           <option value="requests" {% if section_filter == 'requests' %}selected{% endif %}>Admission Request</option>
-          <option value="achievements" {% if section_filter == 'achievements' %}selected{% endif %}>Achievement Requests
+          <option value="achievements" {% if section_filter == 'achievements' %}selected{% endif %}>Alumni Requests
           </option>
           <option value="holds" {% if section_filter == 'holds' %}selected{% endif %}>Hold / Switch Requests</option>
           <option value="coaching" {% if section_filter == 'coaching' %}selected{% endif %}>Coaching</option>
@@ -6251,6 +6316,12 @@
       <li>
         <a href="{% url 'users:teacher_dashboard' %}">
           🏠 Dashboard Home
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'users:teacher_profile_details' %}" class="{% if request.resolver_match.url_name == 'teacher_profile_details' or request.resolver_match.url_name == 'profile' %}active{% endif %}">
+          👤 My Profile
         </a>
       </li>
 
@@ -7360,12 +7431,12 @@
         <div class="number" id="statAdmissionRequests">{{ pending_students.count }}</div>
       </div>
 
-      <!-- 2. Alumni/ Achiever Requests -->
+      <!-- 2. Alumni/ Alumni Requests -->
       <div class="stat-card accent-alumni clickable notif-jump-btn" data-tab-target="achievements">
         <div class="card-icon-wrap">
           <i class="bx bxs-trophy"></i>
         </div>
-        <h3 class="card-heading">Achiever Requests</h3>
+        <h3 class="card-heading">Alumni Requests</h3>
         <div class="number" id="statAchieverRequests">{{ total_pending_achievements }}</div>
       </div>
 
@@ -7491,7 +7562,7 @@
     <!-- Tabs -->
     <div class="section-tabs" data-tour="teacher-students-section">
       <button class="tab-btn active" data-tab-name="requests"><i class="bx bx-user-plus"></i> Admission Requests <span class="tab-badge" id="tabBadgeRequests" style="{% if pending_students.count == 0 %}display:none;{% endif %}">({{ pending_students.count }})</span></button>
-      <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Achievement Requests<span id="tabCountAchievements" style="display:none;">{{ total_pending_achievements }}</span></button>
+      <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Alumni Requests<span id="tabCountAchievements" style="display:none;">{{ total_pending_achievements }}</span></button>
       <button class="tab-btn" data-tab-name="holds"><i class="bx bx-pause-circle"></i> Hold / Switch Requests <span class="tab-badge" id="tabBadgeHolds" style="{% if pending_hold_requests|length|add:seat_switch_requests|length == 0 %}display:none;{% endif %}">({{ pending_hold_requests|length|add:seat_switch_requests|length }})</span></button>
       <button class="tab-btn" data-tab-name="coaching"><i class="bx bxs-graduation"></i> Coaching Students</button>
       <button class="tab-btn" data-tab-name="library"><i class="bx bx-book-open"></i> Library Students</button>
@@ -7950,10 +8021,10 @@
       {% endif %}
     </div>
 
-    <!-- Achievement Requests Tab -->
+    <!-- Alumni Requests Tab -->
     <div id="achievements-tab" class="tab-content">
             <div style="margin-bottom: 20px;">
-        <h3><i class="bx bx-trophy" style="margin-right: 8px;"></i> Alumni Achievement Requests</h3>
+        <h3><i class="bx bx-trophy" style="margin-right: 8px;"></i> Alumni Requests</h3>
       </div>
 
       {% if pending_achievements %}
@@ -8011,7 +8082,7 @@
       </div>
       {% else %}
       <div class="no-data">
-        No pending achievement requests at the moment.
+        No pending Alumni Requests at the moment.
       </div>
       {% endif %}
     </div>
@@ -8179,6 +8250,11 @@
 
     <!-- Coaching Students Tab -->
     <div id="coaching-tab" class="tab-content">
+      <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 18px; padding: 0 4px;">
+        <button type="button" class="btn-add-manual" onclick="openManualAddOptionModal('coaching')">
+          <i class='bx bx-plus-circle'></i> Add Manually
+        </button>
+      </div>
       {% for batch, students in coaching_students_by_batch.items %}
       <div class="batch-section">
         <div class="batch-header">
@@ -8219,7 +8295,11 @@
 
     <!-- Library Students Tab -->
     <div id="library-tab" class="tab-content">
-
+      <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 18px; padding: 0 4px;">
+        <button type="button" class="btn-add-manual" onclick="openManualAddOptionModal('library')">
+          <i class='bx bx-plus-circle'></i> Add Manually
+        </button>
+      </div>
       {% for floor, students in library_students_by_floor.items %}
       <div class="batch-section">
         <div class="batch-header">
@@ -8613,7 +8693,7 @@
         <div class="mob-custom-dropdown-options" id="mobSectionOptions">
           <div data-value="all">All Sections</div>
           <div data-value="requests">Admission Request</div>
-          <div data-value="achievements">Achievement Requests</div>
+          <div data-value="achievements">Alumni Requests</div>
           <div data-value="holds">Hold / Switch Requests</div>
           <div data-value="coaching">Coaching</div>
           <div data-value="library">Library</div>
@@ -8652,10 +8732,19 @@
       <span>To-Do</span>
     </a>
 
-    <!-- Student Progress -->
-    <a href="{% url 'users:student_progress' %}" class="bnav-item" title="Student Progress">
-      <i class='bx bx-trending-up'></i>
-      <span>Progress</span>
+    <!-- Teacher Profile -->
+    <a href="{% url 'users:teacher_profile_details' %}" class="bnav-item {% if request.resolver_match.url_name == 'teacher_profile_details' or request.resolver_match.url_name == 'profile' %}active{% endif %}" title="Profile">
+      {% with t_photo=user|user_photo:'teacher' %}
+        {% with final_photo=photo_url|default:t_photo %}
+          {% if final_photo and 'data/user.png' not in final_photo %}
+            <img src="{{ final_photo }}" alt="Profile" class="bnav-profile-circle" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-block';">
+            <i class='bx bx-user' style="display: none;"></i>
+          {% else %}
+            <i class='bx bx-user'></i>
+          {% endif %}
+        {% endwith %}
+      {% endwith %}
+      <span>Profile</span>
     </a>
   </nav>
 
@@ -9328,19 +9417,6 @@
         });
       });
 
-      // Theme toggle listener
-      if (themeToggle) {
-        themeToggle.addEventListener('click', function () {
-          body.classList.toggle('dark-theme');
-          const isDark = body.classList.contains('dark-theme');
-          let theme = isDark ? 'dark' : 'light';
-          if (themeIcon) themeIcon.src = isDark ? "{% static 'data/night.png' %}" : "{% static 'data/day.png' %}";
-          // Update boxicon if present
-          const bxIcon = themeToggle.querySelector('i');
-          if (bxIcon) bxIcon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
-          localStorage.setItem('theme', theme);
-        });
-      }
 
       // ADDED: Listeners for resize and swipe
       // Window Resize handled by CSS media queries
@@ -13137,8 +13213,19 @@
         logoutUrl = null;
     }
 
+    // Confirm → navigate to logout (use replace to avoid keeping authenticated dashboard in history stack)
     logoutBtn.addEventListener('click', function() {
-        if (logoutUrl) window.location.href = logoutUrl;
+        if (logoutUrl) {
+            hideLogoutPopup();
+            window.location.replace(logoutUrl);
+        }
+    });
+
+    // Anti-bfcache: If restored from cache, reload to verify authentication
+    window.addEventListener('pageshow', function(e) {
+        if (e.persisted) {
+            window.location.reload();
+        }
     });
 
     goBackBtn.addEventListener('click', hideLogoutPopup);
@@ -13540,7 +13627,7 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
             tabBadgeAdm.style.display = data.total_admission_requests > 0 ? 'inline-block' : 'none';
         }
 
-        // 3. Achiever Requests
+        // 3. Alumni Requests
         const achEl = document.getElementById('statAchieverRequests');
         if (achEl && typeof data.total_pending_achievements !== 'undefined') {
             achEl.textContent = data.total_pending_achievements;
@@ -13921,6 +14008,9 @@ window.addEventListener('load', initAppCardsScroll, { passive: true });
 <script src="{% static 'js/push-permission.js' %}?v=6"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 <script src="{% static 'js/site-tour.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{% static 'js/image-cropper-modal.js' %}"></script>
+{% include 'partials/_manual_add_user_modals.html' %}
 {% include 'partials/_home_base_exit.html' %}
 </body>
 </html>

@@ -394,6 +394,7 @@
     background: var(--primary-gradient);
     margin: 0 auto;
     position: relative;
+    z-index: 1;
     overflow: hidden;
     color: white;
     display: flex;
@@ -401,6 +402,92 @@
     box-sizing: border-box;
     border-radius: var(--card-radius); /* ROUNDED AS REQUESTED */
     box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+  }
+
+  /* Theme selection dropdown & quick pills in Greeting Modal */
+  .theme-selector-container {
+    position: relative;
+    z-index: 100;
+    margin-bottom: 20px;
+  }
+  #themeSelector {
+    position: relative;
+    z-index: 100;
+    width: 100%;
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #ffffff;
+    color: #1e293b;
+    border: 1.5px solid #cbd5e1;
+    transition: all 0.2s ease;
+  }
+  #themeSelector:focus {
+    border-color: var(--abcd-purple);
+    box-shadow: 0 0 0 3px rgba(123, 97, 255, 0.2);
+    outline: none;
+  }
+  #themeSelector option {
+    background-color: #ffffff;
+    color: #1e293b;
+    padding: 8px 12px;
+  }
+  body.dark-theme #themeSelector {
+    background-color: #110d21 !important;
+    color: #f1f5f9 !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+  }
+  body.dark-theme #themeSelector option {
+    background-color: #110d21 !important;
+    color: #f1f5f9 !important;
+  }
+
+  .theme-pills-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 0 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .theme-pills-row::-webkit-scrollbar {
+    display: none;
+  }
+  .theme-pill {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .theme-pill:hover,
+  .theme-pill.active {
+    background: var(--abcd-purple) !important;
+    color: #ffffff !important;
+    border-color: var(--abcd-purple) !important;
+    box-shadow: 0 3px 10px rgba(123, 97, 255, 0.35);
+    transform: translateY(-1px);
+  }
+  body.dark-theme .theme-pill {
+    background: #231d38;
+    color: #cbd5e1;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  body.dark-theme .theme-pill:hover,
+  body.dark-theme .theme-pill.active {
+    background: #8b5cf6 !important;
+    color: #ffffff !important;
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 3px 10px rgba(139, 92, 246, 0.4);
   }
   
   .card-top {
@@ -646,6 +733,7 @@
 
   .card-scaler-wrapper {
     position: relative;
+    z-index: 1;
     width: 360px;
     height: 640px;
     overflow: visible;
@@ -1403,9 +1491,9 @@
     <span class="close-modal" onclick="closeGreetingModal()">&times;</span>
     <h4 style="text-align: center; margin-bottom: 25px; font-family: 'Righteous'; color: var(--abcd-purple);">Generate Story Card</h4>
     
-    <div style="margin-bottom: 20px;">
-      <label style="font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Achievement Theme</label>
-      <select id="themeSelector" class="form-control" onchange="updateTheme()" style="border-radius: 12px; padding: 10px;">
+    <div class="theme-selector-container">
+      <label for="themeSelector" style="font-size: 0.85rem; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Achievement Theme</label>
+      <select id="themeSelector" class="form-control" onchange="updateTheme()">
         <option value="">-- Choose Quick Theme --</option>
         <option value="topper">⭐ Topper of the Month</option>
         <option value="debate">🗣️ Exceptional Speaker</option>
@@ -1413,10 +1501,17 @@
         <option value="improved">🚀 Most Improved Performance</option>
         <option value="congrats">🎊 Congratulations (Generic)</option>
       </select>
+      <div class="theme-pills-row">
+        <button type="button" class="theme-pill" data-theme="topper" onclick="selectThemePill('topper')">⭐ Topper</button>
+        <button type="button" class="theme-pill" data-theme="debate" onclick="selectThemePill('debate')">🗣️ Speaker</button>
+        <button type="button" class="theme-pill" data-theme="library" onclick="selectThemePill('library')">📖 Library</button>
+        <button type="button" class="theme-pill" data-theme="improved" onclick="selectThemePill('improved')">🚀 Improved</button>
+        <button type="button" class="theme-pill" data-theme="congrats" onclick="selectThemePill('congrats')">🎊 Congrats</button>
+      </div>
     </div>
 
     <!-- 9:16 Card Container -->
-    <div id="captureArea" style="display: flex; justify-content: center; overflow: hidden; margin-bottom: 25px;">
+    <div id="captureArea" style="position: relative; z-index: 1; display: flex; justify-content: center; overflow: hidden; margin-bottom: 25px;">
       <div class="card-scaler-wrapper">
         <div id="greetingCardCanvas" class="greeting-card">
           <div class="card-top">
@@ -1518,6 +1613,14 @@
     congrats: { heading: "Congratulations", msg: "Well done on your consistent progress! Keep up the momentum and keep shining at ABCD.", bg: "var(--primary-gradient)" }
   };
 
+  function selectThemePill(themeKey) {
+    const sel = document.getElementById('themeSelector');
+    if (sel) {
+      sel.value = themeKey;
+      updateTheme();
+    }
+  }
+
   function openGreetingModal(name, photoUrl) {
     const avatar = document.getElementById('greetingAvatar');
     if (photoUrl === 'NO_PHOTO') {
@@ -1531,7 +1634,9 @@
     document.getElementById('greetingName').innerText = name;
     document.getElementById('greetingAchievement').innerText = "CHALLENGE ACCEPTED";
     document.getElementById('greetingMessage').innerText = "We are incredibly proud of your consistent effort and progress at ABCD. Keep shining!";
-    document.getElementById('themeSelector').value = "";
+    const themeSel = document.getElementById('themeSelector');
+    if (themeSel) themeSel.value = "";
+    document.querySelectorAll('.theme-pill').forEach(btn => btn.classList.remove('active'));
     document.getElementById('greetingCardCanvas').style.background = "var(--primary-gradient)";
     document.getElementById('greetingModal').style.display = 'flex';
     setTimeout(adjustCardScale, 50);
@@ -1543,13 +1648,31 @@
   }
 
   function updateTheme() {
-    const val = document.getElementById('themeSelector').value;
-    if(!val) return;
+    const sel = document.getElementById('themeSelector');
+    const val = sel ? sel.value : '';
+
+    document.querySelectorAll('.theme-pill').forEach(btn => {
+      if (btn.dataset.theme === val) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    if(!val) {
+      document.getElementById('greetingAchievement').innerText = "CHALLENGE ACCEPTED";
+      document.getElementById('greetingMessage').innerText = "We are incredibly proud of your consistent effort and progress at ABCD. Keep shining!";
+      document.getElementById('greetingCardCanvas').style.background = "var(--primary-gradient)";
+      adjustCardScale();
+      return;
+    }
     const t = themes[val];
-    document.getElementById('greetingAchievement').innerText = t.heading;
-    document.getElementById('greetingMessage').innerText = t.msg;
-    document.getElementById('greetingCardCanvas').style.background = t.bg;
-    adjustCardScale(); // Keep the scale in sync with new theme text heights
+    if (t) {
+      document.getElementById('greetingAchievement').innerText = t.heading;
+      document.getElementById('greetingMessage').innerText = t.msg;
+      document.getElementById('greetingCardCanvas').style.background = t.bg;
+      adjustCardScale(); // Keep the scale in sync with new theme text heights
+    }
   }
 
   // PHOTO EDITOR
