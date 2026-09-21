@@ -227,25 +227,25 @@
                 return;
             }
 
-            // C. Browser: came from an external site (e.g. Google search) — go back there
-            if (document.referrer) {
-                try {
-                    var refUrl = new URL(document.referrer);
-                    if (refUrl.origin !== window.location.origin) {
-                        window.location.replace(document.referrer);
-                        return;
-                    }
-                } catch(e) {}
-            }
-
-            // D. Browser: tab was opened via script/link (window.close may work)
+            // C. Regular Browser — try to close, then navigate backward to origin (e.g. Google)
             try { window.close(); } catch(e) {}
 
-            // E. Final fallback: actually leave the site
-            // ponytail: no fake "exited" page — just leave for real
+            // Navigate backward through all history to reach the page before our site
+            // (e.g. Google search results if user came from there)
+            var stepsBack = window.history.length - 1;
+            if (stepsBack > 0) {
+                window.history.go(-stepsBack);
+            }
             setTimeout(function() {
-                window.location.replace('about:blank');
-            }, 150);
+                window.history.back();
+            }, 200);
+
+            // D. Last resort: if we're still here after 800ms, go to about:blank
+            setTimeout(function() {
+                if (window.location.hostname !== '') {
+                    window.location.replace('about:blank');
+                }
+            }, 800);
         }
 
         function executeExit() {
