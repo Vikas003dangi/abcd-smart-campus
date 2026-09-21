@@ -99,6 +99,13 @@
         let confirmBtn = null;
         let closeBtn = null;
 
+        // Survive bfcache / reload during exit flow
+        try {
+            if (sessionStorage.getItem('abcd_exiting') === '1') {
+                isExiting = true;
+            }
+        } catch(e) {}
+
         function getDOMElements() {
             if (!overlay) overlay = document.getElementById('abcdExitOverlay');
             if (!modal) modal = document.getElementById('abcdExitModal');
@@ -179,10 +186,7 @@
             }, 220);
         }
 
-        function executeExit() {
-            isExiting = true;
-            hideExitModal();
-
+        function doActualExit() {
             // A. Native Android App Bridges (APK / AAB / WebViews)
             if (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') {
                 window.AndroidApp.closeApp();
@@ -205,14 +209,21 @@
                                window.matchMedia('(display-mode: fullscreen)').matches ||
                                window.navigator.standalone === true;
 
-            // B. Standalone PWA / Android TWA — window.close() works here
+            // B. Standalone PWA / Android TWA
             if (isStandalone) {
                 try { window.close(); } catch(e) {}
-                // TWA fallback: go back past all our history to close the activity
-                // ponytail: small delay so window.close() gets a chance first
+                // ponytail: go to first history entry, then one more back to close the activity
+                var stepsBack = window.history.length - 1;
+                if (stepsBack > 0) {
+                    window.history.go(-stepsBack);
+                }
                 setTimeout(function() {
-                    window.history.go(-(window.history.length));
-                }, 100);
+                    window.history.back();
+                }, 200);
+                // Last resort: keep trying back() in case history is deeper than expected
+                setTimeout(function() {
+                    window.history.back();
+                }, 500);
                 return;
             }
 
@@ -230,11 +241,23 @@
             // D. Browser: tab was opened via script/link (window.close may work)
             try { window.close(); } catch(e) {}
 
-            // E. Final fallback: actually leave the site — navigate to about:blank
+            // E. Final fallback: actually leave the site
             // ponytail: no fake "exited" page — just leave for real
             setTimeout(function() {
                 window.location.replace('about:blank');
             }, 150);
+        }
+
+        function executeExit() {
+            isExiting = true;
+            try { sessionStorage.setItem('abcd_exiting', '1'); } catch(e) {}
+            hideExitModal();
+            doActualExit();
+        }
+
+        // If page loaded while exit was in progress (bfcache restore / reload), resume exit
+        if (isExiting) {
+            setTimeout(doActualExit, 50);
         }
 
         // 2. The Popstate Interceptor (Triggers on the very first Back button press!)
@@ -273,6 +296,7 @@
 
         // 4. Anti-bfcache: If restored from browser bfcache, reload to verify authentication
         window.addEventListener('pageshow', function(e) {
+            if (isExiting) return; // Don't interfere with exit flow
             if (e.persisted) {
                 window.location.reload();
             } else {
