@@ -201,17 +201,22 @@
                 return;
             }
 
-            // B. Standalone PWA / Android TWA / Supported Browser Windows
-            try {
-                window.close();
-            } catch(e) {}
+            var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                               window.matchMedia('(display-mode: fullscreen)').matches ||
+                               window.navigator.standalone === true;
 
-            // C. Pop history back (in Android TWA / Custom Tabs, popping back when at root finishes the activity)
-            try {
-                window.history.back();
-            } catch(e) {}
+            // B. Standalone PWA / Android TWA — window.close() works here
+            if (isStandalone) {
+                try { window.close(); } catch(e) {}
+                // TWA fallback: go back past all our history to close the activity
+                // ponytail: small delay so window.close() gets a chance first
+                setTimeout(function() {
+                    window.history.go(-(window.history.length));
+                }, 100);
+                return;
+            }
 
-            // D. Web Browsers: Check for external referrer
+            // C. Browser: came from an external site (e.g. Google search) — go back there
             if (document.referrer) {
                 try {
                     var refUrl = new URL(document.referrer);
@@ -222,23 +227,14 @@
                 } catch(e) {}
             }
 
-            // E. Web Browser Fallback (if browser sandbox blocks window.close and no external referrer)
+            // D. Browser: tab was opened via script/link (window.close may work)
+            try { window.close(); } catch(e) {}
+
+            // E. Final fallback: actually leave the site — navigate to about:blank
+            // ponytail: no fake "exited" page — just leave for real
             setTimeout(function() {
-                document.body.innerHTML = `
-                    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;color:#ffffff;font-family:system-ui,-apple-system,sans-serif;padding:20px;text-align:center;">
-                        <div style="max-width:420px;background:#1e293b;border-radius:20px;padding:36px 28px;box-shadow:0 20px 50px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.08);">
-                            <div style="width:60px;height:60px;margin:0 auto 18px;border-radius:16px;background:rgba(232,69,90,0.15);color:#ff6b7d;display:flex;align-items:center;justify-content:center;font-size:1.8rem;">
-                                <i class='bx bx-check-circle'></i>
-                            </div>
-                            <h2 style="margin:0 0 10px;font-size:1.35rem;font-weight:700;">You have exited ABCD</h2>
-                            <p style="margin:0 0 24px;color:#94a3b8;font-size:0.92rem;line-height:1.5;">You can safely close this browser tab or window.</p>
-                            <button onclick="window.location.replace('${window.location.pathname}')" style="padding:11px 26px;font-weight:700;border:none;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,#e8455a 0%,#c0392b 100%);color:#ffffff;font-size:0.92rem;box-shadow:0 4px 15px rgba(232,69,90,0.35);">
-                                Return to ABCD Smart Campus
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }, 180);
+                window.location.replace('about:blank');
+            }, 150);
         }
 
         // 2. The Popstate Interceptor (Triggers on the very first Back button press!)
