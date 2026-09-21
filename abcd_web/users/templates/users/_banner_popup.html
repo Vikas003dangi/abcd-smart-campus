@@ -499,15 +499,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch(err) {}
             };
             notifSocket.onclose = function() {
-                setTimeout(connect, 5000);
+                setTimeout(connect, 15000);
             };
         } catch(e) {}
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', connect);
+    function scheduleNotifConnect() {
+        setTimeout(connect, 1500);
+    }
+
+    if (document.readyState === 'complete') {
+        scheduleNotifConnect();
     } else {
-        connect();
+        window.addEventListener('load', scheduleNotifConnect);
     }
 })();
 {% endif %}

@@ -38,17 +38,16 @@
   <link rel="manifest" href="{% static 'data/favicon/site.webmanifest' %}" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap" rel="stylesheet"></noscript>
   <title>{% block title %}Teacher Dashboard - ABCD{% endblock %}</title>
   <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
   <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
   <link rel="stylesheet" href="{% static 'css/site-tour.css' %}">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
-  <script src="{% static 'js/custom-popup.js' %}"></script>
-  <script src="{% static 'js/abcd-sound.js' %}"></script>
+  <script src="{% static 'js/custom-popup.js' %}" defer></script>
+  <script src="{% static 'js/abcd-sound.js' %}" defer></script>
   {% block extra_head %}{% endblock %}
   {% block extra_css %}{% endblock %}
   <style>
@@ -13841,7 +13840,7 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
 
             teacherLiveWs.onclose = function() {
                 if (teacherWsHeartbeatTimer) clearInterval(teacherWsHeartbeatTimer);
-                setTimeout(initTeacherWebSocket, 4000);
+                setTimeout(initTeacherWebSocket, 15000);
             };
         } catch(e) {}
     }
@@ -13861,11 +13860,19 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
         }
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        initTeacherWebSocket();
+    function initTeacherLiveUpdates() {
         startPollingLoop();
         fetchTeacherLiveStats();
-    });
+        setTimeout(initTeacherWebSocket, 1000);
+    }
+
+    if (document.readyState === 'complete') {
+        setTimeout(initTeacherLiveUpdates, 1000);
+    } else {
+        window.addEventListener('load', () => {
+            setTimeout(initTeacherLiveUpdates, 1000);
+        });
+    }
 
     window.refreshTeacherLiveStats = fetchTeacherLiveStats;
     window.refreshTeacherTabsContent = refreshTeacherTabsContent;
@@ -14001,13 +14008,13 @@ window.addEventListener('resize', initAppCardsScroll, { passive: true });
 window.addEventListener('load', initAppCardsScroll, { passive: true });
 </script>
 
-<script src="{% static 'js/abcd-sound.js' %}"></script>
 <script>window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";</script>
-<script src="{% static 'js/push-permission.js' %}?v=6"></script>
-<script src="{% static 'js/app-install-prompt.js' %}"></script>
-<script src="{% static 'js/site-tour.js' %}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-<script src="{% static 'js/image-cropper-modal.js' %}"></script>
+<script defer src="{% static 'js/abcd-sound.js' %}"></script>
+<script defer src="{% static 'js/push-permission.js' %}?v=6"></script>
+<script defer src="{% static 'js/app-install-prompt.js' %}"></script>
+<script defer src="{% static 'js/site-tour.js' %}"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script defer src="{% static 'js/image-cropper-modal.js' %}"></script>
 {% include 'partials/_manual_add_user_modals.html' %}
 {% include 'partials/_home_base_exit.html' %}
 </body>

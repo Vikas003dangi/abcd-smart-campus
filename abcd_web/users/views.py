@@ -5676,19 +5676,23 @@ def teacher_dashboard_view(request):
     # Group NORMAL library students by floor
     # Skip students with no seat — they appear in no_seat_library_students section
     # Auto-healing: Ensure stale seat pointers are cleared if another student holds the active assignment
-    for student in normal_library_students:
+    normal_student_list = list(normal_library_students)
+    candidate_seats = [s.seat for s in normal_student_list if s.seat and not s.seat.is_shift_enabled]
+    seat_to_active_students = defaultdict(set)
+    if candidate_seats:
+        candidate_seat_ids = [seat.id for seat in candidate_seats]
+        for a in SeatAssignment.objects.filter(seat_id__in=candidate_seat_ids, is_active=True).values('seat_id', 'student_id'):
+            seat_to_active_students[a['seat_id']].add(a['student_id'])
+
+    for student in normal_student_list:
         seat = getattr(student, 'seat', None)
         if not seat:
             continue
 
         if not seat.is_shift_enabled:
-            has_active_assignment = SeatAssignment.objects.filter(
-                seat=seat, student=student, is_active=True
-            ).exists()
-            if not has_active_assignment:
-                other_active_exists = SeatAssignment.objects.filter(
-                    seat=seat, is_active=True
-                ).exclude(student=student).exists()
+            active_students = seat_to_active_students.get(seat.id, set())
+            if student.id not in active_students:
+                other_active_exists = bool(active_students - {student.id})
                 if other_active_exists:
                     student.seat = None
                     student.save(update_fields=['seat'])

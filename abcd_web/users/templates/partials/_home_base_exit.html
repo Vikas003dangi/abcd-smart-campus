@@ -93,12 +93,13 @@
 
         let isModalVisible = false;
         let isExiting = false;
+        let trapArmed = false;
+        let openedByBackButton = false;
         let overlay = null;
         let modal = null;
         let cancelBtn = null;
         let confirmBtn = null;
         let closeBtn = null;
-
 
         function getDOMElements() {
             if (!overlay) overlay = document.getElementById('abcdExitOverlay');
@@ -108,18 +109,18 @@
             if (!closeBtn) closeBtn = document.getElementById('abcdExitCloseBtn');
         }
 
-        // 1. The Bulletproof History Wall
-        function armHomeTrap() {
-            if (isExiting) return;
+        // 1. Single-Trap History Setup: exactly ONE state so Back press pops to root
+        function armTrap() {
+            if (isExiting || trapArmed) return;
             try {
-                if (!history.state || !history.state.abcd_home_wall) {
-                    window.history.pushState({ abcd_home_wall: true, path: cleanPath }, document.title, window.location.href);
+                if (!history.state || !history.state.abcd_exit_trap) {
+                    window.history.pushState({ abcd_exit_trap: true }, document.title, window.location.href);
                 }
+                trapArmed = true;
             } catch(e) {}
         }
 
-        armHomeTrap();
-        window.addEventListener('pointerdown', armHomeTrap, { once: true, passive: true });
+        armTrap();
 
         function showExitModal() {
             if (isExiting) return;
@@ -127,7 +128,6 @@
             if (!overlay || !modal) return;
 
             if (isModalVisible) {
-                // If already visible and back pressed again, shake modal for visual feedback
                 modal.classList.remove('abcd-exit-modal-shake');
                 void modal.offsetWidth;
                 modal.classList.add('abcd-exit-modal-shake');
@@ -180,98 +180,112 @@
             }, 220);
         }
 
+        function onCancelExit() {
+            hideExitModal();
+            openedByBackButton = false;
+            // Re-arm trap so the user can be prompted on future Back press
+            armTrap();
+        }
+
         function doActualExit() {
-            // A. Native Android App Bridges (APK / AAB / WebViews)
+            isExiting = true;
+
+            // A. Native Android App Bridges (if injected by Android WebView/Activity)
             if (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') {
-                window.AndroidApp.closeApp();
-                return;
+                try { window.AndroidApp.closeApp(); return; } catch(e) {}
             }
             if (window.Android && typeof window.Android.exitApp === 'function') {
-                window.Android.exitApp();
-                return;
+                try { window.Android.exitApp(); return; } catch(e) {}
             }
             if (window.Android && typeof window.Android.finish === 'function') {
-                window.Android.finish();
-                return;
-            }
-            if (window.navigator && window.navigator.app && typeof window.navigator.app.exitApp === 'function') {
-                window.navigator.app.exitApp();
-                return;
+                try { window.Android.finish(); return; } catch(e) {}
             }
 
-            var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                               window.matchMedia('(display-mode: fullscreen)').matches ||
-                               window.navigator.standalone === true;
+            // B. If user arrived from an external website (e.g. Google Search), return back to it cleanly
+            const hasExternalReferrer = document.referrer && 
+                                        document.referrer.indexOf(window.location.host) === -1 &&
+                                        !document.referrer.startsWith('android-app://');
+            const steps = openedByBackButton ? -1 : (trapArmed ? -2 : -1);
 
-            // B. Standalone PWA / Android TWA
-            if (isStandalone) {
-                try { window.close(); } catch(e) {}
-                // ponytail: go to first history entry, then one more back to close the activity
-                var stepsBack = window.history.length - 1;
-                if (stepsBack > 0) {
-                    window.history.go(-stepsBack);
+            if (hasExternalReferrer) {
+                try {
+                    window.history.go(steps);
+                } catch(e) {
+                    window.location.replace(document.referrer);
                 }
                 setTimeout(function() {
-                    window.history.back();
+                    try { window.location.replace(document.referrer); } catch(e) {}
                 }, 200);
-                // Last resort: keep trying back() in case history is deeper than expected
-                setTimeout(function() {
-                    window.history.back();
-                }, 500);
                 return;
             }
 
-            // C. Regular Browser — try to close, then navigate backward to origin (e.g. Google)
-            try { window.close(); } catch(e) {}
+            // C. Standalone PWA / Android TWA / Mobile App Exit
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                                 window.matchMedia('(display-mode: fullscreen)').matches ||
+                                 window.navigator.standalone === true ||
+                                 (document.referrer && document.referrer.startsWith('android-app://')) ||
+                                 window.location.search.includes('pwa_app=1');
+            const isAndroid = /android/i.test(navigator.userAgent || '');
 
-            // Navigate backward through all history to reach the page before our site
-            // (e.g. Google search results if user came from there)
-            var stepsBack = window.history.length - 1;
-            if (stepsBack > 0) {
-                window.history.go(-stepsBack);
+            if (isStandalone || isAndroid) {
+                // 1. Try closing window directly
+                try { window.close(); } catch(e) {}
+
+                // 2. Trigger native app exit intent for ABCD package
+                try {
+                    window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;package=in.abcdcampus.app;end";
+                } catch(e) {}
+
+                // 3. Trigger Android OS Home intent (minimizes/closes app to home screen like Instagram/WhatsApp)
+                setTimeout(function() {
+                    try {
+                        window.location.href = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.HOME;end";
+                    } catch(e) {}
+                }, 60);
+
+                // 4. Pop web history so Custom Tab / browser stack finishes
+                setTimeout(function() {
+                    try { window.history.go(steps); } catch(e) {}
+                    try { window.close(); } catch(e) {}
+                }, 150);
+                return;
+            }
+
+            // D. Standard browser tab exit
+            try { window.close(); } catch(e) {}
+            try { window.history.go(steps); } catch(e) {
+                try { window.history.back(); } catch(e2) {}
             }
             setTimeout(function() {
-                window.history.back();
+                try { window.close(); } catch(e) {}
             }, 200);
-
-            // D. Last resort: if we're still here after 800ms, go to about:blank
-            setTimeout(function() {
-                if (window.location.hostname !== '') {
-                    window.location.replace('about:blank');
-                }
-            }, 800);
         }
 
         function executeExit() {
-            isExiting = true;
             hideExitModal();
             doActualExit();
         }
 
-        // 2. The Popstate Interceptor (Triggers on the very first Back button press!)
+        // 2. Popstate: when user presses Android/Browser back, browser pops the trap!
+        // DO NOT re-push state here so the browser stays at the true root entry.
         window.addEventListener('popstate', function(event) {
             if (isExiting) return;
-
-            // Synchronously re-arm the trap to prevent escaping backwards into prior history
-            try {
-                window.history.pushState({ abcd_home_wall: true, path: cleanPath }, document.title, window.location.href);
-            } catch(e) {}
-
-            // Display the exit confirmation modal
+            trapArmed = false;
+            openedByBackButton = true;
             showExitModal();
         });
 
         // 3. Bind UI event listeners
         function initModalEvents() {
             getDOMElements();
-            if (cancelBtn) cancelBtn.addEventListener('click', hideExitModal);
-            if (closeBtn) closeBtn.addEventListener('click', hideExitModal);
-            if (overlay) overlay.addEventListener('click', hideExitModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', onCancelExit);
+            if (closeBtn) closeBtn.addEventListener('click', onCancelExit);
+            if (overlay) overlay.addEventListener('click', onCancelExit);
             if (confirmBtn) confirmBtn.addEventListener('click', executeExit);
 
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && isModalVisible) {
-                    hideExitModal();
+                    onCancelExit();
                 }
             });
         }
@@ -284,11 +298,11 @@
 
         // 4. Anti-bfcache: If restored from browser bfcache, reload to verify authentication
         window.addEventListener('pageshow', function(e) {
-            if (isExiting) return; // Don't interfere with exit flow
+            if (isExiting) return;
             if (e.persisted) {
                 window.location.reload();
             } else {
-                armHomeTrap();
+                armTrap();
             }
         });
     })();
@@ -430,28 +444,40 @@
         });
     })();
 </script>
-<link rel="stylesheet" href="/static/css/site-tour.css?v=37">
-<script src="/static/js/site-tour.js?v=37"></script>
+<link rel="stylesheet" href="/static/css/site-tour.css?v=37" media="print" onload="this.media='all'">
 <script>
-    // Ensure ABCD Audio Engine is globally available on all dashboard pages
-    if (!window.playABCDSound && !document.querySelector('script[src*="abcd-sound.js"]')) {
-        const snd = document.createElement('script');
-        snd.src = '/static/js/abcd-sound.js';
-        snd.async = true;
-        document.head.appendChild(snd);
+    // Run non-critical auxiliary scripts AFTER page has finished loading to ensure super-fast initial render
+    function initAuxiliaryScripts() {
+        if (!document.querySelector('script[src*="site-tour.js"]')) {
+            const st = document.createElement('script');
+            st.src = '/static/js/site-tour.js?v=37';
+            st.async = true;
+            document.head.appendChild(st);
+        }
+        if (!window.playABCDSound && !document.querySelector('script[src*="abcd-sound.js"]')) {
+            const snd = document.createElement('script');
+            snd.src = '/static/js/abcd-sound.js';
+            snd.async = true;
+            document.head.appendChild(snd);
+        }
+        if (!document.querySelector('script[src*="push-permission.js"]')) {
+            const pp = document.createElement('script');
+            pp.src = '/static/js/push-permission.js?v=6';
+            pp.async = true;
+            document.head.appendChild(pp);
+        }
+        if (!window.CustomPopup && !document.querySelector('script[src*="custom-popup.js"]')) {
+            const cp = document.createElement('script');
+            cp.src = '/static/js/custom-popup.js?v=20260918';
+            cp.async = true;
+            document.head.appendChild(cp);
+        }
     }
-    // Ensure Web Push & Service Worker subscription sync is active on all dashboard pages
-    if (!document.querySelector('script[src*="push-permission.js"]')) {
-        const pp = document.createElement('script');
-        pp.src = '/static/js/push-permission.js?v=6';
-        pp.async = true;
-        document.head.appendChild(pp);
-    }
-    // Ensure Universal CustomPopup is globally available on all dashboard pages
-    if (!window.CustomPopup && !document.querySelector('script[src*="custom-popup.js"]')) {
-        const cp = document.createElement('script');
-        cp.src = '/static/js/custom-popup.js?v=20260918';
-        cp.async = true;
-        document.head.appendChild(cp);
+    if (document.readyState === 'complete') {
+        setTimeout(initAuxiliaryScripts, 1000);
+    } else {
+        window.addEventListener('load', function() {
+            setTimeout(initAuxiliaryScripts, 1000);
+        });
     }
 </script>
