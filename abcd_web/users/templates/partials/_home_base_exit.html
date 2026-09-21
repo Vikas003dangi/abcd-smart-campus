@@ -190,75 +190,78 @@
         function doActualExit() {
             isExiting = true;
 
-            // A. Native Android App Bridges (if injected by Android WebView/Activity)
-            if (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') {
-                try { window.AndroidApp.closeApp(); return; } catch(e) {}
-            }
-            if (window.Android && typeof window.Android.exitApp === 'function') {
-                try { window.Android.exitApp(); return; } catch(e) {}
-            }
-            if (window.Android && typeof window.Android.finish === 'function') {
-                try { window.Android.finish(); return; } catch(e) {}
-            }
-
-            // B. If user arrived from an external website (e.g. Google Search), return back to it cleanly
-            const hasExternalReferrer = document.referrer && 
-                                        document.referrer.indexOf(window.location.host) === -1 &&
-                                        !document.referrer.startsWith('android-app://');
-            const steps = openedByBackButton ? -1 : (trapArmed ? -2 : -1);
-
-            if (hasExternalReferrer) {
-                try {
-                    window.history.go(steps);
-                } catch(e) {
-                    window.location.replace(document.referrer);
-                }
-                setTimeout(function() {
-                    try { window.location.replace(document.referrer); } catch(e) {}
-                }, 200);
-                return;
-            }
-
-            // C. Standalone PWA / Android TWA / Mobile App Exit
+            const isAndroid = /android/i.test(navigator.userAgent || '');
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
                                  window.matchMedia('(display-mode: fullscreen)').matches ||
                                  window.navigator.standalone === true ||
                                  (document.referrer && document.referrer.startsWith('android-app://')) ||
                                  window.location.search.includes('pwa_app=1');
-            const isAndroid = /android/i.test(navigator.userAgent || '');
 
-            if (isStandalone || isAndroid) {
-                // 1. Try closing window directly
+            // =========================================================================
+            // ENVIRONMENT 1: ANDROID TWA / MOBILE APP (Option 2 - Native Task Exit)
+            // =========================================================================
+            if (isAndroid || isStandalone) {
+                // A. Native WebView JS bridge (if present)
+                if (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') {
+                    try { window.AndroidApp.closeApp(); return; } catch(e) {}
+                }
+                if (window.Android && typeof window.Android.exitApp === 'function') {
+                    try { window.Android.exitApp(); return; } catch(e) {}
+                }
+                if (window.Android && typeof window.Android.finish === 'function') {
+                    try { window.Android.finish(); return; } catch(e) {}
+                }
+
+                // B. Try closing window directly
                 try { window.close(); } catch(e) {}
 
-                // 2. Trigger native app exit intent for ABCD package
+                // C. Trigger native ExitActivity / LauncherActivity via explicit Android Intent URI
                 try {
-                    window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;package=in.abcdcampus.app;end";
+                    window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;package=in.abcdcampus.app;component=in.abcdcampus.app/.ExitActivity;end";
                 } catch(e) {}
 
-                // 3. Trigger Android OS Home intent (minimizes/closes app to home screen like Instagram/WhatsApp)
+                // D. Fallback to custom exit scheme
                 setTimeout(function() {
                     try {
-                        window.location.href = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.HOME;end";
+                        window.location.href = "abcdexit://close";
                     } catch(e) {}
-                }, 60);
+                }, 80);
 
-                // 4. Pop web history so Custom Tab / browser stack finishes
+                // E. Final fallback: pop web history
+                const steps = openedByBackButton ? -1 : (trapArmed ? -2 : -1);
                 setTimeout(function() {
                     try { window.history.go(steps); } catch(e) {}
                     try { window.close(); } catch(e) {}
-                }, 150);
+                }, 160);
                 return;
             }
 
-            // D. Standard browser tab exit
-            try { window.close(); } catch(e) {}
-            try { window.history.go(steps); } catch(e) {
-                try { window.history.back(); } catch(e2) {}
-            }
+            // =========================================================================
+            // ENVIRONMENT 2: LAPTOP / DESKTOP BROWSER
+            // =========================================================================
+            // "When the website is opened as a normal browser window/tab and the user clicks Exit,
+            // I want the browser page/window to close completely if the browser technically permits it.
+            // Never use a blank/black page as a substitute for closing.
+            // If the browser permits it: close.
+            // Otherwise preserve the existing page rather than showing a fake blank/black screen."
+
+            try {
+                window.close();
+            } catch(e) {}
+
+            // If the browser prohibited JavaScript from closing a user-opened tab:
+            // Check after a brief delay if the page is still active.
+            // If still active, do NOT redirect to about:blank or any blank page.
+            // Keep the page perfectly preserved and inform the user.
             setTimeout(function() {
-                try { window.close(); } catch(e) {}
-            }, 200);
+                if (!document.hidden) {
+                    isExiting = false;
+                    armTrap();
+                    if (typeof window.showToast === 'function') {
+                        window.showToast("Your browser prevented closing this tab automatically. You can close it using Ctrl+W (or \u2318+W).", "info");
+                    }
+                }
+            }, 300);
         }
 
         function executeExit() {
