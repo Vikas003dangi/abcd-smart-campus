@@ -876,6 +876,7 @@
     let isUserUnauthenticated = false;
     function checkGlobalDueAlarms() {
         if (isCheckingGlobalAlarms || isUserUnauthenticated) return;
+        if (document.hidden) return;
         const path = (window.location.pathname || '').toLowerCase();
         if (path === '/login/' || path.startsWith('/auth/')) return;
         isCheckingGlobalAlarms = true;
@@ -902,9 +903,9 @@
             });
     }
 
-    // High precision: Check memory every 1 second, fetch server every 15 seconds
+    // High precision: Check memory every 1 second, fetch server every 60 seconds (or immediately on focus/visibility)
     setInterval(tickGlobalDueAlarmsInMemory, 1000);
-    setInterval(checkGlobalDueAlarms, 15000);
+    setInterval(checkGlobalDueAlarms, 60000);
     setTimeout(checkGlobalDueAlarms, 1000);
 
     // Also run immediately on page visibility change or tab focus (e.g. mobile phone unlocked / tab resumed)

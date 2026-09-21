@@ -22,18 +22,57 @@ import sys
 import time
 import threading
 import logging
-from datetime import datetime
+from datetime import datetime, time as dtime, timedelta
 from django.utils import timezone
 from django.db import close_old_connections
 from django.core.management import call_command
 
 logger = logging.getLogger(__name__)
 
-# Track thread state and execution timestamps
+# Track thread state, execution timestamps, and adaptive sleep wake event
 _scheduler_lock = threading.Lock()
 _scheduler_started = False
+_wake_event = threading.Event()
+_last_heartbeat = None
+_next_expected_due = None
 last_scheduler_run = None
 last_daily_run = None
+
+
+def notify_scheduler_task_changed():
+    """
+    Wakes the sleeping background scheduler thread immediately in RAM (0ms).
+    Called by model post_save / post_delete signals when a time-sensitive task
+    (TodoTask, LearningReminder, BroadcastMessage) is created, modified, or deleted.
+    """
+    try:
+        _wake_event.set()
+    except Exception as e:
+        logger.debug(f"[ABCD Scheduler] Wake event notification error: {e}")
+
+
+def get_scheduler_status():
+    """
+    Returns the current in-memory status of the scheduler for /api/cron/maintenance/.
+    Allows the external cron endpoint to act as a zero-DB watchdog.
+    """
+    global _last_heartbeat, _next_expected_due, _scheduler_started
+    now = timezone.localtime(timezone.now())
+    is_alive = False
+    heartbeat_age = None
+
+    if _last_heartbeat:
+        heartbeat_age = (now - _last_heartbeat).total_seconds()
+        # Thread considered healthy if it ticked within the last 16 minutes (960s)
+        is_alive = heartbeat_age < 960
+
+    return {
+        "started": _scheduler_started,
+        "is_alive": is_alive,
+        "heartbeat_age_seconds": round(heartbeat_age, 1) if heartbeat_age is not None else None,
+        "next_due_iso": _next_expected_due.isoformat() if _next_expected_due else None,
+    }
+
 
 
 def execute_high_frequency_tasks():
@@ -231,31 +270,190 @@ def execute_urgent_reminder_checks():
         close_old_connections()
 
 
+def calculate_seconds_to_next_due_task(now=None, max_sleep_seconds=900):
+    """
+    Scans upcoming time-sensitive tasks in PostgreSQL:
+    1. BroadcastMessage (status='scheduled', is_draft=False, send_at)
+    2. LearningReminder (recurrence_type='once', is_sent=False; plus recurring reminders today)
+    3. TodoTask (category='REMINDER', is_done=False, is_trash=False)
+    4. Daily maintenance (04:00 AM)
+
+    Returns the minimum delay in seconds (between 0 and max_sleep_seconds)
+    until the earliest task is due.
+    If any task is due now or overdue, returns 0.
+    """
+    if now is None:
+        now = timezone.localtime(timezone.now())
+
+    candidates = []
+
+    # 1. Scheduled Broadcasts
+    try:
+        from users.models import BroadcastMessage
+        if BroadcastMessage.objects.filter(status="scheduled", is_draft=False, send_at__lte=now).exists():
+            return 0
+        earliest_broadcast = BroadcastMessage.objects.filter(
+            status="scheduled", is_draft=False, send_at__gt=now
+        ).order_by('send_at').values_list('send_at', flat=True).first()
+        if earliest_broadcast:
+            b_local = timezone.localtime(earliest_broadcast) if timezone.is_aware(earliest_broadcast) else earliest_broadcast
+            candidates.append(('broadcast', b_local))
+    except Exception as e:
+        logger.debug(f"[ABCD Scheduler] Error checking broadcasts for sleep calculation: {e}")
+
+    # 2. Learning Reminders
+    try:
+        from users.models import LearningReminder
+        if LearningReminder.objects.filter(recurrence_type='once', is_sent=False, reminder_time__lte=now).exists():
+            return 0
+        earliest_once = LearningReminder.objects.filter(
+            recurrence_type='once', is_sent=False, reminder_time__gt=now
+        ).order_by('reminder_time').values_list('reminder_time', flat=True).first()
+        if earliest_once:
+            l_local = timezone.localtime(earliest_once) if timezone.is_aware(earliest_once) else earliest_once
+            candidates.append(('learning_once', l_local))
+
+        # Recurring daily/weekly reminders
+        recurring_times = LearningReminder.objects.exclude(recurrence_type='once').filter(
+            reminder_time_daily__gt=now.time()
+        ).values_list('reminder_time_daily', flat=True)
+        for t_time in recurring_times:
+            target_dt = now.replace(hour=t_time.hour, minute=t_time.minute, second=t_time.second, microsecond=0)
+            candidates.append(('learning_recurring', target_dt))
+    except Exception as e:
+        logger.debug(f"[ABCD Scheduler] Error checking learning reminders for sleep calculation: {e}")
+
+    # 3. Todo Tasks (Reminders & Alarms)
+    try:
+        from users.models import TodoTask
+        from users.utils import parse_flexible_datetime
+        todo_tasks = TodoTask.objects.filter(category='REMINDER', is_done=False, is_trash=False)
+        for task in todo_tasks:
+            meta = task.metadata if isinstance(task.metadata, dict) else {}
+            if meta.get('alarm_status') == 'stopped':
+                continue
+            recurrence = meta.get('recurrence', 'once')
+            if recurrence == 'once':
+                fire_dt = task.delete_at
+                if not fire_dt and meta.get('fire_at'):
+                    fire_dt = parse_flexible_datetime(meta.get('fire_at'))
+                if fire_dt and not task.initial_notified:
+                    f_local = timezone.localtime(fire_dt) if timezone.is_aware(fire_dt) else fire_dt
+                    if f_local <= now:
+                        return 0  # Task is due now or overdue!
+                    candidates.append(('todo_once', f_local))
+            else:
+                time_str = meta.get('time_str')
+                if time_str:
+                    try:
+                        hrs, mins = map(int, time_str.split(':'))
+                        target_dt = now.replace(hour=hrs, minute=mins, second=0, microsecond=0)
+                        if target_dt <= now and (task.last_notified_at is None or timezone.localtime(task.last_notified_at).date() < now.date()):
+                            return 0  # Recurring reminder due now!
+                        if target_dt > now:
+                            candidates.append(('todo_recurring', target_dt))
+                    except Exception:
+                        pass
+            # Snooze / Retry check
+            next_retry_str = meta.get('next_retry_at')
+            if next_retry_str:
+                r_dt = parse_flexible_datetime(next_retry_str)
+                if r_dt:
+                    if r_dt <= now:
+                        return 0
+                    candidates.append(('todo_snooze', r_dt))
+    except Exception as e:
+        logger.debug(f"[ABCD Scheduler] Error checking todo tasks for sleep calculation: {e}")
+
+    # 4. Daily Maintenance Target (04:00 AM)
+    target_4am = now.replace(hour=4, minute=0, second=0, microsecond=0)
+    if now < target_4am:
+        candidates.append(('daily_maintenance', target_4am))
+    else:
+        candidates.append(('daily_maintenance', target_4am + timedelta(days=1)))
+
+    if candidates:
+        future_candidates = [c for c in candidates if c[1] > now]
+        if future_candidates:
+            kind, earliest_dt = min(future_candidates, key=lambda x: x[1])
+            diff = (earliest_dt - now).total_seconds()
+            if diff <= 0:
+                return 0
+            return min(max(1, diff), max_sleep_seconds)
+
+    return max_sleep_seconds
+
+
 def _scheduler_loop():
     """
-    Background worker loop for local development / non-serverless environments.
-    Runs gentle periodic checks and daily maintenance.
+    Adaptive event-driven background worker loop for ABCD Smart Campus.
+    - Wakes at exact target seconds for due tasks.
+    - Sleeps in RAM (threading.Event) when idle, allowing Neon to auto-suspend to 0 CU.
+    - Immediately wakes up when notify_scheduler_task_changed() is triggered.
+    - Performs an immediate catch-up sweep on startup or container restart.
     """
-    logger.info(">>> ABCD Embedded Background Scheduler Active <<<")
-    # Initial sleep of 10s to let Daphne / Django boot cleanly and complete startup migrations
-    time.sleep(10)
+    global _last_heartbeat, _next_expected_due, last_daily_run
+    logger.info(">>> ABCD Adaptive Background Scheduler Active <<<")
 
-    tick_count = 0
+    # Initial gentle sleep to allow Daphne / Django boot and startup migrations
+    time.sleep(5)
+
+    # 1. Startup catch-up sweep: immediately check for any tasks that became due while restarting
+    try:
+        close_old_connections()
+        execute_urgent_reminder_checks()
+        now = timezone.localtime(timezone.now())
+        today_date = now.date()
+        if last_daily_run != today_date and now.hour >= 4:
+            run_scheduler_cycle(force_daily=False, mode='daily')
+            last_daily_run = today_date
+    except Exception as e:
+        logger.error(f"[ABCD Scheduler] Error during startup catch-up sweep: {e}", exc_info=True)
+    finally:
+        close_old_connections()
+
     while True:
         try:
-            # 1. Check for due reminders/alarms & broadcasts
+            _wake_event.clear()
+            now = timezone.localtime(timezone.now())
+            _last_heartbeat = now
+
+            # 2. Execute any due reminders/alarms & broadcasts
             execute_urgent_reminder_checks()
 
-            # 2. Run maintenance cycle every ~60 seconds
-            if tick_count % 2 == 0:
-                run_scheduler_cycle(force_daily=False, mode='all')
+            # 3. Daily maintenance if date rolled over past 04:00 AM
+            today_date = now.date()
+            if last_daily_run != today_date and now.hour >= 4:
+                run_scheduler_cycle(force_daily=False, mode='daily')
+                last_daily_run = today_date
+
+            # 4. Calculate exact seconds until next scheduled task
+            delay = calculate_seconds_to_next_due_task(now=now, max_sleep_seconds=900)
+            if delay > 0:
+                _next_expected_due = now + timedelta(seconds=delay)
+            else:
+                _next_expected_due = now
+
+            close_old_connections()
+
+            # If a task is due immediately (delay == 0), loop right away
+            if delay <= 0:
+                time.sleep(0.5)
+                continue
+
+            # 5. Sleep in RAM until target time or until woken by task change event
+            # Consumes ZERO CPU, ZERO DB queries. Neon can auto-suspend after 5 min.
+            woken_early = _wake_event.wait(timeout=delay)
+            if woken_early:
+                logger.info("[ABCD Scheduler] Woken early by task change signal. Recalculating due time.")
+
         except Exception as e:
-            logger.error(f"Unexpected error in background scheduler loop: {e}", exc_info=True)
+            logger.error(f"[ABCD Scheduler] Unexpected error in scheduler loop: {e}", exc_info=True)
+            close_old_connections()
+            time.sleep(15)
         finally:
             close_old_connections()
 
-        tick_count += 1
-        time.sleep(30)
 
 
 def start_background_scheduler():

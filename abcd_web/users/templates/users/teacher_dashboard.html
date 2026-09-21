@@ -13851,7 +13851,7 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
             if (!document.hidden) {
                 fetchTeacherLiveStats();
             }
-        }, 20000);
+        }, 60000);
     }
 
     document.addEventListener('visibilitychange', () => {

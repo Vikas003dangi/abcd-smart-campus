@@ -2608,5 +2608,37 @@ def dispatch_realtime_notification_on_save(sender, instance, created, **kwargs):
         logger.debug("Realtime notification web push dispatch error: %s", e)
 
 
+# -------------------------------------------------------------------
+# ADAPTIVE SCHEDULER EVENT TRIGGERS (Zero-Latency Wakeup)
+# -------------------------------------------------------------------
+@receiver([post_save, post_delete], sender=TodoTask)
+def on_todotask_change_wake_scheduler(sender, instance, **kwargs):
+    if getattr(instance, 'category', '') == 'REMINDER':
+        try:
+            from users.scheduler import notify_scheduler_task_changed
+            notify_scheduler_task_changed()
+        except Exception:
+            pass
+
+
+@receiver([post_save, post_delete], sender=BroadcastMessage)
+def on_broadcast_change_wake_scheduler(sender, instance, **kwargs):
+    try:
+        from users.scheduler import notify_scheduler_task_changed
+        notify_scheduler_task_changed()
+    except Exception:
+        pass
+
+
+@receiver([post_save, post_delete], sender=LearningReminder)
+def on_learning_reminder_change_wake_scheduler(sender, instance, **kwargs):
+    try:
+        from users.scheduler import notify_scheduler_task_changed
+        notify_scheduler_task_changed()
+    except Exception:
+        pass
+
+
+
 
 

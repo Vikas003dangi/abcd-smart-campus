@@ -5768,7 +5768,7 @@ def teacher_live_stats_api(request):
     Ultra-lightweight API returning pure numerical counts and alerts for Teacher Dashboard.
     Runs in ~2ms, zero database strain, enables 100% live real-time UI without reloads.
     """
-    from django.db.models import Q
+    from django.db.models import Q, Count
     from .models import (
         StudentProfile, SeatHoldRequest, SeatSwitchRequest, StudentAchievement,
         Complaint, Course, SeatSpecialRequest, Notification
@@ -5779,17 +5779,29 @@ def teacher_live_stats_api(request):
         # 1. Real-time Guidy Badge Count
         guidy_count = get_guidy_badge_count(user)
 
-        # 2. Admission Requests
-        total_admission_requests = StudentProfile.objects.filter(
-            Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True)
-        ).filter(
-            is_manual_pending=False
-        ).distinct().count()
+        # 2. Batched Student Profile Counts (Admission, Library, Coaching, Total Admitted)
+        sp_agg = StudentProfile.objects.aggregate(
+            admission=Count('id', filter=(
+                (Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True))
+                & Q(is_manual_pending=False)
+            )),
+            library=Count('id', filter=Q(status='admitted', service_type__in=['Library', 'Both'])),
+            coaching=Count('id', filter=Q(status='admitted', service_type__in=['Coaching', 'Both'])),
+            admitted_total=Count('id', filter=Q(status__in=['admitted', 'on_hold'])),
+        )
+        total_admission_requests = sp_agg['admission'] or 0
+        total_library_students = sp_agg['library'] or 0
+        total_coaching_students = sp_agg['coaching'] or 0
+        total_admitted_students_count = sp_agg['admitted_total'] or 0
 
-        # 3. Hold & Switch Requests
+        # 3. Batched Hold & Switch Requests
+        sh_agg = SeatHoldRequest.objects.aggregate(
+            pending=Count('id', filter=Q(status='pending')),
+            cancel_req=Count('id', filter=Q(status='approved', cancel_requested=True)),
+        )
         total_hold_requests = (
-            SeatHoldRequest.objects.filter(status='pending').count()
-            + SeatHoldRequest.objects.filter(status='approved', cancel_requested=True).count()
+            (sh_agg['pending'] or 0)
+            + (sh_agg['cancel_req'] or 0)
             + SeatSwitchRequest.objects.filter(status='pending').count()
         )
 
@@ -5801,22 +5813,7 @@ def teacher_live_stats_api(request):
             status=Complaint.STATUS_RESOLVED
         ).count()
 
-        # 6. Library Students
-        total_library_students = StudentProfile.objects.filter(
-            status='admitted', service_type__in=['Library', 'Both']
-        ).count()
-
-        # 7. Coaching Students
-        total_coaching_students = StudentProfile.objects.filter(
-            status='admitted', service_type__in=['Coaching', 'Both']
-        ).count()
-
-        # 8. Total Admitted Students
-        total_admitted_students_count = StudentProfile.objects.filter(
-            status__in=['admitted', 'on_hold']
-        ).count()
-
-        # 9. Total Courses
+        # 6. Total Courses
         total_courses = Course.objects.count()
 
         # 10. Total Notification Count (Bell badge)
@@ -17658,8 +17655,9 @@ def cron_maintenance_view(request):
     provided_key = bearer_token or request.headers.get('X-Cron-Key', '') or request.GET.get('key', '')
     expected_cron_secret = getattr(settings, 'CRON_SECRET', config('CRON_SECRET', default='abcd_smart_campus_cron_2026'))
 
+    req_user = getattr(request, 'user', None)
     is_authenticated = (
-        (request.user and request.user.is_authenticated and request.user.is_staff)
+        (req_user and req_user.is_authenticated and req_user.is_staff)
         or (bool(expected_cron_secret) and provided_key == expected_cron_secret)
     )
 
@@ -17674,8 +17672,26 @@ def cron_maintenance_view(request):
         mode = 'all'
 
     force_daily = request.GET.get('force_daily', '').lower() in ['1', 'true', 'yes']
+    force_run = request.GET.get('force', '').lower() in ['1', 'true', 'yes']
+
+    # In-memory Watchdog / Standby Optimization:
+    # When cron-job.org or external monitors ping mode=high_frequency, inspect the internal
+    # background scheduler's in-memory health (0ms, 0 DB queries).
+    # If the thread is healthy and within heartbeat, return 200 OK without touching PostgreSQL.
+    # If the thread is stalled, dead, or force=true is requested, fall through to run the database cycle.
+    if mode == 'high_frequency' and not force_daily and not force_run:
+        from users.scheduler import get_scheduler_status
+        sched_status = get_scheduler_status()
+        if sched_status.get('is_alive'):
+            return JsonResponse({
+                "status": "standby",
+                "message": "ABCD Smart Campus Background Scheduler is active and healthy in RAM. Zero database query needed.",
+                "scheduler": sched_status,
+                "db_queried": False
+            })
 
     try:
+        import time
         from users.scheduler import run_scheduler_cycle
         start_time = time.time()
         report = run_scheduler_cycle(force_daily=force_daily, mode=mode)
