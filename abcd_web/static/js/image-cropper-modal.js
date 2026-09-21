@@ -287,8 +287,7 @@
             currentFlipH = false;
 
             // Resolve Image Source (File, Blob, or URL)
-            const resolveSource = (callback) => {
-                const imgSource = activeOptions.image || activeOptions.file;
+            const resolveSource = (imgSource, callback) => {
                 if (!imgSource) {
                     console.error("ABCDImageCropper: No image source provided.");
                     return;
@@ -321,11 +320,11 @@
                             });
                     }
                 } else if (imgSource.src) {
-                    resolveSource(imgSource.src);
+                    resolveSource(imgSource.src, callback);
                 }
             };
 
-            resolveSource((src) => {
+            resolveSource(activeOptions.image || activeOptions.file, (src) => {
                 targetImgEl.crossOrigin = 'anonymous';
                 targetImgEl.src = src;
 

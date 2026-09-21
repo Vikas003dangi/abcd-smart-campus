@@ -9112,13 +9112,14 @@ def upload_profile_photo(request, student_id):
                 import time
                 timestamp = int(time.time())
                 data = ContentFile(decoded_data, name=f"profile_{student_id}_{timestamp}.{ext}")
-                old_photo = student.photo
+                old_photo_name = student.photo.name if student.photo else None
+                old_photo_storage = student.photo.storage if (student.photo and hasattr(student.photo, 'storage')) else None
                 student.photo = data
                 student.save()
-                if old_photo:
+                if old_photo_name and old_photo_storage:
                     try:
                         import threading
-                        threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
+                        threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
                     except Exception:
                         pass
                 new_url = student.photo.url if student.photo else ''
@@ -9142,13 +9143,14 @@ def upload_profile_photo(request, student_id):
                 import time
                 timestamp = int(time.time())
                 data = ContentFile(photo_file.read(), name=f"profile_{student_id}_{timestamp}.{ext}")
-                old_photo = student.photo
+                old_photo_name = student.photo.name if student.photo else None
+                old_photo_storage = student.photo.storage if (student.photo and hasattr(student.photo, 'storage')) else None
                 student.photo = data
                 student.save()
-                if old_photo:
+                if old_photo_name and old_photo_storage:
                     try:
                         import threading
-                        threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
+                        threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
                     except Exception:
                         pass
                 new_url = student.photo.url if student.photo else ''
@@ -16260,34 +16262,48 @@ def guidy_update_teacher_profile(request):
                 format_part, imgstr = photo_base64.split(';base64,')
                 raw_ext = format_part.split('/')[-1].lower()
                 ext = 'jpg' if raw_ext in ('jpeg', 'jpg') else ('png' if raw_ext == 'png' else ('webp' if raw_ext == 'webp' else 'jpg'))
-                decoded_data = base64.b64decode(imgstr)
-                image = Image.open(io.BytesIO(decoded_data))
-                image.verify()
-                import time
-                timestamp = int(time.time())
-                data = ContentFile(decoded_data, name=f"teacher_{user.id}_{timestamp}.{ext}")
-                old_photo = profile.photo
-                profile.photo = data
-                profile.save()
-                if old_photo:
-                    try:
-                        import threading
-                        threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
-                    except Exception:
-                        pass
-        elif 'photo' in request.FILES:
-            import time
-            uploaded = request.FILES['photo']
-            ext = (uploaded.name.split('.')[-1] if '.' in uploaded.name else 'jpg').lower()
-            timestamp = int(time.time())
-            data = ContentFile(uploaded.read(), name=f"teacher_{user.id}_{timestamp}.{ext}")
-            old_photo = profile.photo
-            profile.photo = data
-            profile.save()
-            if old_photo:
                 try:
-                    import threading
-                    threading.Thread(target=lambda p: p.delete(save=False), args=(old_photo,), daemon=True).start()
+                    decoded_data = base64.b64decode(imgstr)
+                    if len(decoded_data) <= 5 * 1024 * 1024:
+                        image = Image.open(io.BytesIO(decoded_data))
+                        image.verify()
+                        import time
+                        timestamp = int(time.time())
+                        data = ContentFile(decoded_data, name=f"teacher_{user.id}_{timestamp}.{ext}")
+                        old_photo_name = profile.photo.name if profile.photo else None
+                        old_photo_storage = profile.photo.storage if (profile.photo and hasattr(profile.photo, 'storage')) else None
+                        profile.photo = data
+                        profile.save()
+                        if old_photo_name and old_photo_storage:
+                            try:
+                                import threading
+                                threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+        elif 'photo' in request.FILES:
+            from PIL import Image
+            uploaded = request.FILES['photo']
+            ext = (uploaded.name.split('.')[-1] if '.' in uploaded.name else '').lower()
+            if ext in ['jpg', 'jpeg', 'png', 'webp'] and uploaded.size <= 5 * 1024 * 1024:
+                try:
+                    image = Image.open(uploaded)
+                    image.verify()
+                    uploaded.seek(0)
+                    import time
+                    timestamp = int(time.time())
+                    data = ContentFile(uploaded.read(), name=f"teacher_{user.id}_{timestamp}.{ext}")
+                    old_photo_name = profile.photo.name if profile.photo else None
+                    old_photo_storage = profile.photo.storage if (profile.photo and hasattr(profile.photo, 'storage')) else None
+                    profile.photo = data
+                    profile.save()
+                    if old_photo_name and old_photo_storage:
+                        try:
+                            import threading
+                            threading.Thread(target=lambda s, n: s.delete(n), args=(old_photo_storage, old_photo_name), daemon=True).start()
+                        except Exception:
+                            pass
                 except Exception:
                     pass
 

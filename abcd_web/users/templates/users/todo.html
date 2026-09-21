@@ -3900,7 +3900,7 @@
       <div class="fee-search-wrap">
         <i class='bx bx-search'></i>
         <input type="text" class="fee-form-input" id="feeStudentFilter" placeholder="Search students by name..."
-          onkeyup="filterStudentList()">
+          oninput="filterStudentList()">
       </div>
       <button type="button" onclick="addManualStudentRow()" id="addCustomNameBtn" class="fee-add-custom-btn" title="Add student not in list">
         <i class='bx bx-plus'></i> <span>Add Custom Name</span>
@@ -5040,6 +5040,16 @@
     } else if (typeof showModalAlert === 'function') {
       showModalAlert(title, message);
     }
+  };
+
+  window.escapeHtml = function(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   };
 
   // --- COLLAPSIBLE SIDEBAR LOGIC ---
@@ -6880,26 +6890,30 @@
           </div>
           <div class="detail-list" style="display: flex; flex-direction: column; gap: 12px;">
             ${students.map(s => {
+        const safeName = escapeHtml(s.name || '');
+        const safeDetail = escapeHtml(s.detail || '');
+        const safeAmount = escapeHtml(s.amount != null ? s.amount : '');
+        const safeId = escapeHtml(s.id || '');
         const photoUrl = s.photo_url || (typeof allStudentsData !== 'undefined' && allStudentsData.find(st => st.id == s.id || st.id == 's_' + s.id || st.id == 'a_' + s.id)?.photo_url);
         const avatarHtml = photoUrl
-          ? `<img src="${photoUrl}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
-          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(s.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${getStudentInitials(s.name)}</div>`;
+          ? `<img src="${encodeURI(photoUrl)}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
+          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(s.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${escapeHtml(getStudentInitials(s.name))}</div>`;
 
         return `
               <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 12px 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                   ${avatarHtml}
                   <div>
-                    <div style="font-weight: 600; color: #1e293b;">${s.name}</div>
-                    <div style="font-size: 0.8rem; color: #64748b;">${s.detail}</div>
+                    <div style="font-weight: 600; color: #1e293b;">${safeName}</div>
+                    <div style="font-size: 0.8rem; color: #64748b;">${safeDetail}</div>
                   </div>
                 </div>
                 ${editMode ?
             `<div style="display: flex; align-items: center; gap: 10px;">
-                     <input type="number" class="edit-money-input" data-id="${s.id}" value="${s.amount}" style="width: 80px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
-                     <button onclick="removeStudentFromTask('${s.id}')" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 1.1rem;"><i class='bx bx-x-circle'></i></button>
+                     <input type="number" class="edit-money-input" data-id="${safeId}" value="${safeAmount}" style="width: 80px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center;">
+                     <button onclick="removeStudentFromTask('${safeId}')" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 1.1rem;"><i class='bx bx-x-circle'></i></button>
                    </div>` :
-            `<div style="font-weight: 700; color: #10b981;">&#8377;${s.amount}</div>`
+            `<div style="font-weight: 700; color: #10b981;">&#8377;${safeAmount}</div>`
           }
               </div>`;
       }).join('')}
@@ -7611,6 +7625,9 @@
     window.closeModalOverlay('feeModal');
     document.getElementById('feeStudentFilter').value = '';
     selectedStudents = {};
+    if (typeof window.resetFeeModalKeyboard === 'function') {
+      window.resetFeeModalKeyboard();
+    }
   }
 
   function toggleDurationPicker() {
@@ -7771,8 +7788,9 @@
 
     orderedStudents.forEach(st => {
       const isChecked = selectedStudents[st.id] ? 'checked' : '';
-      const amountValue = selectedStudents[st.id] ? selectedStudents[st.id].amount : '';
+      const amountValue = selectedStudents[st.id] ? escapeHtml(selectedStudents[st.id].amount) : '';
       const isCustom = st.id.toString().startsWith('m_');
+      const safeId = escapeHtml(st.id);
 
       const row = document.createElement('div');
       row.className = isCustom ? 'student-row custom-student-row' : 'student-row';
@@ -7780,34 +7798,38 @@
 
       if (isCustom) {
         const currentName = (selectedStudents[st.id] && selectedStudents[st.id].name) || st.name || '';
+        const safeName = escapeHtml(currentName);
         row.innerHTML = `
-          <input type="checkbox" class="student-checkbox" data-id="${st.id}" ${isChecked} style="width: 18px; height: 18px; cursor: pointer; accent-color: #7b61ff; flex-shrink: 0;">
+          <input type="checkbox" class="student-checkbox" data-id="${safeId}" ${isChecked} style="width: 18px; height: 18px; cursor: pointer; accent-color: #7b61ff; flex-shrink: 0;">
           <div class="student-photo-initials" style="width: 38px; height: 38px; border-radius: 50%; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
             <i class='bx bx-user'></i>
           </div>
           <div class="student-info" style="flex: 1; min-width: 0;">
-            <input type="text" class="manual-name-input" data-id="${st.id}" value="${currentName}" placeholder="Enter Name..." style="width: 100%; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #1e293b; font-size: 0.9rem; box-sizing: border-box; outline: none;">
+            <input type="text" class="manual-name-input" data-id="${safeId}" value="${safeName}" placeholder="Enter Name..." style="width: 100%; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #1e293b; font-size: 0.9rem; box-sizing: border-box; outline: none;">
             <div style="font-size: 0.72rem; color: #7b61ff; font-weight: 600; margin-top: 2px;">Custom Entry</div>
           </div>
-          <input type="number" class="money-input" data-id="${st.id}" value="${amountValue}" placeholder="₹ Amount" min="0" style="width: 82px; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 600; font-size: 0.9rem; outline: none; flex-shrink: 0;">
-          <button type="button" class="btn-remove-custom" onclick="removeManualStudentRow('${st.id}')" title="Remove custom entry" style="background: none; border: none; color: #ef4444; font-size: 1.25rem; cursor: pointer; padding: 4px 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0;">
+          <input type="number" class="money-input" data-id="${safeId}" value="${amountValue}" placeholder="₹ Amount" min="0" style="width: 82px; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 600; font-size: 0.9rem; outline: none; flex-shrink: 0;">
+          <button type="button" class="btn-remove-custom" onclick="removeManualStudentRow('${safeId}')" title="Remove custom entry" style="background: none; border: none; color: #ef4444; font-size: 1.25rem; cursor: pointer; padding: 4px 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background 0.2s; flex-shrink: 0;">
             <i class='bx bx-trash'></i>
           </button>
         `;
       } else {
-        const avatarHtml = st.photo_url
-          ? `<img src="${st.photo_url}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
-          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(st.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${getStudentInitials(st.name)}</div>`;
-        const nameHtml = `<h4 class="student-name" style="margin: 0 0 3px 0; font-weight: 600; color: #1e293b; font-size: 0.92rem;">${st.name}</h4>`;
+        const safeName = escapeHtml(st.name || '');
+        const safeDetail = escapeHtml(st.detail || '');
+        const safePhotoUrl = st.photo_url ? encodeURI(st.photo_url) : null;
+        const avatarHtml = safePhotoUrl
+          ? `<img src="${safePhotoUrl}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
+          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(st.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${escapeHtml(getStudentInitials(st.name))}</div>`;
+        const nameHtml = `<h4 class="student-name" style="margin: 0 0 3px 0; font-weight: 600; color: #1e293b; font-size: 0.92rem;">${safeName}</h4>`;
 
         row.innerHTML = `
-          <input type="checkbox" class="student-checkbox" data-id="${st.id}" ${isChecked} style="width: 18px; height: 18px; cursor: pointer; accent-color: #7b61ff; flex-shrink: 0;">
+          <input type="checkbox" class="student-checkbox" data-id="${safeId}" ${isChecked} style="width: 18px; height: 18px; cursor: pointer; accent-color: #7b61ff; flex-shrink: 0;">
           ${avatarHtml}
           <div class="student-info" style="flex: 1; min-width: 0;">
             ${nameHtml}
-            <p class="student-service" style="margin: 0; font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${st.detail}</p>
+            <p class="student-service" style="margin: 0; font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeDetail}</p>
           </div>
-          <input type="number" class="money-input" data-id="${st.id}" value="${amountValue}" placeholder="₹ Amount" min="0" style="width: 82px; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 600; font-size: 0.9rem; outline: none; flex-shrink: 0;">
+          <input type="number" class="money-input" data-id="${safeId}" value="${amountValue}" placeholder="₹ Amount" min="0" style="width: 82px; padding: 6px 8px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: 600; font-size: 0.9rem; outline: none; flex-shrink: 0;">
         `;
       }
 
@@ -7876,9 +7898,27 @@
 
   // Keyboard responsiveness for Fee Modal
   (function initFeeModalKeyboardHandler() {
+    function resetKeyboardStyles() {
+      const feeOverlay = document.getElementById('feeModal');
+      if (!feeOverlay) return;
+      const modal = feeOverlay.querySelector('.todo-modal');
+      feeOverlay.style.removeProperty('align-items');
+      feeOverlay.style.removeProperty('padding-top');
+      feeOverlay.style.removeProperty('padding-bottom');
+      feeOverlay.style.removeProperty('height');
+      if (modal) {
+        modal.style.removeProperty('max-height');
+        modal.style.removeProperty('margin');
+      }
+    }
+    window.resetFeeModalKeyboard = resetKeyboardStyles;
+
     function adjustForKeyboard() {
       const feeOverlay = document.getElementById('feeModal');
-      if (!feeOverlay || !feeOverlay.classList.contains('active')) return;
+      if (!feeOverlay || !feeOverlay.classList.contains('active')) {
+        resetKeyboardStyles();
+        return;
+      }
       const modal = feeOverlay.querySelector('.todo-modal');
       if (!modal) return;
 
@@ -7901,12 +7941,7 @@
           }, 80);
         }
       } else {
-        feeOverlay.style.removeProperty('align-items');
-        feeOverlay.style.removeProperty('padding-top');
-        feeOverlay.style.removeProperty('padding-bottom');
-        feeOverlay.style.removeProperty('height');
-        modal.style.removeProperty('max-height');
-        modal.style.removeProperty('margin');
+        resetKeyboardStyles();
       }
     }
 

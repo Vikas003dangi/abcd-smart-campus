@@ -66,13 +66,9 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
         try:
             name_str = str(name)
             rtype = self._get_resource_type(name_str)
-            clean_name = name_str
-            if rtype in ['image', 'video']:
-                # Invalidate=False avoids blocking 3-4s on global CDN cache invalidation.
-                # Timestamped public IDs ensure cache collisions never occur anyway.
-                response = cloudinary.uploader.destroy(clean_name, invalidate=False, resource_type=rtype)
-                return response.get('result') in ['ok', 'not found']
-            return True
+            clean_name = os.path.splitext(name_str)[0] if rtype in ['image', 'video'] else name_str
+            response = cloudinary.uploader.destroy(clean_name, invalidate=True, resource_type=rtype)
+            return response.get('result') in ['ok', 'not found']
         except Exception:
             return False
 
