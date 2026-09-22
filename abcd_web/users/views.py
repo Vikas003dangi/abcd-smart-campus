@@ -1783,7 +1783,7 @@ def yt_import_playlist_api(request):
         )
 
         # 🖼 THUMBNAIL LOGIC
-        if custom_thumb_data and custom_thumb_data.startswith("data:image"):
+        if not use_pl_thumb and custom_thumb_data and custom_thumb_data.startswith("data:image"):
             _save_base64_thumbnail(course, custom_thumb_data, filename_prefix=f"pl_{playlist_id}")
         elif use_pl_thumb:
             pl_thumbs = snippet.get("thumbnails", {})
@@ -1892,7 +1892,7 @@ def yt_create_custom_course_api(request):
         )
 
         # 🖼 THUMBNAIL LOGIC
-        if custom_thumb_data and custom_thumb_data.startswith("data:image"):
+        if not use_first_thumb and custom_thumb_data and custom_thumb_data.startswith("data:image"):
             _save_base64_thumbnail(course, custom_thumb_data, filename_prefix="yt_custom")
         elif use_first_thumb and video_ids:
             first_vid_id = video_ids[0]

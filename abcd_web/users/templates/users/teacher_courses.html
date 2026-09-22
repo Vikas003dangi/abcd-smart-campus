@@ -1381,14 +1381,21 @@
           <input type="checkbox" id="ytPlUseThumb" checked onchange="toggleYTPlManualThumb(this)">
           <label for="ytPlUseThumb">Use YouTube playlist thumbnail as cover</label>
         </div>
-        <div class="tc-form-group" id="ytPlManualThumbGroup" style="display:none; margin-top:10px;">
+        <div class="tc-form-group" id="ytPlManualThumbGroup" style="display:none; margin-top:12px;">
           <label class="tc-form-label">Or upload custom thumbnail</label>
-          <div class="tc-upload-zone" style="padding:10px;">
+          <div class="tc-upload-zone" id="ytPlUploadZone">
             <input type="file" id="ytPlThumbInput" accept="image/*" onchange="handleThumbSelection(this, 'yt-pl')">
-            <div style="font-size:0.8rem; opacity:0.7;">🖼 Click to upload custom cover</div>
+            <input type="hidden" id="ytPlCroppedThumbData">
+            <div id="ytPlUploadLabel">🖼 Click to upload custom cover (1280×720 recommended)</div>
+            <div class="tc-upload-preview" id="ytPlThumbPreview" style="display:none;">
+              <img id="ytPlThumbPreviewImg" src="" alt="Preview">
+              <div class="tc-preview-actions">
+                <button type="button" class="tc-preview-btn tc-btn-crop" onclick="reCropImage('yt-pl')">✂ Edit/Crop</button>
+                <button type="button" class="tc-preview-btn tc-btn-remove" onclick="removeYTThumb('yt-pl')">🗑 Remove</button>
+              </div>
+            </div>
           </div>
         </div>
-        <input type="hidden" id="ytPlCroppedThumbData">
         
         <div class="tc-form-group" style="margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 15px;">
           <label class="tc-form-label" style="text-align: center;">For Whom the Course Is</label>
@@ -1473,14 +1480,21 @@
           <input type="checkbox" id="ytUseThumb" checked onchange="toggleYTManualThumb(this)">
           <label for="ytUseThumb">Use first video's thumbnail as course cover</label>
         </div>
-        <div class="tc-form-group" id="ytManualThumbGroup" style="display:none; margin-top:10px;">
+        <div class="tc-form-group" id="ytManualThumbGroup" style="display:none; margin-top:12px;">
           <label class="tc-form-label">Or upload custom thumbnail</label>
-          <div class="tc-upload-zone" style="padding:10px;">
+          <div class="tc-upload-zone" id="ytUploadZone">
             <input type="file" id="ytThumbInput" accept="image/*" onchange="handleThumbSelection(this, 'yt')">
-            <div style="font-size:0.8rem; opacity:0.7;">🖼 Click to upload custom cover</div>
+            <input type="hidden" id="ytCroppedThumbData">
+            <div id="ytUploadLabel">🖼 Click to upload custom cover (1280×720 recommended)</div>
+            <div class="tc-upload-preview" id="ytThumbPreview" style="display:none;">
+              <img id="ytThumbPreviewImg" src="" alt="Preview">
+              <div class="tc-preview-actions">
+                <button type="button" class="tc-preview-btn tc-btn-crop" onclick="reCropImage('yt')">✂ Edit/Crop</button>
+                <button type="button" class="tc-preview-btn tc-btn-remove" onclick="removeYTThumb('yt')">🗑 Remove</button>
+              </div>
+            </div>
           </div>
         </div>
-        <input type="hidden" id="ytCroppedThumbData">
         
         <div class="tc-form-group" style="margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 15px;">
           <label class="tc-form-label" style="text-align: center;">For Whom the Course Is</label>
@@ -1681,6 +1695,7 @@
       const reader = new FileReader();
       reader.onload = e => {
         openCropModal(e.target.result);
+        input.value = ''; // Reset so selecting same file fires onchange again
       };
       reader.readAsDataURL(input.files[0]);
     }
@@ -1708,12 +1723,20 @@
           document.getElementById('editRemoveThumb').value = "0";
         } else if (activeInputType === 'yt') {
           document.getElementById('ytCroppedThumbData').value = croppedDataUrl;
-          const label = document.querySelector('#ytManualThumbGroup div[style*="font-size:0.8rem"]');
-          if (label) label.textContent = '✅ Custom thumbnail ready';
+          const img = document.getElementById('ytThumbPreviewImg');
+          if (img) img.src = croppedDataUrl;
+          const prev = document.getElementById('ytThumbPreview');
+          if (prev) prev.style.display = 'block';
+          const lbl = document.getElementById('ytUploadLabel');
+          if (lbl) lbl.style.display = 'none';
         } else if (activeInputType === 'yt-pl') {
           document.getElementById('ytPlCroppedThumbData').value = croppedDataUrl;
-          const label = document.querySelector('#ytPlManualThumbGroup div[style*="font-size:0.8rem"]');
-          if (label) label.textContent = '✅ Custom thumbnail ready';
+          const img = document.getElementById('ytPlThumbPreviewImg');
+          if (img) img.src = croppedDataUrl;
+          const prev = document.getElementById('ytPlThumbPreview');
+          if (prev) prev.style.display = 'block';
+          const lbl = document.getElementById('ytPlUploadLabel');
+          if (lbl) lbl.style.display = 'none';
         }
       }
     });
@@ -1728,10 +1751,39 @@
   function reCropImage(type = 'manual') {
     let imgId = 'thumbPreviewImg';
     if (type === 'edit') imgId = 'editThumbPreviewImg';
-    const currentSrc = document.getElementById(imgId).src;
+    else if (type === 'yt') imgId = 'ytThumbPreviewImg';
+    else if (type === 'yt-pl') imgId = 'ytPlThumbPreviewImg';
+    const imgEl = document.getElementById(imgId);
+    const currentSrc = imgEl ? imgEl.src : '';
     if (currentSrc) {
       activeInputType = type;
       openCropModal(currentSrc);
+    }
+  }
+
+  function removeYTThumb(type) {
+    if (type === 'yt-pl') {
+      const dataEl = document.getElementById('ytPlCroppedThumbData');
+      if (dataEl) dataEl.value = '';
+      const img = document.getElementById('ytPlThumbPreviewImg');
+      if (img) img.src = '';
+      const prev = document.getElementById('ytPlThumbPreview');
+      if (prev) prev.style.display = 'none';
+      const input = document.getElementById('ytPlThumbInput');
+      if (input) input.value = '';
+      const lbl = document.getElementById('ytPlUploadLabel');
+      if (lbl) lbl.style.display = 'block';
+    } else if (type === 'yt') {
+      const dataEl = document.getElementById('ytCroppedThumbData');
+      if (dataEl) dataEl.value = '';
+      const img = document.getElementById('ytThumbPreviewImg');
+      if (img) img.src = '';
+      const prev = document.getElementById('ytThumbPreview');
+      if (prev) prev.style.display = 'none';
+      const input = document.getElementById('ytThumbInput');
+      if (input) input.value = '';
+      const lbl = document.getElementById('ytUploadLabel');
+      if (lbl) lbl.style.display = 'block';
     }
   }
 
@@ -1757,8 +1809,14 @@
     if (tab === 'videos' && !ytVdLoaded) loadVideos();
   }
 
-  function toggleYTManualThumb(cb) { document.getElementById('ytManualThumbGroup').style.display = cb.checked ? 'none' : 'block'; }
-  function toggleYTPlManualThumb(cb) { document.getElementById('ytPlManualThumbGroup').style.display = cb.checked ? 'none' : 'block'; }
+  function toggleYTManualThumb(cb) {
+    const el = document.getElementById('ytManualThumbGroup');
+    if (el) el.style.display = cb.checked ? 'none' : 'block';
+  }
+  function toggleYTPlManualThumb(cb) {
+    const el = document.getElementById('ytPlManualThumbGroup');
+    if (el) el.style.display = cb.checked ? 'none' : 'block';
+  }
 
   // --- PLAYLISTS ---
   function loadPlaylists() {
@@ -1822,12 +1880,15 @@
         });
       }
       
+      const use_playlist_thumbnail = document.getElementById('ytPlUseThumb') ? document.getElementById('ytPlUseThumb').checked : true;
+      const custom_thumbnail_data = use_playlist_thumbnail ? '' : (document.getElementById('ytPlCroppedThumbData') ? document.getElementById('ytPlCroppedThumbData').value : '');
+
       fetch("{% url 'users:yt_import_playlist' %}", {
         method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':csrfToken},
         body: JSON.stringify({
           playlist_id: currentPlaylistId,
-          use_playlist_thumbnail: document.getElementById('ytPlUseThumb').checked,
-          custom_thumbnail_data: document.getElementById('ytPlCroppedThumbData').value,
+          use_playlist_thumbnail: use_playlist_thumbnail,
+          custom_thumbnail_data: custom_thumbnail_data,
           target_public: target_public,
           target_coaching: target_coaching,
           target_alumni: target_alumni,
@@ -1912,13 +1973,16 @@
       });
     }
     
+    const use_first_thumbnail = document.getElementById('ytUseThumb') ? document.getElementById('ytUseThumb').checked : true;
+    const custom_thumbnail_data = use_first_thumbnail ? '' : (document.getElementById('ytCroppedThumbData') ? document.getElementById('ytCroppedThumbData').value : '');
+
     fetch("{% url 'users:yt_create_custom_course' %}", {
       method: 'POST', headers: {'Content-Type':'application/json','X-CSRFToken':csrfToken},
       body: JSON.stringify({ 
         title, 
         video_ids: selectedVideos.map(v=>v.videoId), 
-        use_first_thumbnail: document.getElementById('ytUseThumb').checked,
-        custom_thumbnail_data: document.getElementById('ytCroppedThumbData').value,
+        use_first_thumbnail: use_first_thumbnail,
+        custom_thumbnail_data: custom_thumbnail_data,
         target_public: target_public,
         target_coaching: target_coaching,
         target_alumni: target_alumni,
