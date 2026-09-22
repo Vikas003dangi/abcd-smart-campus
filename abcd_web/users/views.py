@@ -3655,13 +3655,21 @@ def admission_form_view(request):
                     new_photo_uploaded = bool(request.FILES.get('photo'))
 
                     student_profile = form.save(commit=False)
-                    if not cleaned.get('first_name') or not cleaned.get('last_name'):
-                        if profile:
-                            student_profile.full_name = profile.full_name
-                            student_profile.sex = profile.sex
-                            student_profile.dob = profile.dob
-                    else:
-                        student_profile.full_name = f"{cleaned['first_name']} {cleaned['last_name']}"
+                    first_name = (cleaned.get('first_name') or '').strip()
+                    last_name = (cleaned.get('last_name') or '').strip()
+                    if first_name:
+                        student_profile.full_name = f"{first_name} {last_name}".strip()
+                    elif profile and profile.full_name:
+                        student_profile.full_name = profile.full_name
+
+                    if cleaned.get('sex'):
+                        student_profile.sex = cleaned['sex']
+                    if cleaned.get('dob'):
+                        student_profile.dob = cleaned['dob']
+                    if cleaned.get('mobile_number'):
+                        student_profile.mobile_number = cleaned['mobile_number']
+                    if cleaned.get('whatsapp_number'):
+                        student_profile.whatsapp_number = cleaned['whatsapp_number']
 
                     # If no new photo uploaded, preserve existing student profile photo
                     if not new_photo_uploaded and old_photo:
@@ -3707,6 +3715,11 @@ def admission_form_view(request):
                         student_profile.email = email_value
                     elif not student_profile.email and request.user.email:
                         student_profile.email = request.user.email
+
+                    # Sync email to User only if User currently has no email
+                    if request.user and not request.user.email and student_profile.email:
+                        request.user.email = student_profile.email
+                        request.user.save(update_fields=['email'])
 
                     # 3. Library Logic
                     if service_type == 'Library':
@@ -11032,6 +11045,12 @@ def achievement_form_view(request):
                     obj.email = (prof.email if prof and prof.email else None) or request.user.email or ''
 
                 obj.save()
+
+                if request.user and not request.user.email and obj.email:
+                    request.user.email = obj.email
+                    request.user.save(update_fields=['email'])
+
+                cache.delete(f"student_context_data_{request.user.id}")
         except Exception as e:
             logger.error(f"Error saving achievement form concurrently: {e}", exc_info=True)
             err_text = "An error occurred while saving your achievement. Please try again."

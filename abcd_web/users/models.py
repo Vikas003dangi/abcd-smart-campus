@@ -354,27 +354,40 @@ class StudentProfile(models.Model):
 
         super().save(*args, **kwargs)
 
-        # Sync common details to StudentAchievement if it exists and both are approved
+        # Sync common details to StudentAchievement if it exists
         from .models import StudentAchievement
         try:
-            ach = StudentAchievement.objects.filter(user=self.user, status='approved').first()
-            if ach and self.status == 'admitted':
+            ach = StudentAchievement.objects.filter(user=self.user).first()
+            if ach:
                 first_name, *rest = (self.full_name or '').split(' ', 1)
                 last_name = rest[0] if rest else ''
                 gender = self.sex
                 if gender not in ['Male', 'Female', 'Other']:
                     gender = 'Male'
                 
-                if (ach.first_name != first_name or ach.last_name != last_name or ach.gender != gender or 
-                    ach.dob != self.dob or ach.email != self.email or ach.whatsapp_number != self.whatsapp_number or
-                    ach.mobile_number != self.mobile_number):
+                changed = False
+                if first_name and ach.first_name != first_name:
                     ach.first_name = first_name
+                    changed = True
+                if last_name and ach.last_name != last_name:
                     ach.last_name = last_name
+                    changed = True
+                if gender and ach.gender != gender:
                     ach.gender = gender
+                    changed = True
+                if self.dob and ach.dob != self.dob:
                     ach.dob = self.dob
+                    changed = True
+                if self.email and ach.email != self.email:
                     ach.email = self.email
+                    changed = True
+                if self.whatsapp_number and ach.whatsapp_number != self.whatsapp_number:
                     ach.whatsapp_number = self.whatsapp_number
+                    changed = True
+                if self.mobile_number and ach.mobile_number != self.mobile_number:
                     ach.mobile_number = self.mobile_number
+                    changed = True
+                if changed:
                     ach._syncing = True
                     ach.save()
         except Exception:
@@ -1882,25 +1895,50 @@ class StudentAchievement(models.Model):
 
         super().save(*args, **kwargs)
 
-        # Sync common details to StudentProfile if it exists and both are approved
+        # Also sync User first_name/last_name if linked
+        if self.user:
+            fn = (self.first_name or '').strip()
+            ln = (self.last_name or '').strip()
+            u_changed = False
+            if fn and self.user.first_name != fn:
+                self.user.first_name = fn
+                u_changed = True
+            if ln and self.user.last_name != ln:
+                self.user.last_name = ln
+                u_changed = True
+            if u_changed:
+                self.user.save(update_fields=['first_name', 'last_name'])
+
+        # Sync common details to StudentProfile if it exists
         from .models import StudentProfile
         try:
-            prof = StudentProfile.objects.filter(user=self.user, status='admitted').first()
-            if prof and self.status == 'approved':
-                full_name = f"{self.first_name} {self.last_name}"
+            prof = StudentProfile.objects.filter(user=self.user).first()
+            if prof:
+                full_name = f"{self.first_name} {self.last_name}".strip()
                 sex = self.gender.capitalize() if self.gender else 'Male'
                 if sex not in ['Male', 'Female', 'Other']:
                     sex = 'Male'
                 
-                if (prof.full_name != full_name or prof.sex != sex or prof.dob != self.dob or
-                    prof.email != self.email or prof.whatsapp_number != self.whatsapp_number or
-                    prof.mobile_number != self.mobile_number):
+                changed = False
+                if full_name and prof.full_name != full_name:
                     prof.full_name = full_name
+                    changed = True
+                if sex and prof.sex != sex:
                     prof.sex = sex
+                    changed = True
+                if self.dob and prof.dob != self.dob:
                     prof.dob = self.dob
+                    changed = True
+                if self.email and prof.email != self.email:
                     prof.email = self.email
+                    changed = True
+                if self.whatsapp_number and prof.whatsapp_number != self.whatsapp_number:
                     prof.whatsapp_number = self.whatsapp_number
+                    changed = True
+                if self.mobile_number and prof.mobile_number != self.mobile_number:
                     prof.mobile_number = self.mobile_number
+                    changed = True
+                if changed:
                     prof._syncing = True
                     prof.save()
         except Exception:

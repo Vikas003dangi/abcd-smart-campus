@@ -134,39 +134,51 @@ class StudentProfileForm(forms.ModelForm):
             self.fields['service_type'].choices = new_choices
 
         if user:
-            # Check if user already has an achievement profile or existing student profile
-            # to lock common fields
             existing_ach = StudentAchievement.objects.filter(user=user).first()
             existing_prof = StudentProfile.objects.filter(user=user).first()
             
             existing = existing_ach or existing_prof
-            if existing:
-                # Pre-populate and only lock fields if they are non-empty
-                if existing_ach:
-                    first_name = (existing_ach.first_name or '').strip()
-                    last_name = (existing_ach.last_name or '').strip()
-                    sex = existing_ach.gender.capitalize() if existing_ach.gender else ''
-                    if sex not in ['Male', 'Female', 'Other']:
-                        sex = 'Male' if sex else ''
-                    dob = existing_ach.dob
-                else:
-                    first_name, *rest = (existing_prof.full_name or '').strip().split(' ', 1)
-                    last_name = rest[0].strip() if rest else ''
-                    sex = existing_prof.sex or ''
-                    dob = existing_prof.dob
+            first_name = ''
+            last_name = ''
+            sex = ''
+            dob = None
+            mobile = ''
+            whatsapp = ''
 
-                if first_name:
-                    self.initial['first_name'] = first_name
-                    self.fields['first_name'].disabled = True
-                if last_name:
-                    self.initial['last_name'] = last_name
-                    self.fields['last_name'].disabled = True
-                if sex:
-                    self.initial['sex'] = sex
-                    self.fields['sex'].disabled = True
-                if dob:
-                    self.initial['dob'] = dob
-                    self.fields['dob'].disabled = True
+            if existing_ach:
+                first_name = (existing_ach.first_name or '').strip()
+                last_name = (existing_ach.last_name or '').strip()
+                sex = existing_ach.gender.capitalize() if existing_ach.gender else ''
+                if sex not in ['Male', 'Female', 'Other']:
+                    sex = 'Male' if sex else ''
+                dob = existing_ach.dob
+                mobile = existing_ach.mobile_number or ''
+                whatsapp = existing_ach.whatsapp_number or ''
+            elif existing_prof:
+                first_name, *rest = (existing_prof.full_name or '').strip().split(' ', 1)
+                last_name = rest[0].strip() if rest else ''
+                sex = existing_prof.sex or ''
+                dob = existing_prof.dob
+                mobile = existing_prof.mobile_number or ''
+                whatsapp = existing_prof.whatsapp_number or ''
+
+            if not first_name:
+                first_name = (user.first_name or '').strip()
+            if not last_name:
+                last_name = (user.last_name or '').strip()
+
+            if first_name and not self.initial.get('first_name'):
+                self.initial['first_name'] = first_name
+            if last_name and not self.initial.get('last_name'):
+                self.initial['last_name'] = last_name
+            if sex and not self.initial.get('sex'):
+                self.initial['sex'] = sex
+            if dob and not self.initial.get('dob'):
+                self.initial['dob'] = dob
+            if mobile and not self.initial.get('mobile_number'):
+                self.initial['mobile_number'] = mobile
+            if whatsapp and not self.initial.get('whatsapp_number'):
+                self.initial['whatsapp_number'] = whatsapp
 
         # Pre-populate email from existing profile, achievement, or user model
         if 'email' in self.fields and not self.initial.get('email'):
@@ -337,12 +349,8 @@ class EditStudentProfileForm(forms.ModelForm):
                 if field_name in self.fields:
                     self.fields[field_name].disabled = True
 
-            # If student is already admitted, restrict personal identity fields.
-            # But if status is pending, allow editing so applicant can correct their submission!
-            if self.instance and self.instance.status == 'admitted':
-                for field_name in ['full_name', 'sex', 'dob', 'email']:
-                    if field_name in self.fields:
-                        self.fields[field_name].disabled = True
+            # Admin-only fields (status, service_type, batch) remain locked for non-staff
+            pass
 
         # Common styling
         for field in self.fields.values():
@@ -505,36 +513,47 @@ class StudentAchievementForm(forms.ModelForm):
             existing_ach = StudentAchievement.objects.filter(user=user).first()
             existing_prof = StudentProfile.objects.filter(user=user).first()
             
-            existing = existing_ach or existing_prof
-            if existing:
-                # Pre-populate and disable name, sex, dob fields
-                if existing_ach:
-                    first_name = existing_ach.first_name
-                    last_name = existing_ach.last_name
-                    gender = existing_ach.gender
-                    dob = existing_ach.dob
-                else:
-                    first_name, *rest = (existing_prof.full_name or '').split(' ', 1)
-                    last_name = rest[0] if rest else ''
-                    gender = existing_prof.sex.capitalize() if existing_prof.sex else 'Male'
-                    if gender not in ['Male', 'Female', 'Other']:
-                        gender = 'Male'
-                    dob = existing_prof.dob
+            first_name = ''
+            last_name = ''
+            gender = ''
+            dob = None
+            mobile = ''
+            whatsapp = ''
 
-                if not first_name:
-                    first_name = user.first_name or user.username
-                if not last_name:
-                    last_name = user.last_name or ''
+            if existing_ach:
+                first_name = (existing_ach.first_name or '').strip()
+                last_name = (existing_ach.last_name or '').strip()
+                gender = existing_ach.gender
+                dob = existing_ach.dob
+                mobile = existing_ach.mobile_number or ''
+                whatsapp = existing_ach.whatsapp_number or ''
+            elif existing_prof:
+                first_name, *rest = (existing_prof.full_name or '').strip().split(' ', 1)
+                last_name = rest[0].strip() if rest else ''
+                gender = existing_prof.sex.capitalize() if existing_prof.sex else 'Male'
+                if gender not in ['Male', 'Female', 'Other']:
+                    gender = 'Male'
+                dob = existing_prof.dob
+                mobile = existing_prof.mobile_number or ''
+                whatsapp = existing_prof.whatsapp_number or ''
 
+            if not first_name:
+                first_name = (user.first_name or '').strip()
+            if not last_name:
+                last_name = (user.last_name or '').strip()
+
+            if first_name and not self.initial.get('first_name'):
                 self.initial['first_name'] = first_name
+            if last_name and not self.initial.get('last_name'):
                 self.initial['last_name'] = last_name
+            if gender and not self.initial.get('gender'):
                 self.initial['gender'] = gender
+            if dob and not self.initial.get('dob'):
                 self.initial['dob'] = dob
-
-                self.fields['first_name'].disabled = True
-                self.fields['last_name'].disabled = True
-                self.fields['gender'].disabled = True
-                self.fields['dob'].disabled = True
+            if mobile and not self.initial.get('mobile_number'):
+                self.initial['mobile_number'] = mobile
+            if whatsapp and not self.initial.get('whatsapp_number'):
+                self.initial['whatsapp_number'] = whatsapp
 
             # Pre-populate email from existing profile, achievement, or user model
             if 'email' in self.fields and not self.initial.get('email'):
@@ -615,12 +634,7 @@ class EditAlumniProfileForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if user_editing and not user_editing.is_staff:
-            # If achievement is already approved, protect verified identity fields.
-            # But if achievement is still pending, allow applicant to freely correct their details!
-            if self.instance and self.instance.status == 'approved':
-                for field_name in ['first_name', 'last_name', 'gender', 'dob']:
-                    if field_name in self.fields:
-                        self.fields[field_name].disabled = True
+            pass
         for field_name, field in self.fields.items():
             if field_name != 'photo':
                 existing = field.widget.attrs.get('class', '')

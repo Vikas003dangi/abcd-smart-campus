@@ -455,6 +455,91 @@ class SystemCoreTests(TestCase):
         self.assertEqual(data['report'].get('mode'), 'high_frequency')
         self.assertIn('high_frequency', data['report'])
 
+    def test_admission_and_achievement_form_profile_sync_and_photo_isolation(self):
+        """Verify that common fields in StudentProfileForm and StudentAchievementForm are editable,
+        cross-sync across models, and strictly preserve separate photo lifecycles."""
+        from users.forms import StudentProfileForm, StudentAchievementForm
+        from users.models import StudentAchievement
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        # Ensure form fields are not disabled
+        profile_form = StudentProfileForm(user=self.user)
+        self.assertFalse(profile_form.fields['first_name'].disabled)
+        self.assertFalse(profile_form.fields['last_name'].disabled)
+        self.assertFalse(profile_form.fields['sex'].disabled)
+        self.assertFalse(profile_form.fields['dob'].disabled)
+
+        ach_form = StudentAchievementForm(user=self.user)
+        self.assertFalse(ach_form.fields['first_name'].disabled)
+        self.assertFalse(ach_form.fields['last_name'].disabled)
+        self.assertFalse(ach_form.fields['gender'].disabled)
+        self.assertFalse(ach_form.fields['dob'].disabled)
+
+        # Set a dummy student photo
+        dummy_student_photo = SimpleUploadedFile("student_dummy.jpg", b"student_photo_bytes", content_type="image/jpeg")
+        self.profile.photo = dummy_student_photo
+        self.profile.save()
+        self.assertIn('student_photos', self.profile.photo.name)
+
+        # Create an achievement for the user with an achievement photo
+        dummy_ach_photo = SimpleUploadedFile("ach_dummy.jpg", b"ach_photo_bytes", content_type="image/jpeg")
+        achievement = StudentAchievement.objects.create(
+            user=self.user,
+            first_name='Test',
+            last_name='Student',
+            about_yourself='Positive student',
+            current_post='Officer',
+            selection_year=2023,
+            working_city='Indore',
+            short_achievement='Officer Post',
+            gender='Male',
+            dob=date(2000, 1, 1),
+            services_used='library',
+            photo=dummy_ach_photo,
+            status='approved'
+        )
+        self.assertIn('achievements', achievement.photo.name)
+
+        # Update profile with new name and details
+        self.profile.full_name = 'Vikram Sharma'
+        self.profile.sex = 'Male'
+        self.profile.dob = date(1999, 5, 20)
+        self.profile.mobile_number = '9876543210'
+        self.profile.whatsapp_number = '9876543210'
+        self.profile.email = 'vikram@example.com'
+        self.profile.save()
+
+        # Check that achievement synced common details without touching photo
+        achievement.refresh_from_db()
+        self.assertEqual(achievement.first_name, 'Vikram')
+        self.assertEqual(achievement.last_name, 'Sharma')
+        self.assertEqual(achievement.gender, 'Male')
+        self.assertEqual(achievement.dob, date(1999, 5, 20))
+        self.assertEqual(achievement.mobile_number, '9876543210')
+        self.assertEqual(achievement.email, 'vikram@example.com')
+        self.assertIn('achievements', achievement.photo.name)
+        self.assertNotIn('student_photos', achievement.photo.name)
+
+        # Now update from achievement side
+        achievement.first_name = 'Vikramaditya'
+        achievement.last_name = 'Rathore'
+        achievement.gender = 'Male'
+        achievement.dob = date(1998, 12, 15)
+        achievement.mobile_number = '9123456789'
+        achievement.email = 'rathore@example.com'
+        achievement.save()
+
+        # Check that StudentProfile synced common details without touching its photo
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.full_name, 'Vikramaditya Rathore')
+        self.assertEqual(self.profile.sex, 'Male')
+        self.assertEqual(self.profile.dob, date(1998, 12, 15))
+        self.assertEqual(self.profile.mobile_number, '9123456789')
+        self.assertEqual(self.profile.email, 'rathore@example.com')
+        self.assertIn('student_photos', self.profile.photo.name)
+        self.assertNotIn('achievements', self.profile.photo.name)
+
+
 
 
 
