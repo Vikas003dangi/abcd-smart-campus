@@ -1023,12 +1023,21 @@ body.dark-theme .abcd-select-option.selected {
     padding: 20px;
 }
 
-.tc-modal-bg:not(.active):not(.visible):not(.show) {
+.tc-modal-bg:not(.active):not(.visible):not(.show):not(.open) {
     display: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     z-index: -1 !important;
     pointer-events: none !important;
+}
+
+.tc-modal-bg.open,
+.tc-modal-bg.active,
+.tc-modal-bg.visible,
+.tc-modal-bg.show {
+    display: flex !important;
+    z-index: 3000010 !important;
+    pointer-events: auto !important;
 }
 
 .tc-modal-box {

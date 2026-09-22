@@ -1076,7 +1076,7 @@ window.showABCDModal = function (opts) {
 
             document.querySelectorAll('.modal-overlay, .custom-modal-overlay, .fp-overlay, .tc-modal-bg, #statusModalOverlay, .choice-modal-overlay, .student-banner-overlay, .custom-popup-overlay, .alert-overlay, .ach-modal-overlay').forEach(el => {
                 if (el.classList.contains('sidebar-overlay') || el.id === 'sidebarOverlay' || el.closest('.sidebar-wrapper') || el.classList.contains('todo-modal-overlay') || el.classList.contains('picker-overlay')) return;
-                const isActive = el.classList.contains('active') || el.classList.contains('visible') || el.classList.contains('show') || el.classList.contains('choice-modal-open') || el.classList.contains('banner-show');
+                const isActive = el.classList.contains('active') || el.classList.contains('visible') || el.classList.contains('show') || el.classList.contains('open') || el.classList.contains('choice-modal-open') || el.classList.contains('banner-show');
                 if (isActive) {
                     el.style.removeProperty('pointer-events');
                     if (el.style.zIndex === '-1') el.style.removeProperty('z-index');

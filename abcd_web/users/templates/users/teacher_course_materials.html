@@ -1364,9 +1364,13 @@
     }
 
     // Modal Helpers
-    function openMaterialModal() { document.getElementById('materialModal').classList.add('open'); }
+    function openMaterialModal() {
+        const m = document.getElementById('materialModal');
+        if (m) m.classList.add('open', 'active');
+    }
     function closeMaterialModal() {
-        document.getElementById('materialModal').classList.remove('open');
+        const m = document.getElementById('materialModal');
+        if (m) m.classList.remove('open', 'active');
         clearMatFile();
     }
 
@@ -1441,11 +1445,15 @@
             document.getElementById('editMaterialId').value = data.id;
             document.getElementById('editTitle').value = data.title;
             document.getElementById('editDescription').value = data.description;
-            document.getElementById('editMaterialModal').classList.add('open');
+            const m = document.getElementById('editMaterialModal');
+            if (m) m.classList.add('open', 'active');
         });
     }
 
-    function closeEditModal() { document.getElementById('editMaterialModal').classList.remove('open'); }
+    function closeEditModal() {
+        const m = document.getElementById('editMaterialModal');
+        if (m) m.classList.remove('open', 'active');
+    }
 
     document.getElementById('editMaterialForm').addEventListener('submit', async function(e) {
         e.preventDefault();

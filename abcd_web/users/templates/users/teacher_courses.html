@@ -413,7 +413,12 @@
     align-items: center;
     padding: 20px;
   }
-  .tc-modal-bg.open { display: flex; }
+  .tc-modal-bg.open,
+  .tc-modal-bg.active {
+    display: flex !important;
+    z-index: 3000010 !important;
+    pointer-events: auto !important;
+  }
 
   .tc-modal-box {
     background: #ffffff;
@@ -1510,9 +1515,12 @@
 
     if (publicChk) publicChk.dispatchEvent(new Event('change'));
 
-    modal.classList.add('open');
+    modal.classList.add('open', 'active');
   }
-  function closeCourseModal() { document.getElementById('courseModal').classList.remove('open'); }
+  function closeCourseModal() {
+    const modal = document.getElementById('courseModal');
+    if (modal) modal.classList.remove('open', 'active');
+  }
   
   function openEditModal(id, title, desc, active, thumbUrl, targetPublic, targetCoaching, coachingBatches, targetAlumni, targetLibrary, libraryFloors, targetPrivate) {
     document.getElementById('editCourseId').value = id;
@@ -1567,9 +1575,13 @@
     if (libraryChk) libraryChk.dispatchEvent(new Event('change'));
     if (privateChk) privateChk.dispatchEvent(new Event('change'));
     
-    document.getElementById('editCourseModal').classList.add('open');
+    const editModal = document.getElementById('editCourseModal');
+    if (editModal) editModal.classList.add('open', 'active');
   }
-  function closeEditModal() { document.getElementById('editCourseModal').classList.remove('open'); }
+  function closeEditModal() {
+    const editModal = document.getElementById('editCourseModal');
+    if (editModal) editModal.classList.remove('open', 'active');
+  }
 
   async function removeThumbnail() {
     const confirmed = await window.showStyledConfirm('Remove Thumbnail', 'Are you sure you want to remove this thumbnail?');
@@ -1649,10 +1661,14 @@
   let currentPlaylistId = null;
 
   function openYTWizard() {
-    document.getElementById('ytWizard').classList.add('open');
+    const wizard = document.getElementById('ytWizard');
+    if (wizard) wizard.classList.add('open', 'active');
     if (!ytPlLoaded) loadPlaylists();
   }
-  function closeYTWizard() { document.getElementById('ytWizard').classList.remove('open'); }
+  function closeYTWizard() {
+    const wizard = document.getElementById('ytWizard');
+    if (wizard) wizard.classList.remove('open', 'active');
+  }
 
   function switchYTTab(tab) {
     document.querySelectorAll('.yt-tab').forEach((t,i) => { t.classList.toggle('active', (tab === 'playlists' ? i === 0 : i === 1)); });
