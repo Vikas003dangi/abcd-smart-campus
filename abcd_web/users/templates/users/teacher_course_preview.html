@@ -192,6 +192,54 @@
   }
   .tp-player-placeholder i { font-size: 4rem; margin-bottom: 15px; opacity: 0.3; }
 
+  /* Embedded Player Toolbar Overlay */
+  .tp-embed-toolbar {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    right: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    padding: 6px 12px;
+    z-index: 102;
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    pointer-events: auto;
+    transition: opacity 0.2s ease;
+  }
+  .tp-embed-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tp-embed-open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--accent);
+    color: white !important;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+  .tp-embed-open-btn:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+  }
+
   /* --- CONTENT AREA --- */
   .tp-details-area {
     padding: 32px 48px;
@@ -1225,10 +1273,15 @@
         <div id="playerContainer" style="width:100%; height:100%;">
           {% if first_video %}
             <div id="yt-player"></div>
+          {% elif first_material %}
+            <div class="tp-player-placeholder">
+              <i class='bx bx-loader-alt bx-spin'></i>
+              <p>Loading lesson...</p>
+            </div>
           {% else %}
             <div class="tp-player-placeholder">
               <i class='bx bx-video-off'></i>
-              <p>Select a lesson to start previewing</p>
+              <p>Empty curriculum</p>
             </div>
           {% endif %}
         </div>
@@ -1520,20 +1573,34 @@
              data-title="{{ item.title|lower }}"
              data-material-type="{{ item.material_type }}"
              data-external-url="{{ item.external_url|default:'' }}"
+             data-embed-url="{{ item.embed_url }}"
              data-file-url="{% if item.file %}{{ item.file.url }}{% endif %}"
              data-item-name="{{ item.title|escapejs }}"
              data-item-id="{{ item.id }}"
+             data-yt-id="{{ item.youtube_id|default:'' }}"
              onclick="switchContent(this)">
           <div class="tp-item-icon">
-            {% if item.material_type == 'video' %}<i class='bx bx-play-circle'></i>
-            {% elif item.material_type == 'document' %}<i class='bx bx-file'></i>
-            {% elif item.material_type == 'image' %}<i class='bx bx-image'></i>
-            {% else %}<i class='bx bx-link'></i>
+            {% if item.material_type == 'video' or item.youtube_id or 'vimeo.com' in item.external_url or 'dailymotion.com' in item.external_url or 'loom.com' in item.external_url %}
+              <i class='bx bx-play-circle'></i>
+            {% elif 'drive.google.com' in item.external_url %}
+              <i class='bx bxl-google-cloud'></i>
+            {% elif item.material_type == 'document' or 'docs.google.com' in item.external_url %}
+              <i class='bx bx-file'></i>
+            {% elif item.material_type == 'image' %}
+              <i class='bx bx-image'></i>
+            {% else %}
+              <i class='bx bx-link'></i>
             {% endif %}
           </div>
           <div class="tp-item-main">
             <span class="tp-item-label">{{ item.title }}</span>
-            <div class="tp-item-meta">{{ item.get_material_type_display }}</div>
+            <div class="tp-item-meta">
+              {% if item.youtube_id or item.material_type == 'video' %}Video
+              {% elif 'drive.google.com' in item.external_url %}Google Drive
+              {% elif item.material_type == 'document' %}Document
+              {% elif item.material_type == 'image' %}Image
+              {% else %}{{ item.get_material_type_display }}{% endif %}
+            </div>
           </div>
         </div>
         {% empty %}
@@ -1593,29 +1660,183 @@
 <script>
   let ytPlayer;
   
+  function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function extractYTId(url) {
+    if (!url) return '';
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regExp);
+    if (match && match[1]) return match[1];
+    const cleaned = url.trim();
+    if (cleaned.length === 11 && !cleaned.includes('/') && !cleaned.includes('?')) return cleaned;
+    return '';
+  }
+
+  function extractGoogleEmbed(url) {
+    if (!url) return null;
+    const u = url.trim();
+    if (u.includes('drive.google.com')) {
+      const m = u.match(/drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)/);
+      if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+    } else if (u.includes('docs.google.com')) {
+      if (u.includes('/document/d/')) {
+        const m = u.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) return `https://docs.google.com/document/d/${m[1]}/preview`;
+      } else if (u.includes('/spreadsheets/d/')) {
+        const m = u.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) return `https://docs.google.com/spreadsheets/d/${m[1]}/preview`;
+      } else if (u.includes('/presentation/d/')) {
+        const m = u.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+        if (m) return `https://docs.google.com/presentation/d/${m[1]}/preview`;
+      } else if (u.includes('/forms/d/')) {
+        const m = u.match(/docs\.google\.com\/forms\/d\/(?:e\/)?([a-zA-Z0-9_-]+)/);
+        if (m) return `https://docs.google.com/forms/d/e/${m[1]}/viewform?embedded=true`;
+      }
+    }
+    return null;
+  }
+
+  function resolveMediaEmbed(url, fileUrl, type, ytId, embedUrl) {
+    url = (url || '').trim();
+    fileUrl = (fileUrl || '').trim();
+    embedUrl = (embedUrl || '').trim();
+    const mediaUrl = fileUrl || url;
+
+    // 1. YouTube
+    const yt = ytId || extractYTId(url) || extractYTId(fileUrl);
+    if (yt) {
+      return {
+        kind: 'youtube',
+        ytId: yt,
+        embedUrl: `https://www.youtube.com/embed/${yt}?autoplay=1&rel=0`
+      };
+    }
+
+    // 2. Google Drive / Docs
+    const gdriveEmbed = extractGoogleEmbed(url || fileUrl) || (embedUrl && (embedUrl.includes('drive.google.com') || embedUrl.includes('docs.google.com')) ? embedUrl : null);
+    if (gdriveEmbed) {
+      return {
+        kind: 'iframe',
+        embedUrl: gdriveEmbed,
+        icon: "<i class='bx bxl-google-cloud'></i>"
+      };
+    }
+
+    // 3. Vimeo
+    const vimeoMatch = (url || fileUrl).match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/[^\/]*\/videos\/|album\/\d+\/video\/|video\/|)(\d+)/);
+    if (vimeoMatch) {
+      return {
+        kind: 'iframe',
+        embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`,
+        icon: "<i class='bx bxl-vimeo'></i>"
+      };
+    }
+
+    // 4. DailyMotion
+    const dmMatch = (url || fileUrl).match(/(?:dailymotion\.com\/(?:video|hub)\/|dai\.ly\/)([a-zA-Z0-9]+)/);
+    if (dmMatch) {
+      return {
+        kind: 'iframe',
+        embedUrl: `https://www.dailymotion.com/embed/video/${dmMatch[1]}?autoplay=1`,
+        icon: "<i class='bx bx-play-circle'></i>"
+      };
+    }
+
+    // 5. Loom
+    const loomMatch = (url || fileUrl).match(/loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/);
+    if (loomMatch) {
+      return {
+        kind: 'iframe',
+        embedUrl: `https://www.loom.com/embed/${loomMatch[1]}?autoplay=1`,
+        icon: "<i class='bx bx-video'></i>"
+      };
+    }
+
+    // 6. Direct Video Files
+    const cleanMedia = mediaUrl.split('?')[0].toLowerCase();
+    if (cleanMedia.endsWith('.mp4') || cleanMedia.endsWith('.webm') || cleanMedia.endsWith('.ogg') || cleanMedia.endsWith('.mov') || cleanMedia.endsWith('.m4v') || cleanMedia.endsWith('.avi') || (type === 'video' && fileUrl)) {
+      return {
+        kind: 'video',
+        src: mediaUrl
+      };
+    }
+
+    // 7. Direct Audio Files
+    if (cleanMedia.endsWith('.mp3') || cleanMedia.endsWith('.wav') || cleanMedia.endsWith('.aac') || cleanMedia.endsWith('.m4a') || cleanMedia.endsWith('.flac')) {
+      return {
+        kind: 'audio',
+        src: mediaUrl
+      };
+    }
+
+    // 8. Images
+    if (cleanMedia.endsWith('.jpg') || cleanMedia.endsWith('.jpeg') || cleanMedia.endsWith('.png') || cleanMedia.endsWith('.gif') || cleanMedia.endsWith('.webp') || cleanMedia.endsWith('.svg') || type === 'image') {
+      return {
+        kind: 'image',
+        src: mediaUrl
+      };
+    }
+
+    // 9. PDFs & Documents
+    if (cleanMedia.endsWith('.pdf') || type === 'document') {
+      return {
+        kind: 'pdf',
+        src: mediaUrl
+      };
+    }
+
+    // 10. Generic Web Link / Platform Embed
+    if (url) {
+      return {
+        kind: 'web_iframe',
+        src: url
+      };
+    }
+
+    return { kind: 'none' };
+  }
+
   function onYouTubeIframeAPIReady() {
     const firstItem = document.querySelector('.tp-curriculum-item.active');
-    if (firstItem && firstItem.getAttribute('data-material-type') === 'video') {
-      const url = firstItem.getAttribute('data-external-url');
-      const videoId = extractYTId(url);
-      if (videoId) initYTPlayer(videoId);
+    if (firstItem) {
+      const yt = firstItem.getAttribute('data-yt-id') || extractYTId(firstItem.getAttribute('data-external-url'));
+      if (yt && document.getElementById('yt-player')) {
+        initYTPlayer(yt);
+      }
     }
   }
 
   function initYTPlayer(videoId) {
-    if (ytPlayer && ytPlayer.destroy) ytPlayer.destroy();
-    ytPlayer = new YT.Player('yt-player', {
-      height: '100%',
-      width: '100%',
-      videoId: videoId,
-      playerVars: { 
-        'autoplay': 1, 
-        'rel': 0, 
-        'origin': window.location.origin,
-        'modestbranding': 1,
-        'controls': 1
+    if (ytPlayer && ytPlayer.destroy) {
+      try { ytPlayer.destroy(); } catch(e){}
+    }
+    try {
+      ytPlayer = new YT.Player('yt-player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: { 
+          'autoplay': 1, 
+          'rel': 0, 
+          'origin': window.location.origin,
+          'modestbranding': 1,
+          'controls': 1
+        }
+      });
+    } catch(err) {
+      const c = document.getElementById('playerContainer');
+      if (c) {
+        c.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="border:0; width:100%; height:100%;"></iframe>`;
       }
-    });
+    }
   }
 
   // Robust Tab Logic
@@ -1627,11 +1848,8 @@
     const targetPane = document.getElementById(targetId + 'Pane');
     
     if (targetPane) {
-      // Deactivate all
       document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content-pane').forEach(p => p.classList.remove('active'));
-      
-      // Activate target
       trigger.classList.add('active');
       targetPane.classList.add('active');
     }
@@ -1646,57 +1864,103 @@
   }
 
   function switchContent(el) {
-    const type = el.getAttribute('data-material-type');
-    const url = el.getAttribute('data-external-url');
-    const fileUrl = el.getAttribute('data-file-url');
-    const title = el.getAttribute('data-item-name');
-    const materialId = el.getAttribute('data-item-id');
+    if (!el) return;
+    const type = el.getAttribute('data-material-type') || '';
+    const url = el.getAttribute('data-external-url') || '';
+    const embedUrl = el.getAttribute('data-embed-url') || '';
+    const fileUrl = el.getAttribute('data-file-url') || '';
+    const title = el.getAttribute('data-item-name') || '';
+    const materialId = el.getAttribute('data-item-id') || '';
+    const ytId = el.getAttribute('data-yt-id') || '';
 
     document.querySelectorAll('.tp-curriculum-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
     
     // Track access
-    trackEngagement('access', materialId);
+    if (materialId) trackEngagement('access', materialId);
 
     // Update metadata
     const activeTitle = document.getElementById('activeTitle');
     if (activeTitle) activeTitle.innerText = title;
 
     const container = document.getElementById('playerContainer');
+    if (!container) return;
     
-    if (type === 'video') {
-      const videoId = extractYTId(url);
-      if (videoId) {
-        // Prepare container for API
-        container.innerHTML = '<div id="yt-player"></div>';
-        initYTPlayer(videoId);
-      } else if (fileUrl) {
-        container.innerHTML = `<video id="localVideo" controls autoplay style="width:100%; height:100%; background:black;">
-                                  <source src="${fileUrl}" type="video/mp4">
-                                </video>`;
-      } else {
-        container.innerHTML = `<div class="tp-player-placeholder"><i class='bx bx-error'></i><p>Video content not found</p></div>`;
-      }
-    } else if (type === 'document' || type === 'image') {
-      container.innerHTML = `<iframe id="mainPlayerFrame" src="${fileUrl}" style="background:white; width:100%; height:100%; border:none;"></iframe>`;
-    } else {
-      container.innerHTML = `<div class="tp-player-placeholder">
-                                <i class='bx bx-link-external'></i>
-                                <p>External link: <a href="${url}" target="_blank" style="color:var(--accent)">Open in new tab</a></p>
-                             </div>`;
+    // Clean up previous local video
+    const prevVid = document.getElementById('localVideo');
+    if (prevVid) {
+      try { prevVid.pause(); } catch(e){}
     }
     
-    if(window.innerWidth < 1100) container.scrollIntoView({behavior: 'smooth'});
+    const media = resolveMediaEmbed(url, fileUrl, type, ytId, embedUrl);
+
+    if (media.kind === 'youtube') {
+      container.innerHTML = '<div id="yt-player"></div>';
+      if (typeof YT !== 'undefined' && YT.Player) {
+        initYTPlayer(media.ytId);
+      } else {
+        container.innerHTML = `<iframe width="100%" height="100%" src="${media.embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="border:0; width:100%; height:100%;"></iframe>`;
+      }
+    } else if (media.kind === 'iframe') {
+      container.innerHTML = `
+        <div style="position:relative; width:100%; height:100%; background:black;">
+          <div class="tp-embed-toolbar">
+            <div class="tp-embed-info">${media.icon || "<i class='bx bx-play-circle'></i>"} <span>${escapeHtml(title)}</span></div>
+            <a href="${escapeHtml(url || media.embedUrl)}" target="_blank" rel="noopener noreferrer" class="tp-embed-open-btn"><i class='bx bx-link-external'></i> Open original</a>
+          </div>
+          <iframe src="${media.embedUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen style="border:none; width:100%; height:100%; background:black;"></iframe>
+        </div>
+      `;
+    } else if (media.kind === 'video') {
+      container.innerHTML = `<video id="localVideo" controls autoplay style="width:100%; height:100%; background:black;"><source src="${media.src}"></video>`;
+    } else if (media.kind === 'audio') {
+      container.innerHTML = `
+        <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#0f172a; padding:30px; text-align:center;">
+          <i class='bx bx-music' style="font-size:4.5rem; color:var(--accent); margin-bottom:20px;"></i>
+          <h3 style="color:white; margin-bottom:20px;">${escapeHtml(title)}</h3>
+          <audio controls autoplay style="width:90%; max-width:500px;"><source src="${media.src}"></audio>
+        </div>
+      `;
+    } else if (media.kind === 'image') {
+      container.innerHTML = `
+        <div style="height:100%; display:flex; align-items:center; justify-content:center; background:#0f172a;">
+          <img src="${media.src}" alt="${escapeHtml(title)}" style="max-width:100%; max-height:100%; object-fit:contain;">
+        </div>
+      `;
+    } else if (media.kind === 'pdf') {
+      container.innerHTML = `
+        <div style="position:relative; width:100%; height:100%; background:#1e293b;">
+          <div class="tp-embed-toolbar">
+            <div class="tp-embed-info"><i class='bx bx-file'></i> <span>${escapeHtml(title)}</span></div>
+            <a href="${media.src}" target="_blank" rel="noopener noreferrer" class="tp-embed-open-btn"><i class='bx bx-link-external'></i> Open document</a>
+          </div>
+          <iframe id="mainPlayerFrame" src="${media.src}" style="background:white; width:100%; height:100%; border:none;" allowfullscreen></iframe>
+        </div>
+      `;
+    } else if (media.kind === 'web_iframe') {
+      container.innerHTML = `
+        <div style="position:relative; width:100%; height:100%; display:flex; flex-direction:column; background:#0f172a;">
+          <div class="tp-embed-toolbar">
+            <div class="tp-embed-info"><i class='bx bx-globe'></i> <span>${escapeHtml(title || 'External Resource')}</span></div>
+            <a href="${media.src}" target="_blank" rel="noopener noreferrer" class="tp-embed-open-btn"><i class='bx bx-link-external'></i> Open in new tab</a>
+          </div>
+          <iframe src="${media.src}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="flex:1; width:100%; border:none; background:white;"></iframe>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `<div class="tp-player-placeholder"><i class='bx bx-error'></i><p>Content not found</p></div>`;
+    }
+
+    if (window.innerWidth < 1100) container.scrollIntoView({behavior: 'smooth'});
   }
 
-  function extractYTId(url) {
-    if (!url) return '';
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    if (match && match[2].length === 11) return match[2];
-    if (url.length === 11 && !url.includes('/') && !url.includes('?')) return url;
-    return '';
-  }
+  // Auto-load first item on page ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const firstItem = document.querySelector('.tp-curriculum-item.active') || document.querySelector('.tp-curriculum-item');
+    if (firstItem) {
+      switchContent(firstItem);
+    }
+  });
 
   function toggleUpvote(type, id, btn) {
     fetch('/api/qa/upvote/', {

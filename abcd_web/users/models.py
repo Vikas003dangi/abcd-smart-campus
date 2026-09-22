@@ -688,11 +688,72 @@ class StudyMaterial(models.Model):
                 m = re.search(pat, self.external_url)
                 if m:
                     return m.group(1)
+            cleaned = self.external_url.strip()
+            if len(cleaned) == 11 and re.match(r'^[a-zA-Z0-9_-]{11}$', cleaned):
+                return cleaned
         return None
 
     @property
+    def google_drive_embed_url(self):
+        """Converts Google Drive / Google Docs share URLs to iframe preview/embed URLs."""
+        if not self.external_url:
+            return None
+        url = self.external_url.strip()
+        import re
+        if 'drive.google.com' in url:
+            m = re.search(r'drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)', url)
+            if m:
+                return f"https://drive.google.com/file/d/{m.group(1)}/preview"
+        elif 'docs.google.com' in url:
+            if '/document/d/' in url:
+                m = re.search(r'docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)', url)
+                if m:
+                    return f"https://docs.google.com/document/d/{m.group(1)}/preview"
+            elif '/spreadsheets/d/' in url:
+                m = re.search(r'docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)', url)
+                if m:
+                    return f"https://docs.google.com/spreadsheets/d/{m.group(1)}/preview"
+            elif '/presentation/d/' in url:
+                m = re.search(r'docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)', url)
+                if m:
+                    return f"https://docs.google.com/presentation/d/{m.group(1)}/preview"
+            elif '/forms/d/' in url:
+                m = re.search(r'docs\.google\.com\/forms\/d\/(?:e\/)?([a-zA-Z0-9_-]+)', url)
+                if m:
+                    return f"https://docs.google.com/forms/d/e/{m.group(1)}/viewform?embedded=true"
+        return None
+
+    @property
+    def embed_url(self):
+        """Universal embeddable URL for YouTube, Google Drive, Vimeo, DailyMotion, Loom, or direct file."""
+        if self.youtube_id:
+            return f"https://www.youtube.com/embed/{self.youtube_id}?autoplay=1&rel=0"
+        gd = self.google_drive_embed_url
+        if gd:
+            return gd
+        if self.external_url:
+            url = self.external_url.strip()
+            import re
+            vimeo_m = re.search(r'vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/[^\/]*\/videos\/|album\/\d+\/video\/|video\/|)(\d+)', url)
+            if vimeo_m:
+                return f"https://player.vimeo.com/video/{vimeo_m.group(1)}?autoplay=1"
+            dm_m = re.search(r'(?:dailymotion\.com\/(?:video|hub)\/|dai\.ly\/)([a-zA-Z0-9]+)', url)
+            if dm_m:
+                return f"https://www.dailymotion.com/embed/video/{dm_m.group(1)}?autoplay=1"
+            loom_m = re.search(r'loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)', url)
+            if loom_m:
+                return f"https://www.loom.com/embed/{loom_m.group(1)}?autoplay=1"
+            return url
+        if self.file:
+            try:
+                return self.file.url
+            except Exception:
+                return ""
+        return ""
+
+    @property
     def display_thumbnail_url(self):
-        """Thumbnail URL for the material (custom uploaded or YouTube CDN)."""
+        """Thumbnail URL for the material (custom uploaded, YouTube CDN, or Google Drive)."""
         if self.thumbnail:
             try:
                 return self.thumbnail.url
@@ -700,6 +761,11 @@ class StudyMaterial(models.Model):
                 pass
         if self.youtube_id:
             return f"https://img.youtube.com/vi/{self.youtube_id}/hqdefault.jpg"
+        if self.external_url and 'drive.google.com' in self.external_url:
+            import re
+            m = re.search(r'drive\.google\.com\/(?:file\/(?:u\/\d+\/)?d\/|open\?id=|uc\?id=)([a-zA-Z0-9_-]+)', self.external_url)
+            if m:
+                return f"https://drive.google.com/thumbnail?id={m.group(1)}&sz=w600"
         return None
 
     class Meta:

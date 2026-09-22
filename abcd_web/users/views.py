@@ -655,7 +655,8 @@ def course_detail_view(request, course_id):
     # -------------------------------
     # FETCH CURRICULUM (Unified)
     # -------------------------------
-    curriculum = course.materials.all().order_by('id')
+    curriculum = course.materials.all().order_by('order', 'created_at', 'id')
+    first_material = curriculum.first()
     first_video = curriculum.filter(material_type='video').first()
 
     # Q&A AND REVIEWS DATA
@@ -693,7 +694,8 @@ def course_detail_view(request, course_id):
     context = {
         "course": course,
         "curriculum": curriculum,
-        "first_video": first_video,
+        "first_material": first_material,
+        "first_video": first_video or first_material,
         "is_locked": is_locked,
         "is_authenticated": is_authenticated,
         "is_student": is_student,
@@ -1214,7 +1216,8 @@ def teacher_course_preview_view(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     curriculum = StudyMaterial.objects.filter(course=course).annotate(
         unique_students=Count('student_access', distinct=True)
-    ).order_by('order', 'created_at')
+    ).order_by('order', 'created_at', 'id')
+    first_material = curriculum.first()
     
     questions = CourseQuestion.objects.filter(course=course).prefetch_related('answers__user', 'student__user').order_by('-created_at')
     reviews = CourseReview.objects.filter(course=course).select_related('student__user').order_by('-created_at')
@@ -1244,8 +1247,9 @@ def teacher_course_preview_view(request, course_id):
     return render(request, "users/teacher_course_preview.html", {
         "course": course,
         "curriculum": curriculum,
+        "first_material": first_material,
         "leaderboard_data": leaderboard_data,
-        "first_video": first_video,
+        "first_video": first_video or first_material,
         "questions": questions,
         "reviews": reviews,
         "avg_rating": round(avg_rating, 1),
@@ -2034,15 +2038,36 @@ def add_material_view(request, course_id):
     external_url = request.POST.get("external_url")
     description = request.POST.get("description", "")
 
+    # Intelligent URL detection & type classification
+    target_url = (video_url or external_url or "").strip()
+    classified_type = material_type
+    if target_url:
+        u_lower = target_url.lower().split('?')[0]
+        if any(h in target_url for h in ('youtube.com', 'youtu.be', 'vimeo.com', 'dailymotion.com', 'dai.ly', 'loom.com')) or u_lower.endswith(('.mp4', '.webm', '.ogg', '.mov', '.m4v', '.avi')):
+            classified_type = 'video'
+        elif u_lower.endswith(('.pdf', '.docx', '.doc', '.pptx', '.ppt', '.xlsx', '.xls')) or 'docs.google.com' in target_url:
+            classified_type = 'document'
+        elif u_lower.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg')):
+            classified_type = 'image'
+        elif 'drive.google.com' in target_url:
+            if material_type == 'video' or (title and 'video' in title.lower()):
+                classified_type = 'video'
+            else:
+                classified_type = 'document'
+
     # Intelligent naming if title is missing
     if not title:
         if material_type == "file" and uploaded_file:
             import os
             title = os.path.splitext(uploaded_file.name)[0].replace('_', ' ').replace('-', ' ').title()
-        elif material_type == "video" and video_url:
-            title = "YouTube Video " + str(StudyMaterial.objects.filter(course=course, material_type='video').count() + 1)
-        elif material_type == "link" and external_url:
-            title = "Link " + str(StudyMaterial.objects.filter(course=course, material_type='link').count() + 1)
+        elif classified_type == "video":
+            title = "Video Lesson " + str(StudyMaterial.objects.filter(course=course, material_type='video').count() + 1)
+        elif classified_type == "document":
+            title = "Document " + str(StudyMaterial.objects.filter(course=course, material_type='document').count() + 1)
+        elif classified_type == "image":
+            title = "Image " + str(StudyMaterial.objects.filter(course=course, material_type='image').count() + 1)
+        elif classified_type == "link":
+            title = "Resource " + str(StudyMaterial.objects.filter(course=course, material_type='link').count() + 1)
         else:
             title = "Untitled Material"
 
@@ -2059,9 +2084,9 @@ def add_material_view(request, course_id):
         # Determine specific type from file extension
         ext = uploaded_file.name.lower()
         m_type = 'document'
-        if ext.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+        if ext.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg')):
             m_type = 'image'
-        elif ext.endswith(('.mp4', '.webm', '.avi')):
+        elif ext.endswith(('.mp4', '.webm', '.avi', '.mov', '.m4v')):
             m_type = 'video'
 
         StudyMaterial.objects.create(
@@ -2075,35 +2100,18 @@ def add_material_view(request, course_id):
             is_public=False
         )
 
-    # VIDEO LINK MATERIAL
-    elif material_type == "video":
-        if not video_url:
-            messages.error(request, "Video URL is required.")
+    # URL / LINK / VIDEO MATERIAL
+    elif material_type in ("video", "link"):
+        if not target_url:
+            messages.error(request, "URL is required.")
             return redirect("users:teacher_course_materials", course_id=course.id)
 
         StudyMaterial.objects.create(
             course=course,
             title=title,
             description=description,
-            external_url=video_url,
-            material_type='video',
-            order=next_order,
-            uploaded_by=request.user,
-            is_public=False
-        )
-
-    # EXTERNAL LINK MATERIAL
-    elif material_type == "link":
-        if not external_url:
-            messages.error(request, "External URL is required.")
-            return redirect("users:teacher_course_materials", course_id=course.id)
-
-        StudyMaterial.objects.create(
-            course=course,
-            title=title,
-            description=description,
-            external_url=external_url,
-            material_type='link',
+            external_url=target_url,
+            material_type=classified_type,
             order=next_order,
             uploaded_by=request.user,
             is_public=False
