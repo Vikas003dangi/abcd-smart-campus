@@ -1680,7 +1680,7 @@ def yt_fetch_videos_api(request):
         return JsonResponse({"error": "YOUTUBE_CHANNEL_ID is not configured in environment variables or .env"}, status=400)
 
     try:
-        videos = fetch_channel_videos(channel_id, max_results=100)
+        videos = fetch_channel_videos(channel_id)
         data = []
         for v in videos:
             snippet = v.get("snippet", {})

@@ -28,25 +28,37 @@ def fetch_playlists(channel_id):
     return response.get("items", [])
 
 
-def fetch_playlist_videos(playlist_id, max_results=50):
+def fetch_playlist_videos(playlist_id, max_results=None):
+    """Fetch all videos from a playlist using pagination."""
     if not playlist_id:
         raise ValueError("playlist_id is required.")
     yt = get_youtube_client()
-    response = yt.playlistItems().list(
-        part="snippet",
-        playlistId=playlist_id,
-        maxResults=max_results
-    ).execute()
+    all_items = []
+    next_page = None
 
-    return response.get("items", [])
+    while True:
+        response = yt.playlistItems().list(
+            part="snippet",
+            playlistId=playlist_id,
+            maxResults=50,
+            pageToken=next_page
+        ).execute()
+
+        all_items.extend(response.get("items", []))
+        next_page = response.get("nextPageToken")
+
+        if not next_page:
+            break
+        if max_results and len(all_items) >= max_results:
+            break
+
+    return all_items[:max_results] if max_results else all_items
 
 
-def fetch_channel_videos(channel_id, max_results=50):
+def fetch_channel_videos(channel_id, max_results=None):
     """
     Fetch all uploaded videos from a YouTube channel.
-    Retrieves the channel's 'uploads' playlist directly via channels.list(part='contentDetails').
-    This uses playlistItems.list (costs 1 quota unit) instead of search.list (costs 100 quota units),
-    reducing YouTube API quota consumption by 99%.
+    Uses the channel's 'uploads' playlist with full pagination.
     """
     if not channel_id:
         raise ValueError("YOUTUBE_CHANNEL_ID is missing or not configured.")
@@ -64,8 +76,10 @@ def fetch_channel_videos(channel_id, max_results=50):
     except Exception:
         pass
 
+    # Fallback to search (expensive quota)
     all_videos = []
     next_page = None
+    limit = max_results or 500
 
     while True:
         response = yt.search().list(
@@ -73,14 +87,15 @@ def fetch_channel_videos(channel_id, max_results=50):
             channelId=channel_id,
             type="video",
             order="date",
-            maxResults=min(max_results - len(all_videos), 50),
+            maxResults=min(limit - len(all_videos), 50),
             pageToken=next_page
         ).execute()
 
         all_videos.extend(response.get("items", []))
         next_page = response.get("nextPageToken")
 
-        if not next_page or len(all_videos) >= max_results:
+        if not next_page or len(all_videos) >= limit:
             break
 
-    return all_videos[:max_results]
+    return all_videos[:limit]
+

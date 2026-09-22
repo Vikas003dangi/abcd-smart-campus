@@ -644,6 +644,76 @@
   .yt-loading { text-align:center; padding:40px; opacity:0.6; }
   .yt-error { padding:15px; background:#fee2e2; color:#991b1b; border-radius:12px; margin-bottom:15px; font-weight:600; }
   .yt-list { max-height: 400px; overflow-y: auto; }
+  .yt-search-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .yt-search-wrap input {
+    width: 100%;
+    padding: 10px 38px 10px 36px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(0,0,0,0.1);
+    font-size: 0.88rem;
+    font-weight: 600;
+    background: rgba(99,102,241,0.03);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+  .yt-search-wrap input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+  }
+  body.dark-theme .yt-search-wrap input {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+    color: #f8fafc;
+  }
+  body.dark-theme .yt-search-wrap input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
+  }
+  .yt-search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    color: #94a3b8;
+    pointer-events: none;
+  }
+  .yt-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.08);
+    border: none;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: #64748b;
+    transition: all 0.2s;
+    padding: 0;
+    line-height: 1;
+  }
+  .yt-search-clear:hover {
+    background: #ef4444;
+    color: white;
+  }
+  body.dark-theme .yt-search-clear {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,242,222,0.7);
+  }
+  .yt-search-clear.visible { display: flex; }
+  .yt-highlight { background: rgba(250,204,21,0.4); border-radius: 3px; padding: 0 1px; }
+  body.dark-theme .yt-highlight { background: rgba(250,204,21,0.3); }
+  .yt-no-results { text-align: center; padding: 30px; opacity: 0.5; font-weight: 600; font-size: 0.9rem; }
   .yt-item { display:flex; gap:15px; padding:12px; border-radius:12px; margin-bottom:8px; cursor:pointer; transition: background 0.2s; border:1.5px solid transparent; align-items:center; }
   .yt-item:hover { background: rgba(102,126,234,0.05); }
   .yt-item.selected { border-color:#667eea; background:rgba(102,126,234,0.08); }
@@ -1297,6 +1367,11 @@
 
     <!-- TAB 1: PLAYLISTS -->
     <div id="ytPanelPlaylists" class="yt-panel active">
+      <div class="yt-search-wrap" id="ytPlSearchWrap" style="display:none;">
+        <i class='bx bx-search yt-search-icon'></i>
+        <input type="text" id="ytPlSearch" placeholder="Search playlists..." autocomplete="off">
+        <button type="button" class="yt-search-clear" id="ytPlSearchClear" onclick="clearYTSearch('pl')" title="Clear"><i class='bx bx-x'></i></button>
+      </div>
       <div id="ytPlLoading" class="yt-loading">🔄 Loading playlists from your channel...</div>
       <div id="ytPlError" class="yt-error" style="display:none"></div>
       <div id="ytPlList" class="yt-list"></div>
@@ -1380,6 +1455,11 @@
 
     <!-- TAB 2: PICK VIDEOS -->
     <div id="ytPanelVideos" class="yt-panel">
+      <div class="yt-search-wrap" id="ytVdSearchWrap" style="display:none;">
+        <i class='bx bx-search yt-search-icon'></i>
+        <input type="text" id="ytVdSearch" placeholder="Search videos..." autocomplete="off">
+        <button type="button" class="yt-search-clear" id="ytVdSearchClear" onclick="clearYTSearch('vd')" title="Clear"><i class='bx bx-x'></i></button>
+      </div>
       <div id="ytVdLoading" class="yt-loading">🔄 Loading videos from your channel...</div>
       <div id="ytVdError" class="yt-error" style="display:none"></div>
       <div id="ytVdList" class="yt-list"></div>
@@ -1689,7 +1769,7 @@
         const list = document.getElementById('ytPlList');
         if (!data.playlists.length) { list.innerHTML = '<div class="yt-loading">No playlists found.</div>'; return; }
         list.innerHTML = data.playlists.map(pl => `
-          <div class="yt-item" onclick="prepPlaylist('${pl.id}', this)">
+          <div class="yt-item" onclick="prepPlaylist('${pl.id}', this)" data-search-title="${esc(pl.title).toLowerCase()}">
             <img src="${pl.thumbnail}" alt="">
             <div class="yt-item-info">
               <div class="yt-item-title">${esc(pl.title)}</div>
@@ -1699,6 +1779,7 @@
           </div>
         `).join('');
         ytPlLoaded = true;
+        document.getElementById('ytPlSearchWrap').style.display = '';
       });
   }
 
@@ -1771,7 +1852,7 @@
         if (data.error) { showErr('ytVdError', data.error); return; }
         const list = document.getElementById('ytVdList');
         list.innerHTML = data.videos.map(v => `
-          <div class="yt-item" data-vid="${v.videoId}" data-title="${esc(v.title)}" data-thumb="${v.thumbnail}" onclick="toggleVideo(this)">
+          <div class="yt-item" data-vid="${v.videoId}" data-title="${esc(v.title)}" data-thumb="${v.thumbnail}" data-search-title="${esc(v.title).toLowerCase()}" onclick="toggleVideo(this)">
             <img src="${v.thumbnail}" alt="">
             <div class="yt-item-info">
               <div class="yt-item-title">${esc(v.title)}</div>
@@ -1780,6 +1861,7 @@
           </div>
         `).join('');
         ytVdLoaded = true;
+        document.getElementById('ytVdSearchWrap').style.display = '';
       });
   }
 
@@ -1972,6 +2054,80 @@
   // Helpers
   function showErr(id, msg) { const el = document.getElementById(id); el.style.display = 'block'; el.textContent = '❌ ' + msg; }
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  // === YT SEARCH / FILTER / HIGHLIGHT ===
+  function ytSearchHandler(type) {
+    const input = document.getElementById(type === 'pl' ? 'ytPlSearch' : 'ytVdSearch');
+    const clearBtn = document.getElementById(type === 'pl' ? 'ytPlSearchClear' : 'ytVdSearchClear');
+    const listId = type === 'pl' ? 'ytPlList' : 'ytVdList';
+    const query = input.value.trim().toLowerCase();
+
+    clearBtn.classList.toggle('visible', query.length > 0);
+
+    const items = document.querySelectorAll('#' + listId + ' .yt-item');
+    const keywords = query.split(/\s+/).filter(k => k.length > 0);
+    let visibleCount = 0;
+
+    items.forEach(item => {
+      const searchTitle = item.dataset.searchTitle || '';
+      const titleEl = item.querySelector('.yt-item-title');
+      const originalTitle = item.dataset.title || (type === 'pl' ? titleEl.textContent : item.dataset.title);
+      // For playlists, store original title on first search
+      if (type === 'pl' && !item.dataset.title) item.dataset.title = titleEl.textContent;
+
+      if (!keywords.length) {
+        item.style.display = '';
+        titleEl.innerHTML = esc(originalTitle || titleEl.textContent);
+        visibleCount++;
+        return;
+      }
+
+      const matches = keywords.every(k => searchTitle.includes(k));
+      item.style.display = matches ? '' : 'none';
+
+      if (matches) {
+        visibleCount++;
+        // Highlight matching keywords
+        let html = esc(originalTitle || titleEl.textContent);
+        keywords.forEach(k => {
+          if (!k) return;
+          const re = new RegExp('(' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+          html = html.replace(re, '<span class="yt-highlight">$1</span>');
+        });
+        titleEl.innerHTML = html;
+      }
+    });
+
+    // Show "no results" if needed
+    const list = document.getElementById(listId);
+    let noRes = list.querySelector('.yt-no-results');
+    if (visibleCount === 0 && keywords.length) {
+      if (!noRes) {
+        noRes = document.createElement('div');
+        noRes.className = 'yt-no-results';
+        list.appendChild(noRes);
+      }
+      noRes.textContent = 'No ' + (type === 'pl' ? 'playlists' : 'videos') + ' match "' + input.value.trim() + '"';
+      noRes.style.display = '';
+    } else if (noRes) {
+      noRes.style.display = 'none';
+    }
+  }
+
+  function clearYTSearch(type) {
+    const input = document.getElementById(type === 'pl' ? 'ytPlSearch' : 'ytVdSearch');
+    input.value = '';
+    ytSearchHandler(type);
+    input.focus();
+  }
+
+  // Attach listeners after DOM ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const plInput = document.getElementById('ytPlSearch');
+    const vdInput = document.getElementById('ytVdSearch');
+    if (plInput) plInput.addEventListener('input', () => ytSearchHandler('pl'));
+    if (vdInput) vdInput.addEventListener('input', () => ytSearchHandler('vd'));
+  });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCourseModal(); closeYTWizard(); closeEditModal(); closeCropModal(); } });
 
   // Handle Delete Course with Styled Confirm and AJAX POST
