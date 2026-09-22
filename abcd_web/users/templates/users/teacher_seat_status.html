@@ -3233,11 +3233,26 @@
             modal.style.display = 'none';
             modal.style.removeProperty('z-index');
 
+            // Explicitly restore parent assign modal state
+            const assignModal = document.getElementById('teacherPremiumAssignModal');
+            if (assignModal) {
+                assignModal.classList.remove('modal-stacked-parent');
+                assignModal.style.removeProperty('pointer-events');
+                assignModal.style.removeProperty('opacity');
+            }
+
             const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'))
                 .filter(m => m !== modal);
             if (remainingModals.length > 0) {
+                remainingModals.sort((a, b) => {
+                    const zA = parseInt(a.style.zIndex || window.getComputedStyle(a).zIndex, 10) || 0;
+                    const zB = parseInt(b.style.zIndex || window.getComputedStyle(b).zIndex, 10) || 0;
+                    return zA - zB;
+                });
                 const topModal = remainingModals[remainingModals.length - 1];
                 topModal.classList.remove('modal-stacked-parent');
+                topModal.style.removeProperty('pointer-events');
+                topModal.style.removeProperty('opacity');
             }
 
             if (typeof window.syncGlobalModalState === 'function') {
@@ -3256,6 +3271,8 @@
             const dobInput = document.getElementById('manualAssignDOB');
             if (dobInput) {
                 dobInput.value = `${y}-${mo}-${d}`;
+                dobInput.dispatchEvent(new Event('input', { bubbles: true }));
+                dobInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
             closeBirthdayModal();
         }
@@ -3396,11 +3413,26 @@
             modal.style.display = 'none';
             modal.style.removeProperty('z-index');
 
+            // Explicitly restore parent hold modal state
+            const holdModal = document.getElementById('teacherPremiumHoldModal');
+            if (holdModal) {
+                holdModal.classList.remove('modal-stacked-parent');
+                holdModal.style.removeProperty('pointer-events');
+                holdModal.style.removeProperty('opacity');
+            }
+
             const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'))
                 .filter(m => m !== modal);
             if (remainingModals.length > 0) {
+                remainingModals.sort((a, b) => {
+                    const zA = parseInt(a.style.zIndex || window.getComputedStyle(a).zIndex, 10) || 0;
+                    const zB = parseInt(b.style.zIndex || window.getComputedStyle(b).zIndex, 10) || 0;
+                    return zA - zB;
+                });
                 const topModal = remainingModals[remainingModals.length - 1];
                 topModal.classList.remove('modal-stacked-parent');
+                topModal.style.removeProperty('pointer-events');
+                topModal.style.removeProperty('opacity');
             }
 
             if (typeof window.syncGlobalModalState === 'function') {
@@ -3419,6 +3451,8 @@
             const holdStartDateInput = document.getElementById('holdStartDate');
             if (holdStartDateInput) {
                 holdStartDateInput.value = `${y}-${mo}-${d}`;
+                holdStartDateInput.dispatchEvent(new Event('input', { bubbles: true }));
+                holdStartDateInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
             closeHoldDateModal();
         }

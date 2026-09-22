@@ -3536,22 +3536,47 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.style.display = 'block';
         void overlay.offsetHeight; // Force reflow to ensure CSS transitions trigger reliably
         overlay.classList.add('active');
+
+        // Always keep overlay below active modals
+        let minModalZ = Infinity;
+        activeModals.forEach(m => {
+          if (m && m !== overlay && !m.classList.contains('modal-overlay')) {
+            const z = parseInt(m.style.zIndex || window.getComputedStyle(m).zIndex, 10);
+            if (!isNaN(z) && z > 0 && z < minModalZ) {
+              minModalZ = z;
+            }
+          }
+        });
+        if (minModalZ !== Infinity && minModalZ > 3000000) {
+          overlay.style.setProperty('z-index', (minModalZ - 1).toString(), 'important');
+        } else {
+          overlay.style.setProperty('z-index', '3000010', 'important');
+        }
       }
     } else {
       // Instant blur & overlay removal
       document.body.classList.remove('modal-open');
-      if (overlay) overlay.classList.remove('active');
+      if (overlay) {
+        overlay.classList.remove('active');
+        overlay.style.removeProperty('z-index');
+      }
 
       window._overlayCloseTimeout = setTimeout(() => {
         const stillActiveModals = document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active');
         const stillActivePopup = document.querySelector('.custom-popup.visible');
         
         if (stillActiveModals.length === 0 && !stillActivePopup) {
-          if (overlay) overlay.style.display = 'none';
+          if (overlay) {
+            overlay.style.display = 'none';
+            overlay.style.removeProperty('z-index');
+          }
           
           document.querySelectorAll('.admission-modal, .teacher-modal').forEach(m => {
             if (!m.classList.contains('active') && !m.classList.contains('open')) {
               m.style.display = 'none';
+              m.classList.remove('modal-stacked-parent');
+              m.style.removeProperty('pointer-events');
+              m.style.removeProperty('opacity');
             }
           });
         }
@@ -3601,8 +3626,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const remainingModals = Array.from(document.querySelectorAll('.admission-modal.active, .teacher-modal.open, .teacher-modal.active, .seat-modal-container.open, .abcd-modal-overlay.active'))
       .filter(m => m !== modalEl);
     if (remainingModals.length > 0) {
+      remainingModals.sort((a, b) => {
+        const zA = parseInt(a.style.zIndex || window.getComputedStyle(a).zIndex, 10) || 0;
+        const zB = parseInt(b.style.zIndex || window.getComputedStyle(b).zIndex, 10) || 0;
+        return zA - zB;
+      });
       const topModal = remainingModals[remainingModals.length - 1];
       topModal.classList.remove('modal-stacked-parent');
+      topModal.style.removeProperty('pointer-events');
+      topModal.style.removeProperty('opacity');
     }
 
     window.syncGlobalModalState(modalEl);

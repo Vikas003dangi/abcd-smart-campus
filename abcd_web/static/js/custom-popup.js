@@ -124,6 +124,12 @@ window.getModalPair = function(element) {
             }
         }
     } else {
+        // Self-contained overlay containers (Pattern A) contain their own full-screen backdrop
+        const elClasses = (element.className || '').toLowerCase();
+        if (elClasses.includes('abcd-modal-overlay') || elClasses.includes('mam-overlay')) {
+            return { dialog: element, overlay: null };
+        }
+
         dialog = element;
         // Check if element is nested inside an overlay (Pattern A)
         if (element.parentElement && window.isPureBackdrop(element.parentElement)) {
@@ -757,7 +763,14 @@ window.showABCDModal = function (opts) {
 
         // CRITICAL: On pages with teacher-seat-manager, openSmallModal manages admission-modal & teacher-modal z-indices
         const dialogClasses = ((targetDialog && targetDialog.className) || '').toLowerCase();
-        if (typeof window.syncGlobalModalState === 'function' && (dialogClasses.includes('admission-modal') || dialogClasses.includes('teacher-modal'))) {
+        const dialogId = ((targetDialog && targetDialog.id) || '').toLowerCase();
+        if (typeof window.syncGlobalModalState === 'function' && (
+            dialogClasses.includes('admission-modal') || 
+            dialogClasses.includes('teacher-modal') || 
+            dialogClasses.includes('abcd-modal-overlay') || 
+            dialogId === 'birthdaymodal' || 
+            dialogId === 'holddatemodal'
+        )) {
             return;
         }
 
@@ -953,7 +966,14 @@ window.showABCDModal = function (opts) {
 
                 // CRITICAL: On pages with teacher-seat-manager, openSmallModal manages admission-modal & teacher-modal z-indices
                 const elClasses = (el.className || '').toLowerCase();
-                if (typeof window.syncGlobalModalState === 'function' && (elClasses.includes('admission-modal') || elClasses.includes('teacher-modal'))) return;
+                const elId = (el.id || '').toLowerCase();
+                if (typeof window.syncGlobalModalState === 'function' && (
+                    elClasses.includes('admission-modal') || 
+                    elClasses.includes('teacher-modal') || 
+                    elClasses.includes('abcd-modal-overlay') || 
+                    elId === 'birthdaymodal' || 
+                    elId === 'holddatemodal'
+                )) return;
 
                 const now = Date.now();
                 const lastStacked = parseInt(el.dataset.stackedTime, 10) || 0;

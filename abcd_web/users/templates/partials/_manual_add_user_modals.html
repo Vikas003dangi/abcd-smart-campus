@@ -1408,7 +1408,11 @@ window.ABCDManualAddManager = (function() {
         const mo = (months.indexOf(moStr) + 1).toString().padStart(2, '0');
 
         const dobInput = document.getElementById('mamNewDOB');
-        if (dobInput) dobInput.value = `${y}-${mo}-${d}`;
+        if (dobInput) {
+            dobInput.value = `${y}-${mo}-${d}`;
+            dobInput.dispatchEvent(new Event('input', { bubbles: true }));
+            dobInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         closeBirthdayModal();
     }
 
