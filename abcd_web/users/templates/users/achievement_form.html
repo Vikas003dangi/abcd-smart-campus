@@ -583,7 +583,7 @@
 
     <div class="form-body">
         <a href="{% url 'users:student_dashboard' %}" class="back-btn">← Back</a>
-        <form method="post" enctype="multipart/form-data" id="achievementForm" autocomplete="off">
+        <form method="post" enctype="multipart/form-data" id="achievementForm" autocomplete="off" novalidate>
             {% csrf_token %}
 
             <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.07), rgba(168, 85, 247, 0.05)); border: 1px solid rgba(99, 102, 241, 0.18); border-left: 4px solid #6366f1; border-radius: 10px; padding: 12px 16px; margin-bottom: 22px; display: flex; align-items: center; gap: 12px;">

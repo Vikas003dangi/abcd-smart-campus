@@ -1767,7 +1767,7 @@
                 </ul>
             </div>
             {% endif %}
-            <form method="post" id="admissionForm" action="{% url 'users:admission_form' %}" enctype="multipart/form-data" autocomplete="off">
+            <form method="post" id="admissionForm" action="{% url 'users:admission_form' %}" enctype="multipart/form-data" autocomplete="off" novalidate>
                 {% csrf_token %}
                 <input type="hidden" id="id_selected_seat" name="selected_seat"
                     value="{{ form.selected_seat.value|default:'' }}">
