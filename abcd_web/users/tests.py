@@ -609,6 +609,59 @@ class DualRoleDashboardSwitchTests(TestCase):
         # Session should still be alumni
         self.assertEqual(self.client.session.get('active_dashboard'), 'alumni')
 
+    def test_switcher_only_renders_for_dual_users(self):
+        """Profile switcher popover must render ONLY for dual users, never for single-profile users."""
+        # 1. Dual user: popover MUST be present
+        resp = self.client.get(reverse('users:student_dashboard'))
+        self.assertTrue(resp.context.get('is_dual_user'))
+        self.assertContains(resp, 'id="profileSwitcherPopover"')
+
+        # 2. Single Student user: popover must NOT be present
+        single_student = User.objects.create_user(
+            username='singlestudent',
+            password='Password123!',
+            email='single_student@example.com'
+        )
+        StudentProfile.objects.create(
+            user=single_student,
+            full_name='Single Student',
+            dob=date(2002, 2, 2),
+            sex='female',
+            service_type='Library',
+            status='admitted',
+            is_admitted=True
+        )
+        self.client.login(username='singlestudent', password='Password123!')
+        resp_student = self.client.get(reverse('users:student_dashboard'))
+        self.assertFalse(resp_student.context.get('is_dual_user'))
+        self.assertNotContains(resp_student, 'id="profileSwitcherPopover"')
+
+        # 3. Single Alumni user: popover must NOT be present
+        single_alumni = User.objects.create_user(
+            username='singlealumni',
+            password='Password123!',
+            email='single_alumni@example.com'
+        )
+        StudentAchievement.objects.create(
+            user=single_alumni,
+            first_name='Single',
+            last_name='Alumni',
+            about_yourself='Bio',
+            current_post='Officer',
+            selection_year=2024,
+            working_city='Indore',
+            short_achievement='Officer',
+            gender='Female',
+            dob=date(1998, 8, 8),
+            services_used='library',
+            status='approved'
+        )
+        self.client.login(username='singlealumni', password='Password123!')
+        resp_alumni = self.client.get(reverse('users:alumni_dashboard'))
+        self.assertFalse(resp_alumni.context.get('is_dual_user'))
+        self.assertNotContains(resp_alumni, 'id="profileSwitcherPopover"')
+
+
 
 
 
