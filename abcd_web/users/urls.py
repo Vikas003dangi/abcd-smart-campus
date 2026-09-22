@@ -46,6 +46,7 @@ urlpatterns = [
     # ============================
     path('dashboard/', views.student_dashboard_view, name='student_dashboard'),
     path('alumni/dashboard/', views.alumni_dashboard_view, name='alumni_dashboard'),
+    path('dashboard/switch/<str:role>/', views.switch_dashboard_view, name='switch_dashboard'),
     path('my-details/', views.student_details_S_view, name='student_details_S'),
     path('profile/', views.profile_view, name='profile'),
     path('profile/guest/', views.guest_profile_details_view, name='guest_profile_details'),

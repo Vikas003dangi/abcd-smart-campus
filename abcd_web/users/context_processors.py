@@ -48,16 +48,15 @@ def student_context(request):
         }
         
         from django.db.models import Q
-        from .utils import get_user_dashboard_type
-        dtype = get_user_dashboard_type(request.user)
-        if active_dash in ('student', 'alumni'):
-            if active_dash == 'alumni' and StudentAchievement.objects.filter(user=request.user, status='approved').exists():
-                dtype = 'alumni'
-            elif active_dash == 'student' and StudentProfile.objects.filter(
-                Q(status='admitted') | Q(is_admitted=True),
-                user=request.user
-            ).exists():
-                dtype = 'student'
+        if request.user.is_staff or request.user.is_superuser:
+            dtype = 'teacher'
+        elif active_dash == 'alumni' and StudentAchievement.objects.filter(user=request.user).exists():
+            dtype = 'alumni'
+        elif active_dash == 'student' and StudentProfile.objects.filter(user=request.user).exists():
+            dtype = 'student'
+        else:
+            from .utils import get_user_dashboard_type
+            dtype = get_user_dashboard_type(request.user)
 
         if dtype is None:
             dtype = 'guest'
@@ -134,6 +133,7 @@ def student_context(request):
                 'has_pending_coaching': has_pending_coaching,
                 'has_pending_library': has_pending_library,
                 'has_pending_alumni': has_pending_alumni,
+                'has_dual_profile': bool(profile and ach),
             })
 
         try:

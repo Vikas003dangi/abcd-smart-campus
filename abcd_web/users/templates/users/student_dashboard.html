@@ -2549,6 +2549,117 @@
       box-shadow: 0 0 6px #c084fc;
     }
 
+    /* ===== PROFILE SWITCHER POPOVER ===== */
+    .profile-switcher-popover {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      right: 4px;
+      min-width: 180px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(123, 97, 255, 0.15);
+      padding: 6px;
+      z-index: 1001;
+      opacity: 0;
+      transform: translateY(8px) scale(0.95);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .profile-switcher-popover.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .profile-switcher-popover::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      right: 20px;
+      width: 12px;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      border-right: 1px solid rgba(123, 97, 255, 0.15);
+      border-bottom: 1px solid rgba(123, 97, 255, 0.15);
+      transform: rotate(45deg);
+    }
+    .profile-switcher-popover .switcher-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: #1a1a2e;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: background 0.2s ease;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+    }
+    .profile-switcher-popover .switcher-option:hover,
+    .profile-switcher-popover .switcher-option:active {
+      background: rgba(123, 97, 255, 0.1);
+    }
+    .profile-switcher-popover .switcher-option img {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(123, 97, 255, 0.3);
+    }
+    .profile-switcher-popover .switcher-option i {
+      font-size: 1.3rem;
+      color: #7b61ff;
+    }
+    .profile-switcher-popover .switcher-option .switcher-label {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    .profile-switcher-popover .switcher-option .switcher-label small {
+      font-size: 0.65rem;
+      font-weight: 400;
+      color: #888;
+    }
+    .profile-switcher-popover .switcher-divider {
+      height: 1px;
+      background: rgba(0,0,0,0.06);
+      margin: 2px 10px;
+    }
+    body.dark-theme .profile-switcher-popover {
+      background: rgba(30, 20, 45, 0.96);
+      border-color: rgba(192, 132, 252, 0.2);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    body.dark-theme .profile-switcher-popover::after {
+      background: rgba(30, 20, 45, 0.96);
+      border-color: rgba(192, 132, 252, 0.2);
+    }
+    body.dark-theme .profile-switcher-popover .switcher-option {
+      color: #f0e6ff;
+    }
+    body.dark-theme .profile-switcher-popover .switcher-option:hover {
+      background: rgba(192, 132, 252, 0.12);
+    }
+    body.dark-theme .profile-switcher-popover .switcher-option i {
+      color: #c084fc;
+    }
+    body.dark-theme .profile-switcher-popover .switcher-label small {
+      color: #a78baf;
+    }
+    body.dark-theme .profile-switcher-popover .switcher-divider {
+      background: rgba(255,255,255,0.08);
+    }
+    .bnav-profile-item.pressing .bnav-profile-circle {
+      transform: scale(0.82);
+      box-shadow: 0 0 10px rgba(123, 97, 255, 0.7);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    }
+
     /* Suppress Bottom Nav when virtual keyboard is open or mobile search is active */
     body.mob-search-active .guest-bottom-nav,
     body.mob-search-active .bottom-nav-menu,
@@ -4396,15 +4507,15 @@
         </a>
       </li>
       {% else %}
-      {% if nav_achievement and profile %}
+      {% if is_dual_user %}
       <li>
-        <a href="{% url 'users:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
+        <a href="{% url 'users:switch_dashboard' 'student' %}" class="{% if current_dashboard_role == 'student' and request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
           <i class='bx bxs-dashboard'></i>
           <span>Student Dashboard</span>
         </a>
       </li>
       <li>
-        <a href="{% url 'users:alumni_dashboard' %}" class="{% if request.resolver_match.url_name == 'alumni_dashboard' %}active{% endif %}">
+        <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="{% if current_dashboard_role == 'alumni' and request.resolver_match.url_name == 'alumni_dashboard' %}active{% endif %}">
           <i class='bx bxs-dashboard'></i>
           <span>Alumni Dashboard</span>
         </a>
@@ -4838,9 +4949,9 @@
         <span>Hall of Fame</span>
       </a>
 
-      {% if nav_achievement %}
+      {% if is_dual_user or nav_achievement %}
       <!-- Alumni Profile Link (for dual identity users) -->
-      <a href="{% url 'users:alumni_dashboard' %}" class="app-card">
+      <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="app-card">
         <i class='bx bxs-graduation'></i>
         <span>Alumni Profile</span>
       </a>
@@ -5207,6 +5318,36 @@
           <span>To-Do</span>
       </a>
 
+      {% if is_dual_user %}
+      <a href="{% url 'users:profile' %}" class="bnav-item bnav-profile-item" id="bnavProfileLink" title="Profile" data-is-dual="true">
+          {% if request.session.active_dashboard == 'alumni' or request.session.active_dashboard != 'student' and nav_achievement %}
+              <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          {% else %}
+              <img src="{% if profile %}{{ profile.photo_url }}{% else %}{{ user|user_photo:'student' }}{% endif %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+          {% endif %}
+          <span>Profile</span>
+      </a>
+      <!-- Instagram-style Dual Profile Switcher Popover -->
+      <div class="profile-switcher-popover" id="profileSwitcherPopover" role="dialog" aria-label="Switch Profile">
+        <a href="{% url 'users:switch_dashboard' 'student' %}" class="switcher-option {% if current_dashboard_role == 'student' %}active-role{% endif %}">
+          <img src="{% if profile %}{{ profile.photo_url }}{% else %}{{ user|user_photo:'student' }}{% endif %}" alt="Student">
+          <div class="switcher-label">
+            <span>Student Profile</span>
+            <small>{% if current_dashboard_role == 'student' %}Active Profile{% else %}Switch to Student{% endif %}</small>
+          </div>
+          {% if current_dashboard_role == 'student' %}<i class='bx bx-check' style="margin-left:auto; color:#10b981; font-size:1.3rem;"></i>{% endif %}
+        </a>
+        <div class="switcher-divider"></div>
+        <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="switcher-option {% if current_dashboard_role == 'alumni' %}active-role{% endif %}">
+          <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Alumni">
+          <div class="switcher-label">
+            <span>Alumni Profile</span>
+            <small>{% if current_dashboard_role == 'alumni' %}Active Profile{% else %}Switch to Alumni{% endif %}</small>
+          </div>
+          {% if current_dashboard_role == 'alumni' %}<i class='bx bx-check' style="margin-left:auto; color:#10b981; font-size:1.3rem;"></i>{% endif %}
+        </a>
+      </div>
+      {% else %}
       <a href="{% url 'users:profile' %}" class="bnav-item" title="Profile">
           {% if request.session.active_dashboard == 'alumni' or request.session.active_dashboard != 'student' and nav_achievement %}
               <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
@@ -5215,6 +5356,7 @@
           {% endif %}
           <span>Profile</span>
       </a>
+      {% endif %}
       {% endif %}
   </div>
   {% endblock bottom_nav %}
@@ -6430,6 +6572,75 @@
 
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && mSearchOpen) closeMobSearch();
+            });
+        })();
+
+        // Instagram-style Dual Profile Switcher: Press-and-Hold on Bottom Nav Profile
+        (function initProfileSwitcher() {
+            var profileLink = document.getElementById('bnavProfileLink');
+            var popover = document.getElementById('profileSwitcherPopover');
+            if (!profileLink || !popover) return;
+
+            var pressTimer = null;
+            var isLongPress = false;
+
+            function showPopover() {
+                popover.classList.add('visible');
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(40); } catch (_) {}
+                }
+            }
+
+            function hidePopover() {
+                popover.classList.remove('visible');
+            }
+
+            function startPress(e) {
+                if (e.button && e.button !== 0) return;
+                isLongPress = false;
+                profileLink.classList.add('pressing');
+                pressTimer = setTimeout(function() {
+                    isLongPress = true;
+                    profileLink.classList.remove('pressing');
+                    showPopover();
+                }, 400);
+            }
+
+            function cancelPress() {
+                if (pressTimer) {
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                }
+                profileLink.classList.remove('pressing');
+            }
+
+            profileLink.addEventListener('pointerdown', startPress);
+            profileLink.addEventListener('pointerup', cancelPress);
+            profileLink.addEventListener('pointerleave', cancelPress);
+            profileLink.addEventListener('pointercancel', cancelPress);
+            profileLink.addEventListener('touchmove', cancelPress, { passive: true });
+
+            profileLink.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+
+            profileLink.addEventListener('click', function(e) {
+                if (isLongPress) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isLongPress = false;
+                    return false;
+                }
+            });
+
+            document.addEventListener('pointerdown', function(e) {
+                if (!popover.contains(e.target) && !profileLink.contains(e.target)) {
+                    hidePopover();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') hidePopover();
             });
         })();
       </script>

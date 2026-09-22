@@ -1642,16 +1642,16 @@
 {% block sidebar_nav %}
       <!-- 1. Alumni Dashboard -->
       <li>
-        <a href="{% url 'users:alumni_dashboard' %}" class="{% if request.resolver_match.url_name == 'alumni_dashboard' %}active{% endif %}">
+        <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="{% if request.resolver_match.url_name == 'alumni_dashboard' %}active{% endif %}">
           <i class='bx bxs-dashboard'></i>
           <span>Alumni Dashboard</span>
         </a>
       </li>
 
       <!-- 2. Student Dashboard (if user also has admitted student profile) -->
-      {% if profile and profile.is_admitted or profile and profile.dob %}
+      {% if is_dual_user or profile and profile.is_admitted or profile and profile.dob %}
       <li>
-        <a href="{% url 'users:student_dashboard' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
+        <a href="{% url 'users:switch_dashboard' 'student' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
           <i class='bx bxs-user-badge'></i>
           <span>Student Dashboard</span>
         </a>
@@ -1963,8 +1963,8 @@
       </a>
 
       <!-- 8. Student Profile (only if user is also student) -->
-      {% if profile and profile.is_admitted or profile and profile.dob %}
-      <a href="{% url 'users:student_dashboard' %}" class="app-card">
+      {% if is_dual_user or profile and profile.is_admitted or profile and profile.dob %}
+      <a href="{% url 'users:switch_dashboard' 'student' %}" class="app-card">
         <i class='bx bxs-user-badge'></i>
         <span>Student Profile</span>
       </a>

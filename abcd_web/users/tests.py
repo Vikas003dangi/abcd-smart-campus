@@ -2,7 +2,8 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta, date
-from users.models import Seat, StudentProfile, SeatAssignment
+from django.urls import reverse
+from users.models import Seat, StudentProfile, SeatAssignment, StudentAchievement
 from users.utils import process_expired_holds, process_birthday_wishes
 
 User = get_user_model()
@@ -538,6 +539,76 @@ class SystemCoreTests(TestCase):
         self.assertEqual(self.profile.email, 'rathore@example.com')
         self.assertIn('student_photos', self.profile.photo.name)
         self.assertNotIn('achievements', self.profile.photo.name)
+
+
+class DualRoleDashboardSwitchTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='dualuser',
+            password='Password123!',
+            email='dual@example.com'
+        )
+        self.profile = StudentProfile.objects.create(
+            user=self.user,
+            full_name='Dual User',
+            dob=date(2001, 1, 1),
+            sex='male',
+            service_type='Library',
+            status='admitted',
+            is_admitted=True
+        )
+        self.achievement = StudentAchievement.objects.create(
+            user=self.user,
+            first_name='Dual',
+            last_name='User',
+            about_yourself='Bio',
+            current_post='Officer',
+            selection_year=2024,
+            working_city='Indore',
+            short_achievement='Cleared exam',
+            gender='Male',
+            dob=date(2001, 1, 1),
+            services_used='library',
+            status='approved'
+        )
+        self.client.login(username='dualuser', password='Password123!')
+
+    def test_switch_to_alumni_and_smart_back(self):
+        """Switching to alumni sets session and routes smart_back to alumni dashboard."""
+        resp = self.client.get(reverse('users:switch_dashboard', kwargs={'role': 'alumni'}))
+        self.assertRedirects(resp, reverse('users:alumni_dashboard'))
+        self.assertEqual(self.client.session.get('active_dashboard'), 'alumni')
+
+        # Smart back router should now return to alumni dashboard
+        back_resp = self.client.get(reverse('users:smart_back_router'))
+        self.assertRedirects(back_resp, reverse('users:alumni_dashboard'))
+
+    def test_switch_to_student_and_smart_back(self):
+        """Switching to student sets session and routes smart_back to student dashboard."""
+        resp = self.client.get(reverse('users:switch_dashboard', kwargs={'role': 'student'}))
+        self.assertRedirects(resp, reverse('users:student_dashboard'))
+        self.assertEqual(self.client.session.get('active_dashboard'), 'student')
+
+        # Smart back router should now return to student dashboard
+        back_resp = self.client.get(reverse('users:smart_back_router'))
+        self.assertRedirects(back_resp, reverse('users:student_dashboard'))
+
+    def test_subpage_navigation_preserves_active_dashboard(self):
+        """Visiting student profile while in alumni mode does NOT overwrite active_dashboard."""
+        session = self.client.session
+        session['active_dashboard'] = 'alumni'
+        session.save()
+
+        # Visit student details page
+        self.client.get(reverse('users:student_details_S'))
+        # Session should still be alumni
+        self.assertEqual(self.client.session.get('active_dashboard'), 'alumni')
+
+        # Visit achievement detail page
+        self.client.get(reverse('users:achievement_detail', kwargs={'pk': self.achievement.pk}))
+        # Session should still be alumni
+        self.assertEqual(self.client.session.get('active_dashboard'), 'alumni')
+
 
 
 

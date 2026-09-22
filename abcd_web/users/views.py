@@ -4534,6 +4534,32 @@ def alumni_dashboard_view(request):
     return render(request, 'users/alumni_dashboard.html', context)
 
 
+@login_required
+@never_cache
+def switch_dashboard_view(request, role):
+    """
+    Instagram-style profile/dashboard switcher:
+    Switches active_dashboard in session and routes to the selected dashboard.
+    """
+    try:
+        cache.delete(f"student_context_data_{request.user.id}_student")
+        cache.delete(f"student_context_data_{request.user.id}_alumni")
+        cache.delete(f"student_context_data_{request.user.id}_")
+    except Exception:
+        pass
+
+    if role == 'alumni':
+        if StudentAchievement.objects.filter(user=request.user).exists():
+            request.session['active_dashboard'] = 'alumni'
+            return redirect('users:alumni_dashboard')
+    elif role == 'student':
+        if StudentProfile.objects.filter(user=request.user).exists():
+            request.session['active_dashboard'] = 'student'
+            return redirect('users:student_dashboard')
+
+    return redirect('users:smart_back_router')
+
+
 
 # notifications mark as viewed
 @login_required
@@ -5223,7 +5249,6 @@ def request_seat_hold_api(request):
 # VIEW: Renders the "Student Details S" page    
 @login_required
 def student_details_S_view(request):
-    request.session['active_dashboard'] = 'student'
     student = get_object_or_404(StudentProfile.objects.select_related('seat'), user=request.user)
     return render(request, 'users/student_details_S.html', {
         'student': student,
@@ -11112,7 +11137,6 @@ def achievement_form_view(request):
 def edit_alumni_view(request, pk=None):
     """Edit profile page for alumni — edits personal details on the
     StudentAchievement without resetting approval status."""
-    request.session['active_dashboard'] = 'alumni'
     if pk:
         if request.user.is_staff:
             achievement = get_object_or_404(StudentAchievement, pk=pk)
@@ -11242,20 +11266,11 @@ def achievement_detail_view(request, pk):
     """The 'CV-style' beautiful page for a single student's achievements."""
     achievement = get_object_or_404(StudentAchievement, pk=pk)
     
-    # Determine the base template to extend
-    base_template = 'home_page.html'
+    # base_template is provided by the context processor for authenticated
+    # users, respecting the active_dashboard session. Only override for anon.
     is_teacher = False
-    
     if request.user.is_authenticated:
         is_teacher = request.user.is_staff
-        if is_teacher:
-            base_template = 'users/teacher_dashboard.html'
-        else:
-            achievement_exists = StudentAchievement.objects.filter(user=request.user).exists()
-            if achievement_exists or hasattr(request.user, 'profile'):
-                base_template = 'users/student_dashboard.html'
-            else:
-                base_template = 'users/guest_page.html'
 
     # Permission check: If not approved, only owner or staff can see it
     if achievement.status != 'approved':
@@ -11267,8 +11282,8 @@ def achievement_detail_view(request, pk):
     can_see_private = request.user.is_authenticated and (request.user.is_staff or request.user == achievement.user)
     can_edit = request.user.is_authenticated and (request.user.is_staff or request.user == achievement.user)
 
-    if request.user.is_authenticated and request.user == achievement.user and achievement.status == 'approved':
-        request.session['active_dashboard'] = 'alumni'
+    # ponytail: do NOT override active_dashboard here — viewing your own
+    # achievement detail should not change which dashboard back-nav returns to.
 
     # Navigation context
     profile = None
@@ -11286,7 +11301,6 @@ def achievement_detail_view(request, pk):
         'achievement': achievement, # The CV being viewed
         'can_see_private': can_see_private,
         'can_edit': can_edit,
-        'base_template': base_template,
         'profile': profile,
         'nav_achievement': user_achievement, # The current user's profile link
         'notifications': notifications,
@@ -14943,12 +14957,9 @@ def todo_hub_page(request):
     dashboard_type = get_user_dashboard_type(user)
     active_dash = request.session.get('active_dashboard')
     if active_dash in ('student', 'alumni'):
-        if active_dash == 'alumni' and StudentAchievement.objects.filter(user=user, status='approved').exists():
+        if active_dash == 'alumni' and StudentAchievement.objects.filter(user=user).exists():
             dashboard_type = 'alumni'
-        elif active_dash == 'student' and StudentProfile.objects.filter(
-            Q(status='admitted') | Q(is_admitted=True),
-            user=user
-        ).exists():
+        elif active_dash == 'student' and StudentProfile.objects.filter(user=user).exists():
             dashboard_type = 'student'
 
     if dashboard_type is None and user.is_authenticated:
