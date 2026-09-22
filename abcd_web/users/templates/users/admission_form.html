@@ -2397,44 +2397,65 @@
             if (admissionForm && serviceSelect && registrationTypeSelect) {
                 admissionForm.addEventListener('submit', function (e) {
 
-                    // CHECK 0a: Service must be selected
+                    // Helper: block submit + play error sound + show popup
+                    function blockSubmit(title, message, type) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation(); // stops the async handler too
+                        new Audio('/static/audio/error.mp3').play().catch(function(){});
+                        window.showStyledPopup({ title: title, message: message, type: type || 'warning' });
+                        return false;
+                    }
+
+                    // CHECK 0: Sex/Gender must be selected
+                    const sexSelect = document.getElementById('id_sex');
+                    if (sexSelect && !sexSelect.value) {
+                        return blockSubmit(
+                            'Gender Not Selected',
+                            'Please select your <strong>Gender</strong> before submitting.'
+                        );
+                    }
+
+                    // CHECK 1: Service must be selected
                     if (!serviceSelect.value) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.showStyledPopup({
-                            title: 'Service Not Selected',
-                            message: 'Please select a <strong>Service</strong> (Coaching / Library / Both) before submitting.',
-                            type: 'warning'
-                        });
-                        serviceSelect.focus();
-                        return false;
+                        return blockSubmit(
+                            'Service Not Selected',
+                            'Please select a <strong>Service</strong> (Coaching / Library / Both) before submitting.'
+                        );
                     }
 
-                    // CHECK 0b: Registration Type must be selected
+                    // CHECK 2: Registration Type must be selected
                     if (!registrationTypeSelect.value) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.showStyledPopup({
-                            title: 'Registration Type Not Selected',
-                            message: 'Please select a <strong>Registration Type</strong> (New Student / Already Admitted) before submitting.',
-                            type: 'warning'
-                        });
-                        registrationTypeSelect.focus();
-                        return false;
+                        return blockSubmit(
+                            'Registration Type Not Selected',
+                            'Please select a <strong>Registration Type</strong> (New Student / Already Admitted) before submitting.'
+                        );
                     }
 
-                    // Check remaining HTML5 validity (name, dob, mobile, etc.)
-                    if (!admissionForm.checkValidity()) {
-                        admissionForm.reportValidity();
+                    // CHECK 3: Remaining HTML5 fields (name, dob, mobile, etc.)
+                    // Skip hidden custom selects — they are already checked above
+                    const invalidFields = [];
+                    for (const el of admissionForm.elements) {
+                        if (!el.willValidate) continue;
+                        const isHiddenCustomSelect = (el.tagName === 'SELECT' && (
+                            el.style.display === 'none' || el.style.visibility === 'hidden' ||
+                            getComputedStyle(el).display === 'none'
+                        ));
+                        if (!isHiddenCustomSelect && !el.validity.valid) {
+                            invalidFields.push(el);
+                        }
+                    }
+                    if (invalidFields.length > 0) {
                         e.preventDefault();
-                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        new Audio('/static/audio/error.mp3').play().catch(function(){});
+                        invalidFields[0].focus();
+                        invalidFields[0].reportValidity();
                         return false;
                     }
 
                     const serviceValue = serviceSelect.value;
                     const isLibrary = serviceValue === 'Library' || serviceValue === 'Both';
                     if (!isLibrary) return; // Coaching only doesn't need seat validation
-
 
                     // Dynamically re-query elements to ensure fresh references
                     const currentSeatHidden = document.getElementById('id_selected_seat');
@@ -2445,40 +2466,30 @@
                         currentFloorInput.value = checkedFloor.value;
                     }
 
-                    // CHECK 1: Floor must be selected
+                    // CHECK 4: Floor must be selected
                     const floorVal = currentFloorInput ? currentFloorInput.value.trim() : (checkedFloor ? checkedFloor.value.trim() : '');
                     if (!floorVal) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.showStyledPopup({
-                            title: 'Floor Not Selected',
-                            message: 'Please select a library floor before submitting your application.',
-                            type: 'warning'
-                        });
-                        return false;
+                        return blockSubmit('Floor Not Selected', 'Please select a library floor before submitting your application.');
                     }
 
-                    // CHECK 2: Seat must be selected
+                    // CHECK 5: Seat must be selected
                     const seatVal = currentSeatHidden ? currentSeatHidden.value.trim() : '';
                     if (!seatVal) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.showStyledPopup({
-                            title: 'No Seat Selected',
-                            message: 'Please choose a seat from the seat layout before submitting your application.<br><br>Click the <strong>"Choose Your Occupied Seat / Shift"</strong> or <strong>"Choose Seat / Shift"</strong> button to open the seat selector.',
-                            type: 'error'
-                        });
-                        return false;
+                        return blockSubmit(
+                            'No Seat Selected',
+                            'Please choose a seat from the seat layout before submitting your application.<br><br>Click the <strong>"Choose Your Occupied Seat / Shift"</strong> or <strong>"Choose Seat / Shift"</strong> button to open the seat selector.',
+                            'error'
+                        );
                     }
 
-                    // CHECK 3: INTELLIGENT — Already Admitted + Temporary Allotment = INVALID
+                    // CHECK 6: INTELLIGENT — Already Admitted + Temporary Allotment = INVALID
                     const isNewStudent = registrationTypeSelect.value === 'True';
                     const tempInput = document.getElementById('id_is_temporary_request');
                     const isTemp = tempInput && tempInput.value === 'true';
 
                     if (!isNewStudent && isTemp) {
                         e.preventDefault();
-                        e.stopPropagation();
+                        e.stopImmediatePropagation();
                         // Auto-clear the invalid state
                         if (tempInput) tempInput.value = 'false';
                         if (currentSeatHidden) currentSeatHidden.value = '';
@@ -2494,6 +2505,7 @@
                             preview.className = 'seat-selected-error';
                         }
 
+                        new Audio('/static/audio/error.mp3').play().catch(function(){});
                         window.showStyledPopup({
                             title: 'Invalid Seat Selection',
                             message: 'You selected <strong>Already Admitted Student</strong> as your registration type, but your seat choice is a <strong>temporary allotment</strong>.<br><br>Temporary allotments are only available for <strong>new students</strong>.<br><br>Your seat selection has been cleared. Please choose your own occupied seat and submit again.',
@@ -2503,6 +2515,7 @@
                     }
                 });
             }
+
             if (!photoInput) return;
 
             // Attach Centralized Cropper Component to Profile Photo Input (1:1 circular avatar)

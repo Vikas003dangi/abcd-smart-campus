@@ -1208,38 +1208,59 @@
     const submitBtn = document.getElementById('submitBtn');
     let isSubmitting = false;
 
-    form.addEventListener('submit', async function(e) {
-        if (isSubmitting) { e.preventDefault(); return; }
+    // ── SYNC VALIDATOR (runs first, blocks async handler via stopImmediatePropagation) ──
+    form.addEventListener('submit', function(e) {
+
+        function blockSubmit(title, message, type) {
+            e.preventDefault();
+            e.stopImmediatePropagation(); // stops the async handler below
+            new Audio('/static/audio/error.mp3').play().catch(function(){});
+            window.showStyledPopup({ title: title, message: message, type: type || 'warning' });
+            return false;
+        }
 
         // CHECK: Gender must be selected
         const genderSelect = document.getElementById('id_gender');
         if (genderSelect && !genderSelect.value) {
-            e.preventDefault();
-            if (window.showStyledAlert) {
-                await window.showStyledAlert('Gender Not Selected', 'Please select your <strong>Gender</strong> before submitting.', 'warning');
-            }
-            genderSelect.focus();
-            return;
+            return blockSubmit('Gender Not Selected', 'Please select your <strong>Gender</strong> before submitting.');
         }
 
         // CHECK: Services Used must be selected
         const servicesSelect = document.getElementById('id_services_used');
         if (servicesSelect && !servicesSelect.value) {
-            e.preventDefault();
-            if (window.showStyledAlert) {
-                await window.showStyledAlert('Service Not Selected', 'Please select the <strong>Service Used</strong> (Library / Coaching / Both) before submitting.', 'warning');
+            return blockSubmit(
+                'Service Not Selected',
+                'Please select the <strong>Service Used</strong> (Library / Coaching / Both) before submitting.'
+            );
+        }
+
+        // CHECK: Remaining HTML5 fields — skip hidden custom selects already checked above
+        const invalidFields = [];
+        for (const el of form.elements) {
+            if (!el.willValidate) continue;
+            const isHiddenCustomSelect = (el.tagName === 'SELECT' && (
+                el.style.display === 'none' || el.style.visibility === 'hidden' ||
+                getComputedStyle(el).display === 'none'
+            ));
+            if (!isHiddenCustomSelect && !el.validity.valid) {
+                invalidFields.push(el);
             }
-            servicesSelect.focus();
-            return;
         }
-
-        // Trigger native HTML5 constraint validation for remaining fields
-        if (!form.checkValidity()) {
-            form.reportValidity();
+        if (invalidFields.length > 0) {
             e.preventDefault();
-            return;
+            e.stopImmediatePropagation();
+            new Audio('/static/audio/error.mp3').play().catch(function(){});
+            invalidFields[0].focus();
+            invalidFields[0].reportValidity();
+            return false;
         }
+    });
 
+    // ── ASYNC SUBMISSION HANDLER (only runs if sync validator passed) ──
+    form.addEventListener('submit', async function(e) {
+        if (isSubmitting) { e.preventDefault(); return; }
+
+        // Sync validator already ran — if it blocked, this never fires.
         // Wait for other sync validation handlers to run.
         if (e.defaultPrevented) return;
 
@@ -1248,15 +1269,12 @@
         const ratingVal = parseInt(ratingInput ? ratingInput.value : '0', 10);
         if (isNaN(ratingVal) || ratingVal < 1 || ratingVal > 5) {
             e.preventDefault();
+            new Audio('/static/audio/error.mp3').play().catch(function(){});
             const ratingContainer = document.getElementById('starRating') || document.querySelector('.star-rating-container');
             if (ratingContainer) {
                 ratingContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            if (window.showStyledAlert) {
-                await window.showStyledAlert("Rating Required", "Please select your rating (1 to 5 stars) before submitting your story.", "warning");
-            } else if (window.CustomPopup) {
-                await CustomPopup.alert("Please select your rating (1 to 5 stars) before submitting your story.", "Rating Required");
-            }
+            window.showStyledPopup({ title: 'Rating Required', message: 'Please select your rating (1 to 5 stars) before submitting your story.', type: 'warning' });
             return;
         }
 
