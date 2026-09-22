@@ -20,6 +20,11 @@ def student_context(request):
         'has_pending_coaching': False,
         'has_pending_library': False,
         'has_pending_alumni': False,
+        'has_dual_profile': False,
+        'is_dual_user': False,
+        'has_student_profile': False,
+        'has_alumni_profile': False,
+        'current_dashboard_role': 'guest',
         'user_home_base_url': '/',
     }
 
@@ -126,6 +131,7 @@ def student_context(request):
                 elif ach.status == 'pending':
                     has_pending_alumni = True
 
+            is_dual = bool(profile and ach)
             context.update({
                 'is_approved_coaching': is_approved_coaching,
                 'is_approved_library': is_approved_library,
@@ -133,7 +139,11 @@ def student_context(request):
                 'has_pending_coaching': has_pending_coaching,
                 'has_pending_library': has_pending_library,
                 'has_pending_alumni': has_pending_alumni,
-                'has_dual_profile': bool(profile and ach),
+                'has_dual_profile': is_dual,
+                'is_dual_user': is_dual,
+                'has_student_profile': bool(profile),
+                'has_alumni_profile': bool(ach),
+                'current_dashboard_role': active_dash or dtype,
             })
 
         try:

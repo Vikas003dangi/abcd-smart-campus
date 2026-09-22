@@ -2551,25 +2551,28 @@
 
     /* ===== PROFILE SWITCHER POPOVER ===== */
     .profile-switcher-popover {
-      position: absolute;
-      bottom: calc(100% + 10px);
-      right: 4px;
-      min-width: 180px;
-      background: rgba(255, 255, 255, 0.96);
+      position: fixed;
+      bottom: 76px;
+      right: 10px;
+      min-width: 210px;
+      max-width: 280px;
+      background: rgba(255, 255, 255, 0.98);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
-      border: 1px solid rgba(123, 97, 255, 0.15);
-      padding: 6px;
-      z-index: 1001;
+      border-radius: 20px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(123, 97, 255, 0.22);
+      padding: 8px;
+      z-index: 99999;
       opacity: 0;
-      transform: translateY(8px) scale(0.95);
+      visibility: hidden;
+      transform: translateY(12px) scale(0.92);
       pointer-events: none;
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
     }
     .profile-switcher-popover.visible {
       opacity: 1;
+      visibility: visible;
       transform: translateY(0) scale(1);
       pointer-events: auto;
     }
@@ -2577,12 +2580,12 @@
       content: '';
       position: absolute;
       bottom: -6px;
-      right: 20px;
+      right: 22px;
       width: 12px;
       height: 12px;
-      background: rgba(255, 255, 255, 0.96);
-      border-right: 1px solid rgba(123, 97, 255, 0.15);
-      border-bottom: 1px solid rgba(123, 97, 255, 0.15);
+      background: rgba(255, 255, 255, 0.98);
+      border-right: 1px solid rgba(123, 97, 255, 0.22);
+      border-bottom: 1px solid rgba(123, 97, 255, 0.22);
       transform: rotate(45deg);
     }
     .profile-switcher-popover .switcher-option {
@@ -2590,26 +2593,31 @@
       align-items: center;
       gap: 10px;
       padding: 10px 14px;
-      border-radius: 12px;
+      border-radius: 14px;
       text-decoration: none;
       color: #1a1a2e;
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       font-weight: 600;
-      transition: background 0.2s ease;
+      transition: background 0.2s ease, transform 0.15s ease;
       cursor: pointer;
       border: none;
       background: none;
       width: 100%;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
     }
     .profile-switcher-popover .switcher-option:hover,
     .profile-switcher-popover .switcher-option:active {
       background: rgba(123, 97, 255, 0.1);
+      transform: scale(0.98);
     }
     .profile-switcher-popover .switcher-option img {
-      width: 30px; height: 30px;
+      width: 32px; height: 32px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid rgba(123, 97, 255, 0.3);
+      border: 2px solid rgba(123, 97, 255, 0.35);
+      pointer-events: none;
     }
     .profile-switcher-popover .switcher-option i {
       font-size: 1.3rem;
@@ -2618,45 +2626,57 @@
     .profile-switcher-popover .switcher-option .switcher-label {
       display: flex;
       flex-direction: column;
-      line-height: 1.2;
+      line-height: 1.25;
+      text-align: left;
     }
     .profile-switcher-popover .switcher-option .switcher-label small {
-      font-size: 0.65rem;
+      font-size: 0.68rem;
       font-weight: 400;
-      color: #888;
+      color: #777;
     }
     .profile-switcher-popover .switcher-divider {
       height: 1px;
-      background: rgba(0,0,0,0.06);
-      margin: 2px 10px;
+      background: rgba(0,0,0,0.08);
+      margin: 4px 8px;
     }
     body.dark-theme .profile-switcher-popover {
-      background: rgba(30, 20, 45, 0.96);
-      border-color: rgba(192, 132, 252, 0.2);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+      background: rgba(30, 20, 48, 0.98);
+      border-color: rgba(192, 132, 252, 0.28);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.35);
     }
     body.dark-theme .profile-switcher-popover::after {
-      background: rgba(30, 20, 45, 0.96);
-      border-color: rgba(192, 132, 252, 0.2);
+      background: rgba(30, 20, 48, 0.98);
+      border-color: rgba(192, 132, 252, 0.28);
     }
     body.dark-theme .profile-switcher-popover .switcher-option {
-      color: #f0e6ff;
+      color: #f1f5f9;
     }
-    body.dark-theme .profile-switcher-popover .switcher-option:hover {
-      background: rgba(192, 132, 252, 0.12);
+    body.dark-theme .profile-switcher-popover .switcher-option:hover,
+    body.dark-theme .profile-switcher-popover .switcher-option:active {
+      background: rgba(192, 132, 252, 0.15);
     }
     body.dark-theme .profile-switcher-popover .switcher-option i {
       color: #c084fc;
     }
-    body.dark-theme .profile-switcher-popover .switcher-label small {
-      color: #a78baf;
+    body.dark-theme .profile-switcher-popover .switcher-option .switcher-label small {
+      color: #c084fc;
     }
     body.dark-theme .profile-switcher-popover .switcher-divider {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.1);
+    }
+    .bnav-profile-item,
+    .bnav-profile-circle,
+    #bnavProfileLink {
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-user-drag: none !important;
+      touch-action: manipulation;
     }
     .bnav-profile-item.pressing .bnav-profile-circle {
-      transform: scale(0.82);
-      box-shadow: 0 0 10px rgba(123, 97, 255, 0.7);
+      transform: scale(0.78);
+      box-shadow: 0 0 12px rgba(123, 97, 255, 0.85);
+      border-color: #7b61ff;
       transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
     }
 
@@ -4507,15 +4527,15 @@
         </a>
       </li>
       {% else %}
-      {% if is_dual_user %}
+      {% if is_dual_user or nav_achievement and profile %}
       <li>
-        <a href="{% url 'users:switch_dashboard' 'student' %}" class="{% if current_dashboard_role == 'student' and request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
+        <a href="{% url 'users:switch_dashboard' 'student' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
           <i class='bx bxs-dashboard'></i>
           <span>Student Dashboard</span>
         </a>
       </li>
       <li>
-        <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="{% if current_dashboard_role == 'alumni' and request.resolver_match.url_name == 'alumni_dashboard' %}active{% endif %}">
+        <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="{% if request.resolver_match.url_name == 'alumni_dashboard' %}active{% endif %}">
           <i class='bx bxs-dashboard'></i>
           <span>Alumni Dashboard</span>
         </a>
@@ -5318,33 +5338,33 @@
           <span>To-Do</span>
       </a>
 
-      {% if is_dual_user %}
-      <a href="{% url 'users:profile' %}" class="bnav-item bnav-profile-item" id="bnavProfileLink" title="Profile" data-is-dual="true">
+      {% if is_dual_user or nav_achievement and profile %}
+      <a href="{% url 'users:profile' %}" class="bnav-item bnav-profile-item" id="bnavProfileLink" title="Profile" data-is-dual="true" draggable="false" oncontextmenu="return false;">
           {% if request.session.active_dashboard == 'alumni' or request.session.active_dashboard != 'student' and nav_achievement %}
-              <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+              <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Profile" class="bnav-profile-circle" draggable="false" oncontextmenu="return false;" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
           {% else %}
-              <img src="{% if profile %}{{ profile.photo_url }}{% else %}{{ user|user_photo:'student' }}{% endif %}" alt="Profile" class="bnav-profile-circle" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+              <img src="{% if profile %}{{ profile.photo_url }}{% else %}{{ user|user_photo:'student' }}{% endif %}" alt="Profile" class="bnav-profile-circle" draggable="false" oncontextmenu="return false;" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
           {% endif %}
           <span>Profile</span>
       </a>
       <!-- Instagram-style Dual Profile Switcher Popover -->
       <div class="profile-switcher-popover" id="profileSwitcherPopover" role="dialog" aria-label="Switch Profile">
-        <a href="{% url 'users:switch_dashboard' 'student' %}" class="switcher-option {% if current_dashboard_role == 'student' %}active-role{% endif %}">
-          <img src="{% if profile %}{{ profile.photo_url }}{% else %}{{ user|user_photo:'student' }}{% endif %}" alt="Student">
+        <a href="{% url 'users:switch_dashboard' 'student' %}" class="switcher-option {% if request.session.active_dashboard == 'student' or not request.session.active_dashboard and request.resolver_match.url_name == 'student_dashboard' %}active-role{% endif %}">
+          <img src="{% if profile %}{{ profile.photo_url }}{% else %}{{ user|user_photo:'student' }}{% endif %}" alt="Student" draggable="false">
           <div class="switcher-label">
-            <span>Student Profile</span>
-            <small>{% if current_dashboard_role == 'student' %}Active Profile{% else %}Switch to Student{% endif %}</small>
+            <span>Student Dashboard</span>
+            <small>{% if request.session.active_dashboard == 'student' or not request.session.active_dashboard and request.resolver_match.url_name == 'student_dashboard' %}Active Profile{% else %}Switch to Student{% endif %}</small>
           </div>
-          {% if current_dashboard_role == 'student' %}<i class='bx bx-check' style="margin-left:auto; color:#10b981; font-size:1.3rem;"></i>{% endif %}
+          {% if request.session.active_dashboard == 'student' or not request.session.active_dashboard and request.resolver_match.url_name == 'student_dashboard' %}<i class='bx bx-check' style="margin-left:auto; color:#10b981; font-size:1.3rem;"></i>{% endif %}
         </a>
         <div class="switcher-divider"></div>
-        <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="switcher-option {% if current_dashboard_role == 'alumni' %}active-role{% endif %}">
-          <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Alumni">
+        <a href="{% url 'users:switch_dashboard' 'alumni' %}" class="switcher-option {% if request.session.active_dashboard == 'alumni' or not request.session.active_dashboard and request.resolver_match.url_name == 'alumni_dashboard' %}active-role{% endif %}">
+          <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Alumni" draggable="false">
           <div class="switcher-label">
-            <span>Alumni Profile</span>
-            <small>{% if current_dashboard_role == 'alumni' %}Active Profile{% else %}Switch to Alumni{% endif %}</small>
+            <span>Alumni Dashboard</span>
+            <small>{% if request.session.active_dashboard == 'alumni' or not request.session.active_dashboard and request.resolver_match.url_name == 'alumni_dashboard' %}Active Profile{% else %}Switch to Alumni{% endif %}</small>
           </div>
-          {% if current_dashboard_role == 'alumni' %}<i class='bx bx-check' style="margin-left:auto; color:#10b981; font-size:1.3rem;"></i>{% endif %}
+          {% if request.session.active_dashboard == 'alumni' or not request.session.active_dashboard and request.resolver_match.url_name == 'alumni_dashboard' %}<i class='bx bx-check' style="margin-left:auto; color:#10b981; font-size:1.3rem;"></i>{% endif %}
         </a>
       </div>
       {% else %}
@@ -6583,11 +6603,14 @@
 
             var pressTimer = null;
             var isLongPress = false;
+            var touchStartX = 0;
+            var touchStartY = 0;
+            var suppressClick = false;
 
             function showPopover() {
                 popover.classList.add('visible');
                 if (navigator.vibrate) {
-                    try { navigator.vibrate(40); } catch (_) {}
+                    try { navigator.vibrate(50); } catch (_) {}
                 }
             }
 
@@ -6595,15 +6618,19 @@
                 popover.classList.remove('visible');
             }
 
-            function startPress(e) {
-                if (e.button && e.button !== 0) return;
+            function startPress(clientX, clientY) {
                 isLongPress = false;
+                suppressClick = false;
+                touchStartX = clientX || 0;
+                touchStartY = clientY || 0;
                 profileLink.classList.add('pressing');
+                if (pressTimer) clearTimeout(pressTimer);
                 pressTimer = setTimeout(function() {
                     isLongPress = true;
+                    suppressClick = true;
                     profileLink.classList.remove('pressing');
                     showPopover();
-                }, 400);
+                }, 380);
             }
 
             function cancelPress() {
@@ -6614,28 +6641,87 @@
                 profileLink.classList.remove('pressing');
             }
 
-            profileLink.addEventListener('pointerdown', startPress);
-            profileLink.addEventListener('pointerup', cancelPress);
-            profileLink.addEventListener('pointerleave', cancelPress);
-            profileLink.addEventListener('pointercancel', cancelPress);
-            profileLink.addEventListener('touchmove', cancelPress, { passive: true });
+            // Touch events for Mobile
+            profileLink.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) return;
+                var t = e.touches[0];
+                startPress(t.clientX, t.clientY);
+            }, { passive: true });
 
-            profileLink.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
+            profileLink.addEventListener('touchmove', function(e) {
+                if (!pressTimer) return;
+                var t = e.touches[0];
+                var dx = Math.abs(t.clientX - touchStartX);
+                var dy = Math.abs(t.clientY - touchStartY);
+                if (dx > 8 || dy > 8) {
+                    cancelPress();
+                }
+            }, { passive: true });
+
+            profileLink.addEventListener('touchend', function(e) {
+                if (isLongPress) {
+                    e.preventDefault();
+                    cancelPress();
+                    setTimeout(function() { suppressClick = false; }, 300);
+                    return false;
+                }
+                cancelPress();
+            }, { passive: false });
+
+            profileLink.addEventListener('touchcancel', function() {
+                cancelPress();
             });
 
-            profileLink.addEventListener('click', function(e) {
+            // Mouse events for Desktop
+            profileLink.addEventListener('mousedown', function(e) {
+                if (e.button !== 0) return;
+                startPress(e.clientX, e.clientY);
+            });
+
+            profileLink.addEventListener('mouseup', function(e) {
                 if (isLongPress) {
+                    e.preventDefault();
+                    cancelPress();
+                    setTimeout(function() { suppressClick = false; }, 300);
+                    return false;
+                }
+                cancelPress();
+            });
+
+            profileLink.addEventListener('mouseleave', function() {
+                cancelPress();
+            });
+
+            // Contextmenu: Mobile Chrome long-press triggers this!
+            // Intercept and prevent the browser context menu, show our switcher instead!
+            profileLink.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelPress();
+                isLongPress = true;
+                suppressClick = true;
+                showPopover();
+                setTimeout(function() { suppressClick = false; }, 300);
+                return false;
+            });
+
+            // Click handling: If held, do not navigate; if normal tap, navigate!
+            profileLink.addEventListener('click', function(e) {
+                if (suppressClick || isLongPress) {
                     e.preventDefault();
                     e.stopPropagation();
                     isLongPress = false;
+                    suppressClick = false;
                     return false;
                 }
             });
 
+            // Tap / Click outside closes popover
             document.addEventListener('pointerdown', function(e) {
-                if (!popover.contains(e.target) && !profileLink.contains(e.target)) {
-                    hidePopover();
+                if (popover.classList.contains('visible')) {
+                    if (!popover.contains(e.target) && !profileLink.contains(e.target)) {
+                        hidePopover();
+                    }
                 }
             });
 
