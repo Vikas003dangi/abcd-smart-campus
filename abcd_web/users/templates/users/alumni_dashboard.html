@@ -2515,6 +2515,8 @@
             themeBtn.addEventListener('click', () => {
                 setTimeout(initAchievementChart, 300);
             });
+        }
+
         // Safe redirect for notifications panel
         window.toggleNotificationsPanel = function() {
             window.location.href = "{% url 'users:student_dashboard' %}";

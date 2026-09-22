@@ -2396,7 +2396,34 @@
             // ═══════════════════════════════════════════════════════════════════
             if (admissionForm && serviceSelect && registrationTypeSelect) {
                 admissionForm.addEventListener('submit', function (e) {
-                    // Check HTML5 validity first - triggers native validation prompts if any required field is empty
+
+                    // CHECK 0a: Service must be selected
+                    if (!serviceSelect.value) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.showStyledPopup({
+                            title: 'Service Not Selected',
+                            message: 'Please select a <strong>Service</strong> (Coaching / Library / Both) before submitting.',
+                            type: 'warning'
+                        });
+                        serviceSelect.focus();
+                        return false;
+                    }
+
+                    // CHECK 0b: Registration Type must be selected
+                    if (!registrationTypeSelect.value) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.showStyledPopup({
+                            title: 'Registration Type Not Selected',
+                            message: 'Please select a <strong>Registration Type</strong> (New Student / Already Admitted) before submitting.',
+                            type: 'warning'
+                        });
+                        registrationTypeSelect.focus();
+                        return false;
+                    }
+
+                    // Check remaining HTML5 validity (name, dob, mobile, etc.)
                     if (!admissionForm.checkValidity()) {
                         admissionForm.reportValidity();
                         e.preventDefault();
@@ -2407,6 +2434,7 @@
                     const serviceValue = serviceSelect.value;
                     const isLibrary = serviceValue === 'Library' || serviceValue === 'Both';
                     if (!isLibrary) return; // Coaching only doesn't need seat validation
+
 
                     // Dynamically re-query elements to ensure fresh references
                     const currentSeatHidden = document.getElementById('id_selected_seat');

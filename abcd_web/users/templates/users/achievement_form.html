@@ -1211,7 +1211,29 @@
     form.addEventListener('submit', async function(e) {
         if (isSubmitting) { e.preventDefault(); return; }
 
-        // Trigger native HTML5 constraint validation first!
+        // CHECK: Gender must be selected
+        const genderSelect = document.getElementById('id_gender');
+        if (genderSelect && !genderSelect.value) {
+            e.preventDefault();
+            if (window.showStyledAlert) {
+                await window.showStyledAlert('Gender Not Selected', 'Please select your <strong>Gender</strong> before submitting.', 'warning');
+            }
+            genderSelect.focus();
+            return;
+        }
+
+        // CHECK: Services Used must be selected
+        const servicesSelect = document.getElementById('id_services_used');
+        if (servicesSelect && !servicesSelect.value) {
+            e.preventDefault();
+            if (window.showStyledAlert) {
+                await window.showStyledAlert('Service Not Selected', 'Please select the <strong>Service Used</strong> (Library / Coaching / Both) before submitting.', 'warning');
+            }
+            servicesSelect.focus();
+            return;
+        }
+
+        // Trigger native HTML5 constraint validation for remaining fields
         if (!form.checkValidity()) {
             form.reportValidity();
             e.preventDefault();
