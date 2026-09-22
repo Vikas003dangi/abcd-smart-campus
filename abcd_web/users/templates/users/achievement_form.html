@@ -196,6 +196,22 @@
         user-select: none;
     }
 
+    /* Native Select focusable overlay for HTML5 constraint validation */
+    select.abcd-custom-select-native {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        z-index: -1 !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+    }
+
     .abcd-select-trigger {
         display: flex;
         align-items: center;
@@ -210,6 +226,20 @@
         font-weight: 500;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .abcd-select-trigger.select-invalid {
+        border-color: #ef4444 !important;
+        background: #fff5f5 !important;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        animation: abcdShake 0.35s ease-in-out;
+    }
+
+    @keyframes abcdShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        50% { transform: translateX(5px); }
+        75% { transform: translateX(-3px); }
     }
 
     .abcd-select-trigger:hover {
@@ -613,7 +643,7 @@
                 <div class="form-group">
                     <label>Selection Year <span class="required">*</span></label>
                     <input type="text" name="selection_year" id="id_selection_year" class="form-control" 
-                           value="{{ form.selection_year.value|default:'' }}" readonly onclick="openYearPicker(this)">
+                           value="{{ form.selection_year.value|default:'' }}" readonly required placeholder="Select Year" onclick="openYearPicker(this)">
                 </div>
                 <div class="form-group">
                     <label>Working City <span class="required">*</span></label>
@@ -806,13 +836,16 @@
         document.querySelectorAll('select.form-control').forEach(select => {
             if (select.dataset.customized) return;
             select.dataset.customized = "true";
-            select.style.display = 'none';
+
+            // Native select stays accessible and focusable for HTML5 constraint validation
+            select.classList.add('abcd-custom-select-native');
 
             const wrapper = document.createElement('div');
             wrapper.className = 'abcd-select-wrapper';
 
             const trigger = document.createElement('div');
             trigger.className = 'abcd-select-trigger';
+            trigger.setAttribute('tabindex', '-1');
             trigger.innerHTML = `<span>${select.options[select.selectedIndex]?.text || 'Select...'}</span><i class='bx bx-chevron-down'></i>`;
 
             const dropdown = document.createElement('div');
@@ -831,7 +864,11 @@
                     dropdown.querySelectorAll('.abcd-select-option').forEach(o => o.classList.remove('selected'));
                     optDiv.classList.add('selected');
                     wrapper.classList.remove('open');
-                    select.dispatchEvent(new Event('change'));
+                    trigger.classList.remove('select-invalid');
+
+                    // Trigger native change and input events
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    select.dispatchEvent(new Event('input', { bubbles: true }));
                 });
                 dropdown.appendChild(optDiv);
             });
@@ -843,9 +880,42 @@
                 if (!isOpen) wrapper.classList.add('open');
             });
 
+            // HTML5 constraint validation failure hook
+            select.addEventListener('invalid', () => {
+                trigger.classList.add('select-invalid');
+                try {
+                    trigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } catch (err) {}
+            });
+
+            select.addEventListener('change', () => {
+                if (select.value) {
+                    trigger.classList.remove('select-invalid');
+                }
+                if (select.selectedIndex >= 0) {
+                    const span = trigger.querySelector('span');
+                    if (span) span.textContent = select.options[select.selectedIndex]?.text || 'Select...';
+                    dropdown.querySelectorAll('.abcd-select-option').forEach(o => {
+                        o.classList.toggle('selected', o.dataset.value === select.value);
+                    });
+                }
+            });
+
+            // Keyboard accessibility forwarding
+            select.addEventListener('focus', () => trigger.classList.add('focused'));
+            select.addEventListener('blur', () => trigger.classList.remove('focused'));
+            select.addEventListener('keydown', (e) => {
+                if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    trigger.click();
+                }
+            });
+
+            // Place wrapper where select was, and nest select inside wrapper
+            select.parentNode.insertBefore(wrapper, select);
+            wrapper.appendChild(select);
             wrapper.appendChild(trigger);
             wrapper.appendChild(dropdown);
-            select.parentNode.insertBefore(wrapper, select.nextSibling);
         });
 
         document.addEventListener('click', () => {
@@ -1141,8 +1211,32 @@
     form.addEventListener('submit', async function(e) {
         if (isSubmitting) { e.preventDefault(); return; }
 
+        // Trigger native HTML5 constraint validation first!
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            e.preventDefault();
+            return;
+        }
+
         // Wait for other sync validation handlers to run.
         if (e.defaultPrevented) return;
+
+        // Custom check for Star Rating (hidden input id_rating or id_rating_value)
+        const ratingInput = document.getElementById('id_rating') || document.getElementById('id_rating_value');
+        const ratingVal = parseInt(ratingInput ? ratingInput.value : '0', 10);
+        if (isNaN(ratingVal) || ratingVal < 1 || ratingVal > 5) {
+            e.preventDefault();
+            const ratingContainer = document.getElementById('starRating') || document.querySelector('.star-rating-container');
+            if (ratingContainer) {
+                ratingContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (window.showStyledAlert) {
+                await window.showStyledAlert("Rating Required", "Please select your rating (1 to 5 stars) before submitting your story.", "warning");
+            } else if (window.CustomPopup) {
+                await CustomPopup.alert("Please select your rating (1 to 5 stars) before submitting your story.", "Rating Required");
+            }
+            return;
+        }
 
         // Prevent default HTML form post
         e.preventDefault();

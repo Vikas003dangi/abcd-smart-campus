@@ -3582,14 +3582,13 @@ def admission_form_view(request):
                 'first_name': first_name,
                 'last_name': last_name,
                 'email': profile.email or profile.user.email,
-                'is_new_registration': 'False',
             }
             if remaining_service:
                 initial['service_type'] = remaining_service
 
             form = StudentProfileForm(instance=profile, initial=initial, user=request.user, disabled_services=disabled_services)
         else:
-            initial = {'is_new_registration': 'True', 'email': request.user.email or ''}
+            initial = {'email': request.user.email or ''}
             form = StudentProfileForm(initial=initial, user=request.user, disabled_services=disabled_services)
         return render(request, 'users/admission_form.html', {'form': form, 'existing_photo_url': existing_photo_url})
 

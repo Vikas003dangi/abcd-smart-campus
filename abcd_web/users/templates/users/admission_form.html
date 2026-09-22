@@ -492,6 +492,22 @@
             user-select: none;
         }
 
+        /* Native Select focusable overlay for HTML5 constraint validation */
+        select.abcd-custom-select-native {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            z-index: -1 !important;
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+
         .abcd-select-trigger {
             display: flex;
             align-items: center;
@@ -506,6 +522,20 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .abcd-select-trigger.select-invalid {
+            border-color: #ef4444 !important;
+            background: #fff5f5 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+            animation: abcdShake 0.35s ease-in-out;
+        }
+
+        @keyframes abcdShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-3px); }
         }
 
         .abcd-select-trigger:hover {
@@ -2166,13 +2196,16 @@
             document.querySelectorAll('select.form-control').forEach(select => {
                 if (select.dataset.customized) return;
                 select.dataset.customized = "true";
-                select.style.display = 'none';
+
+                // Native select stays accessible and focusable for HTML5 constraint validation
+                select.classList.add('abcd-custom-select-native');
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'abcd-select-wrapper';
 
                 const trigger = document.createElement('div');
                 trigger.className = 'abcd-select-trigger';
+                trigger.setAttribute('tabindex', '-1');
                 trigger.innerHTML = `<span>${select.options[select.selectedIndex]?.text || 'Select...'}</span><i class='bx bx-chevron-down'></i>`;
 
                 const dropdown = document.createElement('div');
@@ -2191,9 +2224,11 @@
                         dropdown.querySelectorAll('.abcd-select-option').forEach(o => o.classList.remove('selected'));
                         optDiv.classList.add('selected');
                         wrapper.classList.remove('open');
+                        trigger.classList.remove('select-invalid');
 
-                        // Trigger native change event
-                        select.dispatchEvent(new Event('change'));
+                        // Trigger native change and input events
+                        select.dispatchEvent(new Event('change', { bubbles: true }));
+                        select.dispatchEvent(new Event('input', { bubbles: true }));
                     });
                     dropdown.appendChild(optDiv);
                 });
@@ -2205,9 +2240,42 @@
                     if (!isOpen) wrapper.classList.add('open');
                 });
 
+                // HTML5 constraint validation failure hook
+                select.addEventListener('invalid', () => {
+                    trigger.classList.add('select-invalid');
+                    try {
+                        trigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } catch (err) {}
+                });
+
+                select.addEventListener('change', () => {
+                    if (select.value) {
+                        trigger.classList.remove('select-invalid');
+                    }
+                    if (select.selectedIndex >= 0) {
+                        const span = trigger.querySelector('span');
+                        if (span) span.textContent = select.options[select.selectedIndex]?.text || 'Select...';
+                        dropdown.querySelectorAll('.abcd-select-option').forEach(o => {
+                            o.classList.toggle('selected', o.dataset.value === select.value);
+                        });
+                    }
+                });
+
+                // Keyboard accessibility forwarding
+                select.addEventListener('focus', () => trigger.classList.add('focused'));
+                select.addEventListener('blur', () => trigger.classList.remove('focused'));
+                select.addEventListener('keydown', (e) => {
+                    if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        trigger.click();
+                    }
+                });
+
+                // Place wrapper where select was, and nest select inside wrapper
+                select.parentNode.insertBefore(wrapper, select);
+                wrapper.appendChild(select);
                 wrapper.appendChild(trigger);
                 wrapper.appendChild(dropdown);
-                select.parentNode.insertBefore(wrapper, select.nextSibling);
             });
 
             // Close all dropdowns when clicking outside
@@ -2291,7 +2359,7 @@
 
             // Synchronize custom select triggers with server pre-filled values
             document.querySelectorAll('select.form-control').forEach(select => {
-                const wrapper = select.nextElementSibling;
+                const wrapper = select.closest('.abcd-select-wrapper') || select.nextElementSibling;
                 if (wrapper && wrapper.classList.contains('abcd-select-wrapper')) {
                     const span = wrapper.querySelector('.abcd-select-trigger span');
                     if (span && select.selectedIndex >= 0) {
@@ -2328,6 +2396,14 @@
             // ═══════════════════════════════════════════════════════════════════
             if (admissionForm && serviceSelect && registrationTypeSelect) {
                 admissionForm.addEventListener('submit', function (e) {
+                    // Check HTML5 validity first - triggers native validation prompts if any required field is empty
+                    if (!admissionForm.checkValidity()) {
+                        admissionForm.reportValidity();
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+
                     const serviceValue = serviceSelect.value;
                     const isLibrary = serviceValue === 'Library' || serviceValue === 'Both';
                     if (!isLibrary) return; // Coaching only doesn't need seat validation

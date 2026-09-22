@@ -54,9 +54,13 @@ class StudentProfileForm(forms.ModelForm):
         widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter email address (optional)'})
     )
     is_new_registration = forms.ChoiceField(
-        choices=[('True', 'New Student'), ('False', 'Already Admitted Student')], 
+        choices=[
+            ('', 'Select Registration Type...'),
+            ('True', 'New Student'),
+            ('False', 'Already Admitted Student'),
+        ], 
         required=True,
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-control', 'required': 'required'})
     )
     confirmation = forms.BooleanField(
         required=True,
@@ -103,10 +107,10 @@ class StudentProfileForm(forms.ModelForm):
             'mobile_number', 'whatsapp_number', 'photo'
         ]
         widgets = {
-            'sex': forms.Select(attrs={'class': 'form-control'}),
+            'sex': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
             'sex_other': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Please specify your gender'}),
                        
-            'service_type': forms.Select(attrs={'class': 'form-control'}),
+            'service_type': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
             'batch': forms.Select(attrs={'class': 'form-control'}),
             'mobile_number': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -127,11 +131,18 @@ class StudentProfileForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        # Modify service_type choices dynamically
+        # Friendly empty choice prompts and required attributes
+        if 'sex' in self.fields:
+            self.fields['sex'].choices = [('', 'Select Gender...')] + list(StudentProfile.SEX_CHOICES)
+            self.fields['sex'].widget.attrs['required'] = 'required'
+
         if 'service_type' in self.fields:
-            orig_choices = self.fields['service_type'].choices
-            new_choices = [c for c in orig_choices if c[0] not in disabled_services]
-            self.fields['service_type'].choices = new_choices
+            orig_choices = [c for c in StudentProfile.SERVICE_CHOICES if c[0] not in disabled_services]
+            self.fields['service_type'].choices = [('', 'Select Service...')] + orig_choices
+            self.fields['service_type'].widget.attrs['required'] = 'required'
+
+        if 'batch' in self.fields:
+            self.fields['batch'].choices = [('', 'Select Coaching Batch...')] + list(StudentProfile.BATCH_CHOICES)
 
         if user:
             existing_ach = StudentAchievement.objects.filter(user=user).first()
@@ -494,14 +505,14 @@ class StudentAchievementForm(forms.ModelForm):
             'experience_feedback', 'rating', 'abcd_feedback'
         ]
         widgets = {
-            'dob': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'dob': forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'required': 'required'}),
             'photo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
-            'about_yourself': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Write something positive about yourself...'}),
-            'experience_feedback': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'How was your experience with us?'}),
-            'abcd_feedback': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Your feedback for ABCD...'}),
+            'about_yourself': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Write something positive about yourself...', 'required': 'required'}),
+            'experience_feedback': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'How was your experience with us?', 'required': 'required'}),
+            'abcd_feedback': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Your feedback for ABCD...', 'required': 'required'}),
             'rating': forms.HiddenInput(attrs={'id': 'id_rating_value'}), 
-            'gender': forms.Select(attrs={'class': 'form-control'}),
-            'services_used': forms.Select(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
+            'services_used': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -523,16 +534,16 @@ class StudentAchievementForm(forms.ModelForm):
             if existing_ach:
                 first_name = (existing_ach.first_name or '').strip()
                 last_name = (existing_ach.last_name or '').strip()
-                gender = existing_ach.gender
+                gender = existing_ach.gender or ''
                 dob = existing_ach.dob
                 mobile = existing_ach.mobile_number or ''
                 whatsapp = existing_ach.whatsapp_number or ''
             elif existing_prof:
                 first_name, *rest = (existing_prof.full_name or '').strip().split(' ', 1)
                 last_name = rest[0].strip() if rest else ''
-                gender = existing_prof.sex.capitalize() if existing_prof.sex else 'Male'
+                gender = existing_prof.sex.capitalize() if existing_prof.sex else ''
                 if gender not in ['Male', 'Female', 'Other']:
-                    gender = 'Male'
+                    gender = ''
                 dob = existing_prof.dob
                 mobile = existing_prof.mobile_number or ''
                 whatsapp = existing_prof.whatsapp_number or ''
@@ -563,6 +574,26 @@ class StudentAchievementForm(forms.ModelForm):
                     self.initial['email'] = (existing_ach.email if existing_ach and existing_ach.email else None) or \
                                             (existing_prof.email if existing_prof and existing_prof.email else None) or \
                                             (user.email if user.email else '')
+
+        # Set friendly choices and required attributes for dropdowns
+        if 'gender' in self.fields:
+            self.fields['gender'].choices = [
+                ('', 'Select Gender...'),
+                ('Male', 'Male'),
+                ('Female', 'Female'),
+                ('Other', 'Other')
+            ]
+            self.fields['gender'].widget.attrs['required'] = 'required'
+
+        if 'services_used' in self.fields:
+            self.fields['services_used'].choices = [
+                ('', 'Select Service Used...'),
+                ('library', 'Library'),
+                ('coaching', 'Coaching'),
+                ('both', 'Both')
+            ]
+            self.fields['services_used'].widget.attrs['required'] = 'required'
+
         # Apply form-control to all fields except photo
         for field_name, field in self.fields.items():
             if field_name != 'photo':
@@ -610,23 +641,26 @@ class EditAlumniProfileForm(forms.ModelForm):
             'experience_feedback', 'rating', 'abcd_feedback'
         ]
         widgets = {
-            'dob': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'dob': forms.DateInput(attrs={'type': 'date', 'class': 'form-control', 'required': 'required'}),
             'photo': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
             'about_yourself': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 3,
                 'placeholder': 'Write something positive about yourself...',
+                'required': 'required',
             }),
             'experience_feedback': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 3,
                 'placeholder': 'How was your experience with us?',
+                'required': 'required',
             }),
             'abcd_feedback': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 3,
                 'placeholder': 'Your feedback for ABCD...',
+                'required': 'required',
             }),
             'rating': forms.HiddenInput(attrs={'id': 'id_rating_value'}),
-            'gender': forms.Select(attrs={'class': 'form-control'}),
-            'services_used': forms.Select(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
+            'services_used': forms.Select(attrs={'class': 'form-control', 'required': 'required'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -635,6 +669,24 @@ class EditAlumniProfileForm(forms.ModelForm):
 
         if user_editing and not user_editing.is_staff:
             pass
+
+        if 'gender' in self.fields:
+            self.fields['gender'].choices = [
+                ('', 'Select Gender...'),
+                ('Male', 'Male'),
+                ('Female', 'Female'),
+                ('Other', 'Other')
+            ]
+            self.fields['gender'].widget.attrs['required'] = 'required'
+
+        if 'services_used' in self.fields:
+            self.fields['services_used'].choices = [
+                ('', 'Select Service Used...'),
+                ('library', 'Library'),
+                ('coaching', 'Coaching'),
+                ('both', 'Both')
+            ]
+            self.fields['services_used'].widget.attrs['required'] = 'required'
         for field_name, field in self.fields.items():
             if field_name != 'photo':
                 existing = field.widget.attrs.get('class', '')
