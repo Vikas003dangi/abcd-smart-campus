@@ -2400,7 +2400,8 @@
                     // Helper: block submit + play error sound + show popup
                     function blockSubmit(title, message, type) {
                         e.preventDefault();
-                        e.stopImmediatePropagation(); // stops the async handler too
+                        e.stopImmediatePropagation();
+                        window.__admissionValidationBlocked = true;
                         new Audio('/static/audio/error.mp3').play().catch(function(){});
                         window.showStyledPopup({ title: title, message: message, type: type || 'warning' });
                         return false;
@@ -2447,6 +2448,7 @@
                     if (invalidFields.length > 0) {
                         e.preventDefault();
                         e.stopImmediatePropagation();
+                        window.__admissionValidationBlocked = true;
                         new Audio('/static/audio/error.mp3').play().catch(function(){});
                         invalidFields[0].focus();
                         invalidFields[0].reportValidity();
@@ -2490,6 +2492,7 @@
                     if (!isNewStudent && isTemp) {
                         e.preventDefault();
                         e.stopImmediatePropagation();
+                        window.__admissionValidationBlocked = true;
                         // Auto-clear the invalid state
                         if (tempInput) tempInput.value = 'false';
                         if (currentSeatHidden) currentSeatHidden.value = '';
@@ -2551,21 +2554,18 @@
         form.addEventListener('submit', async function(e) {
             if (isSubmitting) { e.preventDefault(); return; }
 
-            // Guard: if any required custom dropdown is empty, bail silently here.
-            // The sync validator (registered after us) will show the popup.
-            const _sex = document.getElementById('id_sex');
-            const _svc = document.getElementById('id_service_type');
-            const _reg = document.getElementById('id_is_new_registration');
-            if ((_sex && !_sex.value) || (_svc && !_svc.value) || (_reg && !_reg.value)) {
-                e.preventDefault();
+            // Prevent the default HTML post immediately — we'll handle everything via fetch.
+            e.preventDefault();
+
+            // Yield to microtask queue so the sync validator (registered later via
+            // DOMContentLoaded) runs and sets the flag before we continue.
+            await Promise.resolve();
+
+            // The sync validator sets this flag when it blocks submission.
+            if (window.__admissionValidationBlocked) {
+                window.__admissionValidationBlocked = false;
                 return;
             }
-
-            // Wait for sync validation handlers (e.g. seat selection checks) to run.
-            if (e.defaultPrevented) return;
-
-            // Prevent default HTML full-page reload post
-            e.preventDefault();
 
             isSubmitting = true;
             if (submitBtn) {

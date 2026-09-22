@@ -1213,7 +1213,8 @@
 
         function blockSubmit(title, message, type) {
             e.preventDefault();
-            e.stopImmediatePropagation(); // stops the async handler below
+            e.stopImmediatePropagation();
+            window.__achievementValidationBlocked = true;
             new Audio('/static/audio/error.mp3').play().catch(function(){});
             window.showStyledPopup({ title: title, message: message, type: type || 'warning' });
             return false;
@@ -1249,6 +1250,7 @@
         if (invalidFields.length > 0) {
             e.preventDefault();
             e.stopImmediatePropagation();
+            window.__achievementValidationBlocked = true;
             new Audio('/static/audio/error.mp3').play().catch(function(){});
             invalidFields[0].focus();
             invalidFields[0].reportValidity();
@@ -1260,18 +1262,16 @@
     form.addEventListener('submit', async function(e) {
         if (isSubmitting) { e.preventDefault(); return; }
 
-        // Guard: bail silently if required custom dropdowns are empty.
-        // The sync validator (registered after us) will show the popup.
-        const _gender = document.getElementById('id_gender');
-        const _svc = document.getElementById('id_services_used');
-        if ((_gender && !_gender.value) || (_svc && !_svc.value)) {
-            e.preventDefault();
+        // Prevent the default HTML post immediately — we handle via fetch.
+        e.preventDefault();
+
+        // Yield to microtask queue so the sync validator runs and sets the flag.
+        await Promise.resolve();
+
+        if (window.__achievementValidationBlocked) {
+            window.__achievementValidationBlocked = false;
             return;
         }
-
-        // Sync validator already ran — if it blocked, this never fires.
-        // Wait for other sync validation handlers to run.
-        if (e.defaultPrevented) return;
 
         // Custom check for Star Rating (hidden input id_rating or id_rating_value)
         const ratingInput = document.getElementById('id_rating') || document.getElementById('id_rating_value');
