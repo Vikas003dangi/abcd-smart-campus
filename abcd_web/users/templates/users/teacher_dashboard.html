@@ -1565,7 +1565,7 @@
       height: 100vh;
       height: 100dvh;
       background: #fff;
-      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.18);
+      box-shadow: -4px 0 25px rgba(0, 0, 0, 0.15);
       z-index: 3000020 !important;
       transform: translate3d(100%, 0, 0);
       will-change: transform;
@@ -1578,6 +1578,7 @@
     body.dark-theme .teacher-notif-panel {
       background: #1c0f33;
       color: #f7f3ff;
+      box-shadow: -4px 0 30px rgba(0, 0, 0, 0.55);
     }
 
     .teacher-notif-panel.active {
@@ -1610,125 +1611,95 @@
     }
 
     .teacher-notif-header {
-      padding: 20px 22px;
+      padding: 18px 22px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #fff;
       flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
     .teacher-notif-header h3 {
       margin: 0;
       font-size: 1.15rem;
       font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffffff;
     }
 
     .teacher-notif-close-btn {
-      background: none;
-      border: none;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       color: #fff;
-      font-size: 1.6rem;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
       cursor: pointer;
-      opacity: 0.85;
       line-height: 1;
-      transition: opacity 0.2s;
+      transition: all 0.2s ease;
     }
 
     .teacher-notif-close-btn:hover {
-      opacity: 1;
+      background: #ef4444;
+      border-color: #ef4444;
+      transform: rotate(90deg);
     }
 
     .teacher-notif-body {
-      padding: 20px;
+      padding: 16px;
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch !important;
       overscroll-behavior: contain !important;
       touch-action: pan-y !important;
       flex: 1;
-    }
-
-    .teacher-notif-item {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 14px;
+      scrollbar-width: thin;
+      scrollbar-color: #a855f7 transparent;
+    }
+
+    .teacher-notif-body::-webkit-scrollbar {
+      width: 6px;
+    }
+    .teacher-notif-body::-webkit-scrollbar-thumb {
+      background: #a855f7;
+      border-radius: 10px;
+    }
+
+    .teacher-notif-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fee-expired-header-row {
+      display: flex;
       align-items: center;
-      padding: 12px 16px;
-      margin-bottom: 10px;
-      border-radius: 12px;
-      background: #f8f9ff;
-      border-left: 4px solid #667eea;
-      border-bottom: 1px solid #f1f5f9;
-      gap: 12px;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #fecdd3;
     }
-
-    body.dark-theme .teacher-notif-item {
-      background: #2a1a4a;
-      border-left-color: #7b61ff;
-      border-bottom-color: rgba(255, 255, 255, 0.05);
-    }
-
-    .teacher-notif-item .notif-text {
-      font-size: 0.92rem;
-      font-weight: 600;
-      color: #1e293b;
-    }
-
-    body.dark-theme .teacher-notif-item .notif-text {
-      color: #cbd5e1;
-    }
-
-    .teacher-notif-item .notif-text strong {
-      color: #764ba2;
-      font-size: 1.1rem;
-    }
-
-    body.dark-theme .teacher-notif-item .notif-text strong {
-      color: #b99af5;
-    }
-
-    .teacher-notif-empty {
-      text-align: center;
-      padding: 40px 20px;
-      font-size: 1rem;
-      color: #888;
-    }
-
-    /* Notification heading & messages styling */
-    .notif-title-inline {
-      font-weight: 600;
-      color: #0f172a;
-      font-size: 0.88rem;
-      letter-spacing: -0.2px;
-    }
-    body.dark-theme .notif-title-inline {
-      color: wheat;
-    }
-
-    .notif-message-inline {
-      font-size: 0.82rem;
-      color: #475569;
-      line-height: 1.4;
-    }
-    body.dark-theme .notif-message-inline {
-      color: #cbd5e1;
-    }
-
-    .notif-subtext {
-      color: #64748b;
-      font-size: 0.7rem;
-    }
-    body.dark-theme .notif-subtext {
-      color: #cbd5e1;
+    body.dark-theme .fee-expired-header-row {
+      border-bottom-color: rgba(239, 68, 68, 0.3);
     }
 
     .notif-sec-header {
-      margin: 15px 0 10px;
+      margin: 12px 0 8px;
       font-size: 0.85rem;
-      color: #526d82;
+      color: #475569;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      border-bottom: 1px solid #f0f0f0;
+      letter-spacing: 0.8px;
+      font-weight: 700;
+      border-bottom: 1px solid #e2e8f0;
       padding-bottom: 5px;
     }
     body.dark-theme .notif-sec-header {
@@ -1736,34 +1707,412 @@
       border-bottom-color: rgba(255, 255, 255, 0.1);
     }
     .notif-sec-header.overdue {
-      color: #e74c3c;
-      border-bottom-color: #fee2e2;
+      margin: 0;
+      color: #dc2626;
+      border-bottom: none;
+      padding-bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.92rem;
     }
     body.dark-theme .notif-sec-header.overdue {
       color: #f87171;
-      border-bottom-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .expired-count-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #ef4444;
+      color: #ffffff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.35);
+    }
+
+    /* Header buttons */
+    .notif-header-btn {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .notif-header-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .notif-header-btn.active {
+      background: #e2e8f0;
+      color: #1e293b;
+      border-color: #94a3b8;
+    }
+    .notif-header-btn.danger {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #dc2626;
+    }
+    .notif-header-btn.danger:hover {
+      background: #b91c1c;
+    }
+    body.dark-theme .notif-header-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    body.dark-theme .notif-header-btn:hover {
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+    }
+    body.dark-theme .notif-header-btn.active {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    body.dark-theme .notif-header-btn.danger {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #ef4444;
+    }
+
+    /* Fee Expired Student Item */
+    .teacher-notif-item.expired-fee-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid #fee2e2;
+      border-left: 4px solid #ef4444;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+    .teacher-notif-item.expired-fee-item:hover {
+      transform: translateX(-2px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+    }
+    body.dark-theme .teacher-notif-item.expired-fee-item {
+      background: #24143d;
+      border-color: rgba(239, 68, 68, 0.25);
+      border-left: 4px solid #ef4444;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    body.dark-theme .teacher-notif-item.expired-fee-item:hover {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      background: #2b1747;
+    }
+    .notif-avatar-container.expired-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid #ef4444;
+      margin-top: 0;
+    }
+    .expired-student-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+      gap: 2px;
+    }
+    .notif-service-line {
+      font-size: 0.74rem;
+      color: #64748b;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    body.dark-theme .notif-service-line {
+      color: #94a3b8 !important;
+    }
+    .notif-expiry-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #dc2626;
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      border-radius: 6px;
+      padding: 1px 6px;
+      width: fit-content;
+    }
+    body.dark-theme .notif-expiry-badge {
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+    .expired-student-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .notif-call-btn {
+      background: #16a34a;
+      color: #ffffff !important;
+      padding: 5px 10px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(22, 163, 74, 0.3);
+    }
+    .notif-call-btn:hover {
+      background: #15803d;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(22, 163, 74, 0.4);
+    }
+    .notif-msg-btn {
+      background: #25D366;
+      color: #ffffff !important;
+      padding: 5px 10px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(37, 211, 102, 0.3);
+    }
+    .notif-msg-btn:hover {
+      background: #20ba59;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(37, 211, 102, 0.4);
+    }
+
+    /* Tasks items */
+    .teacher-notif-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #667eea;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+
+    body.dark-theme .teacher-notif-item {
+      background: #24143d;
+      border-color: rgba(255, 255, 255, 0.08);
+      border-left-color: #7b61ff;
+    }
+
+    .teacher-notif-item .notif-text {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    body.dark-theme .teacher-notif-item .notif-text {
+      color: #f1f5f9;
+    }
+
+    .teacher-notif-item .notif-text strong {
+      color: #4f46e5;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    body.dark-theme .teacher-notif-item .notif-text strong {
+      color: #a78bfa;
+    }
+
+    .notif-jump-btn {
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .notif-jump-btn:hover {
+      background: #4338ca;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+    }
+    body.dark-theme .notif-jump-btn {
+      background: #7c3aed;
+      color: #ffffff;
+    }
+    body.dark-theme .notif-jump-btn:hover {
+      background: #6d28d9;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+    }
+
+    .teacher-notif-empty {
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 0.95rem;
+      color: #64748b;
+    }
+    body.dark-theme .teacher-notif-empty {
+      color: #94a3b8;
+    }
+
+    /* Notification heading & messages styling */
+    .notif-title-inline {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 0.88rem;
+      letter-spacing: -0.2px;
+    }
+    body.dark-theme .notif-title-inline {
+      color: #f8fafc !important;
+    }
+
+    .notif-message-inline {
+      font-size: 0.82rem;
+      color: #475569;
+      line-height: 1.45;
+    }
+    body.dark-theme .notif-message-inline {
+      color: #cbd5e1;
+    }
+
+    .notif-subtext {
+      color: #64748b;
+      font-size: 0.72rem;
+    }
+    body.dark-theme .notif-subtext {
+      color: #94a3b8 !important;
+    }
+
+    .notif-time {
+      color: #64748b;
+      font-size: 0.68rem;
+      font-weight: 500;
+    }
+    body.dark-theme .notif-time {
+      color: #94a3b8;
+    }
+
+    /* Bulk actions toolbar */
+    .notif-bulk-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    body.dark-theme .notif-bulk-actions {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+    .notif-select-all-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: #334155;
+    }
+    body.dark-theme .notif-select-all-label {
+      color: #e2e8f0;
+    }
+
+    /* Action buttons in toolbar */
+    .notif-action-btn {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .notif-action-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .notif-action-btn.delete {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+    .notif-action-btn.delete:hover {
+      background: #fecdd3;
+      color: #b91c1c;
+    }
+    body.dark-theme .notif-action-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    body.dark-theme .notif-action-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+    body.dark-theme .notif-action-btn.delete {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    body.dark-theme .notif-action-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.25);
+      color: #fca5a5;
     }
 
     /* Notification lists */
     .teacher-notif-panel .notif-item {
       display: flex;
       align-items: flex-start;
-      gap: 8px;
-      padding: 10px;
-      border-bottom: 1px solid #f1f5f9;
+      gap: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid #edf2f7;
       position: relative;
-      transition: background 0.2s;
+      transition: all 0.2s ease;
     }
     body.dark-theme .teacher-notif-panel .notif-item {
-      border-bottom-color: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.07);
     }
     .teacher-notif-panel .notif-item.unread {
-      background: rgba(102, 126, 234, 0.05);
-      border-left: 3px solid #667eea;
+      background: #f8faff;
+      border-left: 3px solid #6366f1;
     }
     body.dark-theme .teacher-notif-panel .notif-item.unread {
-      background: rgba(123, 97, 255, 0.08);
-      border-left-color: #7b61ff;
+      background: rgba(99, 102, 241, 0.1);
+      border-left: 3px solid #8b5cf6;
     }
 
     /* Profile info drawer avatar styling */
@@ -1782,83 +2131,114 @@
       border-color: rgba(255, 255, 255, 0.1);
     }
 
-    /* Action buttons dark-theme support */
-    body.dark-theme .notif-action-btn {
-      background: rgba(255, 255, 255, 0.08);
-      color: #cbd5e1;
+    .notif-item-delete-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 3px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      line-height: 1;
+      transition: all 0.2s ease;
     }
-    body.dark-theme .notif-action-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
+    .notif-item-delete-btn:hover {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
     }
-    body.dark-theme .notif-action-btn.delete {
+    body.dark-theme .notif-item-delete-btn {
+      color: #64748b;
+    }
+    body.dark-theme .notif-item-delete-btn:hover {
       color: #f87171;
-      background: rgba(239, 68, 68, 0.15);
-      border-color: rgba(239, 68, 68, 0.3);
-    }
-    body.dark-theme .notif-action-btn.delete:hover {
-      background: rgba(239, 68, 68, 0.25);
+      background: rgba(239, 68, 68, 0.2);
     }
 
     /* Action pills styling */
     .notif-action-pill {
-      font-size: 0.72rem;
+      font-size: 0.74rem;
       padding: 3px 10px;
-      border-radius: 4px;
+      border-radius: 6px;
       text-decoration: none;
       font-weight: 600;
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      transition: all 0.2s ease;
     }
     .notif-action-pill.pill-gray {
-      background: #f8fafc;
-      color: #64748b;
+      background: #f1f5f9;
+      color: #475569;
       border: 1px solid #e2e8f0;
-    }
-    body.dark-theme .notif-action-pill.pill-gray {
-      background: rgba(255, 255, 255, 0.05);
-      color: #cbd5e1;
-      border-color: rgba(255, 255, 255, 0.1);
     }
     .notif-action-pill.pill-gray:hover {
       background: #e2e8f0;
-      color: #334155;
+      color: #1e293b;
+    }
+    body.dark-theme .notif-action-pill.pill-gray {
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      border-color: rgba(255, 255, 255, 0.15);
     }
     body.dark-theme .notif-action-pill.pill-gray:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
     }
     .notif-action-pill.pill-blue {
       background: #eff6ff;
       color: #2563eb;
-      border: 1px solid #dbeafe;
-    }
-    body.dark-theme .notif-action-pill.pill-blue {
-      background: rgba(37, 99, 235, 0.15);
-      color: #60a5fa;
-      border-color: rgba(37, 99, 235, 0.3);
+      border: 1px solid #bfdbfe;
     }
     .notif-action-pill.pill-blue:hover {
       background: #dbeafe;
+      color: #1d4ed8;
+    }
+    body.dark-theme .notif-action-pill.pill-blue {
+      background: rgba(37, 99, 235, 0.2);
+      color: #60a5fa;
+      border-color: rgba(37, 99, 235, 0.4);
     }
     body.dark-theme .notif-action-pill.pill-blue:hover {
-      background: rgba(37, 99, 235, 0.25);
+      background: rgba(37, 99, 235, 0.3);
+      color: #93c5fd;
     }
     .notif-action-pill.pill-green {
       background: #ecfdf5;
       color: #059669;
-      border: 1px solid #d1fae5;
-    }
-    body.dark-theme .notif-action-pill.pill-green {
-      background: rgba(5, 150, 105, 0.15);
-      color: #34d399;
-      border-color: rgba(5, 150, 105, 0.3);
+      border: 1px solid #a7f3d0;
     }
     .notif-action-pill.pill-green:hover {
       background: #d1fae5;
+      color: #047857;
+    }
+    body.dark-theme .notif-action-pill.pill-green {
+      background: rgba(5, 150, 105, 0.2);
+      color: #34d399;
+      border-color: rgba(5, 150, 105, 0.4);
     }
     body.dark-theme .notif-action-pill.pill-green:hover {
-      background: rgba(5, 150, 105, 0.25);
+      background: rgba(5, 150, 105, 0.3);
+      color: #6ee7b7;
+    }
+
+    body.dark-theme #dismissExpiredModal {
+      background: #1c0f33;
+      color: #f8fafc;
+    }
+    body.dark-theme #dismissExpiredModalText {
+      color: #f8fafc !important;
+    }
+    body.dark-theme #dismissExpiredModal small {
+      color: #94a3b8 !important;
+    }
+    body.dark-theme #dismissExpiredModal .modal-header {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+    body.dark-theme #dismissExpiredModal .modal-footer {
+      border-top-color: rgba(255, 255, 255, 0.1);
     }
 
     @media (max-width: 480px) {
@@ -12573,15 +12953,15 @@
       if (data.overdue_students && data.overdue_students.length > 0) {
         html += `
           <div class="teacher-notif-section" id="feeExpiredSection">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #fecdd3;">
-              <h4 class="notif-sec-header overdue" style="margin: 0; display: flex; align-items: center; gap: 6px; color: #dc2626; font-size: 0.95rem;">
-                ⚠️ Fee Expired List <span id="expiredBadgeCount" class="badge" style="font-size: 0.75rem; background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px;">${data.overdue_students.length}</span>
+            <div class="fee-expired-header-row">
+              <h4 class="notif-sec-header overdue">
+                ⚠️ Fee Expired List <span id="expiredBadgeCount" class="expired-count-badge">${data.overdue_students.length}</span>
               </h4>
               <div style="display: flex; gap: 6px; align-items: center;">
-                <button type="button" id="toggleExpiredSelectBtn" onclick="toggleExpiredSelectMode()" style="background: #e2e8f0; color: #334155; border: none; border-radius: 12px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <button type="button" id="toggleExpiredSelectBtn" class="notif-header-btn" onclick="toggleExpiredSelectMode()">
                   Select
                 </button>
-                <button type="button" id="deleteExpiredBtn" onclick="confirmDeleteExpiredFeeAlerts()" style="display: none; background: #dc2626; color: white; border: none; border-radius: 12px; padding: 3px 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <button type="button" id="deleteExpiredBtn" class="notif-header-btn danger" onclick="confirmDeleteExpiredFeeAlerts()" style="display: none;">
                   <i class='bx bx-trash'></i> Delete
                 </button>
               </div>
@@ -12593,26 +12973,40 @@
           const rawNum = s.whatsapp_number || s.mobile_number || '';
           const cleanWaNum = rawNum.replace(/\D/g, '');
           const waUrl = cleanWaNum ? `https://wa.me/91${cleanWaNum}` : `tel:${s.mobile_number}`;
-          const serviceSubtext = s.service_details || `${s.service_type} (Exp: ${s.fee_expiry_date})`;
+
+          let serviceName = s.service_type || 'Service';
+          let expiryDate = s.fee_expiry_date || '';
+          if (s.service_details && s.service_details.includes(' • Expired: ')) {
+            const parts = s.service_details.split(' • Expired: ');
+            serviceName = parts[0];
+            expiryDate = parts[1] || s.fee_expiry_date;
+          } else if (s.service_details && s.service_details.includes(' • Exp: ')) {
+            const parts = s.service_details.split(' • Exp: ');
+            serviceName = parts[0];
+            expiryDate = parts[1] || s.fee_expiry_date;
+          } else if (s.service_details) {
+            serviceName = s.service_details;
+          }
 
           html += `
-            <div class="teacher-notif-item expired-fee-item" data-student-id="${s.id}" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid rgba(0,0,0,0.06); transition: all 0.2s ease;">
+            <div class="teacher-notif-item expired-fee-item" data-student-id="${s.id}">
               <input type="checkbox" class="expired-fee-checkbox" value="${s.id}" onchange="updateExpiredDeleteBtnState()" style="display: none; transform: scale(1.15); cursor: pointer; margin-right: 2px;">
               
-              <div class="notif-avatar-container" style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 2px solid #ef4444;">
+              <div class="notif-avatar-container expired-avatar">
                 <img src="${s.photo_url || '/static/data/default_avatar.png'}" alt="${formattedName}" style="width: 100%; height: 100%; object-fit: cover;">
               </div>
 
-              <div style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
-                <span class="notif-title-inline" style="font-size: 0.88rem; font-weight: 700; color: var(--text-color, #1e293b);">${formattedName}</span>
-                <small class="notif-subtext" style="font-size: 0.72rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${serviceSubtext}</small>
+              <div class="expired-student-info">
+                <span class="notif-title-inline">${formattedName}</span>
+                <span class="notif-service-line" title="${serviceName}">${serviceName}</span>
+                <span class="notif-expiry-badge"><i class='bx bx-time-five'></i> Expired: ${expiryDate}</span>
               </div>
 
-              <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                <a href="tel:${s.mobile_number}" class="notif-action-btn call" title="Call ${formattedName}" style="background: #22c55e; color: white; padding: 4px 10px; border-radius: 14px; text-decoration: none; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 3px; font-weight: 600;">
+              <div class="expired-student-actions">
+                <a href="tel:${s.mobile_number}" class="notif-call-btn" title="Call ${formattedName}">
                   <i class='bx bx-phone'></i> Call
                 </a>
-                <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="notif-action-btn msg" title="Message ${formattedName}" style="background: #25D366; color: white; padding: 4px 10px; border-radius: 14px; text-decoration: none; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 3px; font-weight: 600;">
+                <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="notif-msg-btn" title="Message ${formattedName}">
                   <i class='bx bxl-whatsapp'></i> Msg
                 </a>
               </div>
@@ -12623,22 +13017,15 @@
       }
 
       // 2. Pending Tasks section
-      html += `
-        <div class="teacher-notif-section">
-          <h4 class="notif-sec-header">
-            📋 Tasks
-          </h4>
-      `;
-
       const hasTasks = data.total_admission_requests > 0 || data.total_hold_requests > 0 || data.total_pending_achievements > 0 || data.pending_complaints_count > 0;
       
-      if (!hasTasks && (!data.overdue_students || data.overdue_students.length === 0)) {
+      if (hasTasks) {
         html += `
-          <div class="teacher-notif-empty">
-            ✅ All tasks are up to date!<br><small style="color:#aaa;">No pending admissions, holds or complaints.</small>
-          </div>
+          <div class="teacher-notif-section">
+            <h4 class="notif-sec-header">
+              📋 Tasks
+            </h4>
         `;
-      } else {
         if (data.total_admission_requests > 0) {
           html += `
             <div class="teacher-notif-item">
@@ -12671,8 +13058,16 @@
             </div>
           `;
         }
+        html += `</div>`;
+      } else if ((!data.overdue_students || data.overdue_students.length === 0) && (!data.notifications || data.notifications.length === 0)) {
+        html += `
+          <div class="teacher-notif-empty">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">✅</div>
+            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">All caught up!</div>
+            <small style="color: #94a3b8;">No pending admissions, holds or complaints.</small>
+          </div>
+        `;
       }
-      html += `</div>`;
 
       // 3. System Alerts / Notifications section
       if (data.notifications && data.notifications.length > 0) {
@@ -12683,23 +13078,23 @@
             </h4>
             <form id="bulkNotifForm" method="POST" action="/notifications/bulk-delete/" onsubmit="deleteSelectedTeacherNotifs(event); return false;">
               <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-              <div class="notif-bulk-actions" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; cursor: pointer;">
+              <div class="notif-bulk-actions">
+                <label class="notif-select-all-label">
                   <input type="checkbox" id="selectAllNotifs"> Select All
                 </label>
-                <div style="display: flex; gap: 12px;">
+                <div style="display: flex; gap: 8px;">
                   <button type="button" id="markUnreadBtn" onclick="markSelectedUnread()" class="notif-action-btn"><i class='bx bx-undo'></i> Mark Unread</button>
                   <button type="submit" class="notif-action-btn delete"><i class='bx bx-trash'></i> Delete Selected</button>
                 </div>
               </div>
-              <ul class="notification-list" style="list-style: none; padding: 0;">
+              <ul class="notification-list" style="list-style: none; padding: 0; margin: 0;">
         `;
 
         data.notifications.forEach(n => {
           html += `
             <li id="notif-${n.id}" class="notif-item ${!n.is_read ? 'unread' : ''}">
-              <input type="checkbox" name="notification_ids" value="${n.id}" class="notif-checkbox" style="margin-top: 3px; transform: scale(0.9);">
-              <div style="display: flex; gap: 10px; flex: 1;">
+              <input type="checkbox" name="notification_ids" value="${n.id}" class="notif-checkbox" style="margin-top: 4px; transform: scale(1.05); cursor: pointer;">
+              <div style="display: flex; gap: 10px; flex: 1; min-width: 0;">
           `;
 
           if (n.student_obj) {
@@ -12707,13 +13102,13 @@
               <div class="notif-avatar-container">
                 <img src="${n.student_obj.photo_url || '/static/data/default_avatar.png'}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
               </div>
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                   <span class="notif-title-inline">${n.student_obj.full_name}</span>
-                  <small style="color: #94a3b8; font-size: 0.65rem;">${n.created_at_time}</small>
+                  <small class="notif-time">${n.created_at_time}</small>
                 </div>
                 <div class="notif-message-inline" style="margin-bottom: 6px;">${n.message}</div>
-                <div style="display: flex; gap: 6px;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
             `;
 
             if (n.category === 'fee_teacher' && n.meta.student_id) {
@@ -12749,10 +13144,10 @@
               }
             }
             html += `
-              <div style="flex: 1;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                   <span class="notif-title-inline">${n.title}</span>
-                  <small style="color: #94a3b8; font-size: 0.65rem;">${n.created_at_date}</small>
+                  <small class="notif-time">${n.created_at_date}</small>
                 </div>
                 <div class="notif-message-inline" style="margin-top: 2px;">${n.message}</div>
                 ${actionHtml}
@@ -12762,8 +13157,8 @@
 
           html += `
               </div>
-              <button type="button" onclick="deleteNotification('${n.id}')" style="background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; transition: color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'" title="Delete">
-                <i class='bx bx-x' style="font-size: 20px;"></i>
+              <button type="button" onclick="deleteNotification('${n.id}')" class="notif-item-delete-btn" title="Delete">
+                <i class='bx bx-x'></i>
               </button>
             </li>
           `;
@@ -12820,7 +13215,11 @@
 
       if (selectBtn) {
         selectBtn.textContent = isExpiredSelectMode ? 'Cancel' : 'Select';
-        selectBtn.style.background = isExpiredSelectMode ? '#cbd5e1' : '#e2e8f0';
+        if (isExpiredSelectMode) {
+          selectBtn.classList.add('active');
+        } else {
+          selectBtn.classList.remove('active');
+        }
       }
 
       checkboxes.forEach(cb => {
@@ -12832,7 +13231,6 @@
         deleteBtn.style.display = 'none';
       } else {
         updateExpiredDeleteBtnState();
-      }
     }
 
     function updateExpiredDeleteBtnState() {

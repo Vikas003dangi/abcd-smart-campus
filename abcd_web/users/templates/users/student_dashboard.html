@@ -1431,7 +1431,33 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      transition: color 0.2s;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .notif-bulk-btn.unread-btn {
+      color: #6366f1;
+    }
+    .notif-bulk-btn.unread-btn:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+    body.dark-theme .notif-bulk-btn.unread-btn {
+      color: #a5b4fc;
+    }
+    body.dark-theme .notif-bulk-btn.unread-btn:hover {
+      background: rgba(99, 102, 241, 0.2);
+    }
+    .notif-bulk-btn.delete-btn {
+      color: #ef4444;
+    }
+    .notif-bulk-btn.delete-btn:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
+    body.dark-theme .notif-bulk-btn.delete-btn {
+      color: #f87171;
+    }
+    body.dark-theme .notif-bulk-btn.delete-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
     }
 
     /* Scrollable body */
@@ -1510,7 +1536,7 @@
       color: #1e293b;
     }
 
-    body.dark-theme .notif-title { color: wheat; }
+    body.dark-theme .notif-title { color: #f8fafc !important; }
 
     .notif-message p {
       font-size: 0.88rem;
@@ -5067,11 +5093,11 @@
           <input type="checkbox" id="selectAllNotifs" style="width: 15px; height: 15px;"> All
         </label>
       </div>
-      <div style="display: flex; gap: 15px;">
-        <button type="button" id="markUnreadBtn" onclick="markSelectedUnread()" class="notif-bulk-btn" style="color: #6366f1;">
+      <div style="display: flex; gap: 10px;">
+        <button type="button" id="markUnreadBtn" onclick="markSelectedUnread()" class="notif-bulk-btn unread-btn">
           <i class='bx bx-undo'></i> Mark Unread
         </button>
-        <button type="button" onclick="deleteSelectedNotifs()" class="notif-bulk-btn" style="color: #ef4444;">
+        <button type="button" onclick="deleteSelectedNotifs()" class="notif-bulk-btn delete-btn">
           <i class='bx bx-trash'></i> Delete Selected
         </button>
       </div>

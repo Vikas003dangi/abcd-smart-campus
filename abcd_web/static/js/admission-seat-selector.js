@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const button = document.createElement('button');
         button.setAttribute('type', 'button');
         button.setAttribute('id', 'openSeatModalBtn');
-        button.textContent = 'Select Seat Preference';
+        button.textContent = 'Choose Seat / Shift';
         button.className = 'btn btn-primary';
         button.style.width = '100%';
         button.style.padding = '12px';
@@ -216,9 +216,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isLibrary) {
             if (isNewStudent) {
-                openModalButton.textContent = 'Select Seat Preference';
+                openModalButton.textContent = 'Choose Seat / Shift';
             } else {
-                openModalButton.textContent = 'Choose Your Occupied Seat';
+                openModalButton.textContent = 'Choose Your Occupied Seat / Shift';
             }
             openModalButton.style.display = 'block';
         } else {
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Reset button
             if (openModalButton) {
-                openModalButton.textContent = isNewStudent ? 'Select Seat Preference' : 'Choose Your Occupied Seat';
+                openModalButton.textContent = isNewStudent ? 'Choose Seat / Shift' : 'Choose Your Occupied Seat / Shift';
                 openModalButton.style.background = '';
                 openModalButton.style.borderColor = '';
             }
@@ -2143,7 +2143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const isNewStudent = registrationTypeSelect.value === 'True';
-            openModalButton.textContent = isNewStudent ? 'Select Seat Preference' : 'Choose/Change Your Occupied Seat';
+            openModalButton.textContent = isNewStudent ? 'Choose Seat / Shift' : 'Choose Your Occupied Seat / Shift';
             openModalButton.style.background = '';
             openModalButton.style.borderColor = '';
 
