@@ -2551,6 +2551,16 @@
         form.addEventListener('submit', async function(e) {
             if (isSubmitting) { e.preventDefault(); return; }
 
+            // Guard: if any required custom dropdown is empty, bail silently here.
+            // The sync validator (registered after us) will show the popup.
+            const _sex = document.getElementById('id_sex');
+            const _svc = document.getElementById('id_service_type');
+            const _reg = document.getElementById('id_is_new_registration');
+            if ((_sex && !_sex.value) || (_svc && !_svc.value) || (_reg && !_reg.value)) {
+                e.preventDefault();
+                return;
+            }
+
             // Wait for sync validation handlers (e.g. seat selection checks) to run.
             if (e.defaultPrevented) return;
 

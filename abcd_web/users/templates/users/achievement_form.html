@@ -1260,6 +1260,15 @@
     form.addEventListener('submit', async function(e) {
         if (isSubmitting) { e.preventDefault(); return; }
 
+        // Guard: bail silently if required custom dropdowns are empty.
+        // The sync validator (registered after us) will show the popup.
+        const _gender = document.getElementById('id_gender');
+        const _svc = document.getElementById('id_services_used');
+        if ((_gender && !_gender.value) || (_svc && !_svc.value)) {
+            e.preventDefault();
+            return;
+        }
+
         // Sync validator already ran — if it blocked, this never fires.
         // Wait for other sync validation handlers to run.
         if (e.defaultPrevented) return;
