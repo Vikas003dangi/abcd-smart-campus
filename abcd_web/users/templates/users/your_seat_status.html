@@ -56,41 +56,23 @@
             font-family: Arial, Helvetica, sans-serif;
             min-height: 100vh;
             padding: 20px;
-            position: relative;
-            background-color: #fff2de;
+            background: linear-gradient(to top, #112a3b, #5683a1a6, #fff2de);
+            background-attachment: fixed;
             color: #1e293b;
         }
 
-        body::before,
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        body::before {
-            background: linear-gradient(to top, #112a3b, #5683a1a6, #fff2de);
-        }
-
-        body::after {
-            background: linear-gradient(to top, #140570, #300448da, #17022c);
-            opacity: 0;
-            transition: opacity 0.25s ease;
-            will-change: opacity;
-        }
-
-        body.dark-theme::after {
-            opacity: 1;
-        }
-
         body.dark-theme {
-            background-color: #17022c;
+            background: linear-gradient(to top, #140570, #300448da, #17022c);
+            background-attachment: fixed;
             color: #fff;
+        }
+
+        /* Prevent 500+ seat grid transition storm during theme toggle for instant 60 FPS switching */
+        .seat, .seat-number, .seat-label, .seat-icon-group, .lamp-icon, .seat-morning, .seat-evening, .seat-half {
+            transition: transform 0.18s ease, opacity 0.18s ease !important;
+        }
+        .seat:hover, .seat-number:hover {
+            transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease !important;
         }
 
         .container {
@@ -103,7 +85,7 @@
             box-shadow: 0 15px 45px rgba(0, 0, 0, 0.18);
             overflow: visible;
             border: 1px solid transparent;
-            transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
 
         body.dark-theme .container {
@@ -132,7 +114,7 @@
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
             border-radius: 50px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
             box-sizing: border-box;
         }
 
@@ -940,7 +922,7 @@
             font-weight: 700;
             font-size: 0.92rem;
             cursor: pointer;
-            transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
             box-shadow: 0 2px 6px rgba(0,0,0,0.05);
         }
         .floor-custom-trigger:hover {
@@ -1557,7 +1539,7 @@
             cursor: pointer;
             z-index: 1000;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
         }
 
         body.dark-theme .theme-toggle-fixed {
@@ -3460,7 +3442,7 @@
             justify-content: space-between;
             gap: 16px;
             box-shadow: 0 4px 14px rgba(99, 102, 241, 0.08);
-            transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+            transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
 
         body.dark-theme .pending-switch-card {
@@ -3756,7 +3738,7 @@
             const icon = document.getElementById('themeIcon');
             if (icon) icon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
             if (typeof window.syncThemeColor === 'function') {
-                window.syncThemeColor();
+                requestAnimationFrame(() => window.syncThemeColor());
             }
         }
         const savedTheme = localStorage.getItem('theme');
