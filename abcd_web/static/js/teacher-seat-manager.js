@@ -2608,9 +2608,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${tempPhotoHtml}
                         <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Fully Occupied (Temp) by <strong>${escapeHTML(abcdFormatName(a.student_name))}</strong></p>
                     </div>
-                </div>
+                </div>`;
+
+                const studentDetailUrl = (typeof STUDENT_DETAILS_URL_BASE !== 'undefined' && STUDENT_DETAILS_URL_BASE)
+                    ? STUDENT_DETAILS_URL_BASE.replace('/0/', `/${encodeURIComponent(a.student_id)}/`)
+                    : `/teacher/student/${encodeURIComponent(a.student_id)}/`;
+
+                content += `
                 <div class="modal-actions-row small-gap">
-                    <a href="/student/${encodeURIComponent(a.student_id)}" target="_blank" class="btn-action btn-sm btn-info" style="text-decoration:none;">View Temp</a>
+                    <a href="${studentDetailUrl}" target="_blank" class="btn-action btn-sm btn-info" style="text-decoration:none;"><i class='bx bx-user' style="margin-right:4px;"></i>View Student</a>
                     ${morningOwner ? btn('End M-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: morningOwner.student_id }) : ''}
                     ${eveningOwner ? btn('End E-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: eveningOwner.student_id }) : ''}
                     ${fullOwner ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: fullOwner.student_id }) : ''}
@@ -2982,6 +2988,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Seat Action Handler (Window level) ---
   window.handleSeatAction = async function (action, payload) {
     console.log('Action:', action, payload);
+
+    if (action === 'view_student') {
+      const sId = payload && payload.student_id;
+      if (sId) {
+        const url = (typeof STUDENT_DETAILS_URL_BASE !== 'undefined' && STUDENT_DETAILS_URL_BASE)
+          ? STUDENT_DETAILS_URL_BASE.replace('/0/', `/${encodeURIComponent(sId)}/`)
+          : `/teacher/student/${encodeURIComponent(sId)}/`;
+        window.open(url, '_blank');
+      }
+      return;
+    }
 
     if (action === 'view_scheduled_hold') {
       const p = payload || {};
