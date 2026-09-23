@@ -1937,6 +1937,7 @@
 
         <main class="content-body">
             <!-- Seat Hold Request Section -->
+            <!-- Seat Hold Request Section -->
             <section class="hold-section">
                 <h3>Your Seat Hold & Change Requests</h3>
 
@@ -1949,6 +1950,19 @@
                         </div>
                     </div>
                     <button type="button" class="btn-cancel-pending" onclick="cancelPendingSwitch()">Cancel Request</button>
+                </div>
+                {% endif %}
+
+                {% if pending_leave %}
+                <div class="pending-switch-card" style="border-left: 4px solid #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #fff 100%);">
+                    <div class="pending-switch-info">
+                        <i class='bx bx-log-out-circle' style="color: #ef4444; font-size: 2rem;"></i>
+                        <div class="pending-switch-text">
+                            Your request to <strong>leave / withdraw</strong> from temporary seat <strong>{% if seat.floor == 'Ground Floor' %}G{% else %}F{% endif %}-{{ seat.seat_number }}</strong> ({{ shift|capfirst }}) is pending teacher review.
+                            <div style="font-size: 0.85rem; color: #dc2626; margin-top: 4px;">Once accepted, your temporary allotment will end and you will have no seat assigned.</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-cancel-pending" style="border-color: #ef4444; color: #ef4444;" onclick="cancelPendingLeave()">Cancel Request</button>
                 </div>
                 {% endif %}
 
@@ -2018,19 +2032,36 @@
                         <button class="btn-end-hold" onclick="requestEndHold()">Request End Hold Early</button>
                     </div>
                 </div>
+                {% endif %}
+
+                {% if has_pending_request %}
+                <div class="single-request-notice" style="background: rgba(245, 158, 11, 0.08); border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 14px 18px; margin-top: 20px; display: flex; align-items: center; gap: 12px; color: #b45309; font-weight: 600; font-size: 0.95rem;">
+                    <i class='bx bx-info-circle' style="font-size: 1.6rem; flex-shrink: 0; color: #f59e0b;"></i>
+                    <div>
+                        You can only have one active request at a time. To send a different request, please cancel your pending request first or wait for teacher review.
+                    </div>
+                </div>
                 {% else %}
                 <div class="hold-switch-actions">
+                    {% if is_temporary_student %}
+                    <button class="hold-expand-btn btn-leave-seat" id="toggleLeaveSeatBtn" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);" onclick="requestLeaveSeat()">
+                        <i class='bx bx-log-out-circle'></i>
+                        <span>Request to Leave / Withdraw Seat</span>
+                    </button>
+                    {% else %}
                     <button class="hold-expand-btn" id="toggleHoldBtn">
                         <i class='bx bxs-lock-alt'></i>
                         <span>Put the seat on Hold</span>
                         <i class='bx bx-chevron-down chevron' style="margin-left: auto;"></i>
                     </button>
+                    {% endif %}
                     <button class="hold-expand-btn btn-switch-seat" id="toggleSwitchSeatBtn" style="background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);">
                         <i class='bx bx-transfer'></i>
                         <span>Request TO Switch Seat</span>
                     </button>
                 </div>
 
+                {% if not is_temporary_student %}
                 <div class="expandable-container" id="holdFormContainer">
                     <form id="holdForm" autocomplete="off">
                         <div class="form-group">
@@ -2057,6 +2088,7 @@
                     </form>
                 </div>
                 {% endif %}
+                {% endif %}
             </section>
 
             <!-- Library Layout Section -->
@@ -2066,7 +2098,13 @@
                         <h3>Live Library Status</h3>
                         <p class="seat-info-line">
                             Your Seat: <span style="color: #764ba2;">{{ seat.seat_number }}</span> | 
-                            Floor: <span style="color: #764ba2;">{{ seat.floor }}</span>
+                            Floor: <span style="color: #764ba2;">{{ seat.floor }}</span> |
+                            Shift: <span style="color: #764ba2;">{{ shift|capfirst }}</span>
+                            {% if is_temporary_student %}
+                            <span style="background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8; font-size: 0.78rem; padding: 2px 9px; border-radius: 12px; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class='bx bx-time-five'></i> Temporary Allotment
+                            </span>
+                            {% endif %}
                         </p>
                     </div>
                     <div class="layout-header-right">
@@ -3336,6 +3374,87 @@
                 }
             });
         };
+
+        async function requestLeaveSeat() {
+            const confirmed = await window.showStyledConfirm(
+                'Request to Leave / Withdraw Seat',
+                'Are you sure you want to request to <b>withdraw / leave</b> from seat <b>{% if seat.floor == "Ground Floor" %}G{% else %}F{% endif %}-{{ seat.seat_number }}</b> ({{ shift|capfirst }})?<br><br><span style="color:#ef4444;font-size:0.9rem;">⚠️ <b>Note:</b> As a temporary student, once the teacher approves this request, your temporary seat assignment will end and you will have no seat assigned.</span>',
+                true
+            );
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch("{% url 'users:api_request_seat_leave' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStyledPopup({
+                        title: 'Success',
+                        message: data.message || 'Your leave request has been submitted successfully.',
+                        type: 'success',
+                        onOk: () => { window.location.reload(); }
+                    });
+                } else {
+                    showStyledPopup({
+                        title: 'Error',
+                        message: data.message || 'An error occurred.',
+                        type: 'error'
+                    });
+                }
+            } catch (err) {
+                showStyledPopup({
+                    title: 'Error',
+                    message: err.message || 'Connection error.',
+                    type: 'error'
+                });
+            }
+        }
+
+        async function cancelPendingLeave() {
+            const confirmed = await window.showStyledConfirm(
+                'Cancel Leave Request',
+                'Are you sure you want to <b>cancel</b> your pending leave request? This will delete the request immediately.',
+                true
+            );
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch("{% url 'users:api_cancel_seat_leave' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': CSRF_TOKEN
+                    }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showStyledPopup({
+                        title: 'Success',
+                        message: data.message || 'Your leave request has been cancelled.',
+                        type: 'success',
+                        onOk: () => { window.location.reload(); }
+                    });
+                } else {
+                    showStyledPopup({
+                        title: 'Error',
+                        message: data.message || 'An error occurred.',
+                        type: 'error'
+                    });
+                }
+            } catch (err) {
+                showStyledPopup({
+                    title: 'Error',
+                    message: err.message || 'Connection error.',
+                    type: 'error'
+                });
+            }
+        }
 
         async function cancelPendingHold() {
             if(await window.showStyledConfirm('Cancel Hold Request', 'Are you sure you want to <b>cancel</b> your pending hold request? This will delete the request immediately.', true)) {
@@ -4614,6 +4733,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            const HAS_PENDING_REQUEST = {{ has_pending_request|yesno:"true,false" }};
+            const PENDING_REQUEST_DESC = "{{ pending_request_desc|default:''|escapejs }}";
             const toggleBtn = document.getElementById('toggleSwitchSeatBtn');
             const banner = document.getElementById('switchSelectionBanner');
             const toast = document.getElementById('switchRequestToast');
@@ -4626,6 +4747,14 @@
 
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
+                    if (HAS_PENDING_REQUEST) {
+                        showStyledPopup({
+                            title: 'Request Already Pending',
+                            message: `You cannot submit a switch request because: <b>${PENDING_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                            type: 'error'
+                        });
+                        return;
+                    }
                     isSwitchSelectionActive = !isSwitchSelectionActive;
                     if (isSwitchSelectionActive) {
                         document.body.classList.add('switch-selection-mode');
@@ -4654,6 +4783,16 @@
 
             wrapper.addEventListener('click', (e) => {
                 if (!isSwitchSelectionActive) return;
+                if (HAS_PENDING_REQUEST) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showStyledPopup({
+                        title: 'Request Already Pending',
+                        message: `You cannot select a seat to switch because: <b>${PENDING_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                        type: 'error'
+                    });
+                    return;
+                }
                 const seatEl = e.target.closest('.seat');
                 if (!seatEl) return;
 
@@ -4924,6 +5063,15 @@
                 toastSubmitBtn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (!selectedSwitchSeat) return;
+
+                    if (HAS_PENDING_REQUEST) {
+                        showStyledPopup({
+                            title: 'Request Already Pending',
+                            message: `You cannot submit a switch request because: <b>${PENDING_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                            type: 'error'
+                        });
+                        return;
+                    }
                     
                     if (typeof window.setButtonLoading === 'function') {
                         window.setButtonLoading(toastSubmitBtn, true, 'Submitting Request...');

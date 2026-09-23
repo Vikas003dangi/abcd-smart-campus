@@ -1,9 +1,10 @@
+import json
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta, date
 from django.urls import reverse
-from users.models import Seat, StudentProfile, SeatAssignment, StudentAchievement
+from users.models import Seat, StudentProfile, SeatAssignment, StudentAchievement, SeatLeaveRequest
 from users.utils import process_expired_holds, process_birthday_wishes
 
 User = get_user_model()
@@ -660,6 +661,147 @@ class DualRoleDashboardSwitchTests(TestCase):
         resp_alumni = self.client.get(reverse('users:alumni_dashboard'))
         self.assertFalse(resp_alumni.context.get('is_dual_user'))
         self.assertNotContains(resp_alumni, 'id="profileSwitcherPopover"')
+
+
+class TemporaryStudentAndSingleRequestTests(TestCase):
+    def setUp(self):
+        self.teacher_user = User.objects.create_user(
+            username='staffteacher', password='Password123!', is_staff=True
+        )
+        self.temp_student_user = User.objects.create_user(
+            username='tempstudent', password='Password123!'
+        )
+        self.perm_student_user = User.objects.create_user(
+            username='permstudent', password='Password123!'
+        )
+
+        self.seat_g1 = Seat.objects.create(
+            seat_number='01', floor='Ground Floor', is_shift_enabled=True, status='occupied'
+        )
+        self.seat_g2 = Seat.objects.create(
+            seat_number='02', floor='Ground Floor', is_shift_enabled=True, status='available'
+        )
+
+        self.temp_profile = StudentProfile.objects.create(
+            user=self.temp_student_user,
+            full_name='Temp Student',
+            dob=date(2002, 2, 2),
+            sex='male',
+            service_type='Library',
+            status='admitted',
+            is_admitted=True,
+            seat=self.seat_g1,
+            shift='morning'
+        )
+
+        self.perm_profile = StudentProfile.objects.create(
+            user=self.perm_student_user,
+            full_name='Perm Student',
+            dob=date(2001, 1, 1),
+            sex='male',
+            service_type='Library',
+            status='admitted',
+            is_admitted=True,
+            seat=self.seat_g2,
+            shift='morning'
+        )
+
+        # Temp student has partial assignment on seat_g1
+        self.temp_assignment = SeatAssignment.objects.create(
+            student=self.temp_profile,
+            seat=self.seat_g1,
+            shift_type='morning',
+            is_active=True,
+            is_partial=True
+        )
+
+        # Perm student has permanent assignment on seat_g2
+        self.perm_assignment = SeatAssignment.objects.create(
+            student=self.perm_profile,
+            seat=self.seat_g2,
+            shift_type='morning',
+            is_active=True,
+            is_partial=False
+        )
+
+    def test_temporary_student_cannot_request_hold(self):
+        """Temporary students cannot put seat or shift on hold."""
+        self.client.login(username='tempstudent', password='Password123!')
+        resp = self.client.post(
+            reverse('users:api_request_seat_hold'),
+            data=json.dumps({
+                'start_date': (date.today() + timedelta(days=5)).strftime('%Y-%m-%d'),
+                'duration': '1 month'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('Temporary students cannot put seat or shift on hold', resp.json().get('message', ''))
+
+    def test_temporary_student_can_request_leave(self):
+        """Temporary students can submit a leave/withdraw request."""
+        self.client.login(username='tempstudent', password='Password123!')
+        resp = self.client.post(
+            reverse('users:api_request_seat_leave'),
+            data=json.dumps({'reason': 'Need to withdraw'}),
+            content_type='application/json'
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json().get('status'), 'success')
+        self.assertTrue(SeatLeaveRequest.objects.filter(student=self.temp_profile, status='pending').exists())
+
+    def test_single_active_request_restriction(self):
+        """Students cannot send another request when one is already pending."""
+        self.client.login(username='tempstudent', password='Password123!')
+        # Submit leave request
+        self.client.post(reverse('users:api_request_seat_leave'), data=json.dumps({}), content_type='application/json')
+
+        # Try to submit seat switch request
+        switch_resp = self.client.post(
+            reverse('users:api_request_seat_switch'),
+            data=json.dumps({
+                'seat_number': '02',
+                'floor': 'Ground Floor',
+                'shift': 'morning'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(switch_resp.status_code, 400)
+        self.assertIn('already have an active request', switch_resp.json().get('message', ''))
+
+        # Cancel leave request
+        cancel_resp = self.client.post(reverse('users:api_cancel_seat_leave'))
+        self.assertEqual(cancel_resp.status_code, 200)
+
+        # Now switch request should succeed
+        switch_resp2 = self.client.post(
+            reverse('users:api_request_seat_switch'),
+            data=json.dumps({
+                'seat_number': '02',
+                'floor': 'Ground Floor',
+                'shift': 'morning'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(switch_resp2.status_code, 200)
+
+    def test_teacher_approve_leave_request_frees_seat(self):
+        """Teacher approving a leave request terminates temporary assignment and clears seat."""
+        leave_req = SeatLeaveRequest.objects.create(
+            student=self.temp_profile,
+            seat=self.seat_g1,
+            shift='morning',
+            status='pending'
+        )
+        self.client.login(username='staffteacher', password='Password123!')
+        resp = self.client.post(reverse('users:approve_seat_leave', kwargs={'pk': leave_req.pk}))
+        self.assertEqual(resp.status_code, 200)
+
+        self.temp_profile.refresh_from_db()
+        self.temp_assignment.refresh_from_db()
+        self.assertIsNone(self.temp_profile.seat)
+        self.assertFalse(self.temp_assignment.is_active)
+
 
 
 

@@ -192,6 +192,8 @@ urlpatterns = [
     path('api/request_seat_hold/', views.request_seat_hold_api, name='api_request_seat_hold'),
     path('api/request_seat_switch/', views.request_seat_switch_api, name='api_request_seat_switch'),
     path('api/cancel_seat_switch/', views.cancel_seat_switch_api, name='api_cancel_seat_switch'),
+    path('api/request_seat_leave/', views.api_request_seat_leave, name='api_request_seat_leave'),
+    path('api/cancel_seat_leave/', views.api_cancel_seat_leave, name='api_cancel_seat_leave'),
 
     # Teacher dashboard / seat manager APIs
     path('api/get_teacher_seat_status/', views.get_teacher_seat_status_api, name='api_get_teacher_seat_status'),
@@ -204,6 +206,8 @@ urlpatterns = [
     path('api/update_contact_info/', views.update_contact_info_api, name='api_update_contact_info'),
     path('teacher/seat_switch/<int:pk>/approve/', views.approve_seat_switch, name='approve_seat_switch'),
     path('teacher/seat_switch/<int:pk>/reject/', views.reject_seat_switch, name='reject_seat_switch'),
+    path('teacher/seat_leave/<int:pk>/approve/', views.approve_seat_leave, name='approve_seat_leave'),
+    path('teacher/seat_leave/<int:pk>/reject/', views.reject_seat_leave, name='reject_seat_leave'),
 
     # Teacher Add Manually APIs (Coaching, Library, Hall of Fame)
     path('api/teacher/get-users-for-manual/', views.teacher_get_users_for_manual_api, name='api_teacher_get_users_for_manual'),

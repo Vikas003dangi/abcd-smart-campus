@@ -6,7 +6,7 @@ from .models import (
     CourseCategory, StudyMaterial, LearningReminder, StudentAchievement,
     GuidanceRequest, ChatSession, DirectChatSession, Message, BlockedGuidance,
     RestrictedStudent, GroupChatSession, GroupMessage, GuidyBlock,
-    TeacherProfile, SeatAssignment, SeatHoldRequest, SeatSwitchRequest, SeatSpecialRequest,
+    TeacherProfile, SeatAssignment, SeatHoldRequest, SeatSwitchRequest, SeatLeaveRequest, SeatSpecialRequest,
     FeeTransaction, DismissedFeeAlert, CourseReview, CourseQuestion, CourseAnswer,
     CourseShare, StudentMaterialAccess, StudentCourseInteraction,
     PerformanceRecord, StudentScore, TodoTask
@@ -124,6 +124,13 @@ class SeatSwitchRequestAdmin(admin.ModelAdmin):
     list_display = ('student', 'target_seat', 'target_shift', 'status', 'created_at')
     list_filter = ('status', 'target_shift')
     search_fields = ('student__full_name',)
+
+
+@admin.register(SeatLeaveRequest)
+class SeatLeaveRequestAdmin(admin.ModelAdmin):
+    list_display = ('student', 'seat', 'shift', 'status', 'created_at')
+    list_filter = ('status', 'shift')
+    search_fields = ('student__full_name', 'seat__seat_number')
 
 # -------------------------------------------------------------------
 # COURSE, STUDY MATERIAL & REVIEW ADMINS

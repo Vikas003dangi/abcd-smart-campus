@@ -16,7 +16,7 @@ from django.http import JsonResponse, HttpResponseForbidden, FileResponse, Http4
 from django.urls import reverse
 from django.conf import settings
 from .models import (
-    TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest,
+    TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest, SeatLeaveRequest,
     StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification,
     BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview,
     CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, StudentCourseInteraction,
@@ -4577,6 +4577,63 @@ def mark_notifications_read(request):
     return HttpResponseForbidden("POST only")
 
 # -------------------------------------------------------------------
+# HELPERS: Student Temporary & Single Pending Request Checks
+# -------------------------------------------------------------------
+def is_temporary_student(student_profile):
+    """
+    Checks if an admitted student is currently occupying a seat temporarily
+    as a tenant (i.e. their active SeatAssignment has is_partial=True).
+    """
+    if not student_profile:
+        return False
+    from .models import SeatAssignment
+    return SeatAssignment.objects.filter(
+        student=student_profile,
+        is_active=True,
+        is_partial=True
+    ).exists()
+
+
+def get_active_pending_request_info(student_profile):
+    """
+    Checks if a student has any pending seat request (hold, switch, or leave),
+    or if their seat is currently on hold / hold cancel review.
+    Returns: (has_pending, req_type, req_desc)
+    """
+    if not student_profile:
+        return False, None, None
+
+    # 1. Pending Seat Hold Request
+    hold_req = SeatHoldRequest.objects.filter(student=student_profile, status='pending').first()
+    if hold_req:
+        return True, 'hold', f"A hold request for Seat {hold_req.seat.seat_number} is pending teacher review."
+
+    # 2. Approved hold with cancel requested
+    cancel_hold_req = SeatHoldRequest.objects.filter(student=student_profile, status='approved', cancel_requested=True).first()
+    if cancel_hold_req:
+        return True, 'hold_cancel', f"Your cancellation request for Seat {cancel_hold_req.seat.seat_number} hold is under review."
+
+    # 3. If currently on hold (active hold status on profile or seat)
+    if student_profile.status == 'on_hold':
+        return True, 'on_hold', "Your seat is currently on hold."
+    if student_profile.seat and student_profile.seat.hold_status == 'active':
+        return True, 'on_hold', "Your seat is currently on hold."
+
+    # 4. Pending Switch Request
+    switch_req = SeatSwitchRequest.objects.filter(student=student_profile, status='pending').first()
+    if switch_req:
+        target_name = f"Seat {switch_req.target_seat.seat_number} ({switch_req.target_shift.capitalize()})"
+        return True, 'switch', f"A switch request to {target_name} is pending teacher review."
+
+    # 5. Pending Leave Request (for temporary students)
+    leave_req = SeatLeaveRequest.objects.filter(student=student_profile, status='pending').first()
+    if leave_req:
+        return True, 'leave', f"A leave/withdraw request for Seat {leave_req.seat.seat_number} is pending teacher review."
+
+    return False, None, None
+
+
+# -------------------------------------------------------------------
 # VIEW: Renders the "Your Seat Status" page
 # -------------------------------------------------------------------   
 @login_required
@@ -4613,6 +4670,14 @@ def your_seat_status_view(request):
         student=profile,
         status='pending'
     ).select_related('target_seat').first()
+
+    pending_leave = SeatLeaveRequest.objects.filter(
+        student=profile,
+        status='pending'
+    ).select_related('seat').first()
+
+    is_temp = is_temporary_student(profile)
+    has_pending, req_type, req_desc = get_active_pending_request_info(profile)
 
     remaining_days = None
     days_of_hold = None
@@ -4663,6 +4728,11 @@ def your_seat_status_view(request):
         'shift': profile.shift,
         'hold_req': hold_req,
         'pending_switch': pending_switch,
+        'pending_leave': pending_leave,
+        'is_temporary_student': is_temp,
+        'has_pending_request': has_pending,
+        'pending_request_type': req_type,
+        'pending_request_desc': req_desc,
         'remaining_days': remaining_days,
         'days_of_hold': days_of_hold,
         'end_date_calculated': end_date_calculated,
@@ -5178,6 +5248,21 @@ def request_seat_hold_api(request):
         if not owner_assignment:
             return JsonResponse({'status': 'error', 'message': 'You are not the owner of this seat.'}, status=403)
 
+        # Temporary students CANNOT put seat or shift on hold
+        if owner_assignment.is_partial or is_temporary_student(profile):
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Temporary students cannot put seat or shift on hold. You can request to withdraw/leave the seat instead.'
+            }, status=400)
+
+        # Single active request rule: Check if student already has ANY pending request or active hold
+        has_pending, req_type, req_desc = get_active_pending_request_info(profile)
+        if has_pending:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
+            }, status=400)
+
         # No existing pending request
         if SeatHoldRequest.objects.filter(seat=seat, status='pending').exists():
             return JsonResponse(
@@ -5483,6 +5568,11 @@ def teacher_dashboard_view(request):
         status='pending'
     ).select_related('student', 'student__user', 'target_seat').order_by('-created_at')
 
+    # Fetch pending seat leave requests from temporary students
+    seat_leave_requests = SeatLeaveRequest.objects.filter(
+        status='pending'
+    ).select_related('student', 'student__user', 'seat').order_by('-created_at')
+
     # Enrich achievements with student profile
     profiles_by_user = {
         p.user_id: p 
@@ -5762,6 +5852,7 @@ def teacher_dashboard_view(request):
         'cancel_hold_requests': cancel_hold_requests,
         'pending_partial_requests': pending_partial_requests,
         'seat_switch_requests': seat_switch_requests,
+        'seat_leave_requests': seat_leave_requests,
 
         'admitted_students': admitted_students,
         'coaching_students_by_batch': dict(coaching_batches),
@@ -5853,6 +5944,7 @@ def teacher_live_stats_api(request):
             (sh_agg['pending'] or 0)
             + (sh_agg['cancel_req'] or 0)
             + SeatSwitchRequest.objects.filter(status='pending').count()
+            + SeatLeaveRequest.objects.filter(status='pending').count()
         )
 
         # 4. Pending Achievements
@@ -17458,6 +17550,14 @@ def request_seat_switch_api(request):
         if not target_seat:
             return JsonResponse({'status': 'error', 'message': 'Target seat not found.'}, status=404)
 
+        # Single active request rule: Check if student already has ANY pending request or active hold
+        has_pending, req_type, req_desc = get_active_pending_request_info(student)
+        if has_pending:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
+            }, status=400)
+
         # Create or update pending request
         req, created = SeatSwitchRequest.objects.get_or_create(
             student=student,
@@ -17635,6 +17735,185 @@ def reject_seat_switch(request, pk):
         return JsonResponse({'status': 'success', 'message': 'Request rejected successfully.'})
 
     except SeatSwitchRequest.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Request not found or already processed.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+def api_request_seat_leave(request):
+    """
+    API endpoint for temporary allotted students to submit a request
+    to leave / withdraw from their temporary seat/shift.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    import json
+    try:
+        student = StudentProfile.objects.get(user=request.user)
+    except StudentProfile.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
+
+    seat = student.seat
+    if not seat:
+        return JsonResponse({'status': 'error', 'message': 'You do not have an assigned seat.'}, status=400)
+
+    # Check if student is a temporary student
+    if not is_temporary_student(student):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Only temporary allotted students can use this leave/withdraw request option.'
+        }, status=400)
+
+    # Single active request rule
+    has_pending, req_type, req_desc = get_active_pending_request_info(student)
+    if has_pending:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
+        }, status=400)
+
+    data = json.loads(request.body or '{}')
+    reason = str(data.get('reason') or '').strip()
+
+    req = SeatLeaveRequest.objects.create(
+        student=student,
+        seat=seat,
+        shift=student.shift or '',
+        reason=reason,
+        status='pending'
+    )
+
+    # Notifications to teachers
+    teachers = User.objects.filter(is_staff=True)
+    for teacher in teachers:
+        create_notification(
+            user=teacher,
+            title="Temporary Seat Leave Request",
+            message=f"{student.full_name} (Temporary) requested to leave/withdraw from Seat {seat.seat_number}.",
+            link="/teacher/dashboard/#holds",
+            category="seat"
+        )
+
+    create_notification(
+        user=student.user,
+        title="Leave Request Submitted",
+        message=f"Your request to leave Seat {seat.seat_number} has been submitted for teacher review.",
+        category="seat"
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Your leave request has been submitted to the teacher for review.'
+    })
+
+
+@login_required
+def api_cancel_seat_leave(request):
+    """
+    API endpoint for temporary students to cancel and delete their pending seat leave request.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    try:
+        student = StudentProfile.objects.get(user=request.user)
+        deleted_count, _ = SeatLeaveRequest.objects.filter(student=student, status='pending').delete()
+        if deleted_count > 0:
+            return JsonResponse({'status': 'success', 'message': 'Pending leave request cancelled and deleted.'})
+        return JsonResponse({'status': 'error', 'message': 'No pending leave request found.'}, status=404)
+    except StudentProfile.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@user_passes_test(lambda u: u.is_staff)
+def approve_seat_leave(request, pk):
+    """
+    Teacher endpoint to approve a temporary student's seat leave/withdraw request.
+    Deactivates their active temporary seat assignment and clears profile.seat.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    from django.db import transaction
+    try:
+        with transaction.atomic():
+            req = SeatLeaveRequest.objects.select_for_update().get(pk=pk, status='pending')
+            student = req.student
+            seat = req.seat
+
+            # Find active temporary assignment
+            assignment = SeatAssignment.objects.filter(
+                student=student,
+                seat=seat,
+                is_active=True,
+                is_partial=True
+            ).first()
+
+            if assignment:
+                assignment.deactivate()
+            else:
+                any_assign = SeatAssignment.objects.filter(
+                    student=student,
+                    seat=seat,
+                    is_active=True
+                ).first()
+                if any_assign:
+                    any_assign.deactivate()
+
+            # Ensure student seat pointer is cleared
+            student.seat = None
+            student.save(update_fields=['seat'])
+            seat.recalc_status(save=True)
+
+            req.status = 'approved'
+            req.save(update_fields=['status'])
+
+            create_notification(
+                user=student.user,
+                title="Seat Leave Request Approved",
+                message=f"Your request to leave Seat {seat.seat_number} has been approved. You currently have no seat assigned.",
+                category="seat"
+            )
+
+            return JsonResponse({'status': 'success', 'message': f'Leave request for {student.full_name} approved. Seat freed.'})
+
+    except SeatLeaveRequest.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Request not found or already processed.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@user_passes_test(lambda u: u.is_staff)
+def reject_seat_leave(request, pk):
+    """
+    Teacher endpoint to reject a temporary student's seat leave/withdraw request.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    try:
+        req = SeatLeaveRequest.objects.get(pk=pk, status='pending')
+        student = req.student
+        seat = req.seat
+
+        req.status = 'rejected'
+        req.save(update_fields=['status'])
+        req.delete()  # Clean up
+
+        create_notification(
+            user=student.user,
+            title="Seat Leave Request Rejected",
+            message=f"Your request to leave Seat {seat.seat_number} has been rejected by the teacher.",
+            category="seat"
+        )
+
+        return JsonResponse({'status': 'success', 'message': 'Leave request rejected.'})
+
+    except SeatLeaveRequest.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Request not found or already processed.'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

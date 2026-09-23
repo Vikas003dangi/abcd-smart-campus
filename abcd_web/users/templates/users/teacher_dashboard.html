@@ -7830,7 +7830,7 @@
           <i class="bx bx-pause-circle"></i>
         </div>
         <h3 class="card-heading">Hold / Switch Requests</h3>
-        <div class="number" id="statHoldRequests">{{ pending_hold_requests|length|add:seat_switch_requests|length }}</div>
+        <div class="number" id="statHoldRequests">{{ pending_hold_requests|length|add:seat_switch_requests|length|add:seat_leave_requests|length }}</div>
       </div>
 
       <!-- 4. Complaints -->
@@ -7947,7 +7947,7 @@
     <div class="section-tabs" data-tour="teacher-students-section">
       <button class="tab-btn active" data-tab-name="requests"><i class="bx bx-user-plus"></i> Admission Requests <span class="tab-badge" id="tabBadgeRequests" style="{% if pending_students.count == 0 %}display:none;{% endif %}">({{ pending_students.count }})</span></button>
       <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Alumni Requests<span id="tabCountAchievements" style="display:none;">{{ total_pending_achievements }}</span></button>
-      <button class="tab-btn" data-tab-name="holds"><i class="bx bx-pause-circle"></i> Hold / Switch Requests <span class="tab-badge" id="tabBadgeHolds" style="{% if pending_hold_requests|length|add:seat_switch_requests|length == 0 %}display:none;{% endif %}">({{ pending_hold_requests|length|add:seat_switch_requests|length }})</span></button>
+      <button class="tab-btn" data-tab-name="holds"><i class="bx bx-pause-circle"></i> Hold / Switch Requests <span class="tab-badge" id="tabBadgeHolds" style="{% if pending_hold_requests|length|add:seat_switch_requests|length|add:seat_leave_requests|length == 0 %}display:none;{% endif %}">({{ pending_hold_requests|length|add:seat_switch_requests|length|add:seat_leave_requests|length }})</span></button>
       <button class="tab-btn" data-tab-name="coaching"><i class="bx bxs-graduation"></i> Coaching Students</button>
       <button class="tab-btn" data-tab-name="library"><i class="bx bx-book-open"></i> Library Students</button>
       <button class="tab-btn" data-tab-name="complaints"><i class="bx bx-message-rounded-error"></i> Complaints <span class="tab-badge" id="tabBadgeComplaints" style="{% if pending_complaints_count == 0 %}display:none;{% endif %}">({{ pending_complaints_count }})</span></button>
@@ -8473,7 +8473,7 @@
 
     <!-- Hold / Switch Requests Tab -->
     <div id="holds-tab" class="tab-content">
-      {% if pending_hold_requests or seat_switch_requests or cancel_hold_requests %}
+      {% if pending_hold_requests or seat_switch_requests or cancel_hold_requests or seat_leave_requests %}
 
         {% if pending_hold_requests %}
         <!-- 1. Pending Seat Hold Requests -->
@@ -8571,6 +8571,52 @@
                   ✅ Approve
                 </button>
                 <button type="button" onclick="rejectSwitchRequest('{{ req.id }}')" class="btn btn-danger">
+                  ❌ Reject
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if seat_leave_requests %}
+        <!-- 3. Temporary Seat Leave / Withdraw Requests -->
+        <div class="batch-section" style="margin-top: 25px;">
+          <div class="batch-header" style="background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%);">
+            <h3><i class='bx bx-log-out-circle' style="margin-right: 8px;"></i> Temporary Seat Leave / Withdraw Requests ({{ seat_leave_requests|length }})</h3>
+          </div>
+
+          <div class="leave-requests-list">
+            {% for req in seat_leave_requests %}
+            <div class="request-item leave-request" style="border-left: 4px solid #ef4444;">
+              <div style="display: flex; align-items: center; gap: 15px;">
+                {% if req.student.user|has_user_photo %}
+                <img src="{{ req.student.user|user_photo }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #ef4444; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;">
+                {% else %}
+                <div style="width: 42px; height: 42px; border-radius: 50%; background: #fee2e2; color: #991b1b; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; flex-shrink: 0; border: 2px solid #ef4444;">
+                  <i class='bx bxs-user'></i>
+                </div>
+                {% endif %}
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <strong>{{ req.student.full_name }}</strong>
+                    <span class="badge-cancel-tag" style="background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;">Leave Seat Request</span>
+                    <span style="background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 700;">Temporary Student</span>
+                  </div>
+                  <small><i class='bx bx-chair' style="vertical-align: -1px;"></i> Seat: <b>{% if req.seat.floor == 'Ground Floor' %}G{% else %}F{% endif %}-{{ req.seat.seat_number }}</b> ({{ req.seat.floor }}) • {{ req.student.shift|capfirst }} Shift</small><br>
+                  <small>📞 {{ req.student.mobile_number }}</small><br>
+                  <small style="color: #dc2626; font-weight: 600;">
+                    <i class='bx bx-info-circle' style="vertical-align: -1px;"></i> Temporary student requested to withdraw / leave seat. Approving will terminate the temporary assignment and free the seat.
+                  </small>
+                </div>
+              </div>
+
+              <div class="student-actions">
+                <button type="button" onclick="approveLeaveRequest('{{ req.id }}')" class="btn btn-success">
+                  ✅ Approve Leave
+                </button>
+                <button type="button" onclick="rejectLeaveRequest('{{ req.id }}')" class="btn btn-danger">
                   ❌ Reject
                 </button>
               </div>
@@ -13972,6 +14018,80 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
             showTeacherStyledPopup({
                 title: 'Error',
                 message: data.message || 'Failed to reject request.',
+                type: 'error'
+            });
+        }
+    } catch (err) {
+        showTeacherStyledPopup({
+            title: 'Error',
+            message: err.message || 'Network error occurred.',
+            type: 'error'
+        });
+    }
+}
+
+async function approveLeaveRequest(reqId) {
+    try {
+        const response = await fetch(`/teacher/seat_leave/${reqId}/approve/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        if (response.ok) {
+            showTeacherStyledPopup({
+                title: 'Success',
+                message: data.message || 'Seat leave request approved successfully! The temporary assignment has been terminated.',
+                type: 'success',
+                onOk: () => {
+                    if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+                    if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
+                    else window.location.reload();
+                }
+            });
+        } else {
+            showTeacherStyledPopup({
+                title: 'Error',
+                message: data.message || 'Failed to approve leave request.',
+                type: 'error'
+            });
+        }
+    } catch (err) {
+        showTeacherStyledPopup({
+            title: 'Error',
+            message: err.message || 'Network error occurred.',
+            type: 'error'
+        });
+    }
+}
+
+async function rejectLeaveRequest(reqId) {
+    try {
+        const response = await fetch(`/teacher/seat_leave/${reqId}/reject/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        if (response.ok) {
+            showTeacherStyledPopup({
+                title: 'Success',
+                message: 'Seat leave request has been rejected.',
+                type: 'success',
+                onOk: () => {
+                    if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+                    if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
+                    else window.location.reload();
+                }
+            });
+        } else {
+            showTeacherStyledPopup({
+                title: 'Error',
+                message: data.message || 'Failed to reject leave request.',
                 type: 'error'
             });
         }

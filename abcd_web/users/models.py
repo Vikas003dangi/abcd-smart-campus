@@ -1634,6 +1634,41 @@ class SeatSwitchRequest(models.Model):
         return f"{self.student.full_name} request switch to {self.target_seat.seat_number} ({self.target_shift})"
 
 
+# SEAT LEAVE / WITHDRAW REQUEST MODEL (for temporary students)
+class SeatLeaveRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    student = models.ForeignKey(
+        'StudentProfile',
+        on_delete=models.CASCADE,
+        related_name='seat_leave_requests'
+    )
+    seat = models.ForeignKey(
+        'Seat',
+        on_delete=models.CASCADE,
+        related_name='leave_requests'
+    )
+    shift = models.CharField(max_length=10, blank=True)
+    reason = models.TextField(blank=True, default='')
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.student.full_name} request to leave Seat {self.seat.seat_number} ({self.shift})"
+
+
 # -------------------------------------------------------------------
 # COURSE Q&A AND REVIEWS
 # -------------------------------------------------------------------
