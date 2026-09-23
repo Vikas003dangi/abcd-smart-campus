@@ -3356,17 +3356,210 @@ document.addEventListener('DOMContentLoaded', () => {
           <p style="margin-bottom: 12px; color: #475569; font-size: 0.95rem;">
             Update hold end date for <strong>${escapeHTML(abcdFormatName(studentName))}</strong> on Seat <strong>${getFormattedSeatNumber()}</strong>.
           </p>
-          <div style="margin-bottom: 15px;">
-            <label style="display: block; font-weight: 700; color: #1e293b; margin-bottom: 6px; font-size: 0.9rem;">
+          <div style="margin-bottom: 8px;">
+            <label style="display: block; font-weight: 700; color: #1e293b; margin-bottom: 8px; font-size: 0.9rem;">
               New Hold End Date:
             </label>
-            <input type="date" id="teacherHoldNewEndDateInput" value="${defaultVal}" min="${minDateStr}" class="form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 1rem; box-sizing: border-box;">
-            <small style="color: #64748b; margin-top: 4px; display: block; font-size: 0.82rem;">
+            <div id="teacherHoldNewEndDateDisplay" class="wheel-date-badge">
+              <i class='bx bx-calendar-event' style="font-size: 1.25rem;"></i>
+              <span id="teacherHoldNewDateText">Loading date...</span>
+            </div>
+            <div class="wheel-picker-container" style="height: 180px; margin: 10px 0 8px 0;">
+              <div class="wheel-col" id="wheel-teacher-expand-year"></div>
+              <div class="wheel-col" id="wheel-teacher-expand-month"></div>
+              <div class="wheel-col" id="wheel-teacher-expand-day"></div>
+              <div class="wheel-highlight"></div>
+            </div>
+            <input type="hidden" id="teacherHoldNewEndDateInput" value="${defaultVal}">
+            <small style="color: #64748b; margin-top: 6px; display: block; font-size: 0.82rem;">
               You can select tomorrow (${minDateStr}) or any future date. Duration and fee expiry will be recalculated automatically.
             </small>
           </div>
         </div>
       `;
+
+      // Helper function to mount and sync the 3-column wheel picker
+      function setupTeacherExpandDateWheels(minStr, defStr) {
+        const yearCol = document.getElementById('wheel-teacher-expand-year');
+        const monthCol = document.getElementById('wheel-teacher-expand-month');
+        const dayCol = document.getElementById('wheel-teacher-expand-day');
+        const dateInput = document.getElementById('teacherHoldNewEndDateInput');
+        const dateText = document.getElementById('teacherHoldNewDateText');
+
+        if (!yearCol || !monthCol || !dayCol) return;
+
+        const minParts = minStr.split('-').map(Number);
+        const minDate = new Date(minParts[0], minParts[1] - 1, minParts[2]);
+        const minYear = minDate.getFullYear();
+        const minMonthIdx = minDate.getMonth();
+        const minDay = minDate.getDate();
+
+        let initialDate = new Date(minDate.getTime());
+        if (defStr && defStr.includes('-')) {
+          const defParts = defStr.split('-').map(Number);
+          const parsed = new Date(defParts[0], defParts[1] - 1, defParts[2]);
+          if (!isNaN(parsed.getTime()) && parsed >= minDate) {
+            initialDate = parsed;
+          }
+        }
+
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        const years = [];
+        for (let y = minYear; y <= minYear + 10; y++) {
+          years.push(y.toString());
+        }
+
+        function getSelectedIndex(col) {
+          if (!col || !col.children.length) return 0;
+          const colRect = col.getBoundingClientRect();
+          const centerY = colRect.top + colRect.height / 2;
+          let closestIdx = 0, minDist = Infinity;
+          for (let i = 0; i < col.children.length; i++) {
+            const itemRect = col.children[i].getBoundingClientRect();
+            const dist = Math.abs((itemRect.top + itemRect.height / 2) - centerY);
+            if (dist < minDist) {
+              minDist = dist;
+              closestIdx = i;
+            }
+          }
+          return closestIdx;
+        }
+
+        function scrollColToIndex(col, index, smooth = false) {
+          if (!col || !col.children.length) return;
+          const idx = Math.max(0, Math.min(index, col.children.length - 1));
+          const target = col.children[idx];
+          const targetScrollTop = target.offsetTop - col.offsetTop - (col.clientHeight - target.clientHeight) / 2;
+          if (smooth) {
+            col.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
+          } else {
+            col.scrollTop = Math.max(0, Math.round(targetScrollTop));
+          }
+          for (let i = 0; i < col.children.length; i++) {
+            col.children[i].classList.toggle('selected', i === idx);
+          }
+        }
+
+        function populateCol(col, items, selectedVal, onChange) {
+          col.innerHTML = '';
+          items.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'wheel-item';
+            div.textContent = item;
+            div.onclick = (e) => {
+              e.stopPropagation();
+              scrollColToIndex(col, idx, true);
+              if (onChange) setTimeout(onChange, 80);
+            };
+            col.appendChild(div);
+          });
+
+          let scrollTimer;
+          col.onscroll = () => {
+            const activeIdx = getSelectedIndex(col);
+            for (let i = 0; i < col.children.length; i++) {
+              col.children[i].classList.toggle('selected', i === activeIdx);
+            }
+            if (onChange) {
+              clearTimeout(scrollTimer);
+              scrollTimer = setTimeout(onChange, 60);
+            }
+          };
+
+          const selIdx = items.indexOf(selectedVal ? selectedVal.toString() : '');
+          const finalIdx = selIdx !== -1 ? selIdx : 0;
+          setTimeout(() => { scrollColToIndex(col, finalIdx, false); }, 30);
+        }
+
+        function getColValue(col) {
+          if (!col || !col.children.length) return '';
+          const idx = getSelectedIndex(col);
+          return col.children[idx]?.textContent || '';
+        }
+
+        function updateResult() {
+          const yStr = getColValue(yearCol);
+          const mStr = getColValue(monthCol);
+          const dStr = getColValue(dayCol);
+          if (!yStr || !mStr || !dStr) return;
+
+          const y = parseInt(yStr, 10);
+          const mIdx = MONTHS.indexOf(mStr);
+          const d = parseInt(dStr, 10);
+          if (mIdx === -1 || isNaN(y) || isNaN(d)) return;
+
+          const dateObj = new Date(y, mIdx, d);
+          const yyyy = dateObj.getFullYear();
+          const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+          const dd = dateObj.getDate().toString().padStart(2, '0');
+          const dateValStr = `${yyyy}-${mm}-${dd}`;
+
+          if (dateInput) dateInput.value = dateValStr;
+          if (dateText) {
+            const dayName = DAYS_OF_WEEK[dateObj.getDay()];
+            dateText.innerHTML = `Selected: <strong>${dd} ${mStr} ${yyyy}</strong> (${dayName})`;
+          }
+        }
+
+        function syncDays(keepDayVal = null) {
+          const y = parseInt(getColValue(yearCol), 10) || minYear;
+          const mStr = getColValue(monthCol) || MONTHS[minMonthIdx];
+          const mIdx = MONTHS.indexOf(mStr);
+
+          const totalDays = new Date(y, mIdx + 1, 0).getDate();
+          let startDay = 1;
+          if (y === minYear && mIdx === minMonthIdx) {
+            startDay = minDay;
+          }
+
+          const days = [];
+          for (let d = startDay; d <= totalDays; d++) {
+            days.push(d.toString().padStart(2, '0'));
+          }
+
+          const currDay = keepDayVal || getColValue(dayCol) || days[0];
+          let targetDay = currDay.padStart(2, '0');
+          if (!days.includes(targetDay)) {
+            targetDay = days[0];
+          }
+
+          populateCol(dayCol, days, targetDay, updateResult);
+          updateResult();
+        }
+
+        function syncMonths(keepMonthVal = null, keepDayVal = null) {
+          const y = parseInt(getColValue(yearCol), 10) || minYear;
+          let allowedMonths = [];
+          if (y === minYear) {
+            allowedMonths = MONTHS.slice(minMonthIdx);
+          } else {
+            allowedMonths = [...MONTHS];
+          }
+
+          const currMonth = keepMonthVal || getColValue(monthCol) || allowedMonths[0];
+          let targetMonth = currMonth;
+          if (!allowedMonths.includes(targetMonth)) {
+            targetMonth = allowedMonths[0];
+          }
+
+          populateCol(monthCol, allowedMonths, targetMonth, () => syncDays());
+          syncDays(keepDayVal);
+        }
+
+        const initYearStr = initialDate.getFullYear().toString();
+        const initMonthStr = MONTHS[initialDate.getMonth()];
+        const initDayStr = initialDate.getDate().toString().padStart(2, '0');
+
+        populateCol(yearCol, years, initYearStr, () => syncMonths());
+        syncMonths(initMonthStr, initDayStr);
+      }
+
+      // Initialize wheels as soon as CustomPopup is attached to DOM
+      setTimeout(() => {
+        setupTeacherExpandDateWheels(minDateStr, defaultVal);
+      }, 50);
 
       const confirmed = await window.CustomPopup.confirm(
         htmlContent,
@@ -3382,7 +3575,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (newEndDate < minDateStr) {
-        await window.CustomPopup.alert(\`New end date must be at least tomorrow (\${minDateStr}) or a future date.\`, 'Invalid Date');
+        await window.CustomPopup.alert(`New end date must be at least tomorrow (${minDateStr}) or a future date.`, 'Invalid Date');
         return;
       }
 

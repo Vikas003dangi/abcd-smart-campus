@@ -1211,9 +1211,118 @@ body.dark-theme .tc-modal-cancel-btn:hover {
     }
 }
 
+/* ==========================================================================
+   WHEEL DATE / TIME PICKER (MODALS & POPUPS)
+   ========================================================================== */
+.wheel-picker-container {
+    display: flex;
+    height: 190px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
+    user-select: none;
+    box-sizing: border-box !important;
+}
 
+.wheel-col {
+    flex: 1;
+    height: 100%;
+    overflow-y: scroll;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    text-align: center;
+    scroll-snap-type: y mandatory;
+    padding: 75px 0;
+    box-sizing: border-box !important;
+    position: relative;
+    z-index: 5;
+    scroll-behavior: smooth;
+}
 
+.wheel-col::-webkit-scrollbar {
+    display: none;
+}
 
+.wheel-item {
+    height: 40px;
+    line-height: 40px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #94a3b8;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box !important;
+    cursor: pointer;
+}
 
+.wheel-item.selected {
+    color: #0284c7;
+    transform: scale(1.18);
+    font-weight: 800;
+}
 
+.wheel-highlight {
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    right: 8px;
+    height: 42px;
+    transform: translateY(-50%);
+    background: rgba(14, 165, 233, 0.08);
+    border-top: 1.5px solid rgba(14, 165, 233, 0.35);
+    border-bottom: 1.5px solid rgba(14, 165, 233, 0.35);
+    pointer-events: none;
+    border-radius: 10px;
+    box-sizing: border-box !important;
+    z-index: 2;
+}
+
+/* Dark mode support */
+body.dark-theme .wheel-picker-container {
+    background: #141324 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+body.dark-theme .wheel-item {
+    color: #64748b !important;
+}
+
+body.dark-theme .wheel-item.selected {
+    color: #38bdf8 !important;
+}
+
+body.dark-theme .wheel-highlight {
+    background: rgba(56, 189, 248, 0.12) !important;
+    border-top-color: rgba(56, 189, 248, 0.4) !important;
+    border-bottom-color: rgba(56, 189, 248, 0.4) !important;
+}
+
+/* Selected date badge pill */
+.wheel-date-badge {
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 8px 14px;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.22);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+}
+
+body.dark-theme .wheel-date-badge {
+    background: rgba(56, 189, 248, 0.1) !important;
+    border-color: rgba(56, 189, 248, 0.25) !important;
+    color: #38bdf8 !important;
+}
 

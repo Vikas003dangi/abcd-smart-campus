@@ -351,20 +351,69 @@
             color: #ffffff !important;
         }
         
-        /* Ensure layout structure doesn't break in dark mode */
-        body.dark-theme #seatModalContainer {
-            background: #ffffff !important;
-            color: #333 !important;
+        /* Dark Theme Support for Seat Layout Modal */
+        body.dark-theme #seatModalContainer,
+        body.dark-theme .seat-modal-container {
+            background: #181524 !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
+            color: #f8fafc !important;
         }
         body.dark-theme .seat-modal-header {
-            border-bottom-color: #eee !important;
-            background: #ffffff !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            background: #14121f !important;
         }
-        body.dark-theme .seat-modal-header h3 {
-            color: #333 !important;
+        body.dark-theme .seat-modal-header h3,
+        body.dark-theme #seatModalTitle {
+            color: #f8fafc !important;
         }
-        body.dark-theme #seatModalCloseBtn {
-            color: #999 !important;
+        body.dark-theme #seatModalCloseBtn,
+        body.dark-theme .seat-modal-close-btn {
+            color: #94a3b8 !important;
+        }
+        body.dark-theme #seatModalCloseBtn:hover,
+        body.dark-theme .seat-modal-close-btn:hover {
+            color: #ffffff !important;
+        }
+        body.dark-theme .seat-modal-footer,
+        body.dark-theme .seat-modal-container > .seat-modal-footer {
+            background: #14121f !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3) !important;
+        }
+        body.dark-theme .seat-modal-footer .legend-item {
+            color: #e2e8f0 !important;
+        }
+        body.dark-theme .seat-modal-footer .legend-count {
+            color: #94a3b8 !important;
+        }
+        body.dark-theme .seat-modal-footer .legend-item.clickable:hover {
+            color: #ffffff !important;
+        }
+        body.dark-theme #shiftSeatNotice {
+            background: rgba(124, 58, 237, 0.18) !important;
+            border-left: 5px solid #a855f7 !important;
+            color: #e9d5ff !important;
+        }
+        body.dark-theme #shiftSeatNotice strong {
+            color: #ffffff !important;
+        }
+        body.dark-theme #shiftSeatNotice small {
+            color: #cbd5e1 !important;
+        }
+        body.dark-theme .shift-seat-reminder {
+            color: #c084fc !important;
+        }
+        body.dark-theme #confirmSeatBtn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
+        }
+        body.dark-theme #confirmSeatBtn:disabled {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: #64748b !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            box-shadow: none !important;
         }
 
         /* Styled Popup Animations */
@@ -1161,8 +1210,29 @@
             color: #fff;
         }
         body.dark-theme .wheel-picker-container {
-            background: #111;
-            border-color: #333;
+            background: #120e20 !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+        body.dark-theme .wheel-item {
+            color: #64748b !important;
+        }
+        body.dark-theme .wheel-item.selected {
+            color: #c084fc !important;
+        }
+        body.dark-theme .wheel-highlight {
+            background: rgba(168, 85, 247, 0.15) !important;
+            border-top: 1px solid rgba(168, 85, 247, 0.4) !important;
+            border-bottom: 1px solid rgba(168, 85, 247, 0.4) !important;
+        }
+        body.dark-theme .alert.alert-danger,
+        body.dark-theme .alert-danger {
+            background-color: rgba(239, 68, 68, 0.15) !important;
+            color: #fca5a5 !important;
+            border: 1px solid rgba(239, 68, 68, 0.3) !important;
+        }
+        body.dark-theme .alert-danger strong,
+        body.dark-theme .alert-danger li {
+            color: #fca5a5 !important;
         }
         body.dark-theme .abcd-select-trigger {
             background: rgba(255,255,255,0.05);
@@ -1207,48 +1277,122 @@
             color: #333;
             margin: 0;
         }
+        body.dark-theme .abcd-modal-container {
+            background: #1e1b2e !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7) !important;
+            color: #f8fafc !important;
+        }
         body.dark-theme .abcd-modal-header {
-            background: #111;
-            border-bottom-color: #333;
+            background: #171324 !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         }
         body.dark-theme .abcd-modal-header h3 {
-            color: #fff;
+            color: #f8fafc !important;
+        }
+        body.dark-theme #birthdayModal button[onclick="closeBirthdayModal()"] {
+            color: #cbd5e1 !important;
+        }
+        body.dark-theme #birthdayModal .submit-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
         }
 
-        /* Seat selection modal alerts and overlays */
-        body.dark-theme .seat-interest-box {
-            background: #1e1e2d;
-            color: #fff;
+        /* Seat selection modal alerts, shift popups and overlays */
+        body.dark-theme .seat-interest-box,
+        body.dark-theme .seat-interest-modal {
+            background: #1e1b2e !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7) !important;
+            color: #f8fafc !important;
         }
         body.dark-theme #shiftSelectOverlay h3,
-        body.dark-theme #shiftSelectTitle {
-            color: #fff;
+        body.dark-theme #shiftSelectTitle,
+        body.dark-theme .seat-interest-modal h3,
+        body.dark-theme #partialRequestTitle,
+        body.dark-theme .alert-title {
+            color: #f8fafc !important;
         }
         body.dark-theme #shiftSelectText,
         body.dark-theme #partialRequestText,
-        body.dark-theme #alreadyAdmittedText {
-            color: #ccc;
+        body.dark-theme #alreadyAdmittedText,
+        body.dark-theme #seatInterestText,
+        body.dark-theme .seat-interest-modal p {
+            color: #cbd5e1 !important;
+        }
+        body.dark-theme #partialRequestText strong,
+        body.dark-theme #shiftSelectText strong,
+        body.dark-theme #alreadyAdmittedText strong {
+            color: #f8fafc !important;
+        }
+        body.dark-theme #partialRequestText div {
+            background: rgba(56, 189, 248, 0.12) !important;
+            border-left-color: #38bdf8 !important;
+            color: #cbd5e1 !important;
+        }
+        body.dark-theme #shiftSelectButtons .btn,
+        body.dark-theme #shiftSelectButtons .shift-btn {
+            background-color: #6366f1 !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+        body.dark-theme #shiftSelectButtons .btn:hover,
+        body.dark-theme #shiftSelectButtons .shift-btn:hover {
+            background-color: #4f46e5 !important;
+        }
+        body.dark-theme #shiftSelectButtons .shift-btn-temp {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35) !important;
+            border: none !important;
+        }
+        body.dark-theme #shiftSelectButtons .shift-btn-temp:hover {
+            filter: brightness(1.1) !important;
         }
         body.dark-theme .shift-popup-separator .separator-line {
-            color: #bbb;
+            color: #94a3b8 !important;
         }
         body.dark-theme .shift-popup-separator .separator-warning,
         body.dark-theme .shift-popup-warning {
-            background: rgba(251, 191, 36, 0.1);
-            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.14) !important;
+            border-left: 3px solid #f59e0b !important;
+            color: #fde68a !important;
         }
         body.dark-theme #shiftSelectCancel,
-        body.dark-theme .btn-cancel {
-            background-color: #333;
-            color: #ccc;
+        body.dark-theme .btn-cancel,
+        body.dark-theme #alreadyAdmittedBack,
+        body.dark-theme #seatInterestCancel,
+        body.dark-theme .seat-interest-box .btn-secondary,
+        body.dark-theme .seat-interest-actions .btn-secondary {
+            background: rgba(255, 255, 255, 0.12) !important;
+            color: #cbd5e1 !important;
+            border: 1px solid rgba(255, 255, 255, 0.18) !important;
         }
         body.dark-theme #shiftSelectCancel:hover,
-        body.dark-theme .btn-cancel:hover {
-            background-color: #444;
-            color: #fff;
+        body.dark-theme .btn-cancel:hover,
+        body.dark-theme #alreadyAdmittedBack:hover,
+        body.dark-theme #seatInterestCancel:hover,
+        body.dark-theme .seat-interest-box .btn-secondary:hover,
+        body.dark-theme .seat-interest-actions .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
+        }
+        body.dark-theme .btn-confirm,
+        body.dark-theme #confirmPartialRequestBtn,
+        body.dark-theme #seatInterestConfirm {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35) !important;
         }
         body.dark-theme #alreadyAdmittedTitle {
-            color: #e67e22 !important;
+            color: #fb923c !important;
+        }
+        body.dark-theme #alreadyAdmittedOk {
+            background: #ea580c !important;
+            border-color: #c2410c !important;
+            color: #ffffff !important;
         }
 
         /* Library Notice Box */
@@ -1443,6 +1587,19 @@
                 gap: 6px !important;
                 width: 100% !important;
                 box-sizing: border-box !important;
+            }
+
+            body.dark-theme .seat-modal-container {
+                background: #181524 !important;
+            }
+            body.dark-theme .seat-modal-header {
+                background: #14121f !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            }
+            body.dark-theme .seat-modal-container > .seat-modal-footer {
+                background: #14121f !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+                box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3) !important;
             }
 
             .confirm-seat-btn {

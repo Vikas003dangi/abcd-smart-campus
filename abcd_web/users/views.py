@@ -4632,6 +4632,88 @@ def get_unresolved_request_info(student_profile):
     return False, None, None
 
 
+def is_student_on_hold(student_profile):
+    """
+    Returns True if the student currently has an active hold on their seat/shift.
+    Checks student profile status, active SeatAssignment hold_status, seat hold_status,
+    and approved active hold requests.
+    """
+    if not student_profile:
+        return False
+    if student_profile.status == 'on_hold':
+        return True
+
+    from .models import SeatAssignment
+    if SeatAssignment.objects.filter(student=student_profile, is_active=True, hold_status='active').exists():
+        return True
+
+    seat = student_profile.seat
+    if seat and seat.hold_status == 'active':
+        if not getattr(seat, 'is_shift_enabled', False) or getattr(seat, 'hold_student_id', None) == student_profile.id:
+            return True
+
+    today = timezone.localdate()
+    active_approved_req = SeatHoldRequest.objects.filter(
+        student=student_profile,
+        status='approved',
+        cancel_requested=False,
+        start_date__lte=today
+    ).first()
+    if active_approved_req:
+        end_d = None
+        if active_approved_req.seat and active_approved_req.seat.hold_end_date:
+            end_d = active_approved_req.seat.hold_end_date
+        else:
+            duration_str = (active_approved_req.duration_text or '').lower()
+            m = re.match(r'^(\d+)\s*month(s)?(?:\s+(\d+)\s*day(s)?)?$', duration_str)
+            if m:
+                months = int(m.group(1))
+                days = int(m.group(3)) if m.group(3) else 0
+                end_d = active_approved_req.start_date + relativedelta(months=months, days=days)
+            else:
+                d = re.match(r'^(\d+)\s*day(s)?$', duration_str)
+                days = int(d.group(1)) if d else 15
+                end_d = active_approved_req.start_date + timedelta(days=days)
+        if end_d and end_d >= today:
+            return True
+
+    return False
+
+
+def get_student_hold_dates(student_profile):
+    """
+    Returns (start_date, end_date) for a student currently on hold.
+    """
+    if not student_profile:
+        return None, None
+    from .models import SeatAssignment
+    assign = SeatAssignment.objects.filter(student=student_profile, is_active=True, hold_status='active').first()
+    if assign and (assign.hold_start_date or assign.hold_end_date):
+        return assign.hold_start_date, assign.hold_end_date
+    seat = student_profile.seat
+    if seat and (seat.hold_start_date or seat.hold_end_date):
+        return seat.hold_start_date, seat.hold_end_date
+    today = timezone.localdate()
+    hold_req = SeatHoldRequest.objects.filter(
+        student=student_profile,
+        status='approved'
+    ).order_by('-id').first()
+    if hold_req:
+        start_d = hold_req.start_date
+        duration_str = (hold_req.duration_text or '').lower()
+        m = re.match(r'^(\d+)\s*month(s)?(?:\s+(\d+)\s*day(s)?)?$', duration_str)
+        if m:
+            months = int(m.group(1))
+            days = int(m.group(3)) if m.group(3) else 0
+            end_d = start_d + relativedelta(months=months, days=days)
+        else:
+            d = re.match(r'^(\d+)\s*day(s)?$', duration_str)
+            days = int(d.group(1)) if d else 15
+            end_d = start_d + timedelta(days=days)
+        return start_d, end_d
+    return None, None
+
+
 def get_active_pending_request_info(student_profile):
     """
     Checks if a student has any pending request OR is currently on hold.
@@ -4642,10 +4724,7 @@ def get_active_pending_request_info(student_profile):
     if has_unres:
         return True, req_type, req_desc
 
-    # If currently on hold (active hold status on profile or seat)
-    if student_profile and student_profile.status == 'on_hold':
-        return True, 'on_hold', "Your seat is currently on hold."
-    if student_profile and student_profile.seat and student_profile.seat.hold_status == 'active':
+    if is_student_on_hold(student_profile):
         return True, 'on_hold', "Your seat is currently on hold."
 
     return False, None, None
@@ -4695,7 +4774,16 @@ def your_seat_status_view(request):
     ).select_related('seat').first()
 
     is_temp = is_temporary_student(profile)
-    is_on_hold = (profile.status == 'on_hold' or (seat and seat.hold_status == 'active'))
+    is_on_hold = is_student_on_hold(profile)
+    hold_start_d, hold_end_d = get_student_hold_dates(profile) if is_on_hold else (None, None)
+
+    active_assignment = SeatAssignment.objects.filter(
+        student=profile,
+        seat=seat,
+        is_active=True
+    ).first()
+    has_occupied_seat = bool(active_assignment and not is_on_hold)
+
     pending_hold_change = SeatHoldChangeRequest.objects.filter(
         student=profile,
         status='pending'
@@ -4740,7 +4828,7 @@ def your_seat_status_view(request):
     # Detect teacher-scheduled future holds (hold_start_date set in the future, hold_status='none')
     # These don't have a SeatHoldRequest record — teacher did it directly from management pages.
     scheduled_hold = None
-    if not hold_req:
+    if not hold_req and not is_on_hold:
         scheduled_hold = SeatAssignment.objects.filter(
             student=profile,
             is_active=True,
@@ -4760,6 +4848,9 @@ def your_seat_status_view(request):
         'pending_hold_change': pending_hold_change,
         'is_temporary_student': is_temp,
         'is_on_hold': is_on_hold,
+        'active_hold_start_date': hold_start_d or (seat.hold_start_date if seat else None),
+        'active_hold_end_date': hold_end_d or (seat.hold_end_date if seat else None),
+        'has_occupied_seat': has_occupied_seat,
         'has_pending_request': has_pending,
         'pending_request_type': req_type,
         'pending_request_desc': req_desc,
@@ -5180,7 +5271,7 @@ def request_seat_hold_api(request):
             return JsonResponse({'status': 'success', 'message': 'Hold cancellation request sent to teacher.'})
 
         if action == 'request_end':
-            if seat.hold_status != 'active':
+            if not is_student_on_hold(profile):
                 return JsonResponse({'status': 'error', 'message': 'No active hold.'}, status=400)
 
             # Single active request rule: Check if student already has ANY pending request
@@ -5188,7 +5279,7 @@ def request_seat_hold_api(request):
             if has_unres:
                 return JsonResponse({
                     'status': 'error',
-                    'message': f'You already have an active request: {unres_desc} You cannot submit another request until action is taken or the request is cancelled.'
+                    'message': f'Only one request at a time is allowed. You already have an active request: {unres_desc} Please wait for teacher review or cancel your pending request first.'
                 }, status=400)
             
             # Create/Update SeatHoldRequest to make it visible in teacher dashboard
@@ -5297,12 +5388,19 @@ def request_seat_hold_api(request):
                 'message': 'Temporary students cannot put seat or shift on hold. You can request to withdraw/leave the seat instead.'
             }, status=400)
 
-        # Single active request rule: Check if student already has ANY pending request or active hold
-        has_pending, req_type, req_desc = get_active_pending_request_info(profile)
-        if has_pending:
+        # Check if already on hold
+        if is_student_on_hold(profile):
             return JsonResponse({
                 'status': 'error',
-                'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
+                'message': 'Your seat is currently on hold. You cannot submit a new hold request while your seat is on hold. You can end your hold or request to expand/shorten your hold duration.'
+            }, status=400)
+
+        # Single active request rule: Check if student already has ANY pending request
+        has_unres, req_type, req_desc = get_unresolved_request_info(profile)
+        if has_unres:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Only one request at a time is allowed. You already have an active request: {req_desc} If you want to send a hold request, you will have to cancel your pending request first or wait for the librarian to take action.'
             }, status=400)
 
         # No existing pending request
@@ -17669,6 +17767,37 @@ def request_seat_switch_api(request):
     except StudentProfile.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
 
+    # 1. Must have an assigned seat
+    if not student.seat:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'You do not have an assigned seat. Only students with an occupied or temporary occupied seat can request to switch seats.'
+        }, status=403)
+
+    # 2. Must have an active assignment (occupied or temp occupied)
+    from users.models import SeatAssignment
+    active_assignment = SeatAssignment.objects.filter(student=student, seat=student.seat, is_active=True).first()
+    if not active_assignment:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'You do not have an active seat assignment. Only students with an occupied or temporary occupied seat can request to switch seats.'
+        }, status=403)
+
+    # 3. Must NOT be on hold
+    if is_student_on_hold(student):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Your seat is currently on hold. You cannot request to switch seat or shift while your seat is on hold. You must end your hold first.'
+        }, status=400)
+
+    # 4. Single active request rule: Check if student already has ANY pending request
+    has_unres, req_type, req_desc = get_unresolved_request_info(student)
+    if has_unres:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Only one request at a time is allowed. You already have an active request: {req_desc} If you want to send a seat switch request, you will have to cancel your pending request first or wait for the librarian to take action.'
+        }, status=400)
+
     try:
         data = json.loads(request.body or '{}')
         seat_number = str(data.get('seat_number') or '').strip()
@@ -17684,13 +17813,8 @@ def request_seat_switch_api(request):
         if not target_seat:
             return JsonResponse({'status': 'error', 'message': 'Target seat not found.'}, status=404)
 
-        # Single active request rule: Check if student already has ANY pending request or active hold
-        has_pending, req_type, req_desc = get_active_pending_request_info(student)
-        if has_pending:
-            return JsonResponse({
-                'status': 'error',
-                'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
-            }, status=400)
+        if target_seat.id == student.seat_id and shift.lower() == (active_assignment.shift_type or 'full').lower():
+            return JsonResponse({'status': 'error', 'message': 'You are already assigned to this seat and shift.'}, status=400)
 
         # Create or update pending request
         req, created = SeatSwitchRequest.objects.get_or_create(
@@ -17901,11 +18025,11 @@ def api_request_seat_leave(request):
         }, status=400)
 
     # Single active request rule
-    has_pending, req_type, req_desc = get_active_pending_request_info(student)
-    if has_pending:
+    has_unres, req_type, req_desc = get_unresolved_request_info(student)
+    if has_unres:
         return JsonResponse({
             'status': 'error',
-            'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
+            'message': f'Only one request at a time is allowed. You already have an active request: {req_desc} If you want to send a leave seat request, you will have to cancel your pending request first or wait for the librarian to take action.'
         }, status=400)
 
     data = json.loads(request.body or '{}')
@@ -18077,10 +18201,10 @@ def api_request_hold_change(request):
     if not seat:
         return JsonResponse({'status': 'error', 'message': 'You do not have an assigned seat.'}, status=400)
 
-    # Check if student is currently on hold
-    is_on_hold = (student.status == 'on_hold' or (seat and seat.hold_status == 'active'))
     assignment = SeatAssignment.objects.filter(student=student, seat=seat, is_active=True).first()
-    if not is_on_hold and (not assignment or assignment.hold_status != 'active'):
+
+    # Check if student is currently on hold
+    if not is_student_on_hold(student):
         return JsonResponse({'status': 'error', 'message': 'You must be currently on hold to request hold expansion or shortening.'}, status=400)
 
     # Temporary students cannot hold seats
@@ -18092,7 +18216,7 @@ def api_request_hold_change(request):
     if has_unres:
         return JsonResponse({
             'status': 'error',
-            'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
+            'message': f'Only one request at a time is allowed. You already have an active request: {req_desc} If you want to request to change hold duration, please cancel your pending request first or wait for the librarian to take action.'
         }, status=400)
 
     data = json.loads(request.body or '{}')
@@ -18123,8 +18247,9 @@ def api_request_hold_change(request):
             'message': f'You cannot select a date more than 90 days from today. Latest allowed date is {max_date.strftime("%d-%b-%Y")}.'
         }, status=400)
 
-    start_date = assignment.hold_start_date if assignment and assignment.hold_start_date else (seat.hold_start_date or today)
-    current_end = assignment.hold_end_date if assignment and assignment.hold_end_date else seat.hold_end_date
+    hold_start_d, hold_end_d = get_student_hold_dates(student)
+    start_date = hold_start_d or (assignment.hold_start_date if assignment and assignment.hold_start_date else (seat.hold_start_date or today))
+    current_end = hold_end_d or (assignment.hold_end_date if assignment and assignment.hold_end_date else seat.hold_end_date)
     total_days = (requested_end_date - start_date).days + 1
     duration_str = f"{total_days} days"
 

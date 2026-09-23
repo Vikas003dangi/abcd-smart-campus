@@ -1966,7 +1966,40 @@
                 </div>
                 {% endif %}
 
-                {% if hold_req and hold_req.status == 'pending' %}
+                {% if pending_hold_change %}
+                <div class="status-message pending" style="background: rgba(14, 165, 233, 0.08); border: 2px solid #0ea5e9; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; flex-wrap:wrap; width:100%;">
+                        <div>
+                            <h4 style="color:#0284c7; margin:0 0 8px 0; font-weight:800; display:flex; align-items:center; gap:8px;">
+                                <i class='bx bx-time-five' style="font-size:1.4rem;"></i> Hold Change Request Pending
+                            </h4>
+                            <p style="margin:0; color:#0369a1; font-size:0.95rem;">
+                                You requested to change your hold end date to <strong>{{ pending_hold_change.requested_end_date|date:"d M Y" }}</strong>.
+                                This request is currently under review by the teacher.
+                            </p>
+                        </div>
+                        <button type="button" class="btn-cancel-request" onclick="cancelPendingHoldChange()" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:8px 16px; border-radius:20px; font-weight:700; cursor:pointer;">
+                            Cancel Request
+                        </button>
+                    </div>
+                </div>
+                {% elif is_on_hold %}
+                <div class="status-message active" style="margin-bottom: 20px;">
+                    <i class='bx bx-check-shield' style="font-size: 2rem;"></i>
+                    <div style="flex:1;">
+                        <strong>Currently on Hold:</strong> From {{ active_hold_start_date|date:"d M Y" }} 
+                        to {{ active_hold_end_date|date:"d M Y" }}.
+                        <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn-end-hold" onclick="requestEndHold()" style="margin:0; background: #e67e22;">
+                                <i class='bx bx-x-circle'></i> Request Cancel Hold
+                            </button>
+                            <button type="button" class="btn-expand-hold" onclick="openStudentHoldChangeModal()" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; padding: 8px 18px; border-radius: 20px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);">
+                                <i class='bx bx-calendar-edit'></i> Request Expand/Shorten Hold
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% elif hold_req and hold_req.status == 'pending' %}
                 <div class="status-message pending">
                     <i class='bx bx-time-five' style="font-size: 2rem;"></i>
                     <div>
@@ -1975,7 +2008,7 @@
                         <button class="btn-end-hold" onclick="cancelPendingHold()">Cancel Request</button>
                     </div>
                 </div>
-                {% elif hold_req and hold_req.status == 'approved' and not hold_req.cancel_requested %}
+                {% elif is_future_hold and not hold_req.cancel_requested %}
                 <div class="status-message" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); color: #155724; border: 1px solid #b1dfbb;">
                     <i class='bx bx-check-shield' style="font-size: 2rem;"></i>
                     <div>
@@ -1984,7 +2017,7 @@
                         <button class="btn-end-hold" onclick="requestCancelApproved()">Cancel Hold</button>
                     </div>
                 </div>
-                {% elif hold_req and hold_req.status == 'approved' and hold_req.cancel_requested %}
+                {% elif hold_req and hold_req.cancel_requested %}
                 <div class="status-message" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); color: #856404; border: 1px solid #ffc107;">
                     <i class='bx bx-loader-circle bx-spin' style="font-size: 2rem;"></i>
                     <div>
@@ -2022,41 +2055,6 @@
                         </div>
                     </div>
                 </div>
-                {% elif pending_hold_change %}
-                <div class="status-message pending" style="background: rgba(14, 165, 233, 0.08); border: 2px solid #0ea5e9; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; flex-wrap:wrap; width:100%;">
-                        <div>
-                            <h4 style="color:#0284c7; margin:0 0 8px 0; font-weight:800; display:flex; align-items:center; gap:8px;">
-                                <i class='bx bx-time-five' style="font-size:1.4rem;"></i> Hold Change Request Pending
-                            </h4>
-                            <p style="margin:0; color:#0369a1; font-size:0.95rem;">
-                                You requested to change your hold end date to <strong>{{ pending_hold_change.requested_end_date|date:"d M Y" }}</strong>.
-                                This request is currently under review by the teacher.
-                            </p>
-                        </div>
-                        <button type="button" class="btn-cancel-request" onclick="cancelPendingHoldChange()" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:8px 16px; border-radius:20px; font-weight:700; cursor:pointer;">
-                            Cancel Request
-                        </button>
-                    </div>
-                </div>
-                {% elif seat.hold_status == 'active' or is_on_hold %}
-                <div class="status-message active" style="margin-bottom: 20px;">
-                    <i class='bx bx-check-shield' style="font-size: 2rem;"></i>
-                    <div style="flex:1;">
-                        <strong>Currently on Hold:</strong> From {{ seat.hold_start_date|date:"d M Y" }} 
-                        to {{ seat.hold_end_date|date:"d M Y" }}.
-                        {% if not has_unresolved_request %}
-                        <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button type="button" class="btn-end-hold" onclick="requestEndHold()" style="margin:0; background: #e67e22;">
-                                <i class='bx bx-x-circle'></i> Request Cancel Hold
-                            </button>
-                            <button type="button" class="btn-expand-hold" onclick="openStudentHoldChangeModal()" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; padding: 8px 18px; border-radius: 20px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);">
-                                <i class='bx bx-calendar-edit'></i> Request Expand/Shorten Hold
-                            </button>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
                 {% endif %}
 
                 {% if is_on_hold %}
@@ -2066,14 +2064,15 @@
                         Your seat is currently on hold. Seat switch and new hold requests are disabled during an active hold. You can request to cancel or expand/shorten your hold above.
                     </div>
                 </div>
-                {% elif has_pending_request %}
-                <div class="single-request-notice" style="background: rgba(245, 158, 11, 0.08); border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 14px 18px; margin-top: 20px; display: flex; align-items: center; gap: 12px; color: #b45309; font-weight: 600; font-size: 0.95rem;">
+                {% elif has_occupied_seat %}
+                {% if has_pending_request %}
+                <div class="single-request-notice" style="background: rgba(245, 158, 11, 0.08); border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 14px 18px; margin-top: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 12px; color: #b45309; font-weight: 600; font-size: 0.95rem;">
                     <i class='bx bx-info-circle' style="font-size: 1.6rem; flex-shrink: 0; color: #f59e0b;"></i>
                     <div>
-                        You can only have one active request at a time. To send a different request, please cancel your pending request first or wait for teacher review.
+                        Only one request at a time is allowed: <strong>{{ pending_request_desc }}</strong>.<br>To send a different request, please cancel your pending request first or wait for teacher review.
                     </div>
                 </div>
-                {% else %}
+                {% endif %}
                 <div class="hold-switch-actions">
                     {% if is_temporary_student %}
                     <button class="hold-expand-btn btn-leave-seat" id="toggleLeaveSeatBtn" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);" onclick="requestLeaveSeat()">
@@ -2320,18 +2319,28 @@
                 <button type="button" onclick="closeStudentHoldChangeModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
             </div>
             <div style="padding: 22px;">
-                <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px;">
+                <div class="student-hold-period-box" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px;">
                     <div style="font-size: 0.85rem; color: #0369a1; font-weight: 600;">Current Hold Period:</div>
                     <div style="font-size: 1rem; color: #0c4a6e; font-weight: 800; margin-top: 2px;">
-                        {{ seat.hold_start_date|date:"d M Y" }} &rarr; {{ seat.hold_end_date|date:"d M Y" }}
+                        {{ active_hold_start_date|date:"d M Y" }} &rarr; {{ active_hold_end_date|date:"d M Y" }}
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 6px; font-size: 0.92rem;">
+                    <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 8px; font-size: 0.92rem;">
                         New Requested End Date <span style="color: #ef4444;">*</span>
                     </label>
-                    <input type="date" id="studentNewHoldEndDate" min="{{ min_change_date }}" max="{{ max_change_date }}" class="form-control" style="width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 1rem; outline: none; box-sizing: border-box;">
+                    <div id="studentHoldNewEndDateDisplay" class="wheel-date-badge">
+                        <i class='bx bx-calendar-event' style="font-size: 1.25rem;"></i>
+                        <span id="studentHoldNewDateText">Loading date...</span>
+                    </div>
+                    <div class="wheel-picker-container" style="height: 180px; margin: 10px 0 8px 0;">
+                        <div class="wheel-col" id="wheel-student-change-year"></div>
+                        <div class="wheel-col" id="wheel-student-change-month"></div>
+                        <div class="wheel-col" id="wheel-student-change-day"></div>
+                        <div class="wheel-highlight"></div>
+                    </div>
+                    <input type="hidden" id="studentNewHoldEndDate" value="{{ min_change_date }}">
                     <small style="color: #64748b; margin-top: 6px; display: block; font-size: 0.82rem;">
                         <i class='bx bx-info-circle'></i> Must be between <b>{{ min_change_date }}</b> (min 2 days) and <b>{{ max_change_date }}</b> (max 90 days from today).
                     </small>
@@ -2345,7 +2354,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button type="button" onclick="closeStudentHoldChangeModal()" style="padding: 10px 20px; border-radius: 25px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569; font-weight: 700; cursor: pointer;">
+                    <button type="button" class="btn-student-hold-cancel" onclick="closeStudentHoldChangeModal()" style="padding: 10px 20px; border-radius: 25px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569; font-weight: 700; cursor: pointer;">
                         Cancel
                     </button>
                     <button type="button" id="submitStudentHoldChangeBtn" onclick="submitStudentHoldChange()" style="padding: 10px 22px; border-radius: 25px; border: none; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);">
@@ -2437,6 +2446,40 @@
         }
         body.dark-theme #statusModalCancelBtn:hover {
             background: rgba(255, 255, 255, 0.22) !important;
+        }
+
+        /* STUDENT HOLD CHANGE MODAL DARK THEME */
+        body.dark-theme #studentHoldChangeModal .custom-modal-card {
+            background: #1f1b2e !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8) !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-theme #studentHoldChangeModal label {
+            color: #f1f5f9 !important;
+        }
+        body.dark-theme #studentHoldChangeModal textarea {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-theme #studentHoldChangeModal .student-hold-period-box {
+            background: rgba(14, 165, 233, 0.12) !important;
+            border-color: rgba(14, 165, 233, 0.3) !important;
+        }
+        body.dark-theme #studentHoldChangeModal .student-hold-period-box div:first-child {
+            color: #38bdf8 !important;
+        }
+        body.dark-theme #studentHoldChangeModal .student-hold-period-box div:last-child {
+            color: #f0f9ff !important;
+        }
+        body.dark-theme #studentHoldChangeModal .btn-student-hold-cancel {
+            background: rgba(255, 255, 255, 0.08) !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #cbd5e1 !important;
+        }
+        body.dark-theme #studentHoldChangeModal small {
+            color: #94a3b8 !important;
         }
 
         /* Selection Mode Styles */
@@ -3047,6 +3090,12 @@
         const CURRENT_USER_ID = Number('{{ request.user.id|default:"0" }}');
         const PENDING_SWITCH_SEAT = "{{ pending_switch.target_seat.seat_number|default:'' }}" || null;
         const PENDING_SWITCH_FLOOR = "{{ pending_switch.target_seat.floor|default:'' }}" || null;
+        const IS_ON_HOLD = {{ is_on_hold|yesno:"true,false" }};
+        const HAS_PENDING_REQUEST = {{ has_pending_request|yesno:"true,false" }};
+        const PENDING_REQUEST_DESC = "{{ pending_request_desc|default:''|escapejs }}";
+        const HAS_UNRESOLVED_REQUEST = {{ has_unresolved_request|yesno:"true,false" }};
+        const UNRESOLVED_REQUEST_DESC = "{{ unresolved_request_desc|default:''|escapejs }}";
+        const HAS_OCCUPIED_SEAT = {{ has_occupied_seat|yesno:"true,false" }};
 
         var isSwitchSelectionActive = false;
         var selectedSwitchSeat = null;
@@ -3296,7 +3345,36 @@
         // --- INTERFACE LOGIC ---
         document.addEventListener('DOMContentLoaded', () => {
             const toggleBtn = document.getElementById('toggleHoldBtn'), container = document.getElementById('holdFormContainer');
-            if (toggleBtn) toggleBtn.onclick = () => { toggleBtn.classList.toggle('active'); container.classList.toggle('show'); };
+            if (toggleBtn) {
+                toggleBtn.onclick = () => {
+                    if (IS_ON_HOLD) {
+                        showStyledPopup({
+                            title: 'Seat Already On Hold',
+                            message: 'Your seat is already on hold. If you wish to modify the duration or end your hold early, please use the hold options above.',
+                            type: 'error'
+                        });
+                        return;
+                    }
+                    if (HAS_PENDING_REQUEST) {
+                        showStyledPopup({
+                            title: 'Request Already Pending',
+                            message: `You cannot submit a hold request because: <b>${PENDING_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                            type: 'error'
+                        });
+                        return;
+                    }
+                    if (!HAS_OCCUPIED_SEAT) {
+                        showStyledPopup({
+                            title: 'No Occupied Seat',
+                            message: 'You can only request to hold your seat if you currently have an occupied seat assigned.',
+                            type: 'error'
+                        });
+                        return;
+                    }
+                    toggleBtn.classList.toggle('active');
+                    if (container) container.classList.toggle('show');
+                };
+            }
             document.getElementById('start_date_display')?.addEventListener('click', openStartDatePicker);
             document.getElementById('duration_display')?.addEventListener('click', openDurationPicker);
 
@@ -3454,6 +3532,14 @@
         };
 
         async function requestLeaveSeat() {
+            if (HAS_UNRESOLVED_REQUEST) {
+                showStyledPopup({
+                    title: 'Request Already Pending',
+                    message: `You cannot request to leave seat because: <b>${UNRESOLVED_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                    type: 'error'
+                });
+                return;
+            }
             const confirmed = await window.showStyledConfirm(
                 'Request to Leave / Withdraw Seat',
                 'Are you sure you want to request to <b>withdraw / leave</b> from seat <b>{% if seat.floor == "Ground Floor" %}G{% else %}F{% endif %}-{{ seat.seat_number }}</b> ({{ shift|capfirst }})?<br><br><span style="color:#ef4444;font-size:0.9rem;">⚠️ <b>Note:</b> As a temporary student, once the teacher approves this request, your temporary seat assignment will end and you will have no seat assigned.</span>',
@@ -3535,13 +3621,214 @@
         }
 
         function openStudentHoldChangeModal() {
+            if (HAS_UNRESOLVED_REQUEST) {
+                showStyledPopup({
+                    title: 'Request Already Pending',
+                    message: `You cannot request to change hold duration because: <b>${UNRESOLVED_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                    type: 'error'
+                });
+                return;
+            }
             const modal = document.getElementById('studentHoldChangeModal');
-            if (modal) modal.style.display = 'flex';
+            if (modal) {
+                modal.style.display = 'flex';
+                setTimeout(() => {
+                    initStudentHoldChangeWheels("{{ min_change_date }}", "{{ max_change_date }}");
+                }, 40);
+            }
         }
 
         function closeStudentHoldChangeModal() {
             const modal = document.getElementById('studentHoldChangeModal');
             if (modal) modal.style.display = 'none';
+        }
+
+        function initStudentHoldChangeWheels(minDateStr, maxDateStr) {
+            const yearCol = document.getElementById('wheel-student-change-year');
+            const monthCol = document.getElementById('wheel-student-change-month');
+            const dayCol = document.getElementById('wheel-student-change-day');
+            const dateInput = document.getElementById('studentNewHoldEndDate');
+            const dateText = document.getElementById('studentHoldNewDateText');
+
+            if (!yearCol || !monthCol || !dayCol) return;
+
+            const minParts = minDateStr.split('-').map(Number);
+            const minDate = new Date(minParts[0], minParts[1] - 1, minParts[2]);
+            const maxParts = maxDateStr.split('-').map(Number);
+            const maxDate = new Date(maxParts[0], maxParts[1] - 1, maxParts[2]);
+
+            const minYear = minDate.getFullYear();
+            const maxYear = maxDate.getFullYear();
+
+            let initialDate = new Date(minDate.getTime());
+            if (dateInput && dateInput.value && dateInput.value.includes('-')) {
+                const curParts = dateInput.value.split('-').map(Number);
+                const parsed = new Date(curParts[0], curParts[1] - 1, curParts[2]);
+                if (!isNaN(parsed.getTime()) && parsed >= minDate && parsed <= maxDate) {
+                    initialDate = parsed;
+                }
+            }
+
+            const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+            const years = [];
+            for (let y = minYear; y <= maxYear; y++) {
+                years.push(y.toString());
+            }
+
+            function getColSelectedIndex(col) {
+                if (!col || !col.children.length) return 0;
+                const colRect = col.getBoundingClientRect();
+                const centerY = colRect.top + colRect.height / 2;
+                let closestIdx = 0, minDist = Infinity;
+                for (let i = 0; i < col.children.length; i++) {
+                    const itemRect = col.children[i].getBoundingClientRect();
+                    const dist = Math.abs((itemRect.top + itemRect.height / 2) - centerY);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = i;
+                    }
+                }
+                return closestIdx;
+            }
+
+            function scrollWheelToIdx(col, index, smooth = false) {
+                if (!col || !col.children.length) return;
+                const idx = Math.max(0, Math.min(index, col.children.length - 1));
+                const target = col.children[idx];
+                const targetScrollTop = target.offsetTop - col.offsetTop - (col.clientHeight - target.clientHeight) / 2;
+                if (smooth) {
+                    col.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
+                } else {
+                    col.scrollTop = Math.max(0, Math.round(targetScrollTop));
+                }
+                for (let i = 0; i < col.children.length; i++) {
+                    col.children[i].classList.toggle('selected', i === idx);
+                }
+            }
+
+            function populateWheelCol(col, items, selectedVal, onChange) {
+                col.innerHTML = '';
+                items.forEach((item, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'wheel-item';
+                    div.textContent = item;
+                    div.onclick = (e) => {
+                        e.stopPropagation();
+                        scrollWheelToIdx(col, idx, true);
+                        if (onChange) setTimeout(onChange, 80);
+                    };
+                    col.appendChild(div);
+                });
+
+                let scrollTimer;
+                col.onscroll = () => {
+                    const activeIdx = getColSelectedIndex(col);
+                    for (let i = 0; i < col.children.length; i++) {
+                        col.children[i].classList.toggle('selected', i === activeIdx);
+                    }
+                    if (onChange) {
+                        clearTimeout(scrollTimer);
+                        scrollTimer = setTimeout(onChange, 60);
+                    }
+                };
+
+                const selIdx = items.indexOf(selectedVal ? selectedVal.toString() : '');
+                const finalIdx = selIdx !== -1 ? selIdx : 0;
+                setTimeout(() => { scrollWheelToIdx(col, finalIdx, false); }, 30);
+            }
+
+            function getColVal(col) {
+                if (!col || !col.children.length) return '';
+                const idx = getColSelectedIndex(col);
+                return col.children[idx]?.textContent || '';
+            }
+
+            function updateStudentDateResult() {
+                const yStr = getColVal(yearCol);
+                const mStr = getColVal(monthCol);
+                const dStr = getColVal(dayCol);
+                if (!yStr || !mStr || !dStr) return;
+
+                const y = parseInt(yStr, 10);
+                const mIdx = MONTHS.indexOf(mStr);
+                const d = parseInt(dStr, 10);
+                if (mIdx === -1 || isNaN(y) || isNaN(d)) return;
+
+                const dateObj = new Date(y, mIdx, d);
+                const yyyy = dateObj.getFullYear();
+                const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                const dd = dateObj.getDate().toString().padStart(2, '0');
+                const dateValStr = `${yyyy}-${mm}-${dd}`;
+
+                if (dateInput) dateInput.value = dateValStr;
+                if (dateText) {
+                    const dayName = DAYS_OF_WEEK[dateObj.getDay()];
+                    dateText.innerHTML = `Selected: <strong>${dd} ${mStr} ${yyyy}</strong> (${dayName})`;
+                }
+            }
+
+            function syncStudentDays(keepDayVal = null) {
+                const y = parseInt(getColVal(yearCol), 10) || minYear;
+                const mStr = getColVal(monthCol) || MONTHS[minDate.getMonth()];
+                const mIdx = MONTHS.indexOf(mStr);
+
+                const totalDaysInMonth = new Date(y, mIdx + 1, 0).getDate();
+                let startDay = 1;
+                let endDay = totalDaysInMonth;
+
+                if (y === minYear && mIdx === minDate.getMonth()) {
+                    startDay = minDate.getDate();
+                }
+                if (y === maxYear && mIdx === maxDate.getMonth()) {
+                    endDay = Math.min(endDay, maxDate.getDate());
+                }
+
+                const days = [];
+                for (let d = startDay; d <= endDay; d++) {
+                    days.push(d.toString().padStart(2, '0'));
+                }
+
+                const currDay = keepDayVal || getColVal(dayCol) || days[0];
+                let targetDay = currDay.padStart(2, '0');
+                if (!days.includes(targetDay)) {
+                    targetDay = days[0];
+                }
+
+                populateWheelCol(dayCol, days, targetDay, updateStudentDateResult);
+                updateStudentDateResult();
+            }
+
+            function syncStudentMonths(keepMonthVal = null, keepDayVal = null) {
+                const y = parseInt(getColVal(yearCol), 10) || minYear;
+                let startMonthIdx = 0;
+                let endMonthIdx = 11;
+
+                if (y === minYear) {
+                    startMonthIdx = minDate.getMonth();
+                }
+                if (y === maxYear) {
+                    endMonthIdx = maxDate.getMonth();
+                }
+
+                const allowedMonths = MONTHS.slice(startMonthIdx, endMonthIdx + 1);
+                const currMonth = keepMonthVal || getColVal(monthCol) || allowedMonths[0];
+                let targetMonth = currMonth;
+                if (!allowedMonths.includes(targetMonth)) {
+                    targetMonth = allowedMonths[0];
+                }
+
+                populateWheelCol(monthCol, allowedMonths, targetMonth, () => syncStudentDays());
+                syncStudentDays(keepDayVal);
+            }
+
+            const initYearStr = initialDate.getFullYear().toString();
+            const initMonthStr = MONTHS[initialDate.getMonth()];
+            const initDayStr = initialDate.getDate().toString().padStart(2, '0');
+
+            populateWheelCol(yearCol, years, initYearStr, () => syncStudentMonths());
+            syncStudentMonths(initMonthStr, initDayStr);
         }
 
         async function submitStudentHoldChange() {
@@ -3680,12 +3967,28 @@
         }
 
         async function requestEndHold() {
+            if (HAS_UNRESOLVED_REQUEST) {
+                showStyledPopup({
+                    title: 'Request Already Pending',
+                    message: `You cannot request to cancel hold because: <b>${UNRESOLVED_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                    type: 'error'
+                });
+                return;
+            }
             if(await window.showStyledConfirm('End Hold Early', 'Are you sure you want to request to <b>end your hold early</b>? The teacher will review this request.')) {
                 handleHoldAction('request_end');
             }
         }
 
         async function requestCancelScheduledHold() {
+            if (HAS_UNRESOLVED_REQUEST) {
+                showStyledPopup({
+                    title: 'Request Already Pending',
+                    message: `You cannot request cancellation because: <b>${UNRESOLVED_REQUEST_DESC}</b><br><br>Please cancel your current pending request or wait for teacher review.`,
+                    type: 'error'
+                });
+                return;
+            }
             if(await window.showStyledConfirm(
                 'Request Hold Cancellation',
                 'Send a cancellation request to your teacher for the <b>scheduled upcoming hold</b>? The teacher will review and remove it if approved.',
@@ -4944,9 +5247,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const IS_ON_HOLD = {{ is_on_hold|yesno:"true,false" }};
-            const HAS_PENDING_REQUEST = {{ has_pending_request|yesno:"true,false" }};
-            const PENDING_REQUEST_DESC = "{{ pending_request_desc|default:''|escapejs }}";
             const toggleBtn = document.getElementById('toggleSwitchSeatBtn');
             const banner = document.getElementById('switchSelectionBanner');
             const toast = document.getElementById('switchRequestToast');
@@ -4963,6 +5263,14 @@
                         showStyledPopup({
                             title: 'Seat On Hold',
                             message: 'Your seat is currently on hold. You cannot request to switch seat or shift while on hold.',
+                            type: 'error'
+                        });
+                        return;
+                    }
+                    if (!HAS_OCCUPIED_SEAT) {
+                        showStyledPopup({
+                            title: 'No Occupied Seat',
+                            message: 'You can only request to switch seats if you currently have an occupied seat assigned.',
                             type: 'error'
                         });
                         return;
@@ -5009,6 +5317,16 @@
                     showStyledPopup({
                         title: 'Seat On Hold',
                         message: 'Your seat is currently on hold. You cannot request to switch seat or shift while on hold.',
+                        type: 'error'
+                    });
+                    return;
+                }
+                if (!HAS_OCCUPIED_SEAT) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showStyledPopup({
+                        title: 'No Occupied Seat',
+                        message: 'You can only request to switch seats if you currently have an occupied seat assigned.',
                         type: 'error'
                     });
                     return;
@@ -5298,6 +5616,15 @@
                         showStyledPopup({
                             title: 'Seat On Hold',
                             message: 'Your seat is currently on hold. You cannot request to switch seat or shift while on hold.',
+                            type: 'error'
+                        });
+                        return;
+                    }
+
+                    if (!HAS_OCCUPIED_SEAT) {
+                        showStyledPopup({
+                            title: 'No Occupied Seat',
+                            message: 'You can only request to switch seats if you currently have an occupied seat assigned.',
                             type: 'error'
                         });
                         return;
