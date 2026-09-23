@@ -5293,12 +5293,17 @@ def teacher_dashboard_view(request):
     for n in all_notifs:
         if n.category == "fee_teacher" and n.meta and 'expiry_date' in n.meta:
             try:
-                # meta['expiry_date'] is stored as ISO string (e.g., '2026-05-15')
-                notif_expiry = datetime.date.fromisoformat(n.meta['expiry_date'])
+                notif_expiry = datetime.strptime(str(n.meta['expiry_date']), '%Y-%m-%d').date()
                 if notif_expiry < today:
                     continue # Skip expired fee alert
-            except (ValueError, TypeError):
-                pass
+            except Exception:
+                try:
+                    import datetime as dt_mod
+                    notif_expiry = dt_mod.date.fromisoformat(str(n.meta['expiry_date']))
+                    if notif_expiry < today:
+                        continue
+                except Exception:
+                    pass
         
         active_notifications.append(n)
         if not n.is_read:
