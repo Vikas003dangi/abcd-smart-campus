@@ -296,46 +296,425 @@
             border-color: #667eea;
         }
 
+        /* Status Messages & Hold Request Cards */
         .status-message {
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            font-weight: 700;
+            padding: 16px 20px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            transition: all 0.25s ease;
+        }
+
+        .status-msg-icon {
+            font-size: 1.6rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .status-msg-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .status-msg-text {
+            font-weight: 600;
+        }
+
+        .status-msg-actions {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 1.1rem;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
         }
 
-        .status-message.pending {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-        }
-
+        /* Status Message: Active Hold (Light & Dark) */
         .status-message.active {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1.5px solid #a7f3d0;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
         }
 
-        .btn-end-hold {
-            background: #e74c3c;
+        .status-message.active .status-msg-icon {
+            color: #059669;
+        }
+
+        .status-message.active strong {
+            color: #047857;
+        }
+
+        body.dark-theme .status-message.active {
+            background: rgba(16, 185, 129, 0.12) !important;
+            color: #e2e8f0 !important;
+            border: 1.5px solid rgba(52, 211, 153, 0.3) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        body.dark-theme .status-message.active .status-msg-icon {
+            color: #34d399 !important;
+        }
+
+        body.dark-theme .status-message.active strong {
+            color: #6ee7b7 !important;
+        }
+
+        /* Status Message: Pending Approval */
+        .status-message.pending {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1.5px solid #fde68a;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+        }
+
+        .status-message.pending .status-msg-icon {
+            color: #d97706;
+        }
+
+        body.dark-theme .status-message.pending {
+            background: rgba(245, 158, 11, 0.12) !important;
+            color: #fef3c7 !important;
+            border: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        body.dark-theme .status-message.pending .status-msg-icon {
+            color: #fbbf24 !important;
+        }
+
+        body.dark-theme .status-message.pending strong {
+            color: #ffffff !important;
+        }
+
+        /* Status Message: Approved Future Hold */
+        .status-message.approved {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1.5px solid #bbf7d0;
+        }
+
+        .status-message.approved .status-msg-icon {
+            color: #16a34a;
+        }
+
+        body.dark-theme .status-message.approved {
+            background: rgba(16, 185, 129, 0.12) !important;
+            color: #e2e8f0 !important;
+            border: 1.5px solid rgba(52, 211, 153, 0.3) !important;
+        }
+
+        body.dark-theme .status-message.approved .status-msg-icon {
+            color: #34d399 !important;
+        }
+
+        body.dark-theme .status-message.approved strong {
+            color: #6ee7b7 !important;
+        }
+
+        /* Status Message: Under Review Cancellation */
+        .status-message.under-review {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1.5px solid #fde68a;
+        }
+
+        .status-message.under-review .status-msg-icon {
+            color: #d97706;
+        }
+
+        body.dark-theme .status-message.under-review {
+            background: rgba(245, 158, 11, 0.12) !important;
+            color: #fde68a !important;
+            border: 1.5px solid rgba(245, 158, 11, 0.3) !important;
+        }
+
+        body.dark-theme .status-message.under-review .status-msg-icon {
+            color: #fbbf24 !important;
+        }
+
+        /* Status Message: Scheduled Hold Card */
+        .status-message.scheduled-hold {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1.5px solid #93c5fd;
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.1);
+        }
+
+        .scheduled-hold-accent {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+        }
+
+        .scheduled-hold-body {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .scheduled-hold-icon-box {
+            background: #fff;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1d4ed8;
+            font-size: 1.8rem;
+            flex-shrink: 0;
+        }
+
+        .scheduled-hold-content {
+            flex: 1;
+        }
+
+        .scheduled-hold-content h4 {
+            margin: 0 0 6px 0;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #1e40af;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .scheduled-hold-content p {
+            margin: 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #1e3a8a;
+        }
+
+        .scheduled-date-badge {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .scheduled-hold-footer {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .scheduled-auto-tag {
+            font-size: 0.85rem;
+            color: #2563eb;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .scheduled-cancel-btn {
+            background: #f59e0b;
             color: white;
             border: none;
-            padding: 12px 25px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.25);
+        }
+
+        body.dark-theme .status-message.scheduled-hold {
+            background: rgba(30, 41, 59, 0.85) !important;
+            border-color: rgba(59, 130, 246, 0.35) !important;
+            color: #e2e8f0 !important;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        body.dark-theme .scheduled-hold-icon-box {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: #60a5fa !important;
+        }
+
+        body.dark-theme .scheduled-hold-content h4 {
+            color: #93c5fd !important;
+        }
+
+        body.dark-theme .scheduled-hold-content p {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-theme .scheduled-date-badge {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #93c5fd !important;
+        }
+
+        body.dark-theme .scheduled-auto-tag {
+            color: #93c5fd !important;
+        }
+
+        /* Notice: On Hold Disabled Notice */
+        .on-hold-notice {
+            background: rgba(99, 102, 241, 0.08);
+            border: 1.5px solid rgba(99, 102, 241, 0.25);
+            border-radius: 12px;
+            padding: 13px 16px;
+            margin-top: 14px;
+            color: #3730a3;
+            font-weight: 600;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.25s ease;
+        }
+
+        .on-hold-icon {
+            font-size: 1.4rem;
+            color: #6366f1;
+            flex-shrink: 0;
+        }
+
+        .on-hold-text {
+            flex: 1;
+        }
+
+        body.dark-theme .on-hold-notice {
+            background: rgba(99, 102, 241, 0.14) !important;
+            border: 1.5px solid rgba(129, 140, 248, 0.3) !important;
+            color: #c7d2fe !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        body.dark-theme .on-hold-icon {
+            color: #a5b4fc !important;
+        }
+
+        /* Notice: Single Request Allowed */
+        .single-request-notice {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1.5px dashed #f59e0b;
+            border-radius: 12px;
+            padding: 13px 16px;
+            margin-top: 14px;
+            margin-bottom: 14px;
+            color: #92400e;
+            font-weight: 600;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.25s ease;
+        }
+
+        .single-req-icon {
+            font-size: 1.4rem;
+            color: #d97706;
+            flex-shrink: 0;
+        }
+
+        .single-req-text {
+            flex: 1;
+        }
+
+        body.dark-theme .single-request-notice {
+            background: rgba(245, 158, 11, 0.12) !important;
+            border-color: rgba(245, 158, 11, 0.4) !important;
+            color: #fde68a !important;
+        }
+
+        body.dark-theme .single-req-icon {
+            color: #fbbf24 !important;
+        }
+
+        body.dark-theme .single-request-notice strong {
+            color: #fef08a !important;
+        }
+
+        /* Hold Action Buttons */
+        .btn-end-hold {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #ffffff;
+            border: none;
+            padding: 8px 18px;
             border-radius: 10px;
             font-weight: 700;
+            font-size: 0.86rem;
+            text-transform: none;
             cursor: pointer;
-            transition: 0.3s;
-            margin-top: 15px;
-            text-transform: uppercase;
-            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-end-hold:hover {
-            background: #c0392b;
-            transform: scale(1.05);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+        }
+
+        body.dark-theme .btn-end-hold {
+            background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3) !important;
+        }
+
+        .btn-expand-hold {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: #ffffff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.86rem;
+            text-transform: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.25);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-expand-hold:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        }
+
+        body.dark-theme .btn-expand-hold {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%) !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 10px rgba(14, 165, 233, 0.3) !important;
+        }
+
+        /* Leave Seat Card in Dark Theme */
+        body.dark-theme .pending-switch-card.leave-card {
+            background: linear-gradient(135deg, rgba(69, 10, 10, 0.6) 0%, rgba(30, 20, 50, 0.7) 100%) !important;
+            border-color: rgba(239, 68, 68, 0.4) !important;
+            color: #fecaca !important;
+        }
+
+        body.dark-theme .pending-switch-card.leave-card .pending-switch-info i {
+            color: #f87171 !important;
         }
 
         /* Layout Reordering Styles */
@@ -390,9 +769,8 @@
         .layout-header-left h3 {
             margin: 0;
             color: #1e293b;
-            font-size: 1.25rem;
+            font-size: clamp(1rem, 2.5vw, 1.5rem);
             font-weight: 800;
-            letter-spacing: -0.2px;
         }
 
         body.dark-theme .layout-header-left h3 {
@@ -404,8 +782,8 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 6px 10px;
-            margin: 0;
-            font-size: 0.9rem;
+            margin: 5px 0;
+            font-size: 1rem;
             line-height: 1.4;
             font-weight: 600;
         }
@@ -1654,37 +2032,72 @@
             .status-message i {
                 font-size: 1.4rem !important;
             }
-            /* Header & seat info responsive styles */
-            .layout-header-row {
+            /* Seat hold & request section mobile sizing */
+            .hold-section {
+                padding: 14px 16px !important;
+                margin-bottom: 22px !important;
+                border-radius: 14px !important;
+            }
+            .hold-section h3 {
+                font-size: 0.98rem !important;
+                margin-bottom: 12px !important;
+            }
+            .status-message {
+                padding: 12px 14px !important;
+                font-size: 0.86rem !important;
                 gap: 10px !important;
-                margin-bottom: 16px !important;
-                padding-bottom: 12px !important;
+                border-radius: 12px !important;
+                margin-bottom: 12px !important;
             }
-            .layout-header-left h3 {
-                font-size: 1.05rem !important;
+            .status-msg-icon {
+                font-size: 1.35rem !important;
             }
-            .seat-info-line {
-                font-size: 0.8rem !important;
-                gap: 4px 8px !important;
+            .status-msg-actions {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+                margin-top: 10px !important;
             }
-            .seat-info-item {
-                font-size: 0.8rem !important;
-            }
-            .seat-allotment-badge {
-                font-size: 0.68rem !important;
-                padding: 2px 7px !important;
-            }
-            .layout-header-right label {
+            .btn-end-hold,
+            .btn-expand-hold {
+                width: 100% !important;
+                padding: 8px 12px !important;
                 font-size: 0.82rem !important;
+                border-radius: 8px !important;
             }
-            .floor-custom-trigger {
-                padding: 6px 11px !important;
-                font-size: 0.82rem !important;
-                min-width: 140px !important;
+            .on-hold-notice {
+                padding: 10px 12px !important;
+                font-size: 0.8rem !important;
+                gap: 8px !important;
                 border-radius: 10px !important;
+                margin-top: 10px !important;
             }
-            .floor-custom-trigger .fcs-chevron {
-                font-size: 0.85rem !important;
+            .on-hold-icon {
+                font-size: 1.25rem !important;
+            }
+            .single-request-notice {
+                padding: 10px 12px !important;
+                font-size: 0.8rem !important;
+                gap: 8px !important;
+                border-radius: 10px !important;
+                margin-top: 10px !important;
+                margin-bottom: 10px !important;
+            }
+            .single-req-icon {
+                font-size: 1.25rem !important;
+            }
+            .hold-switch-actions {
+                gap: 8px !important;
+                margin-bottom: 12px !important;
+            }
+            .hold-expand-btn {
+                padding: 9px 12px !important;
+                font-size: 0.84rem !important;
+                border-radius: 10px !important;
+                gap: 6px !important;
+            }
+            .hold-expand-btn i {
+                font-size: 1.1rem !important;
             }
         }
 
@@ -1788,27 +2201,28 @@
                 margin-top: 15px !important;
                 border-radius: 10px !important;
             }
-            .layout-header-left h3 {
-                font-size: 0.98rem !important;
+            .hold-section {
+                padding: 12px 13px !important;
             }
-            .seat-info-line {
-                font-size: 0.74rem !important;
-                gap: 3px 6px !important;
+            .hold-section h3 {
+                font-size: 0.92rem !important;
             }
-            .seat-info-item {
-                font-size: 0.74rem !important;
+            .status-message {
+                padding: 11px 12px !important;
+                font-size: 0.82rem !important;
             }
-            .seat-info-divider {
-                font-size: 0.65rem !important;
+            .status-msg-icon {
+                font-size: 1.25rem !important;
             }
-            .seat-allotment-badge {
-                font-size: 0.62rem !important;
-                padding: 1.5px 6px !important;
-            }
-            .floor-custom-trigger {
-                padding: 5px 9px !important;
+            .btn-end-hold,
+            .btn-expand-hold {
+                padding: 7px 10px !important;
                 font-size: 0.78rem !important;
-                min-width: 125px !important;
+            }
+            .on-hold-notice,
+            .single-request-notice {
+                padding: 9px 11px !important;
+                font-size: 0.76rem !important;
             }
         }
 
@@ -1884,28 +2298,6 @@
             .hub-mobile-title {
                 font-size: 1.2rem;
             }
-            .layout-header-left h3 {
-                font-size: 0.9rem !important;
-            }
-            .seat-info-line {
-                font-size: 0.68rem !important;
-                gap: 2px 5px !important;
-            }
-            .seat-info-item {
-                font-size: 0.68rem !important;
-            }
-            .seat-allotment-badge {
-                font-size: 0.58rem !important;
-                padding: 1px 5px !important;
-            }
-            .layout-header-right label {
-                font-size: 0.75rem !important;
-            }
-            .floor-custom-trigger {
-                padding: 4px 8px !important;
-                font-size: 0.74rem !important;
-                min-width: 110px !important;
-            }
         }
 
         @media (max-width: 340px) {
@@ -1935,19 +2327,6 @@
         @media (max-width: 320px) {
             .content-body {
                 padding: 10px 4px;
-            }
-            .layout-header-left h3 {
-                font-size: 0.85rem !important;
-            }
-            .seat-info-line {
-                font-size: 0.64rem !important;
-            }
-            .seat-info-item {
-                font-size: 0.64rem !important;
-            }
-            .seat-allotment-badge {
-                font-size: 0.55rem !important;
-                padding: 1px 4px !important;
             }
         }
 
@@ -2138,12 +2517,12 @@
                 {% endif %}
 
                 {% if pending_leave %}
-                <div class="pending-switch-card" style="border-left: 4px solid #ef4444; background: linear-gradient(135deg, #fef2f2 0%, #fff 100%);">
+                <div class="pending-switch-card leave-card" style="border-left: 4px solid #ef4444;">
                     <div class="pending-switch-info">
-                        <i class='bx bx-log-out-circle' style="color: #ef4444; font-size: 2rem;"></i>
+                        <i class='bx bx-log-out-circle' style="font-size: 2rem;"></i>
                         <div class="pending-switch-text">
                             Your request to <strong>leave / withdraw</strong> from temporary seat <strong>{% if seat.floor == 'Ground Floor' %}G{% else %}F{% endif %}-{{ seat.seat_number }}</strong> ({{ shift|capfirst }}) is pending teacher review.
-                            <div style="font-size: 0.85rem; color: #dc2626; margin-top: 4px;">Once accepted, your temporary allotment will end and you will have no seat assigned.</div>
+                            <div style="font-size: 0.85rem; margin-top: 4px;" class="leave-subtext">Once accepted, your temporary allotment will end and you will have no seat assigned.</div>
                         </div>
                     </div>
                     <button type="button" class="btn-cancel-pending" style="border-color: #ef4444; color: #ef4444;" onclick="cancelPendingLeave()">Cancel Request</button>
@@ -2151,33 +2530,36 @@
                 {% endif %}
 
                 {% if pending_hold_change %}
-                <div class="status-message pending" style="background: rgba(14, 165, 233, 0.08); border: 2px solid #0ea5e9; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px; flex-wrap:wrap; width:100%;">
-                        <div>
-                            <h4 style="color:#0284c7; margin:0 0 8px 0; font-weight:800; display:flex; align-items:center; gap:8px;">
-                                <i class='bx bx-time-five' style="font-size:1.4rem;"></i> Hold Change Request Pending
-                            </h4>
-                            <p style="margin:0; color:#0369a1; font-size:0.95rem;">
-                                You requested to change your hold end date to <strong>{{ pending_hold_change.requested_end_date|date:"d M Y" }}</strong>.
-                                This request is currently under review by the teacher.
-                            </p>
+                <div class="status-message pending">
+                    <i class='bx bx-time-five status-msg-icon'></i>
+                    <div class="status-msg-content">
+                        <h4 style="margin:0 0 8px 0; font-weight:800; display:flex; align-items:center; gap:8px;">
+                            Hold Change Request Pending
+                        </h4>
+                        <div class="status-msg-text">
+                            You requested to change your hold end date to <strong>{{ pending_hold_change.requested_end_date|date:"d M Y" }}</strong>.
+                            This request is currently under review by the teacher.
                         </div>
-                        <button type="button" class="btn-cancel-request" onclick="cancelPendingHoldChange()" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:8px 16px; border-radius:20px; font-weight:700; cursor:pointer;">
-                            Cancel Request
-                        </button>
+                        <div class="status-msg-actions">
+                            <button type="button" class="btn-cancel-request" onclick="cancelPendingHoldChange()" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; padding:8px 16px; border-radius:10px; font-weight:700; cursor:pointer;">
+                                Cancel Request
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% elif is_on_hold %}
-                <div class="status-message active" style="margin-bottom: 20px;">
-                    <i class='bx bx-check-shield' style="font-size: 2rem;"></i>
-                    <div style="flex:1;">
-                        <strong>Currently on Hold:</strong> From {{ active_hold_start_date|date:"d M Y" }} 
-                        to {{ active_hold_end_date|date:"d M Y" }}.
-                        <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button type="button" class="btn-end-hold" onclick="requestEndHold()" style="margin:0; background: #e67e22;">
+                <div class="status-message active">
+                    <i class='bx bx-check-shield status-msg-icon'></i>
+                    <div class="status-msg-content">
+                        <div class="status-msg-text">
+                            <strong>Currently on Hold:</strong> From {{ active_hold_start_date|date:"d M Y" }} 
+                            to {{ active_hold_end_date|date:"d M Y" }}.
+                        </div>
+                        <div class="status-msg-actions">
+                            <button type="button" class="btn-end-hold" onclick="requestEndHold()">
                                 <i class='bx bx-x-circle'></i> Request Cancel Hold
                             </button>
-                            <button type="button" class="btn-expand-hold" onclick="openStudentHoldChangeModal()" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; padding: 8px 18px; border-radius: 20px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);">
+                            <button type="button" class="btn-expand-hold" onclick="openStudentHoldChangeModal()">
                                 <i class='bx bx-calendar-edit'></i> Request Expand/Shorten Hold
                             </button>
                         </div>
@@ -2185,54 +2567,60 @@
                 </div>
                 {% elif hold_req and hold_req.status == 'pending' %}
                 <div class="status-message pending">
-                    <i class='bx bx-time-five' style="font-size: 2rem;"></i>
-                    <div>
-                        Your request to hold your seat <strong>{{ hold_req.seat.seat_number }}</strong> is pending with teacher to accept and your seat will be on hold by <strong>{{ hold_req.start_date|date:"d M Y" }}</strong> for <strong>{{ days_of_hold }} days</strong>
-                        <br>
-                        <button class="btn-end-hold" onclick="cancelPendingHold()">Cancel Request</button>
+                    <i class='bx bx-time-five status-msg-icon'></i>
+                    <div class="status-msg-content">
+                        <div class="status-msg-text">
+                            Your request to hold your seat <strong>{{ hold_req.seat.seat_number }}</strong> is pending with teacher to accept and your seat will be on hold by <strong>{{ hold_req.start_date|date:"d M Y" }}</strong> for <strong>{{ days_of_hold }} days</strong>.
+                        </div>
+                        <div class="status-msg-actions">
+                            <button class="btn-end-hold" onclick="cancelPendingHold()">Cancel Request</button>
+                        </div>
                     </div>
                 </div>
                 {% elif is_future_hold and not hold_req.cancel_requested %}
-                <div class="status-message" style="background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); color: #155724; border: 1px solid #b1dfbb;">
-                    <i class='bx bx-check-shield' style="font-size: 2rem;"></i>
-                    <div>
-                        Your request to hold your seat <strong>{{ hold_req.seat.seat_number }}</strong> is accepted by teacher and your seat will be on hold in <strong>{{ remaining_days }} days</strong> by <strong>{{ hold_req.start_date|date:"d M Y" }}</strong> for <strong>{{ days_of_hold }} days</strong>
-                        <br>
-                        <button class="btn-end-hold" onclick="requestCancelApproved()">Cancel Hold</button>
+                <div class="status-message approved">
+                    <i class='bx bx-check-shield status-msg-icon'></i>
+                    <div class="status-msg-content">
+                        <div class="status-msg-text">
+                            Your request to hold your seat <strong>{{ hold_req.seat.seat_number }}</strong> is accepted by teacher and your seat will be on hold in <strong>{{ remaining_days }} days</strong> by <strong>{{ hold_req.start_date|date:"d M Y" }}</strong> for <strong>{{ days_of_hold }} days</strong>.
+                        </div>
+                        <div class="status-msg-actions">
+                            <button class="btn-end-hold" onclick="requestCancelApproved()">Cancel Hold</button>
+                        </div>
                     </div>
                 </div>
                 {% elif hold_req and hold_req.cancel_requested %}
-                <div class="status-message" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%); color: #856404; border: 1px solid #ffc107;">
-                    <i class='bx bx-loader-circle bx-spin' style="font-size: 2rem;"></i>
-                    <div>
-                        Your cancellation request for seat <strong>{{ hold_req.seat.seat_number }}</strong> hold is under review by teacher.
+                <div class="status-message under-review">
+                    <i class='bx bx-loader-circle bx-spin status-msg-icon'></i>
+                    <div class="status-msg-content">
+                        <div class="status-msg-text">
+                            Your cancellation request for seat <strong>{{ hold_req.seat.seat_number }}</strong> hold is under review by teacher.
+                        </div>
                     </div>
                 </div>
                 {% elif scheduled_hold and not hold_req %}
                 {# Teacher-scheduled future hold — no student request exists #}
-                <div class="status-message" style="background: linear-gradient(135deg, #e8f4fd 0%, #d0eaff 100%); color: #1565c0; border: 2px solid #64b5f6; position: relative; overflow: hidden; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(33, 150, 243, 0.15);">
+                <div class="status-message scheduled-hold">
                     <!-- premium decorative accent -->
-                    <div style="position:absolute;top:0;left:0;width:8px;height:100%;background:linear-gradient(180deg,#2196f3,#1565c0);"></div>
+                    <div class="scheduled-hold-accent"></div>
                     
-                    <div style="display: flex; align-items: flex-start; gap: 20px;">
-                        <div style="background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                            <i class='bx bx-calendar-event' style="font-size: 2.5rem; color: #1565c0;"></i>
+                    <div class="scheduled-hold-body">
+                        <div class="scheduled-hold-icon-box">
+                            <i class='bx bx-calendar-event'></i>
                         </div>
-                        <div style="flex:1;">
-                            <h4 style="margin: 0 0 10px 0; font-size: 1.25rem; font-weight: 800; color: #0d47a1; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Upcoming Hold Scheduled
-                            </h4>
-                            <p style="margin: 0; font-size: 1.1rem; line-height: 1.5; color: #1565c0;">
+                        <div class="scheduled-hold-content">
+                            <h4>Upcoming Hold Scheduled</h4>
+                            <p>
                                 Your seat <strong>{{ seat.seat_number }}</strong> will go on hold from 
-                                <span style="background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 6px; font-weight: 700;">{{ scheduled_hold.hold_start_date|date:"d M Y" }}</span> 
+                                <span class="scheduled-date-badge">{{ scheduled_hold.hold_start_date|date:"d M Y" }}</span> 
                                 to 
-                                <span style="background: rgba(255,255,255,0.6); padding: 2px 8px; border-radius: 6px; font-weight: 700;">{{ scheduled_hold.hold_end_date|date:"d M Y" }}</span>.
+                                <span class="scheduled-date-badge">{{ scheduled_hold.hold_end_date|date:"d M Y" }}</span>.
                             </p>
-                            <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                                <span style="font-size: 0.9rem; color: #1976d2; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                            <div class="scheduled-hold-footer">
+                                <span class="scheduled-auto-tag">
                                     <i class='bx bx-info-circle'></i> Automatically activates on start date
                                 </span>
-                                <button class="btn-action btn-warning" style="background: #e67e22; color: white; border: none; padding: 10px 20px; border-radius: 30px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.3s; box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);" onclick="requestCancelScheduledHold()">
+                                <button type="button" class="scheduled-cancel-btn" onclick="requestCancelScheduledHold()">
                                     <i class='bx bx-envelope'></i> Request Cancellation
                                 </button>
                             </div>
@@ -2242,17 +2630,17 @@
                 {% endif %}
 
                 {% if is_on_hold %}
-                <div class="on-hold-notice" style="background: rgba(99, 102, 241, 0.08); border: 1.5px solid #818cf8; border-radius: 12px; padding: 14px 18px; margin-top: 20px; color: #4338ca; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 10px;">
-                    <i class='bx bx-lock-alt' style="font-size: 1.5rem; color: #6366f1; flex-shrink: 0;"></i>
-                    <div>
+                <div class="on-hold-notice">
+                    <i class='bx bx-lock-alt on-hold-icon'></i>
+                    <div class="on-hold-text">
                         Your seat is currently on hold. Seat switch and new hold requests are disabled during an active hold. You can request to cancel or expand/shorten your hold above.
                     </div>
                 </div>
                 {% elif has_occupied_seat %}
                 {% if has_pending_request %}
-                <div class="single-request-notice" style="background: rgba(245, 158, 11, 0.08); border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 14px 18px; margin-top: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 12px; color: #b45309; font-weight: 600; font-size: 0.95rem;">
-                    <i class='bx bx-info-circle' style="font-size: 1.6rem; flex-shrink: 0; color: #f59e0b;"></i>
-                    <div>
+                <div class="single-request-notice">
+                    <i class='bx bx-info-circle single-req-icon'></i>
+                    <div class="single-req-text">
                         Only one request at a time is allowed: <strong>{{ pending_request_desc }}</strong>.<br>To send a different request, please cancel your pending request first or wait for teacher review.
                     </div>
                 </div>
