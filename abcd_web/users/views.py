@@ -8973,6 +8973,46 @@ def student_details_view(request, student_id):
     student.has_achievement = StudentAchievement.objects.filter(user=student.user).exists()
     return render(request, 'users/student_details.html', {'student': student})
 
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def api_student_quick_profile(request, student_id):
+    """
+    Returns full student details JSON for the quick preview modal on teacher pages.
+    """
+    try:
+        student = StudentProfile.objects.select_related('seat', 'user').filter(id=student_id).first()
+        if not student:
+            return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
+
+        seat_str = f"{student.seat.floor[:1]}-{student.seat.seat_number}" if student.seat else 'Not assigned'
+        floor_str = student.seat.floor if student.seat else 'Not assigned'
+
+        active_assign = student.seat_assignments.filter(is_active=True).first()
+        shift_str = active_assign.shift_type if active_assign else student.shift
+
+        data = {
+            'id': student.id,
+            'full_name': student.full_name or 'N/A',
+            'photo_url': student.photo_url or '',
+            'status': student.status,
+            'status_display': student.get_status_display(),
+            'dob': student.dob.strftime('%d %b %Y') if student.dob else 'Not set',
+            'sex': student.sex or 'Not set',
+            'service_type': student.get_service_type_display(),
+            'batch': student.get_batch_display() if student.service_type == 'Coaching' else None,
+            'floor': floor_str,
+            'seat': seat_str,
+            'shift': shift_str or 'full',
+            'mobile_number': student.mobile_number or 'Not provided',
+            'whatsapp_number': student.whatsapp_number or student.mobile_number or 'Not provided',
+            'email': student.user.email if student.user and student.user.email else (student.email or 'Not provided'),
+        }
+        return JsonResponse({'status': 'success', 'student': data})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
 @login_required
 @transaction.atomic
 def edit_student_view(request, student_id):

@@ -86,6 +86,7 @@ urlpatterns = [
     path('teacher/student/<int:student_id>/edit/', views.edit_student_view, name='edit_student'),
     path('teacher/student/<int:student_id>/approve/', views.approve_student_view, name='approve_student'),
     path('teacher/student/<int:student_id>/delete/', views.delete_student_view, name='delete_student'),
+    path('api/teacher/student-profile/<int:student_id>/', views.api_student_quick_profile, name='api_student_quick_profile'),
     
     # Photo Management
     path('student/<int:student_id>/photo/upload/', views.upload_profile_photo, name='upload_profile_photo'),

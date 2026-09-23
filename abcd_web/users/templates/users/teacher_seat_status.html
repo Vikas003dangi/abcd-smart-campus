@@ -2541,6 +2541,113 @@
             border-top-color: #333 !important;
             border-bottom-color: #333 !important;
         }
+
+        /* Assign Modal vertical expansion & search bar styling */
+        #teacherPremiumAssignModal {
+            min-height: 560px;
+            max-height: 92vh;
+        }
+        #teacherPremiumAssignModal .modal-body {
+            min-height: 460px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        #teacherPremiumAssignModal .premium-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #teacherPremiumAssignModal .abcd-select-dropdown {
+            max-height: 280px;
+        }
+        .student-search-container input:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+        }
+        .student-search-container button:hover {
+            color: #ef4444 !important;
+        }
+        body.dark-theme .student-search-container input {
+            background: #1e1e2d !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+            color: #f1f5f9 !important;
+        }
+        body.dark-theme .student-search-container i {
+            color: #94a3b8 !important;
+        }
+
+        /* Quick Student Profile Modal Styling */
+        #studentQuickProfileModal .profile-card-preview {
+            text-align: center;
+        }
+        #studentQuickProfileModal .details-list {
+            background: #f8fafc;
+            border-radius: 18px;
+            padding: 8px 16px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+        #studentQuickProfileModal .detail-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 6px;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 0.95rem;
+        }
+        #studentQuickProfileModal .detail-row:last-child {
+            border-bottom: none;
+        }
+        #studentQuickProfileModal .detail-label {
+            width: 120px;
+            font-weight: 700;
+            color: #6366f1;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        #studentQuickProfileModal .detail-value {
+            flex: 1;
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            word-break: break-word;
+        }
+        #studentQuickProfileModal .status-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        #studentQuickProfileModal .status-admitted { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); }
+        #studentQuickProfileModal .status-pending { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.25); }
+        #studentQuickProfileModal .status-on_hold, #studentQuickProfileModal .status-hold { background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25); }
+        #studentQuickProfileModal .status-active { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); }
+        #studentQuickProfileModal .status-temporary { background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); }
+
+        body.dark-theme #studentQuickProfileModal .details-list {
+            background: rgba(255, 255, 255, 0.04) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        body.dark-theme #studentQuickProfileModal .detail-row {
+            border-color: rgba(255, 255, 255, 0.06) !important;
+        }
+        body.dark-theme #studentQuickProfileModal .detail-label {
+            color: #818cf8 !important;
+        }
+        body.dark-theme #studentQuickProfileModal .detail-value {
+            color: #f1f5f9 !important;
+        }
     </style>
 
 </head>
@@ -2558,6 +2665,22 @@
         </div>
         <div class="modal-body">
             <div id="seatDetailsContent"></div>
+        </div>
+    </div>
+
+    <!-- STUDENT QUICK PROFILE PREVIEW MODAL -->
+    <div class="admission-modal" id="studentQuickProfileModal" style="max-width: 480px; width: min(480px, 94vw); border-radius: 28px; z-index: 3000040;">
+        <div class="modal-header" style="position: relative; padding: 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.15);">
+            <h2 id="studentQuickProfileTitle" style="font-size: 1.25rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <i class='bx bx-id-card'></i> Student Profile
+            </h2>
+            <button class="modal-close-btn" id="closeStudentQuickProfileModal" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body" id="studentQuickProfileBody" style="padding: 24px; max-height: 75vh; overflow-y: auto;">
+            <div style="text-align: center; padding: 30px; color: #64748b;">
+                <i class='bx bx-loader-alt bx-spin' style="font-size: 2rem; color: #6366f1;"></i>
+                <p style="margin-top: 10px; font-weight: 600;">Loading profile...</p>
+            </div>
         </div>
     </div>
 
@@ -2590,6 +2713,11 @@
 
                 <div id="studentAssignWrap" class="form-group" style="margin-bottom: 0;">
                     <label style="font-weight: 700; color: #475569; margin-bottom: 8px; display: block;">Student Name</label>
+                    <div class="student-search-container" style="position: relative; margin-bottom: 12px;">
+                        <i class='bx bx-search' style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.15rem; pointer-events: none;"></i>
+                        <input type="text" id="studentAssignSearchInput" placeholder="Search student by name..." style="width: 100%; padding: 11px 36px 11px 40px; border-radius: 12px; border: 1.5px solid #e2e8f0; font-size: 0.95rem; font-weight: 500; outline: none; transition: all 0.2s; background: #fff;" autocomplete="off">
+                        <button type="button" id="studentAssignSearchClear" title="Clear search" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.15rem; color: #94a3b8; cursor: pointer; padding: 4px; line-height: 1;"><i class='bx bx-x-circle'></i></button>
+                    </div>
                     <select id="studentAssignSelect" class="form-control" style="border-radius: 12px; height: 50px; font-weight: 600;">
                         <option value="">Loading students...</option>
                     </select>
@@ -2975,6 +3103,7 @@
         const API_EXPORT_FLOOR_DATA_URL = "{% url 'users:export_floor_data' %}";
         // Base URL for student details
         const STUDENT_DETAILS_URL_BASE = "{% url 'users:student_details' 0 %}"; 
+        const API_STUDENT_QUICK_PROFILE_URL = "{% url 'users:api_student_quick_profile' 0 %}";
 
         window.showStyledAlert = window.showStyledAlert || function(title, message) {
             if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {

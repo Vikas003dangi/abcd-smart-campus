@@ -93,6 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const assignStudentModal = document.getElementById('teacherPremiumAssignModal');
   const holdModal = document.getElementById('teacherPremiumHoldModal');
   const conflictModal = document.getElementById('teacherPremiumConflictModal');
+  const studentQuickProfileModal = document.getElementById('studentQuickProfileModal');
+  const closeStudentQuickProfileModal = document.getElementById('closeStudentQuickProfileModal');
+  const studentQuickProfileBody = document.getElementById('studentQuickProfileBody');
+  const studentQuickProfileTitle = document.getElementById('studentQuickProfileTitle');
   
   const allModals = document.querySelectorAll('.admission-modal');
   const allCloseButtons = document.querySelectorAll('.modal-close-btn');
@@ -127,6 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const studentAssignType = document.getElementById('studentAssignType'); 
   const studentAssignSelect = document.getElementById('studentAssignSelect'); 
   const studentAssignWrap = document.getElementById('studentAssignWrap'); 
+  const studentAssignSearchInput = document.getElementById('studentAssignSearchInput');
+  const studentAssignSearchClear = document.getElementById('studentAssignSearchClear'); 
   const manualAssignDiv = document.getElementById('manualAssignDiv'); 
   const manualAssignFirstName = document.getElementById('manualAssignFirstName');
   const manualAssignLastName = document.getElementById('manualAssignLastName');
@@ -776,7 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- HELPERS: Modal Placement ---
   window.ensureModalInBody = function() {
     try {
-      const modals = [modalOverlay, seatDetailsModal, assignStudentModal, holdModal, conflictModal];
+      const modals = [modalOverlay, seatDetailsModal, assignStudentModal, holdModal, conflictModal, studentQuickProfileModal];
       modals.forEach(m => {
         if (m && m.parentElement !== document.body) {
           document.body.appendChild(m);
@@ -1848,13 +1854,17 @@ document.addEventListener('DOMContentLoaded', () => {
       studentAssignSelect.textContent = '';
       const noStudentsOpt = document.createElement('option');
       noStudentsOpt.value = '';
-      const mode = studentAssignType ? studentAssignType.value : 'library';
-      if (mode === 'alumni') {
-        noStudentsOpt.textContent = 'No alumni found';
-      } else if (mode === 'coaching') {
-        noStudentsOpt.textContent = 'No coaching students found';
+      if (studentAssignSearchInput && studentAssignSearchInput.value.trim()) {
+        noStudentsOpt.textContent = 'No matching students found';
       } else {
-        noStudentsOpt.textContent = 'No admitted students found';
+        const mode = studentAssignType ? studentAssignType.value : 'library';
+        if (mode === 'alumni') {
+          noStudentsOpt.textContent = 'No alumni found';
+        } else if (mode === 'coaching') {
+          noStudentsOpt.textContent = 'No coaching students found';
+        } else {
+          noStudentsOpt.textContent = 'No admitted students found';
+        }
       }
       studentAssignSelect.appendChild(noStudentsOpt);
       refreshCustomSelect(studentAssignSelect);
@@ -2136,20 +2146,23 @@ document.addEventListener('DOMContentLoaded', () => {
           let actionButtons = '';
           if (p.is_special_request) {
             actionButtons = `
-              ${btn('Reject Temp', 'reject_partial_request', 'btn-danger', { request_id: p.request_id })} 
-              ${btn('Approve Temp', 'approve_partial_request', 'btn-primary', { request_id: p.request_id })}
+              ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: p.student_id })}
+              ${btn('Reject Temp', 'reject_partial_request', 'btn-danger btn-sm', { request_id: p.request_id })} 
+              ${btn('Approve Temp', 'approve_partial_request', 'btn-primary btn-sm', { request_id: p.request_id })}
             `;
             isShiftConflict = false;
           } else if (isShiftConflict) {
             actionButtons = `
+              ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: p.student_id })}
               ${btn('Delete', 'delete_request', 'btn-danger btn-sm', { request_id: p.student_id, shift: p.shift })}
-              ${btn('Approve w/o Seat', 'approve_without_seat', 'btn-warning', { request_id: p.student_id, shift: p.shift })}
-              ${btn('Edit Seat', 'edit_pending_seat', 'btn-info', { request_id: p.student_id, shift: p.shift })}
+              ${btn('Approve w/o Seat', 'approve_without_seat', 'btn-warning btn-sm', { request_id: p.student_id, shift: p.shift })}
+              ${btn('Edit Seat', 'edit_pending_seat', 'btn-info btn-sm', { request_id: p.student_id, shift: p.shift })}
             `;
           } else {
             actionButtons = `
-              ${btn('Delete Request', 'delete_request', 'btn-danger', { request_id: p.student_id, shift: p.shift })} 
-              ${btn('Approve', 'approve_pending', 'btn-primary', { request_id: p.student_id, shift: p.shift })}
+              ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: p.student_id })}
+              ${btn('Delete Request', 'delete_request', 'btn-danger btn-sm', { request_id: p.student_id, shift: p.shift })} 
+              ${btn('Approve', 'approve_pending', 'btn-primary btn-sm', { request_id: p.student_id, shift: p.shift })}
             `;
           }
 
@@ -2212,7 +2225,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:0; font-size:0.9rem;"><strong>${label}</strong>: ${statusStr}</p>
                     </div>
                     <div class="modal-actions-row small-gap" style="margin-top:8px;">
-                        ${btn('Details', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
+                        ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                         ${a.hold_status === 'active'
                   ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id })
                   : btn('Hold', 'open_hold', 'btn-warning btn-sm', { student_id: a.student_id, shift: a.shift })
@@ -2369,6 +2382,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="modal-actions-row small-gap">
+                    ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
+                    ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })}
                     ${btn('Free Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
@@ -2405,6 +2420,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="modal-actions-row small-gap">
+                    ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
+                    ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: pendingTenant.student_id })}
                     ${btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
@@ -2428,6 +2445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="modal-actions-row small-gap">
+                    ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                     ${btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
@@ -2459,6 +2477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                       <p style="margin:0; font-size:1rem; color:var(--text-main);">Occupied by <strong>${escapeHTML(abcdFormatName(regularOccupant.student_name))}</strong></p>
                   </div>
                   <div class="modal-actions-row small-gap">
+                    ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: regularOccupant.student_id })}
                     ${btn('📅 Coming Hold Details', 'view_scheduled_hold', 'btn-info btn-sm', { 
                         student_id: regularOccupant.student_id, 
                         student_name: regularOccupant.student_name,
@@ -2490,6 +2509,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="modal-actions-row small-gap">
+                        ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: regularOccupant.student_id })}
                         ${btn('Put On Hold', 'open_hold', 'btn-warning btn-sm', { student_id: regularOccupant.student_id, shift: 'full' })}
                         ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                     </div>`;
@@ -2521,6 +2541,7 @@ document.addEventListener('DOMContentLoaded', () => {
                       <p style="margin:0; font-size:1rem; color:var(--text-main);">Occupied by <strong>${escapeHTML(abcdFormatName(a.student_name))}</strong></p>
                   </div>
                   <div class="modal-actions-row small-gap">
+                    ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                     ${btn('📅 Coming Hold Details', 'view_scheduled_hold', 'btn-info btn-sm', { 
                         student_id: a.student_id, 
                         student_name: a.student_name,
@@ -2543,6 +2564,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   </div>
                 </div>
                 <div class="modal-actions-row small-gap">
+                    ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                     ${btn('Put On Hold', 'open_hold', 'btn-warning btn-sm', { student_id: a.student_id, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
@@ -2610,13 +2632,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>`;
 
-                const studentDetailUrl = (typeof STUDENT_DETAILS_URL_BASE !== 'undefined' && STUDENT_DETAILS_URL_BASE)
-                    ? STUDENT_DETAILS_URL_BASE.replace('/0/', `/${encodeURIComponent(a.student_id)}/`)
-                    : `/teacher/student/${encodeURIComponent(a.student_id)}/`;
-
                 content += `
                 <div class="modal-actions-row small-gap">
-                    <a href="${studentDetailUrl}" target="_blank" class="btn-action btn-sm btn-info" style="text-decoration:none;"><i class='bx bx-user' style="margin-right:4px;"></i>View Student</a>
+                    ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
+                    ${morningOwner ? btn('View M-Owner', 'view_student', 'btn-info btn-sm', { student_id: morningOwner.student_id }) : ''}
+                    ${eveningOwner ? btn('View E-Owner', 'view_student', 'btn-info btn-sm', { student_id: eveningOwner.student_id }) : ''}
+                    ${fullOwner ? btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: fullOwner.student_id }) : ''}
                     ${morningOwner ? btn('End M-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: morningOwner.student_id }) : ''}
                     ${eveningOwner ? btn('End E-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: eveningOwner.student_id }) : ''}
                     ${fullOwner ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: fullOwner.student_id }) : ''}
@@ -2642,6 +2663,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <p style="font-size:0.8rem; color:#e74c3c; margin:0;">⚠️ The original owner has been removed.</p>
                 </div>
                 <div class="modal-actions-row small-gap">
+                    ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                     ${btn('End Temp', 'free', 'btn-warning btn-sm', { student_id: a.student_id })}
                 </div>`;
             }
@@ -2689,6 +2711,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Morning Temp: <strong>${escapeHTML(abcdFormatName(mTenant.student_name))}</strong></p>
                     </div>
                     <div class="modal-actions-row small-gap">
+                        ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: mTenant.student_id })}
                         ${btn('End M-Temp', 'free', 'btn-warning btn-sm', { student_id: mTenant.student_id })}
                     </div>`;
                 } else {
@@ -2717,6 +2740,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Evening Temp: <strong>${escapeHTML(abcdFormatName(eTenant.student_name))}</strong></p>
                     </div>
                     <div class="modal-actions-row small-gap">
+                        ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: eTenant.student_id })}
                         ${btn('End E-Temp', 'free', 'btn-warning btn-sm', { student_id: eTenant.student_id })}
                     </div>`;
                 } else {
@@ -2732,6 +2756,7 @@ document.addEventListener('DOMContentLoaded', () => {
               content += `
                 <div style="height:1px; background:#eee; margin:15px 0;"></div>
                 <div class="modal-actions-row small-gap">
+                    ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                     ${!mTenant && !eTenant ? btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' }) : ''}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id, student_name: a.student_name })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
@@ -2754,6 +2779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
                 <div class="modal-actions-row small-gap">
+                    ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                     ${btn('Put On Hold', 'open_hold', 'btn-warning btn-sm', { student_id: a.student_id, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
@@ -2801,6 +2827,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:0; font-size:0.95rem; color:var(--text-main);">On Hold by <strong>${ownerName}</strong></p>
                     </div>
                     <div class="modal-actions-row small-gap">
+                        ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('Temp', 'open_assign', 'btn-primary btn-sm', { shift })}
                         ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })}
                         ${showAssignFullDay ? btn('Assign full day', 'assign_full_day', 'btn-success btn-sm', { student_id: owner.student_id, student_name: owner.student_name }) : ''}
@@ -2814,6 +2841,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Occupied by <strong>${ownerName}</strong></p>
                     </div>
                     <div class="modal-actions-row small-gap">
+                        ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('Hold', 'open_hold', 'btn-warning btn-sm', { student_id: owner.student_id, shift })}
                         ${showAssignFullDay ? btn('Assign full day', 'assign_full_day', 'btn-success btn-sm', { student_id: owner.student_id, student_name: owner.student_name }) : ''}
                         ${btn('Free', 'free_shift', 'btn-danger btn-sm', { shift })}
@@ -2850,6 +2878,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="modal-actions-row small-gap">
+                        ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
+                        ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
                         ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })} 
                         ${btn('End Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     </div>`;
@@ -2870,6 +2900,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Temp: <strong>${tenantName}</strong> <span style="color:#e74c3c; font-size:0.8rem;">(No Owner)</span></p>
                     </div>
                     <div class="modal-actions-row small-gap">
+                        ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
                         ${btn('End Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     </div>`;
               }
@@ -2930,11 +2961,13 @@ document.addEventListener('DOMContentLoaded', () => {
           const dateStr = formatDateFriendly(p.created_at);
           
           let actionButtons = `
+            ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: p.student_id })}
             ${btn('Delete Request', 'delete_request', 'btn-danger btn-sm', { request_id: p.student_id, shift: p.shift })} 
             ${btn('Approve w/o Seat', 'approve_without_seat', 'btn-warning btn-sm', { request_id: p.student_id, shift: p.shift })}
           `;
           if (p.is_special_request) {
             actionButtons = `
+              ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: p.student_id })}
               ${btn('Reject Temp', 'reject_partial_request', 'btn-danger btn-sm', { request_id: p.request_id })} 
               ${btn('Approve Temp', 'approve_partial_request', 'btn-primary btn-sm', { request_id: p.request_id })}
             `;
@@ -2990,12 +3023,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Action:', action, payload);
 
     if (action === 'view_student') {
-      const sId = payload && payload.student_id;
+      const sId = payload && (payload.student_id || payload.request_id);
       if (sId) {
-        const url = (typeof STUDENT_DETAILS_URL_BASE !== 'undefined' && STUDENT_DETAILS_URL_BASE)
-          ? STUDENT_DETAILS_URL_BASE.replace('/0/', `/${encodeURIComponent(sId)}/`)
-          : `/teacher/student/${encodeURIComponent(sId)}/`;
-        window.open(url, '_blank');
+        window.openQuickStudentProfile(sId);
       }
       return;
     }
@@ -3688,6 +3718,136 @@ document.addEventListener('DOMContentLoaded', () => {
   window.openModal = window.openSmallModal;
 
   /**
+   * Opens the in-page quick student profile preview modal
+   */
+  window.openQuickStudentProfile = async function (studentId) {
+    if (!studentId || !studentQuickProfileModal) return;
+
+    if (studentQuickProfileBody) {
+      studentQuickProfileBody.innerHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: #64748b;">
+          <i class='bx bx-loader-alt bx-spin' style="font-size: 2.5rem; color: #6366f1;"></i>
+          <p style="margin-top: 14px; font-weight: 600; font-size: 0.95rem;">Loading student profile...</p>
+        </div>`;
+    }
+    if (studentQuickProfileTitle) {
+      studentQuickProfileTitle.innerHTML = `<i class='bx bx-id-card' style="color: #6366f1;"></i> Student Profile`;
+    }
+
+    window.openSmallModal(studentQuickProfileModal);
+
+    try {
+      const url = (typeof API_STUDENT_QUICK_PROFILE_URL !== 'undefined')
+        ? API_STUDENT_QUICK_PROFILE_URL.replace('/0/', `/${encodeURIComponent(studentId)}/`)
+        : `/users/api/teacher/student-profile/${encodeURIComponent(studentId)}/`;
+
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Profile fetch failed: ${res.status}`);
+      }
+      const data = await res.json();
+      if (data.status !== 'success' || !data.student) {
+        throw new Error(data.message || 'Student not found');
+      }
+
+      const s = data.student;
+      const formattedName = escapeHTML(abcdFormatName(s.full_name || 'Student'));
+
+      const statusClass = `status-${(s.status || '').toLowerCase()}`;
+      const statusLabel = escapeHTML(s.status_display || s.status || 'Active');
+
+      const shiftDisplayMap = {
+        'full': 'Full Day',
+        'morning': 'Morning (8 AM - 2 PM)',
+        'evening': 'Evening (2 PM - 8 PM)',
+      };
+      const shiftLabel = shiftDisplayMap[(s.shift || '').toLowerCase()] || (s.shift || 'Full Day');
+
+      let serviceDetailsHtml = '';
+      if ((s.service_type || '').toLowerCase() === 'coaching') {
+        serviceDetailsHtml = `
+          <div class="detail-row">
+            <span class="detail-label"><i class='bx bx-book-bookmark'></i> Batch</span>
+            <span class="detail-value">${escapeHTML(s.batch || 'Not assigned')}</span>
+          </div>`;
+      } else {
+        serviceDetailsHtml = `
+          <div class="detail-row">
+            <span class="detail-label"><i class='bx bx-building'></i> Floor</span>
+            <span class="detail-value">${escapeHTML(s.floor || 'Not assigned')}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label"><i class='bx bx-chair'></i> Seat</span>
+            <span class="detail-value" style="font-weight: 700; color: #4f46e5;">${escapeHTML(s.seat || 'N/A')}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label"><i class='bx bx-time-five'></i> Shift</span>
+            <span class="detail-value">${escapeHTML(shiftLabel)}</span>
+          </div>`;
+      }
+
+      const photoHtml = s.photo_url
+        ? `<img src="${s.photo_url}" alt="${formattedName}" style="width: 100%; height: 100%; object-fit: cover;">`
+        : `<i class='bx bxs-user' style="font-size: 3.5rem; color: #cbd5e1;"></i>`;
+
+      const profileContent = `
+        <div class="profile-card-preview" style="text-align: center;">
+          <div style="position: relative; width: 100px; height: 100px; margin: 0 auto 16px; border-radius: 50%; border: 4px solid #6366f1; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);">
+            ${photoHtml}
+          </div>
+          <h3 style="margin: 0 0 6px; font-size: 1.4rem; font-weight: 800; color: var(--text-main, #1e293b);">${formattedName}</h3>
+          <div style="margin-bottom: 20px;">
+            <span class="status-badge ${statusClass}">${statusLabel}</span>
+          </div>
+
+          <div class="details-list">
+            <div class="detail-row">
+              <span class="detail-label"><i class='bx bx-calendar'></i> DOB</span>
+              <span class="detail-value">${escapeHTML(s.dob || 'Not set')}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label"><i class='bx bx-user'></i> Gender</span>
+              <span class="detail-value">${escapeHTML(s.sex || 'Not set')}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label"><i class='bx bx-briefcase-alt'></i> Service</span>
+              <span class="detail-value">${escapeHTML(s.service_type || 'Library')}</span>
+            </div>
+            ${serviceDetailsHtml}
+            <div class="detail-row">
+              <span class="detail-label"><i class='bx bx-phone'></i> Mobile</span>
+              <span class="detail-value"><a href="tel:${escapeHTML(s.mobile_number)}" style="color: inherit; text-decoration: none;">${escapeHTML(s.mobile_number || 'Not provided')}</a></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label"><i class='bx bxl-whatsapp' style="color: #25d366;"></i> WhatsApp</span>
+              <span class="detail-value">${escapeHTML(s.whatsapp_number || 'Not provided')}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label"><i class='bx bx-envelope'></i> Email</span>
+              <span class="detail-value" style="word-break: break-all;">${escapeHTML(s.email || 'Not provided')}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (studentQuickProfileBody) {
+        studentQuickProfileBody.innerHTML = profileContent;
+      }
+    } catch (err) {
+      console.error('Error fetching student profile:', err);
+      if (studentQuickProfileBody) {
+        studentQuickProfileBody.innerHTML = `
+          <div style="text-align: center; padding: 30px 15px; color: #ef4444;">
+            <i class='bx bx-error-circle' style="font-size: 2.5rem; margin-bottom: 8px;"></i>
+            <p style="font-weight: 700; margin: 0 0 6px;">Failed to load student profile</p>
+            <p style="font-size: 0.85rem; color: #64748b; margin: 0;">${escapeHTML(err.message || 'Please try again later.')}</p>
+          </div>
+        `;
+      }
+    }
+  };
+
+  /**
    * Reset Assign Modal State
    */
   function resetAssignModal() {
@@ -3707,7 +3867,15 @@ document.addEventListener('DOMContentLoaded', () => {
       refreshCustomSelect(studentAssignSelect);
     }
 
-    // 4. Sync UI
+    // 4. Reset student search input
+    if (studentAssignSearchInput) {
+      studentAssignSearchInput.value = '';
+    }
+    if (studentAssignSearchClear) {
+      studentAssignSearchClear.style.display = 'none';
+    }
+
+    // 5. Sync UI
     toggleAssignModeUI();
   }
 
@@ -4359,6 +4527,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (studentAssignType) {
     studentAssignType.addEventListener('change', () => {
       toggleAssignModeUI();
+      if (studentAssignSearchInput) {
+        studentAssignSearchInput.value = '';
+      }
+      if (studentAssignSearchClear) {
+        studentAssignSearchClear.style.display = 'none';
+      }
       const mode = studentAssignType.value || 'library';
       if (mode === 'manual') {
         // manual mode doesn't need student list
@@ -4366,6 +4540,50 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         loadStudentList(mode);
       }
+    });
+  }
+
+  // Student Assign Search Bar Logic
+  if (studentAssignSearchInput) {
+    studentAssignSearchInput.addEventListener('input', () => {
+      const q = (studentAssignSearchInput.value || '').trim().toLowerCase();
+      if (studentAssignSearchClear) {
+        studentAssignSearchClear.style.display = q ? 'block' : 'none';
+      }
+      const mode = studentAssignType ? (studentAssignType.value || 'library') : 'library';
+      const allStudents = studentListCache[mode] || [];
+      if (!q) {
+        populateStudentDropdown(allStudents);
+      } else {
+        const filtered = allStudents.filter(s => {
+          const name = (s.full_name || '').toLowerCase();
+          const seat = String(s.seat_number || '').toLowerCase();
+          const mobile = (s.mobile_number || '').toLowerCase();
+          return name.includes(q) || seat.includes(q) || mobile.includes(q);
+        });
+        populateStudentDropdown(filtered);
+      }
+    });
+  }
+
+  if (studentAssignSearchClear) {
+    studentAssignSearchClear.addEventListener('click', () => {
+      if (studentAssignSearchInput) {
+        studentAssignSearchInput.value = '';
+        studentAssignSearchClear.style.display = 'none';
+        const mode = studentAssignType ? (studentAssignType.value || 'library') : 'library';
+        populateStudentDropdown(studentListCache[mode] || []);
+        studentAssignSearchInput.focus();
+      }
+    });
+  }
+
+  // Quick Profile Modal Close Button
+  if (closeStudentQuickProfileModal) {
+    closeStudentQuickProfileModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.closeSmallModal(studentQuickProfileModal);
     });
   }
 
