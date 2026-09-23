@@ -379,6 +379,12 @@ var CustomPopup = window.CustomPopup || (function () {
         popupOverlay.style.setProperty('-webkit-backdrop-filter', 'blur(4px)', 'important');
         popupOverlay.style.setProperty('pointer-events', 'auto', 'important');
         popupOverlay.classList.add('visible');
+
+        popupContainer.style.removeProperty('display');
+        popupContainer.style.setProperty('display', 'block', 'important');
+        popupContainer.style.setProperty('visibility', 'visible', 'important');
+        popupContainer.style.setProperty('opacity', '1', 'important');
+        popupContainer.style.setProperty('pointer-events', 'auto', 'important');
         popupContainer.classList.add('visible');
         document.body.classList.add('modal-open');
 
@@ -429,6 +435,10 @@ var CustomPopup = window.CustomPopup || (function () {
         // 🚀 INSTANT VISUAL FEEDBACK
         popupOverlay.classList.remove('visible');
         popupContainer.classList.remove('visible');
+        popupContainer.style.setProperty('display', 'none', 'important');
+        popupContainer.style.setProperty('pointer-events', 'none', 'important');
+        popupContainer.style.setProperty('visibility', 'hidden', 'important');
+        popupContainer.style.setProperty('opacity', '0', 'important');
         popupOverlay.style.setProperty('display', 'none', 'important');
         popupOverlay.style.setProperty('backdrop-filter', 'none', 'important');
         popupOverlay.style.setProperty('-webkit-backdrop-filter', 'none', 'important');

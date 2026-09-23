@@ -222,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return new Promise((resolve) => {
       const handleConfirm = (e) => {
         if (e) { e.preventDefault(); e.stopPropagation(); }
+        cleanup();
         if (typeof window.setButtonLoading === 'function' && actionFinalConfirm) {
           const isDanger = theme === 'danger' || confirmLabel.toLowerCase().includes('delete') || confirmLabel.toLowerCase().includes('unlock');
           window.setButtonLoading(actionFinalConfirm, true, isDanger ? 'Processing...' : 'Confirming...');
@@ -3652,7 +3653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.setButtonLoading === 'function' && actionFinalConfirm) {
       window.setButtonLoading(actionFinalConfirm, false);
     }
-    const allModals = document.querySelectorAll('.admission-modal, .teacher-modal, .seat-modal-container, .custom-popup, .abcd-modal-overlay');
+    const allModals = document.querySelectorAll('.admission-modal, .teacher-modal, .seat-modal-container, .abcd-modal-overlay');
     allModals.forEach(m => {
       m.classList.remove('active', 'open', 'visible', 'modal-stacked-parent');
       if (!m.classList.contains('abcd-modal-overlay')) {
@@ -3734,8 +3735,8 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(result.message || `Server returned ${res.status}`);
       }
 
-      await window.CustomPopup.showResult(result.message || 'Action completed', true);
       window.closeAllModals();
+      await window.CustomPopup.showResult(result.message || 'Action completed', true);
       currentSeatData = {};
       loadSeatLayout(currentFloor);
       studentListCache = { library: null, coaching: null, alumni: null }; // clear cache
@@ -3743,6 +3744,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('sendSeatAction error:', err);
       // Don't show redundant error if we already showed conflict modal
       if (!conflictModal?.classList.contains('open')) {
+        window.closeAllModals();
         await window.CustomPopup.showResult('Error: ' + (err.message || err), false);
       }
     } finally {
