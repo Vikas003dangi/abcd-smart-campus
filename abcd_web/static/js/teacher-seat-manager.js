@@ -2870,6 +2870,45 @@ document.addEventListener('DOMContentLoaded', () => {
               content += `</div>`;
               if (idx === 0) content += `<div style="height:1px; background:#eee; margin:10px 0;"></div>`;
             });
+
+            // ADD FULL DAY ACTIONS IF ELIGIBLE (Case B, Case C, or Both Free)
+            const mAssigns = assignments.filter(a => a.shift === 'morning' && a.student_status !== 'pending' && !a.is_pending);
+            const eAssigns = assignments.filter(a => a.shift === 'evening' && a.student_status !== 'pending' && !a.is_pending);
+            const mOwner = mAssigns.find(a => !a.is_partial);
+            const mTenant = mAssigns.find(a => a.is_partial);
+            const eOwner = eAssigns.find(a => !a.is_partial);
+            const eTenant = eAssigns.find(a => a.is_partial);
+
+            const mHold = mOwner && mOwner.hold_status === 'active';
+            const eHold = eOwner && eOwner.hold_status === 'active';
+            const mFree = !mOwner && !mTenant;
+            const eFree = !eOwner && !eTenant;
+
+            let fullDayActions = '';
+            // Case B: Both on hold and neither has a tenant
+            if (mHold && !mTenant && eHold && !eTenant) {
+              fullDayActions = btn('Allot Temp Full', 'open_assign', 'btn-primary btn-sm', { shift: 'full', is_temp: true });
+            }
+            // Case C: Morning free and Evening on hold (no tenant)
+            else if (mFree && eHold && !eTenant) {
+              fullDayActions = btn('Allot Full Day (Morning + Temp Evening)', 'open_assign', 'btn-primary btn-sm', { shift: 'full' });
+            }
+            // Case C vice versa: Morning on hold (no tenant) and Evening free
+            else if (eFree && mHold && !mTenant) {
+              fullDayActions = btn('Allot Full Day (Evening + Temp Morning)', 'open_assign', 'btn-primary btn-sm', { shift: 'full' });
+            }
+            // Both free (neither occupied nor hold)
+            else if (mFree && eFree) {
+              fullDayActions = btn('Assign Full Day', 'open_assign', 'btn-primary btn-sm', { shift: 'full' });
+            }
+
+            if (fullDayActions) {
+              content += `
+                <div style="height:1px; background:#eee; margin:15px 0;"></div>
+                <div class="modal-actions-row small-gap" style="justify-content:center;">
+                    ${fullDayActions}
+                </div>`;
+            }
           }
         }
       }
@@ -3174,65 +3213,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
       window.closeSeatDetailsModal();
 
-      const shiftLabel = p.shift ? shiftLabelMap[p.shift] || p.shift : '';
-      if (assignStudentTitle) assignStudentTitle.textContent = `Assign Seat ${currentSeatData.seat_number} ${shiftLabel ? '(' + shiftLabel + ')' : ''}`;
-
-      const shiftWrapper = document.getElementById('assignShiftWrapper');
-      const shiftSelect = document.getElementById('assignShiftSelect');
-
       // PRE-RESET: Clear state before opening
       resetAssignModal();
 
-      if (currentSeatData.is_shift_enabled) {
-        if (shiftWrapper) shiftWrapper.style.display = 'block';
-        if (shiftSelect) {
-          const morningAssign = currentSeatData.assignments ? currentSeatData.assignments.find(a => a.shift === 'morning' && a.student_status !== 'pending') : null;
-          const eveningAssign = currentSeatData.assignments ? currentSeatData.assignments.find(a => a.shift === 'evening' && a.student_status !== 'pending') : null;
-          
-          const isMorningAvailable = !morningAssign && !isMorningLocked;
-          const isEveningAvailable = !eveningAssign && !isEveningLocked;
-          const isFullAvailable = isMorningAvailable && isEveningAvailable;
-
-          // Rebuild options dynamically based on availability AND lock status
-          let optionsHtml = '';
-          if (isFullAvailable) {
-            optionsHtml += '<option value="full">Full Day (Shift Seat)</option>';
-          }
-          if (isMorningAvailable) {
-            optionsHtml += '<option value="morning">Morning Shift (8 AM - 2 PM)</option>';
-          }
-          if (isEveningAvailable) {
-            optionsHtml += '<option value="evening">Evening Shift (2 PM - 8 PM)</option>';
-          }
-
-          if (!optionsHtml) {
-            let lockReason = 'All shifts are assigned or locked.';
-            if (isMorningLocked && isEveningLocked) lockReason = 'Both shifts are locked. Please unlock a shift first.';
-            else if (isMorningLocked) lockReason = 'Morning shift is locked and Evening shift is assigned.';
-            else if (isEveningLocked) lockReason = 'Evening shift is locked and Morning shift is assigned.';
-            await window.CustomPopup.alert(lockReason, 'Shift Locked');
-            return;
-          }
-
-          shiftSelect.innerHTML = optionsHtml;
-          if (p.shift && shiftSelect.querySelector(`option[value="${p.shift}"]`)) {
-            shiftSelect.value = p.shift;
-          } else {
-            shiftSelect.selectedIndex = 0;
-          }
-          refreshCustomSelect(shiftSelect);
-        }
-      } else {
-        if (shiftWrapper) shiftWrapper.style.display = 'none';
-        if (shiftSelect) {
-          shiftSelect.value = 'full';
-          refreshCustomSelect(shiftSelect);
-        }
+      const chosenShift = setupAssignShiftSelect(p.shift || 'full');
+      if (!chosenShift) {
+        let lockReason = 'All shifts are assigned or locked.';
+        const lockedShiftsList = (currentSeatData.locked_shifts || '').split(',').filter(Boolean);
+        const isFullLocked = !!currentSeatData.is_locked || lockedShiftsList.includes('full');
+        const isMorningLocked = isFullLocked || lockedShiftsList.includes('morning');
+        const isEveningLocked = isFullLocked || lockedShiftsList.includes('evening');
+        if (isMorningLocked && isEveningLocked) lockReason = 'Both shifts are locked. Please unlock a shift first.';
+        else if (isMorningLocked) lockReason = 'Morning shift is locked and Evening shift is assigned.';
+        else if (isEveningLocked) lockReason = 'Evening shift is locked and Morning shift is assigned.';
+        await window.CustomPopup.alert(lockReason, 'Shift Unavailable');
+        return;
       }
 
-      const selectedShift = (shiftSelect && shiftSelect.value) ? shiftSelect.value : (p.shift || 'full');
-      lastAssignShift = selectedShift;
-      updateAssignTitle(selectedShift);
+      lastAssignShift = chosenShift;
+      updateAssignTitle(chosenShift, p.is_temp);
 
       // default to library
       if (studentAssignType) {
@@ -3695,10 +3694,116 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleAssignModeUI();
   }
 
-  function updateAssignTitle(shiftValue) {
+  function setupAssignShiftSelect(preferredShift = null) {
+    const shiftWrapper = document.getElementById('assignShiftWrapper');
+    const shiftSelect = document.getElementById('assignShiftSelect');
+    if (!shiftSelect) return null;
+
+    if (!currentSeatData || !currentSeatData.is_shift_enabled) {
+      if (shiftWrapper) shiftWrapper.style.display = 'none';
+      shiftSelect.innerHTML = '<option value="full">Full Day</option>';
+      shiftSelect.value = 'full';
+      refreshCustomSelect(shiftSelect);
+      return 'full';
+    }
+
+    if (shiftWrapper) shiftWrapper.style.display = 'block';
+
+    const lockedShiftsList = (currentSeatData.locked_shifts || '').split(',').filter(Boolean);
+    const isFullLocked = !!currentSeatData.is_locked || lockedShiftsList.includes('full');
+    const isMorningLocked = isFullLocked || lockedShiftsList.includes('morning');
+    const isEveningLocked = isFullLocked || lockedShiftsList.includes('evening');
+
+    const activeAssigns = (currentSeatData.assignments || []).filter(a => a.student_status !== 'pending' && !a.is_pending);
+
+    const morningOwner = activeAssigns.find(a => a.shift === 'morning' && !a.is_partial);
+    const morningTenant = activeAssigns.find(a => a.shift === 'morning' && a.is_partial);
+    const isMorningHold = morningOwner && morningOwner.hold_status === 'active';
+    const isMorningFree = !morningOwner && !morningTenant;
+    const isMorningTemp = isMorningHold && !morningTenant;
+    const isMorningAssignable = !isMorningLocked && (isMorningFree || isMorningTemp);
+
+    const eveningOwner = activeAssigns.find(a => a.shift === 'evening' && !a.is_partial);
+    const eveningTenant = activeAssigns.find(a => a.shift === 'evening' && a.is_partial);
+    const isEveningHold = eveningOwner && eveningOwner.hold_status === 'active';
+    const isEveningFree = !eveningOwner && !eveningTenant;
+    const isEveningTemp = isEveningHold && !eveningTenant;
+    const isEveningAssignable = !isEveningLocked && (isEveningFree || isEveningTemp);
+
+    const fullOwner = activeAssigns.find(a => a.shift === 'full' && !a.is_partial);
+    const fullTenant = activeAssigns.find(a => a.shift === 'full' && a.is_partial);
+    const isFullHold = fullOwner && fullOwner.hold_status === 'active';
+    const isFullAssignable = !isFullLocked && (
+      (isFullHold && !fullTenant && !morningTenant && !eveningTenant) ||
+      (!fullOwner && !fullTenant && isMorningAssignable && isEveningAssignable)
+    );
+
+    let optionsHtml = '';
+    if (isFullAssignable) {
+      let fullLabel = 'Full Day (Shift Seat)';
+      if (isFullHold) {
+        fullLabel = `Full Day (Temporary - Hold ends in ${fullOwner.hold_days || 0}d)`;
+      } else if (isMorningTemp && isEveningTemp) {
+        fullLabel = `Full Day (Temporary - Morning ${morningOwner.hold_days || 0}d & Evening ${eveningOwner.hold_days || 0}d)`;
+      } else if (isMorningFree && isEveningTemp) {
+        fullLabel = `Full Day (Morning Regular + Evening Temp ${eveningOwner.hold_days || 0}d)`;
+      } else if (isEveningFree && isMorningTemp) {
+        fullLabel = `Full Day (Evening Regular + Morning Temp ${morningOwner.hold_days || 0}d)`;
+      }
+      optionsHtml += `<option value="full">${fullLabel}</option>`;
+    }
+    if (isMorningAssignable) {
+      let mLabel = 'Morning Shift (8 AM - 2 PM)';
+      if (isMorningTemp) {
+        mLabel = `Morning Shift (Temporary - Hold ends in ${morningOwner.hold_days || 0}d)`;
+      }
+      optionsHtml += `<option value="morning">${mLabel}</option>`;
+    }
+    if (isEveningAssignable) {
+      let eLabel = 'Evening Shift (2 PM - 8 PM)';
+      if (isEveningTemp) {
+        eLabel = `Evening Shift (Temporary - Hold ends in ${eveningOwner.hold_days || 0}d)`;
+      }
+      optionsHtml += `<option value="evening">${eLabel}</option>`;
+    }
+
+    if (!optionsHtml) {
+      return null;
+    }
+
+    shiftSelect.innerHTML = optionsHtml;
+    if (preferredShift && shiftSelect.querySelector(`option[value="${preferredShift}"]`)) {
+      shiftSelect.value = preferredShift;
+    } else {
+      shiftSelect.selectedIndex = 0;
+    }
+    refreshCustomSelect(shiftSelect);
+    return shiftSelect.value;
+  }
+
+  function updateAssignTitle(shiftValue, isTemp = false) {
     const label = shiftLabelMap[shiftValue] || shiftValue || '';
+    let prefix = 'Assign';
+    if (isTemp) {
+      prefix = 'Allot Temp';
+    } else if (currentSeatData && currentSeatData.is_shift_enabled) {
+      const activeAssigns = (currentSeatData.assignments || []).filter(a => a.student_status !== 'pending' && !a.is_pending);
+      if (shiftValue === 'morning') {
+        const mOwner = activeAssigns.find(a => a.shift === 'morning' && !a.is_partial);
+        if (mOwner && mOwner.hold_status === 'active') prefix = 'Allot Temp';
+      } else if (shiftValue === 'evening') {
+        const eOwner = activeAssigns.find(a => a.shift === 'evening' && !a.is_partial);
+        if (eOwner && eOwner.hold_status === 'active') prefix = 'Allot Temp';
+      } else if (shiftValue === 'full') {
+        const hasHold = activeAssigns.some(a => a.hold_status === 'active');
+        if (hasHold) prefix = 'Allot Temp';
+      }
+    } else if (currentSeatData && currentSeatData.status === 'on_hold') {
+      prefix = 'Allot Temp';
+    }
+
     if (assignStudentTitle) {
-      assignStudentTitle.textContent = `Assign Seat ${getFormattedSeatNumber()} ${label ? '(' + label + ')' : ''}`.trim();
+      assignStudentTitle.textContent = `${prefix} Seat ${getFormattedSeatNumber()} ${label ? '(' + label + ')' : ''}`.trim();
     }
   }
 
@@ -4111,59 +4216,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Ensure we have a valid shift
       const payloadShift = (typeof payload !== 'undefined' && payload && payload.shift) ? payload.shift : (lastAssignShift || 'full');
-      updateAssignTitle(payloadShift);
 
-
-      // --- NEW: Toggle Shift Dropdown Visibility ---
-      const shiftWrapper = document.getElementById('assignShiftWrapper');
-      const shiftSelect = document.getElementById('assignShiftSelect');
-
-      // --------------------------------------------------
-      // STEP 2.4 — Enforce shift availability (Teacher UI)
-      // --------------------------------------------------
-      if (shiftWrapper && shiftSelect) {
-
-        // Reset all options first
-        Array.from(shiftSelect.options).forEach(opt => {
-          opt.disabled = false;
-        });
-
-        const seatEl = document.querySelector(
-          `.seat[data-seat-id="${currentSeatData.seat_number}"]`
-        );
-
-        if (seatEl) {
-          const morningTaken = seatEl.classList.contains('shift-morning') || seatEl.classList.contains('shift-split');
-          const eveningTaken = seatEl.classList.contains('shift-evening') || seatEl.classList.contains('shift-split');
-          const fullTaken = seatEl.classList.contains('occupied');
-
-          // Full-day not allowed if any shift is occupied
-          if (morningTaken || eveningTaken) {
-            const fullOpt = shiftSelect.querySelector('option[value="full"]');
-            if (fullOpt) fullOpt.disabled = true;
-          }
-
-          // Disable individual shifts if occupied
-          if (morningTaken) {
-            const opt = shiftSelect.querySelector('option[value="morning"]');
-            if (opt) opt.disabled = true;
-          }
-
-          if (eveningTaken) {
-            const opt = shiftSelect.querySelector('option[value="evening"]');
-            if (opt) opt.disabled = true;
-          }
-
-          // Auto-select first enabled option
-          const firstValid = Array.from(shiftSelect.options).find(o => !o.disabled);
-          if (firstValid) shiftSelect.value = firstValid.value;
-        }
-
-        const initialShift = shiftSelect.value || lastAssignShift || 'full';
-        lastAssignShift = initialShift;
-        updateAssignTitle(initialShift);
-        refreshCustomSelect(shiftSelect); // Sync shift select
+      // Setup dynamic shift availability
+      const chosenShift = setupAssignShiftSelect(payloadShift);
+      if (!chosenShift) {
+        await window.CustomPopup.alert('All shifts for this seat are assigned or locked.', 'Shift Unavailable');
+        return;
       }
+      lastAssignShift = chosenShift;
+      updateAssignTitle(chosenShift);
 
       // default to library list
       if (studentAssignType) {
@@ -4615,9 +4676,28 @@ Do you want to switch them to this seat permanently?`,
       const confirmMain = reassign
         ? `Student ${selectedStudent.full_name} Already Assigned`
         : `Confirm Allotment to ${selectedStudent ? selectedStudent.full_name : 'Student'}`;
-      const confirmSub = reassign
+      let confirmSub = reassign
         ? `${selectedStudent.full_name} is already assigned/tenant on Seat ${getFormattedSeatNumber(selectedStudent.seat_number) || '?'}. Reassign them to Seat ${getFormattedSeatNumber()} (${selectedShift})?`
         : `Would you like to allot Seat ${getFormattedSeatNumber()} (${selectedShift}) to ${selectedStudent ? selectedStudent.full_name : 'the selected student'}?`;
+
+      if (currentSeatData && currentSeatData.is_shift_enabled) {
+        const assigns = (currentSeatData.assignments || []).filter(a => a.student_status !== 'pending' && !a.is_pending);
+        const mOwner = assigns.find(a => a.shift === 'morning' && !a.is_partial && a.hold_status === 'active');
+        const eOwner = assigns.find(a => a.shift === 'evening' && !a.is_partial && a.hold_status === 'active');
+        if (selectedShift === 'full' && mOwner && eOwner) {
+          confirmSub += `<br><br><span style="color:#d97706; font-weight:600;">⚠️ Temporary Full Day: Both shifts are on hold (Morning: ${mOwner.hold_days}d, Evening: ${eOwner.hold_days}d). When either hold ends, that shift returns to its owner.</span>`;
+        } else if (selectedShift === 'full' && eOwner) {
+          confirmSub += `<br><br><span style="color:#2563eb; font-weight:600;">ℹ️ Morning is regular and Evening is temporary (${eOwner.hold_days}d left on hold). When Evening hold ends, student retains Morning permanently.</span>`;
+        } else if (selectedShift === 'full' && mOwner) {
+          confirmSub += `<br><br><span style="color:#2563eb; font-weight:600;">ℹ️ Evening is regular and Morning is temporary (${mOwner.hold_days}d left on hold). When Morning hold ends, student retains Evening permanently.</span>`;
+        } else if (selectedShift === 'morning' && mOwner) {
+          confirmSub += `<br><br><span style="color:#d97706; font-weight:600;">⚠️ Temporary Allotment: Morning shift is on hold for ${mOwner.hold_days} days. Allotment finishes when hold ends.</span>`;
+        } else if (selectedShift === 'evening' && eOwner) {
+          confirmSub += `<br><br><span style="color:#d97706; font-weight:600;">⚠️ Temporary Allotment: Evening shift is on hold for ${eOwner.hold_days} days. Allotment finishes when hold ends.</span>`;
+        }
+      } else if (currentSeatData && currentSeatData.status === 'on_hold') {
+        confirmSub += `<br><br><span style="color:#d97706; font-weight:600;">⚠️ Temporary Allotment: Seat is currently on hold. Allotment finishes when hold ends.</span>`;
+      }
 
       const finalConfirm = await window.showConfirmation({
         title: confirmTitle,

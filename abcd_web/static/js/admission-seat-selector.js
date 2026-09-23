@@ -1187,22 +1187,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
             case 4:
                 // Case 4: One available + One on hold (image 1.1.1)
-                alertMessage = `<strong>${alertConfig.holdDays}</strong> days are left to end hold on <strong>${alertConfig.holdShift}</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, you will not have any access, Until Librarian allots you another seat.<br><br><strong>Would you send request?</strong>`;
+                if (requestedShift === 'full') {
+                    const availShift = alertConfig.availableShift || 'morning';
+                    const availLabel = availShift.charAt(0).toUpperCase() + availShift.slice(1);
+                    const holdShift = alertConfig.holdShift || 'evening';
+                    const holdLabel = holdShift.charAt(0).toUpperCase() + holdShift.slice(1);
+                    alertMessage = `<strong>${availLabel} Shift</strong> is available and <strong>${holdLabel} Shift</strong> is on hold for <strong>${alertConfig.holdDays}</strong> days on Seat <strong>${seatNumber}</strong>.<br><br>
+                    If you request <strong>Full Day</strong>:
+                    <div style="text-align: left; background: rgba(52, 152, 219, 0.08); padding: 10px 14px; border-radius: 8px; margin: 10px 0; font-size: 0.9rem; line-height: 1.5; border-left: 3px solid #3498db;">
+                      • You will receive <strong>${availLabel}</strong> shift as regular/permanent occupant.<br>
+                      • You will receive <strong>${holdLabel}</strong> shift as temporary allotment until its hold ends.<br>
+                      • When the hold ends, ${holdLabel} shift returns to its original student, and you will <strong>automatically retain ${availLabel} shift permanently</strong>.
+                    </div>
+                    <strong>Would you like to send this request?</strong>`;
+                } else {
+                    const holdShift = alertConfig.holdShift || 'that';
+                    const holdLabel = holdShift.charAt(0).toUpperCase() + holdShift.slice(1);
+                    alertMessage = `<strong>${alertConfig.holdDays}</strong> days are left to end hold on <strong>${holdLabel}</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, the shift returns to its original student and you will not have access until the Librarian allots you another seat.<br><br><strong>Would you like to send this request?</strong>`;
+                }
                 break;
 
             case 5:
                 // Case 5: One occupied + One on hold (image 1.2.1)
-                alertMessage = `<strong>${alertConfig.holdDays}</strong> days are left to end hold on <strong>${alertConfig.holdShift}</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, you will not have any access, Until Librarian allots you another seat.<br><br><strong>Would you send request?</strong>`;
+                const hShift = alertConfig.holdShift ? alertConfig.holdShift.charAt(0).toUpperCase() + alertConfig.holdShift.slice(1) : 'that';
+                alertMessage = `<strong>${alertConfig.holdDays}</strong> days are left to end hold on <strong>${hShift}</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, the shift returns to its original student and you will not have access until the Librarian allots you another seat.<br><br><strong>Would you like to send this request?</strong>`;
                 break;
 
             case 6:
                 // Case 6A: Both on hold (different students) - (image 1.3.1, 1.3.2, 1.3.3)
                 if (requestedShift === 'morning') {
-                    alertMessage = `<strong>${alertConfig.morningHoldDays}</strong> days are left to end hold on <strong>morning</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, you will not have any access, Until Librarian allots you another seat.<br><br><strong>Would you send request?</strong>`;
+                    alertMessage = `<strong>${alertConfig.morningHoldDays}</strong> days are left to end hold on <strong>Morning</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, the shift returns to its original student and you will not have access until the Librarian allots you another seat.<br><br><strong>Would you like to send this request?</strong>`;
                 } else if (requestedShift === 'evening') {
-                    alertMessage = `<strong>${alertConfig.eveningHoldDays}</strong> days are left to end hold on <strong>evening</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, you will not have any access, Until Librarian allots you another seat.<br><br><strong>Would you send request?</strong>`;
+                    alertMessage = `<strong>${alertConfig.eveningHoldDays}</strong> days are left to end hold on <strong>Evening</strong> shift on seat <strong>${seatNumber}</strong>.<br><br>After ending hold, the shift returns to its original student and you will not have access until the Librarian allots you another seat.<br><br><strong>Would you like to send this request?</strong>`;
                 } else if (requestedShift === 'full') {
-                    alertMessage = `<strong>${alertConfig.morningHoldDays}</strong> days of morning shift & <strong>${alertConfig.eveningHoldDays}</strong> days of evening shift are left to end hold on seat <strong>${seatNumber}</strong>.<br><br>After ending hold on any shift, you will not have any access, Until Librarian allots you another seat.<br><br><strong>Would you send request?</strong>`;
+                    alertMessage = `<strong>Morning Shift</strong> is on hold for <strong>${alertConfig.morningHoldDays}</strong> days & <strong>Evening Shift</strong> is on hold for <strong>${alertConfig.eveningHoldDays}</strong> days on Seat <strong>${seatNumber}</strong>.<br><br>
+                    If you request <strong>Temporary Full Day</strong>:
+                    <div style="text-align: left; background: rgba(243, 156, 18, 0.08); padding: 10px 14px; border-radius: 8px; margin: 10px 0; font-size: 0.9rem; line-height: 1.5; border-left: 3px solid #f39c12;">
+                      • When whichever shift's hold ends first, that shift returns to its owner, and you will <strong>automatically continue on the remaining shift as temporary</strong>.<br>
+                      • When both shifts' holds end, your temporary allotment on this seat will finish.
+                    </div>
+                    <strong>Would you like to send this request?</strong>`;
                 }
                 break;
 

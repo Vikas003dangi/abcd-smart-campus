@@ -7534,26 +7534,76 @@ def seat_action_api(request):
                 # hold_start_date preserved for fee extension calc
                 owner.save(update_fields=['hold_status', 'hold_end_date'])
 
-                # 2. Evict any partial tenants occupying THIS owner's shift
-                partials_to_evict = SeatAssignment.objects.filter(
+                # 2. Evict or transition any partial tenants occupying THIS owner's shift
+                partials_to_check = SeatAssignment.objects.filter(
                     seat=seat,
                     is_active=True,
                     is_partial=True
                 )
                 if owner.shift_type != 'full':
-                    # Only evict partials that conflict with this owner's shift
-                    partials_to_evict = partials_to_evict.filter(
-                        shift_type__in=[owner.shift_type, 'full']
+                    partials_to_check = partials_to_check.filter(
+                        models.Q(shift_type=owner.shift_type) | models.Q(shift_type='full')
                     )
                 
-                for p in partials_to_evict:
-                    p.deactivate()
-                    create_notification(
-                        user=p.student.user,
-                        title="Temporary Seat Ended",
-                        message=f"The hold on Seat {seat.seat_number} has ended. Your temporary allotment is finished.",
-                        category="seat"
-                    )
+                for p in partials_to_check:
+                    if p.shift_type == owner.shift_type:
+                        p.deactivate()
+                        create_notification(
+                            user=p.student.user,
+                            title="Temporary Seat Ended",
+                            message=f"The hold on Seat {seat.seat_number} ({owner.shift_type.capitalize()} shift) has ended as the regular student returned. Your temporary allotment is finished.",
+                            category="seat"
+                        )
+                    elif p.shift_type == 'full' and owner.shift_type in ['morning', 'evening']:
+                        other_shift = 'evening' if owner.shift_type == 'morning' else 'morning'
+                        other_owner = SeatAssignment.objects.filter(
+                            seat=seat, is_active=True, shift_type=other_shift, is_partial=False
+                        ).first()
+
+                        # Case B: Other shift owner is also on hold -> Transition to other shift temp
+                        if other_owner and other_owner.hold_status == 'active':
+                            p.shift_type = other_shift
+                            p.is_partial = True
+                            p.save(update_fields=['shift_type', 'is_partial'])
+                            p.student.shift = other_shift
+                            p.student.save(update_fields=['shift'])
+                            create_notification(
+                                user=p.student.user,
+                                title="Temporary Shift Updated",
+                                message=f"The hold on Seat {seat.seat_number} ({owner.shift_type.capitalize()} shift) has ended. Your temporary allotment has been shifted to {other_shift.capitalize()} shift until its hold ends.",
+                                category="seat"
+                            )
+                        # Case C: Other shift was free (no other owner) -> Promote to permanent occupant on other shift
+                        elif not other_owner:
+                            p.shift_type = other_shift
+                            p.is_partial = False
+                            p.allow_hold_override = False
+                            p.save(update_fields=['shift_type', 'is_partial', 'allow_hold_override'])
+                            p.student.shift = other_shift
+                            p.student.save(update_fields=['shift'])
+                            create_notification(
+                                user=p.student.user,
+                                title="Permanent Shift Allotment",
+                                message=f"The hold on Seat {seat.seat_number} ({owner.shift_type.capitalize()} shift) has ended. You are now the permanent occupant of {other_shift.capitalize()} shift on Seat {seat.seat_number}.",
+                                category="seat"
+                            )
+                        # Other owner exists and is active (regular) -> Both shifts taken, deactivate tenant
+                        else:
+                            p.deactivate()
+                            create_notification(
+                                user=p.student.user,
+                                title="Temporary Seat Ended",
+                                message=f"The hold on Seat {seat.seat_number} has ended. Your temporary allotment is finished.",
+                                category="seat"
+                            )
+                    else:
+                        p.deactivate()
+                        create_notification(
+                            user=p.student.user,
+                            title="Temporary Seat Ended",
+                            message=f"The hold on Seat {seat.seat_number} has ended. Your temporary allotment is finished.",
+                            category="seat"
+                        )
 
                 # Recalculate fee expiry with hold extension
                 _recalc_fee_expiry_with_hold(owner.student)
@@ -7588,39 +7638,48 @@ def seat_action_api(request):
                     status=400
                 )
 
-            # SAFETY CHECK: If this shift has a PARTIAL tenant, we only remove THE TENANT.
+            # SAFETY CHECK: If this shift has a PARTIAL tenant, we only remove/adjust THE TENANT.
             # We preserve the Owner-On-Hold.
             partial_assignments = SeatAssignment.objects.filter(
                 seat=seat,
-                shift_type=shift,
                 is_active=True,
                 is_partial=True
-            )
+            ).filter(models.Q(shift_type=shift) | models.Q(shift_type='full'))
 
             if partial_assignments.exists():
                 for p in partial_assignments:
-                    p.deactivate()
-                    create_notification(
-                        user=p.student.user,
-                        title="Temporary Seat Ended",
-                        message=f"Your temporary allotment for {shift} shift on Seat {seat.seat_number} has ended.",
-                        category="seat"
-                    )
-                # count = count_freed # This variable is not defined in the provided context. Assuming it's a placeholder or needs to be defined elsewhere.
+                    if p.shift_type == 'full':
+                        other_shift = 'evening' if shift == 'morning' else 'morning'
+                        p.shift_type = other_shift
+                        p.save(update_fields=['shift_type'])
+                        p.student.shift = other_shift
+                        p.student.save(update_fields=['shift'])
+                        create_notification(
+                            user=p.student.user,
+                            title="Temporary Shift Updated",
+                            message=f"Your temporary allotment for {shift} shift on Seat {seat.seat_number} has ended. You remain on {other_shift.capitalize()} shift.",
+                            category="seat"
+                        )
+                    else:
+                        p.deactivate()
+                        create_notification(
+                            user=p.student.user,
+                            title="Temporary Seat Ended",
+                            message=f"Your temporary allotment for {shift} shift on Seat {seat.seat_number} has ended.",
+                            category="seat"
+                        )
                 seat.recalc_status(save=True)
 
-                # --- START NEW SAFEGUARD ---
+                # Ensure remaining owners on hold stay marked correctly
                 active_owners = SeatAssignment.objects.filter(seat=seat, is_active=True, is_partial=False)
                 for owner in active_owners:
                     if owner.hold_status == 'active':
-                        # Refreshing their status guarantees the frontend receives "active" metadata
                         owner.student.status = 'on_hold'
                         owner.student.save(update_fields=['status'])
                         seat.status = 'on_hold'
                         seat.save(update_fields=['status'])
-                # --- END NEW SAFEGUARD ---
 
-                return success_response(f"{shift.capitalize()} shift - Temporary allotment ended. Owner status preserved.")
+                return success_response(f"{shift.capitalize()} shift - Temporary allotment updated/ended. Owner status preserved.")
 
             # Standard Behavior: Deactivate active assignments for this shift (Owner)
             assignments = SeatAssignment.objects.filter(

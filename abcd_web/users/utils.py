@@ -1047,35 +1047,63 @@ def process_expired_holds():
         )
 
         # B. AUTOMATIC TEMPORARY STUDENT PROMOTION
-        # Look for temporary tenant / assignment on this seat & shift
+        # Look for temporary tenant / assignment on this seat & shift (or full day)
         temp_tenant = SeatAssignment.objects.filter(
             seat=seat,
-            shift_type=shift,
             is_active=True,
             is_partial=True
-        ).first()
+        ).filter(models.Q(shift_type=shift) | models.Q(shift_type='full')).first()
 
         if temp_tenant:
             tenant_student = temp_tenant.student
             print(f"   - AUTO-PROMOTING Temporary Tenant to Permanent Occupant: {tenant_student.full_name}")
 
-            # Promote temporary tenant to permanent
-            temp_tenant.is_partial = False
-            temp_tenant.allow_hold_override = False
-            temp_tenant.save(update_fields=['is_partial', 'allow_hold_override'])
+            if temp_tenant.shift_type == 'full' and shift in ['morning', 'evening']:
+                other_shift = 'evening' if shift == 'morning' else 'morning'
+                other_owner_on_hold = SeatAssignment.objects.filter(
+                    seat=seat, is_active=True, shift_type=other_shift, is_partial=False, hold_status='active'
+                ).exists()
 
-            tenant_student.seat = seat
-            tenant_student.shift = shift
-            tenant_student.status = 'admitted'
-            tenant_student.save(update_fields=['seat', 'shift', 'status'])
+                if other_owner_on_hold:
+                    # Still on hold on the other shift, keep full with hold override
+                    create_notification(
+                        user=tenant_student.user,
+                        title="Permanent Shift Promotion!",
+                        message=f"The hold on Seat {seat.seat_number} ({shift}) has expired! You now have permanent rights on {shift} shift and remain temporary on {other_shift} shift.",
+                        link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
+                        category="seat"
+                    )
+                else:
+                    # Both holds resolved, promote to full permanent
+                    temp_tenant.is_partial = False
+                    temp_tenant.allow_hold_override = False
+                    temp_tenant.save(update_fields=['is_partial', 'allow_hold_override'])
 
-            create_notification(
-                user=tenant_student.user,
-                title="Permanent Seat Allotted!",
-                message=f"The hold on Seat {seat.seat_number} ({shift}) has ended! You have been automatically promoted from temporary allotment to permanent occupant of this seat.",
-                link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
-                category="seat"
-            )
+                    create_notification(
+                        user=tenant_student.user,
+                        title="Permanent Full Day Seat Allotted!",
+                        message=f"The holds on Seat {seat.seat_number} have ended! You have been automatically promoted to permanent Full Day occupant of this seat.",
+                        link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
+                        category="seat"
+                    )
+            else:
+                # Promote temporary tenant to permanent
+                temp_tenant.is_partial = False
+                temp_tenant.allow_hold_override = False
+                temp_tenant.save(update_fields=['is_partial', 'allow_hold_override'])
+
+                tenant_student.seat = seat
+                tenant_student.shift = temp_tenant.shift_type
+                tenant_student.status = 'admitted'
+                tenant_student.save(update_fields=['seat', 'shift', 'status'])
+
+                create_notification(
+                    user=tenant_student.user,
+                    title="Permanent Seat Allotted!",
+                    message=f"The hold on Seat {seat.seat_number} ({temp_tenant.shift_type}) has ended! You have been automatically promoted from temporary allotment to permanent occupant of this seat.",
+                    link=f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
+                    category="seat"
+                )
         else:
             # Check for pending special requests
             special_req = SeatSpecialRequest.objects.filter(
