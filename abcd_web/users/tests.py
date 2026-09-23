@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta, date
 from django.urls import reverse
-from users.models import Seat, StudentProfile, SeatAssignment, StudentAchievement, SeatLeaveRequest
+from users.models import Seat, StudentProfile, SeatAssignment, StudentAchievement, SeatLeaveRequest, SeatHoldChangeRequest
 from users.utils import process_expired_holds, process_birthday_wishes
 
 User = get_user_model()
@@ -801,6 +801,134 @@ class TemporaryStudentAndSingleRequestTests(TestCase):
         self.temp_assignment.refresh_from_db()
         self.assertIsNone(self.temp_profile.seat)
         self.assertFalse(self.temp_assignment.is_active)
+
+    def test_student_hold_change_request_and_teacher_approval(self):
+        """Student on hold can request to expand/shorten hold, and teacher can approve."""
+        # Put perm_student on hold first
+        today = timezone.localdate()
+        self.perm_assignment.hold_status = 'active'
+        self.perm_assignment.hold_start_date = today - timedelta(days=5)
+        self.perm_assignment.hold_end_date = today + timedelta(days=10)
+        self.perm_assignment.save()
+        self.perm_profile.status = 'on_hold'
+        self.perm_profile.save()
+        self.seat_g2.hold_status = 'active'
+        self.seat_g2.hold_start_date = today - timedelta(days=5)
+        self.seat_g2.hold_end_date = today + timedelta(days=10)
+        self.seat_g2.save()
+
+        self.client.login(username='permstudent', password='Password123!')
+
+        # 1. Student on hold cannot request switch seat
+        switch_resp = self.client.post(
+            reverse('users:api_request_seat_switch'),
+            data=json.dumps({
+                'seat_number': '01',
+                'floor': 'Ground Floor',
+                'shift': 'morning'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(switch_resp.status_code, 400)
+        self.assertIn('on hold', switch_resp.json().get('message', '').lower())
+
+        # 2. Date validation: cannot select date < 2 days
+        too_soon_resp = self.client.post(
+            reverse('users:api_request_hold_change'),
+            data=json.dumps({
+                'requested_end_date': (today + timedelta(days=1)).isoformat(),
+                'reason': 'Want earlier'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(too_soon_resp.status_code, 400)
+        self.assertIn('less than 2 days', too_soon_resp.json().get('message', ''))
+
+        # 3. Valid hold change request
+        valid_date = today + timedelta(days=25)
+        change_resp = self.client.post(
+            reverse('users:api_request_hold_change'),
+            data=json.dumps({
+                'requested_end_date': valid_date.isoformat(),
+                'reason': 'Extended exams'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(change_resp.status_code, 200)
+
+        req = SeatHoldChangeRequest.objects.filter(student=self.perm_profile, status='pending').first()
+        self.assertIsNotNone(req)
+        self.assertEqual(req.requested_end_date, valid_date)
+
+        # 4. Single active request rule: cannot submit another request while hold change is pending
+        change_resp2 = self.client.post(
+            reverse('users:api_request_hold_change'),
+            data=json.dumps({
+                'requested_end_date': (today + timedelta(days=30)).isoformat()
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(change_resp2.status_code, 400)
+        self.assertIn('already have an active request', change_resp2.json().get('message', ''))
+
+        # 5. Teacher approves hold change
+        self.client.login(username='staffteacher', password='Password123!')
+        appr_resp = self.client.post(reverse('users:approve_hold_change', kwargs={'pk': req.pk}))
+        self.assertEqual(appr_resp.status_code, 200)
+
+        self.seat_g2.refresh_from_db()
+        self.perm_assignment.refresh_from_db()
+        self.assertEqual(self.seat_g2.hold_end_date, valid_date)
+        self.assertEqual(self.perm_assignment.hold_end_date, valid_date)
+
+    def test_teacher_direct_expand_shorten_hold(self):
+        """Teacher can directly expand or shorten an active hold via seat action API."""
+        today = timezone.localdate()
+        self.perm_assignment.hold_status = 'active'
+        self.perm_assignment.hold_start_date = today - timedelta(days=2)
+        self.perm_assignment.hold_end_date = today + timedelta(days=5)
+        self.perm_assignment.save()
+        self.seat_g2.hold_status = 'active'
+        self.seat_g2.hold_start_date = today - timedelta(days=2)
+        self.seat_g2.hold_end_date = today + timedelta(days=5)
+        self.seat_g2.save()
+
+        self.client.login(username='staffteacher', password='Password123!')
+
+        # 1. Cannot select today or past date
+        past_resp = self.client.post(
+            reverse('users:api_seat_action'),
+            data=json.dumps({
+                'action': 'expand_shorten_hold',
+                'seat_number': '02',
+                'floor': 'Ground Floor',
+                'student_id': self.perm_profile.id,
+                'new_end_date': today.isoformat()
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(past_resp.status_code, 400)
+        self.assertIn('tomorrow', past_resp.json().get('message', '').lower())
+
+        # 2. Select valid future date (tomorrow or later)
+        new_end = today + timedelta(days=15)
+        ok_resp = self.client.post(
+            reverse('users:api_seat_action'),
+            data=json.dumps({
+                'action': 'expand_shorten_hold',
+                'seat_number': '02',
+                'floor': 'Ground Floor',
+                'student_id': self.perm_profile.id,
+                'new_end_date': new_end.isoformat()
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(ok_resp.status_code, 200)
+
+        self.seat_g2.refresh_from_db()
+        self.perm_assignment.refresh_from_db()
+        self.assertEqual(self.seat_g2.hold_end_date, new_end)
+        self.assertEqual(self.perm_assignment.hold_end_date, new_end)
 
 
 

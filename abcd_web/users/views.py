@@ -16,7 +16,7 @@ from django.http import JsonResponse, HttpResponseForbidden, FileResponse, Http4
 from django.urls import reverse
 from django.conf import settings
 from .models import (
-    TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest, SeatLeaveRequest,
+    TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest, SeatLeaveRequest, SeatHoldChangeRequest,
     StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification,
     BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview,
     CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, StudentCourseInteraction,
@@ -4594,11 +4594,11 @@ def is_temporary_student(student_profile):
     ).exists()
 
 
-def get_active_pending_request_info(student_profile):
+def get_unresolved_request_info(student_profile):
     """
-    Checks if a student has any pending seat request (hold, switch, or leave),
-    or if their seat is currently on hold / hold cancel review.
-    Returns: (has_pending, req_type, req_desc)
+    Checks if a student has any pending/unresolved request submitted
+    (hold request, cancel hold request, hold change request, seat switch request, or seat leave request).
+    Returns: (has_unresolved, req_type, req_desc)
     """
     if not student_profile:
         return False, None, None
@@ -4613,11 +4613,10 @@ def get_active_pending_request_info(student_profile):
     if cancel_hold_req:
         return True, 'hold_cancel', f"Your cancellation request for Seat {cancel_hold_req.seat.seat_number} hold is under review."
 
-    # 3. If currently on hold (active hold status on profile or seat)
-    if student_profile.status == 'on_hold':
-        return True, 'on_hold', "Your seat is currently on hold."
-    if student_profile.seat and student_profile.seat.hold_status == 'active':
-        return True, 'on_hold', "Your seat is currently on hold."
+    # 3. Pending Hold Change (Expand / Shorten) Request
+    change_hold_req = SeatHoldChangeRequest.objects.filter(student=student_profile, status='pending').first()
+    if change_hold_req:
+        return True, 'hold_change', f"Your request to change hold end date on Seat {change_hold_req.seat.seat_number} to {change_hold_req.requested_end_date.strftime('%d %b %Y')} is pending teacher review."
 
     # 4. Pending Switch Request
     switch_req = SeatSwitchRequest.objects.filter(student=student_profile, status='pending').first()
@@ -4629,6 +4628,25 @@ def get_active_pending_request_info(student_profile):
     leave_req = SeatLeaveRequest.objects.filter(student=student_profile, status='pending').first()
     if leave_req:
         return True, 'leave', f"A leave/withdraw request for Seat {leave_req.seat.seat_number} is pending teacher review."
+
+    return False, None, None
+
+
+def get_active_pending_request_info(student_profile):
+    """
+    Checks if a student has any pending request OR is currently on hold.
+    Used to block operations like seat switch or new hold where active hold is also disqualifying.
+    Returns: (has_pending, req_type, req_desc)
+    """
+    has_unres, req_type, req_desc = get_unresolved_request_info(student_profile)
+    if has_unres:
+        return True, req_type, req_desc
+
+    # If currently on hold (active hold status on profile or seat)
+    if student_profile and student_profile.status == 'on_hold':
+        return True, 'on_hold', "Your seat is currently on hold."
+    if student_profile and student_profile.seat and student_profile.seat.hold_status == 'active':
+        return True, 'on_hold', "Your seat is currently on hold."
 
     return False, None, None
 
@@ -4677,12 +4695,22 @@ def your_seat_status_view(request):
     ).select_related('seat').first()
 
     is_temp = is_temporary_student(profile)
+    is_on_hold = (profile.status == 'on_hold' or (seat and seat.hold_status == 'active'))
+    pending_hold_change = SeatHoldChangeRequest.objects.filter(
+        student=profile,
+        status='pending'
+    ).select_related('seat').first()
+
     has_pending, req_type, req_desc = get_active_pending_request_info(profile)
+    has_unres, unres_type, unres_desc = get_unresolved_request_info(profile)
 
     remaining_days = None
     days_of_hold = None
     end_date_calculated = None
     today = timezone.localdate()
+
+    min_change_date = (today + timedelta(days=2)).strftime('%Y-%m-%d')
+    max_change_date = (today + timedelta(days=90)).strftime('%Y-%m-%d')
 
     if hold_req:
         remaining_days = (hold_req.start_date - today).days
@@ -4729,10 +4757,16 @@ def your_seat_status_view(request):
         'hold_req': hold_req,
         'pending_switch': pending_switch,
         'pending_leave': pending_leave,
+        'pending_hold_change': pending_hold_change,
         'is_temporary_student': is_temp,
+        'is_on_hold': is_on_hold,
         'has_pending_request': has_pending,
         'pending_request_type': req_type,
         'pending_request_desc': req_desc,
+        'has_unresolved_request': has_unres,
+        'unresolved_request_desc': unres_desc,
+        'min_change_date': min_change_date,
+        'max_change_date': max_change_date,
         'remaining_days': remaining_days,
         'days_of_hold': days_of_hold,
         'end_date_calculated': end_date_calculated,
@@ -5148,6 +5182,14 @@ def request_seat_hold_api(request):
         if action == 'request_end':
             if seat.hold_status != 'active':
                 return JsonResponse({'status': 'error', 'message': 'No active hold.'}, status=400)
+
+            # Single active request rule: Check if student already has ANY pending request
+            has_unres, unres_type, unres_desc = get_unresolved_request_info(profile)
+            if has_unres:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'You already have an active request: {unres_desc} You cannot submit another request until action is taken or the request is cancelled.'
+                }, status=400)
             
             # Create/Update SeatHoldRequest to make it visible in teacher dashboard
             hold_req, created = SeatHoldRequest.objects.get_or_create(
@@ -5573,6 +5615,11 @@ def teacher_dashboard_view(request):
         status='pending'
     ).select_related('student', 'student__user', 'seat').order_by('-created_at')
 
+    # Fetch pending hold change (expand/shorten) requests
+    hold_change_requests = SeatHoldChangeRequest.objects.filter(
+        status='pending'
+    ).select_related('student', 'student__user', 'seat').order_by('-created_at')
+
     # Enrich achievements with student profile
     profiles_by_user = {
         p.user_id: p 
@@ -5675,13 +5722,25 @@ def teacher_dashboard_view(request):
 
     # ---- Notification counts ----
     total_admission_requests = pending_students.count()
-    total_hold_requests = pending_hold_requests.count() + cancel_hold_requests.count()
+    total_hold_requests = (
+        pending_hold_requests.count()
+        + cancel_hold_requests.count()
+        + seat_switch_requests.count()
+        + seat_leave_requests.count()
+        + hold_change_requests.count()
+    )
     total_pending_achievements = pending_achievements.count()
 
     # ---- Calculate New Requests for Auto-dismissing Banner ----
     current_admission_ids = list(pending_students.values_list('id', flat=True))
     current_achievement_ids = list(pending_achievements.values_list('id', flat=True))
-    current_hold_ids = list(pending_hold_requests.values_list('id', flat=True)) + list(cancel_hold_requests.values_list('id', flat=True))
+    current_hold_ids = (
+        list(pending_hold_requests.values_list('id', flat=True))
+        + list(cancel_hold_requests.values_list('id', flat=True))
+        + list(seat_switch_requests.values_list('id', flat=True))
+        + list(seat_leave_requests.values_list('id', flat=True))
+        + list(hold_change_requests.values_list('id', flat=True))
+    )
 
     seen_admission_ids = request.session.get('seen_admission_ids', [])
     seen_achievement_ids = request.session.get('seen_achievement_ids', [])
@@ -5853,6 +5912,7 @@ def teacher_dashboard_view(request):
         'pending_partial_requests': pending_partial_requests,
         'seat_switch_requests': seat_switch_requests,
         'seat_leave_requests': seat_leave_requests,
+        'hold_change_requests': hold_change_requests,
 
         'admitted_students': admitted_students,
         'coaching_students_by_batch': dict(coaching_batches),
@@ -5945,6 +6005,7 @@ def teacher_live_stats_api(request):
             + (sh_agg['cancel_req'] or 0)
             + SeatSwitchRequest.objects.filter(status='pending').count()
             + SeatLeaveRequest.objects.filter(status='pending').count()
+            + SeatHoldChangeRequest.objects.filter(status='pending').count()
         )
 
         # 4. Pending Achievements
@@ -7985,6 +8046,79 @@ def seat_action_api(request):
                        f'Status remains unchanged until then.')
 
             return success_response(msg)
+
+        # ------------------------------------
+        # 8c. ACTION: EXPAND / SHORTEN HOLD (Teacher direct)
+        # ------------------------------------
+        elif action == 'expand_shorten_hold':
+            new_end_date_str = payload.get('new_end_date') or data.get('new_end_date') or payload.get('end_date') or data.get('end_date')
+            duration_str = (payload.get('duration') or data.get('duration') or '').strip()
+
+            if not new_end_date_str and not duration_str:
+                return JsonResponse({'status': 'error', 'message': 'New end date or duration is required.'}, status=400)
+
+            today = timezone.localdate()
+
+            active_owners = SeatAssignment.objects.filter(
+                seat=seat,
+                is_active=True,
+                hold_status='active'
+            )
+            if student_id:
+                active_owners = active_owners.filter(student_id=student_id)
+            if not active_owners.exists():
+                active_owners = SeatAssignment.objects.filter(seat=seat, is_active=True, is_partial=False)
+                if student_id:
+                    active_owners = active_owners.filter(student_id=student_id)
+
+            if not active_owners.exists():
+                return JsonResponse({'status': 'error', 'message': 'No active hold found to expand or shorten.'}, status=400)
+
+            first_owner = active_owners.first()
+            start_date = first_owner.hold_start_date or seat.hold_start_date or today
+
+            if new_end_date_str:
+                try:
+                    new_end_date = datetime.strptime(new_end_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({'status': 'error', 'message': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+            else:
+                days = _parse_duration(duration_str)
+                if days < 1:
+                    return JsonResponse({'status': 'error', 'message': 'Duration must be at least 1 day.'}, status=400)
+                new_end_date = today + timedelta(days=days)
+
+            # Teacher date rule: can select next date (tomorrow) or any future date
+            if new_end_date <= today:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'New end date must be at least tomorrow ({today + timedelta(days=1)}) or a future date.'
+                }, status=400)
+
+            total_days = (new_end_date - start_date).days + 1
+            if total_days < 1:
+                total_days = 1
+
+            for owner in active_owners:
+                owner.hold_end_date = new_end_date
+                owner.save(update_fields=['hold_end_date'])
+
+                seat.hold_end_date = new_end_date
+                seat.hold_request_duration = f"{total_days} days"
+                seat.save(update_fields=['hold_end_date', 'hold_request_duration'])
+
+                _recalc_fee_expiry_with_hold(owner.student)
+                SeatHoldChangeRequest.objects.filter(student=owner.student, seat=seat, status='pending').update(status='approved')
+
+                create_notification(
+                    user=owner.student.user,
+                    title="Seat Hold Updated",
+                    message=f"Teacher has updated your hold on Seat {seat.seat_number} to end on {new_end_date.strftime('%d %b %Y')} ({total_days} days total).",
+                    category="seat"
+                )
+
+            seat.recalc_status(save=True)
+            return success_response(f"Hold on Seat {seat_number} updated to {new_end_date.strftime('%d-%b-%Y')}. Duration recalculated to {total_days} days.")
 
         # ------------------------------------
         # 8b. ACTION: DELETE SCHEDULED (FUTURE) HOLD
@@ -17914,6 +18048,343 @@ def reject_seat_leave(request, pk):
         return JsonResponse({'status': 'success', 'message': 'Leave request rejected.'})
 
     except SeatLeaveRequest.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Request not found or already processed.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+def api_request_hold_change(request):
+    """
+    Student API: Request to expand or shorten hold.
+    Rules:
+    - Student must have an assigned seat and be currently on hold.
+    - Temporary students cannot use this.
+    - Single active request rule: cannot have any pending/unresolved request.
+    - Date constraints: requested end date cannot be less than 2 days from today,
+      and cannot be more than 90 days from today.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    import json
+    try:
+        student = StudentProfile.objects.get(user=request.user)
+    except StudentProfile.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
+
+    seat = student.seat
+    if not seat:
+        return JsonResponse({'status': 'error', 'message': 'You do not have an assigned seat.'}, status=400)
+
+    # Check if student is currently on hold
+    is_on_hold = (student.status == 'on_hold' or (seat and seat.hold_status == 'active'))
+    assignment = SeatAssignment.objects.filter(student=student, seat=seat, is_active=True).first()
+    if not is_on_hold and (not assignment or assignment.hold_status != 'active'):
+        return JsonResponse({'status': 'error', 'message': 'You must be currently on hold to request hold expansion or shortening.'}, status=400)
+
+    # Temporary students cannot hold seats
+    if is_temporary_student(student):
+        return JsonResponse({'status': 'error', 'message': 'Temporary students cannot hold or modify hold on seats.'}, status=400)
+
+    # Single active request rule
+    has_unres, req_type, req_desc = get_unresolved_request_info(student)
+    if has_unres:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'You already have an active request: {req_desc} You cannot submit another request until action is taken or the request is cancelled.'
+        }, status=400)
+
+    data = json.loads(request.body or '{}')
+    requested_end_date_str = data.get('requested_end_date')
+    reason = str(data.get('reason') or '').strip()
+
+    if not requested_end_date_str:
+        return JsonResponse({'status': 'error', 'message': 'Please provide a requested hold end date.'}, status=400)
+
+    try:
+        requested_end_date = datetime.strptime(requested_end_date_str, "%Y-%m-%d").date()
+    except Exception:
+        return JsonResponse({'status': 'error', 'message': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+
+    today = timezone.localdate()
+    min_date = today + timedelta(days=2)
+    max_date = today + timedelta(days=90)
+
+    if requested_end_date < min_date:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'You cannot select a date less than 2 days from today. Earliest allowed date is {min_date.strftime("%d-%b-%Y")}.'
+        }, status=400)
+
+    if requested_end_date > max_date:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'You cannot select a date more than 90 days from today. Latest allowed date is {max_date.strftime("%d-%b-%Y")}.'
+        }, status=400)
+
+    start_date = assignment.hold_start_date if assignment and assignment.hold_start_date else (seat.hold_start_date or today)
+    current_end = assignment.hold_end_date if assignment and assignment.hold_end_date else seat.hold_end_date
+    total_days = (requested_end_date - start_date).days + 1
+    duration_str = f"{total_days} days"
+
+    req = SeatHoldChangeRequest.objects.create(
+        student=student,
+        seat=seat,
+        shift=student.shift or (assignment.shift_type if assignment else ''),
+        current_end_date=current_end,
+        requested_end_date=requested_end_date,
+        requested_duration=duration_str,
+        reason=reason,
+        status='pending'
+    )
+
+    # Notify teachers
+    teachers = User.objects.filter(is_staff=True)
+    for teacher in teachers:
+        create_notification(
+            user=teacher,
+            title="Hold Change Request",
+            message=f"{student.full_name} requested to change hold on Seat {seat.seat_number} to {requested_end_date.strftime('%d %b %Y')}.",
+            link="/teacher/dashboard/#holds",
+            category="seat"
+        )
+
+    create_notification(
+        user=student.user,
+        title="Hold Change Request Submitted",
+        message=f"Your request to change hold end date on Seat {seat.seat_number} to {requested_end_date.strftime('%d %b %Y')} has been submitted for teacher review.",
+        category="seat"
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Hold change request submitted to teacher. Requested end date: {requested_end_date.strftime("%d-%b-%Y")}.'
+    })
+
+
+@login_required
+def api_cancel_hold_change(request):
+    """
+    Student API: Cancel pending SeatHoldChangeRequest.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    try:
+        student = StudentProfile.objects.get(user=request.user)
+        deleted_count, _ = SeatHoldChangeRequest.objects.filter(student=student, status='pending').delete()
+        if deleted_count > 0:
+            return JsonResponse({'status': 'success', 'message': 'Pending hold change request cancelled and deleted.'})
+        return JsonResponse({'status': 'error', 'message': 'No pending hold change request found.'}, status=404)
+    except StudentProfile.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@user_passes_test(lambda u: u.is_staff)
+def api_teacher_expand_shorten_hold(request):
+    """
+    Teacher API: Directly expand or shorten an active hold.
+    Rules:
+    - Teacher can select the next date from editing date (tomorrow) or any future date.
+    - Hold duration and end date are updated, fee expiry recalculated.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    import json
+    from django.db import transaction
+
+    data = json.loads(request.body or '{}')
+    seat_id = data.get('seat_id')
+    seat_number = str(data.get('seat_number') or '').strip()
+    floor = str(data.get('floor') or '').strip()
+    student_id = data.get('student_id')
+    shift = data.get('shift')
+    new_end_date_str = data.get('new_end_date')
+
+    if not new_end_date_str:
+        return JsonResponse({'status': 'error', 'message': 'Please provide a new hold end date.'}, status=400)
+
+    try:
+        new_end_date = datetime.strptime(new_end_date_str, "%Y-%m-%d").date()
+    except Exception:
+        return JsonResponse({'status': 'error', 'message': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+
+    today = timezone.localdate()
+    # Teacher can select next date (tomorrow) or any future date
+    if new_end_date <= today:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'New end date must be at least tomorrow ({today + timedelta(days=1)}) or a future date.'
+        }, status=400)
+
+    try:
+        with transaction.atomic():
+            if seat_id:
+                seat = Seat.objects.select_for_update().get(id=seat_id)
+            elif seat_number and floor:
+                seat = Seat.objects.select_for_update().get(seat_number=seat_number, floor=floor)
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Seat ID or seat number and floor are required.'}, status=400)
+
+            # Find target active assignment on hold
+            target_assignments = SeatAssignment.objects.filter(
+                seat=seat,
+                is_active=True,
+                hold_status='active'
+            )
+            if student_id:
+                target_assignments = target_assignments.filter(student_id=student_id)
+            if shift and shift in ['morning', 'evening', 'full']:
+                target_assignments = target_assignments.filter(shift_type=shift)
+
+            if not target_assignments.exists():
+                # Fallback: check any active non-partial assignment if seat is on_hold
+                target_assignments = SeatAssignment.objects.filter(
+                    seat=seat,
+                    is_active=True,
+                    is_partial=False
+                )
+                if student_id:
+                    target_assignments = target_assignments.filter(student_id=student_id)
+
+            if not target_assignments.exists():
+                return JsonResponse({'status': 'error', 'message': 'No active hold assignment found on this seat.'}, status=404)
+
+            for assignment in target_assignments:
+                student = assignment.student
+                start_date = assignment.hold_start_date or seat.hold_start_date or today
+                total_days = (new_end_date - start_date).days + 1
+                if total_days < 1:
+                    total_days = 1
+
+                assignment.hold_end_date = new_end_date
+                assignment.save(update_fields=['hold_end_date'])
+
+                seat.hold_end_date = new_end_date
+                seat.hold_request_duration = f"{total_days} days"
+                seat.save(update_fields=['hold_end_date', 'hold_request_duration'])
+
+                _recalc_fee_expiry_with_hold(student)
+
+                # Clear any pending hold change request for this student
+                SeatHoldChangeRequest.objects.filter(student=student, seat=seat, status='pending').update(status='approved')
+
+                create_notification(
+                    user=student.user,
+                    title="Seat Hold Updated",
+                    message=f"Teacher has updated your hold on Seat {seat.seat_number} to end on {new_end_date.strftime('%d %b %Y')} ({total_days} days total).",
+                    category="seat"
+                )
+
+            seat.recalc_status(save=True)
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Hold updated for Seat {seat.seat_number}. New end date: {new_end_date.strftime("%d-%b-%Y")}. Duration recalculated.',
+                'new_end_date': new_end_date.isoformat(),
+                'duration': f"{total_days} days"
+            })
+
+    except Seat.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Seat not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@user_passes_test(lambda u: u.is_staff)
+def approve_hold_change(request, pk):
+    """
+    Teacher approves student's hold expand / shorten request.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    from django.db import transaction
+    try:
+        with transaction.atomic():
+            req = SeatHoldChangeRequest.objects.select_for_update().get(pk=pk, status='pending')
+            student = req.student
+            seat = req.seat
+            new_end_date = req.requested_end_date
+            today = timezone.localdate()
+
+            # Find active assignment on hold
+            assignment = SeatAssignment.objects.filter(
+                seat=seat,
+                student=student,
+                is_active=True
+            ).first()
+
+            if assignment:
+                start_date = assignment.hold_start_date or seat.hold_start_date or today
+                assignment.hold_end_date = new_end_date
+                assignment.save(update_fields=['hold_end_date'])
+            else:
+                start_date = seat.hold_start_date or today
+
+            total_days = (new_end_date - start_date).days + 1
+            if total_days < 1:
+                total_days = 1
+
+            seat.hold_end_date = new_end_date
+            seat.hold_request_duration = f"{total_days} days"
+            seat.save(update_fields=['hold_end_date', 'hold_request_duration'])
+
+            _recalc_fee_expiry_with_hold(student)
+            seat.recalc_status(save=True)
+
+            req.status = 'approved'
+            req.save(update_fields=['status'])
+
+            create_notification(
+                user=student.user,
+                title="Hold Change Approved",
+                message=f"Your request to change hold end date on Seat {seat.seat_number} to {new_end_date.strftime('%d %b %Y')} has been approved.",
+                category="seat"
+            )
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Hold change request approved for {student.full_name}. New end date: {new_end_date.strftime("%d-%b-%Y")}.'
+            })
+
+    except SeatHoldChangeRequest.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Request not found or already processed.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@user_passes_test(lambda u: u.is_staff)
+def reject_hold_change(request, pk):
+    """
+    Teacher rejects student's hold expand / shorten request.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
+
+    try:
+        req = SeatHoldChangeRequest.objects.get(pk=pk, status='pending')
+        student = req.student
+        seat = req.seat
+
+        req.status = 'rejected'
+        req.save(update_fields=['status'])
+        req.delete()  # Clean up
+
+        create_notification(
+            user=student.user,
+            title="Hold Change Request Rejected",
+            message=f"Your request to change hold end date on Seat {seat.seat_number} has been rejected by the teacher.",
+            category="seat"
+        )
+
+        return JsonResponse({'status': 'success', 'message': 'Hold change request rejected.'})
+
+    except SeatHoldChangeRequest.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Request not found or already processed.'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

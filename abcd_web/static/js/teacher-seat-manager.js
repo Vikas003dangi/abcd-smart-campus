@@ -2227,7 +2227,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="modal-actions-row small-gap" style="margin-top:8px;">
                         ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                         ${a.hold_status === 'active'
-                  ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id })
+                  ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id }) + ' ' + btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: a.student_id, student_name: a.student_name, hold_end_date: a.hold_end_date, shift: a.shift })
                   : btn('Hold', 'open_hold', 'btn-warning btn-sm', { student_id: a.student_id, shift: a.shift })
                 }
                     </div>
@@ -2385,6 +2385,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                     ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })}
+                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift: 'full' })}
                     ${btn('Free Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
@@ -2424,6 +2425,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: pendingTenant.student_id })}
                     ${btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })}
+                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
           } else if (owner) {
@@ -2448,6 +2450,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                     ${btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })}
+                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
           } else if (regularOccupant) {
@@ -2639,8 +2642,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${eveningOwner ? btn('View E-Owner', 'view_student', 'btn-info btn-sm', { student_id: eveningOwner.student_id }) : ''}
                     ${fullOwner ? btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: fullOwner.student_id }) : ''}
                     ${morningOwner ? btn('End M-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: morningOwner.student_id }) : ''}
+                    ${morningOwner ? btn('Expand/Shorten M-Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: morningOwner.student_id, student_name: morningOwner.student_name, hold_end_date: morningOwner.hold_end_date, shift: 'morning' }) : ''}
                     ${eveningOwner ? btn('End E-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: eveningOwner.student_id }) : ''}
+                    ${eveningOwner ? btn('Expand/Shorten E-Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: eveningOwner.student_id, student_name: eveningOwner.student_name, hold_end_date: eveningOwner.hold_end_date, shift: 'evening' }) : ''}
                     ${fullOwner ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: fullOwner.student_id }) : ''}
+                    ${fullOwner ? btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: fullOwner.student_id, student_name: fullOwner.student_name, hold_end_date: fullOwner.hold_end_date, shift: 'full' }) : ''}
                     ${btn('End Temp Allot', 'free', 'btn-danger btn-sm', { student_id: a.student_id })}
                 </div>`;
             }
@@ -2759,6 +2765,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                     ${!mTenant && !eTenant ? btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' }) : ''}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id, student_name: a.student_name })}
+                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: a.student_id, student_name: a.student_name, hold_end_date: a.hold_end_date, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
             } else { // 3c
@@ -2830,6 +2837,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('Temp', 'open_assign', 'btn-primary btn-sm', { shift })}
                         ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })}
+                        ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift })}
                         ${showAssignFullDay ? btn('Assign full day', 'assign_full_day', 'btn-success btn-sm', { student_id: owner.student_id, student_name: owner.student_name }) : ''}
                         ${btn('Free', 'free_shift', 'btn-danger btn-sm', { shift })}
                     </div>`;
@@ -2881,6 +2889,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
                         ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })} 
+                        ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift })} 
                         ${btn('End Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     </div>`;
               } else if (!owner && tenant) {
@@ -3328,6 +3337,60 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirmed) return;
 
       sendSeatAction('delete_scheduled_hold', payload.student_id, false, { student_id: payload.student_id });
+      return;
+    }
+
+    if (action === 'expand_shorten_hold') {
+      const studentId = payload.student_id;
+      const studentName = payload.student_name || 'Student';
+      const shift = payload.shift || 'full';
+      const currentEnd = payload.hold_end_date || '';
+
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const minDateStr = tomorrow.toISOString().split('T')[0];
+      const defaultVal = (currentEnd && currentEnd >= minDateStr) ? currentEnd : minDateStr;
+
+      const htmlContent = `
+        <div style="text-align: left; padding: 5px;">
+          <p style="margin-bottom: 12px; color: #475569; font-size: 0.95rem;">
+            Update hold end date for <strong>${escapeHTML(abcdFormatName(studentName))}</strong> on Seat <strong>${getFormattedSeatNumber()}</strong>.
+          </p>
+          <div style="margin-bottom: 15px;">
+            <label style="display: block; font-weight: 700; color: #1e293b; margin-bottom: 6px; font-size: 0.9rem;">
+              New Hold End Date:
+            </label>
+            <input type="date" id="teacherHoldNewEndDateInput" value="${defaultVal}" min="${minDateStr}" class="form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 1rem; box-sizing: border-box;">
+            <small style="color: #64748b; margin-top: 4px; display: block; font-size: 0.82rem;">
+              You can select tomorrow (${minDateStr}) or any future date. Duration and fee expiry will be recalculated automatically.
+            </small>
+          </div>
+        </div>
+      `;
+
+      const confirmed = await window.CustomPopup.confirm(
+        htmlContent,
+        'Expand / Shorten Hold',
+        true
+      );
+      if (!confirmed) return;
+
+      const dateInput = document.getElementById('teacherHoldNewEndDateInput');
+      const newEndDate = dateInput ? dateInput.value.trim() : '';
+      if (!newEndDate) {
+        await window.CustomPopup.alert('Please select a valid new end date.', 'Missing Date');
+        return;
+      }
+      if (newEndDate < minDateStr) {
+        await window.CustomPopup.alert(\`New end date must be at least tomorrow (\${minDateStr}) or a future date.\`, 'Invalid Date');
+        return;
+      }
+
+      await sendSeatAction('expand_shorten_hold', studentId, false, {
+        new_end_date: newEndDate,
+        student_id: studentId,
+        shift: shift
+      });
       return;
     }
 

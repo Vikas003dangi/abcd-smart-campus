@@ -1669,6 +1669,44 @@ class SeatLeaveRequest(models.Model):
         return f"{self.student.full_name} request to leave Seat {self.seat.seat_number} ({self.shift})"
 
 
+# SEAT HOLD CHANGE (EXPAND / SHORTEN) REQUEST MODEL
+class SeatHoldChangeRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    student = models.ForeignKey(
+        'StudentProfile',
+        on_delete=models.CASCADE,
+        related_name='hold_change_requests'
+    )
+    seat = models.ForeignKey(
+        'Seat',
+        on_delete=models.CASCADE,
+        related_name='hold_change_requests'
+    )
+    shift = models.CharField(max_length=10, blank=True)
+    current_end_date = models.DateField(null=True, blank=True)
+    requested_end_date = models.DateField()
+    requested_duration = models.CharField(max_length=50, blank=True, default='')
+    reason = models.TextField(blank=True, default='')
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.student.full_name} request hold change on Seat {self.seat.seat_number} to {self.requested_end_date}"
+
+
 # -------------------------------------------------------------------
 # COURSE Q&A AND REVIEWS
 # -------------------------------------------------------------------
