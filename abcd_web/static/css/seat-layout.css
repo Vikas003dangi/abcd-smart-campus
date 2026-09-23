@@ -247,7 +247,7 @@
     background: transparent;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
     user-select: none;
     position: relative;
     box-sizing: border-box;
@@ -289,7 +289,7 @@
     font-size: 0.8rem;
     font-weight: bold;
     z-index: 2;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
     background: #f0f0f0;
     color: #444;
 }
@@ -400,7 +400,7 @@
     border-radius: 20px;
     border: 1px solid;
     background: #fff;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
     color: #333;
     border-color: #aaa;
 }
@@ -774,7 +774,7 @@ div.seat.hold-full * {
 .shift-seat .seat-label {
     position: relative;
     z-index: 3;
-    transition: all 0.2s ease !important;
+    transition: transform 0.2s ease, opacity 0.2s ease, color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
 }
 
 /* ================================================== */
@@ -1264,7 +1264,7 @@ div.seat.hold-full * {
 .shift-seat {
     position: relative;
     border: 2px solid transparent;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 
 /* Horizontal Divider Line for split shifts */
@@ -2683,7 +2683,7 @@ body.dark-theme .seat.locked-evening {
     border: 1px solid #374151 !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
     font-weight: 600 !important;
-    transition: all 0.2s ease !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
 .btn-lock:hover {

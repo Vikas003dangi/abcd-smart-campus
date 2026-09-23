@@ -75,13 +75,16 @@
       return;
     }
 
-    // 2. Remove ALL existing theme-color meta tags
-    const oldTags = document.querySelectorAll('meta[name="theme-color"]');
-    oldTags.forEach(function (tag) {
-      tag.remove();
-    });
+    // 2. If theme-color meta tags exist in DOM, update them in place without removing/re-creating nodes
+    const existingTags = document.querySelectorAll('meta[name="theme-color"]');
+    if (existingTags.length > 0) {
+      existingTags.forEach(function (tag) {
+        tag.setAttribute('content', color);
+      });
+      return;
+    }
 
-    // 3. Create 3 fresh theme-color tags with the active color:
+    // 3. Otherwise create 3 fresh theme-color tags with the active color:
     // a) Default tag (for all standard browsers)
     const metaDefault = document.createElement('meta');
     metaDefault.name = 'theme-color';
