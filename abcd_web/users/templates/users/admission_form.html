@@ -351,68 +351,76 @@
             color: #ffffff !important;
         }
         
-        /* Dark Theme Support for Seat Layout Modal */
+        /* --- THEME LOCK: Library Layout & Seat Modal must ALWAYS look like Light Theme --- */
+        #seatModalBody, 
+        .floor-content,
+        .ground-floor-wrapper,
+        .first-floor-wrapper {
+            background-color: #ffffff !important;
+            color: #333 !important;
+        }
         body.dark-theme #seatModalContainer,
         body.dark-theme .seat-modal-container {
-            background: #181524 !important;
-            border: 1px solid rgba(255, 255, 255, 0.12) !important;
-            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
-            color: #f8fafc !important;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15) !important;
+            color: #333 !important;
         }
         body.dark-theme .seat-modal-header {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-            background: #14121f !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            background: #ffffff !important;
         }
         body.dark-theme .seat-modal-header h3,
         body.dark-theme #seatModalTitle {
-            color: #f8fafc !important;
+            color: #333 !important;
         }
         body.dark-theme #seatModalCloseBtn,
         body.dark-theme .seat-modal-close-btn {
-            color: #94a3b8 !important;
+            color: #888 !important;
         }
         body.dark-theme #seatModalCloseBtn:hover,
         body.dark-theme .seat-modal-close-btn:hover {
-            color: #ffffff !important;
+            color: #333 !important;
         }
         body.dark-theme .seat-modal-footer,
         body.dark-theme .seat-modal-container > .seat-modal-footer {
-            background: #14121f !important;
-            border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3) !important;
+            background: #ffffff !important;
+            border-top: 1px solid #e2e8f0 !important;
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
+            color: #333 !important;
         }
         body.dark-theme .seat-modal-footer .legend-item {
-            color: #e2e8f0 !important;
+            color: #333 !important;
         }
         body.dark-theme .seat-modal-footer .legend-count {
-            color: #94a3b8 !important;
+            color: #666 !important;
         }
         body.dark-theme .seat-modal-footer .legend-item.clickable:hover {
-            color: #ffffff !important;
+            color: #111 !important;
         }
         body.dark-theme #shiftSeatNotice {
-            background: rgba(124, 58, 237, 0.18) !important;
-            border-left: 5px solid #a855f7 !important;
-            color: #e9d5ff !important;
+            background: #f3e8ff !important;
+            border-left: 5px solid #7c3aed !important;
+            color: #2e1065 !important;
         }
         body.dark-theme #shiftSeatNotice strong {
-            color: #ffffff !important;
+            color: #2e1065 !important;
         }
         body.dark-theme #shiftSeatNotice small {
-            color: #cbd5e1 !important;
+            color: #4c1d95 !important;
         }
         body.dark-theme .shift-seat-reminder {
-            color: #c084fc !important;
+            color: #4c1d95 !important;
         }
         body.dark-theme #confirmSeatBtn {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
             color: #ffffff !important;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4) !important;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
         }
         body.dark-theme #confirmSeatBtn:disabled {
-            background: rgba(255, 255, 255, 0.08) !important;
-            color: #64748b !important;
-            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            background: #e2e8f0 !important;
+            color: #94a3b8 !important;
+            border: none !important;
             box-shadow: none !important;
         }
 
@@ -1590,16 +1598,16 @@
             }
 
             body.dark-theme .seat-modal-container {
-                background: #181524 !important;
+                background: #ffffff !important;
             }
             body.dark-theme .seat-modal-header {
-                background: #14121f !important;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+                background: #ffffff !important;
+                border-bottom: 1px solid #e2e8f0 !important;
             }
             body.dark-theme .seat-modal-container > .seat-modal-footer {
-                background: #14121f !important;
-                border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-                box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3) !important;
+                background: #ffffff !important;
+                border-top: 1px solid #e2e8f0 !important;
+                box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08) !important;
             }
 
             .confirm-seat-btn {

@@ -921,9 +921,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     seatEl.appendChild(eLabel);
 
                 } else if (hasHold && hasPendingTemp) {
-                    // Hold + Pending Temp Request → show as on_hold with pending indication
+                    // Hold + Pending Temp Request → show as normal on_hold (pending only shown to teachers)
                     seatEl.classList.remove('available');
-                    seatEl.classList.add('pending-temp');
+                    seatEl.classList.add('on_hold');
                     seatEl.dataset.status = 'on_hold';
                     const days = seat.remaining_days || seat.full_day_hold_remaining_days || 0;
                     if (typeof days === 'number' && !isNaN(days) && days > 0) {
@@ -2258,7 +2258,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const counts = {
             available: 0,
             occupied: 0,
-            pending: 0,
             on_hold: 0,
             shift_occupied: 0
         };
@@ -2269,8 +2268,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (hasClass('shift-seat') && (hasClass('occupied-morning') || hasClass('occupied-evening') || hasClass('occupied-full') || status === 'shift_occupied')) {
                 counts.shift_occupied++;
-            } else if (hasClass('pending') || status === 'pending') {
-                counts.pending++;
             } else if (hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || status === 'on_hold') {
                 counts.on_hold++;
             } else if (hasClass('occupied') || hasClass('occupied-full') || status === 'occupied') {
@@ -2366,14 +2363,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     let match = false;
                     if (status === 'shift_occupied') {
                         match = hasClass('shift-seat') && (hasClass('occupied-morning') || hasClass('occupied-evening') || hasClass('occupied-full') || seatStatus === 'shift_occupied');
-                    } else if (status === 'pending') {
-                        match = hasClass('pending') || seatStatus === 'pending';
                     } else if (status === 'on_hold') {
                         match = hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || seatStatus === 'on_hold';
                     } else if (status === 'occupied') {
                         match = (hasClass('occupied') || hasClass('occupied-full') || seatStatus === 'occupied') && !hasClass('shift-seat');
                     } else if (status === 'available') {
-                        match = hasClass('available') && !hasClass('occupied') && !hasClass('on_hold') && !hasClass('pending');
+                        match = hasClass('available') && !hasClass('occupied') && !hasClass('on_hold');
                     }
 
                     if (match) {

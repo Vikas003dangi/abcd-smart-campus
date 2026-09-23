@@ -78,10 +78,6 @@
     line-height: 1;
 }
 
-body.dark-theme .seat-modal-close-btn {
-    color: #f8fafc !important;
-}
-
 .seat-modal-controls {
     display: flex;
     align-items: center;
@@ -2119,39 +2115,6 @@ body.dark-theme .seat-interest-actions .btn-secondary:hover {
 body.dark-theme .seat-interest-actions .btn-primary {
     background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
     color: #ffffff !important;
-}
-
-body.dark-theme .seat-modal-container {
-    background: #181524 !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
-    color: #f8fafc !important;
-}
-
-body.dark-theme .seat-modal-header {
-    background: #14121f !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-body.dark-theme .seat-modal-header h3 {
-    color: #f8fafc !important;
-}
-
-body.dark-theme .seat-modal-footer {
-    background: #14121f !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-body.dark-theme .seat-modal-footer .legend-item {
-    color: #e2e8f0 !important;
-}
-
-body.dark-theme .seat-modal-footer .legend-count {
-    color: #94a3b8 !important;
-}
-
-body.dark-theme .shift-seat-reminder {
-    color: #c084fc !important;
 }
 
 /* DOB INPUT STYLES */
