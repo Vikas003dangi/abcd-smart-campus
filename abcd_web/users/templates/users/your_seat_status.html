@@ -370,38 +370,133 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: 22px;
             flex-wrap: wrap;
-            gap: 15px;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 15px;
+            gap: 12px 16px;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 14px;
         }
 
         body.dark-theme .layout-header-row {
-            border-bottom-color: rgba(255, 255, 255, 0.1);
+            border-bottom-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .layout-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .layout-header-left h3 {
             margin: 0;
-            color: #333;
-            font-size: clamp(1rem, 2.5vw, 1.5rem);
+            color: #1e293b;
+            font-size: 1.25rem;
             font-weight: 800;
+            letter-spacing: -0.2px;
         }
 
         body.dark-theme .layout-header-left h3 {
-            color: #fff;
+            color: #f8fafc;
         }
 
         .seat-info-line {
-            margin: 5px 0;
-            color: #1a1a1a;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px 10px;
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
             font-weight: 600;
         }
-        body.dark-theme .seat-info-line {
-            color: #f5deb3;  /* wheat */
+
+        .seat-info-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
         }
-        body.dark-theme .seat-info-line span {
-            color: #f5deb3 !important;
+
+        .seat-info-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .seat-info-val {
+            color: #7c3aed;
+            font-weight: 700;
+        }
+
+        .seat-info-divider {
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            user-select: none;
+        }
+
+        .seat-allotment-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            padding: 2.5px 9px;
+            border-radius: 999px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .seat-allotment-badge.temporary {
+            background: #fdf2f8;
+            color: #db2777;
+            border: 1px solid #fbcfe8;
+            box-shadow: 0 1px 3px rgba(219, 39, 119, 0.08);
+        }
+
+        .seat-allotment-badge.temporary i {
+            font-size: 0.9em;
+            color: inherit;
+        }
+
+        /* Dark Theme Styles for Seat Info */
+        body.dark-theme .seat-info-label {
+            color: #94a3b8;
+        }
+
+        body.dark-theme .seat-info-val {
+            color: #c084fc;
+        }
+
+        body.dark-theme .seat-info-divider {
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        body.dark-theme .seat-allotment-badge.temporary {
+            background: rgba(236, 72, 153, 0.16) !important;
+            color: #f472b6 !important;
+            border: 1px solid rgba(244, 114, 182, 0.35) !important;
+            box-shadow: 0 2px 8px rgba(236, 72, 153, 0.2) !important;
+        }
+
+        body.dark-theme .seat-allotment-badge.temporary i {
+            color: #f472b6 !important;
+        }
+
+        .layout-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layout-header-right label {
+            font-weight: 700;
+            color: #475569;
+            font-size: 0.9rem;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        body.dark-theme .layout-header-right label {
+            color: #cbd5e1;
         }
 
         /* Hidden native select kept for JS compatibility */
@@ -1559,6 +1654,38 @@
             .status-message i {
                 font-size: 1.4rem !important;
             }
+            /* Header & seat info responsive styles */
+            .layout-header-row {
+                gap: 10px !important;
+                margin-bottom: 16px !important;
+                padding-bottom: 12px !important;
+            }
+            .layout-header-left h3 {
+                font-size: 1.05rem !important;
+            }
+            .seat-info-line {
+                font-size: 0.8rem !important;
+                gap: 4px 8px !important;
+            }
+            .seat-info-item {
+                font-size: 0.8rem !important;
+            }
+            .seat-allotment-badge {
+                font-size: 0.68rem !important;
+                padding: 2px 7px !important;
+            }
+            .layout-header-right label {
+                font-size: 0.82rem !important;
+            }
+            .floor-custom-trigger {
+                padding: 6px 11px !important;
+                font-size: 0.82rem !important;
+                min-width: 140px !important;
+                border-radius: 10px !important;
+            }
+            .floor-custom-trigger .fcs-chevron {
+                font-size: 0.85rem !important;
+            }
         }
 
         @media (max-width: 450px) {
@@ -1661,6 +1788,28 @@
                 margin-top: 15px !important;
                 border-radius: 10px !important;
             }
+            .layout-header-left h3 {
+                font-size: 0.98rem !important;
+            }
+            .seat-info-line {
+                font-size: 0.74rem !important;
+                gap: 3px 6px !important;
+            }
+            .seat-info-item {
+                font-size: 0.74rem !important;
+            }
+            .seat-info-divider {
+                font-size: 0.65rem !important;
+            }
+            .seat-allotment-badge {
+                font-size: 0.62rem !important;
+                padding: 1.5px 6px !important;
+            }
+            .floor-custom-trigger {
+                padding: 5px 9px !important;
+                font-size: 0.78rem !important;
+                min-width: 125px !important;
+            }
         }
 
         @media (max-width: 550px) {
@@ -1735,6 +1884,28 @@
             .hub-mobile-title {
                 font-size: 1.2rem;
             }
+            .layout-header-left h3 {
+                font-size: 0.9rem !important;
+            }
+            .seat-info-line {
+                font-size: 0.68rem !important;
+                gap: 2px 5px !important;
+            }
+            .seat-info-item {
+                font-size: 0.68rem !important;
+            }
+            .seat-allotment-badge {
+                font-size: 0.58rem !important;
+                padding: 1px 5px !important;
+            }
+            .layout-header-right label {
+                font-size: 0.75rem !important;
+            }
+            .floor-custom-trigger {
+                padding: 4px 8px !important;
+                font-size: 0.74rem !important;
+                min-width: 110px !important;
+            }
         }
 
         @media (max-width: 340px) {
@@ -1764,6 +1935,19 @@
         @media (max-width: 320px) {
             .content-body {
                 padding: 10px 4px;
+            }
+            .layout-header-left h3 {
+                font-size: 0.85rem !important;
+            }
+            .seat-info-line {
+                font-size: 0.64rem !important;
+            }
+            .seat-info-item {
+                font-size: 0.64rem !important;
+            }
+            .seat-allotment-badge {
+                font-size: 0.55rem !important;
+                padding: 1px 4px !important;
             }
         }
 
@@ -2127,19 +2311,30 @@
                 <div class="layout-header-row">
                     <div class="layout-header-left">
                         <h3>Live Library Status</h3>
-                        <p class="seat-info-line">
-                            Your Seat: <span style="color: #764ba2;">{{ seat.seat_number }}</span> | 
-                            Floor: <span style="color: #764ba2;">{{ seat.floor }}</span> |
-                            Shift: <span style="color: #764ba2;">{{ shift|capfirst }}</span>
+                        <div class="seat-info-line">
+                            <span class="seat-info-item">
+                                <span class="seat-info-label">Your Seat:</span>
+                                <span class="seat-info-val">{{ seat.seat_number }}</span>
+                            </span>
+                            <span class="seat-info-divider" aria-hidden="true">•</span>
+                            <span class="seat-info-item">
+                                <span class="seat-info-label">Floor:</span>
+                                <span class="seat-info-val">{{ seat.floor }}</span>
+                            </span>
+                            <span class="seat-info-divider" aria-hidden="true">•</span>
+                            <span class="seat-info-item">
+                                <span class="seat-info-label">Shift:</span>
+                                <span class="seat-info-val">{{ shift|capfirst }}</span>
+                            </span>
                             {% if is_temporary_student %}
-                            <span style="background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8; font-size: 0.78rem; padding: 2px 9px; border-radius: 12px; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                            <span class="seat-allotment-badge temporary">
                                 <i class='bx bx-time-five'></i> Temporary Allotment
                             </span>
                             {% endif %}
-                        </p>
+                        </div>
                     </div>
                     <div class="layout-header-right">
-                        <label style="font-weight: 700; margin-right: 8px;">View:</label>
+                        <label for="floorCustomSelect">View:</label>
                         <!-- Hidden native select kept for JS compatibility -->
                         <select id="floorViewSelector" style="display:none;" data-no-enhance="true">
                             {% if seat.floor == 'Ground Floor' %}
