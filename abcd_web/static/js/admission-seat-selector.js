@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     labelEl.textContent = labelEl.dataset.originalText;
                     delete labelEl.dataset.originalText;
                 } else if (labelEl.textContent === 'Selected' || labelEl.textContent === 'Temp.') {
-                    labelEl.textContent = 'Select';
+                    labelEl.textContent = 'Available';
                 }
 
                 // Restore Visibility: Hide if static split labels exist
@@ -498,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
             seatEl.classList.add('available');
 
             const label = seatEl.querySelector('.seat-label');
-            if (label) label.textContent = 'Select';
+            if (label) label.textContent = 'Available';
 
             delete seatEl.dataset.status;
             delete seatEl.dataset.info;
@@ -537,7 +537,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 bottomHalf.className = 'seat-half seat-evening';
 
                 const lockedShiftsList = (seat.locked_shifts || '').split(',').filter(Boolean);
-                if (lockedShiftsList.includes('morning')) {
+                const isFullyLocked = seat.is_locked || lockedShiftsList.includes('full');
+                const isMLocked = isFullyLocked || lockedShiftsList.includes('morning');
+                const isELocked = isFullyLocked || lockedShiftsList.includes('evening');
+
+                if (isMLocked) {
                     topHalf.classList.add('locked');
                     topHalf.dataset.locked = 'true';
                     seatEl.classList.add('locked-morning');
@@ -545,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     topHalf.classList.add('shift-available');
                 }
 
-                if (lockedShiftsList.includes('evening')) {
+                if (isELocked) {
                     bottomHalf.classList.add('locked');
                     bottomHalf.dataset.locked = 'true';
                     seatEl.classList.add('locked-evening');
@@ -553,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     bottomHalf.classList.add('shift-available');
                 }
 
-                if (seat.is_locked || lockedShiftsList.includes('full')) {
+                if (isFullyLocked) {
                     seatEl.classList.add('locked');
                     seatEl.dataset.locked = 'true';
                 }
@@ -623,8 +627,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         seatEl.appendChild(mLabel);
 
                         const eLabel = document.createElement('span');
-                        eLabel.className = 'seat-evening-label';
-                        eLabel.textContent = 'Select';
+                        eLabel.className = 'seat-evening-label' + (isELocked ? ' status-locked' : ' status-available');
+                        eLabel.textContent = isELocked ? '🔒 Locked' : 'Available';
                         seatEl.appendChild(eLabel);
                     } else if (seat.evening_hold) {
                         seatEl.classList.add('hold-evening');
@@ -634,8 +638,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (lbl) lbl.style.display = 'none';
 
                         const mLabel = document.createElement('span');
-                        mLabel.className = 'seat-morning-label';
-                        mLabel.textContent = 'Select';
+                        mLabel.className = 'seat-morning-label' + (isMLocked ? ' status-locked' : ' status-available');
+                        mLabel.textContent = isMLocked ? '🔒 Locked' : 'Available';
                         seatEl.appendChild(mLabel);
 
                         const eLabel = document.createElement('span');
@@ -773,12 +777,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         seatEl.classList.add('occupied-morning');
                     }
 
-                    // Check if the unoccupied shift is on hold
-                    let evenStatus = 'Select';
+                    // Check if the unoccupied shift is on hold or locked
+                    let evenStatus = isELocked ? '🔒 Locked' : 'Available';
                     if (seat.evening_hold) {
                         seatEl.dataset.status = 'on_hold';
                         const eDays = seat.evening_hold_remaining_days;
                         evenStatus = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                    } else if (isELocked) {
+                        evenStatus = '🔒 Locked';
                     } else {
                         seatEl.dataset.status = 'partial';
                     }
@@ -797,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     seatEl.appendChild(mLabel);
 
                     const eLabel = document.createElement('span');
-                    eLabel.className = 'seat-evening-label';
+                    eLabel.className = 'seat-evening-label' + (isELocked ? ' status-locked' : (seat.evening_hold ? '' : ' status-available'));
                     eLabel.textContent = evenStatus;
                     seatEl.appendChild(eLabel);
 
@@ -816,12 +822,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         seatEl.classList.add('occupied-evening');
                     }
 
-                    // Check if the unoccupied shift is on hold
-                    let mornStatus = 'Select';
+                    // Check if the unoccupied shift is on hold or locked
+                    let mornStatus = isMLocked ? '🔒 Locked' : 'Available';
                     if (seat.morning_hold) {
                         seatEl.dataset.status = 'on_hold';
                         const mDays = seat.morning_hold_remaining_days;
                         mornStatus = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                    } else if (isMLocked) {
+                        mornStatus = '🔒 Locked';
                     } else {
                         seatEl.dataset.status = 'partial';
                     }
@@ -830,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     seatEl.querySelector('.seat-label').style.display = 'none';
 
                     const mLabel = document.createElement('span');
-                    mLabel.className = 'seat-morning-label';
+                    mLabel.className = 'seat-morning-label' + (isMLocked ? ' status-locked' : (seat.morning_hold ? '' : ' status-available'));
                     mLabel.textContent = mornStatus;
                     seatEl.appendChild(mLabel);
 
@@ -846,10 +854,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 } else {
                     // Both shifts free - check if any shift is locked
-                    const lockedShiftsList = (seat.locked_shifts || '').split(',').filter(Boolean);
-                    const isMLocked = lockedShiftsList.includes('morning') || seat.is_locked;
-                    const isELocked = lockedShiftsList.includes('evening') || seat.is_locked;
-
                     if (isMLocked || isELocked) {
                         seatEl.querySelector('.seat-label').style.display = 'none';
                         
@@ -993,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                             morningLabel.textContent = 'Temp.';
                             const label = seatEl.querySelector('.seat-label');
-                            if (label && label.textContent === 'Select') label.style.display = 'none';
+                            if (label && (label.textContent === 'Select' || label.textContent === 'Available')) label.style.display = 'none';
                         }
                         else if (shiftValue === 'full') {
                             // Full day temp: HIDE split labels, show single 'Temp.' label
