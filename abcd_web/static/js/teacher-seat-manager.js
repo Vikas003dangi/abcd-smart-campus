@@ -2400,7 +2400,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                     ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })}
-                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift: 'full' })}
+                    ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_start_date: owner.hold_start_date, hold_end_date: owner.hold_end_date, shift: 'full' })}
                     ${btn('Free Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
@@ -2443,7 +2443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: pendingTenant.student_id })}
                     ${btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })}
-                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift: 'full' })}
+                    ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_start_date: owner.hold_start_date, hold_end_date: owner.hold_end_date, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
           } else if (owner) {
@@ -2471,7 +2471,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                     ${btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' })}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })}
-                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift: 'full' })}
+                    ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_start_date: owner.hold_start_date, hold_end_date: owner.hold_end_date, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
           } else if (regularOccupant) {
@@ -2694,11 +2694,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${eveningOwner ? btn('View E-Owner', 'view_student', 'btn-info btn-sm', { student_id: eveningOwner.student_id }) : ''}
                     ${fullOwner ? btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: fullOwner.student_id }) : ''}
                     ${morningOwner ? btn('End M-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: morningOwner.student_id }) : ''}
-                    ${morningOwner ? btn('Expand/Shorten M-Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: morningOwner.student_id, student_name: morningOwner.student_name, hold_end_date: morningOwner.hold_end_date, shift: 'morning' }) : ''}
+                    ${morningOwner ? btn('Extend/Shorten M-Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: morningOwner.student_id, student_name: morningOwner.student_name, hold_start_date: morningOwner.hold_start_date, hold_end_date: morningOwner.hold_end_date, shift: 'morning' }) : ''}
                     ${eveningOwner ? btn('End E-Hold', 'end_hold', 'btn-warning btn-sm', { student_id: eveningOwner.student_id }) : ''}
-                    ${eveningOwner ? btn('Expand/Shorten E-Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: eveningOwner.student_id, student_name: eveningOwner.student_name, hold_end_date: eveningOwner.hold_end_date, shift: 'evening' }) : ''}
+                    ${eveningOwner ? btn('Extend/Shorten E-Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: eveningOwner.student_id, student_name: eveningOwner.student_name, hold_start_date: eveningOwner.hold_start_date, hold_end_date: eveningOwner.hold_end_date, shift: 'evening' }) : ''}
                     ${fullOwner ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: fullOwner.student_id }) : ''}
-                    ${fullOwner ? btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: fullOwner.student_id, student_name: fullOwner.student_name, hold_end_date: fullOwner.hold_end_date, shift: 'full' }) : ''}
+                    ${fullOwner ? btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: fullOwner.student_id, student_name: fullOwner.student_name, hold_start_date: fullOwner.hold_start_date, hold_end_date: fullOwner.hold_end_date, shift: 'full' }) : ''}
                     ${btn('End Temp Allot', 'free', 'btn-danger btn-sm', { student_id: a.student_id })}
                 </div>`;
             }
@@ -2817,7 +2817,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                     ${!mTenant && !eTenant ? btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' }) : ''}
                     ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id, student_name: a.student_name })}
-                    ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: a.student_id, student_name: a.student_name, hold_end_date: a.hold_end_date, shift: 'full' })}
+                    ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: a.student_id, student_name: a.student_name, hold_start_date: a.hold_start_date, hold_end_date: a.hold_end_date, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
             } else { // 3c
@@ -2898,7 +2898,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('Temp', 'open_assign', 'btn-primary btn-sm', { shift })}
                         ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })}
-                        ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift })}
+                        ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_start_date: owner.hold_start_date, hold_end_date: owner.hold_end_date, shift })}
                         ${showAssignFullDay ? btn('Assign full day', 'assign_full_day', 'btn-success btn-sm', { student_id: owner.student_id, student_name: owner.student_name }) : ''}
                         ${btn('Free', 'free_shift', 'btn-danger btn-sm', { shift })}
                     </div>`;
@@ -2950,7 +2950,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
                         ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })} 
-                        ${btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_end_date: owner.hold_end_date, shift })} 
+                        ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_start_date: owner.hold_start_date, hold_end_date: owner.hold_end_date, shift })} 
                         ${btn('End Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     </div>`;
               } else if (!owner && tenant) {
@@ -3405,15 +3405,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const studentId = payload.student_id;
       const studentName = payload.student_name || 'Student';
       const shift = payload.shift || 'full';
-      const currentEnd = payload.hold_end_date || '';
+      const currentStart = payload.hold_start_date || '';
+      const currentEnd   = payload.hold_end_date || '';
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const minDateStr = tomorrow.toISOString().split('T')[0];
       const defaultVal = (currentEnd && currentEnd >= minDateStr) ? currentEnd : minDateStr;
 
+      // Format dates for display
+      const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+      const startLabel = fmtDate(currentStart);
+      const endLabel   = fmtDate(currentEnd);
+      const periodHtml = (startLabel && endLabel)
+        ? `<div style="background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;">
+            <p style="margin:0 0 4px; font-size:0.75rem; font-weight:700; color:#3b82f6; letter-spacing:0.05em;">CURRENT HOLD PERIOD</p>
+            <p style="margin:0; font-size:0.95rem; font-weight:600; color:var(--text-main, #1e293b);">${startLabel} &rarr; ${endLabel}</p>
+           </div>`
+        : '';
+
       const htmlContent = `
         <div style="text-align: left; padding: 5px;">
+          ${periodHtml}
           <p style="margin-bottom: 12px; color: #475569; font-size: 0.95rem;">
             Update hold end date for <strong>${escapeHTML(abcdFormatName(studentName))}</strong> on Seat <strong>${getFormattedSeatNumber()}</strong>.
           </p>

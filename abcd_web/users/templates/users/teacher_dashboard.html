@@ -12249,11 +12249,15 @@
                   match = true;
                 }
               } else if (keywordType === 'status') {
-                const statusEl = el.querySelector('.status-badge, .badge, .request-status');
-                if (statusEl && statusEl.textContent.toLowerCase().includes(searchVal)) {
-                  match = true;
-                  highlightText(statusEl, searchVal);
-                }
+                // Status text lives in .student-id elements (status-orange/pink/green)
+                // and plain text like "Status: No Seat", "Hold G-48", "Temp."
+                const statusEls = el.querySelectorAll('.student-id, .status-badge, .badge, .request-status, [class*="status-"]');
+                statusEls.forEach(sEl => {
+                  if (sEl.textContent.toLowerCase().includes(searchVal)) {
+                    match = true;
+                    highlightText(sEl, searchVal);
+                  }
+                });
               }
 
               if (match) {
@@ -12768,7 +12772,7 @@
               } else if (keywordType === 'name') {
                   targetNodes = Array.from(document.querySelectorAll('.student-name, strong, .row-name, .name'));
               } else if (keywordType === 'status') {
-                  targetNodes = Array.from(document.querySelectorAll('.status-badge, .badge, [class*="status"]'));
+                  targetNodes = Array.from(document.querySelectorAll('.student-id, .status-badge, .badge, .request-status, [class*="status-"]'));
               }
 
               targetNodes.forEach(function(node) {
