@@ -2648,6 +2648,9 @@ document.addEventListener('DOMContentLoaded', () => {
               // Helper for owner rows
               const renderOwnerRow = (owner, label, borderHex) => {
                 const ownerName = escapeHTML(abcdFormatName(owner.student_name));
+                const holdEndLbl = owner.hold_end_date
+                  ? new Date(owner.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : null;
                 return `
                   <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
                       <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid ${borderHex}; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
@@ -2656,7 +2659,10 @@ document.addEventListener('DOMContentLoaded', () => {
                               : `<i class='bx bxs-user' style="font-size:1.1rem; color:#cbd5e1;"></i>`
                           }
                       </div>
-                      <p style="margin:0; font-size:0.9rem; color:var(--text-main);"><strong>${label} Hold</strong> (${owner.hold_days} days): ${ownerName}</p>
+                      <div>
+                        <p style="margin:0; font-size:0.9rem; color:var(--text-main);">On Hold by <strong>${ownerName}</strong> (${owner.hold_days || 0} days left)</p>
+                        ${holdEndLbl ? `<p style="margin:2px 0 0; font-size:0.75rem; color:#888;">Hold ends: ${holdEndLbl}</p>` : ''}
+                      </div>
                   </div>`;
               };
 
@@ -2934,12 +2940,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     </div>`;
 
+                const holdEndLabelHT = owner.hold_end_date
+                  ? new Date(owner.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : null;
                 content += `
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">${shiftDisplay}: <span style="color:#f39c12;">Hold</span> + <span style="color:#3498db;">Temp</span></p>
                     <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                         <div style="display:flex; align-items:center; gap:8px;">
                             ${ownerPhotoHtml}
-                            <p style="margin:0; font-size:0.85rem; color:#666;">Owner: <strong>${ownerName}</strong></p>
+                            <div>
+                              <p style="margin:0; font-size:0.85rem; color:var(--text-main);">On Hold by <strong>${ownerName}</strong> (${owner.hold_days || 0} days left)</p>
+                              ${holdEndLabelHT ? `<p style="margin:2px 0 0; font-size:0.75rem; color:#888;">Hold ends: ${holdEndLabelHT}</p>` : ''}
+                            </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
                             ${tenantPhotoHtml}
