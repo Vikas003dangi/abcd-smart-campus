@@ -1688,103 +1688,269 @@
                         seatEl.classList.add('shift-seat');
                         seatEl.classList.remove('available');
 
-                        // Create shift halves if they don't exist
-                        let topHalf = seatEl.querySelector('.seat-morning');
-                        let bottomHalf = seatEl.querySelector('.seat-evening');
-                        if (!topHalf) {
-                            topHalf = document.createElement('div');
-                            topHalf.className = 'seat-half seat-morning';
-                            seatEl.prepend(topHalf);
-                        }
-                        if (!bottomHalf) {
-                            bottomHalf = document.createElement('div');
-                            bottomHalf.className = 'seat-half seat-evening';
-                            seatEl.insertBefore(bottomHalf, topHalf.nextSibling);
-                        }
+                        // Create shift halves
+                        const topHalf = document.createElement('div');
+                        topHalf.className = 'seat-half seat-morning';
+                        const bottomHalf = document.createElement('div');
+                        bottomHalf.className = 'seat-half seat-evening';
+                        seatEl.prepend(bottomHalf);
+                        seatEl.prepend(topHalf);
 
-                        // Helper function to get text for shift labels
-                        function getShiftLabelText(shiftName, isTaken, isHold, isTemp, holdRemainingDays) {
-                            const shiftLetter = shiftName === 'morning' ? 'M' : 'E';
-                            if (isTaken) {
-                                if (isTemp) {
-                                    return `Temp(${shiftLetter})`;
-                                } else if (isHold) {
-                                    const days = holdRemainingDays || 0;
-                                    return days > 0 ? `Hold ${shiftLetter}(${days})` : `Hold(${shiftLetter})`;
-                                } else {
-                                    return `Occupied(${shiftLetter})`;
-                                }
-                            } else if (isHold) {
-                                const days = holdRemainingDays || 0;
-                                return days > 0 ? `Hold ${shiftLetter}(${days})` : `Hold(${shiftLetter})`;
-                            } else if (isTemp) {
-                                return `Temp(${shiftLetter})`;
-                            } else {
-                                return 'Available';
-                            }
-                        }
+                        // ---- ON HOLD (detect by shift-wise holds) ----
+                        const hasHolds = seat.morning_hold || seat.evening_hold || seat.full_day_hold;
+                        const isStrictlyOccupiedM = seat.morning_taken && (!seat.morning_hold || seat.morning_temp_allotted);
+                        const isStrictlyOccupiedE = seat.evening_taken && (!seat.evening_hold || seat.evening_temp_allotted);
 
-                        // Determine occupation state
-                        if (seat.full_day_taken) {
-                            seatEl.classList.add('occupied-full', 'occupied');
-                            seatEl.dataset.status = 'occupied';
-                            labelEl.textContent = 'Occupied(F)';
-                        } else if (seat.full_day_hold) {
-                            seatEl.classList.add('hold-full', 'on_hold');
-                            seatEl.dataset.status = 'on_hold';
-                            let days = (typeof seat.remaining_days === 'number' && !isNaN(seat.remaining_days))
-                                ? seat.remaining_days
-                                : ((seat.hold_days > 0) ? seat.hold_days : '');
-                            labelEl.textContent = days ? `Hold(${days})` : 'On Hold';
-                        } else if (seat.morning_taken || seat.evening_taken || seat.morning_hold || seat.evening_hold || seat.morning_temp_allotted || seat.evening_temp_allotted) {
-                            // Split / Partial State
-                            // Hold check first — a held seat IS also 'taken'
-                            if (seat.morning_hold || seat.evening_hold) {
+                        if (hasHolds && !isStrictlyOccupiedM && !isStrictlyOccupiedE && !seat.full_day_taken) {
+                            // Seat is on hold (shift-wise) - no shifts strictly occupied yet
+                            if (seat.morning_hold && seat.evening_hold) {
+                                seatEl.classList.add('hold-morning', 'hold-evening');
                                 seatEl.dataset.status = 'on_hold';
-                                const mHold = seat.full_day_hold || seat.morning_hold;
-                                const eHold = seat.full_day_hold || seat.evening_hold;
-                                if (mHold && eHold) {
-                                    seatEl.classList.add('hold-full', 'on_hold');
-                                } else if (mHold) {
-                                    seatEl.classList.add('hold-morning', 'on_hold');
+                                labelEl.style.display = 'none';
+
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label';
+                                const mDays = seat.morning_hold_remaining_days;
+                                mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label';
+                                const eDays = seat.evening_hold_remaining_days;
+                                eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                                seatEl.appendChild(eLabel);
+                            } else if (seat.full_day_hold) {
+                                seatEl.classList.add('hold-full');
+                                seatEl.dataset.status = 'on_hold';
+                                const days = seat.full_day_hold_remaining_days || seat.remaining_days;
+                                if (typeof days === 'number' && !isNaN(days) && days > 0) {
+                                    labelEl.textContent = `Hold(${days})`;
                                 } else {
-                                    seatEl.classList.add('hold-evening', 'on_hold');
+                                    labelEl.textContent = 'Hold';
                                 }
-                            } else if (seat.morning_taken && seat.evening_taken) {
-                                seatEl.classList.add('occupied-full', 'occupied');
-                                seatEl.classList.add('occupied-morning', 'occupied-evening');
-                                seatEl.dataset.status = 'occupied';
-                            } else if (seat.morning_taken) {
-                                seatEl.classList.add('occupied-morning', 'occupied');
-                                seatEl.dataset.status = 'partial';
-                            } else if (seat.evening_taken) {
-                                seatEl.classList.add('occupied-evening', 'occupied');
-                                seatEl.dataset.status = 'partial';
+                            } else if (seat.morning_hold) {
+                                seatEl.classList.add('hold-morning');
+                                seatEl.dataset.status = 'on_hold';
+                                labelEl.style.display = 'none';
+
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label';
+                                const days = seat.morning_hold_remaining_days;
+                                mLabel.textContent = (days && days > 0) ? `Hold M(${days})` : 'Hold M';
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label';
+                                eLabel.textContent = 'Available';
+                                seatEl.appendChild(eLabel);
+                            } else if (seat.evening_hold) {
+                                seatEl.classList.add('hold-evening');
+                                seatEl.dataset.status = 'on_hold';
+                                labelEl.style.display = 'none';
+
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label';
+                                mLabel.textContent = 'Available';
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label';
+                                const days = seat.evening_hold_remaining_days;
+                                eLabel.textContent = (days && days > 0) ? `Hold E(${days})` : 'Hold E';
+                                seatEl.appendChild(eLabel);
                             }
+                        }
 
-                            labelEl.style.display = 'none';
+                        // ---- OCCUPIED (with awareness of temporary allotments) ----
+                        else if (seat.full_day_taken || seat.morning_taken || seat.evening_taken || seat.morning_temp_allotted || seat.evening_temp_allotted) {
+                            const morningTemp = seat.morning_temp_allotted;
+                            const eveningTemp = seat.evening_temp_allotted;
 
-                            const mDays = seat.morning_hold_remaining_days || seat.remaining_days || 0;
-                            const eDays = seat.evening_hold_remaining_days || seat.remaining_days || 0;
+                            if (seat.full_day_taken) {
+                                if (seat.full_day_hold) {
+                                    if (morningTemp && eveningTemp) {
+                                        seatEl.classList.add('hold-morning-temp-morning', 'hold-evening-temp-evening');
+                                        seatEl.dataset.status = 'occupied';
+                                    } else if (morningTemp) {
+                                        seatEl.classList.add('hold-morning-temp-morning', 'hold-evening');
+                                        seatEl.dataset.status = 'on_hold';
+                                    } else if (eveningTemp) {
+                                        seatEl.classList.add('hold-evening-temp-evening', 'hold-morning');
+                                        seatEl.dataset.status = 'on_hold';
+                                    } else {
+                                        seatEl.classList.add('on_hold');
+                                        seatEl.dataset.status = 'on_hold';
+                                    }
 
-                            const mLabel = document.createElement('span');
-                            mLabel.className = 'seat-morning-label';
-                            mLabel.textContent = getShiftLabelText('morning', seat.morning_taken, seat.morning_hold, seat.morning_temp_allotted, mDays);
-                            seatEl.appendChild(mLabel);
+                                    labelEl.style.display = 'none';
+                                    const days = seat.full_day_hold_remaining_days || seat.remaining_days;
+                                    const holdText = (typeof days === 'number' && !isNaN(days) && days > 0) ? `Hold F(${days})` : 'Hold F';
 
-                            const eLabel = document.createElement('span');
-                            eLabel.className = 'seat-evening-label';
-                            eLabel.textContent = getShiftLabelText('evening', seat.evening_taken, seat.evening_hold, seat.evening_temp_allotted, eDays);
-                            seatEl.appendChild(eLabel);
+                                    if (morningTemp && eveningTemp) {
+                                        // Both temp - no hold label needed
+                                    } else if (morningTemp) {
+                                        const eLabel = document.createElement('span');
+                                        eLabel.className = 'seat-evening-label';
+                                        eLabel.textContent = holdText;
+                                        seatEl.appendChild(eLabel);
+                                    } else if (eveningTemp) {
+                                        const mLabel = document.createElement('span');
+                                        mLabel.className = 'seat-morning-label';
+                                        mLabel.textContent = holdText;
+                                        seatEl.appendChild(mLabel);
+                                    } else {
+                                        labelEl.style.display = '';
+                                        labelEl.textContent = holdText;
+                                    }
+                                } else if (morningTemp && eveningTemp) {
+                                    seatEl.classList.add('shift-both-partial');
+                                    seatEl.dataset.status = 'occupied';
+                                    labelEl.textContent = 'Occupied(F)';
+                                } else {
+                                    seatEl.classList.add('occupied-full');
+                                    seatEl.dataset.status = 'occupied';
+                                    labelEl.textContent = 'Occupied(F)';
+                                }
+                            }
+                            else if (seat.morning_taken && seat.evening_taken) {
+                                if (morningTemp && eveningTemp) {
+                                    seatEl.classList.add('shift-both-partial');
+                                } else if (morningTemp || eveningTemp) {
+                                    seatEl.classList.add('shift-partial');
+                                } else {
+                                    if (morningTemp && seat.morning_hold) {
+                                        seatEl.classList.add('hold-morning-temp-morning');
+                                    } else if (seat.morning_hold) {
+                                        seatEl.classList.add('hold-morning');
+                                    } else {
+                                        seatEl.classList.add('occupied-morning');
+                                    }
+                                    if (eveningTemp && seat.evening_hold) {
+                                        seatEl.classList.add('hold-evening-temp-evening');
+                                    } else if (seat.evening_hold) {
+                                        seatEl.classList.add('hold-evening');
+                                    } else {
+                                        seatEl.classList.add('occupied-evening');
+                                    }
+                                }
+
+                                labelEl.style.display = 'none';
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label';
+                                if (seat.morning_hold) {
+                                    const mDays = seat.morning_hold_remaining_days;
+                                    mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                                } else {
+                                    mLabel.textContent = 'Occupied(M)';
+                                }
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label';
+                                if (seat.evening_hold) {
+                                    const eDays = seat.evening_hold_remaining_days;
+                                    eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                                } else {
+                                    eLabel.textContent = 'Occupied(E)';
+                                }
+                                seatEl.appendChild(eLabel);
+
+                                seatEl.dataset.status = (seat.morning_hold || seat.evening_hold) ? 'on_hold' : 'occupied';
+                            }
+                            else if (seat.morning_taken) {
+                                if (morningTemp && seat.morning_hold) {
+                                    seatEl.classList.add('hold-morning-temp-morning');
+                                } else if (morningTemp) {
+                                    if (seat.evening_hold) {
+                                        seatEl.classList.add('diagonal-hold-partial');
+                                    } else {
+                                        seatEl.classList.add('shift-partial');
+                                    }
+                                } else if (seat.morning_hold) {
+                                    seatEl.classList.add('hold-morning');
+                                } else {
+                                    seatEl.classList.add('occupied-morning');
+                                }
+
+                                let evenStatus = 'Available';
+                                if (seat.evening_hold) {
+                                    seatEl.dataset.status = 'on_hold';
+                                    const eDays = seat.evening_hold_remaining_days;
+                                    evenStatus = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                                } else {
+                                    seatEl.dataset.status = 'partial';
+                                }
+
+                                labelEl.style.display = 'none';
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label';
+                                if (seat.morning_hold) {
+                                    const mDays = seat.morning_hold_remaining_days;
+                                    mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                                } else {
+                                    mLabel.textContent = 'Occupied(M)';
+                                }
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label';
+                                eLabel.textContent = evenStatus;
+                                seatEl.appendChild(eLabel);
+                            }
+                            else if (seat.evening_taken) {
+                                if (eveningTemp && seat.evening_hold) {
+                                    seatEl.classList.add('hold-evening-temp-evening');
+                                } else if (eveningTemp) {
+                                    if (seat.morning_hold) {
+                                        seatEl.classList.add('diagonal-hold-partial');
+                                    } else {
+                                        seatEl.classList.add('shift-partial');
+                                    }
+                                } else if (seat.evening_hold) {
+                                    seatEl.classList.add('hold-evening');
+                                } else {
+                                    seatEl.classList.add('occupied-evening');
+                                }
+
+                                let mornStatus = 'Available';
+                                if (seat.morning_hold) {
+                                    seatEl.dataset.status = 'on_hold';
+                                    const mDays = seat.morning_hold_remaining_days;
+                                    mornStatus = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
+                                } else {
+                                    seatEl.dataset.status = 'partial';
+                                }
+
+                                labelEl.style.display = 'none';
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label';
+                                mLabel.textContent = mornStatus;
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label';
+                                if (seat.evening_hold) {
+                                    const eDays = seat.evening_hold_remaining_days;
+                                    eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
+                                } else {
+                                    eLabel.textContent = 'Occupied(E)';
+                                }
+                                seatEl.appendChild(eLabel);
+                            }
+                            else {
+                                // Only temp allotted, no shift taken
+                                seatEl.classList.add('available');
+                                seatEl.dataset.status = 'available';
+                                labelEl.textContent = 'Available';
+                            }
                         } else {
-                            // Available
+                            // Both shifts free
                             seatEl.classList.add('available');
                             seatEl.dataset.status = 'available';
                             labelEl.textContent = 'Available';
                         }
 
-                        // Determine status of morning and evening shifts for background coloring
-                        // Hold takes priority over occupied (a held seat IS also 'taken')
+                        // ---- Determine status colors for shift halves ----
                         let morningStatus = 'available';
                         if (seat.morning_temp_allotted) {
                             morningStatus = 'temporary';
@@ -1803,25 +1969,18 @@
                             eveningStatus = 'occupied';
                         }
 
-                        // Apply classes to halves
-                        if (topHalf) {
-                            topHalf.className = 'seat-half seat-morning shift-' + morningStatus;
-                        }
-                        if (bottomHalf) {
-                            bottomHalf.className = 'seat-half seat-evening shift-' + eveningStatus;
-                        }
+                        topHalf.className = 'seat-half seat-morning shift-' + morningStatus;
+                        bottomHalf.className = 'seat-half seat-evening shift-' + eveningStatus;
 
-                        // Apply status classes to the split labels
-                        const mLabel = seatEl.querySelector('.seat-morning-label');
-                        if (mLabel) {
-                            mLabel.className = 'seat-morning-label status-' + morningStatus;
-                        }
-                        const eLabel = seatEl.querySelector('.seat-evening-label');
-                        if (eLabel) {
-                            eLabel.className = 'seat-evening-label status-' + eveningStatus;
-                        }
+                        const mLabelEl = seatEl.querySelector('.seat-morning-label');
+                        if (mLabelEl) mLabelEl.className = 'seat-morning-label status-' + morningStatus;
+                        const eLabelEl = seatEl.querySelector('.seat-evening-label');
+                        if (eLabelEl) eLabelEl.className = 'seat-evening-label status-' + eveningStatus;
+
                     } else {
-                        // Non-shift seats
+                        // =====================================================
+                        // NON-SHIFT SEATS (mirrors admission-seat-selector.js)
+                        // =====================================================
                         const hasHold = seat.is_on_hold || seat.full_day_hold || seat.morning_hold || seat.evening_hold || status === 'on_hold';
                         const hasTemp = seat.morning_temp_allotted || seat.evening_temp_allotted || seat.is_partial || status === 'partial';
 
@@ -1845,15 +2004,17 @@
                             seatEl.appendChild(eLabel);
 
                         } else if (status === 'partial' || hasTemp) {
+                            seatEl.classList.remove('available');
                             seatEl.classList.add('partial');
                             seatEl.dataset.status = 'partial';
                             labelEl.textContent = 'Temp.';
                         } else if (status === 'occupied') {
+                            seatEl.classList.remove('available');
                             seatEl.classList.add('occupied');
                             seatEl.dataset.status = 'occupied';
                             labelEl.textContent = 'Occupied';
                         } else if (status === 'on_hold' || hasHold) {
-                            // orange color – support both class names just in case
+                            seatEl.classList.remove('available');
                             seatEl.classList.add('on_hold', 'on-hold');
                             seatEl.dataset.status = 'on_hold';
 
@@ -1861,7 +2022,6 @@
                                 ? seat.remaining_days
                                 : (seat.full_day_hold_remaining_days || null);
 
-                            // Per SKILL.md: Show "Hold(X)" format
                             if (days !== null && days > 0) {
                                 labelEl.textContent = `Hold(${days})`;
                             } else {
@@ -1871,7 +2031,6 @@
                                 labelEl.textContent = 'Available';
                             }
                         } else {
-                            // Explicit fallback for non-shift available seats
                             seatEl.classList.add('available');
                             seatEl.dataset.status = 'available';
                             labelEl.textContent = 'Available';
