@@ -392,6 +392,14 @@ class StudentProfile(models.Model):
             except Exception:
                 pass
 
+        # INVARIANT: A student without a physical seat cannot be 'on_hold'.
+        # This prevents ghost hold entries from ever being persisted.
+        if self.status == 'on_hold' and not self.seat_id:
+            Seat = apps.get_model('users', 'Seat')
+            has_seat_hold = self.pk and Seat.objects.filter(hold_student_id=self.pk).exists()
+            if not has_seat_hold:
+                self.status = 'admitted'
+
         super().save(*args, **kwargs)
 
         # Sync common details to StudentAchievement if it exists
