@@ -8083,6 +8083,45 @@ def seat_action_api(request):
 
             student = StudentProfile.objects.select_for_update().get(id=student_id)
 
+            # --- GUARD: block assigning a student who is already an active owner elsewhere ---
+            # An owner-on-hold is still an owner; they cannot sit as temp at another seat.
+            existing_owner = (
+                SeatAssignment.objects
+                .filter(student=student, is_active=True, is_partial=False)
+                .exclude(seat=seat)
+                .select_related('seat')
+                .first()
+            )
+            if existing_owner:
+                hold_note = " (currently on hold)" if existing_owner.hold_status == 'active' else ""
+                return JsonResponse({
+                    'status': 'error',
+                    'message': (
+                        f"{student.full_name} is the registered owner of "
+                        f"Seat {existing_owner.seat.seat_number}{hold_note}. "
+                        f"An owner cannot be assigned as a temporary tenant elsewhere. "
+                        f"End the hold on their original seat first."
+                    )
+                }, status=400)
+
+            # --- GUARD: block if already a temp on a different seat ---
+            existing_temp = (
+                SeatAssignment.objects
+                .filter(student=student, is_active=True, is_partial=True)
+                .exclude(seat=seat)
+                .select_related('seat')
+                .first()
+            )
+            if existing_temp:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': (
+                        f"{student.full_name} already has a temporary allotment on "
+                        f"Seat {existing_temp.seat.seat_number}. "
+                        f"End that allotment first before assigning a new one."
+                    )
+                }, status=400)
+
             try:
                 SeatAssignment.objects.create(
                     seat=seat,
@@ -8106,6 +8145,7 @@ def seat_action_api(request):
             return success_response(
                 f"Temporary full-day seat assigned to {student.full_name}."
             )
+
 
         # ------------------------------------
         # 8. ACTION: PUT SEAT ON HOLD (Standard)
@@ -8361,6 +8401,25 @@ def seat_action_api(request):
                 seat = special_request.seat
                 student = special_request.student
                 requested_shift = special_request.requested_shift
+
+                # --- GUARD: student must not already have an active assignment on a different seat ---
+                existing_active = (
+                    SeatAssignment.objects
+                    .filter(student=student, is_active=True)
+                    .exclude(seat=seat)
+                    .select_related('seat')
+                    .first()
+                )
+                if existing_active:
+                    role = "owner" if not existing_active.is_partial else "temporary tenant"
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': (
+                            f"{student.full_name} is already the {role} of "
+                            f"Seat {existing_active.seat.seat_number}. "
+                            f"Cannot approve a partial request for a different seat."
+                        )
+                    }, status=400)
 
                 try:
                     SeatAssignment.objects.create(

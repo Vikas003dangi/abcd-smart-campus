@@ -1365,11 +1365,32 @@ class SeatAssignment(models.Model):
         if not self.is_active or not is_new_or_activating:
             # We don't perform collision checks when deactivating or simply updating status/holds
             return
-            
+
+        # --- CROSS-SEAT GUARD (last-resort model-level defence) ---
+        # A student cannot hold two active SeatAssignments simultaneously.
+        # The DB UniqueConstraint on (student, is_active=True) enforces this at
+        # INSERT time, but SQLite partial indexes are NOT checked by Django's
+        # validate_unique(), so we add an explicit Python check here as a second
+        # line of defence that fires before any DB round-trip.
+        if self.student_id:
+            other_active = (
+                SeatAssignment.objects
+                .filter(student_id=self.student_id, is_active=True)
+                .exclude(pk=self.pk or 0)
+                .select_related('seat')
+                .first()
+            )
+            if other_active:
+                raise ValidationError(
+                    f"{self.student.full_name} already has an active seat assignment on "
+                    f"Seat {other_active.seat.seat_number} ({other_active.seat.floor}). "
+                    f"A student cannot occupy two seats simultaneously."
+                )
+
         # 1. Get all CURRENT active people on this seat (excluding self)
         existing_assignments = SeatAssignment.objects.filter(
             seat=seat, is_active=True
-        ).exclude(pk=self.pk)
+        ).exclude(pk=self.pk or 0)
 
         # ----------------------------------------------
         # LOGIC FOR NON-SHIFT SEATS (Simple Logic)
