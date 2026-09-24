@@ -423,7 +423,8 @@
             width: 45px;
             height: 45px;
             overflow: hidden;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 0.2s ease-out;
+            will-change: width;
             position: relative;
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
@@ -443,13 +444,18 @@
             font-size: 0.95rem;
             background: transparent;
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: opacity 0.15s ease-out;
             font-weight: 500;
+            color: #1e293b !important;
+        }
+
+        .hub-search-wrapper input::placeholder {
+            color: #94a3b8 !important;
         }
 
         .hub-search-wrapper.expanded input {
             opacity: 1;
-            transition: opacity 0.4s 0.1s;
+            transition: opacity 0.2s 0.05s ease-out;
         }
 
         body.dark-theme .hub-search-wrapper {
@@ -458,7 +464,11 @@
         }
 
         body.dark-theme .hub-search-wrapper input {
-            color: #fff;
+            color: #f8fafc !important;
+        }
+
+        body.dark-theme .hub-search-wrapper input::placeholder {
+            color: #64748b !important;
         }
 
         .hub-search-btn {
@@ -3165,7 +3175,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="{% static 'js/image-cropper-modal.js' %}"></script>
-    <script src="{% static 'js/teacher-seat-manager.js' %}?v=20260924e"></script>
+    <script src="{% static 'js/teacher-seat-manager.js' %}?v=20260924f"></script>
     <script>
         // --- Theme Persistence ---
         function toggleTheme() {
@@ -3176,6 +3186,10 @@
             const themeIcon = document.getElementById('themeIcon');
             if (themeIcon) {
                 themeIcon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+            }
+            const searchInput = document.getElementById('seatSearchInput');
+            if (searchInput) {
+                searchInput.style.color = isDark ? '#f8fafc' : '#1e293b';
             }
         }
         window.toggleTheme = toggleTheme;
@@ -3194,6 +3208,10 @@
                 document.documentElement.classList.remove('dark-theme');
                 const themeIcon = document.getElementById('themeIcon');
                 if (themeIcon) themeIcon.className = 'bx bx-moon';
+            }
+            const searchInput = document.getElementById('seatSearchInput');
+            if (searchInput) {
+                searchInput.style.color = isDark ? '#f8fafc' : '#1e293b';
             }
         })();
 

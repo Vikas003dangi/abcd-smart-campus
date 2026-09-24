@@ -6518,6 +6518,10 @@ def get_teacher_seat_status_api(request):
                 except (ValueError, AttributeError):
                     photo_url = None
 
+            has_upcoming_hold = bool(a.hold_status != 'active' and a.hold_start_date and a.hold_start_date > today)
+            hold_start_iso = a.hold_start_date.isoformat() if (a.hold_status == 'active' or has_upcoming_hold) and a.hold_start_date else None
+            hold_end_iso = a.hold_end_date.isoformat() if (a.hold_status == 'active' or has_upcoming_hold) and a.hold_end_date else None
+
             return {
                 "student_id": s.id,
                 "student_name": s.full_name,
@@ -6525,9 +6529,10 @@ def get_teacher_seat_status_api(request):
                 "shift": a.shift_type or 'full',
                 "is_partial": a.is_partial,
                 "hold_status": a.hold_status,
-                "hold_days": max((a.hold_end_date - today).days + 1, 0) if a.hold_end_date else 0,
-                "hold_start_date": a.hold_start_date.isoformat() if a.hold_start_date else None,
-                "hold_end_date": a.hold_end_date.isoformat() if a.hold_end_date else None,
+                "hold_days": max((a.hold_end_date - today).days + 1, 0) if a.hold_end_date and (a.hold_status == 'active' or has_upcoming_hold) else 0,
+                "hold_start_date": hold_start_iso,
+                "hold_end_date": hold_end_iso,
+                "has_upcoming_hold": has_upcoming_hold,
                 "is_pending": is_pending,
                 "is_active": not is_pending,
                 "created_at": a.created_at.isoformat() if a.created_at else None,
@@ -6554,16 +6559,20 @@ def get_teacher_seat_status_api(request):
                     photo_url = s.photo.url
                 except Exception:
                     photo_url = None
+            has_seat_upcoming_hold = bool(seat.hold_status != 'active' and seat.hold_start_date and seat.hold_start_date > today)
+            seat_hold_start_iso = seat.hold_start_date.isoformat() if (seat.hold_status == 'active' or has_seat_upcoming_hold) and seat.hold_start_date else None
+            seat_hold_end_iso = seat.hold_end_date.isoformat() if (seat.hold_status == 'active' or has_seat_upcoming_hold) and seat.hold_end_date else None
             visual_data.append({
                 "student_id": s.id,
                 "student_name": s.full_name,
                 "student_status": s.status or 'on_hold',
                 "shift": 'full',
                 "is_partial": False,
-                "hold_status": 'active',
-                "hold_days": days,
-                "hold_start_date": seat.hold_start_date.isoformat() if seat.hold_start_date else None,
-                "hold_end_date": seat.hold_end_date.isoformat() if seat.hold_end_date else None,
+                "hold_status": 'active' if seat.hold_status == 'active' else 'none',
+                "hold_days": days if seat.hold_status == 'active' else 0,
+                "hold_start_date": seat_hold_start_iso,
+                "hold_end_date": seat_hold_end_iso,
+                "has_upcoming_hold": has_seat_upcoming_hold,
                 "is_pending": False,
                 "is_active": True,
                 "created_at": None,
@@ -7959,14 +7968,12 @@ def seat_action_api(request):
                 seat.recalc_status(save=True)
                 return success_response(f"Hold ended for Seat {seat_number}.")
 
-            # Process removal
             for owner in target_assignments:
-                # 1. Restore owner status — keep dates for fee extension history
-                actual_end = timezone.localdate()
+                # 1. Restore owner status — clear hold dates so ended hold leaves no phantom scheduled dates
                 owner.hold_status = 'none'
-                owner.hold_end_date = actual_end  # Actual end, not original X days
-                # hold_start_date preserved for fee extension calc
-                owner.save(update_fields=['hold_status', 'hold_end_date'])
+                owner.hold_start_date = None
+                owner.hold_end_date = None
+                owner.save(update_fields=['hold_status', 'hold_start_date', 'hold_end_date'])
                 if owner.student and owner.student.status == 'on_hold':
                     owner.student.status = 'admitted'
                     owner.student.save(update_fields=['status'])
@@ -8464,21 +8471,24 @@ def seat_action_api(request):
         elif action == 'delete_scheduled_hold':
             today = timezone.localdate()
 
-            # Find the scheduled future hold for the given student on this seat
+            # Find the scheduled/inactive hold for the given student on this seat
             target_assigns = SeatAssignment.objects.filter(
                 seat=seat,
                 is_active=True,
                 hold_status='none',
                 hold_start_date__isnull=False,
-                hold_start_date__gt=today,
             )
             if student_id:
-                target_assigns = target_assigns.filter(student_id=student_id)
+                filtered = target_assigns.filter(student_id=student_id)
+                if filtered.exists():
+                    target_assigns = filtered
 
-            if not target_assigns.exists():
+            has_seat_level_hold = bool(seat.hold_start_date and seat.hold_status == 'none')
+
+            if not target_assigns.exists() and not has_seat_level_hold:
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'No scheduled future hold found for this student.'
+                    'message': 'No scheduled future hold found for this seat.'
                 }, status=404)
 
             with transaction.atomic():
@@ -8488,23 +8498,23 @@ def seat_action_api(request):
                     assign.hold_status = 'none'
                     assign.save(update_fields=['hold_start_date', 'hold_end_date', 'hold_status'])
 
-                # Clear seat-level hold fields if they match
-                if seat.hold_start_date and seat.hold_start_date > today:
+                # Clear seat-level hold fields if they are scheduled / inactive
+                if seat.hold_status == 'none':
                     seat.hold_start_date = None
                     seat.hold_end_date = None
-                    seat.hold_status = 'none'
-                    seat.save(update_fields=['hold_start_date', 'hold_end_date', 'hold_status'])
+                    seat.save(update_fields=['hold_start_date', 'hold_end_date'])
 
                 seat.recalc_status(save=True)
 
             # Notify the student
             for assign in target_assigns:
-                create_notification(
-                    user=assign.student.user,
-                    title="Scheduled Hold Cancelled",
-                    message=f"The teacher has cancelled the scheduled hold on your seat ({seat_number}). Your seat remains active.",
-                    category="seat"
-                )
+                if assign.student and assign.student.user:
+                    create_notification(
+                        user=assign.student.user,
+                        title="Scheduled Hold Cancelled",
+                        message=f"The teacher has cancelled the scheduled hold on your seat ({seat_number}). Your seat remains active.",
+                        category="seat"
+                    )
 
             return success_response(f'Scheduled hold for Seat {seat_number} has been deleted. The seat remains occupied.')
 

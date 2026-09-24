@@ -184,6 +184,23 @@ document.addEventListener('DOMContentLoaded', () => {
     return prefix + seatNum;
   }
 
+  /**
+   * Helper to safely check if a date string (YYYY-MM-DD) is strictly in the future (tomorrow or later)
+   * in local browser time, avoiding UTC midnight timezone comparison bugs.
+   */
+  function isStrictlyFutureDate(dateStr) {
+    if (!dateStr) return false;
+    const parts = String(dateStr).split('T')[0].split('-');
+    if (parts.length !== 3) return false;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const target = new Date(y, m, d);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return target.getTime() > today.getTime();
+  }
+
   window.showConfirmation = function({ title, mainText, subText, iconClass = 'bx-help-circle', confirmLabel = 'Confirm', theme = 'primary' }) {
     if (confirmModalTitle) {
       if (title && (title.includes('<') || title.includes('&'))) confirmModalTitle.innerHTML = title;
@@ -229,10 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const handleConfirm = (e) => {
         if (e) { e.preventDefault(); e.stopPropagation(); }
         cleanup();
-        if (typeof window.setButtonLoading === 'function' && actionFinalConfirm) {
-          const isDanger = theme === 'danger' || confirmLabel.toLowerCase().includes('delete') || confirmLabel.toLowerCase().includes('unlock');
-          window.setButtonLoading(actionFinalConfirm, true, isDanger ? 'Processing...' : 'Confirming...');
-        }
+        closeSmallModal(confirmModal);
         resolve(true);
       };
 
@@ -2641,12 +2655,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
           } else if (regularOccupant) {
-            // Check for teacher-scheduled future hold (hold_start_date set but not yet active)
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const hasScheduledHold = regularOccupant.hold_start_date &&
+            // Check for teacher-scheduled future hold (hold_start_date set strictly in future and not yet active)
+            const hasScheduledHold = regularOccupant.has_upcoming_hold === true || (
+              regularOccupant.hold_start_date &&
               regularOccupant.hold_status !== 'active' &&
-              new Date(regularOccupant.hold_start_date) > today;
+              isStrictlyFutureDate(regularOccupant.hold_start_date)
+            );
 
             if (hasScheduledHold) {
               // Case: Occupied + Upcoming Scheduled Hold (New Request: Show button instead of details)
@@ -2707,11 +2721,11 @@ document.addEventListener('DOMContentLoaded', () => {
           } else if (assignments.length > 0) {
             // Fallback: some assignment exists but doesn't match above cases
             const a = assignments[0];
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const hasScheduledHold = a.hold_start_date &&
+            const hasScheduledHold = a.has_upcoming_hold === true || (
+              a.hold_start_date &&
               a.hold_status !== 'active' &&
-              new Date(a.hold_start_date) > today;
+              isStrictlyFutureDate(a.hold_start_date)
+            );
 
             const photoHtml = `
                 <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
@@ -3022,15 +3036,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${photoHtml}
                         <p style="margin:0; font-size:1.1rem; color:var(--text-main);">Fully occupied by <strong>${escapeHTML(abcdFormatName(a.student_name))}</strong></p>
                     </div>
-                </div>
+                </div>`;
+                const hasScheduledHoldFull = a && (
+                  a.has_upcoming_hold === true ||
+                  (a.hold_start_date && a.hold_status !== 'active' && isStrictlyFutureDate(a.hold_start_date))
+                );
+                content += `
                 <div class="modal-actions-row small-gap">
                     ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
-                    ${btn('Put On Hold', 'open_hold', 'btn-warning btn-sm', { student_id: a.student_id, shift: 'full' })}
+                    ${hasScheduledHoldFull
+                      ? btn('📅 Coming Hold Details', 'view_scheduled_hold', 'btn-warning btn-sm', { student_id: a.student_id, student_name: a.student_name, hold_start_date: a.hold_start_date, hold_end_date: a.hold_end_date, shift: 'full' })
+                      : btn('Put On Hold', 'open_hold', 'btn-warning btn-sm', { student_id: a.student_id, shift: 'full' })}
                     ${btn('Free Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
             }
           } else {
             // Split Shifts
+            const lockedList = (lockedShifts || '').split(',').map(s => s.trim()).filter(Boolean);
             ['morning', 'evening'].forEach((shift, idx) => {
               const shiftDisplay = shift.charAt(0).toUpperCase() + shift.slice(1);
               const shiftAssigns = assignments.filter(a => a.shift === shift && a.student_status !== 'pending');
@@ -3042,7 +3064,6 @@ document.addEventListener('DOMContentLoaded', () => {
               const otherAssigns = assignments.filter(a => a.shift === otherShift && a.student_status !== 'pending');
               const otherOwner = otherAssigns.find(a => !a.is_partial);
               const otherTenant = otherAssigns.find(a => a.is_partial);
-              const lockedList = (lockedShifts || '').split(',').map(s => s.trim()).filter(Boolean);
               const isOtherShiftLocked = lockedList.includes(otherShift) || isLocked || lockedList.includes('full');
               const isOtherShiftAvailable = !otherOwner && !otherTenant && !isOtherShiftLocked;
 
@@ -3102,6 +3123,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${btn('Free', 'free_shift', 'btn-danger btn-sm', { shift })}
                     </div>`;
                 } else {
+                  const hasScheduledHoldShift = owner && (
+                    owner.has_upcoming_hold === true ||
+                    (owner.hold_start_date && owner.hold_status !== 'active' && isStrictlyFutureDate(owner.hold_start_date))
+                  );
                   content += `
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">${shiftDisplay}: <span style="color:#2ecc71;">Occupied</span></p>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
@@ -3110,7 +3135,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="modal-actions-row small-gap">
                         ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
-                        ${btn('Hold', 'open_hold', 'btn-warning btn-sm', { student_id: owner.student_id, shift })}
+                        ${hasScheduledHoldShift
+                          ? btn('📅 Coming Hold Details', 'view_scheduled_hold', 'btn-warning btn-sm', {
+                              student_id: owner.student_id,
+                              student_name: owner.student_name,
+                              hold_start_date: owner.hold_start_date,
+                              hold_end_date: owner.hold_end_date,
+                              shift: shift
+                            })
+                          : btn('Hold', 'open_hold', 'btn-warning btn-sm', { student_id: owner.student_id, shift: shift })}
                         ${showAssignFullDay ? btn('Assign full day', 'assign_full_day', 'btn-success btn-sm', { student_id: owner.student_id, student_name: owner.student_name }) : ''}
                         ${btn('Free', 'free_shift', 'btn-danger btn-sm', { shift })}
                     </div>`;
@@ -3391,6 +3424,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           const res = await resp.json();
           if (res.status === 'success') {
+            window.closeAllModals();
             if (window.showToast) window.showToast(res.message, 'success');
             if (currentSeatData) {
               currentSeatData.is_locked = res.is_locked;
@@ -3399,6 +3433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadSeatLayout(currentFloor, true);
             showSeatDetails(null, true);
           } else {
+            window.closeAllModals();
             window.showStyledPopup({
               title: 'Cannot Lock Seat',
               message: res.message || 'Error locking seat.',
@@ -3406,6 +3441,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           }
         } catch (e) {
+          window.closeAllModals();
           console.error(e);
           if (window.showToast) window.showToast('Failed to lock seat.', 'error');
         }
@@ -3447,6 +3483,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           const res = await resp.json();
           if (res.status === 'success') {
+            window.closeAllModals();
             if (window.showToast) window.showToast(res.message, 'success');
             if (currentSeatData) {
               currentSeatData.is_locked = res.is_locked;
@@ -3455,7 +3492,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadSeatLayout(currentFloor, true);
             showSeatDetails(null, true);
           } else {
-
+            window.closeAllModals();
             window.showStyledPopup({
               title: 'Cannot Unlock Seat',
               message: res.message || 'Error unlocking seat.',
@@ -3463,6 +3500,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           }
         } catch (e) {
+          window.closeAllModals();
           console.error(e);
           if (window.showToast) window.showToast('Failed to unlock seat.', 'error');
         }
