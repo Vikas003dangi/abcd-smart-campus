@@ -410,6 +410,57 @@ document.addEventListener('DOMContentLoaded', () => {
         if (scrollDown) scrollDown.classList.remove('visible');
     }
 
+    // ── LIVE SEAT UPDATE ENGINE (WebSocket) ──
+    // Connects to the public seat-updates WS. When a seat_update arrives
+    // and the modal is visible, silently re-fetches and re-renders the layout
+    // while preserving the user's current pending selection.
+    (function initSeatLiveUpdates() {
+        let seatWs = null;
+        let seatWsReconnectTimer = null;
+
+        function isSeatModalOpen() {
+            return modalOverlay && modalOverlay.classList.contains('visible');
+        }
+
+        function getActiveFloor() {
+            const radio = floorRadioContainer.querySelector('input[name="floor_radio"]:checked');
+            return radio ? radio.value : null;
+        }
+
+        async function refreshSeatLayout() {
+            const floor = getActiveFloor();
+            if (!floor || !isSeatModalOpen()) return;
+            try {
+                const res = await fetch(`/api/get_public_seat_status/?floor=${encodeURIComponent(floor)}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                updateLayout(floor, data.seats);
+                if (typeof updateModalLegendCounts === 'function') updateModalLegendCounts(floor);
+            } catch (e) { /* silent — layout stays as-is */ }
+        }
+
+        function connectSeatWs() {
+            try {
+                const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+                seatWs = new WebSocket(`${proto}//${location.host}/ws/seat-updates/`);
+                seatWs.onmessage = function(e) {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg.type === 'seat_update' && isSeatModalOpen()) {
+                            refreshSeatLayout();
+                        }
+                    } catch (err) {}
+                };
+                seatWs.onclose = function() {
+                    seatWsReconnectTimer = setTimeout(connectSeatWs, 10000);
+                };
+            } catch (e) {}
+        }
+
+        // Connect after a short delay to avoid blocking page load
+        setTimeout(connectSeatWs, 1500);
+    })();
+
     // Helper to clear all selections
     function clearAllSelections() {
         document.querySelectorAll('.seat').forEach(seat => {

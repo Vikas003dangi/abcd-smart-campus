@@ -745,6 +745,28 @@ def is_guidy_notification(category=None, source=None, tag=None, url=None):
     )
 
 
+# ---------------------------------------------------------
+# REAL-TIME SEAT UPDATE BROADCAST
+# ---------------------------------------------------------
+def broadcast_seat_update(floor=None):
+    """
+    Broadcast a seat_update event to ALL connected users via the
+    broadcast_all channel group.  Pure Redis message — zero DB queries.
+    Every page that listens for 'seat_update' will re-fetch its layout.
+    """
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        cl = get_channel_layer()
+        if cl:
+            payload = {"type": "seat_update"}
+            if floor:
+                payload["floor"] = floor
+            async_to_sync(cl.group_send)("broadcast_all", payload)
+    except Exception:
+        pass
+
+
 # send in-app notification to any user
 def create_notification(user, title, message, link=None, category="general", meta=None, sound=None, tag=None):
     if not user:

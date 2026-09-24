@@ -885,6 +885,12 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "stats": event.get("stats", {}),
         }))
 
+    async def seat_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "seat_update",
+            "floor": event.get("floor"),
+        }))
+
     async def messages_delivered_broadcast(self, event):
         await self.send(text_data=json.dumps({
             "type": "messages_delivered",
@@ -917,5 +923,22 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "type": "guidy_requests_badge_update",
             "req_id": event.get("req_id"),
             "pending_count": event.get("pending_count"),
+        }))
+
+
+class PublicSeatUpdateConsumer(AsyncWebsocketConsumer):
+    """No-auth consumer that only receives seat_update broadcasts."""
+
+    async def connect(self):
+        await self.channel_layer.group_add("broadcast_all", self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard("broadcast_all", self.channel_name)
+
+    async def seat_update(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "seat_update",
+            "floor": event.get("floor"),
         }))
 

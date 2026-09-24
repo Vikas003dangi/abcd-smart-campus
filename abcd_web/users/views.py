@@ -6743,6 +6743,7 @@ def toggle_seat_lock_api(request):
                     seat.is_locked = True
 
             seat.save()
+            notifications.broadcast_seat_update(floor=seat.floor)
             return JsonResponse({
                 'status': 'success',
                 'message': f'Seat {seat.seat_number} ({shift.capitalize()}) has been locked successfully.',
@@ -6760,6 +6761,7 @@ def toggle_seat_lock_api(request):
                 seat.is_locked = False
 
             seat.save()
+            notifications.broadcast_seat_update(floor=seat.floor)
             return JsonResponse({
                 'status': 'success',
                 'message': f'Seat {seat.seat_number} ({shift.capitalize()}) has been unlocked.',
@@ -7615,6 +7617,7 @@ def seat_action_api(request):
             raise
         
         def success_response(message):
+            notifications.broadcast_seat_update(floor=floor)
             return JsonResponse({'status': 'success', 'message': message})
         
         # STRICT LOCK GUARD: Cannot assign/allot a locked seat or locked shift!
@@ -9609,6 +9612,7 @@ def teacher_put_seat_on_hold_api(request):
             category="seat"
         )
 
+        notifications.broadcast_seat_update(floor=seat.floor)
         return JsonResponse({
             'status': 'success',
             'message': f'Seat {seat.seat_number} has been put on hold successfully.',
@@ -10186,6 +10190,7 @@ def _do_approve_student(request, student_id):
                     category="admission"
                 )
 
+            notifications.broadcast_seat_update()
             if is_ajax:
                 return JsonResponse({'status': 'success', 'message': 'Student approved successfully.'})
             return redirect('users:teacher_dashboard')
@@ -18288,6 +18293,7 @@ def approve_seat_switch(request, pk):
             except Exception:
                 pass
 
+            notifications.broadcast_seat_update()
             return JsonResponse({'status': 'success', 'message': 'Request approved successfully.'})
 
     except SeatSwitchRequest.DoesNotExist:
@@ -18474,6 +18480,7 @@ def approve_seat_leave(request, pk):
                 category="seat"
             )
 
+            notifications.broadcast_seat_update(floor=seat.floor)
             return JsonResponse({'status': 'success', 'message': f'Leave request for {student.full_name} approved. Seat freed.'})
 
     except SeatLeaveRequest.DoesNotExist:
@@ -18821,6 +18828,7 @@ def approve_hold_change(request, pk):
                 category="seat"
             )
 
+            notifications.broadcast_seat_update(floor=seat.floor)
             return JsonResponse({
                 'status': 'success',
                 'message': f'Hold change request approved for {student.full_name}. New end date: {new_end_date.strftime("%d-%b-%Y")}.'
