@@ -1776,12 +1776,18 @@ document.addEventListener('DOMContentLoaded', () => {
         counts.locked++;
       }
 
-      if (seatClasses.includes('available') || seat.getAttribute('data-status') === 'available') {
+      // Hold and Temp can overlap (hold-partial, diagonal-hold-partial, hold-morning-temp-morning, etc.)
+      const isTemp = seatClasses.some(c => c.includes('temp')) || seatClasses.includes('partial') || seatClasses.includes('hold-partial') || seatClasses.includes('diagonal-hold-partial') || seatClasses.includes('shift-partial') || seatClasses.includes('shift-both-partial');
+      const isHold = seatClasses.includes('on_hold') || seatClasses.some(c => c.includes('hold'));
+
+      if (isTemp) counts.temporary++;
+      if (isHold) counts.on_hold++;
+
+      // Mutually exclusive categories for available/occupied/pending/shift_occupied
+      if (isTemp || isHold) {
+        // Already counted above
+      } else if (seatClasses.includes('available') || seat.getAttribute('data-status') === 'available') {
         counts.available++;
-      } else if (seatClasses.some(c => c.includes('temp'))) {
-        counts.temporary++;
-      } else if (seatClasses.includes('on_hold') || seatClasses.some(c => c.includes('hold'))) {
-        counts.on_hold++;
       } else if (seatClasses.includes('pending') || seatClasses.some(c => c.includes('pending'))) {
         counts.pending++;
       } else if (seatClasses.includes('shift_occupied') || seatClasses.some(c => c.includes('occupied-'))) {

@@ -4724,15 +4724,19 @@
 
                 if (hasClass('locked') || hasClass('locked-morning') || hasClass('locked-evening') || seat.dataset.locked === 'true' || hasLabel('locked') || hasLabel('🔒')) {
                     counts.locked++;
-                } else if (hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'))) {
+                }
+
+                const isTemp = hasClass('temporary') || hasClass('temp-allotted') || hasClass('partial') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasClass('shift-partial') || hasClass('shift-both-partial') || hasLabel('temp');
+                const isHold = hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasLabel('hold');
+
+                if (isTemp) counts.temporary++;
+                if (isHold) counts.on_hold++;
+
+                if (hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'))) {
                     counts.shift_occupied++;
-                } else if (hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold')) {
-                    counts.on_hold++;
-                } else if (hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp')) {
-                    counts.temporary++;
-                } else if (hasClass('occupied') || hasClass('occupied-full') || hasLabel('occupied') || hasLabel('you')) {
+                } else if (hasClass('occupied') || hasClass('occupied-full') || (hasLabel('occupied') && !hasClass('shift-seat')) || hasLabel('you')) {
                     counts.occupied++;
-                } else {
+                } else if (!isHold && !isTemp && !hasClass('locked')) {
                     counts.available++;
                 }
             });
@@ -5688,9 +5692,9 @@
                             } else if (target === 'shift_occupied') {
                                 return hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'));
                             } else if (target === 'on_hold') {
-                                return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold');
+                                return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasLabel('hold');
                             } else if (target === 'temporary') {
-                                return hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp');
+                                return hasClass('temporary') || hasClass('partial') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasClass('shift-partial') || hasClass('shift-both-partial') || hasClass('temp-allotted') || hasLabel('temp');
                             } else if (target === 'locked') {
                                 return hasClass('locked') || hasClass('locked-morning') || hasClass('locked-evening') || seat.dataset.locked === 'true' || hasLabel('locked') || hasLabel('🔒');
                             }

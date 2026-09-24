@@ -1562,8 +1562,8 @@
                         .map(el => el.textContent.toLowerCase());
                     const hasLabel = (text) => labelsText.some(t => t.includes(text));
 
-                    const isTemp = hasClass('temporary') || hasClass('temp-allotted') || hasClass('partial') || hasClass('hold-partial') || hasLabel('temp');
-                    const isHold = hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasLabel('hold');
+                    const isTemp = hasClass('temporary') || hasClass('temp-allotted') || hasClass('partial') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasClass('shift-partial') || hasClass('shift-both-partial') || hasLabel('temp');
+                    const isHold = hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasLabel('hold');
 
                     if (isTemp) {
                         counts.temporary++;
@@ -2489,9 +2489,9 @@
                                 } else if (target === 'shift_occupied') {
                                     return hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'));
                                 } else if (target === 'on_hold') {
-                                    return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasLabel('hold');
+                                    return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasLabel('hold');
                                 } else if (target === 'temporary') {
-                                    return hasClass('temporary') || hasClass('partial') || hasClass('hold-partial') || hasClass('temp-allotted') || hasLabel('temp');
+                                    return hasClass('temporary') || hasClass('partial') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasClass('shift-partial') || hasClass('shift-both-partial') || hasClass('temp-allotted') || hasLabel('temp');
                                 }
                                 return false;
                             };

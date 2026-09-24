@@ -2259,20 +2259,25 @@ document.addEventListener('DOMContentLoaded', () => {
             available: 0,
             occupied: 0,
             on_hold: 0,
-            shift_occupied: 0
+            shift_occupied: 0,
+            temporary: 0
         };
 
         seats.forEach(seatEl => {
             const hasClass = (cls) => seatEl.classList.contains(cls);
             const status = seatEl.dataset.status || '';
 
+            const isTemp = hasClass('temporary') || hasClass('temp-allotted') || hasClass('partial') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasClass('shift-partial') || hasClass('shift-both-partial') || status === 'partial' || status === 'temporary';
+            const isHold = hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || status === 'on_hold';
+
+            if (isTemp) counts.temporary++;
+            if (isHold) counts.on_hold++;
+
             if (hasClass('shift-seat') && (hasClass('occupied-morning') || hasClass('occupied-evening') || hasClass('occupied-full') || status === 'shift_occupied')) {
                 counts.shift_occupied++;
-            } else if (hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || status === 'on_hold') {
-                counts.on_hold++;
             } else if (hasClass('occupied') || hasClass('occupied-full') || status === 'occupied') {
                 counts.occupied++;
-            } else {
+            } else if (!isHold && !isTemp) {
                 counts.available++;
             }
         });
@@ -2364,11 +2369,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (status === 'shift_occupied') {
                         match = hasClass('shift-seat') && (hasClass('occupied-morning') || hasClass('occupied-evening') || hasClass('occupied-full') || seatStatus === 'shift_occupied');
                     } else if (status === 'on_hold') {
-                        match = hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || seatStatus === 'on_hold';
+                        match = hasClass('on_hold') || hasClass('on-hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || seatStatus === 'on_hold';
+                    } else if (status === 'temporary') {
+                        match = hasClass('temporary') || hasClass('temp-allotted') || hasClass('partial') || hasClass('hold-partial') || hasClass('diagonal-hold-partial') || hasClass('hold-morning-temp-morning') || hasClass('hold-evening-temp-evening') || hasClass('shift-partial') || hasClass('shift-both-partial') || seatStatus === 'partial' || seatStatus === 'temporary';
                     } else if (status === 'occupied') {
                         match = (hasClass('occupied') || hasClass('occupied-full') || seatStatus === 'occupied') && !hasClass('shift-seat');
                     } else if (status === 'available') {
-                        match = hasClass('available') && !hasClass('occupied') && !hasClass('on_hold');
+                        match = hasClass('available') && !hasClass('occupied') && !hasClass('on_hold') && !hasClass('hold-full') && !hasClass('hold-partial') && !hasClass('diagonal-hold-partial') && !hasClass('hold-morning-temp-morning') && !hasClass('hold-evening-temp-evening');
                     }
 
                     if (match) {

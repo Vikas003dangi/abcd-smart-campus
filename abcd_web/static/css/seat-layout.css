@@ -207,6 +207,11 @@
     color: #7c3aed;
 }
 
+.legend-box.temporary,
+.legend-box.partial {
+    color: #e84393;
+}
+
 .legend-box i {
     font-size: 1.2rem;
 }
