@@ -1738,7 +1738,19 @@
                             labelEl.textContent = days ? `Hold(${days})` : 'On Hold';
                         } else if (seat.morning_taken || seat.evening_taken || seat.morning_hold || seat.evening_hold || seat.morning_temp_allotted || seat.evening_temp_allotted) {
                             // Split / Partial State
-                            if (seat.morning_taken && seat.evening_taken) {
+                            // Hold check first — a held seat IS also 'taken'
+                            if (seat.morning_hold || seat.evening_hold) {
+                                seatEl.dataset.status = 'on_hold';
+                                const mHold = seat.full_day_hold || seat.morning_hold;
+                                const eHold = seat.full_day_hold || seat.evening_hold;
+                                if (mHold && eHold) {
+                                    seatEl.classList.add('hold-full', 'on_hold');
+                                } else if (mHold) {
+                                    seatEl.classList.add('hold-morning', 'on_hold');
+                                } else {
+                                    seatEl.classList.add('hold-evening', 'on_hold');
+                                }
+                            } else if (seat.morning_taken && seat.evening_taken) {
                                 seatEl.classList.add('occupied-full', 'occupied');
                                 seatEl.classList.add('occupied-morning', 'occupied-evening');
                                 seatEl.dataset.status = 'occupied';
@@ -1748,15 +1760,6 @@
                             } else if (seat.evening_taken) {
                                 seatEl.classList.add('occupied-evening', 'occupied');
                                 seatEl.dataset.status = 'partial';
-                            } else if (seat.morning_hold || seat.evening_hold) {
-                                seatEl.dataset.status = 'on_hold';
-                                if (seat.morning_hold && seat.evening_hold) {
-                                    seatEl.classList.add('hold-full', 'on_hold');
-                                } else if (seat.morning_hold) {
-                                    seatEl.classList.add('hold-morning', 'on_hold');
-                                } else {
-                                    seatEl.classList.add('hold-evening', 'on_hold');
-                                }
                             }
 
                             labelEl.style.display = 'none';
@@ -1781,30 +1784,23 @@
                         }
 
                         // Determine status of morning and evening shifts for background coloring
+                        // Hold takes priority over occupied (a held seat IS also 'taken')
                         let morningStatus = 'available';
-                        if (seat.full_day_taken || seat.morning_taken) {
-                            if (seat.morning_temp_allotted) {
-                                morningStatus = 'temporary';
-                            } else {
-                                morningStatus = 'occupied';
-                            }
-                        } else if (seat.morning_temp_allotted) {
+                        if (seat.morning_temp_allotted) {
                             morningStatus = 'temporary';
                         } else if (seat.full_day_hold || seat.morning_hold) {
                             morningStatus = 'hold';
+                        } else if (seat.full_day_taken || seat.morning_taken) {
+                            morningStatus = 'occupied';
                         }
 
                         let eveningStatus = 'available';
-                        if (seat.full_day_taken || seat.evening_taken) {
-                            if (seat.evening_temp_allotted) {
-                                eveningStatus = 'temporary';
-                            } else {
-                                eveningStatus = 'occupied';
-                            }
-                        } else if (seat.evening_temp_allotted) {
+                        if (seat.evening_temp_allotted) {
                             eveningStatus = 'temporary';
                         } else if (seat.full_day_hold || seat.evening_hold) {
                             eveningStatus = 'hold';
+                        } else if (seat.full_day_taken || seat.evening_taken) {
+                            eveningStatus = 'occupied';
                         }
 
                         // Apply classes to halves
