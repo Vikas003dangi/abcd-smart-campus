@@ -795,6 +795,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.ensureModalInBody();
 
   // --- Layout load/update ---
+  // AbortController to cancel stale in-flight requests when floor changes
+  let _layoutFetchController = null;
+
   async function loadSeatLayout(floor, isSilent = false) {
     if (!isSilent) closeSeatDetailsModal();
     if (!floor) return;
@@ -806,6 +809,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return;
     }
+
+    // Cancel any previous in-flight request so stale data never overwrites a newer floor
+    if (_layoutFetchController) {
+      _layoutFetchController.abort();
+    }
+    _layoutFetchController = new AbortController();
+    const signal = _layoutFetchController.signal;
+
     currentFloor = floor;
     if (!isSilent) {
       if (loadingMessage) loadingMessage.style.display = 'block';
@@ -816,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const wrapper = (floor === 'Ground Floor') ? groundFloorWrapper : firstFloorWrapper;
 
     try {
-      const res = await fetch(`${API_GET_SEATS_URL}?floor=${encodeURIComponent(floor)}`);
+      const res = await fetch(`${API_GET_SEATS_URL}?floor=${encodeURIComponent(floor)}`, { signal });
       if (!res.ok) throw new Error(`Seats fetch failed: ${res.status} ${res.statusText}`);
       const data = await res.json();
       updateLayout(floor, data.seats || []);
@@ -834,6 +845,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300); // wait for DOM paint
       }
     } catch (err) {
+      if (err.name === 'AbortError') return; // Cancelled — a newer request is already in flight
       console.error('loadSeatLayout error:', err);
       if (!isSilent && loadingMessage) loadingMessage.textContent = 'Error loading layout. Check console.';
       // Show base layout even if API fails so the page isn't blank
@@ -4592,7 +4604,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // --- Event listeners & delegation ---
-  if (floorSelector) floorSelector.addEventListener('change', () => loadSeatLayout(floorSelector.value));
+  // NOTE: The primary floorSelector 'change' listener (with search-clear side-effects)
+  //       is registered at the top of DOMContentLoaded. Do NOT add a second one here.
 
   function attachSeatClicks(wrapper) {
     if (!wrapper) return;
