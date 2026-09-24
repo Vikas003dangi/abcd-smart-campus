@@ -393,12 +393,13 @@ class StudentProfile(models.Model):
                 pass
 
         # INVARIANT: A student without a physical seat cannot be 'on_hold'.
-        # This prevents ghost hold entries from ever being persisted.
         if self.status == 'on_hold' and not self.seat_id:
-            Seat = apps.get_model('users', 'Seat')
-            has_seat_hold = self.pk and Seat.objects.filter(hold_student_id=self.pk).exists()
-            if not has_seat_hold:
-                self.status = 'admitted'
+            update_fields = kwargs.get('update_fields')
+            if update_fields is None or 'status' in update_fields:
+                Seat = apps.get_model('users', 'Seat')
+                has_seat_hold = self.pk and Seat.objects.filter(hold_student_id=self.pk).exists()
+                if not has_seat_hold:
+                    self.status = 'admitted'
 
         super().save(*args, **kwargs)
 

@@ -5933,24 +5933,7 @@ def teacher_dashboard_view(request):
         ).values_list('student_id', flat=True)
     )
 
-    # Auto-heal: any student marked on_hold but with no seat and no seat-level hold is a ghost.
-    # Reset them to 'admitted' immediately so they never pollute the dashboard.
-    StudentProfile.objects.filter(
-        status='on_hold',
-        seat__isnull=True,
-    ).exclude(
-        id__in=seat_level_hold_student_ids
-    ).exclude(
-        id__in=hold_assignment_students
-    ).update(status='admitted')
-
-    # Re-fetch seat_level_hold_student_ids after heal (edge-case safety)
-    seat_level_hold_student_ids = set(
-        Seat.objects.filter(hold_student__isnull=False).values_list('hold_student_id', flat=True)
-    )
-
     hold_library_students = StudentProfile.objects.filter(
-        # status='on_hold' only counts if the student actually has a seat or a seat-level hold pointer
         models.Q(status='on_hold', seat__isnull=False) |
         models.Q(status='on_hold', id__in=seat_level_hold_student_ids) |
         models.Q(status='admitted', seat__isnull=False, seat__status='on_hold') |
