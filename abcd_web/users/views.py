@@ -5907,29 +5907,76 @@ def teacher_dashboard_view(request):
     coaching_batches = defaultdict(list)
     library_floors = defaultdict(list)
 
+    # Active seat allocations and holds across all models
+    active_seat_student_ids = set(
+        SeatAssignment.objects.filter(is_active=True).values_list('student_id', flat=True)
+    )
+    seat_level_hold_student_ids = set(
+        Seat.objects.filter(hold_student__isnull=False).values_list('hold_student_id', flat=True)
+    )
+
     # All admitted library students (with their seat & user)
+    # Includes students whose service is Library/Both, OR who currently have a seat/active assignment/hold
     library_students_all = admitted_students.filter(
-        service_type__in=['Library', 'Both']
-    ).select_related('seat', 'user')
-
-    # HOLD students = Any library student with status 'on_hold' OR admitted students whose seat is on hold
-    hold_assignment_students = SeatAssignment.objects.filter(
-        is_active=True,
-        hold_status='active',
-        is_partial=False
-    ).values('student_id')
-
-    hold_library_students = StudentProfile.objects.filter(
-        service_type__in=['Library', 'Both']
-    ).filter(
-        models.Q(status='on_hold') |
-        models.Q(status='admitted', seat__isnull=False, seat__status='on_hold') |
-        models.Q(status='admitted', id__in=hold_assignment_students)
+        models.Q(service_type__in=['Library', 'Both']) |
+        models.Q(seat__isnull=False) |
+        models.Q(id__in=active_seat_student_ids) |
+        models.Q(id__in=seat_level_hold_student_ids)
     ).select_related('seat', 'user').distinct()
 
-    # NORMAL library students = all library students EXCEPT the hold ones
+    # HOLD students = Any library student with status 'on_hold' OR admitted students whose seat is on hold
+    hold_assignment_students = set(
+        SeatAssignment.objects.filter(
+            is_active=True,
+            hold_status='active',
+            is_partial=False
+        ).values_list('student_id', flat=True)
+    )
+
+    hold_library_students = StudentProfile.objects.filter(
+        models.Q(status='on_hold') |
+        models.Q(status='admitted', seat__isnull=False, seat__status='on_hold') |
+        models.Q(status='admitted', id__in=hold_assignment_students) |
+        models.Q(status='admitted', id__in=seat_level_hold_student_ids)
+    ).filter(
+        models.Q(service_type__in=['Library', 'Both']) |
+        models.Q(seat__isnull=False) |
+        models.Q(id__in=hold_assignment_students) |
+        models.Q(id__in=seat_level_hold_student_ids)
+    ).select_related('seat', 'user').distinct()
+
+    # Coaching batches
+    for student in admitted_students.filter(service_type__in=['Coaching', 'Both']):
+        coaching_batches[student.batch].append(student)
+
+    # Sort batches alphabetically (handling None safely)
+    sorted_coaching_batches = dict(sorted(coaching_batches.items(), key=lambda item: (item[0] is None, str(item[0] or ''))))
+    coaching_batches = defaultdict(list, sorted_coaching_batches)
+
+    # PARTIAL / TEMPORARY students = admitted students
+    # whose active SeatAssignment has is_partial=True (they are tenants, not owners)
+    partial_assignments = SeatAssignment.objects.filter(
+        is_active=True,
+        is_partial=True,
+        student__status='admitted'
+    ).select_related('student', 'student__user', 'student__seat', 'seat')
+
+    partial_student_ids = set(partial_assignments.values_list('student_id', flat=True))
+
+    # Build partial student list with temp seat/shift annotated
+    partial_library_students = []
+    for assignment in partial_assignments:
+        student = assignment.student
+        student.temp_seat = assignment.seat          # The seat they TEMP-occupy
+        student.temp_shift = assignment.shift_type   # The shift they TEMP-occupy
+        student.temp_hold_end = assignment.hold_end_date
+        partial_library_students.append(student)
+
+    # NORMAL library students = all library students EXCEPT hold AND partial ones
     normal_library_students = library_students_all.exclude(
         id__in=hold_library_students.values('id')
+    ).exclude(
+        id__in=partial_student_ids
     )
 
     # Pending library students (Exclusively those manually set to pending by teacher)
@@ -5946,44 +5993,25 @@ def teacher_dashboard_view(request):
     ).select_related('seat', 'user')
 
     # NO-SEAT library students (approved without seat)
-    # These are admitted Library students who do not currently have a seat assigned.
-    no_seat_library_students = admitted_students.filter(
-        service_type__in=['Library', 'Both'],
+    # Exclude students who are active on a seat, on hold, or temporary tenant.
+    # Multi-profile rule: If a student has another profile (Coaching or Alumni),
+    # do NOT show them under library no-seat; they are treated as their other profile.
+    candidates_no_seat = admitted_students.filter(
         seat__isnull=True,
+    ).exclude(
+        id__in=active_seat_student_ids
+    ).exclude(
+        id__in=seat_level_hold_student_ids
+    ).exclude(
+        id__in=hold_library_students.values('id')
+    ).exclude(
+        id__in=partial_student_ids
     ).select_related('user')
 
-    # Coaching batches
-    for student in admitted_students.filter(service_type__in=['Coaching', 'Both']):
-        coaching_batches[student.batch].append(student)
-
-    # Sort batches alphabetically (handling None safely)
-    sorted_coaching_batches = dict(sorted(coaching_batches.items(), key=lambda item: (item[0] is None, str(item[0] or ''))))
-    coaching_batches = defaultdict(list, sorted_coaching_batches)
-
-    # PARTIAL / TEMPORARY students = admitted Library students
-    # whose active SeatAssignment has is_partial=True (they are tenants, not owners)
-    partial_assignments = SeatAssignment.objects.filter(
-        is_active=True,
-        is_partial=True,
-        student__service_type__in=['Library', 'Both'],
-        student__status='admitted'
-    ).select_related('student', 'student__user', 'student__seat', 'seat')
-
-    partial_student_ids = partial_assignments.values_list('student_id', flat=True)
-
-    # Build partial student list with temp seat/shift annotated
-    partial_library_students = []
-    for assignment in partial_assignments:
-        student = assignment.student
-        student.temp_seat = assignment.seat          # The seat they TEMP-occupy
-        student.temp_shift = assignment.shift_type   # The shift they TEMP-occupy
-        student.temp_hold_end = assignment.hold_end_date
-        partial_library_students.append(student)
-
-    # NORMAL library students = all library students EXCEPT hold AND partial ones
-    normal_library_students = normal_library_students.exclude(
-        id__in=partial_student_ids
-    )
+    no_seat_library_students = [
+        s for s in candidates_no_seat
+        if not (s.service_type == 'Coaching' or bool(s.batch) or s.service_type == 'Both' or s.user_id in achievement_user_ids)
+    ]
 
     # Group NORMAL library students by floor
     # Skip students with no seat — they appear in no_seat_library_students section
@@ -5999,6 +6027,11 @@ def teacher_dashboard_view(request):
     for student in normal_student_list:
         seat = getattr(student, 'seat', None)
         if not seat:
+            active_assign = SeatAssignment.objects.filter(student=student, is_active=True, is_partial=False).select_related('seat').first()
+            if active_assign and active_assign.seat:
+                seat = active_assign.seat
+                student.seat = seat
+        if not seat:
             continue
 
         if not seat.is_shift_enabled:
@@ -6012,6 +6045,13 @@ def teacher_dashboard_view(request):
 
         floor_name = seat.floor
         library_floors[floor_name].append(student)
+
+    # Compute accurate deduplicated total library students count across all sections
+    floor_student_ids = {s.id for floor in library_floors.values() for s in floor}
+    hold_student_ids = set(hold_library_students.values_list('id', flat=True))
+    partial_ids = {s.id for s in partial_library_students}
+    no_seat_ids = {s.id for s in no_seat_library_students}
+    total_library_students_count = len(floor_student_ids | hold_student_ids | partial_ids | no_seat_ids)
 
     context = {
         'pending_students': pending_students,
@@ -6044,9 +6084,7 @@ def teacher_dashboard_view(request):
             status='admitted', service_type__in=['Coaching', 'Both']
         ).count(),
 
-        'total_library_students': StudentProfile.objects.filter(
-            status='admitted', service_type__in=['Library', 'Both']
-        ).count(),
+        'total_library_students': total_library_students_count,
 
         'total_admission_requests': total_admission_requests,
         'total_hold_requests': total_hold_requests,
@@ -7580,7 +7618,16 @@ def seat_action_api(request):
                 # If they are owner, temporary tenant stays.
                 assignments = SeatAssignment.objects.filter(seat=seat, is_active=True, student_id=student_id)
                 if not assignments.exists():
-                     return JsonResponse({'status': 'error', 'message': 'Student assignment not found on this seat.'}, status=404)
+                    # If this student is listed as hold_student on the seat or seat has no active assignments, clear hold/stale state
+                    if str(seat.hold_student_id) == str(student_id) or not SeatAssignment.objects.filter(seat=seat, is_active=True).exists():
+                        seat.hold_status = 'none'
+                        seat.hold_student = None
+                        seat.hold_start_date = None
+                        seat.hold_end_date = None
+                        seat.status = 'available'
+                        seat.save(update_fields=['status', 'hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
+                        return success_response(f"Removed student from seat. Seat {seat_number} is now available.")
+                    return JsonResponse({'status': 'error', 'message': 'Student assignment not found on this seat.'}, status=404)
                 
                 count = assignments.count()
                 for a in assignments:
@@ -7590,6 +7637,12 @@ def seat_action_api(request):
                      except Exception:
                          pass
                      
+                if str(seat.hold_student_id) == str(student_id):
+                    seat.hold_status = 'none'
+                    seat.hold_student = None
+                    seat.hold_start_date = None
+                    seat.hold_end_date = None
+
                 seat.recalc_status(save=True)
 
                 # NEW SAFEGUARD: If we just removed a partial tenant, ensure ANY remaining active owners who are on hold STAY on hold
@@ -7869,36 +7922,32 @@ def seat_action_api(request):
             )
 
             if not target_assignments.exists():
-                if has_seat_level_hold:
-                    hold_student = seat.hold_student
-                    if student_id and hold_student and str(hold_student.id) != str(student_id):
-                        return JsonResponse({'status': 'error', 'message': 'No active hold found for this student.'}, status=400)
-                    
-                    if hold_student:
-                        hold_student.status = 'admitted'
-                        hold_student.save(update_fields=['status'])
-                        try:
-                            _recalc_fee_expiry_with_hold(hold_student)
-                        except Exception:
-                            pass
-                        try:
-                            create_notification(
-                                user=hold_student.user,
-                                title="Seat Restored",
-                                message=f"Your seat {seat.seat_number} is active again.",
-                                category="seat"
-                            )
-                        except Exception:
-                            pass
+                hold_student = seat.hold_student
+                if hold_student and (not student_id or str(hold_student.id) == str(student_id)):
+                    hold_student.status = 'admitted'
+                    hold_student.save(update_fields=['status'])
+                    try:
+                        _recalc_fee_expiry_with_hold(hold_student)
+                    except Exception:
+                        pass
+                    try:
+                        create_notification(
+                            user=hold_student.user,
+                            title="Seat Restored",
+                            message=f"Your seat {seat.seat_number} is active again.",
+                            category="seat"
+                        )
+                    except Exception:
+                        pass
 
-                    seat.hold_status = 'none'
-                    seat.hold_student = None
-                    seat.hold_start_date = None
-                    seat.hold_end_date = None
-                    seat.recalc_status(save=True)
-                    return success_response(f"Hold ended for Seat {seat_number}.")
-                else:
-                    return JsonResponse({'status': 'error', 'message': 'No active hold found.'}, status=400)
+                seat.hold_status = 'none'
+                seat.hold_student = None
+                seat.hold_start_date = None
+                seat.hold_end_date = None
+                if seat.status == 'on_hold':
+                    seat.status = 'available'
+                seat.recalc_status(save=True)
+                return success_response(f"Hold ended for Seat {seat_number}.")
 
             # Process removal
             for owner in target_assignments:

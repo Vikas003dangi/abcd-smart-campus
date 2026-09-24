@@ -784,6 +784,11 @@ def sync_active_holds():
                 if not seat or not student:
                     continue
 
+                # Guard: if student has an active assignment on another seat, or student.seat != seat,
+                # do not re-apply hold to this seat
+                if SeatAssignment.objects.filter(student=student, is_active=True).exclude(seat=seat).exists() or (student.seat_id and student.seat_id != seat.id):
+                    continue
+
                 # Activate hold on Seat
                 seat.status = 'on_hold'
                 seat.hold_status = 'active'

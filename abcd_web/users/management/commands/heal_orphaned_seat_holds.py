@@ -27,7 +27,10 @@ class Command(BaseCommand):
             )
 
             # If hold_student has an active assignment on another seat, this hold is orphaned/duplicate
-            if seat.hold_student and SeatAssignment.objects.filter(student=seat.hold_student, is_active=True).exclude(seat=seat).exists():
+            if seat.hold_student and (
+                SeatAssignment.objects.filter(student=seat.hold_student, is_active=True).exclude(seat=seat).exists()
+                or (seat.hold_student.seat_id and seat.hold_student.seat_id != seat.id)
+            ):
                 has_valid_hold_student = False
 
             changed = False

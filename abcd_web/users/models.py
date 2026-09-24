@@ -142,7 +142,16 @@ class Seat(models.Model):
             ).exists()
             
             # Check if there is a genuine valid hold_student on this seat
+            hold_student_active_elsewhere = False
+            if self.hold_student:
+                from users.models import SeatAssignment
+                hold_student_active_elsewhere = (
+                    SeatAssignment.objects.filter(student=self.hold_student, is_active=True).exclude(seat=self).exists() or
+                    bool(self.hold_student.seat_id and self.hold_student.seat_id != self.id)
+                )
+
             has_valid_hold_student = bool(
+                not hold_student_active_elsewhere and
                 self.hold_student and 
                 self.hold_student.status == 'on_hold' and 
                 self.hold_end_date and 
