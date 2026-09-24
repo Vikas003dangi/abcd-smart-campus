@@ -4914,10 +4914,28 @@
                     // --- FULL DAY TAKEN ---
                     if (fullDayTaken) {
                         if (seat.full_day_hold) {
-                            seatEl.classList.add('on_hold');
-                            const days = seat.full_day_hold_remaining_days || 0;
-                            const holdText = (days > 0) ? `Hold(${days})` : 'Hold';
-                            if (labelEl) labelEl.textContent = holdText;
+                            if (!isMine && (morningTemp || eveningTemp)) {
+                                seatEl.classList.remove('available');
+                                seatEl.classList.add('hold-partial');
+                                seatEl.dataset.status = 'hold_partial';
+                                if (labelEl) labelEl.style.display = 'none';
+
+                                const days = seat.full_day_hold_remaining_days || seat.remaining_days || 0;
+                                const mLabel = document.createElement('span');
+                                mLabel.className = 'seat-morning-label';
+                                mLabel.textContent = (days > 0) ? `Hold(${days})` : 'Hold';
+                                seatEl.appendChild(mLabel);
+
+                                const eLabel = document.createElement('span');
+                                eLabel.className = 'seat-evening-label';
+                                eLabel.textContent = 'Temp.';
+                                seatEl.appendChild(eLabel);
+                            } else {
+                                seatEl.classList.add('on_hold');
+                                const days = seat.full_day_hold_remaining_days || 0;
+                                const holdText = (days > 0) ? `Hold(${days})` : 'Hold';
+                                if (labelEl) labelEl.textContent = holdText;
+                            }
                         } else {
                             seatEl.classList.add('occupied-full');
                             if (labelEl) {
@@ -4927,22 +4945,37 @@
                     }
                     // --- BOTH SHIFTS TAKEN ---
                     else if (morningTaken && eveningTaken) {
-                        if (seat.morning_hold) {
+                        if (seat.morning_hold && morningTemp && !isMine) {
+                            seatEl.classList.add('hold-morning-temp-morning');
+                        } else if (seat.morning_hold) {
                             seatEl.classList.add('hold-morning');
+                        } else if (morningTemp && !isMine) {
+                            seatEl.classList.add('shift-partial');
                         } else {
                             seatEl.classList.add('occupied-morning');
                         }
-                        if (seat.evening_hold) {
+
+                        if (seat.evening_hold && eveningTemp && !isMine) {
+                            seatEl.classList.add('hold-evening-temp-evening');
+                        } else if (seat.evening_hold) {
                             seatEl.classList.add('hold-evening');
+                        } else if (eveningTemp && !isMine) {
+                            seatEl.classList.add('shift-partial');
                         } else {
                             seatEl.classList.add('occupied-evening');
+                        }
+
+                        if (morningTemp && eveningTemp && !isMine) {
+                            seatEl.classList.add('shift-both-partial');
                         }
 
                         if (labelEl) labelEl.style.display = 'none';
 
                         const mLabel = document.createElement('span');
                         mLabel.className = 'seat-morning-label';
-                        if (seat.morning_hold) {
+                        if (morningTemp && !isMine) {
+                            mLabel.textContent = 'Temp(M)';
+                        } else if (seat.morning_hold) {
                             const mDays = seat.morning_hold_remaining_days;
                             mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
                         } else {
@@ -4952,7 +4985,9 @@
 
                         const eLabel = document.createElement('span');
                         eLabel.className = 'seat-evening-label';
-                        if (seat.evening_hold) {
+                        if (eveningTemp && !isMine) {
+                            eLabel.textContent = 'Temp(E)';
+                        } else if (seat.evening_hold) {
                             const eDays = seat.evening_hold_remaining_days;
                             eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
                         } else {
@@ -4962,8 +4997,12 @@
                     }
                     // --- ONLY MORNING TAKEN ---
                     else if (morningTaken) {
-                        if (seat.morning_hold) {
+                        if (seat.morning_hold && morningTemp && !isMine) {
+                            seatEl.classList.add('hold-morning-temp-morning');
+                        } else if (seat.morning_hold) {
                             seatEl.classList.add('hold-morning');
+                        } else if (morningTemp && !isMine) {
+                            seatEl.classList.add('shift-partial');
                         } else {
                             seatEl.classList.add('occupied-morning');
                         }
@@ -4972,7 +5011,9 @@
 
                         const mLabel = document.createElement('span');
                         mLabel.className = 'seat-morning-label';
-                        if (seat.morning_hold) {
+                        if (morningTemp && !isMine) {
+                            mLabel.textContent = 'Temp(M)';
+                        } else if (seat.morning_hold) {
                             const mDays = seat.morning_hold_remaining_days;
                             mLabel.textContent = (mDays && mDays > 0) ? `Hold M(${mDays})` : 'Hold M';
                         } else {
@@ -4998,8 +5039,12 @@
                     }
                     // --- ONLY EVENING TAKEN ---
                     else if (eveningTaken) {
-                        if (seat.evening_hold) {
+                        if (seat.evening_hold && eveningTemp && !isMine) {
+                            seatEl.classList.add('hold-evening-temp-evening');
+                        } else if (seat.evening_hold) {
                             seatEl.classList.add('hold-evening');
+                        } else if (eveningTemp && !isMine) {
+                            seatEl.classList.add('shift-partial');
                         } else {
                             seatEl.classList.add('occupied-evening');
                         }
@@ -5024,7 +5069,9 @@
 
                         const eLabel = document.createElement('span');
                         eLabel.className = 'seat-evening-label';
-                        if (seat.evening_hold) {
+                        if (eveningTemp && !isMine) {
+                            eLabel.textContent = 'Temp(E)';
+                        } else if (seat.evening_hold) {
                             const eDays = seat.evening_hold_remaining_days;
                             eLabel.textContent = (eDays && eDays > 0) ? `Hold E(${eDays})` : 'Hold E';
                         } else {
@@ -5133,16 +5180,58 @@
                         seatEl.classList.add('locked');
                         seatEl.dataset.locked = 'true';
                         if (labelEl) labelEl.textContent = '🔒 Locked';
-                    } else if (seat.is_on_hold || seat.full_day_hold || seat.status === 'on_hold') {
-                        seatEl.classList.add('on_hold');
-                        const days = seat.full_day_hold_remaining_days || seat.remaining_days || 0;
-                        if (labelEl) labelEl.textContent = (days > 0) ? `Hold(${days})` : 'Hold';
-                    } else if (seat.status === 'occupied' || seat.full_day_taken) {
-                        seatEl.classList.add('occupied');
-                        if (labelEl) labelEl.textContent = isMine ? 'You' : 'Occupied';
+                    } else if (isMine) {
+                        // User's own seat: if on hold, show as hold without exposing tenant details
+                        if (seat.is_on_hold || seat.full_day_hold || seat.status === 'on_hold') {
+                            seatEl.classList.add('on_hold');
+                            const days = seat.full_day_hold_remaining_days || seat.remaining_days || 0;
+                            if (labelEl) labelEl.textContent = (days > 0) ? `Hold(${days})` : 'Hold';
+                        } else if (seat.status === 'occupied' || seat.full_day_taken) {
+                            seatEl.classList.add('occupied');
+                            if (labelEl) labelEl.textContent = 'You';
+                        } else {
+                            seatEl.classList.add('available');
+                            if (labelEl) labelEl.textContent = 'Available';
+                        }
                     } else {
-                        seatEl.classList.add('available');
-                        if (labelEl) labelEl.textContent = 'Available';
+                        // Other seats: match teacher seat status colors exactly
+                        const hasHold = seat.is_on_hold || seat.full_day_hold || seat.status === 'on_hold';
+                        const hasTemp = seat.morning_temp_allotted || seat.evening_temp_allotted || seat.is_partial;
+                        const days = seat.full_day_hold_remaining_days || seat.remaining_days || 0;
+
+                        if (hasHold && hasTemp) {
+                            seatEl.classList.remove('available');
+                            seatEl.classList.add('hold-partial');
+                            seatEl.dataset.status = 'hold_partial';
+                            if (labelEl) labelEl.style.display = 'none';
+
+                            const mLabel = document.createElement('span');
+                            mLabel.className = 'seat-morning-label';
+                            mLabel.textContent = (days > 0) ? `Hold(${days})` : 'Hold';
+                            seatEl.appendChild(mLabel);
+
+                            const eLabel = document.createElement('span');
+                            eLabel.className = 'seat-evening-label';
+                            eLabel.textContent = 'Temp.';
+                            seatEl.appendChild(eLabel);
+                        } else if (hasTemp || seat.status === 'partial') {
+                            seatEl.classList.remove('available');
+                            seatEl.classList.add('partial');
+                            seatEl.dataset.status = 'partial';
+                            if (labelEl) labelEl.textContent = 'Temp.';
+                        } else if (hasHold) {
+                            seatEl.classList.add('on_hold');
+                            seatEl.dataset.status = 'on_hold';
+                            if (labelEl) labelEl.textContent = (days > 0) ? `Hold(${days})` : 'Hold';
+                        } else if (seat.status === 'occupied' || seat.full_day_taken) {
+                            seatEl.classList.add('occupied');
+                            seatEl.dataset.status = 'occupied';
+                            if (labelEl) labelEl.textContent = 'Occupied';
+                        } else {
+                            seatEl.classList.add('available');
+                            seatEl.dataset.status = 'available';
+                            if (labelEl) labelEl.textContent = 'Available';
+                        }
                     }
 
                 }

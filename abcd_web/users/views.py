@@ -4039,7 +4039,7 @@ def get_seat_status_api(request):
         for assignment in active_assignments:
             if assignment.hold_status == 'active':
                 hold_end = assignment.hold_end_date
-                hold_days = max((hold_end - today).days, 0) if hold_end else 0
+                hold_days = max((hold_end - today).days + 1, 0) if hold_end else 0
                 
                 if assignment.shift_type == 'morning':
                     morning_hold = True
@@ -4182,7 +4182,7 @@ def get_public_seat_status_api(request):
             if assignment.hold_status == 'active':
                 hold_end = assignment.hold_end_date
                 if hold_end:
-                    hold_days = max((hold_end - today).days, 0)
+                    hold_days = max((hold_end - today).days + 1, 0)
                 else:
                     hold_days = 0
                 
@@ -4261,7 +4261,7 @@ def get_public_seat_status_api(request):
 
         remaining_days = None
         if has_real_hold and seat.status == 'on_hold' and seat.hold_end_date:
-            remaining_days = max((seat.hold_end_date - today).days, 0)
+            remaining_days = max((seat.hold_end_date - today).days + 1, 0)
         elif full_day_hold:
             remaining_days = full_day_hold_remaining_days
         elif morning_hold and not evening_hold:
@@ -5775,7 +5775,7 @@ def teacher_dashboard_view(request):
             assignment = hold_assignments.first()
             if assignment and assignment.hold_end_date:
                 req.hold_end_date = assignment.hold_end_date
-                req.hold_remaining_days = max((assignment.hold_end_date - today).days, 0)
+                req.hold_remaining_days = max((assignment.hold_end_date - today).days + 1, 0)
                 req.holder_name = assignment.student.full_name
         else:
             # Shift seat logic
@@ -5788,7 +5788,7 @@ def teacher_dashboard_view(request):
             full_owner = hold_assignments.filter(shift_type='full').first()
 
             # Helper to calculate days
-            def get_days(d): return max((d - today).days, 0) if d else 0
+            def get_days(d): return max((d - today).days + 1, 0) if d else 0
 
             if full_owner:
                 req.full_day_hold_remaining_days = get_days(full_owner.hold_end_date)
@@ -6500,7 +6500,7 @@ def get_teacher_seat_status_api(request):
                 # Calculate days remaining for this specific shift hold
                 days = 0
                 if a.hold_end_date:
-                    days = max((a.hold_end_date - today).days, 0)
+                    days = max((a.hold_end_date - today).days + 1, 0)
                 badges.append(f"Hold({days})")
             elif s.status == 'pending':
                 badges.append("Pending")
@@ -6544,7 +6544,7 @@ def get_teacher_seat_status_api(request):
         # Include hold_student in visual_data and names so the UI knows who is holding it!
         if not active_assignments and has_seat_hold:
             s = seat.hold_student
-            days = max((seat.hold_end_date - today).days, 0) if seat.hold_end_date else 0
+            days = max((seat.hold_end_date - today).days + 1, 0) if seat.hold_end_date else 0
             full_label = f"{s.full_name} (Full • Hold({days}))"
             names.append(full_label)
             student_ids.append(s.id)
@@ -6561,7 +6561,7 @@ def get_teacher_seat_status_api(request):
                 "shift": 'full',
                 "is_partial": False,
                 "hold_status": 'active',
-                "hold_days": days + 1,
+                "hold_days": days,
                 "hold_start_date": seat.hold_start_date.isoformat() if seat.hold_start_date else None,
                 "hold_end_date": seat.hold_end_date.isoformat() if seat.hold_end_date else None,
                 "is_pending": False,

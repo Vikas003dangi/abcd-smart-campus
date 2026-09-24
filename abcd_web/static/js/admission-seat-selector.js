@@ -886,8 +886,8 @@ document.addEventListener('DOMContentLoaded', () => {
             else {
 
                 const status = seat.status;
-                const hasHold = seat.is_on_hold || seat.full_day_hold || seat.morning_hold;
-                const hasTemp = seat.morning_temp_allotted || seat.evening_temp_allotted;
+                const hasHold = seat.is_on_hold || seat.full_day_hold || seat.morning_hold || seat.evening_hold || status === 'on_hold';
+                const hasTemp = seat.morning_temp_allotted || seat.evening_temp_allotted || seat.is_partial || status === 'partial';
                 const hasPendingTemp = seat.has_pending_temp_request;
 
                 if (seat.is_locked || seat.locked_shifts === 'full') {
@@ -945,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         let labelText = 'Available';
                         if (status === 'occupied') labelText = 'Occupied';
-                        if (status === 'partial') labelText = 'Occupied';
+                        if (status === 'partial') labelText = 'Temp.';
                         if (status === 'on_hold') {
                             // Per SKILL.md: Show "Hold(X)" where X = remaining days
                             const days = seat.remaining_days || seat.hold_days;

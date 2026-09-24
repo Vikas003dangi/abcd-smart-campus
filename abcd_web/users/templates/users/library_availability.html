@@ -1562,15 +1562,21 @@
                         .map(el => el.textContent.toLowerCase());
                     const hasLabel = (text) => labelsText.some(t => t.includes(text));
 
+                    const isTemp = hasClass('temporary') || hasClass('temp-allotted') || hasClass('partial') || hasClass('hold-partial') || hasLabel('temp');
+                    const isHold = hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasLabel('hold');
+
+                    if (isTemp) {
+                        counts.temporary++;
+                    }
+                    if (isHold) {
+                        counts.on_hold++;
+                    }
+
                     if (hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'))) {
                         counts.shift_occupied++;
-                    } else if (hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold')) {
-                        counts.on_hold++;
-                    } else if (hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp')) {
-                        counts.temporary++;
-                    } else if (hasClass('occupied') || hasClass('occupied-full') || hasLabel('occupied') || hasLabel('you')) {
+                    } else if (hasClass('occupied') || hasClass('occupied-full') || (hasLabel('occupied') && !hasClass('shift-seat')) || hasLabel('you')) {
                         counts.occupied++;
-                    } else {
+                    } else if (!isHold && !isTemp) {
                         counts.available++;
                     }
                 });
@@ -1820,8 +1826,8 @@
                         }
                     } else {
                         // Non-shift seats
-                        const hasHold = seat.is_on_hold || seat.full_day_hold || seat.morning_hold;
-                        const hasTemp = seat.morning_temp_allotted || seat.evening_temp_allotted;
+                        const hasHold = seat.is_on_hold || seat.full_day_hold || seat.morning_hold || seat.evening_hold || status === 'on_hold';
+                        const hasTemp = seat.morning_temp_allotted || seat.evening_temp_allotted || seat.is_partial || status === 'partial';
 
                         if (hasHold && hasTemp) {
                             // Hold + Temp Tenant → Diagonal orange/pink split
@@ -1842,18 +1848,22 @@
                             eLabel.textContent = 'Temp.';
                             seatEl.appendChild(eLabel);
 
-                        } else if (status === 'occupied' || status === 'partial') {
+                        } else if (status === 'partial' || hasTemp) {
+                            seatEl.classList.add('partial');
+                            seatEl.dataset.status = 'partial';
+                            labelEl.textContent = 'Temp.';
+                        } else if (status === 'occupied') {
                             seatEl.classList.add('occupied');
                             seatEl.dataset.status = 'occupied';
                             labelEl.textContent = 'Occupied';
-                        } else if (status === 'on_hold') {
+                        } else if (status === 'on_hold' || hasHold) {
                             // orange color – support both class names just in case
                             seatEl.classList.add('on_hold', 'on-hold');
                             seatEl.dataset.status = 'on_hold';
 
                             let days = (typeof seat.remaining_days === 'number' && !isNaN(seat.remaining_days))
                                 ? seat.remaining_days
-                                : null;
+                                : (seat.full_day_hold_remaining_days || null);
 
                             // Per SKILL.md: Show "Hold(X)" format
                             if (days !== null && days > 0) {
@@ -1878,13 +1888,13 @@
             loadLayout('Ground Floor', 'ground-floor-wrapper');
             loadLayout('1st Floor', 'first-floor-wrapper');
 
-            // Refresh seat data every 20 seconds for live updates (paused if tab is hidden)
+            // Refresh seat data every 5 seconds for live updates (paused if tab is hidden)
             setInterval(() => {
                 if (!document.hidden) {
                     loadLayout('Ground Floor', 'ground-floor-wrapper');
                     loadLayout('1st Floor', 'first-floor-wrapper');
                 }
-            }, 20000);
+            }, 5000);
 
             // Real-time WebSocket instant updates
             try {
@@ -2324,9 +2334,9 @@
                                 } else if (target === 'shift_occupied') {
                                     return hasClass('shift-seat') && (hasClass('occupied') || hasClass('occupied-morning') || hasClass('occupied-evening') || hasLabel('occupied'));
                                 } else if (target === 'on_hold') {
-                                    return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasLabel('hold');
+                                    return hasClass('on-hold') || hasClass('on_hold') || hasClass('hold-full') || hasClass('hold-morning') || hasClass('hold-evening') || hasClass('hold-partial') || hasLabel('hold');
                                 } else if (target === 'temporary') {
-                                    return hasClass('temporary') || hasClass('temp-allotted') || hasLabel('temp');
+                                    return hasClass('temporary') || hasClass('partial') || hasClass('hold-partial') || hasClass('temp-allotted') || hasLabel('temp');
                                 }
                                 return false;
                             };
