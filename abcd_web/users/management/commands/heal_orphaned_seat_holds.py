@@ -19,25 +19,27 @@ class Command(BaseCommand):
             active_holds = [a for a in active_assigns if a.hold_status == 'active']
 
             has_assignment_hold = len(active_holds) > 0
-            has_valid_hold_student = bool(
-                seat.hold_student and 
-                seat.hold_student.status == 'on_hold' and 
-                seat.hold_end_date and 
-                seat.hold_end_date >= today
-            )
-
-            # If hold_student has an active assignment on another seat, this hold is orphaned/duplicate
-            if seat.hold_student and (
-                SeatAssignment.objects.filter(student=seat.hold_student, is_active=True).exclude(seat=seat).exists()
-                or (seat.hold_student.seat_id and seat.hold_student.seat_id != seat.id)
-            ):
-                has_valid_hold_student = False
+            has_valid_hold_student = False
+            if seat.hold_student:
+                student = seat.hold_student
+                active_elsewhere = (
+                    SeatAssignment.objects.filter(student=student, is_active=True).exclude(seat=seat).exists() or
+                    (student.seat_id and student.seat_id != seat.id)
+                )
+                if (
+                    not active_elsewhere and
+                    student.seat_id == seat.id and
+                    student.status == 'on_hold' and
+                    seat.hold_end_date and
+                    seat.hold_end_date >= today
+                ):
+                    has_valid_hold_student = True
 
             changed = False
             reasons = []
 
-            # Case 1: Seat marked on_hold or hold_status active, but nobody is holding it
-            if (seat.status == 'on_hold' or seat.hold_status == 'active' or seat.hold_end_date) and not has_assignment_hold and not has_valid_hold_student:
+            # Case 1: Seat marked on_hold or hold_status active or hold_student or hold_end_date set, but nobody is holding it
+            if (seat.status == 'on_hold' or seat.hold_status == 'active' or seat.hold_student_id or seat.hold_end_date) and not has_assignment_hold and not has_valid_hold_student:
                 seat.status = 'available'
                 seat.hold_status = 'none'
                 seat.hold_student = None

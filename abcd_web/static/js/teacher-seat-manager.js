@@ -958,7 +958,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const wrapper = (floor === 'Ground Floor') ? groundFloorWrapper : firstFloorWrapper;
 
     try {
-      const res = await fetch(`${API_GET_SEATS_URL}?floor=${encodeURIComponent(floor)}`, { signal });
+      const res = await fetch(`${API_GET_SEATS_URL}?floor=${encodeURIComponent(floor)}&_=${Date.now()}`, {
+        signal,
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
       if (!res.ok) throw new Error(`Seats fetch failed: ${res.status} ${res.statusText}`);
       const data = await res.json();
       updateLayout(floor, data.seats || []);

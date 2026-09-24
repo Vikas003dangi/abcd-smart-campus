@@ -7,7 +7,7 @@ import os
 from django.apps import apps
 from django.core.files.storage import FileSystemStorage
 from django.core.exceptions import ValidationError
-from django.db.models.signals import post_save, pre_save, post_delete
+from django.db.models.signals import post_save, pre_save, post_delete, pre_delete
 from django.dispatch import receiver
 import logging
 
@@ -153,6 +153,7 @@ class Seat(models.Model):
             has_valid_hold_student = bool(
                 not hold_student_active_elsewhere and
                 self.hold_student and 
+                self.hold_student.seat_id == self.id and 
                 self.hold_student.status == 'on_hold' and 
                 self.hold_end_date and 
                 self.hold_end_date >= today
@@ -183,7 +184,7 @@ class Seat(models.Model):
             else:
                 self.status = 'occupied'
                 # If none of the active assignments are on hold, clear any stale seat-level hold
-                if self.hold_status == 'active' and not active_holds.exists():
+                if not active_holds.exists():
                     self.hold_status = 'none'
                     self.hold_student = None
                     self.hold_start_date = None
@@ -431,6 +432,32 @@ class StudentProfile(models.Model):
                     ach.save()
         except Exception:
             pass
+
+        # Ensure any seats where this student was formerly a hold_student are cleaned up
+        # if the student no longer has a seat OR is no longer on_hold OR moved to a different seat
+        Seat = apps.get_model('users', 'Seat')
+        if not self.seat or self.status != 'on_hold':
+            stale_held_seats = Seat.objects.filter(hold_student=self)
+            if self.seat:
+                stale_held_seats = stale_held_seats.exclude(id=self.seat.id)
+            for s in stale_held_seats:
+                s.hold_student = None
+                s.hold_status = 'none'
+                s.hold_start_date = None
+                s.hold_end_date = None
+                s.recalc_status(save=True)
+
+        if old_record and old_record.seat_id and old_record.seat_id != self.seat_id:
+            try:
+                old_seat = Seat.objects.get(id=old_record.seat_id)
+                if old_seat.hold_student_id == self.id:
+                    old_seat.hold_student = None
+                    old_seat.hold_status = 'none'
+                    old_seat.hold_start_date = None
+                    old_seat.hold_end_date = None
+                old_seat.recalc_status(save=True)
+            except Exception:
+                pass
 
         # Skip sync for Coaching or if no seat
         if self.service_type not in ['Library', 'Both'] or not self.seat:
@@ -1633,7 +1660,7 @@ def seatassignment_post_delete(sender, instance, **kwargs):
     instance.recalc_seat_state()
 
 
-@receiver(post_delete, sender=StudentProfile)
+@receiver([pre_delete, post_delete], sender=StudentProfile)
 def cleanup_after_student_profile_delete(sender, instance, **kwargs):
     """
     When a student profile is deleted, any seat they were holding or assigned to
@@ -1646,6 +1673,8 @@ def cleanup_after_student_profile_delete(sender, instance, **kwargs):
             s.hold_status = 'none'
             s.hold_start_date = None
             s.hold_end_date = None
+            s.status = 'available'
+            s.save(update_fields=['hold_student', 'hold_status', 'hold_start_date', 'hold_end_date', 'status'])
             s.recalc_status(save=True)
 
         if instance.seat_id:

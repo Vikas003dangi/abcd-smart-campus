@@ -6379,6 +6379,7 @@ def export_floor_data_view(request):
 # API VIEW: Teacher API for seat status (includes student names)
 @login_required
 @user_passes_test(lambda u: u.is_staff)
+@never_cache
 def get_teacher_seat_status_api(request):
     floor = request.GET.get('floor')
     if not floor:
@@ -6419,7 +6420,7 @@ def get_teacher_seat_status_api(request):
         pending_specials = seat.special_requests.filter(status='pending')
         special_req_pending = pending_specials.exists()
 
-        # Check for valid holds
+        # Check for valid holds on active assignments
         has_assignment_hold = any(a.hold_status == 'active' for a in active_assignments)
         
         # Student cannot hold a seat if they are already active on a different seat
@@ -6427,19 +6428,21 @@ def get_teacher_seat_status_api(request):
         if seat.hold_student:
             hold_student_active_elsewhere = (
                 SeatAssignment.objects.filter(student=seat.hold_student, is_active=True).exclude(seat=seat).exists() or
-                bool(seat.hold_student.seat and seat.hold_student.seat_id != seat.id)
+                bool(seat.hold_student.seat_id and seat.hold_student.seat_id != seat.id)
             )
 
+        # Seat-level hold is ONLY valid if hold_student is actually assigned to THIS seat AND is on_hold
         has_seat_hold = bool(
             not hold_student_active_elsewhere and
-            seat.status == 'on_hold' and 
             seat.hold_student and 
+            seat.hold_student.seat_id == seat.id and
+            seat.hold_student.status == 'on_hold' and 
             seat.hold_end_date and 
             seat.hold_end_date >= today
         )
 
-        # Self-heal stale / orphaned hold (including students who moved to another seat)
-        if (seat.status == 'on_hold' or seat.hold_status == 'active' or hold_student_active_elsewhere) and not has_assignment_hold and not has_seat_hold:
+        # Self-heal stale / orphaned hold (including students who moved, were freed, or are not on hold)
+        if (seat.status == 'on_hold' or seat.hold_status == 'active' or seat.hold_student_id or seat.hold_end_date or hold_student_active_elsewhere) and not has_assignment_hold and not has_seat_hold:
             seat.status = 'available'
             seat.hold_status = 'none'
             seat.hold_student = None
@@ -6663,7 +6666,11 @@ def get_teacher_seat_status_api(request):
             }
         })
 
-    return JsonResponse({'seats': seat_data})
+    response = JsonResponse({'seats': seat_data})
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 # -------------------------------------------------------------------
@@ -7957,6 +7964,9 @@ def seat_action_api(request):
                 owner.hold_end_date = actual_end  # Actual end, not original X days
                 # hold_start_date preserved for fee extension calc
                 owner.save(update_fields=['hold_status', 'hold_end_date'])
+                if owner.student and owner.student.status == 'on_hold':
+                    owner.student.status = 'admitted'
+                    owner.student.save(update_fields=['status'])
 
                 # 2. Evict or transition any partial tenants occupying THIS owner's shift
                 partials_to_check = SeatAssignment.objects.filter(
@@ -18691,6 +18701,18 @@ def api_teacher_expand_shorten_hold(request):
                     target_assignments = target_assignments.filter(student_id=student_id)
 
             if not target_assignments.exists():
+                if seat.status == 'on_hold' and seat.hold_student:
+                    student = seat.hold_student
+                    start_date = seat.hold_start_date or today
+                    total_days = max((new_end_date - start_date).days + 1, 1)
+                    seat.hold_end_date = new_end_date
+                    seat.hold_request_duration = f"{total_days} days"
+                    seat.save(update_fields=['hold_end_date', 'hold_request_duration'])
+                    try:
+                        _recalc_fee_expiry_with_hold(student)
+                    except Exception:
+                        pass
+                    return JsonResponse({'status': 'success', 'message': f'Hold updated to {new_end_date.strftime("%d %b %Y")}.'})
                 return JsonResponse({'status': 'error', 'message': 'No active hold assignment found on this seat.'}, status=404)
 
             for assignment in target_assignments:
