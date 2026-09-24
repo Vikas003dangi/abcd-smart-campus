@@ -2573,7 +2573,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
             }
           } else {
-            content = "<p>Error: Status occupied but no assignment data.</p>";
+            // Self-healing fallback: seat status is occupied or on_hold in DB, but assignments array is empty.
+            const rawStudentName = rawInfo && (rawInfo.student_name || rawInfo.hold_student_name);
+            const rawStudentId = rawInfo && (rawInfo.student_id || rawInfo.hold_student_id);
+            const formattedSeat = getFormattedSeatNumber(seatNumber);
+
+            if (rawStudentName) {
+              title = `Seat ${formattedSeat} - ${seatStatus === 'on_hold' ? 'On Hold' : 'Occupied'}`;
+              content = `
+                <div class="shift-block ${seatStatus === 'on_hold' ? 'on-hold' : 'occupied'}" style="padding:15px; margin-bottom:15px;">
+                  <p style="margin:0; font-size:1.05rem; color:var(--text-main);">
+                    ${seatStatus === 'on_hold' ? 'Held by' : 'Occupied by'} <strong>${escapeHTML(abcdFormatName(rawStudentName))}</strong>
+                  </p>
+                </div>
+                <div class="modal-actions-row small-gap">
+                  ${rawStudentId ? btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: rawStudentId }) : ''}
+                  ${btn('Free / Reset Seat', 'free', 'btn-danger btn-sm', { force: true })}
+                </div>`;
+            } else {
+              title = `Seat ${formattedSeat} - Stale Status (${seatStatus === 'on_hold' ? 'On Hold' : 'Occupied'})`;
+              content = `
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 18px; text-align: center;">
+                  <div style="font-size: 2.2rem; margin-bottom: 6px;">⚠️</div>
+                  <p style="margin: 0 0 6px 0; font-weight: 700; color: #dc2626; font-size: 1rem;">No Student Assigned</p>
+                  <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.45;">
+                    This seat is marked as <strong>${escapeHTML(seatStatus === 'on_hold' ? 'On Hold' : 'Occupied')}</strong> in the database, but has no student assignment. Click below to reset it to Available or assign a student.
+                  </p>
+                </div>
+                <div class="modal-actions-row" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                  ${btn('Reset & Free Seat', 'free', 'btn-danger', { force: true })}
+                  ${btn('Assign Seat', 'open_assign', 'btn-primary', { shift: 'full' })}
+                </div>`;
+            }
           }
         }
         else {              // Shift Logic (Complex)

@@ -26,6 +26,7 @@ def get_floor_export_data(floor_name):
     """
     seats = list(
         Seat.objects.filter(floor=floor_name)
+        .select_related('hold_student', 'hold_student__user')
         .prefetch_related('assignments__student', 'special_requests__student')
     )
     # Sort seats numerically
@@ -103,10 +104,32 @@ def get_floor_export_data(floor_name):
                 })
         else:
             # Vacant seat or locked/hold at seat-level
-            if seat.status == 'on_hold':
+            student_name = "—"
+            mobile = "—"
+            last_amount = "—"
+            fee_exp = "—"
+
+            if seat.status == 'on_hold' and seat.hold_student:
+                st = seat.hold_student
                 status_label = "On Hold"
                 counts['on_hold'] += 1
                 hold_exp = seat.hold_end_date.strftime('%d/%m/%Y') if seat.hold_end_date else "—"
+                student_name = st.full_name or (st.user.username if st.user else "—")
+                mobile = st.mobile_number or "—"
+
+                last_txn = FeeTransaction.objects.filter(student=st).order_by('-payment_date', '-created_at').first()
+                if last_txn and last_txn.total_amount:
+                    last_amount = f"Rs. {last_txn.total_amount:,.0f}"
+                if last_txn and last_txn.expiry_date:
+                    fee_exp = last_txn.expiry_date.strftime('%d/%m/%Y')
+                elif st.fee_expiry_date:
+                    fee_exp = st.fee_expiry_date.strftime('%d/%m/%Y')
+            elif seat.status == 'on_hold' and not seat.hold_student:
+                # Stale/orphaned hold: no student holds this seat! Auto-heal.
+                seat.recalc_status(save=True)
+                status_label = "Available"
+                counts['available'] += 1
+                hold_exp = "—"
             elif is_locked:
                 status_label = "Locked"
                 hold_exp = "—"
@@ -120,11 +143,11 @@ def get_floor_export_data(floor_name):
             export_rows.append({
                 'seat_number': seat.seat_number,
                 'shift': shift_label,
-                'student_name': "—",
-                'mobile': "—",
+                'student_name': student_name,
+                'mobile': mobile,
                 'status': status_label,
-                'last_amount': "—",
-                'fee_expiry': "—",
+                'last_amount': last_amount,
+                'fee_expiry': fee_exp,
                 'hold_expiry': hold_exp,
             })
 

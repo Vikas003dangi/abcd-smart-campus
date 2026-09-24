@@ -6072,7 +6072,7 @@
                     requestAnimationFrame(function() {
                         if (popup.style.display === 'block') {
                             var r = input.getBoundingClientRect();
-                            if (r.bottom < 0 || r.top > window.innerHeight) {
+                            if (r.bottom < 0 || r.top > window.innerHeight || r.right <= 0 || r.left >= window.innerWidth) {
                                 hidePopup();
                             } else {
                                 positionPopup();

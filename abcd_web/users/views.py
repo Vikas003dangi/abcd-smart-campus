@@ -4121,7 +4121,9 @@ def get_public_seat_status_api(request):
     if not floor:
         return JsonResponse({'error': 'Floor parameter is required'}, status=400)
 
-    seats = Seat.objects.filter(floor=floor).prefetch_related(
+    seats = Seat.objects.filter(floor=floor).select_related(
+        'hold_student'
+    ).prefetch_related(
         'assignments',
         'assignments__student',
         'special_requests'
@@ -4218,6 +4220,19 @@ def get_public_seat_status_api(request):
         if visual_status == 'pending':
             visual_status = 'occupied'
 
+        has_real_hold = full_day_hold or morning_hold or evening_hold or (
+            seat.status == 'on_hold' and seat.hold_student and seat.hold_end_date and seat.hold_end_date >= today
+        )
+        
+        # Self-heal orphaned hold at public endpoint too
+        if seat.status == 'on_hold' and not has_real_hold:
+            seat.status = 'available'
+            seat.hold_status = 'none'
+            seat.hold_student = None
+            seat.hold_start_date = None
+            seat.hold_end_date = None
+            seat.save(update_fields=['status', 'hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
+
         # Check for temporary/partial occupancy (Tenant present)
         is_temporarily_occupied = (
             (not seat.is_shift_enabled and (seat.status == 'on_hold' or full_day_hold) and morning_temp_allotted) or
@@ -4226,7 +4241,7 @@ def get_public_seat_status_api(request):
 
         if is_temporarily_occupied:
             visual_status = 'partial'
-        elif seat.status == 'on_hold' or full_day_hold or morning_hold or evening_hold:
+        elif has_real_hold:
             visual_status = 'on_hold'
         elif full_day_taken or (morning_taken and evening_taken):
             visual_status = 'occupied'
@@ -4242,10 +4257,10 @@ def get_public_seat_status_api(request):
             if not evening_taken:
                 free_shifts.append('evening')
 
-        hold_conflict = (seat.status == 'on_hold' or morning_hold or evening_hold or full_day_hold) and seat.is_shift_enabled
+        hold_conflict = (has_real_hold) and seat.is_shift_enabled
 
         remaining_days = None
-        if seat.status == 'on_hold' and seat.hold_end_date:
+        if has_real_hold and seat.status == 'on_hold' and seat.hold_end_date:
             remaining_days = max((seat.hold_end_date - today).days, 0)
         elif full_day_hold:
             remaining_days = full_day_hold_remaining_days
@@ -6332,7 +6347,10 @@ def get_teacher_seat_status_api(request):
         return JsonResponse({'error': 'Floor parameter is required'}, status=400)
 
     # Prefetch relevant data to avoid N+1 queries
-    seats = Seat.objects.filter(floor=floor).prefetch_related(
+    seats = Seat.objects.filter(floor=floor).select_related(
+        'hold_student',
+        'hold_student__user'
+    ).prefetch_related(
         'assignments',
         'assignments__student',
         'special_requests',
@@ -6358,6 +6376,33 @@ def get_teacher_seat_status_api(request):
             a for a in assignments_qs 
             if not a.is_active and a.student.status == 'pending' and a.student.seat_id == seat.id
         ]
+
+        # Check for pending special requests
+        pending_specials = seat.special_requests.filter(status='pending')
+        special_req_pending = pending_specials.exists()
+
+        # Check for valid holds
+        has_assignment_hold = any(a.hold_status == 'active' for a in active_assignments)
+        has_seat_hold = bool(
+            seat.status == 'on_hold' and 
+            seat.hold_student and 
+            seat.hold_end_date and 
+            seat.hold_end_date >= today
+        )
+
+        # Self-heal stale / orphaned hold
+        if (seat.status == 'on_hold' or seat.hold_status == 'active') and not has_assignment_hold and not has_seat_hold:
+            seat.status = 'available'
+            seat.hold_status = 'none'
+            seat.hold_student = None
+            seat.hold_start_date = None
+            seat.hold_end_date = None
+            seat.save(update_fields=['status', 'hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
+        
+        # Self-heal stale occupied with no active or pending occupants
+        elif seat.status == 'occupied' and not active_assignments and not pending_assignments and not special_req_pending:
+            seat.status = 'available'
+            seat.save(update_fields=['status'])
 
         # --- 1. GROUP BY SHIFT (ACTIVE ONLY) ---
         # We might have 2 people on Morning (Owner-on-Hold + Tenant)
@@ -6441,12 +6486,38 @@ def get_teacher_seat_status_api(request):
         for a in pending_assignments:
             visual_data.append(process_assignment(a, is_pending=True))
 
+        # If seat has hold_student at seat level, but no active_assignments:
+        # Include hold_student in visual_data and names so the UI knows who is holding it!
+        if not active_assignments and has_seat_hold:
+            s = seat.hold_student
+            days = max((seat.hold_end_date - today).days, 0) if seat.hold_end_date else 0
+            full_label = f"{s.full_name} (Full • Hold({days}))"
+            names.append(full_label)
+            student_ids.append(s.id)
+            photo_url = None
+            if s.photo:
+                try:
+                    photo_url = s.photo.url
+                except Exception:
+                    photo_url = None
+            visual_data.append({
+                "student_id": s.id,
+                "student_name": s.full_name,
+                "student_status": s.status or 'on_hold',
+                "shift": 'full',
+                "is_partial": False,
+                "hold_status": 'active',
+                "hold_days": days + 1,
+                "hold_start_date": seat.hold_start_date.isoformat() if seat.hold_start_date else None,
+                "hold_end_date": seat.hold_end_date.isoformat() if seat.hold_end_date else None,
+                "is_pending": False,
+                "is_active": True,
+                "created_at": None,
+                "photo_url": photo_url
+            })
+
         # --- PROCESS PENDING SPECIAL REQUESTS (Temporary/Partial) ---
-        pending_specials = seat.special_requests.filter(status='pending')
-        special_req_pending = False
-        
         for req in pending_specials:
-            special_req_pending = True
             s = req.student
             user = req.user
             
@@ -6471,22 +6542,18 @@ def get_teacher_seat_status_api(request):
             })
 
         # --- 3. DERIVE SEAT STATUS (For coloring) ---
-        derived_status = seat.status  # Start with DB status
-
         has_full = bool(assignments_map['full']) or (not seat.is_shift_enabled and bool(active_assignments))
         has_morning = bool(assignments_map['morning'])
         has_evening = bool(assignments_map['evening'])
         has_active = bool(active_assignments)
         has_pending = bool(pending_assignments) or special_req_pending
 
-        has_assignment_hold = any(a.hold_status == 'active' for a in active_assignments)
-
         # Refine status based on actual content and strict hierarchy:
         # 1. On Hold
         # 2. Occupied (Any active approved student)
         # 3. Pending (No active approved student, but has pending admission request)
         # 4. Available (No active student and no pending requests)
-        if seat.status == 'on_hold' or has_assignment_hold:
+        if has_assignment_hold or has_seat_hold:
             derived_status = 'on_hold'
         elif has_active or has_full or (has_morning and has_evening):
             derived_status = 'occupied'
@@ -6498,7 +6565,7 @@ def get_teacher_seat_status_api(request):
         # Seat-level / assignment-level Hold Remaining Days
         seat_remaining_days = None
         hold_days = []
-        if seat.status == 'on_hold' and seat.hold_end_date:
+        if has_seat_hold and seat.hold_end_date:
             hold_days.append(max((seat.hold_end_date - today).days + 1, 0))
 
         for assignment in active_assignments:
@@ -6517,6 +6584,8 @@ def get_teacher_seat_status_api(request):
             'student_name': ", ".join(names) if names else None,
             'student_first_names': ", ".join([name.split()[0] for name in names]) if names else None,
             'student_ids': student_ids,
+            'hold_student_id': seat.hold_student.id if seat.hold_student else None,
+            'hold_student_name': seat.hold_student.full_name if seat.hold_student else None,
             'is_shift_enabled': seat.is_shift_enabled,
             
             # Occupancy Flags
@@ -6536,8 +6605,7 @@ def get_teacher_seat_status_api(request):
             
             # Permission Flags for Context Menu
             'can_request_partial': (
-                seat.status == 'on_hold' or 
-                any(a.hold_status == 'active' for a in active_assignments)
+                has_seat_hold or has_assignment_hold
             ),
             'available_shifts': {
                 'morning': not has_morning and not has_full and 'morning' not in (seat.locked_shifts or '').split(','),

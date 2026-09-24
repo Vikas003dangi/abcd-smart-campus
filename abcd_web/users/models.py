@@ -126,13 +126,13 @@ class Seat(models.Model):
 
     def recalc_status(self, save=True):
         """
-        Derives Seat.status from its active SeatAssignments.
-        Rule:
-        - No active assignments -> available
-        - All active assignments on hold -> on_hold
-        - Any active assignment NOT on hold -> occupied
+        Derives Seat.status from its active SeatAssignments and hold state.
+        Ensures a seat is NEVER marked on_hold or occupied without a valid student.
         """
+        today = timezone.localdate()
         active = self.assignments.filter(is_active=True)
+        updated_fields = ['status']
+
         if not active.exists():
             # Check for GENUINE pending requests (not historical records)
             has_pending = self.assignments.filter(
@@ -141,21 +141,51 @@ class Seat(models.Model):
                 student__seat_id=self.id
             ).exists()
             
-            if has_pending:
+            # Check if there is a genuine valid hold_student on this seat
+            has_valid_hold_student = bool(
+                self.hold_student and 
+                self.hold_student.status == 'on_hold' and 
+                self.hold_end_date and 
+                self.hold_end_date >= today
+            )
+
+            if has_valid_hold_student:
+                self.status = 'on_hold'
+                self.hold_status = 'active'
+            elif has_pending:
                 self.status = 'pending'
+                self.hold_student = None
+                self.hold_status = 'none'
+                self.hold_start_date = None
+                self.hold_end_date = None
             else:
                 self.status = 'available'
+                self.hold_student = None
+                self.hold_status = 'none'
+                self.hold_start_date = None
+                self.hold_end_date = None
+
+            updated_fields.extend(['hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
         else:
-            # If ANY active assignment is NOT on hold, it's occupied.
-            # Only if ALL are on hold do we show on_hold color globally.
-            if any(a.hold_status != 'active' for a in active):
-                self.status = 'occupied'
-            else:
+            # Active assignments exist
+            active_holds = active.filter(hold_status='active')
+            if active_holds.exists() and active_holds.count() == active.count():
                 self.status = 'on_hold'
+            else:
+                self.status = 'occupied'
+                # If none of the active assignments are on hold, clear any stale seat-level hold
+                if self.hold_status == 'active' and not active_holds.exists():
+                    self.hold_status = 'none'
+                    self.hold_student = None
+                    self.hold_start_date = None
+                    self.hold_end_date = None
+                    updated_fields.extend(['hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
         
         if save:
-            self.save(update_fields=['status'])
+            self.save(update_fields=list(set(updated_fields)))
         return self.status
+
+    recalculate_status = recalc_status
 
 
     def is_hold_expired(self, today=None):
@@ -1571,6 +1601,31 @@ def cleanup_after_assignment_delete(sender, instance, **kwargs):
 @receiver(post_delete, sender=SeatAssignment)
 def seatassignment_post_delete(sender, instance, **kwargs):
     instance.recalc_seat_state()
+
+
+@receiver(post_delete, sender=StudentProfile)
+def cleanup_after_student_profile_delete(sender, instance, **kwargs):
+    """
+    When a student profile is deleted, any seat they were holding or assigned to
+    must have its hold cleared and status recalculated immediately.
+    """
+    try:
+        held_seats = list(Seat.objects.filter(hold_student=instance))
+        for s in held_seats:
+            s.hold_student = None
+            s.hold_status = 'none'
+            s.hold_start_date = None
+            s.hold_end_date = None
+            s.recalc_status(save=True)
+
+        if instance.seat_id:
+            try:
+                seat = Seat.objects.get(id=instance.seat_id)
+                seat.recalc_status(save=True)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 # SEAT HOLD REQUEST MODEL
