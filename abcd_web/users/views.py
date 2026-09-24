@@ -8756,8 +8756,14 @@ def seat_action_api(request):
 
             # C. Create Assignment
             try:
-                # Guarantee no dangling active assignments for this student
-                SeatAssignment.objects.filter(student=student, is_active=True).exclude(seat=seat).update(is_active=False)
+                # Deactivate any dangling active assignments for this student.
+                # Using .deactivate() (not .update()) so each abandoned seat
+                # has its status recalculated and student pointer cleared properly.
+                old_active = SeatAssignment.objects.filter(
+                    student=student, is_active=True
+                ).exclude(seat=seat).select_related('seat')
+                for old in old_active:
+                    old.deactivate()
 
                 SeatAssignment.objects.create(
                     seat=seat,
@@ -8770,6 +8776,7 @@ def seat_action_api(request):
             except ValidationError as e:
                 if action == 'assign_manual': student.delete() # Rollback
                 return JsonResponse({'status': 'error', 'message': e.messages[0]}, status=400)
+
 
             # Update Student Link
             student.seat = seat
@@ -9056,6 +9063,25 @@ def manage_hold_request_api(request):
             student = special_request.student
             requested_shift = special_request.requested_shift
 
+            # --- GUARD: student must not already have an active assignment on a different seat ---
+            existing_active = (
+                SeatAssignment.objects
+                .filter(student=student, is_active=True)
+                .exclude(seat=seat)
+                .select_related('seat')
+                .first()
+            )
+            if existing_active:
+                role = "owner" if not existing_active.is_partial else "temporary tenant"
+                return JsonResponse({
+                    'status': 'error',
+                    'message': (
+                        f"{student.full_name} is already the {role} of "
+                        f"Seat {existing_active.seat.seat_number}. "
+                        f"Cannot approve a partial request for a different seat."
+                    )
+                }, status=400)
+
             # Create temporary assignment (HOLD OVERRIDE)
             try:
                 SeatAssignment.objects.create(
@@ -9071,6 +9097,7 @@ def manage_hold_request_api(request):
                     {'status': 'error', 'message': e.messages[0]},
                     status=400
                 )
+
 
             # Update student record
             student.seat = seat
