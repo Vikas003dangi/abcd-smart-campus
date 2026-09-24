@@ -394,12 +394,13 @@ class StudentProfile(models.Model):
 
         # INVARIANT: A student without a physical seat cannot be 'on_hold'.
         if self.status == 'on_hold' and not self.seat_id:
-            update_fields = kwargs.get('update_fields')
-            if update_fields is None or 'status' in update_fields:
-                Seat = apps.get_model('users', 'Seat')
-                has_seat_hold = self.pk and Seat.objects.filter(hold_student_id=self.pk).exists()
-                if not has_seat_hold:
-                    self.status = 'admitted'
+            Seat = apps.get_model('users', 'Seat')
+            has_seat_hold = self.pk and Seat.objects.filter(hold_student_id=self.pk).exists()
+            if not has_seat_hold:
+                self.status = 'admitted'
+                # Ensure the corrected status is persisted even if caller passed update_fields
+                if kwargs.get('update_fields') is not None:
+                    kwargs['update_fields'] = list(kwargs['update_fields']) + ['status']
 
         super().save(*args, **kwargs)
 
