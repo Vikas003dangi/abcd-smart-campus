@@ -2384,7 +2384,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="shift-block" style="background: rgba(243, 156, 18, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(243, 156, 18, 0.15);">
                     <div style="display:flex; align-items:center; gap:12px;">
                         ${ownerPhotoHtml}
-                        <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Held by <strong>${escapeHTML(abcdFormatName(owner.student_name))}</strong> (${owner.hold_days} days left)</p>
+                        <div>
+                          <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Held by <strong>${escapeHTML(abcdFormatName(owner.student_name))}</strong> (${owner.hold_days} days left)</p>
+                          ${owner.hold_end_date ? `<p style="margin:2px 0 0; font-size:0.75rem; color:#888;">Hold ends: ${new Date(owner.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>` : ''}
+                        </div>
                     </div>
                 </div>
                 <div class="shift-block" style="background: rgba(52, 152, 219, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(52, 152, 219, 0.15);">
@@ -2423,7 +2426,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="shift-block" style="background: rgba(243, 156, 18, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(243, 156, 18, 0.15);">
                     <div style="display:flex; align-items:center; gap:12px;">
                         ${ownerPhotoHtml}
-                        <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Held by <strong>${escapeHTML(abcdFormatName(owner.student_name))}</strong> (${owner.hold_days} days left)</p>
+                        <div>
+                          <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Held by <strong>${escapeHTML(abcdFormatName(owner.student_name))}</strong> (${owner.hold_days} days left)</p>
+                          ${owner.hold_end_date ? `<p style="margin:2px 0 0; font-size:0.75rem; color:#888;">Hold ends: ${new Date(owner.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>` : ''}
+                        </div>
                     </div>
                 </div>
                 <div class="shift-block" style="background: rgba(236, 72, 153, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(236, 72, 153, 0.15);">
@@ -2455,7 +2461,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="shift-block" style="background: rgba(243, 156, 18, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(243, 156, 18, 0.15);">
                     <div style="display:flex; align-items:center; gap:12px;">
                         ${ownerPhotoHtml}
-                        <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Held by <strong>${escapeHTML(abcdFormatName(owner.student_name))}</strong> (${owner.hold_days} days left)</p>
+                        <div>
+                          <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Held by <strong>${escapeHTML(abcdFormatName(owner.student_name))}</strong> (${owner.hold_days} days left)</p>
+                          ${owner.hold_end_date ? `<p style="margin:2px 0 0; font-size:0.75rem; color:#888;">Hold ends: ${new Date(owner.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>` : ''}
+                        </div>
                     </div>
                 </div>
                 <div class="modal-actions-row small-gap">
@@ -2855,9 +2864,12 @@ document.addEventListener('DOMContentLoaded', () => {
               
               if (!owner && !tenant) {
                 content += `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                         <p style="margin:0; font-weight:700; color: var(--text-main);">${shiftDisplay}: <span style="color:#2ecc71;">Available</span></p>
-                        ${btn('Assign', 'open_assign', 'btn-primary btn-sm', { shift: shift })}
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                          ${btn('Assign', 'open_assign', 'btn-primary btn-sm', { shift: shift })}
+                          ${btn('🔒 Lock', 'lock_seat', 'btn-lock btn-sm', { shift: shift })}
+                        </div>
                     </div>`;
               } else if (owner && !tenant) {
                 const ownerName = escapeHTML(abcdFormatName(owner.student_name));
@@ -2870,11 +2882,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>`;
 
                 if (owner.hold_status === 'active') {
+                  const holdEndLabel = owner.hold_end_date
+                    ? new Date(owner.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : null;
                   content += `
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">${shiftDisplay}: <span style="color:#f39c12;">Hold</span></p>
-                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:6px;">
                         ${photoHtml}
-                        <p style="margin:0; font-size:0.95rem; color:var(--text-main);">On Hold by <strong>${ownerName}</strong></p>
+                        <div>
+                          <p style="margin:0; font-size:0.95rem; color:var(--text-main);">On Hold by <strong>${ownerName}</strong> (${owner.hold_days || 0} days left)</p>
+                          ${holdEndLabel ? `<p style="margin:2px 0 0; font-size:0.75rem; color:#888;">Hold ends: ${holdEndLabel}</p>` : ''}
+                        </div>
                     </div>
                     <div class="modal-actions-row small-gap">
                         ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
@@ -5134,8 +5152,14 @@ Do you want to switch them to this seat permanently?`,
       }
 
       // --- Intercept Coaching / Alumni Allotment (Case Three) ---
+      // Skip intercept if the student already has an active library seat
+      // (admitted or on_hold). They are already enrolled; no identity switch needed.
+      const alreadyHasLibrarySeat = selectedStudent &&
+        selectedStudent.seat_number &&
+        (selectedStudent.service_type === 'Library' || selectedStudent.service_type === 'Both');
+
       let actionScope = null;
-      if (selectedStudent && (selectedStudent.has_alumni || selectedStudent.has_coaching)) {
+      if (selectedStudent && (selectedStudent.has_alumni || selectedStudent.has_coaching) && !alreadyHasLibrarySeat) {
         const interceptModal = document.getElementById('teacherPremiumAllotInterceptModal');
         const interceptText = document.getElementById('interceptModalText');
         const interceptWarning = document.getElementById('interceptModalWarningText');
