@@ -3786,19 +3786,19 @@
     /* Search Keyword Dropdown Popup */
     .search-keyword-popup {
         display: none;
-        position: absolute;
-        z-index: 2500;
+        position: fixed !important;
+        z-index: 3000050 !important;
         border-radius: 8px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.35);
         padding: 4px;
-        min-width: 190px;
+        min-width: 200px;
         font-family: inherit;
-        transition: opacity 0.15s, transform 0.15s;
+        transition: opacity 0.15s ease;
         opacity: 0;
-        transform: translateY(-10px);
         pointer-events: none;
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
+        will-change: top, left, opacity;
     }
     body.dark-theme .search-keyword-popup {
         background: rgba(30, 27, 75, 0.95);
@@ -12579,27 +12579,36 @@
 
             function positionPopup() {
                 var rect = input.getBoundingClientRect();
-                var top = rect.bottom + window.scrollY + 5;
-                var left = rect.left + window.scrollX;
+                if (rect.width === 0 && rect.height === 0) {
+                    hidePopup();
+                    return;
+                }
+                var top = rect.bottom + 6;
+                var left = rect.left;
 
-                if (left + 200 > window.innerWidth) {
-                    left = window.innerWidth - 210;
+                var popupWidth = popup.offsetWidth || 210;
+                if (left + popupWidth > window.innerWidth - 10) {
+                    left = Math.max(10, window.innerWidth - popupWidth - 10);
+                }
+                if (left < 10) left = 10;
+
+                var popupHeight = popup.offsetHeight || 160;
+                if (top + popupHeight > window.innerHeight - 10 && rect.top > popupHeight + 10) {
+                    top = rect.top - popupHeight - 6;
                 }
 
                 popup.style.top = top + 'px';
                 popup.style.left = left + 'px';
                 popup.style.display = 'block';
 
-                setTimeout(function() {
+                requestAnimationFrame(function() {
                     popup.style.opacity = '1';
-                    popup.style.transform = 'translateY(0)';
                     popup.style.pointerEvents = 'auto';
-                }, 10);
+                });
             }
 
             function hidePopup() {
                 popup.style.opacity = '0';
-                popup.style.transform = 'translateY(-10px)';
                 popup.style.pointerEvents = 'none';
                 setTimeout(function() {
                     if (popup.style.opacity === '0') {
@@ -12676,17 +12685,26 @@
                 }
             });
 
-            window.addEventListener('scroll', function() {
-                if (popup.style.display === 'block') {
-                    positionPopup();
+            var ticking = false;
+            function onScrollOrResize() {
+                if (popup.style.display === 'block' && !ticking) {
+                    ticking = true;
+                    requestAnimationFrame(function() {
+                        if (popup.style.display === 'block') {
+                            var r = input.getBoundingClientRect();
+                            if (r.bottom < 0 || r.top > window.innerHeight) {
+                                hidePopup();
+                            } else {
+                                positionPopup();
+                            }
+                        }
+                        ticking = false;
+                    });
                 }
-            }, { passive: true });
+            }
 
-            window.addEventListener('resize', function() {
-                if (popup.style.display === 'block') {
-                    positionPopup();
-                }
-            }, { passive: true });
+            window.addEventListener('scroll', onScrollOrResize, { passive: true });
+            window.addEventListener('resize', onScrollOrResize, { passive: true });
         }
 
           function walkTextNodes(el, term) {
