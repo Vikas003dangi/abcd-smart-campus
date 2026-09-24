@@ -686,11 +686,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const item = document.createElement('div');
         item.className = 'seat-keyword-item' + (idx === 0 ? ' active' : '');
         item.innerHTML = `<span style="font-weight:700;">${s.key}</span><span style="font-size:10px;opacity:0.7;">${s.label}</span>`;
-        item.addEventListener('click', (evt) => {
-          evt.stopPropagation();
+        
+        const doAction = (evt) => {
+          if (evt) {
+            evt.preventDefault();
+            evt.stopPropagation();
+          }
           keywordPopup.style.display = 'none';
           s.action();
+        };
+
+        item.addEventListener('mouseenter', () => {
+          keywordPopup.querySelectorAll('.seat-keyword-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
         });
+        item.addEventListener('mousedown', (e) => e.preventDefault());
+        item.addEventListener('pointerdown', (e) => e.preventDefault());
+        item.addEventListener('click', doAction);
+        item.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          doAction(e);
+        });
+
         keywordPopup.appendChild(item);
       });
       keywordPopup.style.display = 'block';
@@ -698,6 +715,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle clicks outside dropdowns and popup
     document.addEventListener('click', (e) => {
+      if (hubSearchWrapper && !hubSearchWrapper.contains(e.target) && keywordPopup && !keywordPopup.contains(e.target)) {
+        keywordPopup.style.display = 'none';
+      }
+    });
+    document.addEventListener('pointerdown', (e) => {
       if (hubSearchWrapper && !hubSearchWrapper.contains(e.target) && keywordPopup && !keywordPopup.contains(e.target)) {
         keywordPopup.style.display = 'none';
       }
@@ -734,6 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeIdx !== -1) items[activeIdx].classList.remove('active');
             activeIdx = (activeIdx + 1) % items.length;
             items[activeIdx].classList.add('active');
+            items[activeIdx].scrollIntoView({ block: 'nearest' });
           }
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
@@ -741,6 +764,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeIdx !== -1) items[activeIdx].classList.remove('active');
             activeIdx = (activeIdx - 1 + items.length) % items.length;
             items[activeIdx].classList.add('active');
+            items[activeIdx].scrollIntoView({ block: 'nearest' });
           }
         } else if (e.key === 'Enter' || e.key === 'Tab') {
           e.preventDefault();

@@ -3791,7 +3791,9 @@
         border-radius: 8px;
         box-shadow: 0 10px 25px rgba(0,0,0,0.35);
         padding: 4px;
-        min-width: 200px;
+        min-width: 210px;
+        max-height: 280px;
+        overflow-y: auto;
         font-family: inherit;
         transition: opacity 0.15s ease;
         opacity: 0;
@@ -3799,6 +3801,10 @@
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         will-change: top, left, opacity;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
     }
     body.dark-theme .search-keyword-popup {
         background: rgba(30, 27, 75, 0.95);
@@ -3812,6 +3818,7 @@
     }
     .search-keyword-popup .keyword-item {
         padding: 6px 10px;
+        min-height: 34px;
         border-radius: 6px;
         cursor: pointer;
         font-size: 12px;
@@ -3821,6 +3828,7 @@
         margin: 2px 0;
         transition: all 0.15s;
         font-weight: 500;
+        touch-action: manipulation;
     }
     body.dark-theme .search-keyword-popup .keyword-item {
         color: #ffffff;
@@ -12593,7 +12601,7 @@
             ];
         }
 
-        function initSearchKeywordAutocomplete(input) {
+        function initSearchKeywordAutocomplete(input, fallbackSuggestions) {
             if (!input) return;
 
             var popup = document.createElement('div');
@@ -12603,10 +12611,13 @@
             var activeIdx = 0;
             var currentMatchStart = -1;
             var currentTypedPrefix = '';
+            var currentFilteredSuggestions = [];
+            var suppressNextInput = false;
 
-            function renderSuggestions() {
-                var currentSuggestions = getSuggestionsForCurrentPage();
-                var prefixLower = currentTypedPrefix.toLowerCase();
+            function getFilteredSuggestions(prefix) {
+                var currentSuggestions = typeof getSuggestionsForCurrentPage === 'function' ? getSuggestionsForCurrentPage() : (fallbackSuggestions || []);
+                var prefixTrimmed = (prefix || '').trim();
+                var prefixLower = prefixTrimmed.toLowerCase();
 
                 if (prefixLower.startsWith('status:') || prefixLower.startsWith('status ') || prefixLower === 'status') {
                     var statusQuery = '';
@@ -12622,32 +12633,81 @@
                         { key: 'status: no seat', label: 'No Seat Students' },
                         { key: 'status: pending', label: 'Pending Requests / Complaints' }
                     ];
-                    currentSuggestions = statusOptions;
-                    if (statusQuery) {
-                        currentSuggestions = statusOptions.filter(function(s) {
-                            return s.key.toLowerCase().includes(statusQuery) || s.label.toLowerCase().includes(statusQuery);
-                        });
+                    if (!statusQuery) {
+                        return statusOptions;
                     }
+                    return statusOptions.filter(function(s) {
+                        var k = s.key.toLowerCase();
+                        var l = s.label.toLowerCase();
+                        var subVal = k.replace('status:', '').trim();
+                        return subVal.includes(statusQuery) || l.includes(statusQuery) || k.includes(statusQuery);
+                    });
                 }
 
-                popup.innerHTML = '';
-                var filtered = currentSuggestions.filter(function(s) {
-                    if (prefixLower.startsWith('status:') || prefixLower.startsWith('status ') || prefixLower === 'status') {
-                        return true;
+                if (prefixLower.startsWith('section:') || prefixLower.startsWith('section ') || prefixLower === 'section') {
+                    var secQuery = '';
+                    if (prefixLower.indexOf(':') !== -1) {
+                        secQuery = prefixLower.substring(prefixLower.indexOf(':') + 1).trim();
+                    } else if (prefixLower.indexOf(' ') !== -1) {
+                        secQuery = prefixLower.substring(prefixLower.indexOf(' ') + 1).trim();
                     }
-                    return s.key.toLowerCase().startsWith(currentTypedPrefix.toLowerCase());
+                    var sectionOptions = [
+                        { key: 'section: requests', label: 'Admission Requests Section' },
+                        { key: 'section: achievements', label: 'Achievements Section' },
+                        { key: 'section: holds', label: 'Seat Holds Section' },
+                        { key: 'section: coaching', label: 'Coaching Section' },
+                        { key: 'section: library', label: 'Library Section' },
+                        { key: 'section: complaints', label: 'Complaints Section' }
+                    ];
+                    if (!secQuery) {
+                        return sectionOptions;
+                    }
+                    return sectionOptions.filter(function(s) {
+                        var k = s.key.toLowerCase();
+                        var l = s.label.toLowerCase();
+                        var subVal = k.replace('section:', '').trim();
+                        return subVal.includes(secQuery) || l.includes(secQuery) || k.includes(secQuery);
+                    });
+                }
+
+                return currentSuggestions.filter(function(s) {
+                    return s.key.toLowerCase().startsWith(prefixLower);
                 });
+            }
+
+            function updateActiveVisual() {
+                var items = popup.querySelectorAll('.keyword-item');
+                items.forEach(function(item, idx) {
+                    var desc = item.querySelector('span:last-child');
+                    if (idx === activeIdx) {
+                        item.classList.add('active');
+                        if (desc) desc.style.opacity = '0.9';
+                        item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    } else {
+                        item.classList.remove('active');
+                        if (desc) desc.style.opacity = '0.55';
+                    }
+                });
+            }
+
+            function renderSuggestions() {
+                var filtered = getFilteredSuggestions(currentTypedPrefix);
+                currentFilteredSuggestions = filtered;
 
                 if (filtered.length === 0) {
                     hidePopup();
                     return;
                 }
 
-                if (activeIdx >= filtered.length) activeIdx = 0;
+                if (activeIdx >= filtered.length || activeIdx < 0) {
+                    activeIdx = 0;
+                }
 
+                popup.innerHTML = '';
                 filtered.forEach(function(s, idx) {
                     var item = document.createElement('div');
                     item.className = 'keyword-item' + (idx === activeIdx ? ' active' : '');
+                    item.setAttribute('data-idx', idx);
 
                     var keyEl = document.createElement('span');
                     keyEl.textContent = '/' + s.key;
@@ -12661,9 +12721,29 @@
                     item.appendChild(keyEl);
                     item.appendChild(descEl);
 
-                    item.addEventListener('click', function(e) {
-                        e.stopPropagation();
+                    item.addEventListener('mouseenter', function() {
+                        activeIdx = idx;
+                        updateActiveVisual();
+                    });
+
+                    function doSelect(e) {
+                        if (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
                         selectSuggestion(s.key);
+                    }
+
+                    item.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                    });
+                    item.addEventListener('pointerdown', function(e) {
+                        e.preventDefault();
+                    });
+                    item.addEventListener('click', doSelect);
+                    item.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        doSelect(e);
                     });
 
                     popup.appendChild(item);
@@ -12681,7 +12761,7 @@
                 var top = rect.bottom + 6;
                 var left = rect.left;
 
-                var popupWidth = popup.offsetWidth || 210;
+                var popupWidth = popup.offsetWidth || 220;
                 if (left + popupWidth > window.innerWidth - 10) {
                     left = Math.max(10, window.innerWidth - popupWidth - 10);
                 }
@@ -12695,10 +12775,10 @@
                 popup.style.top = top + 'px';
                 popup.style.left = left + 'px';
                 popup.style.display = 'block';
+                popup.style.pointerEvents = 'auto';
 
                 requestAnimationFrame(function() {
                     popup.style.opacity = '1';
-                    popup.style.pointerEvents = 'auto';
                 });
             }
 
@@ -12717,18 +12797,34 @@
                 var before = val.substring(0, currentMatchStart);
                 var after = val.substring(currentMatchStart + 1 + currentTypedPrefix.length);
 
-                input.value = before + '/' + key + (key.endsWith(':') ? ' ' : '') + after;
-                hidePopup();
-                input.focus();
+                var isCategory = key.endsWith(':');
+                var insertion = '/' + key + (isCategory ? ' ' : '');
+                input.value = before + insertion + after;
 
-                var newCursorPos = currentMatchStart + 1 + key.length + (key.endsWith(':') ? 1 : 0);
+                var newCursorPos = (before + insertion).length;
+                input.focus();
                 input.setSelectionRange(newCursorPos, newCursorPos);
 
+                if (isCategory) {
+                    currentTypedPrefix = key + ' ';
+                    activeIdx = 0;
+                    renderSuggestions();
+                } else {
+                    hidePopup();
+                }
+
+                suppressNextInput = !isCategory;
                 var event = new Event('input', { bubbles: true });
                 input.dispatchEvent(event);
             }
 
             input.addEventListener('input', function() {
+                if (suppressNextInput) {
+                    suppressNextInput = false;
+                    hidePopup();
+                    return;
+                }
+
                 var val = input.value;
                 var cursor = input.selectionStart;
 
@@ -12737,9 +12833,11 @@
 
                 if (lastSlash !== -1 && (lastSlash === 0 || val.charAt(lastSlash - 1) === ' ')) {
                     var chunk = textBeforeCursor.substring(lastSlash + 1);
-                    var spaceIdx = chunk.indexOf(' ');
-                    var isStatusChunk = chunk.toLowerCase().startsWith('status:') || chunk.toLowerCase().startsWith('status');
-                    if (spaceIdx === -1 || (isStatusChunk && chunk.lastIndexOf(' ') === spaceIdx)) {
+                    var lowerChunk = chunk.toLowerCase();
+                    var isSubOptionKeyword = lowerChunk.startsWith('status:') || lowerChunk.startsWith('status ') || lowerChunk === 'status' ||
+                                            lowerChunk.startsWith('section:') || lowerChunk.startsWith('section ') || lowerChunk === 'section';
+
+                    if (isSubOptionKeyword || chunk.indexOf(' ') === -1) {
                         currentMatchStart = lastSlash;
                         currentTypedPrefix = chunk;
                         renderSuggestions();
@@ -12751,25 +12849,29 @@
 
             input.addEventListener('keydown', function(e) {
                 if (popup.style.display === 'block' && popup.style.opacity === '1') {
-                    var currentSuggestions = getSuggestionsForCurrentPage();
-                    var filtered = currentSuggestions.filter(function(s) {
-                        return s.key.toLowerCase().startsWith(currentTypedPrefix.toLowerCase());
-                    });
-
-                    if (filtered.length > 0) {
+                    if (currentFilteredSuggestions.length > 0) {
                         if (e.key === 'ArrowDown') {
                             e.preventDefault();
-                            activeIdx = (activeIdx + 1) % filtered.length;
-                            renderSuggestions();
+                            e.stopPropagation();
+                            activeIdx = (activeIdx + 1) % currentFilteredSuggestions.length;
+                            updateActiveVisual();
                         } else if (e.key === 'ArrowUp') {
                             e.preventDefault();
-                            activeIdx = (activeIdx - 1 + filtered.length) % filtered.length;
-                            renderSuggestions();
+                            e.stopPropagation();
+                            activeIdx = (activeIdx - 1 + currentFilteredSuggestions.length) % currentFilteredSuggestions.length;
+                            updateActiveVisual();
                         } else if (e.key === 'Enter' || e.key === 'Tab') {
                             e.preventDefault();
-                            selectSuggestion(filtered[activeIdx].key);
+                            e.stopPropagation();
+                            if (typeof e.stopImmediatePropagation === 'function') {
+                                e.stopImmediatePropagation();
+                            }
+                            if (currentFilteredSuggestions[activeIdx]) {
+                                selectSuggestion(currentFilteredSuggestions[activeIdx].key);
+                            }
                         } else if (e.key === 'Escape') {
                             e.preventDefault();
+                            e.stopPropagation();
                             hidePopup();
                         }
                     }
@@ -12777,6 +12879,11 @@
             });
 
             document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !popup.contains(e.target)) {
+                    hidePopup();
+                }
+            });
+            document.addEventListener('pointerdown', function(e) {
                 if (!input.contains(e.target) && !popup.contains(e.target)) {
                     hidePopup();
                 }
