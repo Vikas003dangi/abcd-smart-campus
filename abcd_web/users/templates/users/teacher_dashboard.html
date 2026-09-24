@@ -8741,7 +8741,8 @@
         <div class="student-grid">
           {% for student in students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}">
+            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            data-status="coaching admitted occupied">
             <div class="student-header">
               <div class="student-avatar">
                 <img src="{{ student.user|user_photo }}" alt="Photo">
@@ -8786,7 +8787,8 @@
         <div class="student-grid">
           {% for student in students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}">
+            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            data-status="library {% if student.is_temporary %}temporary temp tenant tanent temporary allotted partial{% else %}admitted occupied{% endif %}">
             <div class="student-header">
               <div class="student-avatar">
                 <img src="{{ student.user|user_photo }}" alt="Photo">
@@ -8841,7 +8843,8 @@
         <div class="student-grid">
           {% for student in hold_library_students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}">
+            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            data-status="hold on_hold on hold library">
             <div class="student-header">
               <div class="student-avatar">
                 <img src="{{ student.user|user_photo }}" alt="Photo">
@@ -8891,7 +8894,8 @@
         </div>
         <div class="student-grid">
           {% for student in partial_library_students %}
-          <div class="student-card" style="border: 1.5px solid #ffb3cc;">
+          <div class="student-card" style="border: 1.5px solid #ffb3cc;"
+            data-status="temporary temp tenant tanent temporary allotted partial library">
             <div class="student-header">
               <div class="student-avatar">
                 <img src="{{ student.user|user_photo }}" alt="Photo">
@@ -8941,7 +8945,8 @@
         <div class="student-grid">
           {% for student in no_seat_library_students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}">
+            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            data-status="no seat noseat no-seat unassigned library">
             <div class="student-header">
               <div class="student-avatar">
                 <img src="{{ student.user|user_photo }}" alt="Photo">
@@ -12096,6 +12101,35 @@
         }, 300); // 300ms debounce
       }
 
+      function matchStatusSynonyms(targetStatus, searchVal) {
+        if (!searchVal || !targetStatus) return false;
+        const s = searchVal.toLowerCase().trim();
+        const target = targetStatus.toLowerCase();
+
+        // Synonym buckets:
+        const occupiedGroup = ['occupied', 'admitted', 'admit', 'occupy', 'active'];
+        const holdGroup = ['hold', 'on_hold', 'on hold', 'held', 'on-hold'];
+        const tempGroup = ['temporary', 'temp', 'tenant', 'tanent', 'temporary allotted', 'partial', 'tenent'];
+        const noSeatGroup = ['no seat', 'noseat', 'no-seat', 'unassigned', 'no_seat'];
+        const pendingGroup = ['pending', 'verification', 'request', 'requested', 'new', 'in_progress'];
+        const availableGroup = ['available', 'vacant', 'free', 'empty'];
+
+        function matchesGroup(group) {
+          const sMatches = group.some(g => g.includes(s) || s.includes(g));
+          const targetMatches = group.some(g => target.includes(g));
+          return sMatches && targetMatches;
+        }
+
+        if (matchesGroup(occupiedGroup)) return true;
+        if (matchesGroup(holdGroup)) return true;
+        if (matchesGroup(tempGroup)) return true;
+        if (matchesGroup(noSeatGroup)) return true;
+        if (matchesGroup(pendingGroup)) return true;
+        if (matchesGroup(availableGroup)) return true;
+
+        return target.includes(s) || s.includes(target);
+      }
+
       function executeFiltering(term) {
         if (typeof window.customPageSearch === 'function') {
             window.customPageSearch(term);
@@ -12105,6 +12139,13 @@
 
         // Clear previous highlights
         document.querySelectorAll('.search-highlight').forEach(el => {
+          if (el.classList && (el.classList.contains('student-id') || el.classList.contains('status-badge') || el.classList.contains('badge') || el.classList.contains('student-card') || el.classList.contains('request-item'))) {
+            el.classList.remove('search-highlight');
+            el.style.background = '';
+            el.style.color = '';
+            el.style.borderRadius = '';
+            return;
+          }
           const parent = el.parentNode;
           if (parent) {
             el.replaceWith(document.createTextNode(el.textContent));
@@ -12134,6 +12175,12 @@
         } else if (lowerTerm.indexOf('/status:') === 0) {
             keywordType = 'status';
             searchVal = term.substring(8).trim();
+        } else if (lowerTerm.indexOf('/status ') === 0) {
+            keywordType = 'status';
+            searchVal = term.substring(8).trim();
+        } else if (lowerTerm === '/status') {
+            keywordType = 'status';
+            searchVal = '';
         } else if (lowerTerm.indexOf('/fees:') === 0) {
             keywordType = 'fees';
             searchVal = term.substring(6).trim();
@@ -12249,15 +12296,25 @@
                   match = true;
                 }
               } else if (keywordType === 'status') {
-                // Status text lives in .student-id elements (status-orange/pink/green)
-                // and plain text like "Status: No Seat", "Hold G-48", "Temp."
+                const cardStatus = (el.getAttribute('data-status') || '').toLowerCase();
+                const cardClasses = Array.from(el.classList).join(' ').toLowerCase();
                 const statusEls = el.querySelectorAll('.student-id, .status-badge, .badge, .request-status, [class*="status-"]');
-                statusEls.forEach(sEl => {
-                  if (sEl.textContent.toLowerCase().includes(searchVal)) {
-                    match = true;
-                    highlightText(sEl, searchVal);
-                  }
-                });
+                const statusText = Array.from(statusEls).map(s => s.textContent.toLowerCase()).join(' ');
+
+                const combinedStatus = cardStatus + ' ' + cardClasses + ' ' + statusText;
+                if (matchStatusSynonyms(combinedStatus, searchVal)) {
+                  match = true;
+                  let highlighted = false;
+                  statusEls.forEach(sEl => {
+                    if (!highlighted) {
+                      sEl.classList.add('search-highlight');
+                      sEl.style.background = '#fbbf24';
+                      sEl.style.color = '#1e293b';
+                      sEl.style.borderRadius = '3px';
+                      highlighted = true;
+                    }
+                  });
+                }
               }
 
               if (match) {
@@ -12447,6 +12504,13 @@
 
           function clearHighlights() {
               document.querySelectorAll('.search-highlight').forEach(function(h) {
+                  if (h.classList && (h.classList.contains('student-id') || h.classList.contains('status-badge') || h.classList.contains('badge') || h.classList.contains('student-card') || h.classList.contains('request-item'))) {
+                      h.classList.remove('search-highlight');
+                      h.style.background = '';
+                      h.style.color = '';
+                      h.style.borderRadius = '';
+                      return;
+                  }
                   var parent = h.parentNode;
                   if (parent) {
                       h.replaceWith(document.createTextNode(h.textContent));
@@ -12542,8 +12606,35 @@
 
             function renderSuggestions() {
                 var currentSuggestions = getSuggestionsForCurrentPage();
+                var prefixLower = currentTypedPrefix.toLowerCase();
+
+                if (prefixLower.startsWith('status:') || prefixLower.startsWith('status ') || prefixLower === 'status') {
+                    var statusQuery = '';
+                    if (prefixLower.indexOf(':') !== -1) {
+                        statusQuery = prefixLower.substring(prefixLower.indexOf(':') + 1).trim();
+                    } else if (prefixLower.indexOf(' ') !== -1) {
+                        statusQuery = prefixLower.substring(prefixLower.indexOf(' ') + 1).trim();
+                    }
+                    var statusOptions = [
+                        { key: 'status: hold', label: 'Hold Students' },
+                        { key: 'status: admitted', label: 'Admitted / Occupied Students' },
+                        { key: 'status: temporary', label: 'Temporary Allotted / Tenant Students' },
+                        { key: 'status: no seat', label: 'No Seat Students' },
+                        { key: 'status: pending', label: 'Pending Requests / Complaints' }
+                    ];
+                    currentSuggestions = statusOptions;
+                    if (statusQuery) {
+                        currentSuggestions = statusOptions.filter(function(s) {
+                            return s.key.toLowerCase().includes(statusQuery) || s.label.toLowerCase().includes(statusQuery);
+                        });
+                    }
+                }
+
                 popup.innerHTML = '';
                 var filtered = currentSuggestions.filter(function(s) {
+                    if (prefixLower.startsWith('status:') || prefixLower.startsWith('status ') || prefixLower === 'status') {
+                        return true;
+                    }
                     return s.key.toLowerCase().startsWith(currentTypedPrefix.toLowerCase());
                 });
 
@@ -12626,11 +12717,11 @@
                 var before = val.substring(0, currentMatchStart);
                 var after = val.substring(currentMatchStart + 1 + currentTypedPrefix.length);
 
-                input.value = before + '/' + key + after;
+                input.value = before + '/' + key + (key.endsWith(':') ? ' ' : '') + after;
                 hidePopup();
                 input.focus();
 
-                var newCursorPos = currentMatchStart + 1 + key.length;
+                var newCursorPos = currentMatchStart + 1 + key.length + (key.endsWith(':') ? 1 : 0);
                 input.setSelectionRange(newCursorPos, newCursorPos);
 
                 var event = new Event('input', { bubbles: true });
@@ -12646,7 +12737,9 @@
 
                 if (lastSlash !== -1 && (lastSlash === 0 || val.charAt(lastSlash - 1) === ' ')) {
                     var chunk = textBeforeCursor.substring(lastSlash + 1);
-                    if (chunk.indexOf(' ') === -1) {
+                    var spaceIdx = chunk.indexOf(' ');
+                    var isStatusChunk = chunk.toLowerCase().startsWith('status:') || chunk.toLowerCase().startsWith('status');
+                    if (spaceIdx === -1 || (isStatusChunk && chunk.lastIndexOf(' ') === spaceIdx)) {
                         currentMatchStart = lastSlash;
                         currentTypedPrefix = chunk;
                         renderSuggestions();
@@ -12749,6 +12842,12 @@
               } else if (term.toLowerCase().indexOf('/status:') === 0) {
                   keywordType = 'status';
                   searchVal = term.substring(8).trim();
+              } else if (term.toLowerCase().indexOf('/status ') === 0) {
+                  keywordType = 'status';
+                  searchVal = term.substring(8).trim();
+              } else if (term.toLowerCase() === '/status') {
+                  keywordType = 'status';
+                  searchVal = '';
               }
 
               if (term === '' || (keywordType !== 'generic' && searchVal === '')) {
@@ -12772,12 +12871,29 @@
               } else if (keywordType === 'name') {
                   targetNodes = Array.from(document.querySelectorAll('.student-name, strong, .row-name, .name'));
               } else if (keywordType === 'status') {
-                  targetNodes = Array.from(document.querySelectorAll('.student-id, .status-badge, .badge, .request-status, [class*="status-"]'));
+                  const allCards = Array.from(document.querySelectorAll('.student-card, .request-item, .hold-request, .complaint-card, .tc-card, [data-status]'));
+                  allCards.forEach(function(card) {
+                      const cardStatus = (card.getAttribute('data-status') || '').toLowerCase();
+                      const cardClasses = Array.from(card.classList).join(' ').toLowerCase();
+                      const statusEls = card.querySelectorAll('.student-id, .status-badge, .badge, .request-status, [class*="status-"]');
+                      const statusText = Array.from(statusEls).map(s => s.textContent.toLowerCase()).join(' ');
+                      const combinedStatus = cardStatus + ' ' + cardClasses + ' ' + statusText;
+
+                      if (matchStatusSynonyms(combinedStatus, searchVal)) {
+                          const badge = card.querySelector('.student-id, .status-badge, .badge, .request-status, [class*="status-"]') || card;
+                          badge.classList.add('search-highlight');
+                          badge.style.background = '#fbbf24';
+                          badge.style.color = '#1e293b';
+                          badge.style.borderRadius = '3px';
+                      }
+                  });
               }
 
-              targetNodes.forEach(function(node) {
-                  walkTextNodes(node, searchVal);
-              });
+              if (keywordType !== 'status') {
+                  targetNodes.forEach(function(node) {
+                      walkTextNodes(node, searchVal);
+                  });
+              }
 
               _globalMatchedEls = Array.from(document.querySelectorAll('.search-highlight'));
 

@@ -26,6 +26,10 @@ class Command(BaseCommand):
                 seat.hold_end_date >= today
             )
 
+            # If hold_student has an active assignment on another seat, this hold is orphaned/duplicate
+            if seat.hold_student and SeatAssignment.objects.filter(student=seat.hold_student, is_active=True).exclude(seat=seat).exists():
+                has_valid_hold_student = False
+
             changed = False
             reasons = []
 

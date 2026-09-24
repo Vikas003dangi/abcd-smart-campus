@@ -383,12 +383,300 @@ document.addEventListener('DOMContentLoaded', () => {
       navRight.appendChild(keywordPopup);
     }
 
+    function matchSeatStatus(seat, target) {
+      if (!seat || !target) return false;
+      const t = target.toLowerCase().trim();
+      const seatClasses = Array.from(seat.classList).map(c => c.toLowerCase());
+      const dataStatus = (seat.getAttribute('data-status') || '').toLowerCase();
+      let assignments = [];
+      const assignmentsStr = seat.getAttribute('data-assignments');
+      if (assignmentsStr) {
+        try { assignments = JSON.parse(assignmentsStr); } catch(e) {}
+      }
+      let info = {};
+      const infoStr = seat.getAttribute('data-info');
+      if (infoStr) {
+        try { info = JSON.parse(infoStr); } catch(e) {}
+      }
+
+      const isLockedSeat = seatClasses.includes('locked') ||
+                           seatClasses.includes('locked-morning') ||
+                           seatClasses.includes('locked-evening') ||
+                           seat.getAttribute('data-locked') === 'true' ||
+                           (info && (info.is_locked || info.locked_shifts)) ||
+                           seat.querySelector('.locked, .status-locked, .seat-half.locked') !== null;
+
+      const seatLabelsText = Array.from(seat.querySelectorAll('.seat-label, .seat-morning-label, .seat-evening-label'))
+        .map(el => (el.textContent || '').toLowerCase());
+      const labelTextJoined = seatLabelsText.join(' ');
+
+      // 1. Available
+      if (['available', 'empty', 'free', 'vacant'].some(k => t.includes(k) || k.includes(t))) {
+        if (seatClasses.includes('available') || dataStatus === 'available' || labelTextJoined.includes('available')) {
+          return true;
+        }
+        if (info && info.is_shift_enabled && (!info.morning_taken || !info.evening_taken)) {
+          return true;
+        }
+      }
+
+      // 2. Occupied / Admitted
+      if (['occupied', 'admitted', 'admit', 'occupy', 'taken'].some(k => t.includes(k) || k.includes(t))) {
+        if (t === 'shift occupied' || t === 'shift_occupied' || t === 'shift') {
+          return seatClasses.includes('shift_occupied') || seatClasses.includes('shift-occupied') || seatClasses.some(c => c.includes('occupied-'));
+        }
+        if (seatClasses.includes('occupied') || seatClasses.includes('shift_occupied') || seatClasses.includes('shift-occupied') || seatClasses.some(c => c.includes('occupied-')) || seatClasses.includes('shift-evening-only')) {
+          return true;
+        }
+        if (dataStatus === 'occupied' || dataStatus === 'shift_occupied') {
+          return true;
+        }
+        if (assignments.some(a => !a.is_pending && a.student_status !== 'pending' && a.hold_status !== 'active' && !a.is_partial)) {
+          return true;
+        }
+      }
+
+      // 3. Hold / On Hold
+      if (['hold', 'on_hold', 'on hold', 'on-hold', 'held'].some(k => t.includes(k) || k.includes(t))) {
+        if (seatClasses.includes('on_hold') || seatClasses.some(c => c.includes('hold')) || dataStatus === 'on_hold' || dataStatus === 'hold') {
+          return true;
+        }
+        if (assignments.some(a => a.hold_status === 'active' || a.is_hold)) {
+          return true;
+        }
+        if (info && (info.hold_student || info.has_hold || info.morning_hold || info.evening_hold || info.hold_days)) {
+          return true;
+        }
+        if (labelTextJoined.includes('hold')) {
+          return true;
+        }
+      }
+
+      // 4. Temporary / Tenant / Tanent / Partial
+      if (['temp', 'temporary', 'tenant', 'tanent', 'temporary allotted', 'partial', 'tenent'].some(k => t.includes(k) || k.includes(t))) {
+        if (seatClasses.includes('temporary') || seatClasses.includes('partial') || seatClasses.some(c => c.includes('temp') || c.includes('partial'))) {
+          return true;
+        }
+        if (dataStatus === 'temporary') {
+          return true;
+        }
+        if (assignments.some(a => a.is_partial || a.student_status === 'temporary')) {
+          return true;
+        }
+        if (info && (info.morning_partial || info.evening_partial || info.full_partial)) {
+          return true;
+        }
+        if (labelTextJoined.includes('temp') || labelTextJoined.includes('tenant')) {
+          return true;
+        }
+      }
+
+      // 5. Locked
+      if (['locked', 'lock', 'seat locked', 'shift locked', 'locked seat', 'locked shift'].some(k => t.includes(k) || k.includes(t))) {
+        if (isLockedSeat || labelTextJoined.includes('locked') || labelTextJoined.includes('🔒') || labelTextJoined.includes('lock')) {
+          return true;
+        }
+      }
+
+      // 6. Pending
+      if (['pending', 'verification'].some(k => t.includes(k) || k.includes(t))) {
+        if (seatClasses.includes('pending') || seatClasses.some(c => c.includes('pending'))) {
+          return true;
+        }
+        if (assignments.some(a => a.is_pending || a.student_status === 'pending')) {
+          return true;
+        }
+        if (labelTextJoined.includes('pending')) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function executeSearch(isBackgroundRefresh = false) {
+      // Clear all previous highlight classes
+      document.querySelectorAll('.seat').forEach(seat => {
+        seat.classList.remove('search-match', 'active-match');
+      });
+
+      const rawVal = seatSearchInput.value;
+      const clean = rawVal.toLowerCase().trim();
+
+      if (!clean) {
+        clearSeatSearchHighlights();
+        return;
+      }
+
+      // Search ONLY on the currently selected floor
+      const currentWrapperId = (floorSelector && floorSelector.value === 'Ground Floor') ? 'ground-floor-wrapper' : 'first-floor-wrapper';
+      const activeFloorWrapper = document.getElementById(currentWrapperId);
+      const allSeats = activeFloorWrapper ? activeFloorWrapper.querySelectorAll('.seat') : [];
+
+      matchedSeats = [];
+      matchedIndex = 0;
+
+      let isStatusMode = false;
+      let statusTarget = '';
+
+      if (clean.startsWith('/status:') || clean.startsWith('/status ') || clean.startsWith('/status=')) {
+        isStatusMode = true;
+        const sepIdx = clean.search(/[:\s=]/);
+        statusTarget = clean.substring(sepIdx + 1).trim();
+      } else if (clean.startsWith('/status')) {
+        isStatusMode = true;
+        statusTarget = clean.substring(7).trim();
+      } else if (clean.startsWith('/')) {
+        const slashWord = clean.substring(1).trim();
+        const recognizedStatuses = ['hold', 'on_hold', 'on hold', 'temp', 'temporary', 'tenant', 'tanent', 'available', 'empty', 'occupied', 'admitted', 'locked', 'lock', 'pending'];
+        if (recognizedStatuses.some(s => slashWord.startsWith(s))) {
+          isStatusMode = true;
+          statusTarget = slashWord;
+        }
+      }
+
+      if (isStatusMode) {
+        if (!statusTarget) {
+          if (seatSearchNav) seatSearchNav.style.display = 'flex';
+          if (seatSearchCount) {
+            seatSearchCount.textContent = 'Type a status...';
+            seatSearchCount.style.color = '#64748b';
+          }
+          if (seatSearchPrev) seatSearchPrev.style.display = 'none';
+          if (seatSearchNext) seatSearchNext.style.display = 'none';
+          return;
+        }
+
+        allSeats.forEach(seat => {
+          if (matchSeatStatus(seat, statusTarget)) {
+            seat.classList.add('search-match');
+            matchedSeats.push(seat);
+          }
+        });
+      } else {
+        // Parse single-digit seat number if applicable (e.g. "4" or "04")
+        let exactSeatNum = null;
+        const isDigitPattern = /^[0-9]+$/;
+        if (isDigitPattern.test(clean)) {
+          const numVal = parseInt(clean, 10);
+          if (numVal >= 1 && numVal <= 9) {
+            exactSeatNum = String(numVal);
+          }
+        } else {
+          const numVal = wordsToNumber(clean);
+          if (numVal !== null) {
+            exactSeatNum = String(numVal);
+          }
+        }
+
+        allSeats.forEach(seat => {
+          let match = false;
+          const studentName = seat.getAttribute('data-student-name') || '';
+          const seatId = seat.getAttribute('data-seat-id') || '';
+          const seatText = (seat.querySelector('.seat-number')?.innerText || seat.innerText || '').trim();
+
+          if (exactSeatNum) {
+            if (seatId === exactSeatNum || seatText === exactSeatNum) {
+              match = true;
+            }
+          } else {
+            if (studentName.toLowerCase().includes(clean) || 
+                seatId.toLowerCase() === clean || 
+                seatId.toLowerCase().includes(clean) ||
+                seatText.toLowerCase().includes(clean)) {
+              match = true;
+            }
+
+            const assignmentsStr = seat.getAttribute('data-assignments');
+            if (!match && assignmentsStr) {
+              try {
+                const assignments = JSON.parse(assignmentsStr);
+                if (assignments.some(a => a.student_name && a.student_name.toLowerCase().includes(clean))) {
+                  match = true;
+                }
+              } catch(err) {}
+            }
+
+            if (!match && clean.length >= 2) {
+              if (matchSeatStatus(seat, clean)) {
+                match = true;
+              }
+            }
+          }
+
+          if (match) {
+            seat.classList.add('search-match');
+            matchedSeats.push(seat);
+          }
+        });
+      }
+
+      // Show search nav popup
+      if (seatSearchNav) {
+        seatSearchNav.style.display = 'flex';
+      }
+
+      if (matchedSeats.length === 0) {
+        if (seatSearchCount) {
+          seatSearchCount.textContent = 'No results';
+          seatSearchCount.style.color = '#ef4444';
+        }
+        if (seatSearchPrev) seatSearchPrev.style.display = 'none';
+        if (seatSearchNext) seatSearchNext.style.display = 'none';
+      } else {
+        if (seatSearchCount) {
+          seatSearchCount.textContent = '1 / ' + matchedSeats.length;
+          seatSearchCount.style.color = '';
+        }
+
+        // Toggle visibility of navigation arrows
+        if (matchedSeats.length > 1) {
+          if (seatSearchPrev) seatSearchPrev.style.display = 'flex';
+          if (seatSearchNext) seatSearchNext.style.display = 'flex';
+        } else {
+          if (seatSearchPrev) seatSearchPrev.style.display = 'none';
+          if (seatSearchNext) seatSearchNext.style.display = 'none';
+        }
+
+        // Scroll to the first match
+        const firstSeat = matchedSeats[0];
+        if (firstSeat) {
+          firstSeat.classList.add('active-match');
+          if (!isBackgroundRefresh) {
+            firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          }
+        }
+      }
+      if (!isBackgroundRefresh) {
+        startSearchInactivityTimer();
+      }
+    }
+
+    window._reapplyCurrentSearch = () => executeSearch(true);
+
     function renderKeywordSuggestions(val) {
-      const suggestions = [
-        { key: '/First-floor', label: 'First Floor Layout', action: () => switchFloor('1st Floor') },
-        { key: '/Ground-Floor', label: 'Ground Floor Layout', action: () => switchFloor('Ground Floor') }
+      const lower = val.toLowerCase().trim();
+      const allSuggestions = [
+        { key: '/First-floor', label: 'First Floor Layout', action: () => { switchFloor('1st Floor'); seatSearchInput.value = ''; clearSeatSearchHighlights(); } },
+        { key: '/Ground-Floor', label: 'Ground Floor Layout', action: () => { switchFloor('Ground Floor'); seatSearchInput.value = ''; clearSeatSearchHighlights(); } },
+        { key: '/status: available', label: 'Available Seats', action: () => { seatSearchInput.value = '/status: available'; executeSearch(false); } },
+        { key: '/status: occupied', label: 'Occupied / Admitted Seats', action: () => { seatSearchInput.value = '/status: occupied'; executeSearch(false); } },
+        { key: '/status: hold', label: 'On Hold Seats', action: () => { seatSearchInput.value = '/status: hold'; executeSearch(false); } },
+        { key: '/status: temporary', label: 'Temporary Allotted / Tenant Seats', action: () => { seatSearchInput.value = '/status: temporary'; executeSearch(false); } },
+        { key: '/status: locked', label: 'Locked Seats & Shifts', action: () => { seatSearchInput.value = '/status: locked'; executeSearch(false); } },
+        { key: '/status: pending', label: 'Pending Verification Seats', action: () => { seatSearchInput.value = '/status: pending'; executeSearch(false); } },
       ];
-      const filtered = suggestions.filter(s => s.key.toLowerCase().startsWith(val.toLowerCase()));
+
+      let filtered = [];
+      if (lower === '/status' || lower === '/status:' || lower === '/status ') {
+        filtered = allSuggestions.filter(s => s.key.startsWith('/status:'));
+      } else if (lower.startsWith('/status:') || lower.startsWith('/status ')) {
+        const sub = lower.substring(lower.indexOf(':') !== -1 ? lower.indexOf(':') + 1 : 7).trim();
+        filtered = allSuggestions.filter(s => s.key.startsWith('/status:') && (sub === '' || s.key.toLowerCase().includes(sub) || s.label.toLowerCase().includes(sub)));
+      } else {
+        filtered = allSuggestions.filter(s => s.key.toLowerCase().startsWith(lower) || s.key.toLowerCase().includes(lower));
+      }
+
       if (filtered.length === 0) {
         keywordPopup.style.display = 'none';
         return;
@@ -400,10 +688,8 @@ document.addEventListener('DOMContentLoaded', () => {
         item.innerHTML = `<span style="font-weight:700;">${s.key}</span><span style="font-size:10px;opacity:0.7;">${s.label}</span>`;
         item.addEventListener('click', (evt) => {
           evt.stopPropagation();
-          s.action();
           keywordPopup.style.display = 'none';
-          seatSearchInput.value = '';
-          clearSeatSearchHighlights();
+          s.action();
         });
         keywordPopup.appendChild(item);
       });
@@ -465,6 +751,13 @@ document.addEventListener('DOMContentLoaded', () => {
           e.preventDefault();
           keywordPopup.style.display = 'none';
         }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (matchedSeats.length > 0) {
+          navigateMatch('next');
+        } else {
+          executeSearch(false);
+        }
       }
     });
 
@@ -515,8 +808,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Handoff to keyword suggestions if typing slash
       if (rawVal.startsWith('/')) {
         renderKeywordSuggestions(rawVal);
-        clearSeatSearchHighlights();
-        return;
+        if (clean === '/' || clean === '/status' || clean === '/status:' || clean === '/status ') {
+          clearTimeout(searchTimer);
+          clearSeatSearchHighlights();
+          return;
+        }
       } else {
         keywordPopup.style.display = 'none';
       }
@@ -531,185 +827,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Immediate floor layout exact word checks (case-insensitive)
-      if (clean === 'first floor' || clean === 'frist floor' || clean === '1st floor' || clean === 'first' || clean === '1st') {
+      if (clean === 'first floor' || clean === 'frist floor' || clean === '1st floor' || clean === 'first' || clean === '1st' || clean === '/first-floor') {
         clearTimeout(searchTimer);
         switchFloor('1st Floor');
         seatSearchInput.value = '';
         clearSeatSearchHighlights();
         return;
       }
-      if (clean === 'ground floor' || clean === 'ground') {
+      if (clean === 'ground floor' || clean === 'ground' || clean === '/ground-floor') {
         clearTimeout(searchTimer);
         switchFloor('Ground Floor');
         seatSearchInput.value = '';
         clearSeatSearchHighlights();
         return;
       }
-
-      function executeSearch(isBackgroundRefresh = false) {
-        // Clear all previous highlight classes
-        document.querySelectorAll('.seat').forEach(seat => {
-          seat.classList.remove('search-match', 'active-match');
-        });
-
-        // Search ONLY on the currently selected floor
-        const currentWrapperId = (floorSelector && floorSelector.value === 'Ground Floor') ? 'ground-floor-wrapper' : 'first-floor-wrapper';
-        const activeFloorWrapper = document.getElementById(currentWrapperId);
-        const allSeats = activeFloorWrapper ? activeFloorWrapper.querySelectorAll('.seat') : [];
-
-        matchedSeats = [];
-        matchedIndex = 0;
-
-        // Parse single-digit seat number if applicable (e.g. "4" or "04")
-        let exactSeatNum = null;
-        const isDigitPattern = /^[0-9]+$/;
-        if (isDigitPattern.test(clean)) {
-          const numVal = parseInt(clean, 10);
-          if (numVal >= 1 && numVal <= 9) {
-            exactSeatNum = String(numVal);
-          }
-        } else {
-          // Check if clean matches English number words (e.g. "forty five" or "two")
-          const numVal = wordsToNumber(clean);
-          if (numVal !== null) {
-            exactSeatNum = String(numVal);
-          }
-        }
-
-        allSeats.forEach(seat => {
-          let match = false;
-          const studentName = seat.getAttribute('data-student-name') || '';
-          const seatId = seat.getAttribute('data-seat-id') || '';
-          const seatText = (seat.querySelector('.seat-number')?.innerText || seat.innerText || '').trim();
-          
-          if (exactSeatNum) {
-            // For single-digit seat queries, perform exact match on seatId or seat number text
-            if (seatId === exactSeatNum || seatText === exactSeatNum) {
-              match = true;
-            }
-          } else {
-            // General query matching
-            if (studentName.toLowerCase().includes(clean) || 
-                seatId.toLowerCase() === clean || 
-                seatId.toLowerCase().includes(clean) ||
-                seatText.toLowerCase().includes(clean)) {
-              match = true;
-            }
-
-            // Check assignments JSON
-            const assignmentsStr = seat.getAttribute('data-assignments');
-            if (!match && assignmentsStr) {
-              try {
-                const assignments = JSON.parse(assignmentsStr);
-                if (assignments.some(a => a.student_name && a.student_name.toLowerCase().includes(clean))) {
-                  match = true;
-                }
-              } catch(err) {}
-            }
-
-            // Check seat status (legend match with partial search support)
-            if (!match && clean.length >= 2) {
-              const seatClasses = Array.from(seat.classList).map(c => c.toLowerCase());
-              
-              if ('available'.includes(clean) && (seatClasses.includes('available') || seat.getAttribute('data-status') === 'available')) {
-                match = true;
-              }
-              
-              if ((clean === 'shift occupied' || clean === 'shift_occupied' || clean === 'shift') && 
-                  (seatClasses.includes('shift_occupied') || seatClasses.includes('shift-occupied') || seatClasses.some(c => c.includes('occupied-')))) {
-                match = true;
-              } else if (clean === 'occupied') {
-                if (seatClasses.includes('occupied') && !seatClasses.includes('shift_occupied')) match = true;
-              } else if ('occupied'.includes(clean) && (seatClasses.includes('occupied') || seatClasses.includes('shift_occupied'))) {
-                match = true;
-              }
-              
-              if ('pending'.includes(clean) && (seatClasses.includes('pending') || seatClasses.some(c => c.includes('pending')))) {
-                match = true;
-              }
-              
-              if (('on hold'.includes(clean) || 'on_hold'.includes(clean) || 'hold'.includes(clean)) && 
-                  (seatClasses.includes('on_hold') || seatClasses.some(c => c.includes('hold')))) {
-                match = true;
-              }
-              
-              if (('temporary'.includes(clean) || clean === 'temp') && 
-                  (seatClasses.includes('temporary') || seatClasses.some(c => c.includes('temp')))) {
-                match = true;
-              }
-
-              // Locked seat & shift search support
-              const isLockedSeat = seatClasses.includes('locked') || 
-                                   seatClasses.includes('locked-morning') || 
-                                   seatClasses.includes('locked-evening') || 
-                                   seat.getAttribute('data-locked') === 'true' ||
-                                   seat.querySelector('.locked, .status-locked, .seat-half.locked') !== null;
-
-              const seatLabelsText = Array.from(seat.querySelectorAll('.seat-label, .seat-morning-label, .seat-evening-label'))
-                .map(el => (el.textContent || '').toLowerCase());
-              const hasLockedLabel = seatLabelsText.some(t => t.includes('locked') || t.includes('🔒') || t.includes('lock'));
-
-              const isLockKeyword = 'locked'.includes(clean) || 
-                                    'lock'.includes(clean) || 
-                                    'seat locked'.includes(clean) || 
-                                    'shift locked'.includes(clean) || 
-                                    'locked seat'.includes(clean) || 
-                                    'locked shift'.includes(clean);
-
-              if (isLockKeyword && (isLockedSeat || hasLockedLabel)) {
-                match = true;
-              }
-            }
-          }
-
-          if (match) {
-            seat.classList.add('search-match');
-            matchedSeats.push(seat);
-          }
-        });
-
-        // Show search nav popup
-        if (seatSearchNav) {
-          seatSearchNav.style.display = 'flex';
-        }
-
-        if (matchedSeats.length === 0) {
-          if (seatSearchCount) {
-            seatSearchCount.textContent = 'No results';
-            seatSearchCount.style.color = '#ef4444';
-          }
-          if (seatSearchPrev) seatSearchPrev.style.display = 'none';
-          if (seatSearchNext) seatSearchNext.style.display = 'none';
-        } else {
-          if (seatSearchCount) {
-            seatSearchCount.textContent = '1 / ' + matchedSeats.length;
-            seatSearchCount.style.color = '';
-          }
-
-          // Toggle visibility of navigation arrows
-          if (matchedSeats.length > 1) {
-            if (seatSearchPrev) seatSearchPrev.style.display = 'flex';
-            if (seatSearchNext) seatSearchNext.style.display = 'flex';
-          } else {
-            if (seatSearchPrev) seatSearchPrev.style.display = 'none';
-            if (seatSearchNext) seatSearchNext.style.display = 'none';
-          }
-
-          // Scroll to the first match
-          const firstSeat = matchedSeats[0];
-          if (firstSeat) {
-            firstSeat.classList.add('active-match');
-            if (!isBackgroundRefresh) {
-              firstSeat.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-            }
-          }
-        }
-        if (!isBackgroundRefresh) {
-          startSearchInactivityTimer();
-        }
-      }
-
-      window._reapplyCurrentSearch = () => executeSearch(true);
 
       // Debounce the general search by 300ms
       clearTimeout(searchTimer);
@@ -2224,7 +2355,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const renderActiveRow = (a, label) => {
               const formattedName = abcdFormatName(a.student_name);
-              const statusStr = a.hold_status === 'active' ? `On Hold by ${escapeHTML(formattedName)}` : `Occupied by ${escapeHTML(formattedName)}`;
+              const holdEndLbl = a.hold_end_date
+                ? new Date(a.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                : null;
+              const statusStr = a.hold_status === 'active'
+                ? `On Hold by <strong>${escapeHTML(formattedName)}</strong> (${a.hold_days || 0} days left)${holdEndLbl ? `<span style="display:block; font-size:0.75rem; color:#888; margin-top:2px;">Hold ends: ${holdEndLbl}</span>` : ''}`
+                : `Occupied by <strong>${escapeHTML(formattedName)}</strong>`;
               return `
                 <div class="shift-block" style="background:#f5f5f5; padding:12px 15px; margin-bottom:10px; border-radius:8px;">
                     <div style="display:flex; align-items:center; gap:12px;">
@@ -2234,12 +2370,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                 : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
                             }
                         </div>
-                        <p style="margin:0; font-size:0.9rem;"><strong>${label}</strong>: ${statusStr}</p>
+                        <div>
+                          <p style="margin:0; font-size:0.9rem;"><strong>${label}</strong>: ${statusStr}</p>
+                        </div>
                     </div>
                     <div class="modal-actions-row small-gap" style="margin-top:8px;">
                         ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: a.student_id })}
                         ${a.hold_status === 'active'
-                  ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id }) + ' ' + btn('Expand/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: a.student_id, student_name: a.student_name, hold_end_date: a.hold_end_date, shift: a.shift })
+                  ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: a.student_id, student_name: a.student_name }) + ' ' + btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: a.student_id, student_name: a.student_name, hold_start_date: a.hold_start_date, hold_end_date: a.hold_end_date, shift: a.shift })
                   : btn('Hold', 'open_hold', 'btn-warning btn-sm', { student_id: a.student_id, shift: a.shift })
                 }
                     </div>
@@ -2600,15 +2738,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const formattedSeat = getFormattedSeatNumber(seatNumber);
 
             if (rawStudentName) {
-              title = `Seat ${formattedSeat} - ${seatStatus === 'on_hold' ? 'On Hold' : 'Occupied'}`;
+              const isOnHold = (seatStatus === 'on_hold');
+              title = `Seat ${formattedSeat} - ${isOnHold ? 'On Hold' : 'Occupied'}`;
+              const holdDays = rawInfo.remaining_days || (currentSeatData && currentSeatData.remaining_days) || 0;
+              const holdEndStr = rawInfo.hold_end_date ? new Date(rawInfo.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
+
               content = `
-                <div class="shift-block ${seatStatus === 'on_hold' ? 'on-hold' : 'occupied'}" style="padding:15px; margin-bottom:15px;">
+                <div class="shift-block ${isOnHold ? 'on-hold' : 'occupied'}" style="padding:15px; margin-bottom:15px; ${isOnHold ? 'background: rgba(243, 156, 18, 0.05); border: 1px solid rgba(243, 156, 18, 0.15); border-radius: 12px;' : ''}">
                   <p style="margin:0; font-size:1.05rem; color:var(--text-main);">
-                    ${seatStatus === 'on_hold' ? 'Held by' : 'Occupied by'} <strong>${escapeHTML(abcdFormatName(rawStudentName))}</strong>
+                    ${isOnHold ? 'Held by' : 'Occupied by'} <strong>${escapeHTML(abcdFormatName(rawStudentName))}</strong> ${isOnHold ? `(${holdDays} days left)` : ''}
                   </p>
+                  ${isOnHold && holdEndStr ? `<p style="margin:4px 0 0; font-size:0.8rem; color:#888;">Hold ends: ${holdEndStr}</p>` : ''}
                 </div>
                 <div class="modal-actions-row small-gap">
                   ${rawStudentId ? btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: rawStudentId }) : ''}
+                  ${isOnHold ? btn('Allot Temp', 'open_assign', 'btn-primary btn-sm', { shift: 'full' }) : ''}
+                  ${isOnHold ? btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: rawStudentId, student_name: rawStudentName }) : ''}
+                  ${isOnHold ? btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: rawStudentId, student_name: rawStudentName, hold_start_date: rawInfo.hold_start_date, hold_end_date: rawInfo.hold_end_date, shift: 'full' }) : ''}
                   ${btn('Free / Reset Seat', 'free', 'btn-danger btn-sm', { force: true })}
                 </div>`;
             } else {
@@ -2746,12 +2892,18 @@ document.addEventListener('DOMContentLoaded', () => {
                       }
                   </div>`;
                   
+              const holdEndLabelFull = a.hold_end_date
+                ? new Date(a.hold_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                : null;
               content = `
                 <div class="shift-block" style="background: rgba(243, 156, 18, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(243, 156, 18, 0.15);">
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">Full Day: <span style="color:#f39c12;">Hold</span></p>
                     <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
                         ${ownerPhotoHtml}
-                        <p style="margin:0; font-size:0.95rem; color:var(--text-main);">Full-day hold by <strong>${escapeHTML(abcdFormatName(a.student_name))}</strong></p>
+                        <div>
+                          <p style="margin:0; font-size:0.95rem; color:var(--text-main);">On Hold by <strong>${escapeHTML(abcdFormatName(a.student_name))}</strong> (${a.hold_days || 0} days left)</p>
+                          ${holdEndLabelFull ? `<p style="margin:2px 0 0; font-size:0.75rem; color:#888;">Hold ends: ${holdEndLabelFull}</p>` : ''}
+                        </div>
                     </div>
                 </div>`;
 
@@ -2862,14 +3014,26 @@ document.addEventListener('DOMContentLoaded', () => {
               const otherAssigns = assignments.filter(a => a.shift === otherShift && a.student_status !== 'pending');
               const otherOwner = otherAssigns.find(a => !a.is_partial);
               const otherTenant = otherAssigns.find(a => a.is_partial);
-              const isOtherShiftAvailable = !otherOwner && !otherTenant;
+              const lockedList = (lockedShifts || '').split(',').map(s => s.trim()).filter(Boolean);
+              const isOtherShiftLocked = lockedList.includes(otherShift) || isLocked || lockedList.includes('full');
+              const isOtherShiftAvailable = !otherOwner && !otherTenant && !isOtherShiftLocked;
 
               const showAssignFullDay = owner && isOtherShiftAvailable;
 
               content += `<div class="shift-block" style="background: rgba(240, 247, 255, 0.5); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(52, 152, 219, 0.1);">`;
               
               if (!owner && !tenant) {
-                content += `
+                const isThisShiftLocked = lockedList.includes(shift) || isLocked || lockedList.includes('full');
+                if (isThisShiftLocked) {
+                  content += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                        <p style="margin:0; font-weight:700; color: #dc2626;">${shiftDisplay}: <span style="color:#dc2626;">🔒 Locked</span></p>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                          ${btn('🔓 Unlock', 'unlock_seat', 'btn-success btn-sm', { shift: shift })}
+                        </div>
+                    </div>`;
+                } else {
+                  content += `
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                         <p style="margin:0; font-weight:700; color: var(--text-main);">${shiftDisplay}: <span style="color:#2ecc71;">Available</span></p>
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -2877,6 +3041,7 @@ document.addEventListener('DOMContentLoaded', () => {
                           ${btn('🔒 Lock', 'lock_seat', 'btn-lock btn-sm', { shift: shift })}
                         </div>
                     </div>`;
+                }
               } else if (owner && !tenant) {
                 const ownerName = escapeHTML(abcdFormatName(owner.student_name));
                 const photoHtml = `
@@ -2903,7 +3068,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="modal-actions-row small-gap">
                         ${btn('View Student', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('Temp', 'open_assign', 'btn-primary btn-sm', { shift })}
-                        ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })}
+                        ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })}
                         ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_start_date: owner.hold_start_date, hold_end_date: owner.hold_end_date, shift })}
                         ${showAssignFullDay ? btn('Assign full day', 'assign_full_day', 'btn-success btn-sm', { student_id: owner.student_id, student_name: owner.student_name }) : ''}
                         ${btn('Free', 'free_shift', 'btn-danger btn-sm', { shift })}
@@ -2961,7 +3126,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="modal-actions-row small-gap">
                         ${btn('View Owner', 'view_student', 'btn-info btn-sm', { student_id: owner.student_id })}
                         ${btn('View Temp', 'view_student', 'btn-info btn-sm', { student_id: tenant.student_id })}
-                        ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id })} 
+                        ${btn('End Hold', 'end_hold', 'btn-warning btn-sm', { student_id: owner.student_id, student_name: owner.student_name })} 
                         ${btn('Extend/Shorten Hold', 'expand_shorten_hold', 'btn-info btn-sm', { student_id: owner.student_id, student_name: owner.student_name, hold_start_date: owner.hold_start_date, hold_end_date: owner.hold_end_date, shift })} 
                         ${btn('End Temp', 'free', 'btn-warning btn-sm', { student_id: tenant.student_id })}
                     </div>`;
@@ -3000,8 +3165,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const mHold = mOwner && mOwner.hold_status === 'active';
             const eHold = eOwner && eOwner.hold_status === 'active';
-            const mFree = !mOwner && !mTenant;
-            const eFree = !eOwner && !eTenant;
+            const mLocked = lockedList.includes('morning') || isLocked || lockedList.includes('full');
+            const eLocked = lockedList.includes('evening') || isLocked || lockedList.includes('full');
+            const mFree = !mOwner && !mTenant && !mLocked;
+            const eFree = !eOwner && !eTenant && !eLocked;
 
             let fullDayActions = '';
             // Case B: Both on hold and neither has a tenant
@@ -3197,9 +3364,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const res = await resp.json();
           if (res.status === 'success') {
             if (window.showToast) window.showToast(res.message, 'success');
-            window.closeAllModals();
-            currentSeatData = {};
-            loadSeatLayout(currentFloor);
+            if (currentSeatData) {
+              currentSeatData.is_locked = res.is_locked;
+              currentSeatData.locked_shifts = res.locked_shifts;
+            }
+            await loadSeatLayout(currentFloor, true);
+            showSeatDetails(null, true);
           } else {
             window.showStyledPopup({
               title: 'Cannot Lock Seat',
@@ -3250,9 +3420,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const res = await resp.json();
           if (res.status === 'success') {
             if (window.showToast) window.showToast(res.message, 'success');
-            window.closeAllModals();
-            currentSeatData = {};
-            loadSeatLayout(currentFloor);
+            if (currentSeatData) {
+              currentSeatData.is_locked = res.is_locked;
+              currentSeatData.locked_shifts = res.locked_shifts;
+            }
+            await loadSeatLayout(currentFloor, true);
+            showSeatDetails(null, true);
           } else {
 
             window.showStyledPopup({
@@ -3429,12 +3602,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
       const startLabel = fmtDate(currentStart);
       const endLabel   = fmtDate(currentEnd);
-      const periodHtml = (startLabel && endLabel)
-        ? `<div style="background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;">
+      let periodHtml = '';
+      if (startLabel && endLabel) {
+        periodHtml = `<div style="background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;">
             <p style="margin:0 0 4px; font-size:0.75rem; font-weight:700; color:#3b82f6; letter-spacing:0.05em;">CURRENT HOLD PERIOD</p>
             <p style="margin:0; font-size:0.95rem; font-weight:600; color:var(--text-main, #1e293b);">${startLabel} &rarr; ${endLabel}</p>
-           </div>`
-        : '';
+           </div>`;
+      } else if (endLabel) {
+        periodHtml = `<div style="background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;">
+            <p style="margin:0 0 4px; font-size:0.75rem; font-weight:700; color:#3b82f6; letter-spacing:0.05em;">CURRENT HOLD PERIOD</p>
+            <p style="margin:0; font-size:0.95rem; font-weight:600; color:var(--text-main, #1e293b);">Current End: ${endLabel}</p>
+           </div>`;
+      }
 
       const htmlContent = `
         <div style="text-align: left; padding: 5px;">

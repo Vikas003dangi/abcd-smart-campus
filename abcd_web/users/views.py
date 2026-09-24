@@ -6383,15 +6383,25 @@ def get_teacher_seat_status_api(request):
 
         # Check for valid holds
         has_assignment_hold = any(a.hold_status == 'active' for a in active_assignments)
+        
+        # Student cannot hold a seat if they are already active on a different seat
+        hold_student_active_elsewhere = False
+        if seat.hold_student:
+            hold_student_active_elsewhere = (
+                SeatAssignment.objects.filter(student=seat.hold_student, is_active=True).exclude(seat=seat).exists() or
+                bool(seat.hold_student.seat and seat.hold_student.seat_id != seat.id)
+            )
+
         has_seat_hold = bool(
+            not hold_student_active_elsewhere and
             seat.status == 'on_hold' and 
             seat.hold_student and 
             seat.hold_end_date and 
             seat.hold_end_date >= today
         )
 
-        # Self-heal stale / orphaned hold
-        if (seat.status == 'on_hold' or seat.hold_status == 'active') and not has_assignment_hold and not has_seat_hold:
+        # Self-heal stale / orphaned hold (including students who moved to another seat)
+        if (seat.status == 'on_hold' or seat.hold_status == 'active' or hold_student_active_elsewhere) and not has_assignment_hold and not has_seat_hold:
             seat.status = 'available'
             seat.hold_status = 'none'
             seat.hold_student = None
@@ -6586,6 +6596,8 @@ def get_teacher_seat_status_api(request):
             'student_ids': student_ids,
             'hold_student_id': seat.hold_student.id if seat.hold_student else None,
             'hold_student_name': seat.hold_student.full_name if seat.hold_student else None,
+            'hold_start_date': seat.hold_start_date.isoformat() if seat.hold_start_date else None,
+            'hold_end_date': seat.hold_end_date.isoformat() if seat.hold_end_date else None,
             'is_shift_enabled': seat.is_shift_enabled,
             
             # Occupancy Flags
@@ -6734,20 +6746,24 @@ def get_student_list_api(request):
                 # Check for active assignment specific status (Hold Owner vs Tenant)
                 is_tenant = False
                 is_hold_owner = False
+                seat_obj = None
                 if profile:
                     active_assign = profile.seat_assignments.filter(is_active=True).first()
                     if active_assign:
                         is_tenant = active_assign.is_partial
                         is_hold_owner = (active_assign.hold_status == 'active')
+                    if not is_hold_owner:
+                        is_hold_owner = (profile.status == 'on_hold') or Seat.objects.filter(hold_student=profile).exists()
+                    seat_obj = getattr(profile, 'seat', None) or Seat.objects.filter(hold_student=profile).first() or (active_assign.seat if active_assign else None)
 
                 student_data.append({
                     'id': profile.id if profile else f"user_{al.user.id}",
                     'user_id': al.user.id,
                     'full_name': al.full_name,
                     'service_type': profile.service_type if profile else 'Alumni',
-                    'seat_id': profile.seat.id if (profile and profile.seat) else None,
-                    'seat_number': profile.seat.seat_number if (profile and profile.seat) else None,
-                    'floor': profile.seat.floor if (profile and profile.seat) else None,
+                    'seat_id': seat_obj.id if seat_obj else None,
+                    'seat_number': seat_obj.seat_number if seat_obj else None,
+                    'floor': seat_obj.floor if seat_obj else None,
                     'is_hold_owner': is_hold_owner,
                     'is_tenant': is_tenant,
                     'has_alumni': True,
@@ -6766,15 +6782,22 @@ def get_student_list_api(request):
 
             students = qs.select_related('seat', 'user').order_by('full_name')
             for student in students:
+                active_assign = student.seat_assignments.filter(is_active=True).first()
                 seat_obj = getattr(student, 'seat', None)
+                if not seat_obj:
+                    seat_obj = Seat.objects.filter(hold_student=student).first()
+                if not seat_obj and active_assign:
+                    seat_obj = active_assign.seat
+
                 has_alumni = StudentAchievement.objects.filter(user=student.user, status='approved').exists()
                 
                 is_tenant = False
                 is_hold_owner = False
-                active_assign = student.seat_assignments.filter(is_active=True).first()
                 if active_assign:
                     is_tenant = active_assign.is_partial
                     is_hold_owner = (active_assign.hold_status == 'active')
+                if not is_hold_owner:
+                    is_hold_owner = (student.status == 'on_hold') or Seat.objects.filter(hold_student=student).exists()
 
                 student_data.append({
                     'id': student.id,
@@ -7841,8 +7864,41 @@ def seat_action_api(request):
             if student_id:
                 target_assignments = target_assignments.filter(student_id=student_id)
             
+            has_seat_level_hold = bool(
+                seat.status == 'on_hold' or seat.hold_status == 'active' or seat.hold_student
+            )
+
             if not target_assignments.exists():
-                return JsonResponse({'status': 'error', 'message': 'No active hold found.'}, status=400)
+                if has_seat_level_hold:
+                    hold_student = seat.hold_student
+                    if student_id and hold_student and str(hold_student.id) != str(student_id):
+                        return JsonResponse({'status': 'error', 'message': 'No active hold found for this student.'}, status=400)
+                    
+                    if hold_student:
+                        hold_student.status = 'admitted'
+                        hold_student.save(update_fields=['status'])
+                        try:
+                            _recalc_fee_expiry_with_hold(hold_student)
+                        except Exception:
+                            pass
+                        try:
+                            create_notification(
+                                user=hold_student.user,
+                                title="Seat Restored",
+                                message=f"Your seat {seat.seat_number} is active again.",
+                                category="seat"
+                            )
+                        except Exception:
+                            pass
+
+                    seat.hold_status = 'none'
+                    seat.hold_student = None
+                    seat.hold_start_date = None
+                    seat.hold_end_date = None
+                    seat.recalc_status(save=True)
+                    return success_response(f"Hold ended for Seat {seat_number}.")
+                else:
+                    return JsonResponse({'status': 'error', 'message': 'No active hold found.'}, status=400)
 
             # Process removal
             for owner in target_assignments:
@@ -7938,7 +7994,9 @@ def seat_action_api(request):
             if not SeatAssignment.objects.filter(seat=seat, is_active=True, hold_status='active').exists():
                 seat.hold_status = 'none'
                 seat.hold_student = None
-                seat.save(update_fields=['hold_status', 'hold_student'])
+                seat.hold_start_date = None
+                seat.hold_end_date = None
+                seat.save(update_fields=['hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
 
             # Dynamic Status Recalculation
             seat.recalc_status(save=True)
@@ -8099,6 +8157,18 @@ def seat_action_api(request):
                     'message': (
                         f"{student.full_name} is the registered owner of "
                         f"Seat {existing_owner.seat.seat_number}{hold_note}. "
+                        f"An owner cannot be assigned as a temporary tenant elsewhere. "
+                        f"End the hold on their original seat first."
+                    )
+                }, status=400)
+
+            existing_seat_level_hold = Seat.objects.filter(hold_student=student).exclude(id=seat.id).first()
+            if existing_seat_level_hold:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': (
+                        f"{student.full_name} is currently on hold on "
+                        f"Seat {existing_seat_level_hold.seat_number}. "
                         f"An owner cannot be assigned as a temporary tenant elsewhere. "
                         f"End the hold on their original seat first."
                     )
@@ -8539,10 +8609,19 @@ def seat_action_api(request):
 
                 existing_seat = student.seat
                 active_assignment = SeatAssignment.objects.filter(student=student, is_active=True).select_related('seat').first()
-                has_other_seat = (existing_seat and existing_seat.id != seat.id) or (active_assignment and active_assignment.seat_id != seat.id)
+                seat_level_hold = Seat.objects.filter(hold_student=student).first()
+                has_other_seat = (
+                    (existing_seat and existing_seat.id != seat.id) or 
+                    (active_assignment and active_assignment.seat_id != seat.id) or
+                    (seat_level_hold and seat_level_hold.id != seat.id)
+                )
 
                 if has_other_seat:
-                    assigned_seat_num = existing_seat.seat_number if existing_seat else (active_assignment.seat.seat_number if active_assignment and active_assignment.seat else '?')
+                    assigned_seat_num = (
+                        existing_seat.seat_number if existing_seat 
+                        else (active_assignment.seat.seat_number if active_assignment and active_assignment.seat 
+                        else (seat_level_hold.seat_number if seat_level_hold else '?'))
+                    )
                     if not reassign and not force:
                         return JsonResponse({
                             'status': 'conflict',
@@ -8570,6 +8649,14 @@ def seat_action_api(request):
                     # Clear old seat reference
                     student.seat = None
                     student.save(update_fields=['seat'])
+
+                    # Clear any legacy seat-level hold pointing to this student on other seats
+                    for old_held_seat in Seat.objects.filter(hold_student=student).exclude(id=seat.id):
+                        old_held_seat.hold_student = None
+                        old_held_seat.hold_status = 'none'
+                        old_held_seat.hold_start_date = None
+                        old_held_seat.hold_end_date = None
+                        old_held_seat.recalc_status(save=True)
 
             elif action == 'assign_manual':
                 # Manual User Creation Logic
@@ -8712,6 +8799,22 @@ def seat_action_api(request):
                         if existing_holders.filter(shift_type=requested_shift).exists():
                             is_partial_mode = True
 
+            # GUARD: A student who already has or holds a seat CANNOT be allotted as a temporary tenant elsewhere.
+            # "one only can be on one..."
+            if is_partial_mode:
+                other_assignment = SeatAssignment.objects.filter(student=student, is_active=True).exclude(seat=seat).first()
+                other_seat_hold = Seat.objects.filter(hold_student=student).exclude(id=seat.id).first()
+                other_seat = student.seat if (student.seat and student.seat.id != seat.id) else None
+                if other_assignment or other_seat_hold or other_seat:
+                    s_num = other_seat.seat_number if other_seat else (other_assignment.seat.seat_number if other_assignment else other_seat_hold.seat_number)
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': (
+                            f"{student.full_name} is already assigned/on hold on Seat {s_num}. "
+                            f"An existing occupant or hold owner cannot be allotted as a temporary tenant on another seat."
+                        )
+                    }, status=400)
+
             # --- TEACHER FORCE: Check for existing occupants on target seat ---
             # If force=True, remove any existing occupants on the target shift
             if force:
@@ -8764,6 +8867,14 @@ def seat_action_api(request):
                 ).exclude(seat=seat).select_related('seat')
                 for old in old_active:
                     old.deactivate()
+
+                # Also clear any legacy seat-level hold pointing to this student on other seats
+                for old_held_seat in Seat.objects.filter(hold_student=student).exclude(id=seat.id):
+                    old_held_seat.hold_student = None
+                    old_held_seat.hold_status = 'none'
+                    old_held_seat.hold_start_date = None
+                    old_held_seat.hold_end_date = None
+                    old_held_seat.recalc_status(save=True)
 
                 SeatAssignment.objects.create(
                     seat=seat,
