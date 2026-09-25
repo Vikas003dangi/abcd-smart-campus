@@ -3763,11 +3763,15 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!col || !col.children.length) return;
           const idx = Math.max(0, Math.min(index, col.children.length - 1));
           const target = col.children[idx];
+          if (!target) return;
           const targetScrollTop = target.offsetTop - col.offsetTop - (col.clientHeight - target.clientHeight) / 2;
-          if (smooth) {
-            col.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
-          } else {
-            col.scrollTop = Math.max(0, Math.round(targetScrollTop));
+          const roundedTarget = Math.max(0, Math.round(targetScrollTop));
+          if (Math.abs(col.scrollTop - roundedTarget) > 1) {
+            if (smooth) {
+              col.scrollTo({ top: roundedTarget, behavior: 'smooth' });
+            } else {
+              col.scrollTop = roundedTarget;
+            }
           }
           for (let i = 0; i < col.children.length; i++) {
             col.children[i].classList.toggle('selected', i === idx);
@@ -3817,18 +3821,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 120);
           }, { passive: true });
 
-          // Pointer drag support
+          // Pointer drag support for mouse only (touch & touchpad use native scroll)
           let isDown = false;
           let startY = 0;
           let startScrollTop = 0;
 
           col.addEventListener('pointerdown', (e) => {
-            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            if (e.pointerType !== 'mouse' || e.button !== 0) return;
             isDown = true;
             hasMoved = false;
             startY = e.clientY;
             startScrollTop = col.scrollTop;
-            col.setPointerCapture(e.pointerId);
+            try { col.setPointerCapture(e.pointerId); } catch(err) {}
             col.style.scrollSnapType = 'none';
           });
 
@@ -3859,11 +3863,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
           col.addEventListener('pointerup', onPointerEnd);
           col.addEventListener('pointercancel', onPointerEnd);
-
-          col.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            col.scrollTop += e.deltaY * 0.5;
-          }, { passive: false });
 
           const selIdx = items.indexOf(selectedVal ? selectedVal.toString() : '');
           const finalIdx = selIdx !== -1 ? selIdx : 0;
