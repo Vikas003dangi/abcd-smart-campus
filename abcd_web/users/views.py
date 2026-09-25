@@ -3611,9 +3611,16 @@ def admission_form_view(request):
         service_type = cleaned['service_type']
         is_new_choice = cleaned.get('is_new_registration') == 'True'
 
-        # Force existing if already in DB
-        if has_profile and is_new_choice:
-            messages.info(request, "We found your existing record. Your request will be treated as an already admitted student.")
+        # Only treat as already admitted if student is already admitted to this specific service
+        is_already_in_this_service = False
+        if has_profile and (profile.status == 'admitted' or profile.is_admitted):
+            if service_type == 'Coaching' and profile.service_type in ['Coaching', 'Both']:
+                is_already_in_this_service = True
+            elif service_type == 'Library' and profile.service_type in ['Library', 'Both']:
+                is_already_in_this_service = True
+
+        if is_already_in_this_service and is_new_choice:
+            messages.info(request, "We found your existing record for this service. Your request will be treated as an already admitted student.")
             is_new_choice = False
 
         # Duplicate check: only warn if student is ALREADY ADMITTED to this exact service and exact same seat/batch
@@ -6521,12 +6528,7 @@ def get_teacher_seat_status_api(request):
                 names.append(full_label)
                 student_ids.append(s.id)
 
-            photo_url = None
-            if s.photo:
-                try:
-                    photo_url = s.photo.url
-                except (ValueError, AttributeError):
-                    photo_url = None
+            photo_url = s.photo_url if s else "/static/data/default_avatar.png"
 
             has_upcoming_hold = bool(a.hold_status != 'active' and a.hold_start_date and a.hold_start_date > today)
             hold_start_iso = a.hold_start_date.isoformat() if (a.hold_status == 'active' or has_upcoming_hold) and a.hold_start_date else None
@@ -6546,7 +6548,8 @@ def get_teacher_seat_status_api(request):
                 "is_pending": is_pending,
                 "is_active": not is_pending,
                 "created_at": a.created_at.isoformat() if a.created_at else None,
-                "photo_url": photo_url
+                "photo_url": photo_url,
+                "sex": s.sex if s else "Other"
             }
 
         # Process assignments to build the name list and modal data
@@ -6563,12 +6566,7 @@ def get_teacher_seat_status_api(request):
             full_label = f"{s.full_name} (Full • Hold({days}))"
             names.append(full_label)
             student_ids.append(s.id)
-            photo_url = None
-            if s.photo:
-                try:
-                    photo_url = s.photo.url
-                except Exception:
-                    photo_url = None
+            photo_url = s.photo_url if s else "/static/data/default_avatar.png"
             has_seat_upcoming_hold = bool(seat.hold_status != 'active' and seat.hold_start_date and seat.hold_start_date > today)
             seat_hold_start_iso = seat.hold_start_date.isoformat() if (seat.hold_status == 'active' or has_seat_upcoming_hold) and seat.hold_start_date else None
             seat_hold_end_iso = seat.hold_end_date.isoformat() if (seat.hold_status == 'active' or has_seat_upcoming_hold) and seat.hold_end_date else None
@@ -6586,7 +6584,8 @@ def get_teacher_seat_status_api(request):
                 "is_pending": False,
                 "is_active": True,
                 "created_at": None,
-                "photo_url": photo_url
+                "photo_url": photo_url,
+                "sex": s.sex if s else "Other"
             })
 
         # --- PROCESS PENDING SPECIAL REQUESTS (Temporary/Partial) ---
@@ -6597,6 +6596,8 @@ def get_teacher_seat_status_api(request):
             s_name = s.full_name if s else (user.username if user else "Unknown")
             s_id = s.id if s else None
             s_status = s.status if s else 'pending'
+            s_photo = s.photo_url if s else "/static/data/default_avatar.png"
+            s_sex = s.sex if s else "Other"
             
             # Construct a visual object compatible with the frontend
             visual_data.append({
@@ -6611,13 +6612,17 @@ def get_teacher_seat_status_api(request):
                 "is_active": False,
                 "created_at": req.created_at.isoformat(),
                 "request_id": req.id,
-                "is_special_request": True
+                "is_special_request": True,
+                "photo_url": s_photo,
+                "sex": s_sex
             })
 
         # --- PROCESS PENDING SWITCH REQUESTS ---
         for sreq in pending_switches:
             st = sreq.student
             st_name = st.full_name if st else "Unknown"
+            st_photo = st.photo_url if st else "/static/data/default_avatar.png"
+            st_sex = st.sex if st else "Other"
             visual_data.append({
                 "student_id": st.id if st else None,
                 "student_name": st_name,
@@ -6630,7 +6635,9 @@ def get_teacher_seat_status_api(request):
                 "is_active": False,
                 "created_at": sreq.created_at.isoformat() if hasattr(sreq, 'created_at') else None,
                 "request_id": sreq.id,
-                "is_switch_request": True
+                "is_switch_request": True,
+                "photo_url": st_photo,
+                "sex": st_sex
             })
 
         # --- 3. DERIVE SEAT STATUS (For coloring) ---
@@ -9726,6 +9733,16 @@ def api_student_quick_profile(request, student_id):
         active_assign = student.seat_assignments.filter(is_active=True).first()
         shift_str = active_assign.shift_type if active_assign else student.shift
 
+        other_ach = StudentAchievement.objects.filter(user=student.user).first() if student.user else None
+        other_ach_info = None
+        if other_ach:
+            other_ach_info = {
+                'short_achievement': other_ach.short_achievement,
+                'current_post': other_ach.current_post,
+                'status': other_ach.status,
+                'status_display': other_ach.get_status_display(),
+            }
+
         data = {
             'id': student.id,
             'full_name': student.full_name or 'N/A',
@@ -9735,15 +9752,72 @@ def api_student_quick_profile(request, student_id):
             'dob': student.dob.strftime('%d %b %Y') if student.dob else 'Not set',
             'sex': student.sex or 'Not set',
             'service_type': student.get_service_type_display(),
-            'batch': student.get_batch_display() if student.service_type == 'Coaching' else None,
+            'has_coaching': bool(student.service_type in ['Coaching', 'Both'] or student.batch or student.coaching_pending),
+            'has_library': bool(student.service_type in ['Library', 'Both'] or student.seat or student.library_pending),
+            'coaching_pending': student.coaching_pending,
+            'library_pending': student.library_pending,
+            'batch': student.get_batch_display() if (student.service_type in ['Coaching', 'Both'] or student.batch) else None,
             'floor': floor_str,
             'seat': seat_str,
             'shift': shift_str or 'full',
+            'admission_type': student.admission_type,
+            'admission_type_display': student.get_admission_type_display(),
             'mobile_number': student.mobile_number or 'Not provided',
             'whatsapp_number': student.whatsapp_number or student.mobile_number or 'Not provided',
             'email': student.user.email if student.user and student.user.email else (student.email or 'Not provided'),
+            'other_achievement': other_ach_info,
         }
         return JsonResponse({'status': 'success', 'student': data})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def api_alumni_quick_profile(request, achievement_id):
+    """
+    Returns full alumni/achievement details JSON for the quick preview modal on teacher pages.
+    """
+    try:
+        ach = StudentAchievement.objects.select_related('user').filter(id=achievement_id).first()
+        if not ach:
+            return JsonResponse({'status': 'error', 'message': 'Alumni profile not found.'}, status=404)
+
+        other_profile = StudentProfile.objects.filter(user=ach.user).first() if ach.user else None
+        other_student_info = None
+        if other_profile:
+            other_student_info = {
+                'service_type': other_profile.get_service_type_display(),
+                'status': other_profile.status,
+                'status_display': other_profile.get_status_display(),
+                'batch': other_profile.get_batch_display() if (other_profile.service_type in ['Coaching', 'Both'] or other_profile.batch) else None,
+                'seat': f"{other_profile.seat.floor[:1]}-{other_profile.seat.seat_number}" if other_profile.seat else None,
+            }
+
+        data = {
+            'id': ach.id,
+            'full_name': ach.full_name,
+            'photo_url': ach.photo_url or '',
+            'status': ach.status,
+            'status_display': ach.get_status_display(),
+            'dob': ach.dob.strftime('%d %b %Y') if ach.dob else 'Not set',
+            'gender': ach.gender or 'Not set',
+            'current_post': ach.current_post,
+            'selection_year': ach.selection_year,
+            'working_city': ach.working_city,
+            'short_achievement': ach.short_achievement,
+            'services_used': ach.get_services_used_display(),
+            'duration': f"{ach.duration_years} Years, {ach.duration_days} Days",
+            'mobile_number': ach.mobile_number or 'Not provided',
+            'whatsapp_number': ach.whatsapp_number or ach.mobile_number or 'Not provided',
+            'email': ach.user.email if ach.user and ach.user.email else (ach.email or 'Not provided'),
+            'rating': ach.rating,
+            'about_yourself': ach.about_yourself,
+            'experience_feedback': ach.experience_feedback,
+            'abcd_feedback': ach.abcd_feedback,
+            'other_student_info': other_student_info,
+        }
+        return JsonResponse({'status': 'success', 'alumni': data})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
@@ -10166,18 +10240,25 @@ def _do_approve_student(request, student_id):
                         seat_to_free.status = 'available'
                         seat_to_free.save(update_fields=['status'])
 
-                if student.coaching_pending:
+                service_scope = request.POST.get('service_scope') or request.GET.get('service_scope')
+                if service_scope == 'coaching' or (student.coaching_pending and not student.library_pending):
                     student.coaching_pending = False
-                    if student.service_type == 'Library':
+                    if student.service_type in ['Library', 'Both']:
                         student.service_type = 'Both'
                     else:
                         student.service_type = 'Coaching'
-                elif student.library_pending:
+                elif service_scope == 'library' or (student.library_pending and not student.coaching_pending):
                     student.library_pending = False
-                    if student.service_type == 'Coaching':
+                    if student.service_type in ['Coaching', 'Both']:
                         student.service_type = 'Both'
                     else:
                         student.service_type = 'Library'
+                else:
+                    if student.coaching_pending:
+                        student.coaching_pending = False
+                    if student.library_pending:
+                        student.library_pending = False
+                    student.service_type = 'Both'
 
                 from django.utils import timezone
                 student.status = 'admitted'
@@ -10261,6 +10342,7 @@ def _do_approve_student(request, student_id):
                 )
 
             notifications.broadcast_seat_update()
+            cache.delete(f"student_context_data_{student.user_id}")
             if is_ajax:
                 return JsonResponse({'status': 'success', 'message': 'Student approved successfully.'})
             return redirect('users:teacher_dashboard')
@@ -10285,10 +10367,15 @@ def _do_approve_student(request, student_id):
 def delete_student_view(request, student_id):
     """
     Teacher-only view to delete a student's service or completely wipe them.
-    Supports granular deletion via 'delete_scope' POST parameter.
+    Supports granular deletion via 'delete_scope' POST parameter:
+      - 'coaching': Remove coaching service only (clear pending flag / revert service_type)
+      - 'library': Remove library service only (clear pending flag, free seat, revert service_type)
+      - 'admission': Delete entire StudentProfile
+      - 'alumni': Delete StudentAchievement only
+      - 'complete': Delete both StudentProfile and StudentAchievement
     """
     if request.method == 'POST':
-        delete_scope = request.POST.get('delete_scope', 'complete')  # alumni, admission, complete
+        delete_scope = request.POST.get('delete_scope', 'complete')
         
         def decouple_chats_for_achievement(ach):
             from .models import GuidanceRequest, ChatSession
@@ -10305,8 +10392,6 @@ def delete_student_view(request, student_id):
                     pass
 
         with transaction.atomic():
-            # Handle user lookup by either student_id (StudentProfile PK) or potentially User PK
-            # If student_id is from StudentProfile:
             student = StudentProfile.objects.filter(id=student_id).select_related('user', 'seat').first()
             achievement = None
             user = None
@@ -10315,27 +10400,108 @@ def delete_student_view(request, student_id):
                 user = student.user
                 achievement = StudentAchievement.objects.filter(user=user).first()
             else:
-                # Try finding by User ID if student profile not found (might be only alumni)
                 user = get_object_or_404(User, id=student_id)
                 achievement = StudentAchievement.objects.filter(user=user).first()
 
             full_name = student.full_name if student else (f"{achievement.first_name} {achievement.last_name}" if achievement else user.username)
 
             next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('users:teacher_dashboard')
-            # Prevent 404 crash: never redirect back to the student details page of a deleted student
             if next_url and (f"/teacher/student/{student_id}" in next_url or f"/student/{student_id}" in next_url):
                 next_url = reverse('users:teacher_dashboard')
+
+            # --- GRANULAR SERVICE DELETION: coaching only ---
+            if delete_scope == 'coaching' and student:
+                student.coaching_pending = False
+                if student.service_type == 'Both':
+                    student.service_type = 'Library'
+                elif student.service_type == 'Coaching':
+                    # Was ONLY coaching — check if also library_pending
+                    if student.library_pending:
+                        student.service_type = 'Library'
+                        student.status = 'pending'
+                    else:
+                        # No other service at all — delete entire profile
+                        if student.photo:
+                            student.photo.delete(save=False)
+                        student.delete()
+                        messages.success(request, f"Coaching record for {full_name} deleted (no other service).")
+                        cache.delete(f"student_context_data_{user.id}")
+                        return redirect(next_url)
+                student.batch = None
+                student.save()
+                cache.delete(f"student_context_data_{user.id}")
+                messages.success(request, f"Coaching service removed for {full_name}.")
+                return redirect(next_url)
+
+            # --- GRANULAR SERVICE DELETION: library only ---
+            if delete_scope == 'library' and student:
+                student.library_pending = False
+                involved_seat_ids = set()
+                if student.service_type == 'Both':
+                    student.service_type = 'Coaching'
+                elif student.service_type == 'Library':
+                    if student.coaching_pending:
+                        student.service_type = 'Coaching'
+                        student.status = 'pending'
+                    else:
+                        # No other service — delete entire profile
+                        if student.seat_id:
+                            involved_seat_ids.add(student.seat_id)
+                        for sa in SeatAssignment.objects.filter(student=student):
+                            involved_seat_ids.add(sa.seat_id)
+                        Seat.objects.filter(hold_student=student).update(
+                            hold_student=None, status='available',
+                            hold_status='none', hold_start_date=None, hold_end_date=None
+                        )
+                        if student.photo:
+                            student.photo.delete(save=False)
+                        student.delete()
+                        for seat_id in involved_seat_ids:
+                            if seat_id:
+                                try:
+                                    Seat.objects.get(id=seat_id).recalculate_status()
+                                except Exception:
+                                    pass
+                        messages.success(request, f"Library record for {full_name} deleted (no other service).")
+                        notifications.broadcast_seat_update()
+                        cache.delete(f"student_context_data_{user.id}")
+                        return redirect(next_url)
+
+                # Free the library seat
+                if student.seat_id:
+                    involved_seat_ids.add(student.seat_id)
+                for sa in SeatAssignment.objects.filter(student=student):
+                    involved_seat_ids.add(sa.seat_id)
+                    sa.deactivate()
+                SeatAssignment.objects.filter(student=student).delete()
+                Seat.objects.filter(hold_student=student).update(
+                    hold_student=None, status='available',
+                    hold_status='none', hold_start_date=None, hold_end_date=None
+                )
+                student.seat = None
+                student.shift = 'full'
+                student.save()
+                for seat_id in involved_seat_ids:
+                    if seat_id:
+                        try:
+                            Seat.objects.get(id=seat_id).recalculate_status()
+                        except Exception:
+                            pass
+                cache.delete(f"student_context_data_{user.id}")
+                messages.success(request, f"Library service removed for {full_name}.")
+                notifications.broadcast_seat_update()
+                return redirect(next_url)
 
             if delete_scope == 'alumni' and achievement:
                 decouple_chats_for_achievement(achievement)
                 if achievement.photo:
                     achievement.photo.delete(save=False)
                 achievement.delete()
+                cache.delete(f"student_context_data_{user.id}")
                 messages.success(request, f"Alumni record for {full_name} deleted.")
                 return redirect(next_url)
 
             elif delete_scope == 'admission' and student:
-                # 2. Get all seats this student is currently assigned to or interested in
                 involved_seat_ids = set()
                 if student.seat_id:
                     involved_seat_ids.add(student.seat_id)
@@ -10344,7 +10510,6 @@ def delete_student_view(request, student_id):
                 for sa in assignments:
                     involved_seat_ids.add(sa.seat_id)
                 
-                # 3. Explicitly clear Seat holds
                 Seat.objects.filter(hold_student=student).update(
                     hold_student=None, 
                     status='available', 
@@ -10355,9 +10520,8 @@ def delete_student_view(request, student_id):
                 
                 if student.photo:
                     student.photo.delete(save=False)
-                student.delete() # Only delete the admission profile
+                student.delete()
                 
-                # Recalculate seats
                 for seat_id in involved_seat_ids:
                     if seat_id:
                         try:
@@ -10365,13 +10529,13 @@ def delete_student_view(request, student_id):
                             s.recalculate_status()
                         except: pass
                 
+                cache.delete(f"student_context_data_{user.id}")
                 messages.success(request, f"Admission record for {full_name} deleted.")
                 notifications.broadcast_seat_update()
                 return redirect(next_url)
 
             else: # Complete wipe
                 if user:
-                    # Explicitly clear Seat holds if this student is the hold owner
                     if student:
                         Seat.objects.filter(hold_student=student).update(
                             hold_student=None, 
@@ -10380,7 +10544,6 @@ def delete_student_view(request, student_id):
                             hold_start_date=None,
                             hold_end_date=None
                         )
-                    # Delete profiles to push them back to guest page
                     if student:
                         if student.photo:
                             student.photo.delete(save=False)
@@ -10390,6 +10553,7 @@ def delete_student_view(request, student_id):
                         if achievement.photo:
                             achievement.photo.delete(save=False)
                         achievement.delete()
+                    cache.delete(f"student_context_data_{user.id}")
                     messages.success(request, f"Student {full_name} admission and achievements deleted. Account preserved as guest.")
                     notifications.broadcast_seat_update()
                 else:
@@ -12092,14 +12256,16 @@ def hall_of_fame_view(request):
         'notifications': notifications,
         'unread_count': unread_count,
     })
-
 @staff_member_required
 @require_POST
 def delete_achievement(request, pk):
     """Permanently delete an achievement record."""
     achievement = get_object_or_404(StudentAchievement, pk=pk)
     name = f"{achievement.first_name} {achievement.last_name}"
+    user_id = achievement.user_id
     achievement.delete()
+    if user_id:
+        cache.delete(f"student_context_data_{user_id}")
     messages.success(request, f"Deleted achievement record for {name}.")
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('users:hall_of_fame')
     return redirect(next_url)

@@ -4400,11 +4400,9 @@
       <a href="{% url 'users:courses' %}"
         class="nav-hide-1020 {% if 'course' in request.resolver_match.url_name %}active{% endif %}">{% if profile.status == 'admitted' and not nav_achievement %}Courses{% else %}Our Courses{% endif %}</a>
 
-      {% if not is_approved_coaching or not is_approved_library %}
-        {% if not has_pending_coaching or not has_pending_library %}
-          <a href="{% url 'users:admission_form' %}"
-            class="nav-hide-1460 {% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">{% if profile.status == 'admitted' and not nav_achievement %}New Admission{% else %}Admission{% endif %}</a>
-        {% endif %}
+      {% if can_apply_admission %}
+        <a href="{% url 'users:admission_form' %}"
+          class="nav-hide-1460 {% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">{% if profile.status == 'admitted' and not nav_achievement %}New Admission{% else %}Admission{% endif %}</a>
       {% endif %}
 
       {% if user.is_authenticated %}
@@ -4500,7 +4498,7 @@
           <span>Our Courses</span>
         </a>
       </li>
-      {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+      {% if can_apply_admission %}
       <li>
         <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
           <i class='bx bx-file'></i>
@@ -4634,7 +4632,7 @@
       </li>
 
       <!-- 7. Your Performance (if Coaching) -->
-      {% if request.session.active_dashboard != 'alumni' and profile and profile.service_type == 'Coaching' %}
+      {% if request.session.active_dashboard != 'alumni' and profile.service_type == 'Coaching' or request.session.active_dashboard != 'alumni' and profile.service_type == 'Both' or request.session.active_dashboard != 'alumni' and is_approved_coaching %}
       <li>
         <a href="#student-performance-hub" onclick="document.getElementById('student-performance-hub')?.scrollIntoView({ behavior: 'smooth' }); if(document.getElementById('sidebar')?.classList.contains('active')) { toggleSidebar(); } return false;">
           <i class='bx bxs-trophy'></i>
@@ -4644,7 +4642,7 @@
       {% endif %}
 
       <!-- 8. New Admission -->
-      {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+      {% if can_apply_admission %}
       <li>
         <a href="{% url 'users:admission_form' %}" class="{% if request.resolver_match.url_name == 'admission_form' %}active{% endif %}">
           <i class='bx bxs-user-plus'></i>
@@ -4949,7 +4947,7 @@
       </a>
 
       <!-- 5. Library Status (if student is of library) -->
-      {% if profile.service_type == 'Library' %}
+      {% if profile.service_type == 'Library' or profile.service_type == 'Both' or is_approved_library %}
         {% if profile.has_library_seat %}
         <a href="{% url 'users:your_seat_status' %}" class="app-card">
           <i class='bx bx-chair'></i>
@@ -4986,7 +4984,7 @@
       {% endif %}
 
       <!-- 8. New Admission -->
-      {% if not is_approved_coaching and not has_pending_coaching or not is_approved_library and not has_pending_library %}
+      {% if can_apply_admission %}
       <a href="{% url 'users:admission_form' %}" class="app-card">
         <i class='bx bx-user-plus'></i>
         <span>New Admission</span>
@@ -5000,7 +4998,7 @@
       </a>
 
       <!-- 10. Your Progress (if coaching student) -->
-      {% if profile.service_type == 'Coaching' %}
+      {% if profile.service_type == 'Coaching' or profile.service_type == 'Both' or is_approved_coaching %}
       <a href="#student-performance-hub" class="app-card" onclick="document.getElementById('student-performance-hub')?.scrollIntoView({ behavior: 'smooth' }); return false;">
         <i class='bx bx-trending-up'></i>
         <span>Your Progress</span>
@@ -5146,7 +5144,7 @@
     {% endif %}
 
     <!-- 🏆 STUDENT LEADERBOARD SECTION -->
-    {% if profile.service_type == 'Coaching' %}
+    {% if profile.service_type == 'Coaching' or profile.service_type == 'Both' or is_approved_coaching and profile.batch %}
     <div id="student-performance-hub" style="margin: 40px auto; max-width: 850px; width: calc(100% - 30px);">
       {% if has_performance %}
       <section class="leaderboard-section" id="studentLeaderboardWrapper" style="position: relative;">
@@ -5266,10 +5264,12 @@
           <i class='bx bx-home-alt-2'></i>
           <span>Home</span>
       </a>
+      {% if can_apply_admission %}
       <a href="{% url 'users:admission_form' %}" class="bnav-item" title="Admission">
           <i class='bx bx-file'></i>
           <span>Admission</span>
       </a>
+      {% endif %}
       <button class="bnav-search-btn" id="bnavSearchBtn" title="Search" aria-label="Open search">
           <div class="bnav-search-circle">
               <i class='bx bx-search'></i>
@@ -5306,7 +5306,7 @@
           <i class='bx bx-home-alt-2'></i>
           <span>Home</span>
       </a>
-      {% if profile.service_type == 'Library' %}
+      {% if profile.service_type == 'Library' or profile.service_type == 'Both' or is_approved_library %}
         {% if profile.has_library_seat or profile.seat %}
         <a href="{% url 'users:your_seat_status' %}" class="bnav-item" title="Seat Status">
             <i class='bx bx-chair'></i>

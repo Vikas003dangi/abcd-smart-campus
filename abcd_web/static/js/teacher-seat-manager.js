@@ -2268,6 +2268,16 @@ document.addEventListener('DOMContentLoaded', () => {
       };
       window._btn = btn; // Export for internal use
 
+      // Helper to resolve student photo or gender avatar
+      const getStudentAvatarSrc = (item) => {
+        if (item && item.photo_url && item.photo_url.trim() && !item.photo_url.includes('default_avatar.png')) {
+          return item.photo_url;
+        }
+        const isFemale = item && item.sex && (String(item.sex).toLowerCase() === 'female' || String(item.sex).toLowerCase() === 'f');
+        return isFemale ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png';
+      };
+
+
       // Analyze Shift State
       const morning = assignments.find(a => a.shift === 'morning');
       const evening = assignments.find(a => a.shift === 'evening');
@@ -2366,10 +2376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div>
                         <div style="display:flex; align-items:center; gap:12px;">
                             <div class="request-avatar-wrap">
-                                ${p.photo_url 
-                                    ? `<img src="${p.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                                    : `<i class='bx bxs-user' style="font-size:1.5rem; color:#cbd5e1;"></i>`
-                                }
+                                <img src="${getStudentAvatarSrc(p)}" style="width:100%; height:100%; object-fit:cover;">
                             </div>
                             <div>
                                 <p class="request-student-name">
@@ -2416,10 +2423,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="shift-block" style="background:#f5f5f5; padding:12px 15px; margin-bottom:10px; border-radius:8px;">
                     <div style="display:flex; align-items:center; gap:12px;">
                         <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.1); flex-shrink:0; background:#fff; display:flex; align-items:center; justify-content:center;">
-                            ${a.photo_url 
-                                ? `<img src="${a.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                                : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
-                            }
+                            <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                         <div>
                           <p style="margin:0; font-size:0.9rem;"><strong>${label}</strong>: ${statusStr}</p>
@@ -2556,17 +2560,11 @@ document.addEventListener('DOMContentLoaded', () => {
             title = `Seat ${getFormattedSeatNumber(seatNumber)} - Hold + Temp`;
             const ownerPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    ${owner.photo_url 
-                        ? `<img src="${owner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                        : `<i class='bx bxs-user' style="font-size:1.1rem; color:#cbd5e1;"></i>`
-                    }
+                    <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
                 </div>`;
             const tenantPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    ${tenant.photo_url 
-                        ? `<img src="${tenant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                        : `<i class='bx bxs-user' style="font-size:1.1rem; color:#cbd5e1;"></i>`
-                    }
+                    <img src="${getStudentAvatarSrc(tenant)}" style="width:100%; height:100%; object-fit:cover;">
                 </div>`;
 
             content = `
@@ -2598,17 +2596,11 @@ document.addEventListener('DOMContentLoaded', () => {
             title = `Seat ${getFormattedSeatNumber(seatNumber)} - On Hold (Temp Pending)`;
             const ownerPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    ${owner.photo_url 
-                        ? `<img src="${owner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                        : `<i class='bx bxs-user' style="font-size:1.1rem; color:#cbd5e1;"></i>`
-                    }
+                    <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
                 </div>`;
             const pendingPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #ec4899; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    ${pendingTenant.photo_url 
-                        ? `<img src="${pendingTenant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                        : `<i class='bx bxs-user' style="font-size:1.1rem; color:#cbd5e1;"></i>`
-                    }
+                    <img src="${getStudentAvatarSrc(pendingTenant)}" style="width:100%; height:100%; object-fit:cover;">
                 </div>`;
 
             content = `
@@ -2640,10 +2632,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title = `Seat ${getFormattedSeatNumber(seatNumber)} - On Hold`;
             const ownerPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    ${owner.photo_url 
-                        ? `<img src="${owner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                        : `<i class='bx bxs-user' style="font-size:1.1rem; color:#cbd5e1;"></i>`
-                    }
+                    <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
                 </div>`;
 
             content = `
@@ -2677,10 +2666,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Occupied`;
               const photoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      ${regularOccupant.photo_url 
-                          ? `<img src="${regularOccupant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                          : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
-                      }
+                      <img src="${getStudentAvatarSrc(regularOccupant)}" style="width:100%; height:100%; object-fit:cover;">
                   </div>`;
 
               content = `
@@ -2708,10 +2694,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Occupied`;
               const photoHtml = `
                   <div style="width:50px; height:50px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 4px 10px rgba(99,102,241,0.2); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      ${regularOccupant.photo_url 
-                          ? `<img src="${regularOccupant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                          : `<i class='bx bxs-user' style="font-size:1.8rem; color:#cbd5e1;"></i>`
-                      }
+                      <img src="${getStudentAvatarSrc(regularOccupant)}" style="width:100%; height:100%; object-fit:cover;">
                   </div>`;
 
               content = `
@@ -2738,10 +2721,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const photoHtml = `
                 <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    ${a.photo_url 
-                        ? `<img src="${a.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                        : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
-                    }
+                    <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
                 </div>`;
 
             if (hasScheduledHold) {
@@ -2851,10 +2831,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `
                   <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
                       <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid ${borderHex}; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                          ${owner.photo_url 
-                              ? `<img src="${owner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                              : `<i class='bx bxs-user' style="font-size:1.1rem; color:#cbd5e1;"></i>`
-                          }
+                          <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
                       </div>
                       <div>
                         <p style="margin:0; font-size:0.9rem; color:var(--text-main);">On Hold by <strong>${ownerName}</strong> (${owner.hold_days || 0} days left)</p>
@@ -2875,10 +2852,7 @@ document.addEventListener('DOMContentLoaded', () => {
               // Render Temporary Tenant Row
               const tempPhotoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      ${a.photo_url 
-                          ? `<img src="${a.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                          : `<i class='bx bxs-user' style="font-size:1.4rem; color:#cbd5e1;"></i>`
-                      }
+                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
                   </div>`;
               
               content += `
@@ -2910,10 +2884,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Temporary Tenant (No Owner)`;
               const tempPhotoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      ${a.photo_url 
-                          ? `<img src="${a.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                          : `<i class='bx bxs-user' style="font-size:1.4rem; color:#cbd5e1;"></i>`
-                      }
+                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
                   </div>`;
               content = `
                 <div class="shift-block" style="background: rgba(52, 152, 219, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(52, 152, 219, 0.15);">
@@ -2937,10 +2908,7 @@ document.addEventListener('DOMContentLoaded', () => {
               
               const ownerPhotoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      ${a.photo_url 
-                          ? `<img src="${a.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                          : `<i class='bx bxs-user' style="font-size:1.4rem; color:#cbd5e1;"></i>`
-                      }
+                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
                   </div>`;
                   
               const holdEndLabelFull = a.hold_end_date
@@ -2966,10 +2934,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (mTenant) {
                   const mTenantPhotoHtml = `
                       <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                          ${mTenant.photo_url 
-                              ? `<img src="${mTenant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                              : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
-                          }
+                          <img src="${getStudentAvatarSrc(mTenant)}" style="width:100%; height:100%; object-fit:cover;">
                       </div>`;
                   content += `
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">Morning: <span style="color:#3498db;">Temp</span></p>
@@ -2995,10 +2960,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (eTenant) {
                   const eTenantPhotoHtml = `
                       <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                          ${eTenant.photo_url 
-                              ? `<img src="${eTenant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                              : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
-                          }
+                          <img src="${getStudentAvatarSrc(eTenant)}" style="width:100%; height:100%; object-fit:cover;">
                       </div>`;
                   content += `
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">Evening: <span style="color:#3498db;">Temp</span></p>
@@ -3034,10 +2996,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Full Day`;
               const photoHtml = `
                   <div style="width:50px; height:50px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 4px 10px rgba(99,102,241,0.2); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      ${a.photo_url 
-                          ? `<img src="${a.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                          : `<i class='bx bxs-user' style="font-size:1.8rem; color:#cbd5e1;"></i>`
-                      }
+                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
                   </div>`;
               content = `
                 <div class="shift-block occupied" style="padding:15px; margin-bottom:15px;">
@@ -3104,10 +3063,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ownerName = escapeHTML(abcdFormatName(owner.student_name));
                 const photoHtml = `
                     <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid ${owner.hold_status === 'active' ? '#f39c12' : '#6366f1'}; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        ${owner.photo_url 
-                            ? `<img src="${owner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                            : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
-                        }
+                        <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
                     </div>`;
 
                 if (owner.hold_status === 'active') {
@@ -3162,17 +3118,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tenantName = escapeHTML(abcdFormatName(tenant.student_name));
                 const ownerPhotoHtml = `
                     <div style="width:28px; height:28px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        ${owner.photo_url 
-                            ? `<img src="${owner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                            : `<i class='bx bxs-user' style="font-size:1rem; color:#cbd5e1;"></i>`
-                        }
+                        <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
                     </div>`;
                 const tenantPhotoHtml = `
                     <div style="width:28px; height:28px; border-radius:50%; overflow:hidden; border:2px solid #3498db; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        ${tenant.photo_url 
-                            ? `<img src="${tenant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                            : `<i class='bx bxs-user' style="font-size:1rem; color:#cbd5e1;"></i>`
-                        }
+                        <img src="${getStudentAvatarSrc(tenant)}" style="width:100%; height:100%; object-fit:cover;">
                     </div>`;
 
                 const holdEndLabelHT = owner.hold_end_date
@@ -3204,10 +3154,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tenantName = escapeHTML(abcdFormatName(tenant.student_name));
                 const tenantPhotoHtml = `
                     <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        ${tenant.photo_url 
-                            ? `<img src="${tenant.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                            : `<i class='bx bxs-user' style="font-size:1.2rem; color:#cbd5e1;"></i>`
-                        }
+                        <img src="${getStudentAvatarSrc(tenant)}" style="width:100%; height:100%; object-fit:cover;">
                     </div>`;
 
                 content += `
@@ -3298,10 +3245,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div>
                     <div style="display:flex; align-items:center; gap:12px;">
                         <div class="request-avatar-wrap">
-                            ${p.photo_url 
-                                ? `<img src="${p.photo_url}" style="width:100%; height:100%; object-fit:cover;">` 
-                                : `<i class='bx bxs-user' style="font-size:1.5rem; color:#cbd5e1;"></i>`
-                            }
+                            <img src="${getStudentAvatarSrc(p)}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                         <div>
                             <p class="request-student-name">
@@ -4416,31 +4360,47 @@ document.addEventListener('DOMContentLoaded', () => {
       const shiftLabel = shiftDisplayMap[(s.shift || '').toLowerCase()] || (s.shift || 'Full Day');
 
       let serviceDetailsHtml = '';
-      if ((s.service_type || '').toLowerCase() === 'coaching') {
-        serviceDetailsHtml = `
+      if (s.has_coaching) {
+        const coachingVal = s.batch ? escapeHTML(s.batch) : (s.coaching_pending ? '<span style="color:#d97706; font-weight:700;">Pending Request</span>' : 'Not assigned');
+        serviceDetailsHtml += `
           <div class="detail-row">
-            <span class="detail-label"><i class='bx bx-book-bookmark'></i> Batch</span>
-            <span class="detail-value">${escapeHTML(s.batch || 'Not assigned')}</span>
+            <span class="detail-label"><i class='bx bx-book-bookmark'></i> Coaching Batch</span>
+            <span class="detail-value">${coachingVal}</span>
           </div>`;
-      } else {
-        serviceDetailsHtml = `
+      }
+      if (s.has_library) {
+        const seatVal = s.seat && s.seat !== 'Not assigned' ? escapeHTML(s.seat) : (s.library_pending ? '<span style="color:#d97706; font-weight:700;">Pending Request</span>' : 'Not assigned');
+        serviceDetailsHtml += `
           <div class="detail-row">
-            <span class="detail-label"><i class='bx bx-building'></i> Floor</span>
+            <span class="detail-label"><i class='bx bx-building'></i> Library Floor</span>
             <span class="detail-value">${escapeHTML(s.floor || 'Not assigned')}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label"><i class='bx bx-chair'></i> Seat</span>
-            <span class="detail-value" style="font-weight: 700; color: #4f46e5;">${escapeHTML(s.seat || 'N/A')}</span>
+            <span class="detail-label"><i class='bx bx-chair'></i> Library Seat</span>
+            <span class="detail-value" style="font-weight: 700; color: #4f46e5;">${seatVal}</span>
           </div>
           <div class="detail-row">
-            <span class="detail-label"><i class='bx bx-time-five'></i> Shift</span>
+            <span class="detail-label"><i class='bx bx-time-five'></i> Library Shift</span>
             <span class="detail-value">${escapeHTML(shiftLabel)}</span>
           </div>`;
       }
+      if (!s.has_coaching && !s.has_library) {
+        serviceDetailsHtml += `
+          <div class="detail-row">
+            <span class="detail-label"><i class='bx bx-briefcase-alt'></i> Service</span>
+            <span class="detail-value">${escapeHTML(s.service_type || 'N/A')}</span>
+          </div>`;
+      }
 
-      const photoHtml = s.photo_url
-        ? `<img src="${s.photo_url}" alt="${formattedName}" style="width: 100%; height: 100%; object-fit: cover;">`
-        : `<i class='bx bxs-user' style="font-size: 3.5rem; color: #cbd5e1;"></i>`;
+      let extraBadge = '';
+      if (s.other_achievement) {
+        extraBadge = `<div style="margin-top: 10px; padding: 6px 12px; background: rgba(225, 29, 72, 0.08); border-radius: 8px; color: #e11d48; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(225, 29, 72, 0.2);">
+          🔴 Also Alumni: ${escapeHTML(s.other_achievement.short_achievement)} (${escapeHTML(s.other_achievement.status_display)})
+        </div>`;
+      }
+
+      const avatarSrc = s.photo_url || (String(s.sex || '').toLowerCase().includes('fem') ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png');
+      const photoHtml = `<img src="${avatarSrc}" alt="${formattedName}" style="width: 100%; height: 100%; object-fit: cover;">`;
 
       const profileContent = `
         <div class="profile-card-preview" style="text-align: center;">
@@ -4451,6 +4411,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="margin-bottom: 20px;">
             <span class="status-badge ${statusClass}">${statusLabel}</span>
           </div>
+          ${extraBadge}
 
           <div class="details-list">
             <div class="detail-row">

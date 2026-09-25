@@ -1824,8 +1824,17 @@ def get_profile_photo_url(user, dashboard_type=None):
         except Exception:
             pass
 
-    # Check direct gender attribute if present
+    # Check direct gender attribute if present or via linked profiles
     u_gender = (getattr(user, 'gender', None) or getattr(user, 'sex', None) or '').lower()
+    if not u_gender and user_pk:
+        prof = StudentProfile.objects.filter(user=user).first()
+        if prof and prof.sex:
+            u_gender = prof.sex.strip().lower()
+        if not u_gender:
+            ach_item = StudentAchievement.objects.filter(user=user).first()
+            if ach_item and ach_item.gender:
+                u_gender = ach_item.gender.strip().lower()
+
     if u_gender == 'male':
         return "/static/data/default_avatar_male.png"
     elif u_gender == 'female':

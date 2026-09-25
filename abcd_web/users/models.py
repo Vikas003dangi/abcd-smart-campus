@@ -297,6 +297,14 @@ class StudentProfile(models.Model):
     password_last_updated = models.DateTimeField(null=True, blank=True)
 
     @property
+    def first_name(self):
+        if self.full_name:
+            return self.full_name.strip().split()[0]
+        if self.user and self.user.first_name:
+            return self.user.first_name
+        return "Student"
+
+    @property
     def has_library_seat(self):
         """
         Check if the library student has a valid assigned seat.

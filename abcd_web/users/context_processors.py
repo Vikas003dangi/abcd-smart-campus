@@ -111,7 +111,7 @@ def student_context(request):
             profile = StudentProfile.objects.filter(user=request.user).first()
             if profile:
                 context['profile'] = profile
-                if profile.status == 'admitted':
+                if profile.status in ['admitted', 'on_hold'] or profile.is_admitted:
                     if profile.service_type in ['Coaching', 'Both']:
                         is_approved_coaching = True
                     if profile.service_type in ['Library', 'Both']:
@@ -132,6 +132,10 @@ def student_context(request):
                     has_pending_alumni = True
 
             is_dual = bool(profile and ach)
+            is_coaching_taken = is_approved_coaching or has_pending_coaching
+            is_library_taken = is_approved_library or has_pending_library
+            can_apply_admission = not (is_coaching_taken and is_library_taken)
+
             context.update({
                 'is_approved_coaching': is_approved_coaching,
                 'is_approved_library': is_approved_library,
@@ -139,6 +143,7 @@ def student_context(request):
                 'has_pending_coaching': has_pending_coaching,
                 'has_pending_library': has_pending_library,
                 'has_pending_alumni': has_pending_alumni,
+                'can_apply_admission': can_apply_admission,
                 'has_dual_profile': is_dual,
                 'is_dual_user': is_dual,
                 'has_student_profile': bool(profile),
