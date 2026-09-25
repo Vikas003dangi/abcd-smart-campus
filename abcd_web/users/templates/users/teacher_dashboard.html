@@ -3177,7 +3177,67 @@
 
     .student-info {
       color: #666;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      max-width: 100%;
+    }
+    .student-info .student-email {
+      display: block;
+      margin-top: 3px;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+      word-break: break-all;
+      color: inherit;
+    }
+    body.dark-theme .student-card .student-info {
+      color: #b0bec5;
+    }
+
+    .btn-view-profile {
+      background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+      color: #ffffff !important;
+      border: none !important;
+      padding: 5px 10px !important;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      text-decoration: none !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      width: auto !important;
+      max-width: max-content !important;
+      flex: 0 0 auto !important;
+      box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25) !important;
+      transition: all 0.2s ease !important;
+    }
+    .btn-view-profile:hover {
+      background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.35) !important;
+    }
+    .btn-fees-compact {
+      padding: 5px 10px !important;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      text-decoration: none !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      width: auto !important;
+      max-width: max-content !important;
+      flex: 0 0 auto !important;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25) !important;
+      transition: all 0.2s ease !important;
+    }
+    .btn-fees-compact:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35) !important;
     }
 
     /* Buttons */
@@ -8873,12 +8933,12 @@
               </div>
             </div>
             <div class="student-info">
-              📞 {{ student.mobile_number }}<br>
-              📧 {{ student.user.email|default:"No email" }}
+              <div>📞 {{ student.mobile_number }}</div>
+              <div class="student-email" title="{{ student.user.email|default:'No email' }}">📧 {{ student.user.email|default:"No email" }}</div>
             </div>
-            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px;">
-              <a href="{% url 'users:student_details' student.id %}" class="btn btn-primary" style="background: #3b82f6; color: white; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">👁 View</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">💰 Fees</a>
+            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
+              <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
+              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -8934,12 +8994,12 @@
               </div>
             </div>
             <div class="student-info">
-              📞 {{ student.mobile_number }}<br>
-              📧 {{ student.user.email|default:"No email" }}
+              <div>📞 {{ student.mobile_number }}</div>
+              <div class="student-email" title="{{ student.user.email|default:'No email' }}">📧 {{ student.user.email|default:"No email" }}</div>
             </div>
-            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px;">
-              <a href="{% url 'users:student_details' student.id %}" class="btn btn-primary" style="background: #3b82f6; color: white; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">👁 View</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">💰 Fees</a>
+            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
+              <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
+              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -8989,13 +9049,13 @@
             </div>
 
             <div class="student-info">
-              📞 {{ student.mobile_number }}<br>
-              📧 {{ student.user.email|default:"No email" }}
+              <div>📞 {{ student.mobile_number }}</div>
+              <div class="student-email" title="{{ student.user.email|default:'No email' }}">📧 {{ student.user.email|default:"No email" }}</div>
             </div>
 
-            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px;">
-              <a href="{% url 'users:student_details' student.id %}" class="btn btn-primary" style="background: #3b82f6; color: white; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">👁 View</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">💰 Fees</a>
+            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
+              <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
+              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -9039,15 +9099,15 @@
               </div>
             </div>
             <div class="student-info">
-              📞 {{ student.mobile_number }}<br>
-              📧 {{ student.user.email|default:"No email" }}
+              <div>📞 {{ student.mobile_number }}</div>
+              <div class="student-email" title="{{ student.user.email|default:'No email' }}">📧 {{ student.user.email|default:"No email" }}</div>
               {% if student.temp_hold_end %}
-              <br><span style="color: #c0305a; font-size: 0.82rem;">⏳ Temp ends: {{ student.temp_hold_end }}</span>
+              <div style="color: #c0305a; font-size: 0.82rem; margin-top: 3px;">⏳ Temp ends: {{ student.temp_hold_end }}</div>
               {% endif %}
             </div>
-            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px;">
-              <a href="{% url 'users:student_details' student.id %}" class="btn btn-primary" style="background: #3b82f6; color: white; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">👁 View</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">💰 Fees</a>
+            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
+              <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
+              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -9081,12 +9141,12 @@
               </div>
             </div>
             <div class="student-info">
-              📞 {{ student.mobile_number }}<br>
-              📧 {{ student.user.email|default:"No email" }}
+              <div>📞 {{ student.mobile_number }}</div>
+              <div class="student-email" title="{{ student.user.email|default:'No email' }}">📧 {{ student.user.email|default:"No email" }}</div>
             </div>
-            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px;">
-              <a href="{% url 'users:student_details' student.id %}" class="btn btn-primary" style="background: #3b82f6; color: white; padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">👁 View</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success" style="padding: 6px 14px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">💰 Fees</a>
+            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
+              <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
+              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
