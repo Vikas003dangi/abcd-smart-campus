@@ -1030,8 +1030,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.refreshTeacherSeatLayout = function(isSilent = true) {
     if (typeof loadSeatLayout === 'function') {
-      loadSeatLayout(currentFloor || 'Ground Floor', isSilent);
+      return loadSeatLayout(currentFloor || 'Ground Floor', isSilent);
     }
+    return Promise.resolve();
   };
 
   function updateLayout(floor, seats) {
@@ -2254,6 +2255,8 @@ document.addEventListener('DOMContentLoaded', () => {
           assignments: assignments
         };
       }
+      window._tsmCurrentSeatNumber = seatNumber;
+      window._tsmShowSeatDetails = showSeatDetails;
 
       // Helper to generate buttons
       const btn = (label, action, cls = 'btn-primary', payload = {}) => {
@@ -5756,35 +5759,69 @@ document.body.addEventListener('click', function (ev) {
 // TEACHER SEAT STATUS LIVE REAL-TIME ENGINE
 // ===================================================================
 (function initTeacherSeatRealtimeEngine() {
-  // 1. WebSocket Live Listener
-  try {
-    const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
-    const seatWs = new WebSocket(wsUrl);
 
-    seatWs.onmessage = function (e) {
-      try {
-        const data = JSON.parse(e.data);
-        if (data.type === 'dashboard_stats_update' || data.type === 'notification' || data.type === 'seat_update') {
-          if (typeof window.refreshTeacherSeatLayout === 'function') {
-            const hasOpenModal = document.querySelector('.abcd-modal-overlay.active, .modal.show, .custom-popup-overlay, #teacherPremiumSeatDetailsModal.open, #teacherPremiumSeatDetailsModal.active');
-            if (!hasOpenModal) {
-              window.refreshTeacherSeatLayout(true);
-            }
+  // Helper: refresh layout and, if a seat popup is open, silently
+  // re-render it so pending/approved changes appear instantly.
+  async function _liveRefresh() {
+    if (typeof window.refreshTeacherSeatLayout !== 'function') return;
+    try {
+      await window.refreshTeacherSeatLayout(true);
+    } catch (e) {
+      console.warn('_liveRefresh error:', e);
+    }
+
+    // If a seat-details popup is currently visible, re-populate it
+    // from the freshly-updated DOM so the teacher sees live changes.
+    const openModal = document.querySelector(
+      '#teacherPremiumSeatDetailsModal.open, #teacherPremiumSeatDetailsModal.active'
+    );
+    if (!openModal) return;
+
+    // currentSeatData is set by showSeatDetails when the popup opens;
+    // find the matching seat element (whose dataset was just refreshed
+    // by updateLayout) and feed it back into showSeatDetails.
+    const seatNum = window._tsmCurrentSeatNumber
+      || (typeof currentSeatData !== 'undefined' && currentSeatData && currentSeatData.seat_number);
+    if (!seatNum) return;
+
+    const seatEl = document.querySelector(`.seat[data-seat-id="${seatNum}"]`);
+    if (seatEl && typeof window._tsmShowSeatDetails === 'function') {
+      window._tsmShowSeatDetails(seatEl, false);  // re-populate with fresh dataset, keep modal open
+    }
+  }
+
+  // 1. WebSocket Live Listener with auto-reconnect
+  function connectWs() {
+    try {
+      const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsScheme}//${window.location.host}/ws/guidy/notifications/`;
+      const seatWs = new WebSocket(wsUrl);
+
+      seatWs.onmessage = function (e) {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === 'dashboard_stats_update' || data.type === 'notification' || data.type === 'seat_update') {
+            _liveRefresh();
           }
-        }
-      } catch (err) {}
-    };
-  } catch (e) {}
+        } catch (err) {}
+      };
+
+      seatWs.onclose = function () {
+        setTimeout(connectWs, 3000);
+      };
+
+      seatWs.onerror = function () {
+        try { seatWs.close(); } catch(e) {}
+      };
+    } catch (e) {
+      setTimeout(connectWs, 5000);
+    }
+  }
+  connectWs();
 
   // 2. Continuous Background Live Polling (every 5 seconds)
   setInterval(() => {
-    if (!document.hidden && typeof window.refreshTeacherSeatLayout === 'function') {
-      const hasOpenModal = document.querySelector('.abcd-modal-overlay.active, .modal.show, .custom-popup-overlay, #teacherPremiumSeatDetailsModal.open, #teacherPremiumSeatDetailsModal.active');
-      if (!hasOpenModal) {
-        window.refreshTeacherSeatLayout(true);
-      }
-    }
+    if (!document.hidden) _liveRefresh();
   }, 5000);
 })();
 

@@ -3786,7 +3786,7 @@ def admission_form_view(request):
                                     student_profile.status = 'pending'
                                 student_profile.save(update_fields=['seat', 'shift', 'status'])
 
-                                if not SeatSpecialRequest.objects.filter(seat=seat, requested_shift=selected_shift, status='pending').exists():
+                                if not SeatSpecialRequest.objects.filter(student=student_profile, seat=seat, requested_shift=selected_shift, status='pending').exists():
                                     SeatSpecialRequest.objects.create(
                                         student=student_profile, seat=seat, requested_shift=selected_shift, status='pending'
                                     )
@@ -3795,6 +3795,7 @@ def admission_form_view(request):
                                         message=f"Your temporary request for Seat {seat.seat_number} ({selected_shift}) has been submitted.",
                                         link="/dashboard/", category="seat"
                                     )
+                                    deferred_actions.append(lambda: notifications.broadcast_seat_update(floor=selected_floor))
                                     deferred_actions.append(lambda: send_admin_alert_email(
                                         subject="Temporary Seat Request Submitted",
                                         template="emails/admin_temp_seat_request.html",
@@ -3809,7 +3810,7 @@ def admission_form_view(request):
                                     submission_success_message = 'Temporary seat request submitted! Teacher will review it.' if has_profile else 'Temporary seat request submitted! Teacher will review it. Please log in again to check status.'
                                     final_redirect = 'users:student_dashboard' if has_profile else 'users:login'
                                 else:
-                                    raise ValidationError(f"A temporary request for Seat {seat.seat_number} ({selected_shift}) is already pending.")
+                                    raise ValidationError(f"You already have a temporary request for Seat {seat.seat_number} ({selected_shift}) pending.")
                             else:
                                 raise ValidationError("This seat is currently on hold. Use temporary seat request options.")
                         else:
@@ -3844,6 +3845,9 @@ def admission_form_view(request):
                                 message=f"Seat {seat.seat_number} ({selected_shift} shift) reserved pending teacher approval.",
                                 link="/dashboard/", category="seat"
                             )
+                            deferred_actions.append(lambda: notifications.broadcast_seat_update(floor=selected_floor))
+                            if old_seat and old_seat.floor != selected_floor:
+                                deferred_actions.append(lambda: notifications.broadcast_seat_update(floor=old_seat.floor))
                             deferred_actions.append(lambda: send_admin_alert_email(
                                 subject="Library Admission / Seat Request",
                                 template="emails/admin_library_request.html",
@@ -6398,6 +6402,8 @@ def get_teacher_seat_status_api(request):
         'special_requests',
         'special_requests__student',
         'special_requests__user',
+        'switch_requests',
+        'switch_requests__student',
     )
 
     today = timezone.localdate()
@@ -6416,12 +6422,16 @@ def get_teacher_seat_status_api(request):
         # Only consider it a pending request if the student is actually still seeking admission for THIS exact seat
         pending_assignments = [
             a for a in assignments_qs 
-            if not a.is_active and a.student.status == 'pending' and a.student.seat_id == seat.id
+            if not a.is_active and (a.student.status == 'pending' or getattr(a.student, 'library_pending', False)) and a.student.seat_id == seat.id
         ]
 
         # Check for pending special requests
-        pending_specials = seat.special_requests.filter(status='pending')
-        special_req_pending = pending_specials.exists()
+        pending_specials = list(seat.special_requests.filter(status='pending'))
+        special_req_pending = len(pending_specials) > 0
+
+        # Check for pending switch requests
+        pending_switches = list(seat.switch_requests.filter(status='pending'))
+        switch_req_pending = len(pending_switches) > 0
 
         # Check for valid holds on active assignments
         has_assignment_hold = any(a.hold_status == 'active' for a in active_assignments)
@@ -6604,12 +6614,31 @@ def get_teacher_seat_status_api(request):
                 "is_special_request": True
             })
 
+        # --- PROCESS PENDING SWITCH REQUESTS ---
+        for sreq in pending_switches:
+            st = sreq.student
+            st_name = st.full_name if st else "Unknown"
+            visual_data.append({
+                "student_id": st.id if st else None,
+                "student_name": st_name,
+                "student_status": st.status if st else 'pending',
+                "shift": sreq.target_shift or 'full',
+                "is_partial": sreq.is_temporary,
+                "hold_status": 'none',
+                "hold_days": 0,
+                "is_pending": True,
+                "is_active": False,
+                "created_at": sreq.created_at.isoformat() if hasattr(sreq, 'created_at') else None,
+                "request_id": sreq.id,
+                "is_switch_request": True
+            })
+
         # --- 3. DERIVE SEAT STATUS (For coloring) ---
         has_full = bool(assignments_map['full']) or (not seat.is_shift_enabled and bool(active_assignments))
         has_morning = bool(assignments_map['morning'])
         has_evening = bool(assignments_map['evening'])
         has_active = bool(active_assignments)
-        has_pending = bool(pending_assignments) or special_req_pending
+        has_pending = bool(pending_assignments) or special_req_pending or switch_req_pending
 
         # Refine status based on actual content and strict hierarchy:
         # 1. On Hold
@@ -9014,7 +9043,36 @@ def seat_action_api(request):
                 category="seat"
             )
 
-            return JsonResponse({'status': 'success', 'message': 'Partial allotment request rejected.'})
+            return success_response('Partial allotment request rejected.')
+
+        # ------------------------------------
+        # 16. ACTION: APPROVE / REJECT SEAT SWITCH REQUEST
+        # ------------------------------------
+        elif action == 'approve_switch_request':
+            request_id = payload.get('request_id')
+            if not request_id:
+                return JsonResponse({'status': 'error', 'message': 'Request ID required.'}, status=400)
+            from users.models import SeatSwitchRequest
+            try:
+                sreq = SeatSwitchRequest.objects.select_for_update().get(id=request_id, status='pending')
+            except SeatSwitchRequest.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Switch request not found.'}, status=404)
+            resp = approve_seat_switch(request, pk=sreq.id)
+            notifications.broadcast_seat_update(floor=floor)
+            return resp
+
+        elif action == 'reject_switch_request':
+            request_id = payload.get('request_id')
+            if not request_id:
+                return JsonResponse({'status': 'error', 'message': 'Request ID required.'}, status=400)
+            from users.models import SeatSwitchRequest
+            try:
+                sreq = SeatSwitchRequest.objects.select_for_update().get(id=request_id, status='pending')
+            except SeatSwitchRequest.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Switch request not found.'}, status=404)
+            resp = reject_seat_switch(request, pk=sreq.id)
+            notifications.broadcast_seat_update(floor=floor)
+            return resp
 
         else:
             return JsonResponse({'status': 'error', 'message': f'Invalid action: {action}'}, status=400)
@@ -9197,6 +9255,8 @@ def send_special_seat_request_api(request):
                 category="seat"
             )
 
+        notifications.broadcast_seat_update(floor=seat.floor)
+
         return JsonResponse({'status': 'success', 'message': 'Your request has been sent to the teacher.'})
 
     except StudentProfile.DoesNotExist:
@@ -9306,6 +9366,8 @@ def manage_hold_request_api(request):
                 category="seat"
             )
 
+            notifications.broadcast_seat_update(floor=seat.floor)
+
             return JsonResponse({
                 'status': 'success',
                 'message': f'Partial allotment approved for {student.full_name}.'
@@ -9380,6 +9442,8 @@ def manage_hold_request_api(request):
                     category="seat"
                 )
 
+                notifications.broadcast_seat_update(floor=seat.floor)
+
                 return JsonResponse({
                     'status': 'success',
                     'message': f'Hold cancellation approved for seat {seat.seat_number}.'
@@ -9395,6 +9459,8 @@ def manage_hold_request_api(request):
                     link="/dashboard/",
                     category="seat"
                 )
+
+                notifications.broadcast_seat_update(floor=seat.floor)
 
                 return JsonResponse({
                     'status': 'success',
@@ -9462,6 +9528,8 @@ def manage_hold_request_api(request):
                 category="seat"
             )
 
+            notifications.broadcast_seat_update(floor=seat.floor)
+
             return JsonResponse({
                 'status': 'success',
                 'message': f'Hold request approved for seat {seat.seat_number}.'
@@ -9479,6 +9547,8 @@ def manage_hold_request_api(request):
             link="/dashboard/",
             category="seat"
         )
+
+        notifications.broadcast_seat_update(floor=seat.floor)
 
         return JsonResponse({
             'status': 'success',
@@ -10296,6 +10366,7 @@ def delete_student_view(request, student_id):
                         except: pass
                 
                 messages.success(request, f"Admission record for {full_name} deleted.")
+                notifications.broadcast_seat_update()
                 return redirect(next_url)
 
             else: # Complete wipe
@@ -10320,6 +10391,7 @@ def delete_student_view(request, student_id):
                             achievement.photo.delete(save=False)
                         achievement.delete()
                     messages.success(request, f"Student {full_name} admission and achievements deleted. Account preserved as guest.")
+                    notifications.broadcast_seat_update()
                 else:
                     messages.error(request, "Student not found.")
                 
@@ -18177,6 +18249,7 @@ def request_seat_switch_api(request):
             req.temp_hold_days = temp_hold_days
             req.save()
 
+        notifications.broadcast_seat_update(floor=target_seat.floor)
         return JsonResponse({'status': 'success', 'message': 'Seat switch request submitted successfully.'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
@@ -18195,6 +18268,7 @@ def cancel_seat_switch_api(request):
     try:
         student = StudentProfile.objects.get(user=request.user)
         SeatSwitchRequest.objects.filter(student=student, status='pending').delete()
+        notifications.broadcast_seat_update()
         return JsonResponse({'status': 'success', 'message': 'Pending switch request cancelled and deleted.'})
     except StudentProfile.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
@@ -18333,6 +18407,7 @@ def reject_seat_switch(request, pk):
         except Exception:
             pass
 
+        notifications.broadcast_seat_update()
         return JsonResponse({'status': 'success', 'message': 'Request rejected successfully.'})
 
     except SeatSwitchRequest.DoesNotExist:
@@ -18404,6 +18479,7 @@ def api_request_seat_leave(request):
         category="seat"
     )
 
+    notifications.broadcast_seat_update(floor=seat.floor)
     return JsonResponse({
         'status': 'success',
         'message': 'Your leave request has been submitted to the teacher for review.'
@@ -18422,6 +18498,7 @@ def api_cancel_seat_leave(request):
         student = StudentProfile.objects.get(user=request.user)
         deleted_count, _ = SeatLeaveRequest.objects.filter(student=student, status='pending').delete()
         if deleted_count > 0:
+            notifications.broadcast_seat_update()
             return JsonResponse({'status': 'success', 'message': 'Pending leave request cancelled and deleted.'})
         return JsonResponse({'status': 'error', 'message': 'No pending leave request found.'}, status=404)
     except StudentProfile.DoesNotExist:
@@ -18513,6 +18590,7 @@ def reject_seat_leave(request, pk):
             category="seat"
         )
 
+        notifications.broadcast_seat_update(floor=seat.floor)
         return JsonResponse({'status': 'success', 'message': 'Leave request rejected.'})
 
     except SeatLeaveRequest.DoesNotExist:
@@ -18626,6 +18704,7 @@ def api_request_hold_change(request):
         category="seat"
     )
 
+    notifications.broadcast_seat_update(floor=seat.floor)
     return JsonResponse({
         'status': 'success',
         'message': f'Hold change request submitted to teacher. Requested end date: {requested_end_date.strftime("%d-%b-%Y")}.'
@@ -18644,6 +18723,7 @@ def api_cancel_hold_change(request):
         student = StudentProfile.objects.get(user=request.user)
         deleted_count, _ = SeatHoldChangeRequest.objects.filter(student=student, status='pending').delete()
         if deleted_count > 0:
+            notifications.broadcast_seat_update()
             return JsonResponse({'status': 'success', 'message': 'Pending hold change request cancelled and deleted.'})
         return JsonResponse({'status': 'error', 'message': 'No pending hold change request found.'}, status=404)
     except StudentProfile.DoesNotExist:
@@ -18864,6 +18944,7 @@ def reject_hold_change(request, pk):
             category="seat"
         )
 
+        notifications.broadcast_seat_update(floor=seat.floor)
         return JsonResponse({'status': 'success', 'message': 'Hold change request rejected.'})
 
     except SeatHoldChangeRequest.DoesNotExist:
