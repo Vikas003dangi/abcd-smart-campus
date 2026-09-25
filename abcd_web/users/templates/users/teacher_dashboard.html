@@ -3318,67 +3318,347 @@
       color: #f7f3ff;
     }
 
-    /* Quick Profile Modal Styling */
+    /* ============================================================
+       VIEW QUICK PROFILE BUTTON (LIGHT & DARK THEMES)
+       ============================================================ */
+    .view-quick-profile-btn {
+      font-weight: 600;
+      padding: 6px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      background: #f5f3ff !important;
+      color: #4f46e5 !important;
+      border: 1px solid #c7d2fe !important;
+      box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08);
+      transition: all 0.2s ease;
+      text-decoration: none;
+      line-height: 1.3;
+    }
+    .view-quick-profile-btn i {
+      font-size: 1rem;
+    }
+    .view-quick-profile-btn:hover {
+      background: #e0e7ff !important;
+      color: #3730a3 !important;
+      border-color: #818cf8 !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);
+    }
+    body.dark-theme .view-quick-profile-btn {
+      background: rgba(99, 102, 241, 0.18) !important;
+      color: #c7d2fe !important;
+      border: 1px solid rgba(165, 180, 252, 0.35) !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+    body.dark-theme .view-quick-profile-btn:hover {
+      background: rgba(99, 102, 241, 0.32) !important;
+      color: #ffffff !important;
+      border-color: #a5b4fc !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+    }
+
+    /* ============================================================
+       QUICK PROFILE MODAL (STUDENT & ALUMNI) - LIGHT & DARK THEMES
+       ============================================================ */
+    #quickProfileModalOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 10, 30, 0.68);
+      z-index: 99998;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: opacity 0.25s ease;
+    }
+
+    #quickProfileModal.admission-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 99999;
+      max-width: 520px;
+      width: min(520px, 92vw);
+      max-height: 85vh;
+      overflow-y: auto;
+      border-radius: 20px;
+      background: #ffffff !important;
+      color: #1e293b !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(99, 102, 241, 0.15) !important;
+      padding: 0;
+    }
+
+    body.dark-theme #quickProfileModal.admission-modal {
+      background: #1e1633 !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(165, 180, 252, 0.2) !important;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(139, 92, 246, 0.25) !important;
+    }
+
+    #quickProfileModal .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 22px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+      color: #ffffff !important;
+      border-radius: 20px 20px 0 0;
+      border-bottom: none;
+    }
+
+    body.dark-theme #quickProfileModal .modal-header {
+      background: linear-gradient(135deg, #3730a3 0%, #581c87 100%) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #quickProfileModal .modal-header h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff !important;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #quickProfileModal .modal-header h2 i {
+      color: #c7d2fe !important;
+      font-size: 1.3rem;
+    }
+
+    #quickProfileModal .modal-close-btn,
+    #quickProfileModal .quick-profile-close-btn {
+      background: rgba(255, 255, 255, 0.18) !important;
+      border: none !important;
+      font-size: 1.35rem !important;
+      cursor: pointer;
+      color: #ffffff !important;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: all 0.2s ease;
+      padding: 0;
+    }
+
+    #quickProfileModal .modal-close-btn:hover,
+    #quickProfileModal .quick-profile-close-btn:hover {
+      background: rgba(255, 255, 255, 0.32) !important;
+      color: #ffffff !important;
+      transform: scale(1.08);
+    }
+
+    #quickProfileModal .modal-body {
+      padding: 22px;
+      background: #ffffff !important;
+      color: #1e293b !important;
+    }
+
+    body.dark-theme #quickProfileModal .modal-body {
+      background: #1e1633 !important;
+      color: #f1f5f9 !important;
+    }
+
     #quickProfileModal .profile-card-preview {
       text-align: center;
     }
+
+    #quickProfileModal .profile-name {
+      margin: 0 0 6px;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0f172a !important;
+    }
+
+    body.dark-theme #quickProfileModal .profile-name {
+      color: #ffffff !important;
+    }
+
+    #quickProfileModal .profile-avatar-wrap {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      border: 3.5px solid #6366f1;
+      overflow: hidden;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+    }
+
+    body.dark-theme #quickProfileModal .profile-avatar-wrap {
+      border-color: #818cf8;
+      background: #251b3e;
+      box-shadow: 0 8px 24px rgba(129, 140, 248, 0.25);
+    }
+
+    #quickProfileModal .profile-avatar-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     #quickProfileModal .details-list {
       display: flex;
       flex-direction: column;
       gap: 10px;
       text-align: left;
-      background: rgba(0,0,0,0.02);
+      background: #f8fafc;
       padding: 16px;
       border-radius: 16px;
-      border: 1px solid rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+      margin-top: 16px;
     }
+
+    body.dark-theme #quickProfileModal .details-list {
+      background: #160f26 !important;
+      border: 1px solid #332352 !important;
+    }
+
     #quickProfileModal .detail-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 8px 0;
-      border-bottom: 1px dashed rgba(0,0,0,0.08);
+      border-bottom: 1px dashed #e2e8f0;
       font-size: 0.9rem;
     }
+
+    body.dark-theme #quickProfileModal .detail-row {
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.08) !important;
+    }
+
     #quickProfileModal .detail-row:last-child {
       border-bottom: none;
     }
+
     #quickProfileModal .detail-label {
       color: #64748b;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
+
+    #quickProfileModal .detail-label i {
+      color: #6366f1;
+      font-size: 1.05rem;
+    }
+
+    body.dark-theme #quickProfileModal .detail-label {
+      color: #a5b4fc !important;
+    }
+
+    body.dark-theme #quickProfileModal .detail-label i {
+      color: #c7d2fe !important;
+    }
+
     #quickProfileModal .detail-value {
       font-weight: 700;
-      color: #1e293b;
+      color: #0f172a;
       text-align: right;
     }
+
+    body.dark-theme #quickProfileModal .detail-value {
+      color: #ffffff !important;
+    }
+
+    #quickProfileModal .detail-value a {
+      color: #4f46e5;
+      text-decoration: none;
+    }
+
+    body.dark-theme #quickProfileModal .detail-value a {
+      color: #a5b4fc;
+    }
+
+    #quickProfileModal .detail-value a:hover {
+      text-decoration: underline;
+    }
+
     #quickProfileModal .status-badge {
       display: inline-block;
-      padding: 4px 12px;
+      padding: 5px 14px;
       border-radius: 20px;
       font-size: 0.75rem;
       font-weight: 700;
       text-transform: capitalize;
+      letter-spacing: 0.3px;
     }
-    #quickProfileModal .status-admitted, #quickProfileModal .status-approved { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); }
-    #quickProfileModal .status-pending { background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.25); }
-    #quickProfileModal .status-on_hold, #quickProfileModal .status-hold { background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25); }
-    #quickProfileModal .status-rejected { background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25); }
-    body.dark-theme #quickProfileModal .details-list {
-      background: rgba(255,255,255,0.03);
-      border-color: rgba(255,255,255,0.08);
+
+    #quickProfileModal .status-admitted,
+    #quickProfileModal .status-approved {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
     }
-    body.dark-theme #quickProfileModal .detail-row {
-      border-color: rgba(255,255,255,0.08);
+
+    body.dark-theme #quickProfileModal .status-admitted,
+    body.dark-theme #quickProfileModal .status-approved {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
     }
-    body.dark-theme #quickProfileModal .detail-label {
-      color: #94a3b8;
+
+    #quickProfileModal .status-pending {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
     }
-    body.dark-theme #quickProfileModal .detail-value {
-      color: #f1f5f9;
+
+    body.dark-theme #quickProfileModal .status-pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    #quickProfileModal .status-on_hold,
+    #quickProfileModal .status-hold,
+    #quickProfileModal .status-rejected {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+
+    body.dark-theme #quickProfileModal .status-on_hold,
+    body.dark-theme #quickProfileModal .status-hold,
+    body.dark-theme #quickProfileModal .status-rejected {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .quick-profile-badge-pill {
+      margin-top: 10px;
+      padding: 6px 14px;
+      background: #ffe4e6;
+      border-radius: 10px;
+      color: #be123c;
+      font-weight: 700;
+      font-size: 0.8rem;
+      border: 1px solid #fecdd3;
+      display: inline-block;
+    }
+
+    body.dark-theme .quick-profile-badge-pill {
+      background: rgba(225, 29, 72, 0.2);
+      color: #fda4af;
+      border: 1px solid rgba(225, 29, 72, 0.4);
     }
 
     body.dark-theme .request-item:hover {
@@ -6728,18 +7008,18 @@
   </div>
 
   <!-- ================= QUICK PROFILE POPUP MODAL (STUDENT & ALUMNI) ================= -->
-  <div id="quickProfileModalOverlay" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99998; backdrop-filter:blur(3px);" onclick="closeQuickProfileModal()"></div>
-  <div id="quickProfileModal" class="admission-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:99999; max-width:520px; width:92%; max-height:85vh; overflow-y:auto; background:var(--bg-card, #ffffff); border-radius:16px; box-shadow:0 20px 40px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1);">
-    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid rgba(0,0,0,0.08);">
-      <h2 id="quickProfileModalTitle" style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main, #1e293b); display:flex; align-items:center; gap:8px;">
-        <i class='bx bx-id-card' style="color: #6366f1;"></i> Student Snapshot
+  <div id="quickProfileModalOverlay" class="modal-overlay" onclick="closeQuickProfileModal()"></div>
+  <div id="quickProfileModal" class="admission-modal">
+    <div class="modal-header">
+      <h2 id="quickProfileModalTitle">
+        <i class='bx bx-id-card'></i> Student Snapshot
       </h2>
-      <button type="button" class="modal-close-btn" onclick="closeQuickProfileModal()" aria-label="Close" style="background:none; border:none; font-size:1.6rem; cursor:pointer; color:#64748b; line-height:1;">×</button>
+      <button type="button" class="quick-profile-close-btn" onclick="closeQuickProfileModal()" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-body" id="quickProfileModalBody" style="padding:20px;">
-      <div style="text-align: center; padding: 40px 20px; color: #64748b;">
-        <i class='bx bx-loader-alt bx-spin' style="font-size: 2.5rem; color: #6366f1;"></i>
-        <p style="margin-top: 14px; font-weight: 600; font-size: 0.95rem;">Loading snapshot...</p>
+    <div class="modal-body" id="quickProfileModalBody">
+      <div style="text-align: center; padding: 40px 20px;">
+        <i class='bx bx-loader-alt bx-spin' style="font-size: 2.5rem; color: #818cf8;"></i>
+        <p style="margin-top: 14px; font-weight: 600; font-size: 0.95rem; opacity: 0.85;">Loading snapshot...</p>
       </div>
     </div>
   </div>
@@ -8160,7 +8440,7 @@
           </div>
 
           <div class="student-actions">
-            <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+            <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')">
               👁 View Student
             </button>
             <form method="post" action="{% url 'users:approve_student' student.id %}" class="approve-form"
@@ -8241,7 +8521,7 @@
           </div>
 
           <div class="student-actions">
-            <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+            <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')">
               👁 View Student
             </button>
             <form method="post" action="{% url 'users:approve_student' student.id %}" class="approve-form"
@@ -8353,7 +8633,7 @@
           </div>
 
           <div class="student-actions">
-            <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+            <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')">
               👁 View Student
             </button>
             <form method="post" action="{% url 'users:approve_student' student.id %}" class="approve-form"
@@ -8477,7 +8757,7 @@
           </div>
 
           <div class="student-actions">
-            <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+            <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ student.id }}')">
               👁 View Student
             </button>
             <form method="post" action="{% url 'users:approve_student' student.id %}" class="approve-form"
@@ -8566,7 +8846,7 @@
 
           <div class="student-actions">
             {% if req.student %}
-            <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+            <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
               👁 View Student
             </button>
             {% endif %}
@@ -8634,7 +8914,7 @@
           </div>
 
           <div class="student-actions">
-            <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickAlumniProfile('{{ ach.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+            <button type="button" class="btn view-quick-profile-btn" onclick="openQuickAlumniProfile('{{ ach.id }}')">
               👁 View Alumni
             </button>
             <form action="{% url 'users:approve_achievement' ach.id %}" method="post" style="display:inline">
@@ -8695,7 +8975,7 @@
               </div>
 
               <div class="student-actions">
-                <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
                   👁 View Student
                 </button>
                 <button type="button" class="btn btn-success hold-action-btn" data-action="approve" data-seat-id="{{ req.seat.id }}">
@@ -8751,7 +9031,7 @@
               </div>
 
               <div class="student-actions">
-                <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
                   👁 View Student
                 </button>
                 <button type="button" onclick="approveSwitchRequest('{{ req.id }}')" class="btn btn-success">
@@ -8794,7 +9074,7 @@
               </div>
 
               <div class="student-actions">
-                <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
                   👁 View Student
                 </button>
                 <button type="button" onclick="approveLeaveRequest('{{ req.id }}')" class="btn btn-success">
@@ -8839,7 +9119,7 @@
               </div>
 
               <div class="student-actions">
-                <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
                   👁 View Student
                 </button>
                 <button type="button" onclick="approveHoldChangeRequest('{{ req.id }}')" class="btn btn-success">
@@ -8881,7 +9161,7 @@
               </div>
 
               <div class="student-actions">
-                <button type="button" class="btn btn-outline-primary view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')" style="border: 1px solid #3b82f6; color: #1d4ed8; background: #eff6ff; font-weight: 600; padding: 6px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+                <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
                   👁 View Student
                 </button>
                 <button type="button" class="btn btn-success hold-action-btn" data-action="approve" data-seat-id="{{ req.seat.id }}">
@@ -10280,18 +10560,18 @@
         const body = document.getElementById('quickProfileModalBody');
         if (!modal || !overlay || !body) return;
 
-        title.innerHTML = `<i class='bx bx-id-card' style="color: #6366f1;"></i> Student Snapshot`;
+        title.innerHTML = `<i class='bx bx-id-card'></i> Student Snapshot`;
         body.innerHTML = `
-          <div style="text-align: center; padding: 40px 20px; color: #64748b;">
-            <i class='bx bx-loader-alt bx-spin' style="font-size: 2.5rem; color: #6366f1;"></i>
-            <p style="margin-top: 14px; font-weight: 600; font-size: 0.95rem;">Loading student snapshot...</p>
+          <div style="text-align: center; padding: 45px 20px;">
+            <i class='bx bx-loader-alt bx-spin' style="font-size: 2.5rem; color: #818cf8;"></i>
+            <p style="margin-top: 14px; font-weight: 600; font-size: 0.95rem; opacity: 0.85;">Loading student snapshot...</p>
           </div>`;
 
         overlay.style.display = 'block';
         modal.style.display = 'block';
 
         try {
-          const res = await fetch(`/users/api/teacher/student-profile/${encodeURIComponent(studentId)}/`);
+          const res = await fetch(`/api/teacher/student-profile/${encodeURIComponent(studentId)}/`);
           if (!res.ok) throw new Error(`HTTP error ${res.status}`);
           const data = await res.json();
           if (data.status !== 'success' || !data.student) throw new Error(data.message || 'Profile not found');
@@ -10299,7 +10579,7 @@
 
           let servicesHtml = '';
           if (s.has_coaching) {
-            const coachingVal = s.batch ? safeEscape(s.batch) : (s.coaching_pending ? '<span style="color:#d97706; font-weight:700;">Pending Request</span>' : 'Not assigned');
+            const coachingVal = s.batch ? safeEscape(s.batch) : (s.coaching_pending ? '<span style="color:#f59e0b; font-weight:700;">Pending Request</span>' : 'Not assigned');
             servicesHtml += `
               <div class="detail-row">
                 <span class="detail-label"><i class='bx bx-book-bookmark'></i> Coaching Batch</span>
@@ -10307,7 +10587,7 @@
               </div>`;
           }
           if (s.has_library) {
-            const seatVal = s.seat && s.seat !== 'Not assigned' ? safeEscape(s.seat) : (s.library_pending ? '<span style="color:#d97706; font-weight:700;">Pending Request</span>' : 'Not assigned');
+            const seatVal = s.seat && s.seat !== 'Not assigned' ? safeEscape(s.seat) : (s.library_pending ? '<span style="color:#f59e0b; font-weight:700;">Pending Request</span>' : 'Not assigned');
             servicesHtml += `
               <div class="detail-row">
                 <span class="detail-label"><i class='bx bx-building'></i> Library Floor</span>
@@ -10315,7 +10595,7 @@
               </div>
               <div class="detail-row">
                 <span class="detail-label"><i class='bx bx-chair'></i> Library Seat</span>
-                <span class="detail-value" style="font-weight: 700; color: #4f46e5;">${seatVal}</span>
+                <span class="detail-value" style="font-weight: 700; color: #818cf8;">${seatVal}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label"><i class='bx bx-time-five'></i> Library Shift</span>
@@ -10332,25 +10612,26 @@
 
           let extraBadge = '';
           if (s.other_achievement) {
-            extraBadge = `<div style="margin-top: 10px; padding: 6px 12px; background: rgba(225, 29, 72, 0.08); border-radius: 8px; color: #e11d48; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(225, 29, 72, 0.2);">
+            extraBadge = `<div class="quick-profile-badge-pill">
               🔴 Also Alumni: ${safeEscape(s.other_achievement.short_achievement)} (${safeEscape(s.other_achievement.status_display)})
             </div>`;
           }
 
-          const avatarSrc = s.photo_url || (String(s.sex || '').toLowerCase().includes('fem') ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png');
+          const defaultAvatar = String(s.sex || '').toLowerCase().includes('fem') ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png';
+          const avatarSrc = s.photo_url || defaultAvatar;
 
           body.innerHTML = `
-            <div class="profile-card-preview" style="text-align: center;">
-              <div style="position: relative; width: 96px; height: 96px; margin: 0 auto 14px; border-radius: 50%; border: 4px solid #6366f1; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);">
-                <img src="${avatarSrc}" alt="${safeEscape(s.full_name)}" style="width: 100%; height: 100%; object-fit: cover;">
+            <div class="profile-card-preview">
+              <div class="profile-avatar-wrap">
+                <img src="${avatarSrc}" alt="${safeEscape(s.full_name)}" onerror="this.onerror=null; this.src='${defaultAvatar}';">
               </div>
-              <h3 style="margin: 0 0 6px; font-size: 1.35rem; font-weight: 800; color: var(--text-main, #1e293b);">${safeEscape(s.full_name)}</h3>
+              <h3 class="profile-name">${safeEscape(s.full_name)}</h3>
               <div style="margin-bottom: 12px;">
                 <span class="status-badge status-${(s.status || '').toLowerCase()}">${safeEscape(s.status_display || s.status)}</span>
               </div>
               ${extraBadge}
 
-              <div class="details-list" style="margin-top: 16px;">
+              <div class="details-list">
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bx-calendar'></i> DOB</span>
                   <span class="detail-value">${safeEscape(s.dob || 'Not set')}</span>
@@ -10370,7 +10651,7 @@
                 ${servicesHtml}
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bx-phone'></i> Mobile</span>
-                  <span class="detail-value"><a href="tel:${safeEscape(s.mobile_number)}" style="color: inherit; text-decoration: none;">${safeEscape(s.mobile_number || 'Not provided')}</a></span>
+                  <span class="detail-value"><a href="tel:${safeEscape(s.mobile_number)}">${safeEscape(s.mobile_number || 'Not provided')}</a></span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bxl-whatsapp' style="color: #25d366;"></i> WhatsApp</span>
@@ -10378,17 +10659,17 @@
                 </div>
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bx-envelope'></i> Email</span>
-                  <span class="detail-value" style="font-size: 0.85rem; word-break: break-all;">${safeEscape(s.email || 'Not provided')}</span>
+                  <span class="detail-value" style="font-size: 0.85rem; word-break: break-all;"><a href="mailto:${safeEscape(s.email)}">${safeEscape(s.email || 'Not provided')}</a></span>
                 </div>
               </div>
             </div>
           `;
         } catch (err) {
           body.innerHTML = `
-            <div style="text-align: center; padding: 30px; color: #ef4444;">
-              <i class='bx bx-error-circle' style="font-size: 2.5rem; margin-bottom: 10px;"></i>
-              <p style="font-weight: 700; margin: 0;">Failed to load student snapshot.</p>
-              <small style="color: #64748b;">${safeEscape(err.message || 'Please try again later.')}</small>
+            <div style="text-align: center; padding: 35px 20px;">
+              <i class='bx bx-error-circle' style="font-size: 2.8rem; color: #ef4444; margin-bottom: 12px; display: inline-block;"></i>
+              <p style="font-weight: 700; margin: 0; font-size: 1.05rem;">Failed to load student snapshot.</p>
+              <small style="opacity: 0.75; display: block; margin-top: 6px;">${safeEscape(err.message || 'Please try again later.')}</small>
             </div>`;
         }
       };
@@ -10400,18 +10681,18 @@
         const body = document.getElementById('quickProfileModalBody');
         if (!modal || !overlay || !body) return;
 
-        title.innerHTML = `<i class='bx bx-trophy' style="color: #6366f1;"></i> Alumni Snapshot`;
+        title.innerHTML = `<i class='bx bx-trophy'></i> Alumni Snapshot`;
         body.innerHTML = `
-          <div style="text-align: center; padding: 40px 20px; color: #64748b;">
-            <i class='bx bx-loader-alt bx-spin' style="font-size: 2.5rem; color: #6366f1;"></i>
-            <p style="margin-top: 14px; font-weight: 600; font-size: 0.95rem;">Loading alumni snapshot...</p>
+          <div style="text-align: center; padding: 45px 20px;">
+            <i class='bx bx-loader-alt bx-spin' style="font-size: 2.5rem; color: #818cf8;"></i>
+            <p style="margin-top: 14px; font-weight: 600; font-size: 0.95rem; opacity: 0.85;">Loading alumni snapshot...</p>
           </div>`;
 
         overlay.style.display = 'block';
         modal.style.display = 'block';
 
         try {
-          const res = await fetch(`/users/api/teacher/alumni-profile/${encodeURIComponent(achId)}/`);
+          const res = await fetch(`/api/teacher/alumni-profile/${encodeURIComponent(achId)}/`);
           if (!res.ok) throw new Error(`HTTP error ${res.status}`);
           const data = await res.json();
           if (data.status !== 'success' || !data.alumni) throw new Error(data.message || 'Profile not found');
@@ -10419,25 +10700,26 @@
 
           let extraBadge = '';
           if (a.other_student_info) {
-            extraBadge = `<div style="margin-top: 10px; padding: 6px 12px; background: rgba(225, 29, 72, 0.08); border-radius: 8px; color: #e11d48; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(225, 29, 72, 0.2);">
+            extraBadge = `<div class="quick-profile-badge-pill">
               🔴 Also Student: ${safeEscape(a.other_student_info.service_type)} (${safeEscape(a.other_student_info.status_display)})
             </div>`;
           }
 
-          const avatarSrc = a.photo_url || (String(a.gender || '').toLowerCase().includes('fem') ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png');
+          const defaultAvatar = String(a.gender || '').toLowerCase().includes('fem') ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png';
+          const avatarSrc = a.photo_url || defaultAvatar;
 
           body.innerHTML = `
-            <div class="profile-card-preview" style="text-align: center;">
-              <div style="position: relative; width: 96px; height: 96px; margin: 0 auto 14px; border-radius: 50%; border: 4px solid #6366f1; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);">
-                <img src="${avatarSrc}" alt="${safeEscape(a.full_name)}" style="width: 100%; height: 100%; object-fit: cover;">
+            <div class="profile-card-preview">
+              <div class="profile-avatar-wrap">
+                <img src="${avatarSrc}" alt="${safeEscape(a.full_name)}" onerror="this.onerror=null; this.src='${defaultAvatar}';">
               </div>
-              <h3 style="margin: 0 0 6px; font-size: 1.35rem; font-weight: 800; color: var(--text-main, #1e293b);">${safeEscape(a.full_name)}</h3>
+              <h3 class="profile-name">${safeEscape(a.full_name)}</h3>
               <div style="margin-bottom: 12px;">
                 <span class="status-badge status-${(a.status || '').toLowerCase()}">${safeEscape(a.status_display || a.status)}</span>
               </div>
               ${extraBadge}
 
-              <div class="details-list" style="margin-top: 16px;">
+              <div class="details-list">
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bx-briefcase'></i> Post</span>
                   <span class="detail-value">${safeEscape(a.current_post || 'N/A')}</span>
@@ -10464,7 +10746,7 @@
                 </div>
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bx-phone'></i> Mobile</span>
-                  <span class="detail-value"><a href="tel:${safeEscape(a.mobile_number)}" style="color: inherit; text-decoration: none;">${safeEscape(a.mobile_number || 'Not provided')}</a></span>
+                  <span class="detail-value"><a href="tel:${safeEscape(a.mobile_number)}">${safeEscape(a.mobile_number || 'Not provided')}</a></span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bxl-whatsapp' style="color: #25d366;"></i> WhatsApp</span>
@@ -10472,17 +10754,17 @@
                 </div>
                 <div class="detail-row">
                   <span class="detail-label"><i class='bx bx-envelope'></i> Email</span>
-                  <span class="detail-value" style="font-size: 0.85rem; word-break: break-all;">${safeEscape(a.email || 'Not provided')}</span>
+                  <span class="detail-value" style="font-size: 0.85rem; word-break: break-all;"><a href="mailto:${safeEscape(a.email)}">${safeEscape(a.email || 'Not provided')}</a></span>
                 </div>
               </div>
             </div>
           `;
         } catch (err) {
           body.innerHTML = `
-            <div style="text-align: center; padding: 30px; color: #ef4444;">
-              <i class='bx bx-error-circle' style="font-size: 2.5rem; margin-bottom: 10px;"></i>
-              <p style="font-weight: 700; margin: 0;">Failed to load alumni snapshot.</p>
-              <small style="color: #64748b;">${safeEscape(err.message || 'Please try again later.')}</small>
+            <div style="text-align: center; padding: 35px 20px;">
+              <i class='bx bx-error-circle' style="font-size: 2.8rem; color: #ef4444; margin-bottom: 12px; display: inline-block;"></i>
+              <p style="font-weight: 700; margin: 0; font-size: 1.05rem;">Failed to load alumni snapshot.</p>
+              <small style="opacity: 0.75; display: block; margin-top: 6px;">${safeEscape(err.message || 'Please try again later.')}</small>
             </div>`;
         }
       };
@@ -10493,6 +10775,12 @@
         if (modal) modal.style.display = 'none';
         if (overlay) overlay.style.display = 'none';
       };
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          window.closeQuickProfileModal();
+        }
+      });
 
       function buildMultiProfileWarningHTML(meta) {
         if (!meta) return '';

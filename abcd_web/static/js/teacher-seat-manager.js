@@ -2142,7 +2142,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Use the public API which returns current seat status
       const apiUrl = typeof API_GET_SEATS_URL !== 'undefined'
         ? API_GET_SEATS_URL
-        : '/users/api/get_teacher_seat_status/';
+        : '/api/get_teacher_seat_status/';
 
       const response = await fetch(`${apiUrl}?floor=${encodeURIComponent(floor)}`);
       if (!response.ok) {
@@ -4335,7 +4335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const url = (typeof API_STUDENT_QUICK_PROFILE_URL !== 'undefined')
         ? API_STUDENT_QUICK_PROFILE_URL.replace('/0/', `/${encodeURIComponent(studentId)}/`)
-        : `/users/api/teacher/student-profile/${encodeURIComponent(studentId)}/`;
+        : `/api/teacher/student-profile/${encodeURIComponent(studentId)}/`;
 
       const res = await fetch(url);
       if (!res.ok) {

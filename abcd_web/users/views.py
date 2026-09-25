@@ -9725,6 +9725,8 @@ def api_student_quick_profile(request, student_id):
     try:
         student = StudentProfile.objects.select_related('seat', 'user').filter(id=student_id).first()
         if not student:
+            student = StudentProfile.objects.select_related('seat', 'user').filter(user_id=student_id).first()
+        if not student:
             return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
 
         seat_str = f"{student.seat.floor[:1]}-{student.seat.seat_number}" if student.seat else 'Not assigned'
@@ -9780,6 +9782,8 @@ def api_alumni_quick_profile(request, achievement_id):
     """
     try:
         ach = StudentAchievement.objects.select_related('user').filter(id=achievement_id).first()
+        if not ach:
+            ach = StudentAchievement.objects.select_related('user').filter(user_id=achievement_id).first()
         if not ach:
             return JsonResponse({'status': 'error', 'message': 'Alumni profile not found.'}, status=404)
 
