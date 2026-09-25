@@ -7783,6 +7783,45 @@
       .card-icon-wrap i {
         font-size: 24px;
       }
+
+      /* Request Items & Actions Stacked Responsively at <= 600px */
+      .request-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        padding: 14px 12px !important;
+      }
+      .student-actions {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-top: 10px !important;
+        width: 100% !important;
+      }
+      .student-actions form {
+        display: inline-block !important;
+        width: auto !important;
+        margin: 0 !important;
+      }
+      .student-actions .btn,
+      .student-actions button,
+      .student-actions a {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: auto !important;
+        margin: 0 !important;
+        padding: 6px 12px !important;
+        font-size: 0.8rem !important;
+        box-sizing: border-box !important;
+        white-space: nowrap !important;
+      }
+      .student-card {
+        padding: 14px 12px !important;
+      }
     }
 
     @media (max-width: 400px) {
@@ -7840,38 +7879,7 @@
 
     @media (max-width: 450px) {
       .request-item {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 12px !important;
         padding: 14px 10px !important;
-      }
-      .student-actions {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: wrap !important;
-        justify-content: flex-end !important;
-        align-items: center !important;
-        gap: 8px !important;
-        margin-top: 10px !important;
-        width: 100% !important;
-      }
-      .student-actions form {
-        display: inline-block !important;
-        width: auto !important;
-        margin: 0 !important;
-      }
-      .student-actions .btn,
-      .student-actions button,
-      .student-actions a {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: auto !important;
-        margin: 0 !important;
-        padding: 6px 12px !important;
-        font-size: 0.8rem !important;
-        box-sizing: border-box !important;
-        white-space: nowrap !important;
       }
       .student-card {
         padding: 14px 10px !important;
