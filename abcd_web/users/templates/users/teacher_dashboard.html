@@ -7229,6 +7229,17 @@
         </a>
       </li>
 
+      <li>
+        <a href="{% url 'users:terms_of_service' %}" class="{% if request.resolver_match.url_name == 'terms_of_service' %}active{% endif %}">
+          📄 Terms of Service
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'users:privacy_policy' %}" class="{% if request.resolver_match.url_name == 'privacy_policy' %}active{% endif %}">
+          🛡️ Privacy Policy
+        </a>
+      </li>
+
       <!-- Take Tour Item -->
       <li class="sidebar-tour-item">
         <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
@@ -9744,6 +9755,11 @@
     <div class="footer-bottom">
       <div class="footer-bottom-content">
         <p class="footer-copyright-text">&copy; 2026 ABCD Coaching & Library. All rights reserved.</p>
+        <div class="footer-legal-links" style="display: flex; gap: 15px; justify-content: center; align-items: center; margin: 4px 0 8px; font-size: 0.85rem;">
+          <a href="{% url 'users:terms_of_service' %}" style="color: inherit; text-decoration: underline; opacity: 0.85;">Terms of Service</a>
+          <span style="opacity: 0.4;">•</span>
+          <a href="{% url 'users:privacy_policy' %}" style="color: inherit; text-decoration: underline; opacity: 0.85;">Privacy Policy</a>
+        </div>
         <p class="footer-tagline">Empowering students to achieve their dreams since 2013</p>
         <div class="social-links">
           <a href="https://www.instagram.com/abcd_vibes7/" class="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class='bx bxl-instagram'></i></a>

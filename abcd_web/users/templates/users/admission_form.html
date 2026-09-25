@@ -534,6 +534,15 @@
             margin-top: 10px;
         }
 
+        .checkbox-group label a {
+            color: #4f46e5;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+        body.dark-theme .checkbox-group label a {
+            color: #a78bfa;
+        }
+
         .conditional-field {
             display: none;
         }
@@ -2092,7 +2101,7 @@
                 <div class="checkbox-group">
                     {{ form.confirmation }}
                     <label for="id_confirmation">
-                        I confirm that all the information provided is correct and I agree to the terms and conditions.
+                        I confirm that all details provided are genuine and correct, and I agree to the <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener">Terms of Service</a> and <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener">Privacy Policy</a> (compliant with DPDP Act, 2023 & Campus Guidelines).
                     </label>
                 </div>
                 <button type="submit" class="submit-btn" id="submitBtn">Submit Application</button>

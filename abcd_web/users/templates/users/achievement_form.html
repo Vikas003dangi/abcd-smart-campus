@@ -467,6 +467,39 @@
         overflow: hidden;
         letter-spacing: 0.5px;
     }
+
+    .checkbox-group {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        margin: 25px 0 10px 0;
+        text-align: left;
+    }
+    .checkbox-group input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #6366f1;
+        cursor: pointer;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+    .checkbox-group label {
+        font-size: 0.88rem;
+        color: #475569;
+        line-height: 1.5;
+        cursor: pointer;
+    }
+    .checkbox-group label a {
+        color: #4f46e5;
+        text-decoration: underline;
+        font-weight: 600;
+    }
+    body.dark-theme .checkbox-group label {
+        color: #cbd5e1;
+    }
+    body.dark-theme .checkbox-group label a {
+        color: #a78bfa;
+    }
     /* Animated shimmer sweep */
     .submit-btn::before {
         content: '';
@@ -772,6 +805,13 @@
                 <label>Your Feedback/Review for ABCD <span class="required">*</span></label>
                 {{ form.abcd_feedback }}
                 <small>Tell us what you liked or how we can improve.</small>
+            </div>
+
+            <div class="checkbox-group">
+                {{ form.confirmation }}
+                <label for="id_confirmation">
+                    I confirm that the information provided is genuine and correct, and I agree to the <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener">Terms of Service</a> and <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener">Privacy Policy</a> (authorizing ABCD Smart Campus to feature my story on the Hall of Fame in accordance with the DPDP Act, 2023).
+                </label>
             </div>
 
             <button type="submit" class="submit-btn" id="submitBtn">Submit Your Story 🚀</button>
@@ -1356,6 +1396,20 @@
                 ratingContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
             window.showStyledPopup({ title: 'Rating Required', message: 'Please select your rating (1 to 5 stars) before submitting your story.', type: 'warning' });
+            return;
+        }
+
+        // Check Confirmation Checkbox
+        const confirmInput = document.getElementById('id_confirmation');
+        if (confirmInput && !confirmInput.checked) {
+            e.preventDefault();
+            new Audio('/static/audio/error.mp3').play().catch(function(){});
+            confirmInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            confirmInput.focus();
+            if (confirmInput.reportValidity) confirmInput.reportValidity();
+            if (window.showStyledPopup) {
+                window.showStyledPopup({ title: 'Confirmation Required', message: 'Please confirm and agree to the Terms of Service and Privacy Policy before submitting your story.', type: 'warning' });
+            }
             return;
         }
 

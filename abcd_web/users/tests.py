@@ -930,6 +930,37 @@ class TemporaryStudentAndSingleRequestTests(TestCase):
         self.assertEqual(self.seat_g2.hold_end_date, new_end)
         self.assertEqual(self.perm_assignment.hold_end_date, new_end)
 
+    def test_terms_and_privacy_policy_integration_and_forms(self):
+        """Verify that terms of service and privacy policy views render 200, cross-link to each other,
+        mention the DPDP Act 2023, and that both admission & achievement forms validate confirmation."""
+        from users.forms import StudentProfileForm, StudentAchievementForm
+
+        # 1. Test Terms of Service page
+        resp_terms = self.client.get(reverse('users:terms_of_service'))
+        self.assertEqual(resp_terms.status_code, 200)
+        self.assertContains(resp_terms, 'Terms of Service')
+        self.assertContains(resp_terms, reverse('users:privacy_policy'))
+        self.assertContains(resp_terms, 'DPDP Act')
+
+        # 2. Test Privacy Policy page
+        resp_privacy = self.client.get(reverse('users:privacy_policy'))
+        self.assertEqual(resp_privacy.status_code, 200)
+        self.assertContains(resp_privacy, 'Privacy Policy')
+        self.assertContains(resp_privacy, reverse('users:terms_of_service'))
+        self.assertContains(resp_privacy, 'Digital Personal Data Protection Act')
+        self.assertContains(resp_privacy, 'Grievance Officer')
+
+        # 3. Test StudentAchievementForm requires confirmation checkbox
+        ach_form_empty = StudentAchievementForm(data={'first_name': 'A'}, user=self.temp_student_user)
+        self.assertFalse(ach_form_empty.is_valid())
+        self.assertIn('confirmation', ach_form_empty.errors)
+
+        # 4. Test StudentProfileForm requires confirmation checkbox
+        prof_form_empty = StudentProfileForm(data={'first_name': 'B'}, user=self.temp_student_user)
+        self.assertFalse(prof_form_empty.is_valid())
+        self.assertIn('confirmation', prof_form_empty.errors)
+
+
 
 
 

@@ -1736,6 +1736,12 @@
                         <span>Sign in with Google</span>
                     </a>
                 </div>
+
+                <div class="auth-legal-notice" style="margin-top: 14px; text-align: center; font-size: 0.76rem; color: #64748b; line-height: 1.4;">
+                    By continuing, you agree to our 
+                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Terms of Service</a> & 
+                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Privacy Policy</a>.
+                </div>
             </form>
         </div>
 
@@ -1790,6 +1796,12 @@
                         <img src="{% static 'data/google.png' %}" alt="Google logo">
                         <span>Sign in with Google</span>
                     </a>
+                </div>
+
+                <div class="auth-legal-notice" style="margin-top: 14px; text-align: center; font-size: 0.76rem; color: #64748b; line-height: 1.4;">
+                    By registering, you agree to our 
+                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Terms of Service</a> & 
+                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Privacy Policy</a>.
                 </div>
 
                 </form>

@@ -116,8 +116,15 @@ def send_fee_receipt_whatsapp(student, transaction, pdf_content):
         }
         
         raw_service = get_student_service_details(student)
-        service_details = str(raw_service).replace('\n', ' ').strip()
-        amount_str = str(getattr(transaction, 'amount_paid', 0))
+        service_details = str(getattr(transaction, 'service_snapshot', '') or raw_service).replace('\n', ' ').strip()
+        raw_amount = getattr(transaction, 'total_amount', None)
+        if raw_amount is None:
+            raw_amount = getattr(transaction, 'amount_paid', 0)
+        try:
+            val = float(raw_amount)
+            amount_str = str(int(val)) if val.is_integer() else f"{val:.2f}"
+        except (ValueError, TypeError):
+            amount_str = str(raw_amount)
         clean_receipt_no = str(transaction.receipt_number).replace('/', '_')
 
         # Payload: Meta Template fee_receipt_v2

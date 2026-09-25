@@ -495,6 +495,12 @@ class ComplaintRatingForm(forms.ModelForm):
             raise forms.ValidationError("Invalid rating value.")
 
 class StudentAchievementForm(forms.ModelForm):
+    confirmation = forms.BooleanField(
+        required=True,
+        widget=forms.CheckboxInput(attrs={'id': 'id_confirmation', 'required': 'required'}),
+        error_messages={'required': 'You must agree to the Terms of Service and Privacy Policy to submit your story.'}
+    )
+
     class Meta:
         model = StudentAchievement
         fields = [

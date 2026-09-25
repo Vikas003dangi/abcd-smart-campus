@@ -5315,8 +5315,9 @@
             {% endif %}
             <li><a href="{% url 'users:about_us' %}"><i class='bx bx-info-circle'></i> About Us</a></li>
             <li><a href="{% url 'users:services' %}"><i class='bx bx-grid-alt'></i> Services</a></li>
-            <li><a href="{% url 'users:contact' %}"><i class='bx bx-phone'></i> Contact</a></li>
             <li><a href="https://www.youtube.com/@englishekkhoz8279" target="_blank" rel="noopener"><i class='bx bxl-youtube' style="color:#FF0000;"></i> Free Classes on YouTube</a></li>
+            <li><a href="{% url 'users:terms_of_service' %}" class="{% if request.resolver_match.url_name == 'terms_of_service' %}active{% endif %}"><i class='bx bx-file-blank' style="color:#6366f1;"></i> Terms of Service</a></li>
+            <li><a href="{% url 'users:privacy_policy' %}" class="{% if request.resolver_match.url_name == 'privacy_policy' %}active{% endif %}"><i class='bx bx-shield-quarter' style="color:#10b981;"></i> Privacy Policy</a></li>
             <li class="sidebar-tour-item">
                 <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
                     <i class='bx bx-compass' style="color:#0284c7;"></i> <span>Take Tour</span>
@@ -5779,6 +5780,8 @@
                     <li><a href="{% url 'users:library_availability' %}"><i class='bx bx-chevron-right'></i>Library Seats</a></li>
                     <li><a href="{% url 'users:register' %}"><i class='bx bx-chevron-right'></i>Admission</a></li>
                     <li><a href="{% url 'users:contact' %}"><i class='bx bx-chevron-right'></i>Contact</a></li>
+                    <li><a href="{% url 'users:terms_of_service' %}"><i class='bx bx-chevron-right'></i>Terms of Service</a></li>
+                    <li><a href="{% url 'users:privacy_policy' %}"><i class='bx bx-chevron-right'></i>Privacy Policy</a></li>
                 </ul>
             </div>
 
@@ -5809,6 +5812,11 @@
         <div class="footer-bottom">
             <div class="footer-bottom-content">
                 <p class="footer-copyright-text">&copy; 2026 ABCD Coaching & Library. All rights reserved.</p>
+                <div class="footer-legal-links" style="display: flex; gap: 15px; justify-content: center; align-items: center; margin: 4px 0 8px; font-size: 0.85rem;">
+                    <a href="{% url 'users:terms_of_service' %}" style="color: inherit; text-decoration: underline; opacity: 0.85;">Terms of Service</a>
+                    <span style="opacity: 0.4;">•</span>
+                    <a href="{% url 'users:privacy_policy' %}" style="color: inherit; text-decoration: underline; opacity: 0.85;">Privacy Policy</a>
+                </div>
                 <p class="footer-tagline">Empowering students to achieve their dreams since 2013</p>
                 <div class="social-links">
                     <a href="https://www.instagram.com/abcd_vibes7/" class="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class='bx bxl-instagram'></i></a>

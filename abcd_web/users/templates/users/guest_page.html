@@ -4566,6 +4566,20 @@
       </a>
     </li>
 
+    <!-- Legal Links -->
+    <li>
+      <a href="{% url 'users:terms_of_service' %}" class="{% if request.resolver_match.url_name == 'terms_of_service' %}active{% endif %}">
+        <i class='bx bx-file-blank' style="color:#6366f1;"></i>
+        <span>Terms of Service</span>
+      </a>
+    </li>
+    <li>
+      <a href="{% url 'users:privacy_policy' %}" class="{% if request.resolver_match.url_name == 'privacy_policy' %}active{% endif %}">
+        <i class='bx bx-shield-quarter' style="color:#10b981;"></i>
+        <span>Privacy Policy</span>
+      </a>
+    </li>
+
     <!-- 15. Take Tour Item -->
     <li class="sidebar-tour-item">
       <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">

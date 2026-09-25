@@ -4746,6 +4746,20 @@
         </a>
       </li>
       {% endif %}
+
+      <!-- Legal Links -->
+      <li>
+        <a href="{% url 'users:terms_of_service' %}" class="{% if request.resolver_match.url_name == 'terms_of_service' %}active{% endif %}">
+          <i class='bx bx-file-blank' style="color:#6366f1;"></i>
+          <span>Terms of Service</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'users:privacy_policy' %}" class="{% if request.resolver_match.url_name == 'privacy_policy' %}active{% endif %}">
+          <i class='bx bx-shield-quarter' style="color:#10b981;"></i>
+          <span>Privacy Policy</span>
+        </a>
+      </li>
       {% endblock sidebar_nav %}
 
       <!-- Take Tour Item -->
@@ -5507,6 +5521,8 @@
             <li><a href="{% url 'users:admission_form' %}"><i class='bx bx-chevron-right'></i>Be a Coaching/Library Student</a></li>
             {% endif %}
             <li><a href="{% url 'users:contact' %}"><i class='bx bx-chevron-right'></i>Contact</a></li>
+            <li><a href="{% url 'users:terms_of_service' %}"><i class='bx bx-chevron-right'></i>Terms of Service</a></li>
+            <li><a href="{% url 'users:privacy_policy' %}"><i class='bx bx-chevron-right'></i>Privacy Policy</a></li>
           </ul>
         </div>
 
@@ -5557,6 +5573,8 @@
             {% endif %}
 
             <li><a href="{% url 'users:contact' %}"><i class='bx bx-chevron-right'></i>Contact</a></li>
+            <li><a href="{% url 'users:terms_of_service' %}"><i class='bx bx-chevron-right'></i>Terms of Service</a></li>
+            <li><a href="{% url 'users:privacy_policy' %}"><i class='bx bx-chevron-right'></i>Privacy Policy</a></li>
           </ul>
         </div>
 
@@ -5616,6 +5634,8 @@
             {% endif %}
             <li><a href="{% url 'users:achievement_form' %}"><i class='bx bx-chevron-right'></i>Be an Alumni</a></li>
             <li><a href="{% url 'users:contact' %}"><i class='bx bx-chevron-right'></i>Contact</a></li>
+            <li><a href="{% url 'users:terms_of_service' %}"><i class='bx bx-chevron-right'></i>Terms of Service</a></li>
+            <li><a href="{% url 'users:privacy_policy' %}"><i class='bx bx-chevron-right'></i>Privacy Policy</a></li>
           </ul>
         </div>
 
@@ -5645,6 +5665,11 @@
     <div class="footer-bottom">
       <div class="footer-bottom-content">
         <p class="footer-copyright-text">&copy; 2026 ABCD Coaching & Library. All rights reserved.</p>
+        <div class="footer-legal-links" style="display: flex; gap: 15px; justify-content: center; align-items: center; margin: 4px 0 8px; font-size: 0.85rem;">
+          <a href="{% url 'users:terms_of_service' %}" style="color: inherit; text-decoration: underline; opacity: 0.85;">Terms of Service</a>
+          <span style="opacity: 0.4;">•</span>
+          <a href="{% url 'users:privacy_policy' %}" style="color: inherit; text-decoration: underline; opacity: 0.85;">Privacy Policy</a>
+        </div>
         <p class="footer-tagline">Empowering students to achieve their dreams since 2013</p>
         <div class="social-links">
           <a href="https://www.instagram.com/abcd_vibes7/" class="instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class='bx bxl-instagram'></i></a>
