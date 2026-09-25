@@ -12,417 +12,671 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   :root {
-    --legal-primary: #6366f1;
-    --legal-primary-hover: #4f46e5;
-    --legal-primary-soft: rgba(99, 102, 241, 0.08);
-    --legal-border: rgba(0, 0, 0, 0.08);
+    --legal-primary: #4f46e5;
+    --legal-primary-hover: #4338ca;
     --legal-card-bg: #ffffff;
-    --legal-text: #1e293b;
+    --legal-card-border: #e2e8f0;
+    --legal-card-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    --legal-text: #334155;
+    --legal-heading: #1e1b4b;
+    --legal-subheading: #4338ca;
     --legal-muted: #64748b;
-    --legal-accent: #0ea5e9;
+    --legal-callout-bg: #f8fafc;
+    --legal-callout-border: #6366f1;
+    --legal-desk-bg: #ffffff;
+    --legal-desk-border: #e2e8f0;
+    --legal-desk-icon-bg: #eef2ff;
+    --legal-desk-icon-color: #4f46e5;
+    --legal-cross-bg: #ffffff;
+    --legal-cross-border: #818cf8;
+    --legal-cross-shadow: 0 12px 32px rgba(99, 102, 241, 0.12);
+    --legal-cross-title: #1e1b4b;
+    --legal-cross-text: #475569;
   }
 
-  body.dark-theme {
-    --legal-border: rgba(255, 255, 255, 0.12);
-    --legal-card-bg: #1e1b4b;
-    --legal-text: #f1f5f9;
-    --legal-muted: #cbd5e1;
-    --legal-primary-soft: rgba(168, 85, 247, 0.15);
+  /* Vibrant, Luminous, High-Contrast Dark Theme (Nebula & Glassmorphism) */
+  html.dark-theme,
+  body.dark-theme,
+  [data-theme='dark'] {
+    --legal-primary: #a855f7;
+    --legal-primary-hover: #c084fc;
+    --legal-card-bg: rgba(22, 17, 46, 0.94);
+    --legal-card-border: rgba(168, 85, 247, 0.28);
+    --legal-card-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+    --legal-text: #e2e8f0;
+    --legal-heading: #ffffff;
+    --legal-subheading: #c7d2fe;
+    --legal-muted: #94a3b8;
+    --legal-callout-bg: rgba(79, 70, 229, 0.16);
+    --legal-callout-border: #a855f7;
+    --legal-desk-bg: rgba(255, 255, 255, 0.05);
+    --legal-desk-border: rgba(168, 85, 247, 0.25);
+    --legal-desk-icon-bg: rgba(168, 85, 247, 0.2);
+    --legal-desk-icon-color: #e9d5ff;
+    --legal-cross-bg: linear-gradient(135deg, rgba(30, 24, 76, 0.98) 0%, rgba(55, 18, 105, 0.98) 100%);
+    --legal-cross-border: #a855f7;
+    --legal-cross-shadow: 0 16px 42px rgba(0, 0, 0, 0.6), 0 0 25px rgba(168, 85, 247, 0.22);
+    --legal-cross-title: #ffffff;
+    --legal-cross-text: #cbd5e1;
   }
 
   .legal-wrapper {
     max-width: 1040px;
-    margin: 30px auto 80px;
-    padding: 0 20px;
+    margin: 25px auto 90px;
+    padding: 15px 20px 0;
     font-family: inherit;
     color: var(--legal-text);
   }
 
-  /* Dual Navigation Tabs */
-  .legal-tabs-container {
+  /* ------------------------------------------------------------- */
+  /* Top Bar (Centered Navigation Tabs Linking Both Documents)    */
+  /* ------------------------------------------------------------- */
+  .legal-top-bar {
     display: flex;
     justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 22px;
+  }
+
+  .legal-tabs-container {
+    display: inline-flex;
+    justify-content: center;
     gap: 12px;
-    margin-bottom: 24px;
     flex-wrap: wrap;
   }
+
   .legal-nav-tab {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 26px;
+    gap: 8px;
+    padding: 10px 24px;
     border-radius: 999px;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 700;
     text-decoration: none;
     color: #475569;
-    background: #f1f5f9;
-    border: 1.5px solid rgba(0,0,0,0.06);
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
+
+  html.dark-theme .legal-nav-tab,
   body.dark-theme .legal-nav-tab {
-    background: #17072b;
-    color: #cbd5e1;
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+    border-color: rgba(255, 255, 255, 0.16);
   }
+
   .legal-nav-tab:hover {
-    color: #6366f1;
-    border-color: #6366f1;
+    color: #4f46e5;
+    border-color: #818cf8;
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.15);
   }
+
+  html.dark-theme .legal-nav-tab:hover,
   body.dark-theme .legal-nav-tab:hover {
-    color: #c084fc;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.14);
     border-color: #a855f7;
-    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.25);
-  }
-  .legal-nav-tab.active {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: #ffffff !important;
-    border-color: transparent;
-    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.3);
   }
 
-  /* Hero Section */
+  .legal-nav-tab.active {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: #ffffff !important;
+    border-color: transparent;
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.35);
+  }
+
+  /* ------------------------------------------------------------- */
+  /* Single Floating Non-Scrollable PDF Button (Compact & Sleek)  */
+  /* ------------------------------------------------------------- */
+  .legal-floating-pdf-btn {
+    position: fixed;
+    bottom: 142px; /* Positioned above the circular scroll-to-top button at bottom:80px */
+    right: 20px;
+    z-index: 850;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    font-weight: 600;
+    font-size: 0.81rem;
+    box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35);
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    backdrop-filter: blur(8px);
+  }
+
+  .legal-floating-pdf-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+    box-shadow: 0 8px 24px rgba(225, 29, 72, 0.45);
+  }
+
+  .legal-floating-pdf-btn i {
+    font-size: 0.9rem;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* Upgraded Legal Hero Section (Executive, Elegant, Institutional)*/
+  /* ------------------------------------------------------------- */
   .legal-hero {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+    background: linear-gradient(135deg, #3730a3 0%, #4f46e5 45%, #7c3aed 100%);
     border-radius: 24px;
-    padding: 36px 36px 32px;
-    box-shadow: 0 20px 45px rgba(79, 70, 229, 0.25);
+    padding: 34px 36px 30px;
+    box-shadow: 0 20px 45px rgba(79, 70, 229, 0.28);
     color: #ffffff;
-    margin-bottom: 28px;
+    margin-bottom: 26px;
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    word-break: break-word;
   }
+
+  /* Luminous Dark Hero (Vibrant Royal Indigo & Violet Nebula) */
+  html.dark-theme .legal-hero,
   body.dark-theme .legal-hero {
-    background: linear-gradient(135deg, #090e38 0%, #2e0854 50%, #150238 100%);
-    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.7);
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 75%, #581c87 100%);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(129, 140, 248, 0.2);
+    border: 1px solid rgba(167, 139, 250, 0.45);
   }
-  .legal-hero::after {
+
+  .legal-hero::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%);
+    top: -60px;
+    right: -40px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 70%);
     border-radius: 50%;
     pointer-events: none;
   }
-  .legal-hero-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .legal-hero h1 {
-    font-size: clamp(1.8rem, 4vw, 2.3rem);
-    font-weight: 800;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    letter-spacing: -0.5px;
-  }
-  .legal-hero p {
-    font-size: 1rem;
-    opacity: 0.94;
-    line-height: 1.65;
-    max-width: 820px;
-    margin-bottom: 16px;
-  }
-  .hero-badges-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(8px);
-    font-size: 0.8rem;
-    font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-  }
-  .hero-print-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    color: #ffffff;
-    padding: 8px 18px;
-    border-radius: 999px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
+
+  .hero-kicker {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    transition: all 0.2s ease;
-  }
-  .hero-print-btn:hover {
-    background: rgba(255, 255, 255, 0.35);
-    transform: translateY(-1px);
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    max-width: 100%;
+    white-space: normal;
   }
 
-  /* Quick Jump Table of Contents */
+  .hero-title-group h1 {
+    font-size: clamp(1.75rem, 3.8vw, 2.3rem);
+    font-weight: 800;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+    word-break: break-word;
+  }
+
+  .hero-title-icon {
+    font-size: 1.8rem;
+    color: #ffffff;
+    opacity: 0.95;
+    flex-shrink: 0;
+  }
+
+  .hero-subtitle {
+    font-size: 0.98rem;
+    opacity: 0.95;
+    line-height: 1.65;
+    max-width: 860px;
+    margin-bottom: 20px;
+    color: #f1f5f9;
+    word-break: break-word;
+  }
+
+  /* Flexible, Non-Truncating Hero Badges Strip (Fits All Screens!) */
+  .hero-badges-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .hero-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 15px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    font-size: 0.84rem;
+    color: #ffffff;
+    line-height: 1.4;
+    white-space: normal;
+    word-break: break-word;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    max-width: 100%;
+  }
+
+  .hero-badge-pill i {
+    font-size: 0.92rem;
+    color: #ffffff;
+    opacity: 0.95;
+    flex-shrink: 0;
+  }
+
+  .hero-badge-pill strong {
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* Quick Jump Table of Contents                                  */
+  /* ------------------------------------------------------------- */
   .toc-card {
-    background: #f8fafc;
+    background: #ffffff;
     border-radius: 18px;
     padding: 20px 24px;
     margin-bottom: 24px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--legal-card-border);
+    box-shadow: var(--legal-card-shadow);
   }
+
+  html.dark-theme .toc-card,
   body.dark-theme .toc-card {
-    background: rgba(30, 24, 76, 0.7);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(22, 17, 46, 0.92);
+    border-color: rgba(168, 85, 247, 0.25);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   }
+
   .toc-title {
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     color: var(--legal-muted);
     margin-bottom: 14px;
     display: flex;
     align-items: center;
     gap: 8px;
   }
+
   .toc-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 12px;
+    gap: 8px 10px;
   }
+
   .toc-link {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     padding: 6px 14px;
-    border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
     color: var(--legal-text);
     font-size: 0.82rem;
     font-weight: 600;
     text-decoration: none;
     transition: all 0.2s ease;
   }
-  body.dark-theme .toc-link {
-    background: #25164f;
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #e2dcff;
-  }
-  .toc-link:hover {
-    background: #6366f1;
-    color: #ffffff;
-    border-color: #6366f1;
-    transform: translateY(-1px);
+
+  .toc-num {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+    padding: 2px 6px;
+    border-radius: 6px;
   }
 
-  /* Legal Card Section */
+  html.dark-theme .toc-link,
+  body.dark-theme .toc-link {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+  }
+
+  html.dark-theme .toc-num,
+  body.dark-theme .toc-num {
+    color: #c084fc;
+    background: rgba(168, 85, 247, 0.25);
+  }
+
+  .toc-link:hover {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  }
+
+  .toc-link:hover .toc-num {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  html.dark-theme .toc-link:hover,
+  body.dark-theme .toc-link:hover {
+    background: #7c3aed;
+    border-color: #a855f7;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.4);
+  }
+
+  /* ------------------------------------------------------------- */
+  /* Cross Link Card (Fixed High-Contrast Solid Cards)             */
+  /* ------------------------------------------------------------- */
+  .cross-link-card {
+    background: var(--legal-cross-bg);
+    border: 2px solid var(--legal-cross-border);
+    border-radius: 20px;
+    padding: 24px 28px;
+    margin: 24px 0 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    box-shadow: var(--legal-cross-shadow);
+  }
+
+  .cross-link-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #4f46e5;
+    background: rgba(79, 70, 229, 0.1);
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+
+  html.dark-theme .cross-link-tag,
+  body.dark-theme .cross-link-tag {
+    color: #e9d5ff;
+    background: rgba(168, 85, 247, 0.25);
+  }
+
+  .cross-link-content h3 {
+    margin: 0 0 6px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--legal-cross-title) !important;
+    letter-spacing: -0.3px;
+  }
+
+  .cross-link-content p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--legal-cross-text) !important;
+  }
+
+  .cross-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-weight: 700;
+    font-size: 0.9rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.3);
+    flex-shrink: 0;
+  }
+
+  .cross-link-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(79, 70, 229, 0.45);
+    background: linear-gradient(135deg, #4338ca, #4f46e5);
+  }
+
+  html.dark-theme .cross-link-btn,
+  body.dark-theme .cross-link-btn {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
+  }
+
+  html.dark-theme .cross-link-btn:hover,
+  body.dark-theme .cross-link-btn:hover {
+    background: linear-gradient(135deg, #c084fc, #9333ea);
+    box-shadow: 0 10px 28px rgba(168, 85, 247, 0.55);
+  }
+
+  /* ------------------------------------------------------------- */
+  /* Main Legal Cards (Clean, Readable, Professional)              */
+  /* ------------------------------------------------------------- */
   .legal-card {
     background: var(--legal-card-bg);
     border-radius: 20px;
     padding: 30px 34px;
     margin-bottom: 22px;
-    border: 1px solid var(--legal-border);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--legal-card-border);
+    box-shadow: var(--legal-card-shadow);
     line-height: 1.75;
     font-size: 0.95rem;
-    scroll-margin-top: 90px;
-    transition: box-shadow 0.2s ease;
+    scroll-margin-top: 110px;
+    transition: box-shadow 0.25s ease;
   }
-  body.dark-theme .legal-card {
-    background: linear-gradient(135deg, rgba(30, 24, 76, 0.96) 0%, rgba(44, 30, 96, 0.94) 50%, rgba(24, 18, 58, 0.96) 100%);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-  }
+
   .legal-card:hover {
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
   }
+
+  html.dark-theme .legal-card:hover,
   body.dark-theme .legal-card:hover {
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.65);
   }
 
   .legal-card h2 {
     font-size: 1.35rem;
     font-weight: 800;
-    color: #3730a3;
+    color: var(--legal-heading);
     margin-top: 0;
     margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: 12px;
+    letter-spacing: -0.3px;
   }
-  body.dark-theme .legal-card h2 {
-    color: #e0e7ff;
+
+  .sec-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #4f46e5;
+    background: rgba(79, 70, 229, 0.1);
+    padding: 4px 10px;
+    border-radius: 8px;
+    flex-shrink: 0;
   }
+
+  html.dark-theme .sec-num,
+  body.dark-theme .sec-num {
+    color: #e9d5ff;
+    background: rgba(168, 85, 247, 0.25);
+  }
+
   .legal-card h2 i {
-    color: #6366f1;
-    font-size: 1.3rem;
+    color: #4f46e5;
+    font-size: 1.25rem;
   }
+
+  html.dark-theme .legal-card h2 i,
   body.dark-theme .legal-card h2 i {
-    color: #a855f7;
+    color: #c084fc;
   }
 
   .legal-card h3 {
-    font-size: 1.08rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    color: #4338ca;
+    color: var(--legal-subheading);
     margin: 20px 0 10px;
-  }
-  body.dark-theme .legal-card h3 {
-    color: #c7d2fe;
   }
 
   .legal-card p {
     margin-bottom: 14px;
+    color: var(--legal-text);
   }
+
   .legal-card ul, .legal-card ol {
     margin: 12px 0 18px 24px;
     padding: 0;
   }
+
   .legal-card li {
     margin-bottom: 10px;
+    color: var(--legal-text);
   }
+
   .legal-card strong {
     color: #0f172a;
+    font-weight: 700;
   }
+
+  html.dark-theme .legal-card strong,
   body.dark-theme .legal-card strong {
     color: #ffffff;
   }
+
   .legal-card a {
     color: #4f46e5;
     text-decoration: underline;
     font-weight: 600;
   }
+
+  html.dark-theme .legal-card a,
   body.dark-theme .legal-card a {
-    color: #a78bfa;
+    color: #c084fc;
   }
 
-  /* Callout Boxes */
+  /* ------------------------------------------------------------- */
+  /* Callout Boxes                                                 */
+  /* ------------------------------------------------------------- */
   .legal-callout {
-    background: #f8fafc;
-    border-left: 4px solid #6366f1;
+    background: var(--legal-callout-bg);
+    border-left: 4px solid var(--legal-callout-border);
     border-radius: 0 14px 14px 0;
     padding: 16px 20px;
     margin: 18px 0;
     font-size: 0.92rem;
+    color: var(--legal-text);
   }
-  body.dark-theme .legal-callout {
-    background: rgba(99, 102, 241, 0.1);
-    border-left-color: #a855f7;
-  }
+
   .legal-callout.warning {
-    border-left-color: #ef4444;
-    background: #fff5f5;
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+    color: #92400e;
   }
+
+  html.dark-theme .legal-callout.warning,
   body.dark-theme .legal-callout.warning {
-    background: rgba(239, 68, 68, 0.1);
-    border-left-color: #f87171;
+    background: rgba(245, 158, 11, 0.16);
+    border-left-color: #fbbf24;
+    color: #fef3c7;
   }
+
   .legal-callout.success {
     border-left-color: #10b981;
     background: #f0fdf4;
+    color: #065f46;
   }
+
+  html.dark-theme .legal-callout.success,
   body.dark-theme .legal-callout.success {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(16, 185, 129, 0.16);
     border-left-color: #34d399;
+    color: #d1fae5;
   }
 
-  /* Cross Link Banner */
-  .cross-link-card {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
-    border: 1.5px dashed #6366f1;
-    border-radius: 18px;
-    padding: 24px;
-    margin: 28px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  body.dark-theme .cross-link-card {
-    background: rgba(168, 85, 247, 0.1);
-    border-color: #a855f7;
-  }
-  .cross-link-text h3 {
-    margin: 0 0 6px;
-    font-size: 1.15rem;
-    font-weight: 700;
-  }
-  .cross-link-text p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--legal-muted);
-  }
-  .cross-link-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border-radius: 999px;
-    background: #6366f1;
-    color: white !important;
-    text-decoration: none !important;
-    font-weight: 700;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-  }
-  .cross-link-btn:hover {
-    background: #4f46e5;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.35);
-  }
-
-  /* Contact Desk Grid */
+  /* ------------------------------------------------------------- */
+  /* Contact Desk Micro-Cards Grid                                 */
+  /* ------------------------------------------------------------- */
   .contact-desk-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
     margin-top: 18px;
   }
+
   .contact-desk-item {
-    background: #f8fafc;
-    border: 1px solid rgba(0,0,0,0.06);
-    border-radius: 14px;
+    background: var(--legal-desk-bg);
+    border: 1px solid var(--legal-desk-border);
+    border-radius: 16px;
     padding: 16px 18px;
     display: flex;
     align-items: flex-start;
     gap: 14px;
-  }
-  body.dark-theme .contact-desk-item {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-  .contact-desk-item i {
-    font-size: 1.4rem;
-    color: #6366f1;
-    margin-top: 2px;
-  }
-  body.dark-theme .contact-desk-item i {
-    color: #c084fc;
-  }
-  .contact-desk-item h4 {
-    margin: 0 0 4px;
-    font-size: 0.9rem;
-    font-weight: 700;
-  }
-  .contact-desk-item p {
-    margin: 0;
-    font-size: 0.85rem;
-    color: var(--legal-muted);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
+  .contact-desk-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .contact-desk-icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--legal-desk-icon-bg);
+    color: var(--legal-desk-icon-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .contact-desk-info h4 {
+    margin: 0 0 4px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--legal-heading);
+  }
+
+  .contact-desk-info p {
+    margin: 0;
+    font-size: 0.84rem;
+    color: var(--legal-muted);
+    line-height: 1.45;
+  }
+
+  /* ------------------------------------------------------------- */
+  /* Print Optimization                                            */
+  /* ------------------------------------------------------------- */
   @media print {
-    .legal-tabs-container, .toc-card, .hero-print-btn, .cross-link-card, .sidebar-wrapper, .footer, .top-nav-menu {
+    .legal-top-bar, .toc-card, .legal-floating-pdf-btn, .cross-link-card, .sidebar-wrapper, .footer, .top-nav-menu {
       display: none !important;
     }
     .legal-wrapper {
@@ -436,6 +690,10 @@
       color: #000000 !important;
       border: 1px solid #ccc !important;
       box-shadow: none !important;
+      padding: 20px !important;
+    }
+    .legal-hero h1, .legal-hero p, .hero-kicker, .hero-badge-pill {
+      color: #000000 !important;
     }
     .legal-card {
       background: none !important;
@@ -446,11 +704,145 @@
     }
   }
 
+  /* ------------------------------------------------------------- */
+  /* Compact & Non-Space Eating Mobile Typography (<= 768px & 480px)*/
+  /* ------------------------------------------------------------- */
   @media (max-width: 768px) {
-    .legal-hero { padding: 26px 20px; }
-    .legal-card { padding: 22px 18px; }
-    .cross-link-card { flex-direction: column; align-items: flex-start; }
-    .cross-link-btn { width: 100%; justify-content: center; }
+    .legal-wrapper {
+      padding: 15px 12px 0 !important;
+      margin-top: 40px !important; /* Pushes content well below the sticky navbar & PWA banner */
+      margin-bottom: 85px;
+    }
+    .legal-top-bar {
+      margin-top: 15px;
+      margin-bottom: 20px;
+    }
+    .legal-tabs-container {
+      width: 100%;
+      display: flex;
+    }
+    .legal-nav-tab {
+      flex: 1;
+      justify-content: center;
+      padding: 9px 12px;
+      font-size: 0.82rem;
+    }
+    .legal-hero {
+      padding: 22px 18px 20px;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+    .hero-kicker {
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      margin-bottom: 10px;
+    }
+    .hero-title-group h1 {
+      font-size: 1.35rem;
+      gap: 10px;
+    }
+    .hero-title-icon {
+      font-size: 1.3rem;
+    }
+    .hero-subtitle {
+      font-size: 0.86rem;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .hero-badges-wrap {
+      gap: 6px;
+    }
+    .hero-badge-pill {
+      padding: 5px 11px;
+      font-size: 0.76rem;
+    }
+    .toc-card {
+      padding: 16px 14px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+    }
+    .toc-title {
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+    }
+    .toc-link {
+      padding: 5px 10px;
+      font-size: 0.76rem;
+    }
+    .legal-card {
+      padding: 20px 16px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      scroll-margin-top: 85px;
+    }
+    .legal-card h2 {
+      font-size: 1.12rem;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+    .sec-num {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+    }
+    .legal-card h3 {
+      font-size: 0.95rem;
+      margin: 16px 0 8px;
+    }
+    .legal-card p {
+      margin-bottom: 10px;
+    }
+    .legal-card ul, .legal-card ol {
+      margin: 8px 0 14px 18px;
+    }
+    .legal-card li {
+      margin-bottom: 6px;
+    }
+    .cross-link-card {
+      padding: 18px 16px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      border-radius: 16px;
+    }
+    .cross-link-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 10px 18px;
+      font-size: 0.86rem;
+    }
+    .contact-desk-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .legal-floating-pdf-btn {
+      bottom: 142px; /* Positioned cleanly above the 50px scroll-to-top button at bottom:80px */
+      right: 18px;
+      padding: 6px 13px;
+      font-size: 0.76rem;
+      gap: 5px;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .legal-wrapper {
+      padding: 10px 8px 0 !important;
+      margin-top: 35px !important;
+      margin-bottom: 80px;
+    }
+    .hero-title-group h1 {
+      font-size: 1.2rem;
+    }
+    .legal-card {
+      padding: 16px 12px;
+      font-size: 0.84rem;
+      line-height: 1.55;
+    }
+    .legal-card h2 {
+      font-size: 1.02rem;
+    }
   }
 </style>
 {% endblock %}
@@ -458,73 +850,94 @@
 {% block content %}
 <main class="legal-wrapper">
 
-  <!-- Dual Navigation Tabs Linking Both Documents -->
-  <nav class="legal-tabs-container" aria-label="Legal Documents Navigation">
-    <a href="{% url 'users:terms_of_service' %}" class="legal-nav-tab active">
-      <i class="fa-solid fa-scale-balanced"></i>
-      <span>Terms of Service</span>
-    </a>
-    <a href="{% url 'users:privacy_policy' %}" class="legal-nav-tab">
-      <i class="fa-solid fa-shield-halved"></i>
-      <span>Privacy Policy</span>
-    </a>
-  </nav>
+  <!-- Centered Document Switch Tabs (No Clutter, Never Occluded) -->
+  <div class="legal-top-bar">
+    <nav class="legal-tabs-container" aria-label="Legal Documents Navigation">
+      <a href="{% url 'users:terms_of_service' %}" class="legal-nav-tab active">
+        <i class="fa-solid fa-scale-balanced"></i>
+        <span>Terms of Service</span>
+      </a>
+      <a href="{% url 'users:privacy_policy' %}" class="legal-nav-tab">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Privacy Policy</span>
+      </a>
+    </nav>
+  </div>
 
-  <!-- Hero Banner -->
+  <!-- Upgraded Executive Legal Hero Section -->
   <header class="legal-hero">
-    <div class="legal-hero-header">
-      <div>
-        <h1><i class="fa-solid fa-scale-balanced"></i> Terms of Service</h1>
-        <p>
-          Governing rules of enrollment, physical library study hall discipline, academic coaching, code of conduct, and digital access at <strong>ABCD Coaching & Library, Ganj Basoda</strong>.
-        </p>
-      </div>
-      <button type="button" class="hero-print-btn" onclick="window.print()" title="Print or Save as Official PDF">
-        <i class="fa-solid fa-print"></i> Print / Save PDF
-      </button>
+    <div class="hero-kicker">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>Institutional Policy Framework</span>
     </div>
-    <div class="hero-badges-row">
-      <span class="hero-badge"><i class="fa-solid fa-calendar-check"></i> Last Revised: September 2026</span>
-      <span class="hero-badge"><i class="fa-solid fa-building-columns"></i> M.P. Academic & Safety Adherent</span>
-      <span class="hero-badge"><i class="fa-solid fa-shield-check"></i> DPDP Act 2023 Compliant</span>
-      <span class="hero-badge"><i class="fa-solid fa-globe"></i> Official Portal: abcdcampus.in</span>
+
+    <div class="hero-title-group">
+      <h1>
+        <i class="fa-solid fa-scale-balanced hero-title-icon"></i>
+        <span>Terms of Service</span>
+      </h1>
+      <p class="hero-subtitle">
+        Official institutional regulations governing student admissions, physical library study hall discipline, academic coaching, digital platform usage, and student code of conduct at <strong>ABCD Coaching & Library, Ganj Basoda</strong>.
+      </p>
+    </div>
+
+    <!-- Flexible Wrap Badges (No Truncation, Fits All Screens!) -->
+    <div class="hero-badges-wrap">
+      <div class="hero-badge-pill">
+        <i class="fa-regular fa-calendar-check"></i>
+        <span><strong>Effective:</strong> September 2026 (Live)</span>
+      </div>
+      <div class="hero-badge-pill">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span><strong>Compliance:</strong> DPDP Act, 2023 & M.P. Norms</span>
+      </div>
+      <div class="hero-badge-pill">
+        <i class="fa-solid fa-landmark"></i>
+        <span><strong>Jurisdiction:</strong> Ganj Basoda, Vidisha (M.P.)</span>
+      </div>
+      <div class="hero-badge-pill">
+        <i class="fa-solid fa-circle-check"></i>
+        <span><strong>Status:</strong> Active & Binding</span>
+      </div>
     </div>
   </header>
 
   <!-- Quick Jump Table of Contents -->
   <nav class="toc-card" aria-label="Table of Contents">
     <div class="toc-title">
-      <i class="fa-solid fa-list-ul"></i> Quick Navigation
+      <i class="fa-solid fa-compass"></i> Quick Section Navigation (11 Regulatory Clauses)
     </div>
     <div class="toc-grid">
-      <a href="#section-1" class="toc-link">1. Acceptance of Terms</a>
-      <a href="#section-2" class="toc-link">2. Admission & Verification</a>
-      <a href="#section-3" class="toc-link">3. Library Discipline & Seats</a>
-      <a href="#section-4" class="toc-link">4. Academic & IP Rights</a>
-      <a href="#section-5" class="toc-link">5. Guidy & Digital Conduct</a>
-      <a href="#section-6" class="toc-link">6. Fee & Refund Policy</a>
-      <a href="#section-7" class="toc-link">7. Safety & Anti-Ragging</a>
-      <a href="#section-8" class="toc-link">8. Hall of Fame Policy</a>
-      <a href="#section-9" class="toc-link">9. Disclaimers & Liability</a>
-      <a href="#section-10" class="toc-link">10. Jurisdiction</a>
-      <a href="#section-11" class="toc-link">11. Administration Desk</a>
+      <a href="#section-1" class="toc-link"><span class="toc-num">01</span> Acceptance of Terms</a>
+      <a href="#section-2" class="toc-link"><span class="toc-num">02</span> Admission & Verification</a>
+      <a href="#section-3" class="toc-link"><span class="toc-num">03</span> Library Discipline & Seats</a>
+      <a href="#section-4" class="toc-link"><span class="toc-num">04</span> Academic & IP Rights</a>
+      <a href="#section-5" class="toc-link"><span class="toc-num">05</span> Guidy & Digital Conduct</a>
+      <a href="#section-6" class="toc-link"><span class="toc-num">06</span> Fee & Refund Policy</a>
+      <a href="#section-7" class="toc-link"><span class="toc-num">07</span> Safety & Anti-Ragging</a>
+      <a href="#section-8" class="toc-link"><span class="toc-num">08</span> Hall of Fame Policy</a>
+      <a href="#section-9" class="toc-link"><span class="toc-num">09</span> Disclaimers & Liability</a>
+      <a href="#section-10" class="toc-link"><span class="toc-num">10</span> Legal Jurisdiction</a>
+      <a href="#section-11" class="toc-link"><span class="toc-num">11</span> Administration Desk</a>
     </div>
   </nav>
 
   <!-- Cross-link alert to Privacy Policy -->
   <aside class="cross-link-card">
-    <div class="cross-link-text">
+    <div class="cross-link-content">
+      <span class="cross-link-tag"><i class="fa-solid fa-shield-halved"></i> Related Privacy Charter</span>
       <h3>Looking for our Personal Data Protection & Privacy Rules?</h3>
-      <p>Review how your personal data, Google authentication, and govt verification records are protected under India's DPDP Act, 2023.</p>
+      <p>Review how your personal records, Google authentication, and government verification details are safeguarded under India's Digital Personal Data Protection Act, 2023.</p>
     </div>
     <a href="{% url 'users:privacy_policy' %}" class="cross-link-btn">
-      <i class="fa-solid fa-shield-halved"></i> Read Privacy Policy
+      <span>Read Privacy Policy</span>
+      <i class="fa-solid fa-arrow-right"></i>
     </a>
   </aside>
 
   <!-- SECTION 1 -->
   <section id="section-1" class="legal-card">
-    <h2><i class="fa-solid fa-handshake"></i> 1. Acceptance of Terms & Institutional Scope</h2>
+    <h2><span class="sec-num">01</span> <i class="fa-solid fa-handshake"></i> 1. Acceptance of Terms & Institutional Scope</h2>
     <p>
       These Terms of Service constitute a legally binding agreement between you (referred to as "Student", "Member", "Visitor", or "User") and <strong>ABCD Coaching & Library</strong>, founded and directed by <strong>Mr. Sandeep Raghuwanshi</strong> in Ganj Basoda, District Vidisha, Madhya Pradesh - 464221.
     </p>
@@ -538,7 +951,7 @@
 
   <!-- SECTION 2 -->
   <section id="section-2" class="legal-card">
-    <h2><i class="fa-solid fa-id-card"></i> 2. Student Admission, Enrollment & Govt Verification</h2>
+    <h2><span class="sec-num">02</span> <i class="fa-solid fa-id-card"></i> 2. Student Admission, Enrollment & Govt Verification</h2>
     <p>
       ABCD Coaching & Library maintains strict compliance with local administrative, police, and educational directives in Madhya Pradesh to foster a secure, verified, and studious environment.
     </p>
@@ -552,7 +965,7 @@
 
   <!-- SECTION 3 -->
   <section id="section-3" class="legal-card">
-    <h2><i class="fa-solid fa-book-reader"></i> 3. Library Study Hall Discipline & Seat Allocation Policy</h2>
+    <h2><span class="sec-num">03</span> <i class="fa-solid fa-book-reader"></i> 3. Library Study Hall Discipline & Seat Allocation Policy</h2>
     <p>
       The ABCD Self-Study Library is a premier silent sanctuary designed for aspirants preparing for competitive examinations (MPPSC, SSC, Vyapam, UPSC, Railways, Banking, Police, and Judiciary). To protect this focused environment:
     </p>
@@ -574,7 +987,7 @@
 
   <!-- SECTION 4 -->
   <section id="section-4" class="legal-card">
-    <h2><i class="fa-solid fa-graduation-cap"></i> 4. Academic Coaching, Attendance & Intellectual Property</h2>
+    <h2><span class="sec-num">04</span> <i class="fa-solid fa-graduation-cap"></i> 4. Academic Coaching, Attendance & Intellectual Property</h2>
     <p>
       Students enrolled in ABCD Coaching classes (General Studies, Quantitative Aptitude, Reasoning, English, and Specialized State Exams) must uphold academic integrity:
     </p>
@@ -587,7 +1000,7 @@
 
   <!-- SECTION 5 -->
   <section id="section-5" class="legal-card">
-    <h2><i class="fa-solid fa-comments"></i> 5. Digital Platform, Guidy Chat & Acceptable Use Policy</h2>
+    <h2><span class="sec-num">05</span> <i class="fa-solid fa-comments"></i> 5. Digital Platform, Guidy Chat & Acceptable Use Policy</h2>
     <p>
       Our digital portal features online student dashboards, attendance logs, digital fee slips, and the <strong>Guidy academic mentorship portal</strong>:
     </p>
@@ -600,7 +1013,7 @@
 
   <!-- SECTION 6 -->
   <section id="section-6" class="legal-card">
-    <h2><i class="fa-solid fa-receipt"></i> 6. Fee Structure, Payment Terms & Refund Policy</h2>
+    <h2><span class="sec-num">06</span> <i class="fa-solid fa-receipt"></i> 6. Fee Structure, Payment Terms & Refund Policy</h2>
     <p>
       ABCD maintains full transparency regarding fee schedules, payment modes, and financial records:
     </p>
@@ -619,7 +1032,7 @@
 
   <!-- SECTION 7 -->
   <section id="section-7" class="legal-card">
-    <h2><i class="fa-solid fa-shield-heart"></i> 7. Campus Safety, Anti-Ragging & Equal Dignity</h2>
+    <h2><span class="sec-num">07</span> <i class="fa-solid fa-shield-heart"></i> 7. Campus Safety, Anti-Ragging & Equal Dignity</h2>
     <p>
       ABCD Coaching & Library enforces a zero-tolerance policy against any form of discrimination, harassment, or ragging:
     </p>
@@ -632,7 +1045,7 @@
 
   <!-- SECTION 8 -->
   <section id="section-8" class="legal-card">
-    <h2><i class="fa-solid fa-trophy"></i> 8. Hall of Fame & Alumni Testimonial Policy</h2>
+    <h2><span class="sec-num">08</span> <i class="fa-solid fa-trophy"></i> 8. Hall of Fame & Alumni Testimonial Policy</h2>
     <p>
       When an enrolled student or alumni successfully qualifies in a government competitive examination or secures a public service appointment:
     </p>
@@ -645,7 +1058,7 @@
 
   <!-- SECTION 9 -->
   <section id="section-9" class="legal-card">
-    <h2><i class="fa-solid fa-circle-exclamation"></i> 9. Disclaimers & Limitation of Liability</h2>
+    <h2><span class="sec-num">09</span> <i class="fa-solid fa-circle-exclamation"></i> 9. Disclaimers & Limitation of Liability</h2>
     <ul>
       <li><strong>Academic Guidance Disclaimer:</strong> ABCD Coaching & Library provides expert faculty mentorship, curated study material, and disciplined study infrastructure. However, selection in competitive government examinations depends solely upon individual candidate effort, diligence, and official examination boards. The institute does not make fraudulent, misleading, or guaranteed selection promises.</li>
       <li><strong>Technical Availability:</strong> While we strive for 99.9% uptime on <strong>abcdcampus.in</strong>, temporary service disruptions may occur during scheduled cloud maintenance, database updates, or telecommunication failures.</li>
@@ -655,7 +1068,7 @@
 
   <!-- SECTION 10 -->
   <section id="section-10" class="legal-card">
-    <h2><i class="fa-solid fa-gavel"></i> 10. Governing Law, Dispute Resolution & Jurisdiction</h2>
+    <h2><span class="sec-num">10</span> <i class="fa-solid fa-gavel"></i> 10. Governing Law, Dispute Resolution & Jurisdiction</h2>
     <p>
       These Terms of Service, along with all admission agreements and campus rules, are governed by and construed in accordance with the <strong>laws of the Republic of India</strong>.
     </p>
@@ -666,57 +1079,73 @@
 
   <!-- SECTION 11 -->
   <section id="section-11" class="legal-card">
-    <h2><i class="fa-solid fa-headset"></i> 11. Administration Desk & Official Contact Information</h2>
+    <h2><span class="sec-num">11</span> <i class="fa-solid fa-headset"></i> 11. Administration Desk & Official Contact Information</h2>
     <p>
       For questions regarding these Terms of Service, enrollment policies, library shift reservations, or disciplinary matters, please contact our administrative desk:
     </p>
     
     <div class="contact-desk-grid">
       <div class="contact-desk-item">
-        <i class="fa-solid fa-user-tie"></i>
-        <div>
+        <div class="contact-desk-icon-box">
+          <i class="fa-solid fa-user-tie"></i>
+        </div>
+        <div class="contact-desk-info">
           <h4>Managing Director</h4>
           <p>Mr. Sandeep Raghuwanshi</p>
-          <p style="font-size: 0.8rem; margin-top: 2px;">ABCD Coaching & Library</p>
+          <p style="font-size: 0.78rem; margin-top: 2px;">ABCD Coaching & Library</p>
         </div>
       </div>
       <div class="contact-desk-item">
-        <i class="fa-solid fa-location-dot"></i>
-        <div>
+        <div class="contact-desk-icon-box">
+          <i class="fa-solid fa-location-dot"></i>
+        </div>
+        <div class="contact-desk-info">
           <h4>Campus Address</h4>
           <p>Ganj Basoda, District Vidisha</p>
           <p>Madhya Pradesh, India - 464221</p>
         </div>
       </div>
       <div class="contact-desk-item">
-        <i class="fa-solid fa-envelope"></i>
-        <div>
+        <div class="contact-desk-icon-box">
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+        <div class="contact-desk-info">
           <h4>Official Email</h4>
           <p><a href="mailto:abcd2013baq@gmail.com">abcd2013baq@gmail.com</a></p>
-          <p style="font-size: 0.78rem;">Administrative & Legal Desk</p>
+          <p style="font-size: 0.76rem;">Administrative & Legal Desk</p>
         </div>
       </div>
       <div class="contact-desk-item">
-        <i class="fa-solid fa-phone"></i>
-        <div>
+        <div class="contact-desk-icon-box">
+          <i class="fa-solid fa-phone"></i>
+        </div>
+        <div class="contact-desk-info">
           <h4>Helpline & WhatsApp</h4>
           <p><a href="tel:+919827662450">+91 98276 62450</a></p>
-          <p style="font-size: 0.78rem;">Mon - Sun: 08:00 AM - 08:00 PM</p>
+          <p style="font-size: 0.76rem;">Mon - Sun: 08:00 AM - 08:00 PM</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- Bottom Cross Navigation Card -->
-  <aside class="cross-link-card" style="margin-top: 20px;">
-    <div class="cross-link-text">
+  <aside class="cross-link-card" style="margin-top: 30px;">
+    <div class="cross-link-content">
+      <span class="cross-link-tag"><i class="fa-solid fa-shield-halved"></i> Statutory Compliance</span>
       <h3>Ready to review our Privacy & Data Protection Policy?</h3>
       <p>Understand how we process your personal data in full compliance with the Digital Personal Data Protection Act, 2023.</p>
     </div>
     <a href="{% url 'users:privacy_policy' %}" class="cross-link-btn">
-      <i class="fa-solid fa-shield-halved"></i> Review Privacy Policy
+      <span>Review Privacy Policy</span>
+      <i class="fa-solid fa-arrow-right"></i>
     </a>
   </aside>
+
+  <!-- Single Floating Non-Scrollable Print/Save PDF Button (Compact, Elegant, Fixed Above Bottom Bar) -->
+  <button type="button" class="legal-floating-pdf-btn" onclick="window.print()" title="Print or Save PDF" aria-label="Print or Save PDF">
+    <i class="fa-solid fa-file-pdf"></i>
+    <span>Save / Print PDF</span>
+  </button>
 
 </main>
 {% include 'partials/_smart_back_redirect.html' %}

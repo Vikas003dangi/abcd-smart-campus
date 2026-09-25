@@ -2644,6 +2644,111 @@
         transform: translateY(0) scale(0.98) !important;
     }
 
+    /* Sidebar Legal Subfooter (Interactive Clickable Pill Chips) */
+    .sidebar-legal-subfooter {
+        list-style: none !important;
+        margin: 6px 0 12px 0 !important;
+        padding: 8px 10px 0 !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+        text-align: center !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    body.dark-theme .sidebar-legal-subfooter {
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .sidebar-legal-row {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        width: 100% !important;
+        flex-wrap: nowrap !important;
+    }
+    .nav-sidebar .sidebar-legal-subfooter a,
+    .sidebar-legal-row a,
+    .sidebar-legal-link {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 5px !important;
+        width: auto !important;
+        padding: 6px 11px !important;
+        font-size: 0.76rem !important;
+        font-weight: 650 !important;
+        color: #4338ca !important;
+        background: #ffffff !important;
+        border: 1.5px solid rgba(79, 70, 229, 0.28) !important;
+        border-radius: 999px !important;
+        text-decoration: none !important;
+        line-height: 1.2 !important;
+        letter-spacing: -0.1px !important;
+        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.08) !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        cursor: pointer !important;
+        white-space: nowrap !important;
+        user-select: none !important;
+    }
+    .sidebar-legal-link i {
+        font-size: 0.88rem !important;
+        color: #4f46e5 !important;
+        line-height: 1 !important;
+        transition: color 0.2s ease !important;
+    }
+    .nav-sidebar .sidebar-legal-subfooter a:hover,
+    .sidebar-legal-row a:hover,
+    .sidebar-legal-link:hover {
+        background: #4f46e5 !important;
+        border-color: #4f46e5 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28) !important;
+        text-decoration: none !important;
+    }
+    .nav-sidebar .sidebar-legal-subfooter a:hover i,
+    .sidebar-legal-row a:hover i,
+    .sidebar-legal-link:hover i {
+        color: #ffffff !important;
+    }
+    .nav-sidebar .sidebar-legal-subfooter a:active,
+    .sidebar-legal-row a:active,
+    .sidebar-legal-link:active {
+        transform: translateY(0) scale(0.97) !important;
+        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.15) !important;
+    }
+    body.dark-theme .nav-sidebar .sidebar-legal-subfooter a,
+    body.dark-theme .sidebar-legal-row a,
+    body.dark-theme .sidebar-legal-link {
+        color: #e2e8f0 !important;
+        background: rgba(255, 255, 255, 0.07) !important;
+        border: 1.5px solid rgba(255, 255, 255, 0.22) !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35) !important;
+    }
+    body.dark-theme .sidebar-legal-link i {
+        color: #a5b4fc !important;
+    }
+    body.dark-theme .nav-sidebar .sidebar-legal-subfooter a:hover,
+    body.dark-theme .sidebar-legal-row a:hover,
+    body.dark-theme .sidebar-legal-link:hover {
+        background: #6366f1 !important;
+        border-color: #6366f1 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.45) !important;
+    }
+    body.dark-theme .nav-sidebar .sidebar-legal-subfooter a:hover i,
+    body.dark-theme .sidebar-legal-row a:hover i,
+    body.dark-theme .sidebar-legal-link:hover i {
+        color: #ffffff !important;
+    }
+    body.dark-theme .nav-sidebar .sidebar-legal-subfooter a:active,
+    body.dark-theme .sidebar-legal-row a:active,
+    body.dark-theme .sidebar-legal-link:active {
+        transform: translateY(0) scale(0.97) !important;
+    }
+
+
     @media (max-width: 450px) {
         .ach-modal-card {
             border-radius: 20px !important;
@@ -4566,20 +4671,6 @@
       </a>
     </li>
 
-    <!-- Legal Links -->
-    <li>
-      <a href="{% url 'users:terms_of_service' %}" class="{% if request.resolver_match.url_name == 'terms_of_service' %}active{% endif %}">
-        <i class='bx bx-file-blank' style="color:#6366f1;"></i>
-        <span>Terms of Service</span>
-      </a>
-    </li>
-    <li>
-      <a href="{% url 'users:privacy_policy' %}" class="{% if request.resolver_match.url_name == 'privacy_policy' %}active{% endif %}">
-        <i class='bx bx-shield-quarter' style="color:#10b981;"></i>
-        <span>Privacy Policy</span>
-      </a>
-    </li>
-
     <!-- 15. Take Tour Item -->
     <li class="sidebar-tour-item">
       <a href="javascript:void(0)" onclick="if(window.ABCDTour && typeof window.ABCDTour.closeAllDrawers === 'function'){window.ABCDTour.closeAllDrawers();} if(window.startABCDTour){window.startABCDTour(true);}" class="sidebar-tour-btn">
@@ -4599,6 +4690,19 @@
         <i class='bx bx-log-in'></i> Sign In
       </a>
       {% endif %}
+    </li>
+
+    <li class="sidebar-legal-subfooter">
+      <div class="sidebar-legal-row">
+        <a href="{% url 'users:terms_of_service' %}" class="sidebar-legal-link">
+          <i class='bx bx-file-blank'></i>
+          <span>Terms of Service</span>
+        </a>
+        <a href="{% url 'users:privacy_policy' %}" class="sidebar-legal-link">
+          <i class='bx bx-shield-quarter'></i>
+          <span>Privacy Policy</span>
+        </a>
+      </div>
     </li>
   </ul>
 </div>
