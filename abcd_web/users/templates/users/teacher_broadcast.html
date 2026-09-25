@@ -975,35 +975,26 @@
        EXPIRY DATE WHEEL PICKER (Matches Schedule Wheel)
        ===================================================== */
     function getWheelSelectedIndex(col) {
-        if (!col) return 0;
-        const items = col.children;
-        if (!items || items.length === 0) return 0;
-        const colRect = col.getBoundingClientRect();
-        const centerY = colRect.top + colRect.height / 2;
-        let closestIndex = 0, minDist = Infinity;
-        for (let i = 0; i < items.length; i++) {
-            const r = items[i].getBoundingClientRect();
-            const itemCenter = r.top + r.height / 2;
-            const dist = Math.abs(itemCenter - centerY);
-            if (dist < minDist) { minDist = dist; closestIndex = i; }
-        }
-        return closestIndex;
+        if (!col || !col.children.length) return 0;
+        const firstItem = col.children[0];
+        const itemHeight = (firstItem && firstItem.offsetHeight > 0) ? firstItem.offsetHeight : 40;
+        const index = Math.round(col.scrollTop / itemHeight);
+        return Math.max(0, Math.min(index, col.children.length - 1));
     }
 
     function scrollWheelToIndex(col, index, smooth = false) {
-        if (!col) return;
-        const items = col.children;
-        if (!items || items.length === 0) return;
-        const clamped = Math.max(0, Math.min(index, items.length - 1));
-        const target = items[clamped];
+        if (!col || !col.children.length) return;
+        const clamped = Math.max(0, Math.min(index, col.children.length - 1));
+        const target = col.children[clamped];
+        if (!target) return;
         const targetScrollTop = target.offsetTop - col.offsetTop - (col.clientHeight - target.clientHeight) / 2;
         if (smooth) {
             col.scrollTo({ top: Math.max(0, Math.round(targetScrollTop)), behavior: 'smooth' });
         } else {
             col.scrollTop = Math.max(0, Math.round(targetScrollTop));
         }
-        for (let i = 0; i < items.length; i++) {
-            items[i].classList.toggle('selected', i === clamped);
+        for (let i = 0; i < col.children.length; i++) {
+            col.children[i].classList.toggle('selected', i === clamped);
         }
     }
 
@@ -1016,24 +1007,97 @@
             div.className = 'wheel-item';
             div.textContent = item;
             div.onclick = (e) => {
+                if (col._hasMoved) return;
                 e.stopPropagation();
                 scrollWheelToIndex(col, idx, true);
-                if (onScrollChange) setTimeout(onScrollChange, 80);
+                if (onScrollChange) setTimeout(onScrollChange, 100);
             };
             col.appendChild(div);
         });
-        let scrollTimeout;
-        col.addEventListener('scroll', () => {
-            const index = getWheelSelectedIndex(col);
-            const children = col.children;
-            for (let i = 0; i < children.length; i++) {
-                children[i].classList.toggle('selected', i === index);
-            }
-            if (onScrollChange) {
-                clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(onScrollChange, 80);
-            }
-        });
+
+        if (!col._wheelListenersAttached) {
+            col._wheelListenersAttached = true;
+            let lastSelectedIndex = -1;
+            let scrollTimeout;
+            let settleTimeout;
+
+            col.addEventListener('scroll', () => {
+                const index = getWheelSelectedIndex(col);
+                if (index !== lastSelectedIndex) {
+                    if (lastSelectedIndex >= 0 && col.children[lastSelectedIndex]) {
+                        col.children[lastSelectedIndex].classList.remove('selected');
+                    }
+                    if (col.children[index]) {
+                        col.children[index].classList.add('selected');
+                    }
+                    lastSelectedIndex = index;
+                }
+                if (col._onScrollChange) {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(col._onScrollChange, 80);
+                }
+                clearTimeout(settleTimeout);
+                settleTimeout = setTimeout(() => {
+                    const activeIdx = getWheelSelectedIndex(col);
+                    scrollWheelToIndex(col, activeIdx, true);
+                    if (col._onScrollChange) {
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(col._onScrollChange, 80);
+                    }
+                }, 120);
+            }, { passive: true });
+
+            // Pointer drag support for desktop/mouse
+            let isPointerDown = false;
+            let startY = 0;
+            let startScrollTop = 0;
+
+            col.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'mouse' && e.button !== 0) return;
+                isPointerDown = true;
+                col._hasMoved = false;
+                startY = e.clientY;
+                startScrollTop = col.scrollTop;
+                col.setPointerCapture(e.pointerId);
+                col.style.scrollSnapType = 'none';
+            });
+
+            col.addEventListener('pointermove', (e) => {
+                if (!isPointerDown) return;
+                const deltaY = e.clientY - startY;
+                if (Math.abs(deltaY) > 3) col._hasMoved = true;
+                col.scrollTop = startScrollTop - deltaY;
+            });
+
+            const onPointerEnd = (e) => {
+                if (!isPointerDown) return;
+                isPointerDown = false;
+                col.style.scrollSnapType = 'y proximity';
+                if (e.pointerId && col.hasPointerCapture(e.pointerId)) {
+                    try { col.releasePointerCapture(e.pointerId); } catch(err) {}
+                }
+                if (col._hasMoved) {
+                    const activeIdx = getWheelSelectedIndex(col);
+                    scrollWheelToIndex(col, activeIdx, true);
+                    if (col._onScrollChange) {
+                        clearTimeout(scrollTimeout);
+                        scrollTimeout = setTimeout(col._onScrollChange, 80);
+                    }
+                    setTimeout(() => { col._hasMoved = false; }, 50);
+                }
+            };
+
+            col.addEventListener('pointerup', onPointerEnd);
+            col.addEventListener('pointercancel', onPointerEnd);
+
+            col.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                col.scrollTop += e.deltaY * 0.5;
+            }, { passive: false });
+        }
+
+        col._onScrollChange = onScrollChange;
+
         const defaultIndex = items.indexOf(defaultValue ? defaultValue.toString() : '');
         if (defaultIndex !== -1) {
             setTimeout(() => { scrollWheelToIndex(col, defaultIndex, false); }, 50);

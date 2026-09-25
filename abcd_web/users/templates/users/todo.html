@@ -905,7 +905,10 @@
   .drum-column {
     flex: 1 1 0;
     overflow-y: scroll;
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y proximity;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     scrollbar-width: none;
     -ms-overflow-style: none;
     position: relative;
@@ -3290,16 +3293,16 @@
                       pointer-events:none; border-radius:6px; z-index:1;"></div>
 
           <div id="drumDays" class="drum-scroll"
-            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
+            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y proximity; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
           </div>
           <div id="drumHours" class="drum-scroll"
-            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
+            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y proximity; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
           </div>
           <div id="drumMins" class="drum-scroll"
-            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
+            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y proximity; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
           </div>
           <div id="drumSecs" class="drum-scroll"
-            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y mandatory; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
+            style="flex:1; height:132px; overflow-y:scroll; scroll-snap-type:y proximity; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; touch-action:pan-y; scrollbar-width:none; border-radius:10px; background:#f8f7ff; position:relative; z-index:2; padding:44px 0; box-sizing:border-box;">
           </div>
         </div>
 

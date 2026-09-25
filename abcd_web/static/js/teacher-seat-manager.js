@@ -3753,18 +3753,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function getSelectedIndex(col) {
           if (!col || !col.children.length) return 0;
-          const colRect = col.getBoundingClientRect();
-          const centerY = colRect.top + colRect.height / 2;
-          let closestIdx = 0, minDist = Infinity;
-          for (let i = 0; i < col.children.length; i++) {
-            const itemRect = col.children[i].getBoundingClientRect();
-            const dist = Math.abs((itemRect.top + itemRect.height / 2) - centerY);
-            if (dist < minDist) {
-              minDist = dist;
-              closestIdx = i;
-            }
-          }
-          return closestIdx;
+          const firstItem = col.children[0];
+          const itemHeight = (firstItem && firstItem.offsetHeight > 0) ? firstItem.offsetHeight : 40;
+          const index = Math.round(col.scrollTop / itemHeight);
+          return Math.max(0, Math.min(index, col.children.length - 1));
         }
 
         function scrollColToIndex(col, index, smooth = false) {
@@ -3784,29 +3776,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function populateCol(col, items, selectedVal, onChange) {
           col.innerHTML = '';
+          let hasMoved = false;
+
           items.forEach((item, idx) => {
             const div = document.createElement('div');
             div.className = 'wheel-item';
             div.textContent = item;
             div.onclick = (e) => {
+              if (hasMoved) return;
               e.stopPropagation();
               scrollColToIndex(col, idx, true);
-              if (onChange) setTimeout(onChange, 80);
+              if (onChange) setTimeout(onChange, 100);
             };
             col.appendChild(div);
           });
 
           let scrollTimer;
-          col.onscroll = () => {
+          let settleTimer;
+          let lastIdx = -1;
+
+          col.addEventListener('scroll', () => {
             const activeIdx = getSelectedIndex(col);
-            for (let i = 0; i < col.children.length; i++) {
-              col.children[i].classList.toggle('selected', i === activeIdx);
+            if (activeIdx !== lastIdx) {
+              if (lastIdx >= 0 && col.children[lastIdx]) {
+                col.children[lastIdx].classList.remove('selected');
+              }
+              if (col.children[activeIdx]) {
+                col.children[activeIdx].classList.add('selected');
+              }
+              lastIdx = activeIdx;
             }
             if (onChange) {
               clearTimeout(scrollTimer);
-              scrollTimer = setTimeout(onChange, 60);
+              scrollTimer = setTimeout(onChange, 80);
+            }
+            clearTimeout(settleTimer);
+            settleTimer = setTimeout(() => {
+              const finalActive = getSelectedIndex(col);
+              scrollColToIndex(col, finalActive, true);
+            }, 120);
+          }, { passive: true });
+
+          // Pointer drag support
+          let isDown = false;
+          let startY = 0;
+          let startScrollTop = 0;
+
+          col.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            isDown = true;
+            hasMoved = false;
+            startY = e.clientY;
+            startScrollTop = col.scrollTop;
+            col.setPointerCapture(e.pointerId);
+            col.style.scrollSnapType = 'none';
+          });
+
+          col.addEventListener('pointermove', (e) => {
+            if (!isDown) return;
+            const dy = e.clientY - startY;
+            if (Math.abs(dy) > 3) hasMoved = true;
+            col.scrollTop = startScrollTop - dy;
+          });
+
+          const onPointerEnd = (e) => {
+            if (!isDown) return;
+            isDown = false;
+            col.style.scrollSnapType = 'y proximity';
+            if (e.pointerId && col.hasPointerCapture(e.pointerId)) {
+              try { col.releasePointerCapture(e.pointerId); } catch(err) {}
+            }
+            if (hasMoved) {
+              const activeIdx = getSelectedIndex(col);
+              scrollColToIndex(col, activeIdx, true);
+              if (onChange) {
+                clearTimeout(scrollTimer);
+                scrollTimer = setTimeout(onChange, 80);
+              }
+              setTimeout(() => { hasMoved = false; }, 50);
             }
           };
+
+          col.addEventListener('pointerup', onPointerEnd);
+          col.addEventListener('pointercancel', onPointerEnd);
+
+          col.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            col.scrollTop += e.deltaY * 0.5;
+          }, { passive: false });
 
           const selIdx = items.indexOf(selectedVal ? selectedVal.toString() : '');
           const finalIdx = selIdx !== -1 ? selIdx : 0;

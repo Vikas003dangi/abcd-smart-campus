@@ -1225,6 +1225,7 @@ body.dark-theme .tc-modal-cancel-btn:hover {
     mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
     -webkit-mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
     user-select: none;
+    -webkit-user-select: none;
     box-sizing: border-box !important;
 }
 
@@ -1235,12 +1236,20 @@ body.dark-theme .tc-modal-cancel-btn:hover {
     scrollbar-width: none;
     -ms-overflow-style: none;
     text-align: center;
-    scroll-snap-type: y mandatory;
+    scroll-snap-type: y proximity;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
     padding: 75px 0;
     box-sizing: border-box !important;
     position: relative;
     z-index: 5;
-    scroll-behavior: smooth;
+    cursor: grab;
+}
+
+.wheel-col:active {
+    cursor: grabbing;
 }
 
 .wheel-col::-webkit-scrollbar {
@@ -1254,10 +1263,12 @@ body.dark-theme .tc-modal-cancel-btn:hover {
     font-weight: 700;
     color: #94a3b8;
     scroll-snap-align: center;
-    scroll-snap-stop: always;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    scroll-snap-stop: normal !important;
+    transition: transform 0.15s ease-out, color 0.15s ease-out;
     box-sizing: border-box !important;
     cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .wheel-item.selected {
