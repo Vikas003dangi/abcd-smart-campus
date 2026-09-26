@@ -9,23 +9,79 @@ from django.utils.timezone import now, localdate
 
 logger = logging.getLogger(__name__)
 
-# --- UPDATED Helper function to work with the NEW Seat model ---
+# --- UPDATED Helper function to work with Seat, Batch, Floor, and Shift ---
 def get_student_service_details(student):
-    """Returns a detailed string of the student's service for messages."""
-    if student.service_type == 'Coaching':
-        batch_name = student.get_batch_display()
-        return f"{batch_name} coaching"
-    elif student.service_type == 'Library':
-        # Check if the student has a seat assigned
-        if hasattr(student, 'seat') and student.seat:
-            seat = student.seat
-            floor_name = seat.floor
-            seat_num = f" seat number {seat.seat_number}"
-            return f"{floor_name} library{seat_num}"
+    """
+    Returns a comprehensive, accurate string of the student's service details:
+    - Coaching: 'Coaching (Batch: <Batch Name>)'
+    - Library: 'Library (<Floor>, Seat <Number>, Shift: <Shift Name>)'
+    - Both: Combined full details of both services
+    - Never returns 'N/A'
+    """
+    if not student:
+        return "Coaching & Library Services"
+
+    service_type = getattr(student, 'service_type', None)
+    
+    # 1. Coaching component
+    batch_display = ""
+    if hasattr(student, 'get_batch_display'):
+        try:
+            batch_display = student.get_batch_display() or ""
+        except Exception:
+            batch_display = ""
+    if not batch_display:
+        batch_display = getattr(student, 'batch', '') or ""
+    batch_str = f"Coaching (Batch: {batch_display})" if batch_display else "Coaching"
+
+    # 2. Library component
+    seat_part = ""
+    seat = getattr(student, 'seat', None)
+    shift_display = ""
+    if hasattr(student, 'get_shift_display'):
+        try:
+            shift_display = student.get_shift_display() or ""
+        except Exception:
+            shift_display = ""
+    if not shift_display:
+        shift_display = getattr(student, 'shift', '') or ""
+
+    if seat:
+        floor = str(getattr(seat, 'floor', '') or '').strip()
+        floor_label = f"{floor}" if floor.lower().endswith("floor") else f"{floor} Floor" if floor else ""
+        seat_num = getattr(seat, 'seat_number', None)
+        seat_label = f"Seat {seat_num}" if seat_num is not None else ""
+        
+        lib_parts = [p for p in [floor_label, seat_label] if p]
+        if shift_display:
+            lib_parts.append(f"Shift: {shift_display}")
+            
+        if lib_parts:
+            seat_part = f"Library ({', '.join(lib_parts)})"
         else:
-            # Student is a library student but no seat is assigned yet
-            return "Library"
-    return "N/A"
+            seat_part = "Library"
+    elif shift_display:
+        seat_part = f"Library (Shift: {shift_display})"
+    else:
+        seat_part = "Library"
+
+    # 3. Assemble based on service_type
+    if service_type == 'Coaching':
+        return batch_str
+    elif service_type == 'Library':
+        return seat_part
+    elif service_type in ['Both', 'both', 'Combined']:
+        return f"{batch_str} + {seat_part}"
+    
+    # If service_type is unspecified, infer from attributes
+    if seat and batch_display:
+        return f"{batch_str} + {seat_part}"
+    elif seat:
+        return seat_part
+    elif batch_display:
+        return batch_str
+
+    return "Coaching & Library Services"
 
 
 def sanitize_whatsapp_number(phone):
