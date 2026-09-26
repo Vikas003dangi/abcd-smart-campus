@@ -241,14 +241,12 @@ def send_fee_receipt_whatsapp(student, transaction, pdf_content):
             # Fallback to direct document message if template is pending approval
             logger.warning(f"fee_receipt_v2 template dispatch returned {send_response.status_code} ({send_response.text}), trying direct document dispatch...")
             first_name = student.user.first_name if hasattr(student, 'user') and student.user and student.user.first_name else student.full_name.split()[0]
-            site_url = getattr(settings, 'SITE_URL', 'https://abcdcampus.in').rstrip('/')
             caption = (
                 f"🧾 *FEE PAYMENT RECEIPT*\n\n"
                 f"Dear {first_name},\n"
                 f"Your fee payment of *Rs. {amount_str}* for *{service_details}* has been successfully received at *ABCD Coaching & Library*. ✅\n\n"
                 f"📋 *Receipt No:* {clean_receipt_no}\n"
-                f"📎 *Attached:* Official PDF Receipt\n\n"
-                f"🔗 *Student Dashboard:* {site_url}/dashboard/\n\n"
+                f"📎 *Attached:* Official PDF Receipt (Tap above to view/download)\n\n"
                 f"Thank you,\n*~ Team ABCD*"
             )
             fallback_payload = {
