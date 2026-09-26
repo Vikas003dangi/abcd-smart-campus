@@ -13,7 +13,7 @@ from users.utils.receipt_generator import generate_fee_receipt_pdf
 
 TOKEN = getattr(settings, 'WHATSAPP_API_TOKEN')
 PHONE_ID = getattr(settings, 'WHATSAPP_PHONE_NUMBER_ID')
-RECIPIENT = '917974154551'
+RECIPIENT = sys.argv[1] if len(sys.argv) > 1 else '919329438930'
 URL = f"https://graph.facebook.com/v19.0/{PHONE_ID}/messages"
 MEDIA_URL = f"https://graph.facebook.com/v19.0/{PHONE_ID}/media"
 
