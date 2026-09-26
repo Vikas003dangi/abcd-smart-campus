@@ -2945,9 +2945,29 @@ def on_learning_reminder_change_wake_scheduler(sender, instance, **kwargs):
         from users.scheduler import notify_scheduler_task_changed
         notify_scheduler_task_changed()
     except Exception:
-        pass
+        pass# -------------------------------------------------------------------
+# SECURE 7-DAY IDENTITY QUARANTINE MODEL
+# -------------------------------------------------------------------
+class QuarantineIdentity(models.Model):
+    """
+    Holds deleted usernames and emails for a 7-day security quarantine.
+    Prevents immediate reuse, account hijacking, and identity spoofing.
+    Auto-expires based on quarantine_until timestamp without hard cron requirement.
+    """
+    username_normalized = models.CharField(max_length=150, db_index=True)
+    email_normalized = models.CharField(max_length=254, db_index=True)
+    deleted_at = models.DateTimeField(default=timezone.now)
+    quarantine_until = models.DateTimeField(db_index=True)
+    user_role = models.CharField(max_length=20, blank=True)
 
+    class Meta:
+        verbose_name = "Quarantine Identity"
+        verbose_name_plural = "Quarantine Identities"
+        indexes = [
+            models.Index(fields=['username_normalized', 'quarantine_until']),
+            models.Index(fields=['email_normalized', 'quarantine_until']),
+        ]
 
-
-
+    def __str__(self):
+        return f"{self.username_normalized} ({self.email_normalized}) quarantined until {self.quarantine_until}"
 

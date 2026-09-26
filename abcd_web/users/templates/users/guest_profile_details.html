@@ -324,6 +324,9 @@
             <button onclick="openChangePasswordModal()" class="btn-cta btn-grey">
                 <i class='bx bxs-key'></i> Change Password
             </button>
+            <button type="button" onclick="openDeleteAccountModal()" class="btn-cta btn-danger" style="background: #ef4444; color: #ffffff; border: none; font-weight: 600;">
+                <i class='bx bx-trash'></i> Delete Account
+            </button>
         </div>
     </div>
 </div>
@@ -358,6 +361,8 @@
         </div>
     </form>
 </div>
+
+{% include 'partials/delete_account_modal.html' %}
 
 <script>
     async function showAlert(title, message) {

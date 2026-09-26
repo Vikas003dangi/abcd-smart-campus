@@ -1,0 +1,484 @@
+<!-- users/templates/partials/delete_account_modal.html -->
+{% load static %}
+
+<!-- DELETE ACCOUNT MODAL STYLES -->
+<style>
+    .del-acc-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 1000050;
+    }
+    .del-acc-overlay.active {
+        display: block;
+    }
+    .del-acc-modal {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        width: 92%;
+        max-width: 480px;
+        background: #ffffff;
+        padding: 28px 24px;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35);
+        z-index: 1000055;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity: 0;
+        font-family: inherit;
+        box-sizing: border-box;
+    }
+    .del-acc-modal.active {
+        display: block;
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        color: #1e293b;
+    }
+    body.dark-theme .del-acc-modal,
+    html.dark-theme .del-acc-modal {
+        background: #1e293b;
+        color: #f1f5f9;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+    .del-acc-hdr {
+        font-size: 1.3rem;
+        font-weight: 800;
+        margin-bottom: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #dc2626;
+    }
+    body.dark-theme .del-acc-hdr,
+    html.dark-theme .del-acc-hdr {
+        color: #f87171;
+    }
+    .del-acc-close {
+        cursor: pointer;
+        font-size: 1.7rem;
+        color: #94a3b8;
+        line-height: 1;
+        transition: color 0.2s;
+    }
+    .del-acc-close:hover {
+        color: #dc2626;
+    }
+    .del-warning-box {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 16px;
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: #991b1b;
+    }
+    body.dark-theme .del-warning-box,
+    html.dark-theme .del-warning-box {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+    }
+    .del-warning-box strong {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 700;
+    }
+    .del-error-box {
+        display: none;
+        background: #fef2f2;
+        border: 1.5px solid #f87171;
+        color: #dc2626;
+        padding: 12px 14px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    body.dark-theme .del-error-box,
+    html.dark-theme .del-error-box {
+        background: rgba(239, 68, 68, 0.16);
+        border-color: rgba(239, 68, 68, 0.45);
+        color: #fca5a5;
+    }
+    .del-form-group {
+        margin-bottom: 16px;
+        text-align: left;
+    }
+    .del-form-group label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #475569;
+    }
+    body.dark-theme .del-form-group label,
+    html.dark-theme .del-form-group label {
+        color: #cbd5e1;
+    }
+    .del-input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1.5px solid #cbd5e1;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 0.95rem;
+        font-weight: 500;
+        outline: none;
+        transition: all 0.2s;
+        box-sizing: border-box;
+    }
+    .del-input:focus {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+        background: #ffffff;
+    }
+    body.dark-theme .del-input,
+    html.dark-theme .del-input {
+        background: #0f172a;
+        border-color: #334155;
+        color: #f8fafc;
+    }
+    body.dark-theme .del-input:focus,
+    html.dark-theme .del-input:focus {
+        background: #1e293b;
+        border-color: #ef4444;
+    }
+    .del-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+    }
+    .btn-del-cancel {
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        background: #e2e8f0;
+        color: #334155;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .btn-del-cancel:hover {
+        background: #cbd5e1;
+    }
+    body.dark-theme .btn-del-cancel,
+    html.dark-theme .btn-del-cancel {
+        background: #334155;
+        color: #e2e8f0;
+    }
+    body.dark-theme .btn-del-cancel:hover,
+    html.dark-theme .btn-del-cancel:hover {
+        background: #475569;
+    }
+    .btn-del-danger {
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        background: #ef4444;
+        color: #ffffff;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    .btn-del-danger:hover:not(:disabled) {
+        background: #dc2626;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+    }
+    .btn-del-danger:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .otp-request-btn {
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        color: #334155;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 6px;
+        transition: all 0.2s;
+    }
+    .otp-request-btn:hover {
+        background: #e2e8f0;
+    }
+    body.dark-theme .otp-request-btn,
+    html.dark-theme .otp-request-btn {
+        background: #0f172a;
+        border-color: #334155;
+        color: #cbd5e1;
+    }
+    body.dark-theme .otp-request-btn:hover,
+    html.dark-theme .otp-request-btn:hover {
+        background: #1e293b;
+    }
+</style>
+
+<!-- MODAL OVERLAY & CONTAINER -->
+<div class="del-acc-overlay" id="delAccOverlay" onclick="closeDeleteAccountModal()"></div>
+
+<div class="del-acc-modal" id="delAccModal" role="dialog" aria-modal="true" aria-labelledby="delAccTitle">
+    <div class="del-acc-hdr">
+        <span id="delAccTitle" style="display: flex; align-items: center; gap: 8px;">
+            <i class='bx bxs-error-circle' style="font-size: 1.5rem;"></i> Delete Account
+        </span>
+        <i class='bx bx-x del-acc-close' onclick="closeDeleteAccountModal()" aria-label="Close modal"></i>
+    </div>
+
+    <div class="del-warning-box">
+        <strong>Irreversible Action</strong>
+        This permanently deletes your account and associated personal data. This action cannot be undone after the deletion process is completed. Your username and email will remain reserved in a 7-day security quarantine.
+    </div>
+
+    <!-- IN-MODAL ERROR CONTAINER (NO BROWSER-NATIVE DIALOGS) -->
+    <div id="delAccErrorBox" class="del-error-box" role="alert"></div>
+
+    <form id="deleteAccountForm" onsubmit="handleDeleteAccountSubmit(event)">
+        {% csrf_token %}
+
+        {% if user.has_usable_password %}
+            <div class="del-form-group">
+                <label for="del_current_password">Current Password</label>
+                <input
+                    type="password"
+                    id="del_current_password"
+                    name="password"
+                    class="del-input"
+                    required
+                    placeholder="Enter your current password"
+                    autocomplete="current-password"
+                >
+            </div>
+        {% else %}
+            <div class="del-form-group">
+                <label for="del_account_otp">Email Verification Code</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input
+                        type="text"
+                        id="del_account_otp"
+                        name="otp"
+                        class="del-input"
+                        required
+                        placeholder="6-digit code"
+                        maxlength="6"
+                        pattern="\d{6}"
+                        style="letter-spacing: 2px; font-weight: 700; text-align: center; max-width: 140px;"
+                    >
+                    <button type="button" class="otp-request-btn" id="delOtpRequestBtn" onclick="handleSendDeleteOtp()">
+                        Send Code via Email
+                    </button>
+                </div>
+                <small id="delOtpNotice" style="display: block; font-size: 0.76rem; color: #64748b; margin-top: 4px;">
+                    Google OAuth account detected. We will send a 6-digit confirmation code to your registered email.
+                </small>
+            </div>
+        {% endif %}
+
+        <div class="del-form-group">
+            <label for="del_confirmation_text">
+                Type exactly <span style="color: #dc2626; font-weight: 800; user-select: all;">DELETE THIS PROFILE</span> to confirm:
+            </label>
+            <input
+                type="text"
+                id="del_confirmation_text"
+                name="confirmation_text"
+                class="del-input"
+                required
+                placeholder="DELETE THIS PROFILE"
+                autocomplete="off"
+                oninput="checkDeleteConfirmationMatch()"
+            >
+        </div>
+
+        <div class="del-actions">
+            <button type="button" class="btn-del-cancel" onclick="closeDeleteAccountModal()">Cancel</button>
+            <button type="submit" class="btn-del-danger" id="delSubmitBtn" disabled>
+                <i class='bx bx-trash'></i> Delete Account Permanently
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- JAVASCRIPT HANDLER (100% ZERO NATIVE BROWSER DIALOGS) -->
+<script>
+    function showDeleteModalError(msg) {
+        const box = document.getElementById('delAccErrorBox');
+        if (box) {
+            box.innerText = msg;
+            box.style.display = 'block';
+        }
+        if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+            window.CustomPopup.alert(msg, "Action Required");
+        } else if (typeof window.showStyledAlert === 'function') {
+            window.showStyledAlert("Action Required", msg);
+        }
+    }
+
+    function clearDeleteModalError() {
+        const box = document.getElementById('delAccErrorBox');
+        if (box) {
+            box.innerText = '';
+            box.style.display = 'none';
+        }
+    }
+
+    function openDeleteAccountModal() {
+        clearDeleteModalError();
+        const modal = document.getElementById('delAccModal');
+        const overlay = document.getElementById('delAccOverlay');
+        if (modal && overlay) {
+            overlay.classList.add('active');
+            modal.classList.add('active');
+            const confirmInput = document.getElementById('del_confirmation_text');
+            if (confirmInput) {
+                confirmInput.value = '';
+                checkDeleteConfirmationMatch();
+            }
+        }
+    }
+
+    function closeDeleteAccountModal() {
+        clearDeleteModalError();
+        const modal = document.getElementById('delAccModal');
+        const overlay = document.getElementById('delAccOverlay');
+        if (modal && overlay) {
+            modal.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+    }
+
+    function checkDeleteConfirmationMatch() {
+        const input = document.getElementById('del_confirmation_text');
+        const submitBtn = document.getElementById('delSubmitBtn');
+        if (!input || !submitBtn) return;
+        const val = input.value.trim();
+        if (val === 'DELETE THIS PROFILE') {
+            submitBtn.disabled = false;
+            clearDeleteModalError();
+        } else {
+            submitBtn.disabled = true;
+        }
+    }
+
+    async function handleSendDeleteOtp() {
+        clearDeleteModalError();
+        const btn = document.getElementById('delOtpRequestBtn');
+        const notice = document.getElementById('delOtpNotice');
+        if (btn) btn.disabled = true;
+
+        try {
+            const csrfToken = document.querySelector('#deleteAccountForm [name=csrfmiddlewaretoken]')?.value;
+            const res = await fetch("{% url 'users:request_delete_account_otp' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                }
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                if (notice) {
+                    notice.innerText = data.message || "Code sent. Please check your inbox.";
+                    notice.style.color = "#16a34a";
+                }
+                if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
+                    window.CustomPopup.alert(data.message, "Verification Code Sent");
+                }
+            } else {
+                const errMsg = data.message || "Failed to send code.";
+                if (notice) {
+                    notice.innerText = errMsg;
+                    notice.style.color = "#dc2626";
+                }
+                showDeleteModalError(errMsg);
+            }
+        } catch (err) {
+            const errNetwork = "Error requesting verification code. Please check your connection and try again.";
+            if (notice) {
+                notice.innerText = errNetwork;
+                notice.style.color = "#dc2626";
+            }
+            showDeleteModalError(errNetwork);
+        } finally {
+            setTimeout(() => { if (btn) btn.disabled = false; }, 30000);
+        }
+    }
+
+    async function handleDeleteAccountSubmit(e) {
+        e.preventDefault();
+        clearDeleteModalError();
+
+        const form = document.getElementById('deleteAccountForm');
+        const submitBtn = document.getElementById('delSubmitBtn');
+        const confirmInput = document.getElementById('del_confirmation_text');
+
+        if (!confirmInput || confirmInput.value.trim() !== 'DELETE THIS PROFILE') {
+            showDeleteModalError('Please type the exact confirmation text: DELETE THIS PROFILE');
+            return;
+        }
+
+        const formData = new FormData(form);
+        const originalHtml = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Deleting Account...";
+
+        try {
+            const response = await fetch("{% url 'users:delete_account' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'ok' && data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
+                const errMsg = data.message || "Failed to delete account. Please verify your details.";
+                showDeleteModalError(errMsg);
+            }
+        } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalHtml;
+            showDeleteModalError("A network error occurred. Please try again.");
+        }
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('delAccModal');
+            if (modal && modal.classList.contains('active')) {
+                closeDeleteAccountModal();
+            }
+        }
+    });
+</script>

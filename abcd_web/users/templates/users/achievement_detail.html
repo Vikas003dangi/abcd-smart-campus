@@ -648,6 +648,11 @@ function goBackOrHomeBase(event) {
             <a href="{% url 'users:edit_alumni_pk' achievement.pk %}" class="edit-btn-action">
                 <i class='bx bx-edit-alt'></i> <span class="edit-btn-text">Edit Profile</span>
             </a>
+            {% if achievement.user == request.user and not user.is_staff %}
+                <button type="button" onclick="openDeleteAccountModal()" class="edit-btn-action" style="background: #ef4444; color: #ffffff; border: none; cursor: pointer; text-decoration: none;">
+                    <i class='bx bx-trash'></i> <span class="edit-btn-text">Delete Account</span>
+                </button>
+            {% endif %}
         {% endif %}
     </div>
 
@@ -945,6 +950,10 @@ document.addEventListener('keydown', function(e) {
     }
 });
 </script>
+
+{% if user.is_authenticated and achievement.user == request.user %}
+    {% include 'partials/delete_account_modal.html' %}
+{% endif %}
 
 {% include 'partials/_smart_back_redirect.html' with context_aware=True %}
 {% endblock %}

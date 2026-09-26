@@ -3164,6 +3164,14 @@ def link_existing_account_by_email(backend, strategy=None, details=None, respons
     if not email:
         return None
 
+    # Check 7-day identity quarantine for Google OAuth
+    from .account_deletion import is_identity_quarantined
+    is_quarantined, _ = is_identity_quarantined(email=email)
+    if is_quarantined:
+        from social_core.exceptions import AuthForbidden
+        raise AuthForbidden(backend, "This email address is currently in a 7-day security quarantine following account deletion. Please try again after the quarantine expires.")
+
+
     if email == 'abcd2013baq@gmail.com':
         sandy_user = User.objects.filter(Q(email__iexact='abcd2013baq@gmail.com') | Q(username__iexact='Sandy')).first()
         if sandy_user:
@@ -19511,3 +19519,186 @@ def email_diagnostics_view(request):
 
     return JsonResponse(results)
 
+
+# ===================================================================
+# SECURE ACCOUNT DELETION & 7-DAY QUARANTINE VIEWS
+# ===================================================================
+
+@login_required
+@require_POST
+@never_cache
+def delete_account_view(request):
+    """
+    Self-service account deletion endpoint for Student, Alumni, and Guest users.
+    Requires:
+    1. Exact confirmation text: 'DELETE THIS PROFILE'
+    2. Current password verification (or email OTP verification if passwordless OAuth)
+    3. Operation runs on request.user ONLY (zero IDOR)
+    4. Concurrency lock against double submission
+    5. Complete session flush on success
+    """
+    user = request.user
+
+    # 1. Staff / Superuser accounts cannot self-delete
+    if user.is_staff or user.is_superuser:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Administrative and staff accounts cannot be deleted self-service.'
+        }, status=403)
+
+    # 2. Concurrency lock (prevents double submission / race conditions)
+    lock_key = f"account_deletion_lock_{user.id}"
+    if not cache.add(lock_key, True, timeout=60):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Account deletion is already in progress. Please wait.'
+        }, status=429)
+
+    try:
+        # 3. Exact confirmation text validation
+        confirmation_text = request.POST.get('confirmation_text', '').strip()
+        if confirmation_text != "DELETE THIS PROFILE":
+            cache.delete(lock_key)
+            return JsonResponse({
+                'status': 'error',
+                'message': 'You must type the exact confirmation text: DELETE THIS PROFILE'
+            }, status=400)
+
+        # 4. Identity authentication
+        if user.has_usable_password():
+            password = request.POST.get('password', '')
+            if not password or not user.check_password(password):
+                cache.delete(lock_key)
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Incorrect current password. Please enter your valid password.'
+                }, status=400)
+        else:
+            # Passwordless / Google OAuth account: verify email OTP
+            otp = request.POST.get('otp', '').strip()
+            stored_otp = request.session.get('account_deletion_otp')
+            otp_expiry = request.session.get('account_deletion_otp_expiry', 0)
+            if not otp or not stored_otp or otp != stored_otp or time.time() > otp_expiry:
+                cache.delete(lock_key)
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid or expired email verification code. Please request a new code.'
+                }, status=400)
+
+        # 5. Perform the deletion workflow
+        from .account_deletion import perform_account_deletion
+        result = perform_account_deletion(user)
+
+        if not result.get('success'):
+            cache.delete(lock_key)
+            return JsonResponse({
+                'status': 'error',
+                'message': result.get('message', 'Failed to complete deletion.')
+            }, status=500)
+
+        # 6. Session & Authentication Invalidation
+        request.session.flush()
+        logout(request)
+
+        return JsonResponse({
+            'status': 'ok',
+            'redirect_url': reverse('users:account_deleted')
+        })
+
+    except Exception as e:
+        cache.delete(lock_key)
+        logger.exception(f"[ACCOUNT_DELETION_VIEW] Error during deletion for user {user.id}: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An unexpected error occurred during account deletion. Please try again or contact support.'
+        }, status=500)
+    finally:
+        cache.delete(lock_key)
+
+
+@login_required
+@require_POST
+def request_delete_account_otp_view(request):
+    """
+    Sends a 6-digit verification OTP to the user's registered email
+    for account deletion verification (primarily for Google OAuth users without passwords).
+    """
+    user = request.user
+    if user.is_staff or user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': 'Staff accounts cannot be deleted.'}, status=403)
+
+    recipient_email = user.email
+    if not recipient_email and hasattr(user, 'profile') and user.profile.email:
+        recipient_email = user.profile.email
+    elif not recipient_email and hasattr(user, 'achievements'):
+        ach = user.achievements.first()
+        if ach and ach.email:
+            recipient_email = ach.email
+
+    if not recipient_email:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'No verified email address is associated with this account. Please contact support.'
+        }, status=400)
+
+    # Cooldown check
+    cooldown_key = f"del_otp_cooldown_{user.id}"
+    if cache.get(cooldown_key):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Please wait 60 seconds before requesting another verification code.'
+        }, status=429)
+
+    import random
+    otp = f"{random.randint(100000, 999999)}"
+    request.session['account_deletion_otp'] = otp
+    request.session['account_deletion_otp_expiry'] = time.time() + 600  # 10 minutes
+    request.session.modified = True
+    cache.set(cooldown_key, True, timeout=60)
+
+    # Mask email for safe UI display (e.g. j***@example.com)
+    parts = recipient_email.split('@')
+    masked_email = f"{parts[0][:1]}***@{parts[1]}" if len(parts) == 2 and len(parts[0]) > 1 else recipient_email
+
+    # Send email notification
+    from .email_service import send_html_email
+    try:
+        send_html_email(
+            subject="ABCD Campus - Security Verification Code for Account Deletion",
+            to_email=recipient_email,
+            template="emails/otp_register.html",
+            context={
+                'username': user.username,
+                'otp': otp,
+                'purpose': 'permanently delete your ABCD Campus account',
+            },
+            fail_silently=True,
+            timeout=8,
+            run_async=True
+        )
+    except Exception as e:
+        logger.warning(f"[ACCOUNT_DELETION] Failed sending OTP email: {e}")
+
+    return JsonResponse({
+        'status': 'ok',
+        'message': f'A verification code has been sent to your registered email ({masked_email}).'
+    })
+
+
+def delete_account_info_view(request):
+    """
+    Public explanation page for Self-Service Account Deletion.
+    Linked in Google Play Console Data Safety declaration and in app.
+    """
+    return render(request, 'users/delete_account_info.html', {
+        'page_title': 'Account Deletion Policy & Procedure | ABCD Smart Campus'
+    })
+
+
+def account_deleted_view(request):
+    """
+    Public landing page displayed immediately after successful account deletion.
+    """
+    return render(request, 'users/account_deleted.html', {
+        'page_title': 'Account Deleted | ABCD Smart Campus'
+    })

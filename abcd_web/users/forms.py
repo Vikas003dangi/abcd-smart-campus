@@ -21,10 +21,33 @@ class InitialRegisterForm(UserCreationForm):
         # include email so form.cleaned_data has it
         fields = ('username', 'email')
 
+    def clean_username(self):
+        username = (self.cleaned_data.get('username') or '').strip()
+        if not username:
+            raise forms.ValidationError("Username is required.")
+
+        from .account_deletion import is_identity_quarantined
+        is_quarantined, _ = is_identity_quarantined(username=username)
+        if is_quarantined:
+            raise forms.ValidationError(
+                "This username is temporarily reserved. Please choose another username."
+            )
+
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("A user with that username already exists.")
+        return username
+
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip().lower()
         if not email:
             raise forms.ValidationError("Email address is required.")
+
+        from .account_deletion import is_identity_quarantined
+        is_quarantined, _ = is_identity_quarantined(email=email)
+        if is_quarantined:
+            raise forms.ValidationError(
+                "This email address is temporarily reserved. Please try again later."
+            )
 
         is_valid, err_msg, suggestion = validate_email_deliverability(email)
         if not is_valid:
@@ -35,6 +58,7 @@ class InitialRegisterForm(UserCreationForm):
                 "This email is already registered. Please login or use Forgot Password."
             )
         return email
+
 
 
 # -------------------------------------------------------------------

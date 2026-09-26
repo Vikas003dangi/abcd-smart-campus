@@ -16,6 +16,8 @@ urlpatterns = [
     path('privacy-policy/', views.privacy_policy_view),
     path('terms/', views.terms_of_service_view, name='terms_of_service'),
     path('terms-of-service/', views.terms_of_service_view),
+    path('delete-account/', views.delete_account_info_view, name='delete_account_info'),
+    path('account-deleted/', views.account_deleted_view, name='account_deleted'),
     
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
@@ -51,6 +53,8 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('profile/guest/', views.guest_profile_details_view, name='guest_profile_details'),
     path('profile/change-password/', views.change_password_view, name='change_password'),
+    path('profile/delete-account/', views.delete_account_view, name='delete_account'),
+    path('profile/delete-account/request-otp/', views.request_delete_account_otp_view, name='request_delete_account_otp'),
     path('profile/otp-status/', views.otp_status_view, name='otp_status'),
     path('api/validate-email/', views.validate_email_api, name='validate_email_api'),
     path('my-seat/', views.your_seat_status_view, name='your_seat_status'),

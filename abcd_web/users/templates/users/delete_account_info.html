@@ -1,0 +1,312 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Account Deletion Policy & Information | ABCD Smart Campus{% endblock %}
+{% block meta_description %}Official self-service account deletion policy, data erasure lifecycle, and 7-day identity quarantine guidelines for ABCD Smart Campus students, alumni, and guests.{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --del-primary: #dc2626;
+    --del-primary-hover: #b91c1c;
+    --del-card-bg: #ffffff;
+    --del-card-border: #e2e8f0;
+    --del-text: #334155;
+    --del-heading: #0f172a;
+    --del-muted: #64748b;
+    --del-callout-bg: #fef2f2;
+    --del-callout-border: #f87171;
+  }
+
+  html.dark-theme,
+  body.dark-theme {
+    --del-card-bg: #1e293b;
+    --del-card-border: #334155;
+    --del-text: #cbd5e1;
+    --del-heading: #f8fafc;
+    --del-muted: #94a3b8;
+    --del-callout-bg: rgba(239, 68, 68, 0.1);
+    --del-callout-border: #ef4444;
+  }
+
+  .del-page-container {
+    max-width: 900px;
+    margin: 40px auto 80px auto;
+    padding: 0 20px;
+    font-family: inherit;
+    color: var(--del-text);
+  }
+
+  .legal-top-bar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  .legal-tabs-container {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 6px;
+    border-radius: 999px;
+    gap: 6px;
+  }
+
+  body.dark-theme .legal-tabs-container {
+    background: #0f172a;
+  }
+
+  .legal-nav-tab {
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .legal-nav-tab.active {
+    background: #ffffff;
+    color: #dc2626;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  body.dark-theme .legal-nav-tab.active {
+    background: #1e293b;
+    color: #f87171;
+  }
+
+  .del-hero {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .del-hero h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--del-heading);
+    margin-bottom: 12px;
+  }
+
+  .del-hero p {
+    font-size: 1.05rem;
+    color: var(--del-muted);
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .del-card {
+    background: var(--del-card-bg);
+    border: 1px solid var(--del-card-border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    line-height: 1.7;
+  }
+
+  .del-card h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--del-heading);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .del-card h2 i {
+    color: #dc2626;
+  }
+
+  .del-callout {
+    background: var(--del-callout-bg);
+    border-left: 4px solid var(--del-callout-border);
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+    font-size: 0.95rem;
+  }
+
+  .del-list {
+    padding-left: 20px;
+    margin-top: 10px;
+  }
+
+  .del-list li {
+    margin-bottom: 8px;
+  }
+
+  .step-badge {
+    display: inline-block;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-right: 6px;
+  }
+
+  body.dark-theme .step-badge {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+  }
+
+  .action-cta-box {
+    text-align: center;
+    margin-top: 40px;
+    padding: 30px;
+    background: var(--del-card-bg);
+    border: 1px solid var(--del-card-border);
+    border-radius: 16px;
+  }
+
+  .btn-profile-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #dc2626;
+    color: #ffffff;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+  }
+
+  .btn-profile-cta:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="del-page-container">
+  <!-- Nav tabs -->
+  <div class="legal-top-bar">
+    <nav class="legal-tabs-container">
+      <a href="{% url 'users:terms_of_service' %}" class="legal-nav-tab">
+        <i class="fa-solid fa-scale-balanced"></i>
+        <span>Terms</span>
+      </a>
+      <a href="{% url 'users:privacy_policy' %}" class="legal-nav-tab">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Privacy Policy</span>
+      </a>
+      <a href="{% url 'users:delete_account_info' %}" class="legal-nav-tab active">
+        <i class="fa-solid fa-trash-can"></i>
+        <span>Delete Account</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Header -->
+  <header class="del-hero">
+    <h1>Account Deletion Policy & Lifecycle</h1>
+    <p>
+      ABCD Smart Campus provides a secure self-service mechanism for users to permanently delete their accounts and exercise their data privacy rights.
+    </p>
+  </header>
+
+  <!-- Section 1: Who Can Request Deletion -->
+  <section class="del-card">
+    <h2><i class="fa-solid fa-users"></i> 1. Who Can Request Deletion</h2>
+    <p>
+      Self-service account deletion is available at any time to:
+    </p>
+    <ul class="del-list">
+      <li><strong>Enrolled Students:</strong> Learners registered for coaching or library services.</li>
+      <li><strong>Alumni:</strong> Achievers featured in our Hall of Fame and alumni directory.</li>
+      <li><strong>Guest Users:</strong> Registered visitors who hold an authenticated account without an active course profile.</li>
+    </ul>
+    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--del-muted);">
+      <em>Note: Administrative and staff accounts cannot be self-deleted and require supervision by the institution administrator.</em>
+    </p>
+  </section>
+
+  <!-- Section 2: What Happens Upon Deletion -->
+  <section class="del-card">
+    <h2><i class="fa-solid fa-trash-can"></i> 2. What Data Is Permanently Removed</h2>
+    <p>
+      When you confirm account deletion from your Profile page, the following data lifecycle actions are executed immediately:
+    </p>
+    <ul class="del-list">
+      <li><strong>Authentication Credentials:</strong> Your login credentials, session auth tokens, and third-party Google OAuth connections are permanently invalidated and removed.</li>
+      <li><strong>Profile Pictures & Media:</strong> Uploaded profile photos, alumni achievement images, and chat file attachments are permanently purged from cloud storage.</li>
+      <li><strong>Private Communications & Tasks:</strong> All 1-to-1 Guidy chat messages, study to-do tasks, learning reminders, and private notification logs are wiped.</li>
+      <li><strong>Device Subscriptions:</strong> Web push notification endpoints and device browser tokens are immediately deleted.</li>
+      <li><strong>Seat & Desk Allocation:</strong> Any currently assigned desk or pending seat hold is immediately disassociated and returned to available inventory in the live facility grid.</li>
+      <li><strong>Active Sessions:</strong> You are logged out immediately across all active browser windows and mobile devices.</li>
+    </ul>
+  </section>
+
+  <!-- Section 3: Legal & Record Retention -->
+  <section class="del-card">
+    <h2><i class="fa-solid fa-file-invoice"></i> 3. Financial & Accounting Record Retention</h2>
+    <div class="del-callout">
+      <strong>Statutory Record-Keeping Notice:</strong><br>
+      Certain financial or accounting records may be retained where required by applicable law or legitimate record-keeping obligations.
+    </div>
+    <p>
+      In accordance with applicable accounting, tax, and commercial compliance standards, official fee transaction receipts (such as receipt numbers, transaction dates, and billed amounts) are preserved solely for financial reconciliation and institutional audit purposes.
+    </p>
+    <p>
+      Where financial records must be retained, all non-essential personal identifiers—including personal contact numbers, guardian information, profile photographs, and home addresses—are scrupulously anonymized and scrubbed.
+    </p>
+  </section>
+
+  <!-- Section 4: 7-Day Identity Quarantine -->
+  <section class="del-card">
+    <h2><i class="fa-solid fa-clock-rotate-left"></i> 4. 7-Day Identity Quarantine Security</h2>
+    <p>
+      To prevent identity spoofing, fraud, and account hijacking, ABCD Campus enforces a mandatory <strong>7-Day Identity Quarantine</strong> on deleted identities:
+    </p>
+    <ul class="del-list">
+      <li><strong>Reserved Identifiers:</strong> Your deleted username and registered email address are securely held in a dedicated quarantine index.</li>
+      <li><strong>Immediate Protection:</strong> Neither the deleted username nor the deleted email address can be used to register a new account immediately after deletion.</li>
+      <li><strong>Case & Format Normalization:</strong> Variations in capitalization or spacing cannot bypass the quarantine.</li>
+      <li><strong>Automatic Expiry:</strong> Exactly seven (7) days after deletion, the identity quarantine automatically expires. Both the username and email address become freely available for new registration should you or anyone else choose to use them in the future.</li>
+    </ul>
+  </section>
+
+  <!-- Section 5: How to Delete Your Account -->
+  <section class="del-card">
+    <h2><i class="fa-solid fa-circle-check"></i> 5. How to Delete Your Account</h2>
+    <p>Follow these steps from your mobile device or web browser:</p>
+    <ol class="del-list" style="padding-left: 20px;">
+      <li><span class="step-badge">Step 1</span> Log in to your ABCD Smart Campus account.</li>
+      <li><span class="step-badge">Step 2</span> Navigate to your <strong>Profile</strong> (or <em>My Details</em>).</li>
+      <li><span class="step-badge">Step 3</span> Scroll to the bottom and click the red <strong>[ Delete Account ]</strong> button.</li>
+      <li><span class="step-badge">Step 4</span> Enter your current password (or request a 6-digit email verification code if you sign in with Google).</li>
+      <li><span class="step-badge">Step 5</span> Type the exact confirmation phrase: <code>DELETE THIS PROFILE</code></li>
+      <li><span class="step-badge">Step 6</span> Click <strong>Delete Account Permanently</strong> to complete the request.</li>
+    </ol>
+  </section>
+
+  <!-- Support & Manual Assistance -->
+  <div class="action-cta-box">
+    <h3 style="margin-bottom: 10px; color: var(--del-heading);">Need Help or Having Trouble?</h3>
+    <p style="color: var(--del-muted); margin-bottom: 20px; font-size: 0.95rem;">
+      If you are unable to access your profile or need manual assistance with your data deletion, please contact our administrative desk at <strong>abcd2013baq@gmail.com</strong> or visit the ABCD Campus office.
+    </p>
+    {% if user.is_authenticated %}
+      <a href="{% url 'users:profile' %}" class="btn-profile-cta">
+        <i class="fa-solid fa-user"></i> Go to Profile Settings
+      </a>
+    {% else %}
+      <a href="{% url 'users:login' %}" class="btn-profile-cta">
+        <i class="fa-solid fa-right-to-bracket"></i> Login to Access Profile
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
