@@ -58,6 +58,23 @@ def sanitize_whatsapp_number(phone):
     return digits
 
 
+def ensure_campus_url(url):
+    """
+    Ensures that any generated URL points to the official production domain (https://abcdcampus.in).
+    Replaces deprecated domains (abcd2013.online, onrender.com) and resolves relative paths.
+    """
+    if not url:
+        return "https://abcdcampus.in/"
+    url_str = str(url).strip()
+    # Replace any legacy or dev domains
+    url_str = re.sub(r'https?://[a-zA-Z0-9.-]*onrender\.com', 'https://abcdcampus.in', url_str)
+    url_str = re.sub(r'https?://[a-zA-Z0-9.-]*abcd2013\.online', 'https://abcdcampus.in', url_str)
+    if not url_str.startswith(('http://', 'https://')):
+        site_url = getattr(settings, 'SITE_URL', 'https://abcdcampus.in').rstrip('/')
+        url_str = f"{site_url}/{url_str.lstrip('/')}"
+    return url_str
+
+
 def has_whatsapp_configured():
     """Checks if Meta WhatsApp Cloud API credentials are configured in settings."""
     return bool(getattr(settings, 'WHATSAPP_API_TOKEN', None) and getattr(settings, 'WHATSAPP_PHONE_NUMBER_ID', None))
@@ -166,12 +183,15 @@ def send_fee_receipt_whatsapp(student, transaction, pdf_content):
             # Fallback to direct document message if template is pending approval
             logger.warning(f"fee_receipt_v2 template dispatch returned {send_response.status_code} ({send_response.text}), trying direct document dispatch...")
             first_name = student.user.first_name if hasattr(student, 'user') and student.user and student.user.first_name else student.full_name.split()[0]
+            site_url = getattr(settings, 'SITE_URL', 'https://abcdcampus.in').rstrip('/')
             caption = (
+                f"🧾 *FEE PAYMENT RECEIPT*\n\n"
                 f"Dear {first_name},\n"
-                f"Your fee payment of Rs. {amount_str} for {service_details} has been submitted successfully at ABCD Coaching & Library.\n"
-                f"Receipt No: {transaction.receipt_number}\n\n"
-                f"Please download the attached receipt for complete details.\n\n"
-                f"Thank You\n~ Team ABCD"
+                f"Your fee payment of *Rs. {amount_str}* for *{service_details}* has been successfully received at *ABCD Coaching & Library*. ✅\n\n"
+                f"📋 *Receipt No:* {clean_receipt_no}\n"
+                f"📎 *Attached:* Official PDF Receipt\n\n"
+                f"🔗 *Student Dashboard:* {site_url}/dashboard/\n\n"
+                f"Thank you,\n*~ Team ABCD*"
             )
             fallback_payload = {
                 "messaging_product": "whatsapp",
@@ -179,7 +199,7 @@ def send_fee_receipt_whatsapp(student, transaction, pdf_content):
                 "type": "document",
                 "document": {
                     "id": media_id,
-                    "filename": f"Fee_Receipt_{transaction.receipt_number}.pdf",
+                    "filename": f"Fee_Receipt_{clean_receipt_no}.pdf",
                     "caption": caption
                 }
             }
@@ -964,21 +984,25 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
 
     full_message = message or ""
     
-    # Format document/media attachments if present
+    # Format document/media attachments if present with clean styling
     if attachments and isinstance(attachments, list) and len(attachments) > 0:
         att_links = []
         for att in attachments:
             if isinstance(att, dict) and att.get('url'):
                 name = att.get('name', 'Download Attachment')
-                url = att.get('url')
-                att_links.append(f"• {name}: {url}")
+                url = ensure_campus_url(att.get('url'))
+                att_links.append(f"📄 *{name}*:\n🔗 {url}")
             elif isinstance(att, str):
-                att_links.append(f"• Attachment: {att}")
+                url = ensure_campus_url(att)
+                att_links.append(f"📎 *Attachment*:\n🔗 {url}")
         if att_links:
-            full_message += "\n\nAttached Documents:\n" + "\n".join(att_links)
+            full_message += "\n\n📂 *Attached Documents:*\n" + "\n".join(att_links)
 
     if buttons and isinstance(buttons, list) and len(buttons) > 0:
-        btn_links = "\n\nLinks:\n" + "\n".join([f"- {b.get('label', 'Link')}: {b.get('url', '')}" for b in buttons if b.get('url')])
+        btn_links = "\n\n🔗 *Quick Links:*\n" + "\n".join([
+            f"👉 *{b.get('label', 'Link')}*: {ensure_campus_url(b.get('url'))}"
+            for b in buttons if b.get('url')
+        ])
         full_message += btn_links
 
     safe_subject = (subject or "Announcement")[:90]
@@ -986,15 +1010,10 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
     if len(safe_message) > 950:
         safe_message = safe_message[:945] + "..."
 
-    # Ensure banner URL is an absolute http/https URL if provided
+    # Ensure banner URL is an absolute production URL if provided
     valid_banner_url = None
     if banner_image_url and isinstance(banner_image_url, str):
-        b_url = banner_image_url.strip()
-        if not b_url.startswith(('http://', 'https://')):
-            site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
-            b_url = f"{site_url}/{b_url.lstrip('/')}"
-        if b_url.startswith(('http://', 'https://')):
-            valid_banner_url = b_url
+        valid_banner_url = ensure_campus_url(banner_image_url)
 
     for student in students:
         phone = getattr(student, "whatsapp_number", None) or getattr(student, "mobile_number", None)
