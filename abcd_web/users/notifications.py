@@ -395,7 +395,7 @@ def send_alumni_approval_whatsapp(student_or_ach, achievement_title):
             "to": clean_number,
             "type": "template",
             "template": {
-                "name": "alumni_approval_v2",
+                "name": "alumni_approval_v3",
                 "language": {"code": "en_US"},
                 "components": [{"type": "body", "parameters": [
                     {"type": "text", "text": full_name},
@@ -405,8 +405,8 @@ def send_alumni_approval_whatsapp(student_or_ach, achievement_title):
         }
         res = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
         if res.status_code != 200:
-            # Fallback to alumni_achievement_approved if v2 is pending
-            payload["template"]["name"] = "alumni_achievement_approved"
+            # Fallback to alumni_approval_v2 if v3 is pending
+            payload["template"]["name"] = "alumni_approval_v2"
             requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
         logger.info(f"Alumni Achievement Approval WhatsApp sent to {full_name} (Status: {res.status_code}).")
     except Exception as e:
@@ -1121,7 +1121,7 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
                     "to": clean_num,
                     "type": "template",
                     "template": {
-                        "name": "broadcast_message",
+                        "name": "broadcast_notice_v2",
                         "language": {"code": "en_US"},
                         "components": [{
                             "type": "body",
@@ -1133,6 +1133,10 @@ def send_broadcast_whatsapp(students, subject, message, banner_image_url=None, a
                     }
                 }
                 response = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
+                if response.status_code != 200:
+                    # Fallback to legacy broadcast_message if pending
+                    payload["template"]["name"] = "broadcast_message"
+                    response = requests.post(whatsapp_url, headers=headers, json=payload, timeout=15)
                 if response.status_code != 200:
                     logger.warning(f"WhatsApp API error for {getattr(student, 'full_name', 'Student')}: {response.text}")
 
