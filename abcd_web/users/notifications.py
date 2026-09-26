@@ -134,6 +134,8 @@ def send_fee_receipt_whatsapp(student, transaction, pdf_content):
         
         raw_service = get_student_service_details(student)
         service_details = str(getattr(transaction, 'service_snapshot', '') or raw_service).replace('\n', ' ').strip()
+        if not service_details or service_details.upper() in ["N/A", "NONE", ""]:
+            service_details = "Coaching & Library Services"
         raw_amount = getattr(transaction, 'total_amount', None)
         if raw_amount is None:
             raw_amount = getattr(transaction, 'amount_paid', 0)
