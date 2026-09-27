@@ -629,6 +629,23 @@
 
 {% block content %}
 <script>
+async function confirmDeleteAlumniDetail() {
+    const title = 'Delete Alumni Profile';
+    const msg = 'Are you sure you want to delete the alumni achievement profile for <strong>{{ achievement.first_name }} {{ achievement.last_name }}</strong>?<br><br>• This will remove their success story from the Hall of Fame.<br>• Their login account will remain safe and active.';
+    let confirmed = false;
+    if (typeof window.showStyledConfirm === 'function') {
+        confirmed = await window.showStyledConfirm(title, msg, true);
+    } else if (window.CustomPopup && typeof window.CustomPopup.confirm === 'function') {
+        confirmed = await window.CustomPopup.confirm(msg, title);
+    } else {
+        confirmed = confirm('Are you sure you want to delete this alumni profile? The user account will remain active.');
+    }
+    if (confirmed) {
+        const f = document.getElementById('detailDeleteAlumniForm');
+        if (f) f.submit();
+    }
+}
+
 function goBackOrHomeBase(event) {
     let ref = document.referrer;
     if (ref && (ref.includes('/hall-of-fame') || ref.includes('/hall-of-fame/'))) {
@@ -648,7 +665,15 @@ function goBackOrHomeBase(event) {
             <a href="{% url 'users:edit_alumni_pk' achievement.pk %}" class="edit-btn-action">
                 <i class='bx bx-edit-alt'></i> <span class="edit-btn-text">Edit Profile</span>
             </a>
-            {% if achievement.user == request.user and not user.is_staff %}
+            {% if user.is_staff %}
+                <button type="button" onclick="confirmDeleteAlumniDetail()" class="edit-btn-action" style="background: #ef4444; color: #ffffff; border: none; cursor: pointer; text-decoration: none;">
+                    <i class='bx bx-trash'></i> <span class="edit-btn-text">Delete Profile</span>
+                </button>
+                <form id="detailDeleteAlumniForm" action="{% url 'users:delete_achievement' achievement.pk %}" method="post" style="display: none;">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'users:hall_of_fame' %}">
+                </form>
+            {% elif achievement.user == request.user %}
                 <button type="button" onclick="openDeleteAccountModal()" class="edit-btn-action" style="background: #ef4444; color: #ffffff; border: none; cursor: pointer; text-decoration: none;">
                     <i class='bx bx-trash'></i> <span class="edit-btn-text">Delete Account</span>
                 </button>

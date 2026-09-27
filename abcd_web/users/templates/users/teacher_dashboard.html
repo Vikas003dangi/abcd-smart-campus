@@ -9045,7 +9045,7 @@
             </button>
             <form action="{% url 'users:approve_achievement' ach.id %}" method="post" style="display:inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-success delete-confirm-btn"
+              <button type="submit" class="btn btn-success action-confirm-btn"
                 data-confirm-title="Approve Achievement"
                 data-confirm-msg="Are you sure you want to approve the achievement request for {{ ach.first_name }} {{ ach.last_name }}?">
                 ✅ Approve
@@ -9053,7 +9053,7 @@
             </form>
             <form action="{% url 'users:delete_achievement' ach.id %}" method="post" style="display:inline">
               {% csrf_token %}
-              <button type="submit" class="btn btn-danger delete-confirm-btn"
+              <button type="submit" class="btn btn-danger action-confirm-btn"
                 data-confirm-title="Delete Request"
                 data-confirm-msg="Are you sure you want to delete the achievement request for {{ ach.first_name }} {{ ach.last_name }}? The user will be able to submit a new request later.">
                 🗑 Delete
@@ -10082,14 +10082,15 @@
     });
 
     document.addEventListener('click', async function (e) {
-      const deleteBtn = e.target.closest('.delete-confirm-btn');
-      if (deleteBtn) {
+      const actionBtn = e.target.closest('.action-confirm-btn');
+      if (actionBtn) {
         e.preventDefault();
-        const form = deleteBtn.closest('form');
-        const msg = deleteBtn.dataset.confirmMsg || 'Are you sure you want to delete this permanently?';
-        const title = deleteBtn.dataset.confirmTitle || 'Confirm Delete';
+        const form = actionBtn.closest('form');
+        const msg = actionBtn.dataset.confirmMsg || 'Are you sure you want to proceed?';
+        const title = actionBtn.dataset.confirmTitle || 'Confirm Action';
+        const isDelete = actionBtn.classList.contains('btn-danger') || actionBtn.classList.contains('del-btn') || title.toLowerCase().includes('delete') || title.toLowerCase().includes('reject');
 
-        const confirmed = await window.showStyledConfirm(title, msg, true);
+        const confirmed = await window.showStyledConfirm(title, msg, isDelete);
         if (confirmed) {
           form.submit();
         }

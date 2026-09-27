@@ -10412,8 +10412,15 @@ def delete_student_view(request, student_id):
                 user = student.user
                 achievement = StudentAchievement.objects.filter(user=user).first()
             else:
-                user = get_object_or_404(User, id=student_id)
-                achievement = StudentAchievement.objects.filter(user=user).first()
+                # Check if student_id is an achievement ID
+                achievement = StudentAchievement.objects.filter(id=student_id).first()
+                if achievement:
+                    user = achievement.user
+                    student = StudentProfile.objects.filter(user=user).select_related('user', 'seat').first()
+                else:
+                    user = get_object_or_404(User, id=student_id)
+                    student = StudentProfile.objects.filter(user=user).select_related('user', 'seat').first()
+                    achievement = StudentAchievement.objects.filter(user=user).first()
 
             full_name = student.full_name if student else (f"{achievement.first_name} {achievement.last_name}" if achievement else user.username)
 
@@ -10566,7 +10573,12 @@ def delete_student_view(request, student_id):
                             achievement.photo.delete(save=False)
                         achievement.delete()
                     cache.delete(f"student_context_data_{user.id}")
-                    messages.success(request, f"Student {full_name} admission and achievements deleted. Account preserved as guest.")
+                    if student and achievement:
+                        messages.success(request, f"Student {full_name} admission and achievements deleted. Account preserved as guest.")
+                    elif achievement:
+                        messages.success(request, f"Alumni record for {full_name} deleted. Account preserved as guest.")
+                    else:
+                        messages.success(request, f"Student {full_name} admission deleted. Account preserved as guest.")
                     notifications.broadcast_seat_update()
                 else:
                     messages.error(request, "Student not found.")
@@ -12271,14 +12283,34 @@ def hall_of_fame_view(request):
 @staff_member_required
 @require_POST
 def delete_achievement(request, pk):
-    """Permanently delete an achievement record."""
-    achievement = get_object_or_404(StudentAchievement, pk=pk)
-    name = f"{achievement.first_name} {achievement.last_name}"
-    user_id = achievement.user_id
-    achievement.delete()
-    if user_id:
-        cache.delete(f"student_context_data_{user_id}")
-    messages.success(request, f"Deleted achievement record for {name}.")
+    """Permanently delete an achievement record while preserving user login credentials."""
+    with transaction.atomic():
+        achievement = get_object_or_404(StudentAchievement, pk=pk)
+        name = f"{achievement.first_name} {achievement.last_name}"
+        user_id = achievement.user_id
+
+        # Decouple any active guidance chats so message history is preserved
+        from .models import GuidanceRequest, ChatSession
+        reqs = GuidanceRequest.objects.filter(alumni=achievement)
+        for r in reqs:
+            try:
+                session = getattr(r, 'chat_session', None)
+                if session:
+                    session.user_one = r.student
+                    session.user_two = achievement.user
+                    session.request = None
+                    session.save()
+            except Exception:
+                pass
+
+        if achievement.photo:
+            achievement.photo.delete(save=False)
+        achievement.delete()
+
+        if user_id:
+            cache.delete(f"student_context_data_{user_id}")
+
+    messages.success(request, f"Deleted alumni profile for {name}. User account preserved.")
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('users:hall_of_fame')
     return redirect(next_url)
 
@@ -12370,7 +12402,28 @@ def reject_achievement(request, pk):
     with safe_atomic_transaction():
         achievement = get_object_or_404(StudentAchievement, pk=pk)
         full_name = achievement.full_name
+        user_id = achievement.user_id
+
+        from .models import GuidanceRequest, ChatSession
+        reqs = GuidanceRequest.objects.filter(alumni=achievement)
+        for r in reqs:
+            try:
+                session = getattr(r, 'chat_session', None)
+                if session:
+                    session.user_one = r.student
+                    session.user_two = achievement.user
+                    session.request = None
+                    session.save()
+            except Exception:
+                pass
+
+        if achievement.photo:
+            achievement.photo.delete(save=False)
         achievement.delete()
+
+        if user_id:
+            cache.delete(f"student_context_data_{user_id}")
+
     messages.warning(request, f"Deleted achievement request for {full_name}. User account preserved as guest.")
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('users:hall_of_fame')
     return redirect(next_url)

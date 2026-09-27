@@ -483,6 +483,12 @@
         box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
     }
 
+    .btn-delete {
+        background: #ef4444;
+        color: white;
+        box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+    }
+
     .btn-cancel {
         background: rgba(0,0,0,0.05);
         color: var(--text-muted);
@@ -827,12 +833,23 @@
             </div>
 
             <div class="button-row">
+                {% if request.user.is_staff %}
+                <button type="button" class="btn-pill btn-delete" onclick="confirmDeleteAlumniProfile()">
+                    <i class='bx bx-trash'></i> Delete Alumni Profile
+                </button>
+                {% endif %}
                 <button type="submit" class="btn-pill btn-save">
                     <i class='bx bxs-save'></i> Save Changes
                 </button>
                 <a href="{% url 'users:achievement_detail' achievement.pk %}" class="btn-pill btn-cancel">Cancel</a>
             </div>
         </form>
+        {% if request.user.is_staff %}
+        <form id="deleteAlumniForm" action="{% url 'users:delete_achievement' achievement.pk %}" method="post" style="display: none;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{% url 'users:hall_of_fame' %}">
+        </form>
+        {% endif %}
     </div>
 
     <!-- Birthday Selection Modal (Exact Parity with Admission Form) -->
@@ -937,6 +954,23 @@
             window.showStyledPopup({ title: title, message: message, type: 'info' });
         }
     }
+    async function confirmDeleteAlumniProfile() {
+        const title = 'Delete Alumni Profile';
+        const msg = 'Are you sure you want to delete the alumni achievement profile for <strong>{{ achievement.first_name }} {{ achievement.last_name }}</strong>?<br><br>• This will remove their success story from the Hall of Fame.<br>• Their login account will remain safe and active.';
+        let confirmed = false;
+        if (typeof window.showStyledConfirm === 'function') {
+            confirmed = await window.showStyledConfirm(title, msg, true);
+        } else if (window.CustomPopup && typeof window.CustomPopup.confirm === 'function') {
+            confirmed = await window.CustomPopup.confirm(msg, title);
+        } else {
+            confirmed = confirm('Are you sure you want to delete this alumni profile? The user account will remain active.');
+        }
+        if (confirmed) {
+            const f = document.getElementById('deleteAlumniForm');
+            if (f) f.submit();
+        }
+    }
+
     if (typeof window.showStyledAlert !== 'function') {
         window.showStyledAlert = showAlert;
     }
