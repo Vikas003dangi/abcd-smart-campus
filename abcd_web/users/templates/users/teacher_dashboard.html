@@ -11097,12 +11097,14 @@
         modalApproveBtn.disabled = true;
         modalApproveBtn.textContent = 'Approving...';
 
+        const formData = new FormData(currentForm);
         fetch(currentForm.action, {
           method: 'POST',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
             'X-CSRFToken': csrfToken.value
-          }
+          },
+          body: formData
         })
           .then(response => {
             if (!response.ok && response.status !== 409) {

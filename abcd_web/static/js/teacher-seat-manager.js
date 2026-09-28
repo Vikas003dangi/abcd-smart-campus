@@ -2492,7 +2492,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // =================================================================================
       // STATUS #2: AVAILABLE SEAT (ALL SHIFTS FREE)
       // =================================================================================
-      else if (seatStatus === 'available') {
+      else if (seatStatus === 'available' && !hasActive && !hasPending) {
         const formattedSeat = getFormattedSeatNumber(seatNumber);
         
         if (!isShiftEnabled) {
@@ -5620,8 +5620,11 @@ Do you want to switch them to this seat permanently?`,
         return;
       }
 
+      const activeFloor = (currentSeatData && currentSeatData.floor) || currentFloor || 'Ground Floor';
+      const targetWrapper = (activeFloor === '1st Floor') ? firstFloorWrapper : groundFloorWrapper;
+      const targetSeatEl = targetWrapper ? targetWrapper.querySelector(`.seat[data-seat-id="${currentSeatData.seat_number}"]`) : null;
       const assignments = JSON.parse(
-        document.querySelector(`.seat[data-seat-id="${currentSeatData.seat_number}"]`).dataset.assignments || "[]"
+        (targetSeatEl && targetSeatEl.dataset.assignments) || "[]"
       );
 
       const hasPartial = assignments.some(a => a.is_partial);
@@ -5801,7 +5804,9 @@ document.body.addEventListener('click', function (ev) {
       || (typeof currentSeatData !== 'undefined' && currentSeatData && currentSeatData.seat_number);
     if (!seatNum) return;
 
-    const seatEl = document.querySelector(`.seat[data-seat-id="${seatNum}"]`);
+    const activeFloor = (typeof currentSeatData !== 'undefined' && currentSeatData && currentSeatData.floor) || currentFloor || (floorSelector ? floorSelector.value : 'Ground Floor');
+    const targetWrapper = (activeFloor === '1st Floor') ? firstFloorWrapper : groundFloorWrapper;
+    const seatEl = targetWrapper ? targetWrapper.querySelector(`.seat[data-seat-id="${seatNum}"]`) : null;
     if (seatEl && typeof window._tsmShowSeatDetails === 'function') {
       window._tsmShowSeatDetails(seatEl, false);  // re-populate with fresh dataset, keep modal open
     }

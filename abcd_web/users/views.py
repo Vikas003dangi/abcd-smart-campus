@@ -6434,6 +6434,28 @@ def get_teacher_seat_status_api(request):
         # Get ALL assignments (active + pending)
         assignments_qs = list(seat.assignments.all())
         active_assignments = [a for a in assignments_qs if a.is_active]
+
+        # Safeguard: if an admitted student has this seat set directly on their profile,
+        # ensure there is an active SeatAssignment so they never show as available/empty.
+        if not active_assignments:
+            admitted_students = StudentProfile.objects.filter(seat=seat, status='admitted')
+            for s in admitted_students:
+                s_assign = seat.assignments.filter(student=s).first()
+                if s_assign:
+                    if not s_assign.is_active:
+                        s_assign.is_active = True
+                        s_assign.save(update_fields=['is_active'])
+                else:
+                    s_assign = SeatAssignment.objects.create(
+                        seat=seat,
+                        student=s,
+                        shift_type=s.shift or 'full',
+                        is_active=True
+                    )
+                active_assignments.append(s_assign)
+                if s_assign not in assignments_qs:
+                    assignments_qs.append(s_assign)
+
         # Only consider it a pending request if the student is actually still seeking admission for THIS exact seat
         pending_assignments = [
             a for a in assignments_qs 
@@ -6480,8 +6502,9 @@ def get_teacher_seat_status_api(request):
         
         # Self-heal stale occupied with no active or pending occupants
         elif seat.status == 'occupied' and not active_assignments and not pending_assignments and not special_req_pending:
-            seat.status = 'available'
-            seat.save(update_fields=['status'])
+            if not StudentProfile.objects.filter(seat=seat, status='admitted').exists():
+                seat.status = 'available'
+                seat.save(update_fields=['status'])
 
         # --- 1. GROUP BY SHIFT (ACTIVE ONLY) ---
         # We might have 2 people on Morning (Owner-on-Hold + Tenant)
@@ -10305,32 +10328,34 @@ def _do_approve_student(request, student_id):
                             is_partial_mode = True
 
                     # Find or create a SeatAssignment record
-                    assignment, created = SeatAssignment.objects.get_or_create(
-                        seat=seat,
-                        student=student,
-                        shift_type=shift_type,
-                        defaults={
-                            'is_active': True,
-                            'is_partial': is_partial_mode,
-                            'allow_hold_override': is_partial_mode,
-                            'hold_status': 'none'
-                        }
-                    )
-
-                    # If assignment already exists, ensure it is active and partial flag is correct
-                    dirty = []
-                    if not assignment.is_active:
+                    assignment = SeatAssignment.objects.filter(seat=seat, student=student).first()
+                    if assignment:
+                        assignment.shift_type = shift_type
                         assignment.is_active = True
-                        dirty.append('is_active')
-                    if created is False and is_partial_mode and not assignment.is_partial:
-                        assignment.is_partial = True
-                        assignment.allow_hold_override = True
-                        dirty.extend(['is_partial', 'allow_hold_override'])
-                    if dirty:
-                        assignment.save(update_fields=dirty)
+                        assignment.is_partial = is_partial_mode
+                        assignment.allow_hold_override = is_partial_mode
+                        if not is_partial_mode and assignment.hold_status != 'active':
+                            assignment.hold_status = 'none'
+                        assignment.save()
+                    else:
+                        assignment = SeatAssignment.objects.create(
+                            seat=seat,
+                            student=student,
+                            shift_type=shift_type,
+                            is_active=True,
+                            is_partial=is_partial_mode,
+                            allow_hold_override=is_partial_mode,
+                            hold_status='none'
+                        )
+
+                    # Deactivate any other active assignments for this student on other seats
+                    for other in SeatAssignment.objects.filter(student=student).exclude(pk=assignment.pk):
+                        if other.is_active:
+                            other.is_active = False
+                            other.save(update_fields=['is_active'])
 
                     # Update seat status to occupied only if not on hold
-                    if seat.status == 'pending':
+                    if seat.status != 'on_hold':
                         seat.status = 'occupied'
                         seat.save(update_fields=['status'])
 
