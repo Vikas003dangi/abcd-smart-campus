@@ -41,9 +41,9 @@
     <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v7"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://unpkg.com">
+    <link href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Aladin&family=Ephesis&family=Playball&family=Righteous&display=swap" rel="stylesheet"></noscript>
 
     <title>{% block title %}ABCD Campus | Best Coaching & Self Study Library in Ganj Basoda{% endblock %}</title>
 
@@ -150,8 +150,8 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <link rel="stylesheet" href="{% static 'css/custom-popup.css' %}">
     <link rel="stylesheet" href="{% static 'css/site-tour.css' %}">
-    <script src="{% static 'js/custom-popup.js' %}"></script>
-    <script src="{% static 'js/abcd-sound.js' %}"></script>
+    <script src="{% static 'js/custom-popup.js' %}" defer></script>
+    <script src="{% static 'js/abcd-sound.js' %}" defer></script>
 
     {% block extra_head %}{% endblock %}
     {% block extra_css %}{% endblock %}

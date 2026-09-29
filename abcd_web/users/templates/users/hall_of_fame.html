@@ -965,7 +965,7 @@
     <!-- Action Bar & Tabs (Staff / Moderation View) -->
     <div class="hall-actions-bar">
         <div class="back-btn-wrapper">
-            <a href="javascript:history.back()" class="hall-back-btn">
+            <a href="{% url 'users:smart_back_router' %}" class="hall-back-btn" onclick="goBackOrHomeBase(event)">
                 <i class='bx bx-left-arrow-alt'></i> Back
             </a>
         </div>

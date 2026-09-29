@@ -647,10 +647,13 @@ async function confirmDeleteAlumniDetail() {
 }
 
 function goBackOrHomeBase(event) {
+    if (window.ABCDNav) {
+        return window.ABCDNav.handleBack(event, 'ui-button');
+    }
     let ref = document.referrer;
     if (ref && (ref.includes('/hall-of-fame') || ref.includes('/hall-of-fame/'))) {
-        event.preventDefault();
-        window.location.href = "{% url 'users:hall_of_fame' %}";
+        if (event && event.preventDefault) event.preventDefault();
+        window.location.replace("{% url 'users:hall_of_fame' %}");
     }
 }
 </script>
