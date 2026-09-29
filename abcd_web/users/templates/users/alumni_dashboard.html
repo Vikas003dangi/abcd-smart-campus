@@ -2524,6 +2524,8 @@
     })();
 </script>
 {% include 'users/_banner_popup.html' %}
+{% if request.path == '/alumni/dashboard' or request.path == '/alumni/dashboard/' %}
 {% include 'partials/_home_base_exit.html' %}
+{% endif %}
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 {% endblock %}

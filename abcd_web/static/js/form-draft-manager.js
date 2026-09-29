@@ -128,6 +128,12 @@
                 const target = e ? e.target : null;
                 if (target && this.isFieldIgnored(target)) return;
                 this.isDirty = true;
+                if (!this._dirtyStatePushed) {
+                    this._dirtyStatePushed = true;
+                    try {
+                        window.history.pushState({ abcd_form_dirty: true }, document.title, window.location.href);
+                    } catch (err) {}
+                }
             };
 
             this.form.addEventListener('input', markDirty);
@@ -340,13 +346,19 @@
          * Hook back buttons and browser history popstate
          */
         registerBackInterceptors() {
-            // Hook window.customBackConfirm for _smart_back_redirect.html
-            window.customBackConfirm = async () => {
+            const checkDirtyConfirm = async () => {
                 if (this.isSubmitting) return true;
-                if (!this.hasEnteredData()) return true;
+                if (!this.hasEnteredData() || !this.isDirty) return true;
 
                 return await this.showConfirmationDialog();
             };
+
+            // Hook window.customBackConfirm for _smart_back_redirect.html
+            window.customBackConfirm = checkDirtyConfirm;
+
+            if (window.ABCDNav && typeof window.ABCDNav.registerDirtyGuard === 'function') {
+                window.ABCDNav.registerDirtyGuard(checkDirtyConfirm);
+            }
 
             // Hook any UI back buttons with class .back-btn
             const backBtns = document.querySelectorAll('.back-btn, a[href*="dashboard"], a[href*="home"]');
@@ -412,19 +424,23 @@
 
                 if (choice === 'save') {
                     this.saveDraft();
+                    this.isDirty = false;
                     this.isSubmitting = true;
+                    this._dirtyStatePushed = false;
                     window.allowPageUnload = true;
                     return true;
                 } else if (choice === 'discard') {
                     this.clearDraft();
                     this.isDirty = false;
                     this.isSubmitting = true;
+                    this._dirtyStatePushed = false;
                     window.allowPageUnload = true;
                     return true;
                 } else {
-                    // Cancel / Keep Editing: Repush trap so back button remains active
+                    // Cancel / Keep Editing: Repush dirty state so back button remains active
                     try {
-                        window.history.pushState({ abcd_back_trap: true }, document.title, window.location.href);
+                        window.history.pushState({ abcd_form_dirty: true }, document.title, window.location.href);
+                        this._dirtyStatePushed = true;
                     } catch (e) {}
                     return false;
                 }

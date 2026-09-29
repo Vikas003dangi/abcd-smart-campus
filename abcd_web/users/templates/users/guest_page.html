@@ -6026,6 +6026,8 @@ window.addEventListener('pageshow', function(e) {
     }
 </script>
 {% include 'partials/_master_loader.html' %}
+{% if request.path == '/guest-home' or request.path == '/guest-home/' %}
 {% include 'partials/_home_base_exit.html' %}
+{% endif %}
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 {% endblock %}

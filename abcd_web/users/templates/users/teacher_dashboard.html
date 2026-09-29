@@ -10548,7 +10548,7 @@
           params.delete('tab');
           const newSearch = params.toString();
           const cleanUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
-          history.replaceState(null, document.title, cleanUrl);
+          history.replaceState(history.state || null, document.title, cleanUrl);
         }
       }
 
@@ -15884,6 +15884,8 @@ window.addEventListener('load', initAppCardsScroll, { passive: true });
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script defer src="{% static 'js/image-cropper-modal.js' %}"></script>
 {% include 'partials/_manual_add_user_modals.html' %}
+{% if request.path == '/teacher' or request.path == '/teacher/' %}
 {% include 'partials/_home_base_exit.html' %}
+{% endif %}
 </body>
 </html>

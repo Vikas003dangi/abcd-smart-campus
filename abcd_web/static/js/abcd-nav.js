@@ -13,10 +13,9 @@
  * 2. Dirty form guard active? -> Show draft manager prompt (Save/Discard/Keep Editing).
  * 3. Stateful component back hook (e.g. Guidy chat/pane)? -> Consume Back in-page.
  * 4. Is Home Base page? -> Show Universal Exit confirmation modal.
- * 5. Explicit parent destination defined? -> window.location.replace(parentUrl).
- * 6. Context-aware parent defined (e.g. Hall of Fame)? -> window.location.replace(contextParent).
- * 7. Path hierarchy fallback (/courses/, /teacher/courses/)? -> window.location.replace(parentSection).
- * 8. Default fallback -> window.location.replace(roleHomeBase).
+ * 5. Sub-page -> Navigate to logical parent (parentUrl / context / path hierarchy / Home Base).
+ *    Hardware Back and UI Back always converge to the same intentional destination.
+ *    Browser history stack is NOT used as the navigation hierarchy.
  */
 
 (function(window, document) {
@@ -28,7 +27,7 @@
 
     const ABCDNav = {
         __initialized: true,
-        version: '2.0.0',
+        version: '3.0.0',
 
         // Configuration populated by server/template
         config: {
@@ -92,7 +91,7 @@
                 } catch(e) {}
             }
 
-            // 3. Arm single controlled history trap
+            // 3. Arm single controlled history trap so hardware/browser Back executes executeBackPipeline
             self.armTrap();
 
             // 4. Attach single global popstate listener (once)
@@ -103,40 +102,25 @@
                 });
             }
 
-            // 5. Reinforce trap once on first user gesture if browser cleared it
-            window.addEventListener('pointerdown', function() {
-                if (!self.state.trapArmed && !self.state.isNavigating) {
-                    self.armTrap();
-                }
-            }, { once: true, passive: true });
-
-            // 6. Handle bfcache restores (anti-stale / anti-loop)
+            // 5. Handle bfcache restores (anti-stale / anti-loop)
             window.addEventListener('pageshow', function(e) {
                 self.state.isNavigating = false;
-                if (e.persisted) {
-                    if (self.config.isBasePage) {
-                        // Reload base page on bfcache restore to verify auth/session freshness
-                        window.location.reload();
-                    } else {
-                        self.armTrap();
-                    }
-                } else {
-                    self.armTrap();
-                }
+                self.armTrap();
             });
 
-            // 7. Bind modal controls if present
+            // 6. Bind modal controls if present
             self.bindExitModalEvents();
         },
 
         /**
-         * Ensures exactly ONE normalized trap entry in browser history
+         * Ensures exactly ONE normalized trap entry in browser history per document.
+         * Intercepts browser Back / Android hardware Back so executeBackPipeline() handles it.
          */
         armTrap: function() {
             if (this.state.isNavigating) return;
             try {
                 const currentState = window.history.state;
-                if (!currentState || (!currentState.abcd_nav_trap && !currentState.abcd_exit_trap && !currentState.abcd_back_trap)) {
+                if (!currentState || (!currentState.abcd_base_trap && !currentState.abcd_sub_trap && !currentState.abcd_exit_trap && !currentState.abcd_nav_trap)) {
                     window.history.pushState({
                         abcd_nav_trap: true,
                         isBase: this.config.isBasePage,
@@ -235,7 +219,6 @@
                     try {
                         const allowed = await guard();
                         if (!allowed) {
-                            // User clicked "Keep Editing", re-arm trap and stay on form
                             self.armTrap();
                             return;
                         }
@@ -292,9 +275,23 @@
             }
 
             // -------------------------------------------------------------
-            // STEP 5: Resolve Target Destination for Sub-Pages
+            // STEP 5: Sub-Page -> Navigate to Logical Parent
             // -------------------------------------------------------------
-            self.state.isNavigating = true;
+            // Both hardware Back (popstate) and UI Back converge here.
+            // We ALWAYS navigate to the intentional logical parent, never
+            // rely on browser history stack for application navigation.
+            const target = self.resolveTargetUrl();
+            if (target) {
+                self.state.isNavigating = true;
+                window.location.replace(target);
+            }
+        },
+
+        /**
+         * Resolves safe fallback destination URL for deep-links or un-historied entries
+         */
+        resolveTargetUrl: function() {
+            const self = this;
             let target = self.config.parentUrl;
 
             // Route map translation if named Django route was passed
@@ -343,10 +340,7 @@
                 target = self.config.homeBaseUrl || self.config.smartBackRouterUrl || '/dashboard/';
             }
 
-            // -------------------------------------------------------------
-            // STEP 6: Execute Smooth Replace Navigation (Prevents History Stacking)
-            // -------------------------------------------------------------
-            window.location.replace(target);
+            return target;
         },
 
         // =====================================================================
@@ -383,6 +377,13 @@
             if (els.confirmBtn && !els.confirmBtn._abcdBound) {
                 els.confirmBtn._abcdBound = true;
                 els.confirmBtn.addEventListener('click', function() { self.doActualExit(); });
+            }
+
+            // Bind "Got It" button in the fallback view
+            var gotItBtn = document.getElementById('abcdExitFallbackGotItBtn');
+            if (gotItBtn && !gotItBtn._abcdBound) {
+                gotItBtn._abcdBound = true;
+                gotItBtn.addEventListener('click', function() { self.onCancelExit(); });
             }
 
             document.addEventListener('keydown', function(e) {
@@ -450,6 +451,7 @@
         },
 
         onCancelExit: function() {
+            this.resetExitModalView();
             this.hideExitModal();
             this.state.openedByBackButton = false;
             this.state.isNavigating = false;
@@ -459,26 +461,32 @@
 
         /**
          * Platform-Aware Exit Execution
+         *
+         * Three environments:
+         * 1. Android TWA / Standalone PWA — use native exit mechanisms
+         * 2. Desktop browser — attempt window.close(), show in-modal fallback if blocked
+         * 3. Mobile web (non-TWA) — same as desktop
          */
         doActualExit: function() {
             const self = this;
-            self.hideExitModal();
             self.state.isNavigating = true;
 
-            const isAndroid = /android/i.test(navigator.userAgent || '');
-            const isStandalone = (
+            // Detect TRUE TWA / Standalone (not just "any Android browser")
+            const isTWA = Boolean(
+                (document.referrer && document.referrer.startsWith('android-app://')) ||
                 window.matchMedia('(display-mode: standalone)').matches ||
                 window.matchMedia('(display-mode: fullscreen)').matches ||
                 window.navigator.standalone === true ||
-                (document.referrer && document.referrer.startsWith('android-app://')) ||
                 window.location.search.includes('pwa_app=1')
             );
 
             // =========================================================================
             // ENVIRONMENT 1: ANDROID TWA / NATIVE APP WRAPPER
             // =========================================================================
-            if (isAndroid || isStandalone) {
-                // A. Check for injected WebView JS bridges if present in any custom build
+            if (isTWA) {
+                self.hideExitModal();
+
+                // A. Check for injected WebView JS bridges
                 if (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') {
                     try { window.AndroidApp.closeApp(); return; } catch(e) {}
                 }
@@ -489,50 +497,86 @@
                     try { window.Android.finish(); return; } catch(e) {}
                 }
 
-                // B. First primary method: Use browsable custom scheme (registered on LauncherActivity & ExitActivity)
-                // This does NOT trigger Play Store fallback because abcdexit is registered with BROWSABLE category.
+                // B. Primary: Intent URI targeting ExitActivity directly by component
+                // This is more reliable than custom schemes inside Chrome Custom Tabs
                 try {
-                    window.location.href = "abcdexit://close";
+                    window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;package=in.abcdcampus.app;component=in.abcdcampus.app/.ExitActivity;category=android.intent.category.DEFAULT;end";
                 } catch(e) {}
 
-                // C. Explicit Android Intent with BROWSABLE category targeting LauncherActivity & ExitActivity
+                // C. Fallback: Custom scheme (registered only on ExitActivity)
                 setTimeout(function() {
                     try {
-                        window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE;package=in.abcdcampus.app;end";
+                        window.location.href = "abcdexit://close";
                     } catch(e) {}
-                }, 60);
+                }, 80);
 
-                // D. Native window.close() attempt
-                try { window.close(); } catch(e) {}
-
-                // E. Final history pop fallback
-                const steps = self.state.openedByBackButton ? -1 : -2;
+                // D. Last resort: window.close() + history pop
                 setTimeout(function() {
-                    try { window.history.go(steps); } catch(e) {}
                     try { window.close(); } catch(e) {}
-                }, 150);
+                    var steps = self.state.openedByBackButton ? -1 : -2;
+                    try { window.history.go(steps); } catch(e) {}
+                }, 200);
                 return;
             }
 
             // =========================================================================
-            // ENVIRONMENT 2: DESKTOP / LAPTOP / NORMAL MOBILE BROWSER
+            // ENVIRONMENT 2: DESKTOP / MOBILE WEB (non-TWA)
             // =========================================================================
+            // Do NOT hide the modal yet — we may need to show the fallback state.
             try {
                 window.close();
             } catch(e) {}
 
-            // If browser prevents closing a user-opened tab:
-            // Check after a brief delay if the page is still active.
-            // NEVER redirect to about:blank or any fake blank page.
+            // If browser blocks closing (user-opened tab), transition to fallback view
             setTimeout(function() {
                 if (!document.hidden) {
                     self.state.isNavigating = false;
-                    self.armTrap();
-                    if (typeof window.showToast === 'function') {
-                        window.showToast("Your browser prevented closing this tab automatically. You can close it using Ctrl+W (or \u2318+W).", "info");
-                    }
+                    self.showExitFallback();
                 }
             }, 300);
+        },
+
+        /**
+         * Show the "Close Tab" fallback instructions inside the existing Exit Modal.
+         * Triggered when window.close() is blocked by the browser.
+         */
+        showExitFallback: function() {
+            var self = this;
+            var confirmView = document.getElementById('abcdExitConfirmView');
+            var fallbackView = document.getElementById('abcdExitFallbackView');
+
+            if (confirmView && fallbackView) {
+                confirmView.style.display = 'none';
+                fallbackView.style.display = 'block';
+
+                // Detect platform for keyboard shortcut
+                var isMac = /mac/i.test(navigator.platform || navigator.userAgent || '');
+                var isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
+                var shortcutEl = document.getElementById('abcdExitShortcut');
+                if (shortcutEl) {
+                    if (isMobile) {
+                        shortcutEl.innerHTML = 'Tap the <strong>tab switcher</strong> in your browser, then close this tab.';
+                    } else if (isMac) {
+                        shortcutEl.innerHTML = 'Press <kbd>\u2318</kbd> + <kbd>W</kbd> to close this tab.';
+                    } else {
+                        shortcutEl.innerHTML = 'Press <kbd>Ctrl</kbd> + <kbd>W</kbd> to close this tab.';
+                    }
+                }
+            } else {
+                // Fallback if modal elements are missing: re-arm and show toast-style message
+                self.hideExitModal();
+                self.armTrap();
+            }
+        },
+
+        /**
+         * Reset the exit modal back to its default confirm view (for next use).
+         */
+        resetExitModalView: function() {
+            var confirmView = document.getElementById('abcdExitConfirmView');
+            var fallbackView = document.getElementById('abcdExitFallbackView');
+            if (confirmView) confirmView.style.display = 'block';
+            if (fallbackView) fallbackView.style.display = 'none';
         }
     };
 

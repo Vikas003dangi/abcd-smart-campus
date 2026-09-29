@@ -8061,6 +8061,8 @@ window.addEventListener('load', initAppCardsScroll, { passive: true });
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 {% block extra_js %}{% endblock %}
 {% include 'users/_banner_popup.html' %}
+{% if request.path == '/' or request.path == '/home' or request.path == '/home/' %}
 {% include 'partials/_home_base_exit.html' %}
+{% endif %}
 </body>
 </html>

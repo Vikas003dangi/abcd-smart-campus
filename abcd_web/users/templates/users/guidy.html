@@ -8194,11 +8194,11 @@ function openEndSessionsModal() {
 }
 
 function goBack() {
-  showNoChatPlaceholder(true);
+  showNoChatPlaceholder(false);
 }
 
 function closeCurrentChat() {
-  showNoChatPlaceholder(true);
+  showNoChatPlaceholder(false);
 }
 
 function showNoChatPlaceholder(updateHistory = true) {
@@ -8657,42 +8657,28 @@ window.handleCustomSmartBack = async function() {
     return true; // Self profile pane closed cleanly
   }
 
-  if (window.innerWidth <= 768) {
-    // 2. Close blocked contacts sidebar if open
-    const blockedSidebar = document.getElementById('blockedContactsSidebar');
-    if (blockedSidebar && blockedSidebar.style.display !== 'none') {
-      closeBlockedContactsModal();
-      return true;
-    }
-
-    // 3. Close active chat if chat area is open on mobile
-    const shell = document.getElementById('gShell');
-    const isChatActive = shell && shell.classList.contains('chat-active');
-    const container = document.getElementById('chatContainerWrapper');
-    const isChatContainerVisible = container && !container.classList.contains('g-pane-hidden') && container.style.display !== 'none';
-    const hasActiveId = Boolean((typeof SESSION_ID !== 'undefined' && SESSION_ID) || 
-                                (typeof DIRECT_ID !== 'undefined' && DIRECT_ID) || 
-                                (typeof GROUP_ID !== 'undefined' && GROUP_ID));
-
-    if (isChatActive || isChatContainerVisible || hasActiveId) {
-      goBack();
-      return true;
-    }
-  }
-  return false;
-};
-
-window.addEventListener('popstate', () => {
-  if (window.innerWidth <= 768) {
-    const shell = document.getElementById('gShell');
-    const isChatActive = shell && shell.classList.contains('chat-active');
-    const container = document.getElementById('chatContainerWrapper');
-    const isChatContainerVisible = container && !container.classList.contains('g-pane-hidden') && container.style.display !== 'none';
-    if (isChatActive || isChatContainerVisible) {
-      return; // Handled by handleCustomSmartBack
-    }
+  // 2. Close blocked contacts sidebar if open
+  const blockedSidebar = document.getElementById('blockedContactsSidebar');
+  if (blockedSidebar && blockedSidebar.style.display !== 'none') {
+    closeBlockedContactsModal();
+    return true;
   }
 
+  // 3. Close active chat if chat area is open (mobile or desktop)
+  const shell = document.getElementById('gShell');
+  const isChatActive = shell && shell.classList.contains('chat-active');
+  const container = document.getElementById('chatContainerWrapper');
+  const isChatContainerVisible = container && !container.classList.contains('g-pane-hidden') && container.style.display !== 'none';
+  const hasActiveId = Boolean((typeof SESSION_ID !== 'undefined' && SESSION_ID) || 
+                              (typeof DIRECT_ID !== 'undefined' && DIRECT_ID) || 
+                              (typeof GROUP_ID !== 'undefined' && GROUP_ID));
+
+  if (isChatActive || isChatContainerVisible || hasActiveId) {
+    showNoChatPlaceholder(false);
+    return true;
+  }
+
+  // 4. Handle URL params if popstate transitioned between chats
   const params = new URLSearchParams(window.location.search);
   const session = params.get('session');
   const direct = params.get('direct');
@@ -8700,14 +8686,26 @@ window.addEventListener('popstate', () => {
 
   if (group) {
     loadChatAJAX('group', group, false);
+    return true;
   } else if (direct) {
     loadChatAJAX('direct', direct, false);
+    return true;
   } else if (session) {
     loadChatAJAX('session', session, false);
-  } else {
-    showNoChatPlaceholder(false);
+    return true;
   }
-});
+
+  return false;
+};
+
+// Register authoritative in-page handler with ABCDNav
+if (window.ABCDNav && typeof window.ABCDNav.registerInPageHandler === 'function') {
+  window.ABCDNav.registerInPageHandler(window.handleCustomSmartBack);
+} else {
+  window.addEventListener('popstate', () => {
+    window.handleCustomSmartBack();
+  });
+}
 
 // ── Profile Drawer ───────────────────────────────────────
 function toggleProfileDrawer(e) {

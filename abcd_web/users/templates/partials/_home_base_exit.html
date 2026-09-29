@@ -54,6 +54,50 @@
     .abcd-exit-modal-shake {
         animation: abcdExitModalShake 0.32s ease-in-out !important;
     }
+    #abcdExitModal kbd {
+        display: inline-block;
+        padding: 3px 8px;
+        font-size: 0.88rem;
+        font-weight: 700;
+        font-family: inherit;
+        color: #1e293b;
+        background: #f1f5f9;
+        border: 1.5px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        line-height: 1.4;
+    }
+    body.dark-theme #abcdExitModal kbd {
+        color: #e2e8f0;
+        background: #2d364a;
+        border-color: #4f5b75;
+    }
+    #abcdExitFallbackGotItBtn {
+        padding: 10px 32px;
+        font-weight: 700;
+        border: 1.5px solid #3b82f6;
+        border-radius: 10px;
+        cursor: pointer;
+        background: rgba(59,130,246,0.08);
+        color: #3b82f6;
+        font-size: 0.92rem;
+        transition: all 0.15s ease;
+    }
+    #abcdExitFallbackGotItBtn:hover {
+        background: rgba(59,130,246,0.18);
+        border-color: #2563eb;
+        color: #2563eb;
+    }
+    body.dark-theme #abcdExitFallbackGotItBtn {
+        background: rgba(96,165,250,0.14);
+        border-color: #60a5fa;
+        color: #60a5fa;
+    }
+    body.dark-theme #abcdExitFallbackGotItBtn:hover {
+        background: rgba(96,165,250,0.26);
+        border-color: #93bbfd;
+        color: #93bbfd;
+    }
 </style>
 
 <!-- ================= ABCD UNIVERSAL EXIT CONFIRMATION MODAL ================= -->
@@ -68,17 +112,31 @@
         </div>
         <button type="button" id="abcdExitCloseBtn" aria-label="Close" style="background:none;border:none;font-size:1.6rem;cursor:pointer;color:#94a3b8;line-height:1;transition:color 0.15s, transform 0.15s;padding:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;" onmouseover="this.style.color='#ffffff';this.style.transform='scale(1.1)'" onmouseout="this.style.color='#94a3b8';this.style.transform='scale(1)'">&times;</button>
     </div>
-    <div style="padding:24px 22px 16px;text-align:center;">
-        <p style="margin:0 0 8px;font-size:1.02rem;font-weight:700;color:#0f172a;" id="abcdExitPrompt">Are you sure you want to exit?</p>
-        <p style="margin:0;font-size:0.86rem;color:#64748b;line-height:1.45;">Press <strong>Exit</strong> to close the application or leave the site. You can return anytime.</p>
+    <!-- View 1: Confirm Exit (default) -->
+    <div id="abcdExitConfirmView">
+        <div style="padding:24px 22px 16px;text-align:center;">
+            <p style="margin:0 0 8px;font-size:1.02rem;font-weight:700;color:#0f172a;" id="abcdExitPrompt">Are you sure you want to exit?</p>
+            <p style="margin:0;font-size:0.86rem;color:#64748b;line-height:1.45;">Press <strong>Exit</strong> to close the application or leave the site. You can return anytime.</p>
+        </div>
+        <div style="padding:14px 22px 20px;display:flex;gap:12px;justify-content:center;">
+            <button type="button" id="abcdExitCancelBtn" style="flex:1;padding:10px 18px;font-weight:600;border:1.5px solid #cbd5e1;border-radius:10px;cursor:pointer;background:#ffffff;color:#334155;font-size:0.92rem;transition:all 0.15s ease;" onmouseover="this.style.borderColor='#94a3b8';this.style.background='#f8fafc'" onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#ffffff'">Cancel</button>
+            <button type="button" id="abcdExitConfirmBtn" style="flex:1;padding:10px 18px;font-weight:700;border:1.5px solid #e8455a;border-radius:10px;cursor:pointer;background:rgba(232,69,90,0.08);color:#e8455a;font-size:0.92rem;transition:all 0.15s ease;" onmouseover="this.style.background='rgba(232,69,90,0.18)';this.style.borderColor='#c0392b';this.style.color='#c0392b'" onmouseout="this.style.background='rgba(232,69,90,0.08)';this.style.borderColor='#e8455a';this.style.color='#e8455a'">Exit</button>
+        </div>
     </div>
-    <div style="padding:14px 22px 20px;display:flex;gap:12px;justify-content:center;">
-        <button type="button" id="abcdExitCancelBtn" style="flex:1;padding:10px 18px;font-weight:600;border:1.5px solid #cbd5e1;border-radius:10px;cursor:pointer;background:#ffffff;color:#334155;font-size:0.92rem;transition:all 0.15s ease;" onmouseover="this.style.borderColor='#94a3b8';this.style.background='#f8fafc'" onmouseout="this.style.borderColor='#cbd5e1';this.style.background='#ffffff'">Cancel</button>
-        <button type="button" id="abcdExitConfirmBtn" style="flex:1;padding:10px 18px;font-weight:700;border:1.5px solid #e8455a;border-radius:10px;cursor:pointer;background:rgba(232,69,90,0.08);color:#e8455a;font-size:0.92rem;transition:all 0.15s ease;" onmouseover="this.style.background='rgba(232,69,90,0.18)';this.style.borderColor='#c0392b';this.style.color='#c0392b'" onmouseout="this.style.background='rgba(232,69,90,0.08)';this.style.borderColor='#e8455a';this.style.color='#e8455a'">Exit</button>
+    <!-- View 2: Close Tab fallback (shown when browser blocks window.close) -->
+    <div id="abcdExitFallbackView" style="display:none;">
+        <div style="padding:24px 22px 16px;text-align:center;">
+            <p style="margin:0 0 12px;font-size:1.02rem;font-weight:700;color:#0f172a;">Your browser prevented closing this tab</p>
+            <p id="abcdExitShortcut" style="margin:0;font-size:0.92rem;color:#334155;line-height:1.6;">Press <kbd>Ctrl</kbd> + <kbd>W</kbd> to close this tab.</p>
+            <p style="margin:10px 0 0;font-size:0.82rem;color:#94a3b8;">Or use the browser tab’s close (×) button.</p>
+        </div>
+        <div style="padding:14px 22px 20px;display:flex;justify-content:center;">
+            <button type="button" id="abcdExitFallbackGotItBtn">Got It</button>
+        </div>
     </div>
 </div>
 
-<script src="{% static 'js/abcd-nav.js' %}?v=2.0.0"></script>
+<script src="{% static 'js/abcd-nav.js' %}?v=3.0.0"></script>
 <script>
     (function() {
         if (window.ABCDNav) {
@@ -90,7 +148,7 @@
         }
     })();
 </script>
-
+<script>
     // Bottom Navigation Bar Zoom Preventer (Pinch-to-zoom on Mobile/Touchpad & Page zoom on PC)
     (function() {
         if (window.__bottomNavZoomPreventerAttached) return;

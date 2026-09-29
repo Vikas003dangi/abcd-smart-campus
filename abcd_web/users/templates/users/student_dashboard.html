@@ -8448,6 +8448,8 @@ window.addEventListener('load', initAppCardsScroll, { passive: true });
 <script src="{% static 'js/push-permission.js' %}?v=6"></script>
 <script src="{% static 'js/app-install-prompt.js' %}"></script>
 <script src="{% static 'js/site-tour.js' %}"></script>
+{% if request.path == '/dashboard' or request.path == '/dashboard/' %}
 {% include 'partials/_home_base_exit.html' %}
+{% endif %}
 </body>
 </html>
