@@ -110,6 +110,9 @@
 
             // 6. Bind modal controls if present
             self.bindExitModalEvents();
+
+            // 7. Detect and persist Android app environment state
+            self.detectAndroidApp();
         },
 
         /**
@@ -460,32 +463,65 @@
         },
 
         /**
-         * Platform-Aware Exit Execution
-         *
-         * Three environments:
-         * 1. Android TWA / Standalone PWA — use native exit mechanisms
-         * 2. Desktop browser — attempt window.close(), show in-modal fallback if blocked
-         * 3. Mobile web (non-TWA) — same as desktop
+         * Detect if running inside the Android TWA / Play App container.
+         * Persists detection into sessionStorage so subsequent page navigations within
+         * the app (e.g. Dashboard -> To-Do -> Form -> Dashboard) remain recognized as Android App.
          */
-        doActualExit: function() {
-            const self = this;
-            self.state.isNavigating = true;
+        detectAndroidApp: function() {
+            let fromSession = false;
+            try {
+                fromSession = (sessionStorage.getItem('abcd_is_android_app') === '1');
+            } catch(e) {}
 
-            // Detect TRUE TWA / Standalone (not just "any Android browser")
-            const isTWA = Boolean(
+            const isApp = Boolean(
+                fromSession ||
                 (document.referrer && document.referrer.startsWith('android-app://')) ||
                 window.matchMedia('(display-mode: standalone)').matches ||
                 window.matchMedia('(display-mode: fullscreen)').matches ||
                 window.navigator.standalone === true ||
-                window.location.search.includes('pwa_app=1')
+                window.location.search.includes('pwa_app=1') ||
+                (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') ||
+                (window.Android && (typeof window.Android.exitApp === 'function' || typeof window.Android.finish === 'function'))
             );
 
-            // =========================================================================
-            // ENVIRONMENT 1: ANDROID TWA / NATIVE APP WRAPPER
-            // =========================================================================
-            if (isTWA) {
-                self.hideExitModal();
+            if (isApp) {
+                try {
+                    sessionStorage.setItem('abcd_is_android_app', '1');
+                } catch(e) {}
+            }
+            return isApp;
+        },
 
+        GOOGLE_SEARCH_FALLBACK_URL: 'https://www.google.com/search?q=' + encodeURIComponent('ABCD Smart Campus Coaching And Library Ganj Basoda'),
+
+        /**
+         * Platform-Aware Exit Execution
+         *
+         * ANDROID / PLAY APP CONTRACT:
+         * Home Base -> Back -> Exit popup -> EXIT
+         * Completely close the ABCD Campus Android app via native intent/custom scheme.
+         * MUST NOT: navigate backward, use browser history, return to previous page,
+         * open another webpage, show about:blank, show browser close-tab message.
+         *
+         * NORMAL WEBSITE / BROWSER CONTRACT:
+         * Home Base -> Back -> Exit popup -> EXIT
+         * Attempt to close the browser tab/window via window.close().
+         * If the browser blocks window.close(), open Google search page for predefined query:
+         * "ABCD Smart Campus Coaching And Library Ganj Basoda"
+         * MUST NOT: use browser history as fallback, use history.back() or history.go(),
+         * or navigate to a previous application page.
+         */
+        doActualExit: function() {
+            const self = this;
+            self.state.isNavigating = true;
+            self.hideExitModal();
+
+            const isAndroidApp = self.detectAndroidApp();
+
+            // =========================================================================
+            // ENVIRONMENT 1: ANDROID / PLAY APP
+            // =========================================================================
+            if (isAndroidApp) {
                 // A. Check for injected WebView JS bridges
                 if (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') {
                     try { window.AndroidApp.closeApp(); return; } catch(e) {}
@@ -497,76 +533,52 @@
                     try { window.Android.finish(); return; } catch(e) {}
                 }
 
-                // B. Primary: Intent URI targeting ExitActivity directly by component
-                // This is more reliable than custom schemes inside Chrome Custom Tabs
+                // B. Primary: Android Intent URI with BOTH DEFAULT and BROWSABLE categories
                 try {
-                    window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;package=in.abcdcampus.app;component=in.abcdcampus.app/.ExitActivity;category=android.intent.category.DEFAULT;end";
+                    window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE;package=in.abcdcampus.app;end";
                 } catch(e) {}
 
-                // C. Fallback: Custom scheme (registered only on ExitActivity)
+                // C. Fallback: Custom scheme registered on ExitActivity & LauncherActivity
                 setTimeout(function() {
                     try {
                         window.location.href = "abcdexit://close";
                     } catch(e) {}
                 }, 80);
 
-                // D. Last resort: window.close() + history pop
-                setTimeout(function() {
-                    try { window.close(); } catch(e) {}
-                    var steps = self.state.openedByBackButton ? -1 : -2;
-                    try { window.history.go(steps); } catch(e) {}
-                }, 200);
+                // D. Native window.close() attempt
+                try {
+                    window.close();
+                } catch(e) {}
+
+                // CRITICAL CONTRACT: Under NO circumstances pop history stack backward!
                 return;
             }
 
             // =========================================================================
-            // ENVIRONMENT 2: DESKTOP / MOBILE WEB (non-TWA)
+            // ENVIRONMENT 2: NORMAL WEBSITE / BROWSER
             // =========================================================================
-            // Do NOT hide the modal yet — we may need to show the fallback state.
             try {
                 window.close();
             } catch(e) {}
 
-            // If browser blocks closing (user-opened tab), transition to fallback view
+            // When browser blocks window.close() (standard for user-navigated tabs),
+            // replace location with the predefined Google search fallback.
+            // Using window.location.replace prevents adding a trap or allowing history-back loops.
             setTimeout(function() {
                 if (!document.hidden) {
                     self.state.isNavigating = false;
-                    self.showExitFallback();
+                    window.location.replace(self.GOOGLE_SEARCH_FALLBACK_URL);
                 }
-            }, 300);
+            }, 100);
         },
 
         /**
-         * Show the "Close Tab" fallback instructions inside the existing Exit Modal.
-         * Triggered when window.close() is blocked by the browser.
+         * Browser Fallback Handler: explicitly navigates to the predefined Google search fallback URL.
          */
         showExitFallback: function() {
             var self = this;
-            var confirmView = document.getElementById('abcdExitConfirmView');
-            var fallbackView = document.getElementById('abcdExitFallbackView');
-
-            if (confirmView && fallbackView) {
-                confirmView.style.display = 'none';
-                fallbackView.style.display = 'block';
-
-                // Detect platform for keyboard shortcut
-                var isMac = /mac/i.test(navigator.platform || navigator.userAgent || '');
-                var isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
-                var shortcutEl = document.getElementById('abcdExitShortcut');
-                if (shortcutEl) {
-                    if (isMobile) {
-                        shortcutEl.innerHTML = 'Tap the <strong>tab switcher</strong> in your browser, then close this tab.';
-                    } else if (isMac) {
-                        shortcutEl.innerHTML = 'Press <kbd>\u2318</kbd> + <kbd>W</kbd> to close this tab.';
-                    } else {
-                        shortcutEl.innerHTML = 'Press <kbd>Ctrl</kbd> + <kbd>W</kbd> to close this tab.';
-                    }
-                }
-            } else {
-                // Fallback if modal elements are missing: re-arm and show toast-style message
-                self.hideExitModal();
-                self.armTrap();
-            }
+            self.hideExitModal();
+            window.location.replace(self.GOOGLE_SEARCH_FALLBACK_URL);
         },
 
         /**

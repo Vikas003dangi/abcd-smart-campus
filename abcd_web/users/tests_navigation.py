@@ -255,3 +255,75 @@ class NavigationExitModalTests(TestCase):
         self.client.login(username='exit_student', password='Pwd123!')
         resp = self.client.get(reverse('users:courses'))
         self.assertContains(resp, 'v=3.0.0')
+
+    def test_assetlinks_contains_play_signing_cert_and_low_cache_ttl(self):
+        """Verify assetlinks.json serves the 72:AB... fingerprint and 60s max-age."""
+        resp = self.client.get('/.well-known/assetlinks.json')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp['Cache-Control'], 'public, max-age=60')
+        import json
+        data = json.loads(resp.content.decode('utf-8'))
+        fingerprints = data[0]['target']['sha256_cert_fingerprints']
+        self.assertIn(
+            '72:AB:7B:61:FC:3D:16:2C:CF:B8:11:1B:59:E2:D6:3A:BD:F3:26:F6:2D:35:0F:82:C4:65:67:4B:DE:F5:8F:56',
+            fingerprints
+        )
+
+    def test_abcd_nav_js_contains_google_search_fallback_and_no_exit_history_pop(self):
+        """Verify abcd-nav.js has the Google search URL fallback and no history pop in exit."""
+        import os
+        from django.conf import settings
+        js_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'abcd-nav.js')
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Predefined Google search query
+        self.assertIn('ABCD Smart Campus Coaching And Library Ganj Basoda', content)
+        self.assertIn('https://www.google.com/search?q=', content)
+
+        # Android exit intent has both DEFAULT and BROWSABLE
+        self.assertIn('category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE', content)
+        self.assertIn('abcdexit://close', content)
+
+        # Verify doActualExit does NOT contain any history.go or history.back
+        exit_method_start = content.find('doActualExit: function()')
+        self.assertNotEqual(exit_method_start, -1)
+        exit_method_end = content.find('showExitFallback: function()', exit_method_start)
+        self.assertNotEqual(exit_method_end, -1)
+        exit_method_code = content[exit_method_start:exit_method_end]
+        self.assertNotIn('history.go', exit_method_code)
+        self.assertNotIn('history.back', exit_method_code)
+
+    def test_app_install_prompt_play_store_integration(self):
+        """Verify app-install-prompt.js contains Play Store URL, market URI, and TWA suppression."""
+        import os
+        from django.conf import settings
+        js_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'app-install-prompt.js')
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Play Store official URL and native market URI
+        self.assertIn('https://play.google.com/store/apps/details?id=in.abcdcampus.app', content)
+        self.assertIn('market://details?id=in.abcdcampus.app', content)
+
+        # openPlayStore helper exists and handles Android native launch + fallback
+        self.assertIn('function openPlayStore()', content)
+        self.assertIn('window.location.href = PLAY_STORE_MARKET_URI', content)
+
+        # Suppressed when running inside app container
+        self.assertIn('function isRunningInsideApp()', content)
+        self.assertIn("sessionStorage.getItem('abcd_is_android_app') === '1'", content)
+
+    def test_webmanifest_play_store_related_application(self):
+        """Verify site.webmanifest includes in.abcdcampus.app in related_applications."""
+        import os
+        import json
+        from django.conf import settings
+        manifest_path = os.path.join(settings.BASE_DIR, 'static', 'data', 'favicon', 'site.webmanifest')
+        with open(manifest_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        related = data.get('related_applications', [])
+        play_apps = [app for app in related if app.get('platform') == 'play' and app.get('id') == 'in.abcdcampus.app']
+        self.assertEqual(len(play_apps), 1)
+        self.assertEqual(play_apps[0]['url'], 'https://play.google.com/store/apps/details?id=in.abcdcampus.app')

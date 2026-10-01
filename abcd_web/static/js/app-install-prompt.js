@@ -7,6 +7,9 @@
     const DISMISS_OPEN_APP_SESSION_KEY = 'abcd_open_app_dismissed_session';
     const DISMISS_BANNER_SESSION_KEY = 'abcd_smart_banner_dismissed_session';
     const INSTALLED_KEY = 'abcd_app_installed';
+    const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=in.abcdcampus.app';
+    const PLAY_STORE_MARKET_URI = 'market://details?id=in.abcdcampus.app';
+    const isAndroid = /android/i.test(navigator.userAgent);
 
     // Check if current page is in the blacklist where NO popups should show
     function isPageExcluded() {
@@ -59,14 +62,35 @@
         return;
     }
 
-    // Check if currently running inside the installed PWA standalone mode
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                         window.navigator.standalone === true ||
-                         document.referrer.includes('android-app://');
+    // Check if currently running inside the installed PWA / Android TWA container
+    function isRunningInsideApp() {
+        let fromSession = false;
+        try {
+            fromSession = (sessionStorage.getItem('abcd_is_android_app') === '1');
+        } catch(e) {}
 
-    if (isStandalone) {
+        const isApp = Boolean(
+            fromSession ||
+            (document.referrer && document.referrer.includes('android-app://')) ||
+            window.matchMedia('(display-mode: standalone)').matches ||
+            window.matchMedia('(display-mode: fullscreen)').matches ||
+            window.navigator.standalone === true ||
+            (window.location.search && window.location.search.includes('pwa_app=1')) ||
+            (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') ||
+            (window.Android && (typeof window.Android.exitApp === 'function' || typeof window.Android.finish === 'function'))
+        );
+
+        if (isApp) {
+            try {
+                sessionStorage.setItem('abcd_is_android_app', '1');
+                localStorage.setItem(INSTALLED_KEY, 'true');
+            } catch(e) {}
+        }
+        return isApp;
+    }
+
+    if (isRunningInsideApp()) {
         // User is ALREADY using the installed app!
-        localStorage.setItem(INSTALLED_KEY, 'true');
         window.showABCDInstallPrompt = function () {};
         window.showABCDOpenInAppPrompt = function () {};
         return;
@@ -732,7 +756,10 @@
             });
 
             document.getElementById('abcdInstallAppBtn').addEventListener('click', async () => {
-                if (deferredPrompt) {
+                if (isAndroid) {
+                    openPlayStore();
+                    hideActiveModal();
+                } else if (deferredPrompt) {
                     deferredPrompt.prompt();
                     const choice = await deferredPrompt.userChoice;
                     if (choice && choice.outcome === 'accepted') {
@@ -798,11 +825,42 @@
         return isInstalled;
     }
 
+    // Helper to open Google Play Store (preferring native Play Store app with web listing fallback)
+    function openPlayStore() {
+        if (isAndroid) {
+            let appOpened = false;
+            const markOpened = () => { appOpened = true; };
+            window.addEventListener('pagehide', markOpened, { once: true });
+            window.addEventListener('blur', markOpened, { once: true });
+            if (typeof document.addEventListener === 'function') {
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') markOpened();
+                }, { once: true });
+            }
+
+            try {
+                window.location.href = PLAY_STORE_MARKET_URI;
+            } catch (e) {
+                window.open(PLAY_STORE_URL, '_blank');
+                return;
+            }
+
+            setTimeout(() => {
+                window.removeEventListener('pagehide', markOpened);
+                window.removeEventListener('blur', markOpened);
+                if (!appOpened && document.visibilityState === 'visible') {
+                    window.open(PLAY_STORE_URL, '_blank');
+                }
+            }, 1200);
+        } else {
+            window.open(PLAY_STORE_URL, '_blank');
+        }
+    }
+
     // 5. Open in Native App (Android Intent + PWA Protocol) without reload loops
     function openInNativeApp() {
         const host = window.location.host;
         const path = window.location.pathname + window.location.search;
-        const isAndroid = /android/i.test(navigator.userAgent);
 
         let appOpened = false;
         const markOpened = () => { appOpened = true; };
@@ -838,6 +896,10 @@
 
     // 6. Trigger 1-Tap Install or Fallback to VIP Modal
     async function triggerInstallFlow() {
+        if (isAndroid) {
+            openPlayStore();
+            return;
+        }
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const choice = await deferredPrompt.userChoice;
