@@ -41,6 +41,8 @@ function isGuidyPayload(obj, fallbackUrl) {
     );
 }
 
+let isTwaMode = false;
+
 self.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'ACTIVE_CHAT_UPDATE') {
         activeChatState = {
@@ -48,6 +50,8 @@ self.addEventListener('message', function (event) {
             chatId: event.data.chatId ? String(event.data.chatId) : null,
             timestamp: Date.now()
         };
+    } else if (event.data && event.data.type === 'SET_TWA_MODE') {
+        isTwaMode = Boolean(event.data.isTwa);
     }
 });
 
@@ -103,8 +107,13 @@ self.addEventListener('push', function (event) {
     const isAudioAlert = isAlarm || isReminder;
     const isTodo = (data.source === 'todo') || (data.url && data.url.includes('/todo')) || Boolean(data.task_id);
 
+    // In TWA mode, native AlarmReceiver is authoritative for sound when backgrounded/closed
+    const suppressSoundInTwa = isTwaMode && isAudioAlert;
+
     let sound = data.sound;
-    if (!sound) {
+    if (suppressSoundInTwa) {
+        sound = null;
+    } else if (!sound) {
         if (isAlarm) {
             sound = '/static/audio/alarm.mp3';
         } else if (isReminder) {
@@ -128,8 +137,8 @@ self.addEventListener('push', function (event) {
         tag: data.tag || (data.task_id ? 'abcd-reminder-' + data.task_id : (isAlarm ? 'abcd-alarm-active' : 'abcd-notification')),
         renotify: (isAlarm || isReminder) ? true : false,
         requireInteraction: isAlarm ? true : false,
-        silent: false,
-        vibrate: isAlarm ? alarmVibratePattern : (isReminder ? reminderVibratePattern : defaultVibratePattern),
+        silent: suppressSoundInTwa ? true : false,
+        vibrate: suppressSoundInTwa ? [] : (isAlarm ? alarmVibratePattern : (isReminder ? reminderVibratePattern : defaultVibratePattern)),
         data: {
             url: data.url || '/',
             timestamp: data.timestamp || Date.now(),
@@ -139,22 +148,26 @@ self.addEventListener('push', function (event) {
             sound: sound,
             title: title,
             body: data.body || '',
-            taskId: data.task_id || null
+            taskId: data.task_id || null,
+            actionToken: data.action_token || null
         },
-        actions: isAlarm
-            ? [
-                { action: 'stop', title: 'Stop ⏹' },
-                { action: 'snooze', title: 'Snooze 15m ⏱' },
-                { action: 'open_alarm', title: 'Open ↗' }
-              ]
-            : (isReminder
+        actions: (Array.isArray(data.actions) && data.actions.length > 0)
+            ? data.actions
+            : (isAlarm
                 ? [
-                    { action: 'open_reminder', title: 'Open ↗' },
-                    { action: 'stop', title: 'Dismiss ✕' }
+                    { action: 'stop', title: 'Stop ⏹' },
+                    { action: 'snooze', title: 'Snooze 15m ⏱' },
+                    { action: 'open_alarm', title: 'Open ↗' }
                   ]
-                : [
-                    { action: 'open', title: 'Open ↗' }
-                  ]
+                : (isReminder
+                    ? [
+                        { action: 'open_reminder', title: 'Open ↗' },
+                        { action: 'stop', title: 'Dismiss ✕' }
+                      ]
+                    : [
+                        { action: 'open', title: 'Open ↗' }
+                      ]
+                )
             )
     };
 
@@ -166,6 +179,17 @@ self.addEventListener('push', function (event) {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+            if (data.action === 'ACCOUNT_DELETED') {
+                if (clientList && clientList.length > 0) {
+                    clientList.forEach(function (client) {
+                        try {
+                            client.postMessage({ type: 'ABCD_ACCOUNT_DELETED' });
+                        } catch (e) {}
+                    });
+                }
+                return;
+            }
+
             // 1. Broadcast to open tabs:
             if (clientList && clientList.length > 0) {
                 if ((isAlarm || isReminder) && !isGuidy) {
@@ -207,6 +231,16 @@ self.addEventListener('push', function (event) {
                             });
                         } catch (err) {}
                     });
+                }
+            }
+
+            // Suppress duplicate push card if the alarm is already ringing in active foreground tab
+            if ((isAlarm || isReminder) && !isGuidy && clientList && clientList.length > 0) {
+                const hasVisibleClient = clientList.some(function (client) {
+                    return client.visibilityState === 'visible';
+                });
+                if (hasVisibleClient) {
+                    return;
                 }
             }
 
@@ -269,11 +303,13 @@ self.addEventListener('notificationclick', function (event) {
 
     if (event.action === 'stop' || event.action === 'dismiss') {
         if (notifData.taskId) {
+            const bodyObj = { action: 'stop' };
+            if (notifData.actionToken) bodyObj.action_token = notifData.actionToken;
             event.waitUntil(
                 fetch('/todo/reminder/' + encodeURIComponent(notifData.taskId) + '/action/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'stop' })
+                    body: JSON.stringify(bodyObj)
                 }).catch(function () {})
             );
         }
@@ -282,17 +318,36 @@ self.addEventListener('notificationclick', function (event) {
 
     if (event.action === 'snooze') {
         if (notifData.taskId) {
+            const bodyObj = { action: 'snooze', minutes: 15 };
+            if (notifData.actionToken) bodyObj.action_token = notifData.actionToken;
             event.waitUntil(
                 fetch('/todo/reminder/' + encodeURIComponent(notifData.taskId) + '/action/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'snooze', minutes: 15 })
+                    body: JSON.stringify(bodyObj)
                 }).catch(function () {})
             );
         }
         return;
     }
     let targetUrl = notifData.url || '/';
+
+    // Route contextual action buttons
+    if (event.action === 'open_todo') {
+        targetUrl = notifData.url || '/todo/';
+    } else if (event.action === 'open_course') {
+        targetUrl = notifData.url || '/courses/';
+    } else if (event.action === 'open_guidy') {
+        targetUrl = notifData.url || '/guidy/';
+    } else if (event.action === 'open_seat') {
+        targetUrl = notifData.url || '/dashboard/';
+    } else if (event.action === 'open_complaint') {
+        targetUrl = notifData.url || '/student/complaints/';
+    } else if (event.action === 'open_fees') {
+        targetUrl = notifData.url || '/student/fees/';
+    } else if (event.action === 'open_broadcast') {
+        targetUrl = notifData.url || '/dashboard/';
+    }
 
     const isNotifGuidy = isGuidyPayload(notifData, targetUrl);
 

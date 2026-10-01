@@ -229,6 +229,7 @@ urlpatterns = [
 
     # Push Notification Subscription API
     path("api/save-push-subscription/", views.save_push_subscription, name="save_push_subscription"),
+    path("api/push-subscription/disassociate/", views.disassociate_push_subscription, name="disassociate_push_subscription"),
     path("api/vapid-public-key/", views.vapid_public_key_api, name="vapid_public_key_api"),
 
     # Seat Special Request API
@@ -250,6 +251,7 @@ urlpatterns = [
     path('api/qa/upvote/', views.upvote_qa_api, name='upvote_qa_api'),
     path('api/qa/delete/', views.delete_qa_item, name='delete_qa_item'),
     path('api/reminders/due/', views.get_due_reminders, name='get_due_reminders'),
+    path('api/reminders/active/', views.active_reminders_api, name='active_reminders_api'),
     path('api/courses/<int:course_id>/interaction/', views.toggle_course_interaction, name='toggle_course_interaction'),
 
     # ======================================================

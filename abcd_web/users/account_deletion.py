@@ -245,6 +245,26 @@ def perform_account_deletion(user, role=None):
         # -------------------------------------------------------------
         # Notifications and push subscriptions
         Notification.objects.filter(user=user).delete()
+
+        # Send silent push to client devices to clear local scheduled alarms upon account deletion
+        try:
+            from pywebpush import webpush
+            from django.conf import settings
+            for sub in PushSubscription.objects.filter(user=user):
+                try:
+                    webpush(
+                        subscription_info={"endpoint": sub.endpoint, "keys": sub.keys},
+                        data=json.dumps({"category": "system", "action": "ACCOUNT_DELETED", "title": "ABCD Campus", "silent": True}),
+                        vapid_private_key=settings.VAPID_PRIVATE_KEY,
+                        vapid_claims={"sub": f"mailto:{getattr(settings, 'VAPID_CLAIM_EMAIL', 'abcd2013baq@gmail.com')}"},
+                        ttl=3600,
+                        timeout=5
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         PushSubscription.objects.filter(user=user).delete()
 
         # Personal study tasks, reminders, intent logs

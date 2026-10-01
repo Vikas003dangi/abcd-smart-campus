@@ -920,6 +920,113 @@ def create_dashboard_notification(user, reminder):
         tag=f"abcd-learning-reminder-{reminder.id}"
     )
 
+
+@login_required
+@never_cache
+def active_reminders_api(request):
+    """
+    Unified Active Reminders API:
+    Returns all scheduled events (Todo reminders and Course Learning reminders)
+    for the authenticated user so that the global client reminder engine (abcd-sound.js)
+    and native Android TWA sync can track and fire them on any page with exact timing.
+    """
+    now = timezone.now()
+    now_local = timezone.localtime(now)
+    unified_reminders = []
+
+    # 1. To-Do Reminders
+    todo_tasks = TodoTask.objects.filter(
+        user=request.user,
+        category='REMINDER',
+        is_done=False,
+        is_trash=False
+    ).order_by('id')
+
+    for t in todo_tasks:
+        meta = t.metadata if isinstance(t.metadata, dict) else {}
+        alarm_status = meta.get('alarm_status')
+        if alarm_status == 'stopped':
+            continue
+
+        alarm_enabled = meta.get('alarm_enabled', True)
+        is_alarm = alarm_enabled is True or str(alarm_enabled).lower() == 'true' or alarm_enabled == 1
+        recurrence = meta.get('recurrence', 'once')
+        title = meta.get('title') or t.title or 'Reminder'
+        note = meta.get('note', '')
+
+        fire_at = None
+        if recurrence == 'once':
+            fire_target = meta.get('fire_at') or t.delete_at
+            if fire_target:
+                if hasattr(fire_target, 'isoformat'):
+                    fire_at = fire_target.isoformat()
+                else:
+                    fire_at = str(fire_target)
+
+        from django.core.signing import TimestampSigner
+        _action_signer = TimestampSigner(salt='abcd-reminder-action')
+        action_token = _action_signer.sign(f"{t.id}:{request.user.id}")
+
+        unified_reminders.append({
+            'id': t.id,
+            'source': 'todo',
+            'title': title,
+            'note': note,
+            'recurrence': recurrence,
+            'fire_at': fire_at,
+            'time_str': meta.get('time_str', '00:00'),
+            'days_of_week': meta.get('days_of_week', ''),
+            'until_date': meta.get('until_date'),
+            'is_alarm': is_alarm,
+            'alarm_status': alarm_status,
+            'next_retry_at': meta.get('next_retry_at'),
+            'sound': '/static/audio/alarm.mp3' if is_alarm else '/static/audio/PWA.mp3',
+            'target_url': '/todo/',
+            'action_token': action_token,
+            'last_notified_at': t.last_notified_at.isoformat() if t.last_notified_at else None,
+        })
+
+    # 2. Course Learning Reminders
+    learning_reminders = LearningReminder.objects.filter(
+        user=request.user
+    ).select_related('course').order_by('id')
+
+    for lr in learning_reminders:
+        if lr.recurrence_type == 'once':
+            if lr.is_sent:
+                continue
+            fire_at = lr.reminder_time.isoformat() if lr.reminder_time else None
+        else:
+            fire_at = None
+
+        time_str = lr.reminder_time_daily.strftime('%H:%M') if lr.reminder_time_daily else None
+        course_title = lr.course.title if lr.course else 'Course'
+        course_id = lr.course.id if lr.course else None
+
+        unified_reminders.append({
+            'id': lr.id,
+            'source': 'course',
+            'course_id': course_id,
+            'title': lr.title or f"Study: {course_title}",
+            'note': f"Time to study {course_title}!",
+            'recurrence': lr.recurrence_type,
+            'fire_at': fire_at,
+            'time_str': time_str,
+            'days_of_week': lr.days_of_week or '',
+            'is_alarm': False,
+            'alarm_status': 'ringing' if lr.is_sent else None,
+            'sound': '/static/audio/alarms and reminders.mp3',
+            'target_url': f"/courses/{course_id}/" if course_id else "/courses/",
+            'last_sent_at': lr.last_sent_at.isoformat() if lr.last_sent_at else None,
+        })
+
+    return JsonResponse({
+        'status': 'ok',
+        'server_time': now_local.isoformat(),
+        'reminders': unified_reminders
+    })
+
+
 @require_POST
 def submit_course_review(request, course_id):
     course = get_object_or_404(Course, id=course_id)
@@ -3209,6 +3316,13 @@ def set_new_user_flag(backend, strategy, details, response, user=None, is_new=Fa
 @never_cache
 def logout_view(request):
     if request.user.is_authenticated:
+        user = request.user
+        push_endpoint = request.session.get('push_endpoint')
+        if push_endpoint:
+            try:
+                PushSubscription.objects.filter(user=user, endpoint=push_endpoint).delete()
+            except Exception as e:
+                logger.debug(f"[Logout] Error disassociating push subscription: {e}")
         logout(request)
         messages.info(request, "You have been logged out.")
     response = redirect('users:home_page')
@@ -12006,6 +12120,10 @@ def save_push_subscription(request):
             }
         )
 
+        # Bind endpoint to active session so logout safely removes device binding
+        request.session['push_endpoint'] = endpoint
+        request.session.modified = True
+
         # Prune old subscriptions for this user to keep database clean and prevent duplicates,
         # but ALWAYS protect and keep the subscription that this request just saved/updated!
         user_subs = PushSubscription.objects.filter(user=request.user).exclude(id=sub.id).order_by('-id')
@@ -12029,6 +12147,30 @@ def save_push_subscription(request):
                 pass
 
         return JsonResponse({'status': 'ok', 'message': 'Push subscription saved successfully'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@csrf_exempt
+@require_POST
+def disassociate_push_subscription(request):
+    """
+    Safely disassociates and deletes a push subscription for the active user/endpoint.
+    Prevents cross-account notification delivery upon logout or user switch.
+    """
+    try:
+        data = json.loads(request.body) if request.body else {}
+        endpoint = data.get('endpoint') or request.session.get('push_endpoint')
+        if endpoint:
+            if request.user.is_authenticated:
+                PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+            else:
+                PushSubscription.objects.filter(endpoint=endpoint).delete()
+            if 'push_endpoint' in request.session:
+                del request.session['push_endpoint']
+                request.session.modified = True
+            return JsonResponse({'status': 'ok', 'message': 'Push subscription removed successfully'})
+        return JsonResponse({'status': 'ignored', 'message': 'No endpoint provided'}, status=200)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 # ======================================================
@@ -16994,15 +17136,44 @@ def todo_update_reminder(request, task_id):
 
 
 @csrf_exempt
-@login_required
 @require_POST
 def todo_reminder_action(request, task_id):
     """
     Handles user interaction from Alarm UI modal, notification actions, or To-Do Hub:
     - 'stop': Stops the alarm immediately and permanently. Clears retries and marks task complete.
     - 'snooze': Snoozes the alarm for requested minutes (default 15 mins).
+    Authenticates via session (request.user) or signed action_token.
     """
-    task = get_object_or_404(TodoTask, id=task_id, user=request.user, category='REMINDER')
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except Exception:
+        data = {}
+
+    action_token = data.get('action_token') or request.headers.get('X-Action-Token')
+
+    if request.user.is_authenticated:
+        try:
+            task = TodoTask.objects.get(id=task_id, user=request.user, category='REMINDER')
+            username = request.user.username
+        except TodoTask.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Task not found'}, status=404)
+    elif action_token:
+        from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
+        signer = TimestampSigner(salt='abcd-reminder-action')
+        try:
+            signed_val = signer.unsign(action_token, max_age=30 * 86400)
+            token_task_id, token_user_id = signed_val.split(':')
+            if str(token_task_id) != str(task_id):
+                return JsonResponse({'success': False, 'error': 'Action token task ID mismatch'}, status=403)
+            task = TodoTask.objects.get(id=task_id, user_id=int(token_user_id), category='REMINDER')
+            username = task.user.username if task.user else f"user_{token_user_id}"
+        except TodoTask.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Task not found or account deleted'}, status=404)
+        except (BadSignature, SignatureExpired, ValueError):
+            return JsonResponse({'success': False, 'error': 'Invalid or expired action token'}, status=401)
+    else:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+
     try:
         data = json.loads(request.body) if request.body else {}
         action = str(data.get('action', 'stop')).lower()
@@ -17017,7 +17188,7 @@ def todo_reminder_action(request, task_id):
             if rec == 'once':
                 task.is_done = True
             task.save()
-            logger.info(f"[To-Do Reminder] Alarm permanently stopped for task {task.id} ('{meta.get('title')}') by user {request.user.username}")
+            logger.info(f"[To-Do Reminder] Alarm permanently stopped for task {task.id} ('{meta.get('title')}') by user {username}")
             return JsonResponse({'success': True, 'action': 'stop', 'message': 'Alarm stopped permanently.'})
 
         elif action == 'snooze':
@@ -17032,7 +17203,7 @@ def todo_reminder_action(request, task_id):
             meta['next_retry_at'] = snooze_until.isoformat()
             task.metadata = meta
             task.save()
-            logger.info(f"[To-Do Reminder] Alarm snoozed for {minutes} min until {snooze_until} for task {task.id} by user {request.user.username}")
+            logger.info(f"[To-Do Reminder] Alarm snoozed for {minutes} min until {snooze_until} for task {task.id} by user {username}")
             return JsonResponse({
                 'success': True,
                 'action': 'snooze',
@@ -19494,7 +19665,7 @@ def assetlinks_json_view(request):
         }
     ]
     response = HttpResponse(json.dumps(assetlinks, indent=2), content_type="application/json")
-    response['Cache-Control'] = 'public, max-age=86400'
+    response['Cache-Control'] = 'public, max-age=60'
     return response
 
 

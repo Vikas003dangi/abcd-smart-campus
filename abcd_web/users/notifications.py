@@ -896,8 +896,14 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     if not user:
         return
 
-    subscriptions = PushSubscription.objects.filter(user=user)
-    if not subscriptions.exists():
+    try:
+        from django.db import close_old_connections
+        close_old_connections()
+        subscriptions = PushSubscription.objects.filter(user=user)
+        if not subscriptions.exists():
+            return
+    except Exception as e:
+        logger.debug(f"[Push] Error querying subscriptions: {e}")
         return
 
     formatted_title = format_push_title(title, category=category, source=source)
@@ -953,6 +959,50 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     fallback_alarm_tag = f"abcd-reminder-{task_id}" if task_id else f"abcd-alarm-{user.id}"
     unique_tag = tag or (fallback_alarm_tag if (is_alarm or is_reminder) else "abcd-notification")
 
+    # Build contextual actions if not explicitly provided in meta
+    actions = meta.get('actions') if isinstance(meta, dict) and meta.get('actions') else None
+    if not actions:
+        if is_alarm:
+            actions = [
+                {"action": "stop", "title": "Stop ⏹"},
+                {"action": "snooze", "title": "Snooze 15m ⏱"},
+                {"action": "open_todo", "title": "Open To-Do ↗"}
+            ]
+        elif is_todo and is_reminder:
+            actions = [
+                {"action": "open_todo", "title": "Open To-Do ↗"},
+                {"action": "stop", "title": "Dismiss ✕"}
+            ]
+        elif cat_lower == 'course' or src_lower == 'course':
+            actions = [
+                {"action": "open_course", "title": "Open Course ↗"},
+                {"action": "dismiss", "title": "Dismiss ✕"}
+            ]
+        elif is_guidy:
+            actions = [
+                {"action": "open_guidy", "title": "Open Guidy ↗"}
+            ]
+        elif cat_lower == 'seat':
+            actions = [
+                {"action": "open_seat", "title": "View Seat Status ↗"}
+            ]
+        elif cat_lower == 'complaint':
+            actions = [
+                {"action": "open_complaint", "title": "View Complaint ↗"}
+            ]
+        elif cat_lower in ('fee', 'admission'):
+            actions = [
+                {"action": "open_fees", "title": "View Fees ↗"}
+            ]
+        elif cat_lower == 'broadcast':
+            actions = [
+                {"action": "open_broadcast", "title": "Open Announcement ↗"}
+            ]
+        else:
+            actions = [
+                {"action": "open", "title": "Open ↗"}
+            ]
+
     payload = {
         "title": formatted_title,
         "body": clean_body,
@@ -967,7 +1017,16 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         "is_alarm": is_alarm,
         "is_reminder": is_reminder,
         "task_id": task_id,
+        "actions": actions,
     }
+
+    if task_id and user and getattr(user, 'id', None):
+        try:
+            from django.core.signing import TimestampSigner
+            _push_signer = TimestampSigner(salt='abcd-reminder-action')
+            payload["action_token"] = _push_signer.sign(f"{task_id}:{user.id}")
+        except Exception:
+            pass
 
     from pywebpush import webpush, WebPushException
 

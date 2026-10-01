@@ -503,6 +503,9 @@
         return '';
     }
 
+    // Multi-alarm queue to prevent collisions and ensure zero reminders are lost
+    const pendingAlarmQueue = [];
+
     /**
      * Start alarm sound or reminder sound (plays 9s once) & interactive full-screen UI
      * @param {string} title
@@ -520,9 +523,21 @@
             return;
         }
 
-        // If an alarm or reminder modal is ALREADY visible, do not re-trigger or tear down modal!
+        // Multi-event queue safety: if an alarm/reminder modal is currently active, queue this event!
         if (activeAlarmModal && document.getElementById('abcdActiveAlarmModal')) {
-            console.debug('Alarm modal is already visible; keeping active modal.');
+            const isAlreadyQueued = pendingAlarmQueue.some(function (item) {
+                return item.taskId && taskId && String(item.taskId) === String(taskId);
+            });
+            if (!isAlreadyQueued && String(currentAlarmTaskId) !== String(taskId)) {
+                pendingAlarmQueue.push({
+                    title: title,
+                    body: body,
+                    taskId: taskId,
+                    isAlarm: isAlarm,
+                    customSoundSrc: customSoundSrc
+                });
+                console.debug('[ABCD Sound] Queued concurrent reminder:', title, 'Queue depth:', pendingAlarmQueue.length);
+            }
             return;
         }
 
@@ -679,16 +694,19 @@
                         saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
                     }, 14 * 60 * 1000);
 
-                    fetch(`/todo/reminder/${targetId}/action/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCsrfToken()
-                        },
-                        body: JSON.stringify({ action: 'snooze', minutes: 15 })
-                    }).catch(function (err) {
-                        console.error('Failed to notify server of alarm snooze:', err);
-                    });
+                    if (!String(targetId).startsWith('course_')) {
+                        fetch(`/todo/reminder/${targetId}/action/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()
+                            },
+                            body: JSON.stringify({ action: 'snooze', minutes: 15 })
+                        }).catch(function (err) {
+                            console.error('Failed to notify server of alarm snooze:', err);
+                        });
+                    }
+                    sendNativeTwaMessage('abcdalarm://snooze?id=' + encodeURIComponent(targetId) + '&minutes=15');
                 }
                 if (window.CustomPopup) {
                     CustomPopup.alert('Alarm snoozed for 15 minutes. It will ring again in 15 minutes.', '⏳ Snooze Active');
@@ -717,16 +735,19 @@
             });
         }
 
-        fetch(`/todo/reminder/${targetId}/action/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: JSON.stringify({ action: 'stop' })
-        }).catch(function (err) {
-            console.error('Failed to notify server of stop action:', err);
-        });
+        if (!String(targetId).startsWith('course_')) {
+            fetch(`/todo/reminder/${targetId}/action/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ action: 'stop' })
+            }).catch(function (err) {
+                console.error('Failed to notify server of stop action:', err);
+            });
+        }
+        sendNativeTwaMessage('abcdalarm://cancel?id=' + encodeURIComponent(targetId));
     }
 
     /**
@@ -766,6 +787,22 @@
             markAlarmStoppedLocallyAndRemotely(targetId);
         }
         currentAlarmTaskId = null;
+
+        // Process next queued alarm if available
+        if (pendingAlarmQueue.length > 0) {
+            const nextAlarm = pendingAlarmQueue.shift();
+            if (nextAlarm) {
+                setTimeout(function () {
+                    startABCDAlarm(
+                        nextAlarm.title,
+                        nextAlarm.body,
+                        nextAlarm.taskId,
+                        nextAlarm.isAlarm,
+                        nextAlarm.customSoundSrc
+                    );
+                }, 350);
+            }
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════
@@ -806,6 +843,106 @@
     const globalFiredAlarmIds = getStoredAlarmSet('firedAlarmIds');
     const locallyStoppedAlarmIds = getStoredAlarmSet('locallyStoppedAlarmIds');
 
+    // ═════════════════════════════════════════════════════════════════════
+    // NATIVE ANDROID TWA SCHEDULE SYNCHRONIZATION BRIDGE
+    // ═════════════════════════════════════════════════════════════════════
+    function isRunningInAndroidTwa() {
+        const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        const hasTwaQuery = window.location.search.includes('pwa_app=1');
+        const isTwaReferrer = document.referrer && document.referrer.includes('android-app://in.abcdcampus.app');
+        const isTwaUserAgent = navigator.userAgent.includes('ABCDApp') || navigator.userAgent.includes('in.abcdcampus.app');
+        return isAndroid && (isStandalone || hasTwaQuery || isTwaReferrer || isTwaUserAgent);
+    }
+
+    function getTwaBridgeToken() {
+        let token = sessionStorage.getItem('abcd_twa_bridge_token');
+        if (!token) {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                token = params.get('bridge_token');
+                if (token) {
+                    sessionStorage.setItem('abcd_twa_bridge_token', token);
+                    params.delete('bridge_token');
+                    const newSearch = params.toString();
+                    const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+                    window.history.replaceState({}, document.title, newUrl);
+                }
+            } catch (e) {}
+        }
+        return token || '';
+    }
+
+    function isNativeAlarmTwaActive() {
+        return Boolean(isRunningInAndroidTwa() && getTwaBridgeToken());
+    }
+
+    let twaBridgeIframe = null;
+    function sendNativeTwaMessage(schemeUri) {
+        if (!isNativeAlarmTwaActive()) return;
+        try {
+            const token = getTwaBridgeToken();
+            const sep = schemeUri.includes('?') ? '&' : '?';
+            const authedUri = schemeUri + sep + 'bridge_token=' + encodeURIComponent(token);
+
+            if (!twaBridgeIframe) {
+                twaBridgeIframe = document.createElement('iframe');
+                twaBridgeIframe.style.display = 'none';
+                twaBridgeIframe.id = 'abcd-native-twa-bridge';
+                document.body.appendChild(twaBridgeIframe);
+            }
+            twaBridgeIframe.src = authedUri;
+        } catch (e) {
+            console.debug('[ABCD Sound] TWA bridge dispatch error:', e);
+        }
+    }
+
+    function syncRemindersToNativeTwa(reminders) {
+        if (!isNativeAlarmTwaActive() || !Array.isArray(reminders)) return;
+        try {
+            // Notify Service Worker of TWA mode for sound arbitration
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SET_TWA_MODE', isTwa: true });
+            }
+
+            reminders.forEach(function (rem) {
+                if (!rem || rem.alarm_status === 'stopped') return;
+                // Only sync alarms that need exact offline wake-up
+                if (!rem.is_alarm) return;
+
+                let triggerMillis = 0;
+                if (rem.recurrence === 'once' && rem.fire_at) {
+                    const dt = new Date(rem.fire_at);
+                    if (!isNaN(dt.getTime()) && dt.getTime() > Date.now()) {
+                        triggerMillis = dt.getTime();
+                    }
+                } else if (rem.time_str) {
+                    const parts = String(rem.time_str).split(':').map(Number);
+                    const now = new Date();
+                    let target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
+                    if (target.getTime() <= now.getTime()) {
+                        target.setDate(target.getDate() + 1);
+                    }
+                    triggerMillis = target.getTime();
+                }
+
+                if (triggerMillis > Date.now()) {
+                    const cleanTitle = encodeURIComponent(rem.title || 'Scheduled Alarm');
+                    const cleanNote = encodeURIComponent(rem.note || 'Your scheduled alarm is ringing now!');
+                    const cleanSound = encodeURIComponent(rem.sound || '/static/audio/alarm.mp3');
+                    const cleanActionToken = encodeURIComponent(rem.action_token || '');
+                    const cleanRecurrence = encodeURIComponent(rem.recurrence || 'once');
+                    const cleanScheduleTime = encodeURIComponent(rem.time_str || '');
+                    const cleanDaysOfWeek = encodeURIComponent(rem.days_of_week || '');
+                    const uri = `abcdalarm://schedule?id=${encodeURIComponent(rem.id)}&time=${triggerMillis}&title=${cleanTitle}&body=${cleanNote}&is_alarm=1&sound=${cleanSound}&action_token=${cleanActionToken}&recurrence=${cleanRecurrence}&schedule_time=${cleanScheduleTime}&days_of_week=${cleanDaysOfWeek}`;
+                    sendNativeTwaMessage(uri);
+                }
+            });
+        } catch (err) {
+            console.debug('[ABCD Sound] Error synchronizing to native TWA:', err);
+        }
+    }
+
     window.__abcdCachedReminders = [];
     let isCheckingGlobalAlarms = false;
 
@@ -818,16 +955,18 @@
         tasks.forEach(function (task) {
             if (!task || task.is_done || task.is_trash) return;
 
+            const uniqueKey = (task.source === 'course') ? ('course_' + task.id) : task.id;
+
             // DO NOT reopen an alarm after a local stop action!
-            if (locallyStoppedAlarmIds.has(task.id)) return;
+            if (locallyStoppedAlarmIds.has(uniqueKey)) return;
 
             const meta = task.metadata || task.reminder_meta || {};
-            if (meta.alarm_status === 'stopped') return;
-            const isRinging = (meta.alarm_status === 'ringing');
-            if (globalFiredAlarmIds.has(task.id) && !isRinging) return;
+            if (task.alarm_status === 'stopped' || meta.alarm_status === 'stopped') return;
+            const isRinging = (task.alarm_status === 'ringing' || meta.alarm_status === 'ringing');
+            if (globalFiredAlarmIds.has(uniqueKey) && !isRinging) return;
 
             let isDueNow = false;
-            const rec = meta.recurrence || 'once';
+            const rec = task.recurrence || meta.recurrence || 'once';
 
             if (isRinging) {
                 // Backend scheduler marked it as ringing: only trigger if ringing was set in last 60 seconds
@@ -837,7 +976,7 @@
                     isDueNow = true;
                 }
             } else if (rec === 'once') {
-                const fireTarget = meta.fire_at || task.delete_at;
+                const fireTarget = task.fire_at || meta.fire_at || task.delete_at;
                 if (fireTarget) {
                     const fireDt = new Date(fireTarget);
                     const fireMs = fireDt.getTime();
@@ -848,27 +987,39 @@
                         isDueNow = true;
                     }
                 }
-            } else if (meta.time_str) {
-                const parts = String(meta.time_str).split(':').map(Number);
+            } else if (task.time_str || meta.time_str) {
+                const parts = String(task.time_str || meta.time_str).split(':').map(Number);
                 const now = new Date();
-                const todayFireDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
-                const elapsedSec = (nowMs - todayFireDt.getTime()) / 1000;
+                const currentWeekday = (now.getDay() + 6) % 7; // JS Sun=0 -> Mon=0..Sun=6
+                let dayMatches = true;
+                if (rec === 'weekly') {
+                    dayMatches = (currentWeekday === 5 || currentWeekday === 6);
+                } else if (rec === 'custom' && task.days_of_week) {
+                    const allowedDays = String(task.days_of_week).split(',').map(function (d) { return parseInt(d.trim(), 10); });
+                    dayMatches = allowedDays.includes(currentWeekday);
+                }
 
-                // Due right now: user is actively on page when the scheduled time hits (0 to 30 seconds window)
-                if (elapsedSec >= 0 && elapsedSec <= 30) {
-                    isDueNow = true;
+                if (dayMatches) {
+                    const todayFireDt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
+                    const elapsedSec = (nowMs - todayFireDt.getTime()) / 1000;
+
+                    // Due right now: user is actively on page when the scheduled time hits (0 to 30 seconds window)
+                    if (elapsedSec >= 0 && elapsedSec <= 30) {
+                        isDueNow = true;
+                    }
                 }
             }
 
             if (isDueNow) {
-                globalFiredAlarmIds.add(task.id);
+                globalFiredAlarmIds.add(uniqueKey);
                 saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
 
                 const title = task.title || meta.title || 'Reminder';
-                const note = meta.note || '';
-                const isAlarm = (meta.alarm_enabled !== false && meta.alarm_enabled !== 'false' && meta.alarm_enabled !== 0);
+                const note = task.note || meta.note || '';
+                const isAlarm = Boolean(task.is_alarm !== undefined ? task.is_alarm : (meta.alarm_enabled !== false && meta.alarm_enabled !== 'false' && meta.alarm_enabled !== 0));
+                const sound = task.sound || (isAlarm ? '/static/audio/alarm.mp3' : (task.source === 'course' ? '/static/audio/alarms and reminders.mp3' : '/static/audio/PWA.mp3'));
 
-                startABCDAlarm(title, note, task.id, isAlarm);
+                startABCDAlarm(title, note, uniqueKey, isAlarm, sound);
             }
         });
     }
@@ -881,11 +1032,17 @@
         if (path === '/login/' || path.startsWith('/auth/')) return;
         isCheckingGlobalAlarms = true;
 
-        fetch('/todo/get-tasks/?category=REMINDER')
+        fetch('/api/reminders/active/')
             .then(function (r) {
                 if (!r || !r.ok || r.redirected) {
-                    if (r && r.redirected) {
+                    if (r && (r.redirected || r.status === 401 || r.status === 403)) {
                         isUserUnauthenticated = true;
+                        window.__abcdCachedReminders = [];
+                        globalFiredAlarmIds.clear();
+                        locallyStoppedAlarmIds.clear();
+                        saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
+                        saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
+                        sendNativeTwaMessage('abcdalarm://clear');
                     }
                     return null;
                 }
@@ -893,10 +1050,11 @@
             })
             .then(function (data) {
                 isCheckingGlobalAlarms = false;
-                if (!data || !data.tasks || !Array.isArray(data.tasks)) return;
+                if (!data || !data.reminders || !Array.isArray(data.reminders)) return;
 
-                window.__abcdCachedReminders = data.tasks;
+                window.__abcdCachedReminders = data.reminders;
                 tickGlobalDueAlarmsInMemory();
+                syncRemindersToNativeTwa(data.reminders);
             })
             .catch(function () {
                 isCheckingGlobalAlarms = false;
@@ -982,6 +1140,13 @@
                 if (window.playABCDSound) {
                     playABCDSound('pwa', 0.85);
                 }
+            } else if (event.data.type === 'ABCD_ACCOUNT_DELETED') {
+                window.__abcdCachedReminders = [];
+                globalFiredAlarmIds.clear();
+                locallyStoppedAlarmIds.clear();
+                saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
+                saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
+                sendNativeTwaMessage('abcdalarm://clear');
             }
         });
     }
@@ -1010,6 +1175,7 @@
     window.unlockABCDAudio = unlockAudio;
     window.checkGlobalDueAlarms = checkGlobalDueAlarms;
     window.syncABCDReminders = checkGlobalDueAlarms;
+    window.isNativeAlarmTwaActive = isNativeAlarmTwaActive;
 
     // Initialize preloading and URL trigger on DOM load or immediate
     if (document.readyState === 'loading') {
