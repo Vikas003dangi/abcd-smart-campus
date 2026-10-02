@@ -514,7 +514,7 @@
      * @param {boolean} [isAlarm=true]
      * @param {string} [customSoundSrc]
      */
-    function startABCDAlarm(title, body, taskId, isAlarm, customSoundSrc) {
+    function startABCDAlarm(title, body, taskId, isAlarm, customSoundSrc, skipAudio) {
         // STRICT SAFETY GUARD: Guidy messages are chat notifications and NEVER alarms or reminders!
         const titleStr = String(title || '');
         const bodyStr = String(body || '');
@@ -598,7 +598,9 @@
                 console.error('Failed to init alarm/reminder audio:', e);
             }
         }
-        tryPlayAlarmAudio();
+        if (!skipAudio) {
+            tryPlayAlarmAudio();
+        }
 
         // 2. Auto-dismiss timeout:
         // - Alarms: DO NOT auto-dismiss! The modal must remain on screen with STOP & SNOOZE buttons until acknowledged.
@@ -745,6 +747,12 @@
                 body: JSON.stringify({ action: 'stop' })
             }).catch(function (err) {
                 console.error('Failed to notify server of stop action:', err);
+            });
+        }
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'REMOVE_NATIVE_TASK',
+                taskId: String(targetId)
             });
         }
         sendNativeTwaMessage('abcdalarm://cancel?id=' + encodeURIComponent(targetId));
@@ -900,15 +908,14 @@
     function syncRemindersToNativeTwa(reminders) {
         if (!isNativeAlarmTwaActive() || !Array.isArray(reminders)) return;
         try {
-            // Notify Service Worker of TWA mode for sound arbitration
-            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ type: 'SET_TWA_MODE', isTwa: true });
-            }
+            const scheduledTasks = [];
 
             reminders.forEach(function (rem) {
                 if (!rem || rem.alarm_status === 'stopped') return;
-                // Only sync alarms that need exact offline wake-up
-                if (!rem.is_alarm) return;
+                // Sync alarms AND course-source reminders to native.
+                // Alarms get exact wake-up via AlarmManager; course reminders also need
+                // native scheduling so they survive TWA being closed/killed by MIUI.
+                if (!rem.is_alarm && rem.source !== 'course') return;
 
                 let triggerMillis = 0;
                 if (rem.recurrence === 'once' && rem.fire_at) {
@@ -934,10 +941,22 @@
                     const cleanRecurrence = encodeURIComponent(rem.recurrence || 'once');
                     const cleanScheduleTime = encodeURIComponent(rem.time_str || '');
                     const cleanDaysOfWeek = encodeURIComponent(rem.days_of_week || '');
-                    const uri = `abcdalarm://schedule?id=${encodeURIComponent(rem.id)}&time=${triggerMillis}&title=${cleanTitle}&body=${cleanNote}&is_alarm=1&sound=${cleanSound}&action_token=${cleanActionToken}&recurrence=${cleanRecurrence}&schedule_time=${cleanScheduleTime}&days_of_week=${cleanDaysOfWeek}`;
+                    const isAlarmVal = rem.is_alarm ? 1 : 0;
+                    const uri = `abcdalarm://schedule?id=${encodeURIComponent(rem.id)}&time=${triggerMillis}&title=${cleanTitle}&body=${cleanNote}&is_alarm=${isAlarmVal}&sound=${cleanSound}&action_token=${cleanActionToken}&recurrence=${cleanRecurrence}&schedule_time=${cleanScheduleTime}&days_of_week=${cleanDaysOfWeek}`;
                     sendNativeTwaMessage(uri);
+
+                    scheduledTasks.push({ id: String(rem.id), triggerAt: triggerMillis });
                 }
             });
+
+            // Notify Service Worker of confirmed native tasks for exact per-task suppression
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'SET_TWA_MODE',
+                    isTwa: true,
+                    tasks: scheduledTasks
+                });
+            }
         } catch (err) {
             console.debug('[ABCD Sound] Error synchronizing to native TWA:', err);
         }
@@ -1042,6 +1061,9 @@
                         locallyStoppedAlarmIds.clear();
                         saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
                         saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
+                        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                            navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_NATIVE_TASKS' });
+                        }
                         sendNativeTwaMessage('abcdalarm://clear');
                     }
                     return null;
@@ -1105,7 +1127,10 @@
                 window.history.replaceState({}, document.title, cleanUrl);
 
                 setTimeout(function () {
-                    startABCDAlarm(alarmTitle, 'Your scheduled reminder is ringing now!', alarmTaskId, isAlarm);
+                    // When native TWA alarm is already playing (service), show the modal
+                    // but skip starting duplicate web audio. User taps STOP → abcdalarm://cancel.
+                    var nativeHandling = isNativeAlarmTwaActive();
+                    startABCDAlarm(alarmTitle, 'Your scheduled reminder is ringing now!', alarmTaskId, isAlarm, undefined, nativeHandling);
                 }, 200);
             }
         } catch (e) {}

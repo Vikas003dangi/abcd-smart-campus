@@ -533,21 +533,16 @@
                     try { window.Android.finish(); return; } catch(e) {}
                 }
 
-                // B. Primary: Android Intent URI with BOTH DEFAULT and BROWSABLE categories
+                // B. Primary: Hidden iframe dispatch to ExitActivity via custom scheme.
+                // Uses iframe.src (NOT window.location.href) to avoid Chrome's
+                // "Continue to ABCD Campus?" external-app confirmation dialog.
+                // Same proven pattern as sendNativeTwaMessage() in abcd-sound.js.
                 try {
-                    window.location.href = "intent:#Intent;action=in.abcdcampus.app.EXIT;category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE;package=in.abcdcampus.app;end";
-                } catch(e) {}
-
-                // C. Fallback: Custom scheme registered on ExitActivity & LauncherActivity
-                setTimeout(function() {
-                    try {
-                        window.location.href = "abcdexit://close";
-                    } catch(e) {}
-                }, 80);
-
-                // D. Native window.close() attempt
-                try {
-                    window.close();
+                    var exitFrame = document.createElement('iframe');
+                    exitFrame.style.display = 'none';
+                    exitFrame.id = 'abcd-exit-bridge';
+                    document.body.appendChild(exitFrame);
+                    exitFrame.src = 'abcdexit://close';
                 } catch(e) {}
 
                 // CRITICAL CONTRACT: Under NO circumstances pop history stack backward!

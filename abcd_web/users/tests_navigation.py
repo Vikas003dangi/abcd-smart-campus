@@ -281,9 +281,9 @@ class NavigationExitModalTests(TestCase):
         self.assertIn('ABCD Smart Campus Coaching And Library Ganj Basoda', content)
         self.assertIn('https://www.google.com/search?q=', content)
 
-        # Android exit intent has both DEFAULT and BROWSABLE
-        self.assertIn('category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE', content)
+        # Android exit uses hidden iframe dispatch with abcdexit scheme (avoids Chrome external-app dialog)
         self.assertIn('abcdexit://close', content)
+        self.assertIn('abcd-exit-bridge', content)
 
         # Verify doActualExit does NOT contain any history.go or history.back
         exit_method_start = content.find('doActualExit: function()')

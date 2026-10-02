@@ -2,6 +2,100 @@
 
 const STATIC_CACHE_NAME = 'abcd-static-v20260920-v9';
 
+// ── Persistent TWA mode flag (IndexedDB) ─────────────────────────────────
+// Survives Service Worker restarts, unlike the in-memory isTwaMode variable.
+const TWA_IDB_NAME = 'abcd_sw_state';
+const TWA_IDB_STORE = 'flags';
+const TWA_FLAG_KEY = 'twa_mode';
+const TWA_FLAG_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function openTwaIdb() {
+    return new Promise(function (resolve, reject) {
+        var req = indexedDB.open(TWA_IDB_NAME, 1);
+        req.onupgradeneeded = function (e) { e.target.result.createObjectStore(TWA_IDB_STORE); };
+        req.onsuccess = function (e) { resolve(e.target.result); };
+        req.onerror = function (e) { reject(e.target.error); };
+    });
+}
+
+function getPersistedTwaMode() {
+    return openTwaIdb().then(function (db) {
+        return new Promise(function (resolve) {
+            var tx = db.transaction(TWA_IDB_STORE, 'readonly');
+            var req = tx.objectStore(TWA_IDB_STORE).get(TWA_FLAG_KEY);
+            req.onsuccess = function () {
+                var val = req.result;
+                if (val && val.active && (Date.now() - val.timestamp) < TWA_FLAG_TTL_MS) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            };
+            req.onerror = function () { resolve(false); };
+        });
+    }).catch(function () { return false; });
+}
+
+function setPersistedTwaMode(active) {
+    return openTwaIdb().then(function (db) {
+        var tx = db.transaction(TWA_IDB_STORE, 'readwrite');
+        tx.objectStore(TWA_IDB_STORE).put({ active: active, timestamp: Date.now() }, TWA_FLAG_KEY);
+    }).catch(function () {});
+}
+
+// ── Per-Task Native Scheduling Store (IndexedDB) ─────────────────────────
+// Tracks the exact set of tasks confirmed as scheduled in native AlarmManager on THIS device.
+const TWA_NATIVE_TASKS_KEY = 'native_scheduled_tasks';
+
+function getNativeScheduledTasks() {
+    return openTwaIdb().then(function (db) {
+        return new Promise(function (resolve) {
+            var tx = db.transaction(TWA_IDB_STORE, 'readonly');
+            var req = tx.objectStore(TWA_IDB_STORE).get(TWA_NATIVE_TASKS_KEY);
+            req.onsuccess = function () {
+                var val = req.result;
+                resolve((val && typeof val === 'object') ? val : {});
+            };
+            req.onerror = function () { resolve({}); };
+        });
+    }).catch(function () { return {}; });
+}
+
+function saveNativeScheduledTasks(tasksMap) {
+    return openTwaIdb().then(function (db) {
+        var tx = db.transaction(TWA_IDB_STORE, 'readwrite');
+        tx.objectStore(TWA_IDB_STORE).put(tasksMap, TWA_NATIVE_TASKS_KEY);
+    }).catch(function () {});
+}
+
+function removeNativeScheduledTask(taskId) {
+    if (!taskId) return Promise.resolve();
+    return getNativeScheduledTasks().then(function (tasks) {
+        if (tasks[String(taskId)]) {
+            delete tasks[String(taskId)];
+            return saveNativeScheduledTasks(tasks);
+        }
+    }).catch(function () {});
+}
+
+function clearNativeScheduledTasks() {
+    return saveNativeScheduledTasks({});
+}
+
+function isTaskNativelyScheduled(taskId) {
+    if (!taskId) return Promise.resolve(false);
+    return getNativeScheduledTasks().then(function (tasks) {
+        var task = tasks[String(taskId)];
+        if (!task) return false;
+        var now = Date.now();
+        // Invalidate if scheduled trigger time is in the past by more than 24 hours
+        if (task.triggerAt && now > (task.triggerAt + 24 * 60 * 60 * 1000)) {
+            return false;
+        }
+        return true;
+    }).catch(function () { return false; });
+}
+
 self.addEventListener('install', function (event) {
     self.skipWaiting();
 });
@@ -52,6 +146,40 @@ self.addEventListener('message', function (event) {
         };
     } else if (event.data && event.data.type === 'SET_TWA_MODE') {
         isTwaMode = Boolean(event.data.isTwa);
+        setPersistedTwaMode(isTwaMode);
+        if (Array.isArray(event.data.tasks)) {
+            var tasksMap = {};
+            var now = Date.now();
+            event.data.tasks.forEach(function (t) {
+                if (t && t.id) {
+                    tasksMap[String(t.id)] = {
+                        triggerAt: Number(t.triggerAt) || 0,
+                        addedAt: now
+                    };
+                }
+            });
+            saveNativeScheduledTasks(tasksMap);
+        }
+    } else if (event.data && event.data.type === 'SYNC_NATIVE_TASKS') {
+        if (Array.isArray(event.data.tasks)) {
+            var syncMap = {};
+            var syncNow = Date.now();
+            event.data.tasks.forEach(function (t) {
+                if (t && t.id) {
+                    syncMap[String(t.id)] = {
+                        triggerAt: Number(t.triggerAt) || 0,
+                        addedAt: syncNow
+                    };
+                }
+            });
+            saveNativeScheduledTasks(syncMap);
+        }
+    } else if (event.data && event.data.type === 'REMOVE_NATIVE_TASK') {
+        if (event.data.taskId) {
+            removeNativeScheduledTask(String(event.data.taskId));
+        }
+    } else if (event.data && event.data.type === 'CLEAR_NATIVE_TASKS') {
+        clearNativeScheduledTasks();
     }
 });
 
@@ -107,13 +235,8 @@ self.addEventListener('push', function (event) {
     const isAudioAlert = isAlarm || isReminder;
     const isTodo = (data.source === 'todo') || (data.url && data.url.includes('/todo')) || Boolean(data.task_id);
 
-    // In TWA mode, native AlarmReceiver is authoritative for sound when backgrounded/closed
-    const suppressSoundInTwa = isTwaMode && isAudioAlert;
-
     let sound = data.sound;
-    if (suppressSoundInTwa) {
-        sound = null;
-    } else if (!sound) {
+    if (!sound) {
         if (isAlarm) {
             sound = '/static/audio/alarm.mp3';
         } else if (isReminder) {
@@ -137,8 +260,8 @@ self.addEventListener('push', function (event) {
         tag: data.tag || (data.task_id ? 'abcd-reminder-' + data.task_id : (isAlarm ? 'abcd-alarm-active' : 'abcd-notification')),
         renotify: (isAlarm || isReminder) ? true : false,
         requireInteraction: isAlarm ? true : false,
-        silent: suppressSoundInTwa ? true : false,
-        vibrate: suppressSoundInTwa ? [] : (isAlarm ? alarmVibratePattern : (isReminder ? reminderVibratePattern : defaultVibratePattern)),
+        silent: false,
+        vibrate: isAlarm ? alarmVibratePattern : (isReminder ? reminderVibratePattern : defaultVibratePattern),
         data: {
             url: data.url || '/',
             timestamp: data.timestamp || Date.now(),
@@ -178,7 +301,16 @@ self.addEventListener('push', function (event) {
     }
 
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+        // Check persistent TWA mode and confirmed per-task native scheduling
+        Promise.all([
+            getPersistedTwaMode(),
+            isTaskNativelyScheduled(data.task_id)
+        ]).then(function (results) {
+            var persistedTwaMode = results[0];
+            var isNativelyScheduledHere = results[1];
+            var effectiveTwaMode = isTwaMode || persistedTwaMode;
+
+            return clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
             if (data.action === 'ACCOUNT_DELETED') {
                 if (clientList && clientList.length > 0) {
                     clientList.forEach(function (client) {
@@ -234,9 +366,18 @@ self.addEventListener('push', function (event) {
                 }
             }
 
+            // PER-TASK NATIVE CONFIRMATION SUPPRESSION:
+            // Suppress Web Push IF AND ONLY IF this exact task_id is confirmed as
+            // scheduled natively in Android AlarmManager on THIS device.
+            // If the task was created on another device (or native scheduling failed),
+            // isNativelyScheduledHere is false, so Web Push is NOT suppressed!
+            if (isAudioAlert && !isGuidy && isNativelyScheduledHere) {
+                return;  // Native AlarmReceiver → AlarmPlaybackService handles this on this device
+            }
+
             // Suppress duplicate push card if the alarm is already ringing in active foreground tab
             if ((isAlarm || isReminder) && !isGuidy && clientList && clientList.length > 0) {
-                const hasVisibleClient = clientList.some(function (client) {
+                var hasVisibleClient = clientList.some(function (client) {
                     return client.visibilityState === 'visible';
                 });
                 if (hasVisibleClient) {
@@ -246,34 +387,30 @@ self.addEventListener('push', function (event) {
 
             // Check if this notification is for a Guidy chat currently open & visible in this browser
             if (isGuidy && clientList && clientList.length > 0) {
-                let targetParam = '';
+                var targetParam = '';
                 if (data.url && data.url.includes('?')) {
-                    targetParam = data.url.substring(data.url.indexOf('?') + 1); // e.g. "direct=27" or "session=12" or "group=5"
+                    targetParam = data.url.substring(data.url.indexOf('?') + 1);
                 }
 
-                // Check 1: Direct active chat sync from Guidy client via postMessage
-                const isRecentState = (Date.now() - activeChatState.timestamp) < 120000;
-                const activeId = activeChatState.chatId;
-                const matchesActiveChat = isRecentState && activeId && (
+                var isRecentState = (Date.now() - activeChatState.timestamp) < 120000;
+                var activeId = activeChatState.chatId;
+                var matchesActiveChat = isRecentState && activeId && (
                     (targetParam && targetParam.includes(activeId)) ||
                     (data.tag && String(data.tag).includes(activeId)) ||
                     (data.url && data.url.includes(activeId))
                 );
 
-                const hasVisibleGuidyTab = clientList.some(function (client) {
+                var hasVisibleGuidyTab = clientList.some(function (client) {
                     return client.url && client.url.includes('/guidy') && client.visibilityState === 'visible';
                 });
 
                 if (hasVisibleGuidyTab && matchesActiveChat) {
-                    // Chat is currently open and visible: suppress notification!
                     return;
                 }
 
-                // Check 2: Fallback URL inspection
-                const isChatActiveAndVisible = clientList.some(function (client) {
+                var isChatActiveAndVisible = clientList.some(function (client) {
                     if (!client.url || !client.url.includes('/guidy')) return false;
                     if (client.visibilityState !== 'visible') return false;
-
                     if (targetParam) {
                         return client.url.includes(targetParam);
                     }
@@ -281,12 +418,12 @@ self.addEventListener('push', function (event) {
                 });
 
                 if (isChatActiveAndVisible) {
-                    // Suppress browser push popup: user is already reading this chat live
                     return;
                 }
             }
 
             return self.registration.showNotification(title, options);
+        });
         })
     );
 });
