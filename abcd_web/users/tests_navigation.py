@@ -358,3 +358,89 @@ class NavigationExitModalTests(TestCase):
             tmpl_content = f.read()
         self.assertIn('<a href="#" id="abcdExitConfirmBtn" role="button"', tmpl_content)
 
+
+class NavigationBaseTrapInvariantTests(TestCase):
+    """Automated tests for Part B Home Base Back Invariants & Part A Exit Lag Fix."""
+
+    def setUp(self):
+        self.client = Client()
+        self.student_user = User.objects.create_user(username='trap_student', email='ts@test.com', password='Pwd123!')
+        self.teacher_user = User.objects.create_superuser(username='trap_teacher', email='tt@test.com', password='Pwd123!')
+        self.alumni_user = User.objects.create_user(username='trap_alumni', email='ta@test.com', password='Pwd123!')
+        self.guest_user = User.objects.create_user(username='trap_guest', email='tg@test.com', password='Pwd123!')
+
+        StudentProfile.objects.create(
+            user=self.student_user, full_name='Trap Student', mobile_number='7777777777',
+            dob=date(2002, 1, 1), status='admitted', is_admitted=True
+        )
+
+        StudentAchievement.objects.create(
+            user=self.alumni_user, first_name='Trap', last_name='Alumni',
+            about_yourself='Test', current_post='Test', selection_year=2024,
+            working_city='Test', short_achievement='Test', gender='Male',
+            dob=date(2000, 1, 1), services_used='library',
+            experience_feedback='Good', abcd_feedback='Good', status='approved'
+        )
+
+    def test_all_base_pages_render_is_base_page_and_exit_modal(self):
+        """Invariant: EVERY base page MUST have isBasePage: true and include the Exit Modal."""
+        base_urls = [
+            (reverse('users:home_page'), None),
+            (reverse('users:guest_page'), 'trap_guest'),
+            (reverse('users:student_dashboard'), 'trap_student'),
+            (reverse('users:teacher_dashboard'), 'trap_teacher'),
+            (reverse('users:alumni_dashboard'), 'trap_alumni'),
+        ]
+
+        for url, user in base_urls:
+            c = Client()
+            if user:
+                c.login(username=user, password='Pwd123!')
+            resp = c.get(url)
+            self.assertEqual(resp.status_code, 200, f"Base page {url} returned {resp.status_code}")
+            self.assertContains(resp, 'isBasePage: true', msg_prefix=f"{url} missing isBasePage: true")
+            self.assertContains(resp, 'id="abcdExitModal"', msg_prefix=f"{url} missing abcdExitModal")
+
+    def test_abcd_nav_js_implements_part_b_trap_invariants(self):
+        """Verify abcd-nav.js source contains all invariant guarantees for Part B."""
+        import os
+        from django.conf import settings
+        js_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'abcd-nav.js')
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Scenario 8: Instance ID reload detection in armTrap
+        self.assertIn('instanceId: Date.now()', content)
+        self.assertIn('currentState.instanceId !== this.instanceId', content)
+
+        # Scenario 7 & 9: pageshow (persisted), visibilitychange, and focus re-arming
+        self.assertIn("window.addEventListener('pageshow'", content)
+        self.assertIn("document.addEventListener('visibilitychange'", content)
+        self.assertIn("window.addEventListener('focus'", content)
+
+        # Scenario 1, 4 & 10: onPopState on base page immediately re-pushes trap
+        self.assertIn('if (self.config.isBasePage) {', content)
+        self.assertIn('self.armTrap(true);', content)
+
+        # Step 1: Closing in-page modal re-arms trap with force
+        self.assertIn('self.armTrap(true);', content)
+
+        # Scenario 4: onCancelExit re-arms trap
+        self.assertIn('this.armTrap(true);', content)
+
+    def test_abcd_nav_js_exit_lag_fix(self):
+        """Verify abcd-nav.js exit lag fixes: single-send exit on port, no duplicate retry loop."""
+        import os
+        from django.conf import settings
+        js_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'abcd-nav.js')
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Instant single-send when port exists (no self.doActualExit duplicate send)
+        self.assertIn("port.postMessage('exit')", content)
+        self.assertIn("port.postMessage(\"exit\") sent once", content)
+
+        # Retry loop in doActualExit removed
+        self.assertNotIn("var interval = setInterval(function() {\n                    attempts++;", content)
+        self.assertNotIn("attempts >= 10", content)
+

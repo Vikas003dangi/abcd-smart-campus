@@ -102,6 +102,7 @@
     const ABCDNav = {
         __initialized: true,
         version: '3.0.0',
+        instanceId: Date.now() + '_' + Math.random().toString(36).slice(2),
 
         // Configuration populated by server/template
         config: {
@@ -176,32 +177,49 @@
                 });
             }
 
-            // 5. Handle bfcache restores (anti-stale / anti-loop)
+            // 5. Handle bfcache restores (pageshow persisted: anti-stale / anti-loop)
             window.addEventListener('pageshow', function(e) {
+                self.state.isNavigating = false;
+                self.armTrap(true);
+            });
+
+            // 6. Handle app resume from Recents / tab switch (visibilitychange & focus)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    self.state.isNavigating = false;
+                    self.armTrap();
+                }
+            });
+            window.addEventListener('focus', function() {
                 self.state.isNavigating = false;
                 self.armTrap();
             });
 
-            // 6. Bind modal controls if present
+            // 7. Bind modal controls if present
             self.bindExitModalEvents();
 
-            // 7. Detect and persist Android app environment state
+            // 8. Detect and persist Android app environment state
             self.detectAndroidApp();
         },
 
         /**
          * Ensures exactly ONE normalized trap entry in browser history per document.
          * Intercepts browser Back / Android hardware Back so executeBackPipeline() handles it.
+         * Handles page reloads (stale instanceId) and explicit re-arming (force).
          */
-        armTrap: function() {
+        armTrap: function(force) {
             if (this.state.isNavigating) return;
             try {
                 const currentState = window.history.state;
-                if (!currentState || (!currentState.abcd_base_trap && !currentState.abcd_sub_trap && !currentState.abcd_exit_trap && !currentState.abcd_nav_trap)) {
+                const isStaleInstance = currentState && currentState.instanceId && currentState.instanceId !== this.instanceId;
+                const hasTrap = currentState && (currentState.abcd_nav_trap || currentState.abcd_base_trap || currentState.abcd_sub_trap || currentState.abcd_exit_trap);
+
+                if (force || !currentState || !hasTrap || isStaleInstance) {
                     window.history.pushState({
                         abcd_nav_trap: true,
                         isBase: this.config.isBasePage,
-                        path: this.config.cleanPath
+                        path: this.config.cleanPath,
+                        instanceId: this.instanceId
                     }, document.title, window.location.href);
                 }
                 this.state.trapArmed = true;
@@ -247,6 +265,13 @@
             }
 
             self.state.trapArmed = false;
+
+            // On a base page, immediately re-push the trap so history is never exhausted
+            // and subsequent Back presses can never exit the base page without showing the popup.
+            if (self.config.isBasePage) {
+                self.armTrap(true);
+            }
+
             await self.executeBackPipeline('popstate');
         },
 
@@ -284,7 +309,7 @@
                         activeModalOverlay.style.display = 'none';
                     }
                 }
-                self.armTrap();
+                self.armTrap(true);
                 return;
             }
 
@@ -296,7 +321,7 @@
                     try {
                         const allowed = await guard();
                         if (!allowed) {
-                            self.armTrap();
+                            self.armTrap(true);
                             return;
                         }
                     } catch(err) {
@@ -307,7 +332,7 @@
                 try {
                     const allowed = await window.customBackConfirm();
                     if (!allowed) {
-                        self.armTrap();
+                        self.armTrap(true);
                         return;
                     }
                 } catch(err) {
@@ -323,7 +348,7 @@
                     try {
                         const handled = await handler();
                         if (handled) {
-                            self.armTrap();
+                            self.armTrap(true);
                             return;
                         }
                     } catch(err) {
@@ -334,7 +359,7 @@
                 try {
                     const handled = await window.handleCustomSmartBack();
                     if (handled) {
-                        self.armTrap();
+                        self.armTrap(true);
                         return;
                     }
                 } catch(err) {
@@ -482,19 +507,19 @@
                     }
 
                     // Android App path:
-                    // If a port exists: preventDefault() and send port.postMessage('exit')
+                    // If a port exists: preventDefault() and send port.postMessage('exit') EXACTLY ONCE
                     if (window._abcdTwaPort) {
                         e.preventDefault();
                         try {
                             window._abcdTwaPort.postMessage('exit');
-                            if (window._abcdDlog) window._abcdDlog('EXIT: port.postMessage("exit") sent');
+                            if (window._abcdDlog) window._abcdDlog('EXIT: port.postMessage("exit") sent once');
                             if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
-                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port.postMessage("exit") sent OK');
+                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port.postMessage("exit") sent once');
                             }
                         } catch(err) {
                             if (window._abcdDlog) window._abcdDlog('EXIT port err: ' + err.message);
                         }
-                        self.doActualExit();
+                        // Zero lag: do NOT call self.doActualExit(), no retry intervals, no broadcast dispatches
                         return;
                     }
 
@@ -509,7 +534,7 @@
                     }
 
                     // Fallback not yet primed (tapped before 3s or href still '#'):
-                    // FIX 3: Tolerate late port - show nothing destructive, log it, and retry for ~2 seconds
+                    // Tolerate late port - show nothing destructive, log it, and retry for ~2 seconds
                     e.preventDefault();
                     if (window._abcdDlog) window._abcdDlog('EXIT tapped: port not ready, waiting up to 2s...');
                     if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
@@ -522,11 +547,15 @@
                         retryCount++;
                         if (window._abcdTwaPort) {
                             clearInterval(retryInterval);
-                            if (window._abcdDlog) window._abcdDlog('EXIT retry: port arrived late, sending postMessage');
-                            if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
-                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port arrived late, sent exit OK');
+                            try {
+                                window._abcdTwaPort.postMessage('exit');
+                                if (window._abcdDlog) window._abcdDlog('EXIT retry: port arrived late, sent exit once');
+                                if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
+                                    window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port arrived late, sent exit once OK');
+                                }
+                            } catch(err) {
+                                if (window._abcdDlog) window._abcdDlog('EXIT retry port err: ' + err.message);
                             }
-                            self.doActualExit();
                             return;
                         }
                         if (retryCount >= maxRetries) {
@@ -565,10 +594,12 @@
                 els.modal.classList.remove('abcd-exit-modal-shake');
                 void els.modal.offsetWidth;
                 els.modal.classList.add('abcd-exit-modal-shake');
+                this.armTrap(true);
                 return;
             }
 
             this.state.exitModalVisible = true;
+            this.armTrap(true);
 
             var highestZ = 3000100;
             if (typeof window.getHighestZIndex === 'function') {
@@ -620,7 +651,7 @@
             this.state.openedByBackButton = false;
             this.state.isNavigating = false;
             // Re-arm trap so future Back presses trigger modal again cleanly
-            this.armTrap();
+            this.armTrap(true);
         },
 
         /**
@@ -698,40 +729,14 @@
                 // Communicates directly with LauncherActivity via CustomTabsCallback.onPostMessage.
                 // Triggers native LauncherActivity.terminateApp(context) with zero Chrome dialogs
                 // and zero external navigation prompts.
-                function dispatchTwaExit() {
-                    var sent = false;
-                    if (window._abcdDlog) window._abcdDlog('EXIT: port=' + !!window._abcdTwaPort);
-                    if (window._abcdTwaPort) {
-                        try {
-                            window._abcdTwaPort.postMessage('exit');
-                            sent = true;
-                            if (window._abcdDlog) window._abcdDlog('EXIT: port.postMessage OK');
-                        } catch(e) {
-                            if (window._abcdDlog) window._abcdDlog('EXIT err: ' + e.message);
-                        }
+                if (window._abcdTwaPort) {
+                    try {
+                        window._abcdTwaPort.postMessage('exit');
+                        if (window._abcdDlog) window._abcdDlog('EXIT: port.postMessage OK');
+                    } catch(e) {
+                        if (window._abcdDlog) window._abcdDlog('EXIT err: ' + e.message);
                     }
-                    try {
-                        window.postMessage('exit', '*');
-                        window.postMessage({ type: 'ABCD_EXIT', action: 'exit' }, '*');
-                    } catch(e) {}
-                    try {
-                        if (window.parent && window.parent !== window) {
-                            window.parent.postMessage('exit', '*');
-                        }
-                    } catch(e) {}
-                    return sent;
                 }
-
-                dispatchTwaExit();
-
-                var attempts = 0;
-                var interval = setInterval(function() {
-                    attempts++;
-                    var done = dispatchTwaExit();
-                    if (done || attempts >= 10) {
-                        clearInterval(interval);
-                    }
-                }, 50);
 
                 // CRITICAL CONTRACT: Under NO circumstances pop history stack backward!
                 return;
