@@ -102,6 +102,299 @@
         });
     }
 
+    // =========================================================================
+    // BROWSER & PWA FULL-SCREEN EXIT GUARD & EXIT SCREEN (3-Back Limit)
+    // =========================================================================
+    var MAX_EXIT_BACK_COUNT = 3;
+    var exitScreenRendered = false;
+
+    function setExitFlag() {
+        var ts = Date.now().toString();
+        try {
+            sessionStorage.setItem('abcd_exited', '1');
+            sessionStorage.setItem('abcd_exited_ts', ts);
+        } catch(e) {
+            try {
+                if (window.name && window.name.indexOf('abcd_exited=1') === -1) {
+                    window.name = window.name + '|abcd_exited=1|ts=' + ts;
+                } else if (!window.name) {
+                    window.name = 'abcd_exited=1|ts=' + ts;
+                }
+            } catch(e2) {}
+        }
+    }
+
+    function clearExitFlag() {
+        try {
+            sessionStorage.removeItem('abcd_exited');
+            sessionStorage.removeItem('abcd_exited_ts');
+            sessionStorage.removeItem('abcd_exit_back_count');
+        } catch(e) {}
+        try {
+            if (window.name && window.name.indexOf('abcd_exited=1') > -1) {
+                window.name = window.name.replace(/\|?abcd_exited=1(\|ts=\d+)?/g, '');
+            }
+        } catch(e2) {}
+        window._abcdExitBackCountFallback = 0;
+    }
+
+    function hasExitFlag() {
+        try {
+            if (sessionStorage.getItem('abcd_exited') === '1') return true;
+        } catch(e) {}
+        try {
+            if (window.name && window.name.indexOf('abcd_exited=1') > -1) return true;
+        } catch(e2) {}
+        return false;
+    }
+
+    function getNavigationType() {
+        try {
+            var entries = performance.getEntriesByType('navigation');
+            if (entries && entries.length > 0 && entries[0].type) {
+                return entries[0].type;
+            }
+        } catch(e) {}
+        try {
+            if (window.performance && window.performance.navigation) {
+                var pType = window.performance.navigation.type;
+                if (pType === 2) return 'back_forward';
+                if (pType === 1) return 'reload';
+                if (pType === 0) return 'navigate';
+            }
+        } catch(e) {}
+        return 'navigate';
+    }
+
+    function isTwa() {
+        if (window.ABCDNav && typeof window.ABCDNav.detectAndroidApp === 'function') {
+            return window.ABCDNav.detectAndroidApp();
+        }
+        var fromSession = false;
+        try {
+            fromSession = (sessionStorage.getItem('abcd_is_android_app') === '1');
+        } catch(e) {}
+        return Boolean(
+            fromSession ||
+            (document.referrer && document.referrer.startsWith('android-app://')) ||
+            (window.location.search && (window.location.search.includes('bridge_token=') || window.location.search.includes('pwa_app=1'))) ||
+            Boolean(window._abcdTwaPort) ||
+            (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') ||
+            (window.Android && (typeof window.Android.exitApp === 'function' || typeof window.Android.finish === 'function'))
+        );
+    }
+
+    function isPwa() {
+        if (isTwa()) return false;
+        try {
+            var mq = window.matchMedia;
+            if (mq) {
+                if (mq('(display-mode: standalone)').matches) return true;
+                if (mq('(display-mode: minimal-ui)').matches) return true;
+                if (mq('(display-mode: window-controls-overlay)').matches) return true;
+            }
+            if (window.navigator && window.navigator.standalone === true) return true;
+        } catch(e) {}
+        return false;
+    }
+
+    function getDeviceTip(pwaMode) {
+        if (pwaMode || isPwa()) {
+            return "To close the app, swipe it away from your recent apps.";
+        }
+        var platform = '';
+        try {
+            if (navigator.userAgentData && navigator.userAgentData.platform) {
+                platform = navigator.userAgentData.platform.toLowerCase();
+            }
+        } catch(e) {}
+        if (!platform) {
+            platform = (navigator.platform || navigator.userAgent || '').toLowerCase();
+        }
+        var ua = (navigator.userAgent || '').toLowerCase();
+
+        var isMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
+        if (isMobile) {
+            return "To close this tab, open the tab switcher and swipe the tab away or tap X.";
+        }
+        if (/mac/i.test(platform)) {
+            return "To close this tab, press Cmd + W.";
+        }
+        return "To close this tab, press Ctrl + W.";
+    }
+
+    function renderExitScreen(mode) {
+        if (exitScreenRendered && document.getElementById('abcdExitScreenOverlay')) {
+            return;
+        }
+
+        var overlay = document.getElementById('abcdExitScreenOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'abcdExitScreenOverlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-label', 'You have exited ABCD Campus');
+
+            var isDark = true;
+            try {
+                if (document.documentElement.getAttribute('data-theme') === 'light' ||
+                    (document.body && document.body.classList.contains('light-theme')) ||
+                    (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches && !document.documentElement.getAttribute('data-theme'))) {
+                    isDark = false;
+                }
+            } catch(e) {}
+
+            var bg = isDark ? '#090d16' : '#f8fafc';
+            var cardBg = isDark ? 'rgba(17, 24, 39, 0.95)' : '#ffffff';
+            var textPrimary = isDark ? '#f1f5f9' : '#0f172a';
+            var textSecondary = isDark ? '#94a3b8' : '#475569';
+            var borderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            var hintColor = isDark ? '#38bdf8' : '#0284c7';
+            var btnBg = '#2563eb';
+
+            overlay.style.cssText = [
+                'position: fixed',
+                'top: 0',
+                'left: 0',
+                'right: 0',
+                'bottom: 0',
+                'width: 100vw',
+                'height: 100vh',
+                'background: ' + bg,
+                'z-index: 2147483647',
+                'display: flex',
+                'align-items: center',
+                'justify-content: center',
+                'padding: 20px',
+                'box-sizing: border-box',
+                'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            ].join(';');
+
+            var tip = getDeviceTip(mode === 'pwa');
+
+            overlay.innerHTML = [
+                '<div style="max-width: 440px; width: 100%; background: ' + cardBg + '; border: 1px solid ' + borderColor + '; border-radius: 16px; padding: 32px 24px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3); box-sizing: border-box;">',
+                '  <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(37, 99, 235, 0.12); color: #3b82f6; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">',
+                '    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>',
+                '  </div>',
+                '  <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: ' + textPrimary + '; line-height: 1.3;">You have exited ABCD Campus</h1>',
+                '  <p style="margin: 0 0 20px 0; font-size: 14.5px; color: ' + textSecondary + '; line-height: 1.5;">' + tip + '</p>',
+                '  <p id="abcdExitBackHint" style="display: none; margin: -10px 0 18px 0; font-size: 13px; color: ' + hintColor + '; font-weight: 600;">Use the tip above to close this tab</p>',
+                '  <button type="button" id="abcdReopenBtn" style="width: 100%; padding: 12px 20px; font-size: 15px; font-weight: 600; color: #ffffff; background: ' + btnBg + '; border: none; border-radius: 10px; cursor: pointer; transition: background 0.15s ease;">Open ABCD Campus</button>',
+                '</div>'
+            ].join('\n');
+
+            var targetParent = document.body || document.documentElement;
+            if (targetParent) {
+                targetParent.appendChild(overlay);
+                exitScreenRendered = true;
+            }
+
+            var btn = document.getElementById('abcdReopenBtn');
+            if (btn) {
+                btn.focus();
+                btn.addEventListener('click', function() {
+                    clearExitFlag();
+                    window._abcdExitScreenActive = false;
+                    exitScreenRendered = false;
+                    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                    try {
+                        document.documentElement.style.overflow = '';
+                        if (document.body) document.body.style.overflow = '';
+                    } catch(e) {}
+                    window.location.replace('/');
+                });
+            }
+
+            try {
+                document.documentElement.style.overflow = 'hidden';
+                if (document.body) document.body.style.overflow = 'hidden';
+            } catch(e) {}
+        }
+    }
+
+    function showExitScreen(mode) {
+        window._abcdExitScreenActive = true;
+        renderExitScreen(mode);
+        try {
+            window.history.pushState({ abcd_exit_screen: true }, document.title, window.location.href);
+        } catch(e) {}
+    }
+
+    function handleExitScreenPopState(e) {
+        if (!window._abcdExitScreenActive || !document.getElementById('abcdExitScreenOverlay')) {
+            return;
+        }
+        var backCount = 0;
+        try {
+            backCount = parseInt(sessionStorage.getItem('abcd_exit_back_count') || '0', 10);
+        } catch(err) {
+            backCount = window._abcdExitBackCountFallback || 0;
+        }
+
+        if (backCount < MAX_EXIT_BACK_COUNT) {
+            backCount++;
+            try {
+                sessionStorage.setItem('abcd_exit_back_count', backCount.toString());
+            } catch(err) {
+                window._abcdExitBackCountFallback = backCount;
+            }
+            try {
+                window.history.pushState({ abcd_exit_screen: true }, document.title, window.location.href);
+            } catch(err) {}
+
+            var hint = document.getElementById('abcdExitBackHint');
+            if (hint) {
+                hint.style.display = 'block';
+            }
+        } else {
+            // After 3rd Back: stop re-arming so the user is free to leave
+            clearExitFlag();
+            window._abcdExitScreenActive = false;
+            exitScreenRendered = false;
+            var ov = document.getElementById('abcdExitScreenOverlay');
+            if (ov && ov.parentNode) ov.parentNode.removeChild(ov);
+            try {
+                document.documentElement.style.overflow = '';
+                if (document.body) document.body.style.overflow = '';
+            } catch(err) {}
+        }
+    }
+
+    window.addEventListener('popstate', handleExitScreenPopState);
+
+    function checkExitGuard(event) {
+        if (isTwa()) {
+            return;
+        }
+
+        var navType = getNavigationType();
+        var isPersisted = Boolean(event && event.persisted);
+        var isBackForward = (navType === 'back_forward' || isPersisted);
+
+        if (!hasExitFlag()) {
+            return;
+        }
+
+        if (isBackForward) {
+            showExitScreen();
+        } else if (navType === 'navigate' || navType === 'reload') {
+            clearExitFlag();
+        }
+    }
+
+    // Run guard at top, DOMContentLoaded, and pageshow
+    checkExitGuard();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            checkExitGuard();
+        });
+    }
+    window.addEventListener('pageshow', function(event) {
+        checkExitGuard(event);
+    });
+
     if (window.ABCDNav && window.ABCDNav.__initialized) {
         return;
     }
@@ -141,6 +434,9 @@
          */
         init: function(options) {
             const self = this;
+            if (window._abcdExitScreenActive) {
+                return;
+            }
             options = options || {};
 
             // 1. Path detection & Base page normalization
@@ -260,6 +556,10 @@
          */
         onPopState: async function(event) {
             const self = this;
+
+            if (window._abcdExitScreenActive) {
+                return;
+            }
 
             // In-page hash changes within the same pathname are ignored
             const currentClean = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
@@ -655,10 +955,8 @@
             const isApp = Boolean(
                 fromSession ||
                 (document.referrer && document.referrer.startsWith('android-app://')) ||
-                window.matchMedia('(display-mode: standalone)').matches ||
-                window.matchMedia('(display-mode: fullscreen)').matches ||
-                window.navigator.standalone === true ||
-                window.location.search.includes('pwa_app=1') ||
+                (window.location.search && (window.location.search.includes('bridge_token=') || window.location.search.includes('pwa_app=1'))) ||
+                Boolean(window._abcdTwaPort) ||
                 (window.AndroidApp && typeof window.AndroidApp.closeApp === 'function') ||
                 (window.Android && (typeof window.Android.exitApp === 'function' || typeof window.Android.finish === 'function'))
             );
@@ -669,6 +967,21 @@
                 } catch(e) {}
             }
             return isApp;
+        },
+
+        /**
+         * Detect if running as an installed PWA (not TWA).
+         * Matches display-mode: standalone, minimal-ui, window-controls-overlay, or iOS navigator.standalone.
+         */
+        detectPwa: function() {
+            return isPwa();
+        },
+
+        /**
+         * Trigger the full-screen exit screen dynamically.
+         */
+        showExitScreen: function(mode) {
+            showExitScreen(mode);
         },
 
         GOOGLE_SEARCH_FALLBACK_URL: 'https://www.google.com/search?q=' + encodeURIComponent('ABCD Smart Campus Coaching And Library Ganj Basoda'),
@@ -730,21 +1043,38 @@
             }
 
             // =========================================================================
-            // ENVIRONMENT 2: NORMAL WEBSITE / BROWSER
+            // ENVIRONMENT 2: INSTALLED PWA & NORMAL BROWSER
             // =========================================================================
+            const isPwaMode = self.detectPwa();
+
+            // window.close() must be called directly in the click handler's call stack (user gesture)
             try {
                 window.close();
             } catch(e) {}
 
-            // When browser blocks window.close() (standard for user-navigated tabs),
-            // replace location with the predefined Google search fallback.
-            // Using window.location.replace prevents adding a trap or allowing history-back loops.
+            // Check visibility after ~150 ms
             setTimeout(function() {
-                if (!document.hidden) {
-                    self.state.isNavigating = false;
-                    window.location.replace(self.GOOGLE_SEARCH_FALLBACK_URL);
+                var isStillVisible = (!document.hidden && document.visibilityState !== 'hidden');
+                if (!isStillVisible) {
+                    return; // Window/tab successfully closed or hidden
                 }
-            }, 100);
+
+                self.state.isNavigating = false;
+
+                if (isPwaMode) {
+                    // Installed PWA: Do NOT navigate to Google (that would load Google inside the PWA window).
+                    // Show the full-screen exit screen directly with the PWA tip.
+                    setExitFlag();
+                    showExitScreen('pwa');
+                    return;
+                }
+
+                // Normal browser tab:
+                // Set exit flag BEFORE leaving page so if user presses Back from Google,
+                // the exit guard shows the full-screen exit screen instead of reopening app.
+                setExitFlag();
+                window.location.replace(self.GOOGLE_SEARCH_FALLBACK_URL);
+            }, 150);
         },
 
         /**
@@ -753,6 +1083,7 @@
         showExitFallback: function() {
             var self = this;
             self.hideExitModal();
+            setExitFlag();
             window.location.replace(self.GOOGLE_SEARCH_FALLBACK_URL);
         },
 

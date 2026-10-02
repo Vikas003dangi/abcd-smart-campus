@@ -359,6 +359,46 @@ class NavigationExitModalTests(TestCase):
             tmpl_content = f.read()
         self.assertIn('<a href="#" id="abcdExitConfirmBtn" role="button"', tmpl_content)
 
+    def test_browser_and_pwa_exit_screen_and_guard(self):
+        """Verify browser and PWA exit guard, full-screen exit screen, and 3-Back limit."""
+        import os
+        from django.conf import settings
+        js_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'abcd-nav.js')
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # 1. abcd_exited flag set before Google redirect with fallback storage
+        self.assertIn("sessionStorage.setItem('abcd_exited', '1')", content)
+        self.assertIn("window.name", content)
+
+        # 2. Exit guard present and checks back_forward navigation type & pageshow persisted
+        self.assertIn('function checkExitGuard', content)
+        self.assertIn('back_forward', content)
+        self.assertIn('event.persisted', content)
+
+        # 3. 3-Back limit constant on exit screen
+        self.assertIn('MAX_EXIT_BACK_COUNT', content)
+        self.assertIn('MAX_EXIT_BACK_COUNT = 3', content)
+        self.assertIn('Use the tip above to close this tab', content)
+
+        # 4. PWA branch does not navigate to Google
+        self.assertIn('detectPwa', content)
+        self.assertIn('showExitScreen', content)
+        pwa_exit_idx = content.find('if (isPwaMode)')
+        self.assertNotEqual(pwa_exit_idx, -1)
+        pwa_block = content[pwa_exit_idx:pwa_exit_idx + 350]
+        self.assertIn("showExitScreen('pwa')", pwa_block)
+        self.assertNotIn("GOOGLE_SEARCH_FALLBACK_URL", pwa_block)
+
+        # 5. No history.back / history.go in exit code
+        self.assertNotIn('history.back()', pwa_block)
+        self.assertNotIn('history.go(', pwa_block)
+
+        # 6. TWA branch unchanged and excluded from the guard
+        self.assertIn('if (isTwa())', content)
+        self.assertIn('detectAndroidApp', content)
+        self.assertIn("postMessage('exit')", content)
+
 
 class NavigationBaseTrapInvariantTests(TestCase):
     """Automated tests for Part B Home Base Back Invariants & Part A Exit Lag Fix."""
