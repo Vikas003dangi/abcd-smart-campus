@@ -4555,14 +4555,18 @@ def student_dashboard_view(request):
 
     if profile.status == 'admitted':
         try:
-            # Get all payments for this student
-            payments_qs = Payment.objects.filter(student=profile)
+            # Query last 5 non-hidden FeeTransactions for this student
+            fee_transactions = list(FeeTransaction.objects.filter(
+                student=profile,
+                is_hidden_by_student=False
+            ).order_by('-payment_date', '-created_at')[:5])
 
-            # Order by payment date (latest first), then by year
-            fee_records = payments_qs.order_by('-date_paid', '-year')
-
-            # Send to template
-            context['fee_records'] = fee_records
+            if not fee_transactions:
+                # Fallback to legacy Payment records if no FeeTransaction exists yet
+                legacy_payments = Payment.objects.filter(student=profile).order_by('-date_paid', '-year')[:5]
+                context['fee_records'] = legacy_payments
+            else:
+                context['fee_records'] = fee_transactions
 
             # --- LEADERBOARD LOGIC ---
             if profile.service_type in ['Coaching', 'Both'] and profile.batch:
@@ -6444,6 +6448,8 @@ def bulk_delete_fees_action(request):
         
     try:
         with transaction.atomic():
+            # Clean up associated notifications
+            Notification.objects.filter(meta__fee_transaction_id__in=[int(tid) for tid in transaction_ids if str(tid).isdigit()]).delete()
             count = FeeTransaction.objects.filter(id__in=transaction_ids).delete()[0]
             messages.success(request, f"Successfully deleted {count} fee record(s).")
     except Exception as e:
@@ -6472,6 +6478,115 @@ def download_fee_receipt_view(request, transaction_id):
     except Exception as e:
         logger.exception(f"Error in download_fee_receipt_view for transaction {transaction_id}: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+# -------------------------------------------------------------------
+# VIEW: Student - "My Fees Record" accounting history
+# -------------------------------------------------------------------
+@login_required
+def student_fee_record_view(request):
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not (profile.status == 'admitted' or profile.is_admitted):
+        raise Http404("Student fee record not found.")
+
+    search_query = request.GET.get('search', '').strip()
+
+    # Optimized queryset: ONLY logged-in student's own non-hidden records
+    transactions = FeeTransaction.objects.filter(
+        student=profile,
+        is_hidden_by_student=False
+    ).order_by('-payment_date', '-created_at')
+
+    if search_query:
+        query_filter = (
+            Q(receipt_number__icontains=search_query) |
+            Q(service_snapshot__icontains=search_query)
+        )
+        try:
+            from datetime import datetime
+            parsed_date = datetime.strptime(search_query, '%Y-%m-%d').date()
+            query_filter |= Q(payment_date=parsed_date)
+        except (ValueError, TypeError):
+            pass
+        transactions = transactions.filter(query_filter)
+
+    paginator = Paginator(transactions, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'users/student_fee_record.html', {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'profile': profile,
+    })
+
+
+# -------------------------------------------------------------------
+# VIEW: Student - Hide Fee Transaction (Soft delete from student view)
+# -------------------------------------------------------------------
+@login_required
+@require_POST
+def student_hide_fee_transaction(request):
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not (profile.status == 'admitted' or profile.is_admitted):
+        raise Http404("Student fee record not found.")
+
+    transaction_ids = request.POST.getlist('transaction_ids[]')
+    single_id = request.POST.get('transaction_id')
+    if single_id and not transaction_ids:
+        transaction_ids = [single_id]
+
+    if not transaction_ids:
+        messages.warning(request, "No records selected to remove.")
+        return redirect("users:student_fee_record")
+
+    try:
+        # Atomic update of ONLY this student's records
+        valid_ids = [int(tid) for tid in transaction_ids if str(tid).isdigit()]
+        count = FeeTransaction.objects.filter(
+            id__in=valid_ids,
+            student=profile
+        ).update(is_hidden_by_student=True)
+
+        if count > 0:
+            messages.success(request, f"Successfully removed {count} record(s) from your view.")
+        else:
+            messages.info(request, "No eligible records found to remove.")
+    except Exception as e:
+        logger.exception(f"Error hiding fee records for student {profile.id}: {e}")
+        messages.error(request, "An error occurred while updating your records.")
+
+    return redirect("users:student_fee_record")
+
+
+# -------------------------------------------------------------------
+# VIEW: Student - Download Fee Receipt PDF
+# -------------------------------------------------------------------
+@login_required
+def student_download_fee_receipt_view(request, transaction_id):
+    profile = getattr(request.user, 'profile', None)
+    if not profile:
+        raise Http404("Student profile not found.")
+
+    # Strictly scoped: return 404 if not found or belongs to another student
+    transaction_obj = get_object_or_404(
+        FeeTransaction.objects.select_related('student'),
+        id=transaction_id,
+        student=profile
+    )
+
+    try:
+        from users.utils.receipt_generator import generate_fee_receipt_pdf
+        pdf_buffer = generate_fee_receipt_pdf(transaction_obj)
+
+        from django.http import HttpResponse
+        response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="Fee_Receipt_{transaction_obj.receipt_number}.pdf"'
+        return response
+    except Exception as e:
+        logger.exception(f"Error generating PDF for transaction {transaction_id}: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 
 
@@ -11354,25 +11469,8 @@ def process_fees_view(request, student_id):
 
             if notification_details:
                 teacher_name = request.user.username 
-
-                # STUDENT DASHBOARD NOTIFICATION
                 today_str = timezone.localdate().strftime("%d %b %Y")
                 details_text = "\n".join(notification_details)
-
-                msg = "Your fee has been submitted successfully.\nCheck your email/WhatsApp to download receipt."
-                if student.user:
-                    if not getattr(student.user, 'email', None):
-                        msg += "\n\nAdd your email in profile settings to receive receipts."
-                    if not student.whatsapp_number:
-                        msg += "\nAdd your WhatsApp number in profile settings to receive receipts."
-
-                    create_notification(
-                        user=student.user,
-                        title="Fee Submitted Successfully",
-                        message=msg,
-                        category="payment",
-                        link="/dashboard/"
-                    )
 
                 # --- ABCD NEW ACCOUNTING INTEGRATION ---
                 try:
@@ -11420,6 +11518,43 @@ def process_fees_view(request, student_id):
                             months_snapshot=fee_snapshots,
                             total_amount=total_trans_amount
                         )
+
+                        # Exactly ONE idempotent in-app + web push notification for student
+                        if student.user:
+                            try:
+                                notif_tag = f"fee-receipt-{trans_record.id}"
+                                already_notified = Notification.objects.filter(
+                                    user=student.user,
+                                    meta__fee_transaction_id=trans_record.id
+                                ).exists()
+
+                                if not already_notified:
+                                    notif_title = "Fee Submitted Successfully"
+                                    notif_body = f"Payment of ₹{total_trans_amount} recorded (Receipt #{trans_record.receipt_number})."
+                                    notif_link = f"/student/fees/?highlight={trans_record.id}"
+                                    notif_meta = {
+                                        "fee_transaction_id": trans_record.id,
+                                        "receipt_number": trans_record.receipt_number,
+                                        "amount": str(total_trans_amount),
+                                        "tag": notif_tag,
+                                        "actions": [
+                                            {"action": "view_receipt", "title": "View Receipt 🧾"},
+                                            {"action": "open_fees", "title": "Open Fees ↗"}
+                                        ]
+                                    }
+                                    create_notification(
+                                        user=student.user,
+                                        title=notif_title,
+                                        message=notif_body,
+                                        link=notif_link,
+                                        category="payment",
+                                        tag=notif_tag,
+                                        meta=notif_meta
+                                    )
+                            except Exception as notif_err:
+                                logging.getLogger(__name__).warning(
+                                    f"Fee notification failed for student {student.id}, transaction {trans_record.id}: {notif_err}"
+                                )
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).error(f"CRITICAL: FeeTransaction creation failed: {e}")

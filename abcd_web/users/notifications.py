@@ -882,8 +882,11 @@ def create_notification(user, title, message, link=None, category="general", met
         else:
             sound = "/static/audio/PWA.mp3"
 
-    # Send device push notification
-    send_push(user, formatted_title, clean_message, url=link or "/", category=category, sound=sound, tag=tag, meta=meta)
+    # Send device push notification safely (push failure must never fail database notification or caller)
+    try:
+        send_push(user, formatted_title, clean_message, url=link or "/", category=category, sound=sound, tag=tag, meta=meta)
+    except Exception as push_err:
+        logger.warning(f"[Push] send_push failed in create_notification: {push_err}")
     return notif
 # ---------------------------------------------------------
 

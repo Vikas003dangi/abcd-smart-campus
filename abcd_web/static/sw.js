@@ -498,7 +498,7 @@ self.addEventListener('notificationclick', function (event) {
         targetUrl = notifData.url || '/dashboard/';
     } else if (event.action === 'open_complaint') {
         targetUrl = notifData.url || '/student/complaints/';
-    } else if (event.action === 'open_fees') {
+    } else if (event.action === 'open_fees' || event.action === 'view_receipt') {
         targetUrl = notifData.url || '/student/fees/';
     } else if (event.action === 'open_broadcast') {
         targetUrl = notifData.url || '/dashboard/';

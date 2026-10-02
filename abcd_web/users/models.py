@@ -1081,6 +1081,13 @@ class FeeTransaction(models.Model):
     email_sent = models.BooleanField(default=False)
     whatsapp_sent = models.BooleanField(default=False)
     
+    # Student record visibility (hide, not erase)
+    is_hidden_by_student = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Set to True if student hid this record from their dashboard/fees view"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1090,10 +1097,23 @@ class FeeTransaction(models.Model):
         indexes = [
             models.Index(fields=['receipt_number']),
             models.Index(fields=['student', 'created_at']),
+            models.Index(fields=['student', 'is_hidden_by_student']),
         ]
 
     def __str__(self):
         return f"Receipt {self.receipt_number} - {self.student.full_name}"
+
+    @property
+    def months_display(self):
+        """Helper to format months covered as a comma-separated string."""
+        if isinstance(self.months_snapshot, list) and self.months_snapshot:
+            items = []
+            for m in self.months_snapshot:
+                if isinstance(m, dict) and m.get('month'):
+                    items.append(str(m.get('month')).strip())
+            if items:
+                return ", ".join(items)
+        return "Fee Payment"
 
     @staticmethod
     def generate_receipt_number():

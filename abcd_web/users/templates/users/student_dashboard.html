@@ -2474,64 +2474,79 @@
       color: #2ecc71 !important;
     }
 
-    /* Fee Table Pagination Controls */
-    .fee-pagination-wrapper {
-      display: flex;
-      justify-content: space-between;
+    /* Fee Table Action Controls */
+    .btn-all-fees-header {
+      display: inline-flex;
       align-items: center;
-      padding: 14px 20px;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none !important;
+      box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
+      transition: all 0.25s ease;
+    }
+
+    .btn-all-fees-header:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      color: #ffffff !important;
+    }
+
+    .fee-view-more-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px 20px;
       background: rgba(0, 0, 0, 0.02);
       border-top: 1px solid #f0f0f0;
     }
 
-    body.dark-theme .fee-pagination-wrapper {
+    body.dark-theme .fee-view-more-container {
       background: rgba(255, 255, 255, 0.03) !important;
       border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 
-    .fee-pag-btn {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      cursor: pointer;
+    .fee-view-more-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.25s ease;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-    }
-
-    .fee-pag-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
-    }
-
-    .fee-pag-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    body.dark-theme .fee-pag-btn {
-      background: linear-gradient(135deg, #7b61ff 0%, #a855f7 100%) !important;
-      color: white !important;
-      box-shadow: 0 4px 12px rgba(123, 97, 255, 0.3) !important;
-    }
-
-    .fee-pag-counter {
-      font-weight: 800;
+      gap: 8px;
+      padding: 9px 24px;
+      border-radius: 25px;
       font-size: 0.9rem;
-      color: #475569;
-      letter-spacing: 0.5px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none !important;
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.25);
+      transition: all 0.25s ease;
     }
 
-    body.dark-theme .fee-pag-counter {
-      color: #cbd5e1 !important;
+    .fee-view-more-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45);
+      color: #ffffff !important;
+    }
+
+    .fee-receipt-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366f1;
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+
+    body.dark-theme .fee-receipt-badge {
+      background: rgba(129, 140, 248, 0.15) !important;
+      color: #a5b4fc !important;
     }
 
     .no-data {
@@ -4746,6 +4761,16 @@
       </li>
       {% endif %}
 
+      <!-- 7. Fees Record -->
+      {% if profile.status == 'admitted' and request.session.active_dashboard != 'alumni' %}
+      <li>
+        <a href="{% url 'users:student_fee_record' %}" class="{% if request.resolver_match.url_name == 'student_fee_record' %}active{% endif %}">
+          <i class='bx bxs-receipt'></i>
+          <span>Fees Record</span>
+        </a>
+      </li>
+      {% endif %}
+
       <!-- 8. New Admission -->
       {% if can_apply_admission %}
       <li>
@@ -5201,13 +5226,19 @@
           <i class='bx bx-receipt fee-title-icon'></i>
           <span>Fee Payment History</span>
         </h2>
-        <span class="fee-history-badge"><i class='bx bx-check-shield'></i> Verified Records</span>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span class="fee-history-badge"><i class='bx bx-check-shield'></i> Verified Records</span>
+          <a href="{% url 'users:student_fee_record' %}" class="btn-all-fees-header" title="Open full fee record">
+            <i class='bx bx-receipt'></i> All Fees
+          </a>
+        </div>
       </div>
       <div class="fee-table">
         <table>
           <thead>
             <tr>
-              <th>📅 Month</th>
+              <th>Receipt #</th>
+              <th>📅 Period / Month</th>
               <th>💰 Amount</th>
               <th>📆 Payment Date</th>
               <th>✅ Status</th>
@@ -5216,9 +5247,22 @@
           <tbody>
             {% for fee in fee_records %}
             <tr class="fee-table-row">
-              <!-- Month column: the day INSIDE the fee month -->
+              <!-- Receipt # -->
               <td>
-                {% if fee.date_paid %}
+                {% if fee.receipt_number %}
+                <span class="fee-receipt-badge">
+                  <i class='bx bx-receipt'></i> {{ fee.receipt_number }}
+                </span>
+                {% else %}
+                <span style="color: #94a3b8; font-size: 0.85rem;">—</span>
+                {% endif %}
+              </td>
+
+              <!-- Month / Period column -->
+              <td>
+                {% if fee.months_display %}
+                {{ fee.months_display }}
+                {% elif fee.date_paid %}
                 ({{ fee.date_paid|date:"d" }}) {{ fee.month }} {{ fee.year }}
                 {% else %}
                 {{ fee.month }} {{ fee.year }}
@@ -5226,14 +5270,18 @@
               </td>
 
               <!-- Amount column -->
-              <td>₹{{ fee.amount }}</td>
+              <td style="font-weight: 700; color: #10b981;">
+                ₹{% if fee.total_amount is not None %}{{ fee.total_amount }}{% else %}{{ fee.amount }}{% endif %}
+              </td>
 
-              <!-- Payment Date column: actual submit date of fee calendar -->
+              <!-- Payment Date column -->
               <td>
-                {% if fee.created_at %}
+                {% if fee.payment_date %}
+                {{ fee.payment_date|date:"d M Y" }}
+                {% elif fee.created_at %}
                 {{ fee.created_at|date:"d M Y" }}
                 {% else %}
-                –
+                —
                 {% endif %}
               </td>
 
@@ -5244,15 +5292,12 @@
           </tbody>
         </table>
 
-        <!-- Fee Table Pagination Controls -->
-        <div class="fee-pagination-wrapper" id="feePaginationWrapper">
-          <button type="button" class="fee-pag-btn" id="feePrevBtn" onclick="changeFeePage(-1)">
-            <i class='bx bx-chevron-left'></i> Previous
-          </button>
-          <span class="fee-pag-counter" id="feePagCounter">0 / 0</span>
-          <button type="button" class="fee-pag-btn" id="feeNextBtn" onclick="changeFeePage(1)">
-            Next <i class='bx bx-chevron-right'></i>
-          </button>
+        <!-- View More Button linking to Student Fee Record -->
+        <div class="fee-view-more-container">
+          <a href="{% url 'users:student_fee_record' %}" class="fee-view-more-btn">
+            <span>View More</span>
+            <i class='bx bx-right-arrow-alt' style="font-size: 1.15rem;"></i>
+          </a>
         </div>
       </div>
     </div>
@@ -5697,6 +5742,7 @@
             <li><a href="{% url 'users:student_dashboard' %}#student-performance-hub" onclick="if(document.getElementById('student-performance-hub')){ document.getElementById('student-performance-hub').scrollIntoView({ behavior: 'smooth' }); }"><i class='bx bx-chevron-right'></i>Your Performance</a></li>
             {% endif %}
 
+            <li><a href="{% url 'users:student_fee_record' %}"><i class='bx bx-chevron-right'></i>Fees Record</a></li>
             <li><a href="{% url 'users:courses' %}"><i class='bx bx-chevron-right'></i>Courses</a></li>
             <li><a href="{% url 'users:todo_hub' %}"><i class='bx bx-chevron-right'></i>TO-DOs</a></li>
             <li><a href="{% url 'users:guidy_home' %}"><i class='bx bx-chevron-right'></i>Guidy - Chat</a></li>
@@ -7083,7 +7129,8 @@
           let linkBtn = '';
           if (n.link) {
             let linkLabel = 'Open Detail';
-            if (n.link.includes('course')) linkLabel = '📚 View Course';
+            if (n.link.includes('fee')) linkLabel = '🧾 View Fees';
+            else if (n.link.includes('course')) linkLabel = '📚 View Course';
             else if (n.link.includes('seat')) linkLabel = '🪑 View Seat';
             else if (n.link.includes('guidy')) linkLabel = '💬 Open Guidy';
             else if (n.link.includes('complaint')) linkLabel = '📝 View Complaint';
@@ -8161,62 +8208,6 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 
 <script>
-  let currentFeePage = 1;
-  const feePageSize = 10;
-
-  function updateFeeTablePagination() {
-      const rows = document.querySelectorAll('.fee-table-row');
-      const totalRows = rows.length;
-      const paginationWrapper = document.getElementById('feePaginationWrapper');
-      if (totalRows === 0) {
-          if (paginationWrapper) paginationWrapper.style.display = 'none';
-          return;
-      }
-
-      const maxPage = Math.ceil(totalRows / feePageSize);
-      if (currentFeePage > maxPage) currentFeePage = maxPage;
-      if (currentFeePage < 1) currentFeePage = 1;
-
-      const startIdx = (currentFeePage - 1) * feePageSize;
-      const endIdx = startIdx + feePageSize;
-
-      rows.forEach((row, index) => {
-          if (index >= startIdx && index < endIdx) {
-              row.style.display = '';
-          } else {
-              row.style.display = 'none';
-          }
-      });
-
-      const prevBtn = document.getElementById('feePrevBtn');
-      const nextBtn = document.getElementById('feeNextBtn');
-      const counter = document.getElementById('feePagCounter');
-
-      if (prevBtn) {
-          prevBtn.disabled = (currentFeePage <= 1);
-          prevBtn.style.visibility = (currentFeePage <= 1) ? 'hidden' : 'visible';
-      }
-
-      if (nextBtn) {
-          nextBtn.disabled = (currentFeePage >= maxPage);
-          nextBtn.style.visibility = (currentFeePage >= maxPage) ? 'hidden' : 'visible';
-      }
-
-      if (counter) {
-          const currentCount = Math.min(currentFeePage * feePageSize, totalRows);
-          counter.textContent = `${currentCount} / ${totalRows}`;
-      }
-  }
-
-  function changeFeePage(dir) {
-      currentFeePage += dir;
-      updateFeeTablePagination();
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-      updateFeeTablePagination();
-  });
-
   // --- STUDENT ACHIEVEMENTS MARQUEE LOGIC ---
   (function() {
       const marqueeContent = document.getElementById('studentMarqueeContent');

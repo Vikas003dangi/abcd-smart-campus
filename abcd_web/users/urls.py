@@ -180,6 +180,12 @@ urlpatterns = [
     path("teacher/fees-record/download/<int:transaction_id>/", views.download_fee_receipt_view, name="download_fee_receipt"),
     path("teacher/fee-receipt/download/<int:transaction_id>/", views.download_fee_receipt_view),
 
+    # Student Fees Record
+    path("student/fees/", views.student_fee_record_view, name="student_fee_record"),
+    path("student/fees/delete/", views.student_hide_fee_transaction, name="student_hide_fee_transaction"),
+    path("student/fees/download/<int:transaction_id>/", views.student_download_fee_receipt_view, name="student_download_fee_receipt"),
+    path("student/fee-receipt/download/<int:transaction_id>/", views.student_download_fee_receipt_view),
+
     # ======================================================
     # ALL API URLs
     # ======================================================
