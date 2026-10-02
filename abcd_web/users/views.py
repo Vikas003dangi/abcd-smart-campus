@@ -9533,30 +9533,31 @@ def manage_hold_request_api(request):
         # --------------------------------------------------
 
         # FULL HOLD REQUEST MANAGEMENT
-        hold_request = None
         if request_id:
             hold_request = SeatHoldRequest.objects.select_for_update().filter(
                 id=request_id
             ).filter(
                 models.Q(status='pending') | models.Q(status='approved', cancel_requested=True)
             ).first()
-
-        if not hold_request:
+            if not hold_request:
+                return JsonResponse({'status': 'error', 'message': 'Hold request not found or already processed.'}, status=404)
+            if seat_id and hold_request.seat_id != int(seat_id):
+                return JsonResponse({'status': 'error', 'message': 'Request ID does not match the specified seat.'}, status=400)
+        else:
             hold_request = SeatHoldRequest.objects.select_for_update().filter(
                 seat_id=seat_id
             ).filter(
                 models.Q(status='pending') | models.Q(status='approved', cancel_requested=True)
             ).first()
-
-        if not hold_request:
-            return JsonResponse({'status': 'error', 'message': 'Pending or cancelable hold request not found.'}, status=404)
+            if not hold_request:
+                return JsonResponse({'status': 'error', 'message': 'Pending or cancelable hold request not found for this seat.'}, status=404)
 
         student = hold_request.student
 
-        owner_assignment = SeatAssignment.objects.filter(
-            seat=seat,
-            student=student
-        ).first()
+        owner_assignment = (
+            SeatAssignment.objects.filter(seat=seat, student=student, is_active=True).first()
+            or SeatAssignment.objects.filter(seat=seat, student=student).first()
+        )
 
         if action == 'approve' and not owner_assignment and getattr(student, 'seat_id', None) != seat.id:
             return JsonResponse({'status': 'error', 'message': 'Seat owner assignment not found for this student.'}, status=400)
@@ -12509,6 +12510,8 @@ def delete_achievement(request, pk):
             cache.delete(f"student_context_data_{user_id}")
 
     messages.success(request, f"Deleted alumni profile for {name}. User account preserved.")
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({'status': 'success', 'message': f'Deleted alumni profile for {name}.'})
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('users:hall_of_fame')
     return redirect(next_url)
 
@@ -12590,6 +12593,8 @@ def approve_achievement(request, pk):
         logger.warning(f"Failed to dispatch Alumni WhatsApp: {ae}")
 
     messages.success(request, f"Approved achievement for {achievement.first_name} {achievement.last_name}!")
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({'status': 'success', 'message': f'Approved achievement for {achievement.first_name} {achievement.last_name}!'})
     next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('users:hall_of_fame')
     return redirect(next_url)
 
@@ -18826,13 +18831,13 @@ def approve_seat_switch(request, pk):
                 category="seat_change"
             )
 
-            try:
-                transaction.on_commit(lambda: notifications.send_seat_switch_approval_email(student, target_seat, target_shift))
-            except Exception:
+            def _send_approval_email():
                 try:
                     notifications.send_seat_switch_approval_email(student, target_seat, target_shift)
-                except Exception:
-                    pass
+                except Exception as ex:
+                    logger.warning(f"Failed to send seat switch approval email: {ex}")
+
+            transaction.on_commit(_send_approval_email)
 
             notifications.broadcast_seat_update()
             return JsonResponse({'status': 'success', 'message': 'Request approved successfully.'})
@@ -18873,13 +18878,13 @@ def reject_seat_switch(request, pk):
                 category="seat_change"
             )
 
-            try:
-                transaction.on_commit(lambda: notifications.send_seat_rejection_email(student, target_seat, target_shift))
-            except Exception:
+            def _send_rejection_email():
                 try:
                     notifications.send_seat_rejection_email(student, target_seat, target_shift)
-                except Exception:
-                    pass
+                except Exception as ex:
+                    logger.warning(f"Failed to send seat switch rejection email: {ex}")
+
+            transaction.on_commit(_send_rejection_email)
 
             notifications.broadcast_seat_update()
             return JsonResponse({'status': 'success', 'message': 'Request rejected successfully.'})

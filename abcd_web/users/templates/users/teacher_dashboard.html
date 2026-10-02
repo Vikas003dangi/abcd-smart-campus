@@ -9045,6 +9045,7 @@
             </button>
             <form action="{% url 'users:approve_achievement' ach.id %}" method="post" style="display:inline">
               {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'users:teacher_dashboard' %}">
               <button type="submit" class="btn btn-success action-confirm-btn"
                 data-confirm-title="Approve Achievement"
                 data-confirm-msg="Are you sure you want to approve the achievement request for {{ ach.first_name }} {{ ach.last_name }}?">
@@ -9053,6 +9054,7 @@
             </form>
             <form action="{% url 'users:delete_achievement' ach.id %}" method="post" style="display:inline">
               {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'users:teacher_dashboard' %}">
               <button type="submit" class="btn btn-danger action-confirm-btn"
                 data-confirm-title="Delete Request"
                 data-confirm-msg="Are you sure you want to delete the achievement request for {{ ach.first_name }} {{ ach.last_name }}? The user will be able to submit a new request later.">
@@ -10104,13 +10106,54 @@
       if (actionBtn) {
         e.preventDefault();
         const form = actionBtn.closest('form');
+        if (!form) return;
         const msg = actionBtn.dataset.confirmMsg || 'Are you sure you want to proceed?';
         const title = actionBtn.dataset.confirmTitle || 'Confirm Action';
         const isDelete = actionBtn.classList.contains('btn-danger') || actionBtn.classList.contains('del-btn') || title.toLowerCase().includes('delete') || title.toLowerCase().includes('reject');
 
         const confirmed = await window.showStyledConfirm(title, msg, isDelete);
-        if (confirmed) {
+        if (!confirmed) return;
+
+        if (typeof window.setButtonLoading === 'function') {
+          window.setButtonLoading(actionBtn, true, isDelete ? 'Deleting...' : 'Approving...');
+        }
+
+        try {
+          const res = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+          const data = await res.json().catch(() => null);
+          if (res.ok && data && data.status === 'success') {
+            const card = actionBtn.closest('.request-item');
+            if (card) {
+              card.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+              card.style.opacity = '0';
+              card.style.transform = 'translateY(-10px) scale(0.96)';
+              setTimeout(() => {
+                const list = card.parentElement;
+                card.remove();
+                if (list && list.children.length === 0) {
+                  const sec = list.closest('.batch-section');
+                  if (sec) sec.remove();
+                }
+              }, 300);
+            }
+            await window.showStyledAlert('Success', data.message || 'Action completed successfully.', 'success');
+            if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+            if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
+          } else {
+            form.submit();
+          }
+        } catch (err) {
           form.submit();
+        } finally {
+          if (typeof window.setButtonLoading === 'function') {
+            window.setButtonLoading(actionBtn, false);
+          }
         }
       }
     });
@@ -10601,41 +10644,41 @@
       }
 
 
-      // --- Complaint status buttons (teacher) ---
-      document.querySelectorAll('.complaint-status-btn').forEach(btn => {
-        btn.addEventListener('click', async function () {
-          const id = this.dataset.id;
-          const status = this.dataset.status;
+      // --- Complaint status buttons (teacher - Event Delegation) ---
+      document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.complaint-status-btn');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const status = btn.dataset.status;
 
-          const confirmed = await window.showStyledConfirm(
-            'Change Status?',
-            `Are you sure you want to change complaint #${id} status to <b>${status.replace('_', ' ')}</b>?`
-          );
+        const confirmed = await window.showStyledConfirm(
+          'Change Status?',
+          `Are you sure you want to change complaint #${id} status to <b>${status.replace('_', ' ')}</b>?`
+        );
 
-          if (!confirmed) return;
+        if (!confirmed) return;
 
-          fetch(`{% url 'users:update_complaint_status' 0 %}`.replace('/0/', `/${id}/`), {
-            method: 'POST',
-            headers: {
-              'X-CSRFToken': '{{ csrf_token }}',
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: new URLSearchParams({ status })
+        fetch(`{% url 'users:update_complaint_status' 0 %}`.replace('/0/', `/${id}/`), {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: new URLSearchParams({ status })
+        })
+          .then(r => r.json())
+          .then(async data => {
+            if (data.ok) {
+              if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+              if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
+            } else {
+              await window.showStyledAlert('Update Failed', data.error || 'Could not update status.');
+            }
           })
-            .then(r => r.json())
-            .then(async data => {
-              if (data.ok) {
-                if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
-                if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
-              } else {
-                await window.showStyledAlert('Update Failed', data.error || 'Could not update status.');
-              }
-            })
-            .catch(async err => {
-              console.error(err);
-              await window.showStyledAlert('Network Error', 'There was a problem communicating with the server.');
-            });
-        });
+          .catch(async err => {
+            console.error(err);
+            await window.showStyledAlert('Network Error', 'There was a problem communicating with the server.');
+          });
       });
 
       // Set initial logo size
@@ -11412,206 +11455,205 @@
 
       modalOverlay.addEventListener('click', closeModal);
 
-      // ===== MAIN APPROVAL BUTTON HANDLER =====
-      document.querySelectorAll('.approve-btn').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
-          e.preventDefault();
+      // ===== MAIN APPROVAL BUTTON HANDLER (Event Delegation) =====
+      document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.approve-btn');
+        if (!btn) return;
+        e.preventDefault();
 
-          const form = e.target.closest('.approve-form');
-          if (!form) return;
+        const form = btn.closest('.approve-form');
+        if (!form) return;
 
-          currentForm = form;
+        currentForm = form;
 
-          const studentName = form.dataset.studentName || 'this student';
-          const hasSeat = form.dataset.hasSeat === '1';
-          const seat = form.dataset.seat || '';
-          const floor = form.dataset.floor || '';
-          const shift = form.dataset.shift || 'full';
-          const serviceType = (form.dataset.serviceType || '').toLowerCase();
-          const batch = form.dataset.batch || '';
+        const studentName = form.dataset.studentName || 'this student';
+        const hasSeat = form.dataset.hasSeat === '1';
+        const seat = form.dataset.seat || '';
+        const floor = form.dataset.floor || '';
+        const shift = form.dataset.shift || 'full';
+        const serviceType = (form.dataset.serviceType || '').toLowerCase();
+        const batch = form.dataset.batch || '';
 
-          // Extracted multi-profile dataset attributes
-          const hasAlumni = form.dataset.hasAlumni === 'true';
-          const alumniPost = form.dataset.alumniPost || '';
-          const alumniStatus = form.dataset.alumniStatus || '';
-          const existingLibrary = form.dataset.existingLibrary === 'true';
-          const existingLibrarySeat = form.dataset.existingLibrarySeat || '';
-          const existingCoaching = form.dataset.existingCoaching === 'true';
-          const existingCoachingBatch = form.dataset.existingCoachingBatch || '';
+        // Extracted multi-profile dataset attributes
+        const hasAlumni = form.dataset.hasAlumni === 'true';
+        const alumniPost = form.dataset.alumniPost || '';
+        const alumniStatus = form.dataset.alumniStatus || '';
+        const existingLibrary = form.dataset.existingLibrary === 'true';
+        const existingLibrarySeat = form.dataset.existingLibrarySeat || '';
+        const existingCoaching = form.dataset.existingCoaching === 'true';
+        const existingCoachingBatch = form.dataset.existingCoachingBatch || '';
 
-          const meta = {
-            hasAlumni: hasAlumni,
-            alumniPost: alumniPost,
-            alumniStatus: alumniStatus,
-            existingLibrary: existingLibrary,
-            existingLibrarySeat: existingLibrarySeat,
-            existingCoaching: existingCoaching,
-            existingCoachingBatch: existingCoachingBatch
-          };
+        const meta = {
+          hasAlumni: hasAlumni,
+          alumniPost: alumniPost,
+          alumniStatus: alumniStatus,
+          existingLibrary: existingLibrary,
+          existingLibrarySeat: existingLibrarySeat,
+          existingCoaching: existingCoaching,
+          existingCoachingBatch: existingCoachingBatch
+        };
 
-          // Use JavaScript variables instead of Django template syntax
-          console.log('Approving student:', studentName);
-
-          if (serviceType === 'library') {
-            showLibraryModal(studentName, hasSeat, seat, floor, shift, meta);
-          } else if (serviceType === 'coaching') {
-            showCoachingModal(studentName, batch, meta);
-          } else {
-            // Fallback for unknown service type
-            closeModal();
-          }
-        });
+        if (serviceType === 'library') {
+          showLibraryModal(studentName, hasSeat, seat, floor, shift, meta);
+        } else if (serviceType === 'coaching') {
+          showCoachingModal(studentName, batch, meta);
+        } else {
+          // Fallback for unknown service type
+          closeModal();
+        }
       });
 
       // =====================================================
       // STEP-7C — PARTIAL ALLOTMENT REQUEST ACTIONS (Teacher)
       // =====================================================
 
-      // APPROVE partial allotment
-      document.querySelectorAll('.approve-partial-btn').forEach(function (btn) {
-        btn.addEventListener('click', async function () {
+      // APPROVE partial allotment (Event Delegation)
+      document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.approve-partial-btn');
+        if (!btn) return;
+        e.preventDefault();
 
-          const requestId = btn.dataset.requestId;
-          const seat = btn.dataset.seat;
-          const floor = btn.dataset.floor;
-          const shift = btn.dataset.shift; // The requested shift
+        const requestId = btn.dataset.requestId;
+        const seat = btn.dataset.seat;
+        const floor = btn.dataset.floor;
+        const shift = btn.dataset.shift; // The requested shift
 
-          const requesterName = btn.dataset.requesterName || 'Student';
-          const holderName = btn.dataset.holderName || 'Unknown';
-          const morningHolder = btn.dataset.morningHolder || 'Unknown';
-          const eveningHolder = btn.dataset.eveningHolder || 'Unknown';
+        const requesterName = btn.dataset.requesterName || 'Student';
+        const holderName = btn.dataset.holderName || 'Unknown';
+        const morningHolder = btn.dataset.morningHolder || 'Unknown';
+        const eveningHolder = btn.dataset.eveningHolder || 'Unknown';
 
-          const holdDays = parseInt(btn.dataset.holdDays || '0');
-          const morningDays = parseInt(btn.dataset.morningDays || '0');
-          const eveningDays = parseInt(btn.dataset.eveningDays || '0');
-          const fullDays = parseInt(btn.dataset.fullDays || '0');
+        const holdDays = parseInt(btn.dataset.holdDays || '0');
+        const morningDays = parseInt(btn.dataset.morningDays || '0');
+        const eveningDays = parseInt(btn.dataset.eveningDays || '0');
+        const fullDays = parseInt(btn.dataset.fullDays || '0');
 
-          if (!requestId || !seat || !floor) {
-            await window.showStyledAlert('Invalid Data', 'The request data is missing or invalid.');
+        if (!requestId || !seat || !floor) {
+          await window.showStyledAlert('Invalid Data', 'The request data is missing or invalid.');
+          return;
+        }
+
+        // Construct Alert Message based on Case
+        let alertDetails = "";
+
+        // Case 4B: Both shifts on hold (different students or separate holds), Requesting Full Day
+        if (morningDays > 0 && eveningDays > 0 && shift === 'full') {
+          alertDetails =
+            `${morningDays} days are left to end (morning shift) hold for ${morningHolder} and\n` +
+            `${eveningDays} days are left to end (evening shift) hold for ${eveningHolder} on seat ${seat}\n\n` +
+            `After ending any one of them hold, ${requesterName} will left with no Seat, Until You allots another seat.`;
+        }
+        // Case 2A/2B: Full day hold
+        else if (fullDays > 0) {
+          alertDetails =
+            `${fullDays} days are left to end (full day) hold on seat ${seat} for ${holderName}\n\n` +
+            `After ending hold, ${requesterName} will left with no Seat,\nUntil You allots another seat.`;
+        }
+        // Case 3A/3B: Specific Single Shift Hold
+        else if (morningDays > 0 && fullDays === 0 && eveningDays === 0) {
+          alertDetails =
+            `${morningDays} days are left to end (morning shift) hold on seat ${seat} for ${holderName}\n\n` +
+            `After ending hold, ${requesterName} will left with no Seat,\nUntil You allots another seat.`;
+        }
+        else if (eveningDays > 0 && fullDays === 0 && morningDays === 0) {
+          alertDetails =
+            `${eveningDays} days are left to end (evening shift) hold on seat ${seat} for ${holderName}\n\n` +
+            `After ending hold, ${requesterName} will left with no Seat,\nUntil You allots another seat.`;
+        }
+        // Case 1: Standard / Generic Hold
+        else {
+          alertDetails =
+            `${holdDays} days are left to end hold on seat ${seat} for ${holderName}\n\n` +
+            `After ending hold, ${requesterName} will be left with no Seat,\nUntil you allot another seat.`;
+        }
+
+        const confirmed = await window.showStyledConfirm(
+          'Confirm Selection',
+          alertDetails + '<br><br><b>Would you confirm this selection?</b>'
+        );
+
+        if (!confirmed) return;
+
+        try {
+          const res = await fetch("{% url 'users:api_seat_action' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+              action: 'approve_partial_request',
+              floor: floor,
+              seat_number: seat,
+              payload: {
+                request_id: requestId
+              }
+            })
+          });
+
+          const data = await res.json();
+          if (data.status !== 'success') {
+            await window.showStyledAlert('Approval Failed', data.message || 'The approval request could not be completed.');
             return;
           }
 
-          // Construct Alert Message based on Case
-          let alertDetails = "";
+          if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+          if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
 
-          // Case 4B: Both shifts on hold (different students or separate holds), Requesting Full Day
-          if (morningDays > 0 && eveningDays > 0 && shift === 'full') {
-            alertDetails =
-              `${morningDays} days are left to end (morning shift) hold for ${morningHolder} and\n` +
-              `${eveningDays} days are left to end (evening shift) hold for ${eveningHolder} on seat ${seat}\n\n` +
-              `After ending any one of them hold, ${requesterName} will left with no Seat, Until You allots another seat.`;
-          }
-          // Case 2A/2B: Full day hold
-          else if (fullDays > 0) {
-            alertDetails =
-              `${fullDays} days are left to end (full day) hold on seat ${seat} for ${holderName}\n\n` +
-              `After ending hold, ${requesterName} will left with no Seat,\nUntil You allots another seat.`;
-          }
-          // Case 3A/3B: Specific Single Shift Hold
-          else if (morningDays > 0 && fullDays === 0 && eveningDays === 0) {
-            alertDetails =
-              `${morningDays} days are left to end (morning shift) hold on seat ${seat} for ${holderName}\n\n` +
-              `After ending hold, ${requesterName} will left with no Seat,\nUntil You allots another seat.`;
-          }
-          else if (eveningDays > 0 && fullDays === 0 && morningDays === 0) {
-            alertDetails =
-              `${eveningDays} days are left to end (evening shift) hold on seat ${seat} for ${holderName}\n\n` +
-              `After ending hold, ${requesterName} will left with no Seat,\nUntil You allots another seat.`;
-          }
-          // Case 1: Standard / Generic Hold
-          else {
-            alertDetails =
-              `${holdDays} days are left to end hold on seat ${seat} for ${holderName}\n\n` +
-              `After ending hold, ${requesterName} will be left with no Seat,\nUntil you allot another seat.`;
-          }
-
-          const confirmed = await window.showStyledConfirm(
-            'Confirm Selection',
-            alertDetails + '<br><br><b>Would you confirm this selection?</b>'
-          );
-
-          if (!confirmed) return;
-
-          try {
-            const res = await fetch("{% url 'users:api_seat_action' %}", {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-              },
-              body: JSON.stringify({
-                action: 'approve_partial_request',
-                floor: floor,
-                seat_number: seat,
-                payload: {
-                  request_id: requestId
-                }
-              })
-            });
-
-            const data = await res.json();
-            if (data.status !== 'success') {
-              await window.showStyledAlert('Approval Failed', data.message || 'The approval request could not be completed.');
-              return;
-            }
-
-            if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
-            if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
-
-          } catch (err) {
-            await window.showStyledAlert('Server Error', 'A server error occurred while approving the request.');
-            console.error(err);
-          }
-        });
+        } catch (err) {
+          await window.showStyledAlert('Server Error', 'A server error occurred while approving the request.');
+          console.error(err);
+        }
       });
 
-      // REJECT partial allotment
-      document.querySelectorAll('.reject-partial-btn').forEach(function (btn) {
-        btn.addEventListener('click', async function () {
+      // REJECT partial allotment (Event Delegation)
+      document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.reject-partial-btn');
+        if (!btn) return;
+        e.preventDefault();
 
-          const requestId = btn.dataset.requestId;
-          if (!requestId) {
-            await window.showStyledAlert('Invalid Request', 'Could not identify the request to reject.');
+        const requestId = btn.dataset.requestId;
+        if (!requestId) {
+          await window.showStyledAlert('Invalid Request', 'Could not identify the request to reject.');
+          return;
+        }
+
+        const confirmed = await window.showStyledConfirm(
+          'Reject Request',
+          'Are you sure you want to <b>reject</b> this partial allotment request?',
+          true
+        );
+
+        if (!confirmed) return;
+
+        try {
+          const res = await fetch("{% url 'users:api_seat_action' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+              action: 'reject_partial_request',
+              payload: {
+                request_id: requestId
+              }
+            })
+          });
+
+          const data = await res.json();
+          if (data.status !== 'success') {
+            await window.showStyledAlert('Rejection Failed', data.message || 'The rejection request could not be completed.');
             return;
           }
 
-          const confirmed = await window.showStyledConfirm(
-            'Reject Request',
-            'Are you sure you want to <b>reject</b> this partial allotment request?',
-            true
-          );
+          if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+          if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
 
-          if (!confirmed) return;
-
-          try {
-            const res = await fetch("{% url 'users:api_seat_action' %}", {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-              },
-              body: JSON.stringify({
-                action: 'reject_partial_request',
-                payload: {
-                  request_id: requestId
-                }
-              })
-            });
-
-            const data = await res.json();
-            if (data.status !== 'success') {
-              await window.showStyledAlert('Rejection Failed', data.message || 'The rejection request could not be completed.');
-              return;
-            }
-
-            if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
-            if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
-
-          } catch (err) {
-            await window.showStyledAlert('Server Error', 'A server error occurred while rejecting the request.');
-            console.error(err);
-          }
-        });
+        } catch (err) {
+          await window.showStyledAlert('Server Error', 'A server error occurred while rejecting the request.');
+          console.error(err);
+        }
       });
 
     });
@@ -15240,8 +15282,19 @@ function showTeacherStyledPopup({ title = 'Notice', message = '', type = 'info',
     });
 }
 
-function removeTeacherRequestCardItem(reqId) {
-    const btn = document.querySelector(`button[onclick*="'${reqId}'"], button[onclick*="\"${reqId}\""]`);
+function removeTeacherRequestCardItem(reqId, actionType = '') {
+    let selector = '';
+    if (actionType) {
+        selector = `button[onclick*="${actionType}('${reqId}')"], button[onclick*="${actionType}(\"${reqId}\")"]`;
+    } else {
+        selector = `button[onclick*="approveSwitchRequest('${reqId}')"], button[onclick*="rejectSwitchRequest('${reqId}')"], ` +
+                   `button[onclick*="approveLeaveRequest('${reqId}')"], button[onclick*="rejectLeaveRequest('${reqId}')"], ` +
+                   `button[onclick*="approveHoldChangeRequest('${reqId}')"], button[onclick*="rejectHoldChangeRequest('${reqId}')"]`;
+    }
+    let btn = document.querySelector(selector);
+    if (!btn) {
+        btn = document.querySelector(`button[onclick*="'${reqId}'"], button[onclick*="\"${reqId}\""]`);
+    }
     const card = btn?.closest('.request-item');
     if (card) {
         card.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -15281,7 +15334,7 @@ async function approveSwitchRequest(reqId) {
                 }
             });
         } else if (response.ok) {
-            removeTeacherRequestCardItem(reqId);
+            removeTeacherRequestCardItem(reqId, 'approveSwitchRequest');
             showTeacherStyledPopup({
                 title: 'Success',
                 message: 'Seat switch request approved successfully!',
@@ -15318,7 +15371,7 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
         });
         const data = await response.json();
         if (response.ok) {
-            removeTeacherRequestCardItem(reqId);
+            removeTeacherRequestCardItem(reqId, 'rejectSwitchRequest');
             if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
             if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
             if (!isSilent) {
@@ -15355,7 +15408,7 @@ async function approveLeaveRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
-            removeTeacherRequestCardItem(reqId);
+            removeTeacherRequestCardItem(reqId, 'approveLeaveRequest');
             showTeacherStyledPopup({
                 title: 'Success',
                 message: data.message || 'Seat leave request approved successfully! The temporary assignment has been terminated.',
@@ -15393,7 +15446,7 @@ async function rejectLeaveRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
-            removeTeacherRequestCardItem(reqId);
+            removeTeacherRequestCardItem(reqId, 'rejectLeaveRequest');
             showTeacherStyledPopup({
                 title: 'Success',
                 message: 'Seat leave request has been rejected.',
@@ -15431,7 +15484,7 @@ async function approveHoldChangeRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
-            removeTeacherRequestCardItem(reqId);
+            removeTeacherRequestCardItem(reqId, 'approveHoldChangeRequest');
             showTeacherStyledPopup({
                 title: 'Success',
                 message: data.message || 'Hold change request approved successfully! Hold end date and fee expiry updated.',
@@ -15469,7 +15522,7 @@ async function rejectHoldChangeRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
-            removeTeacherRequestCardItem(reqId);
+            removeTeacherRequestCardItem(reqId, 'rejectHoldChangeRequest');
             showTeacherStyledPopup({
                 title: 'Success',
                 message: data.message || 'Hold change request has been rejected.',
