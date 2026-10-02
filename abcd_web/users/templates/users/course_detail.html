@@ -1837,6 +1837,15 @@
                         <h3 style="font-weight: 800; margin-bottom: 12px;">Learning reminders</h3>
                         <p style="color: var(--text-dim); margin-bottom: 24px;">Set up push notifications to stay on track for your learning goals.</p>
                         
+                        <!-- Persistent Amber Warning Banner for background alarm permissions (items 3-5) -->
+                        <div id="abcdAlarmWarningBanner" style="display:none; margin-bottom:16px; padding:12px 16px; background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:8px; font-size:0.84rem; color:#d97706; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <i class='bx bx-error-circle' style="font-size:1.3rem; flex-shrink:0;"></i>
+                                <span><strong>Alarms may not ring on time:</strong> Some background settings (Battery / Autostart / Heads-up) are not confirmed.</span>
+                            </div>
+                            <button type="button" onclick="showAlarmSetupChecklist()" style="background:#f59e0b; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; white-space:nowrap; box-shadow:0 2px 8px rgba(245,158,11,0.3);">Fix Setup</button>
+                        </div>
+
                         <div id="remindersList" style="margin-bottom: 30px;">
                             {% for r in reminders %}
                             <div class="reminder-item" id="reminder-item-{{ r.id }}" style="background: var(--item-hover); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
@@ -3134,54 +3143,72 @@
             payload.recurrence = 'once';
         }
 
-        fetch(`/api/courses/{{ course.id }}/reminder/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                closeReminderModal();
-                if (typeof window.checkGlobalDueAlarms === 'function') {
-                    window.checkGlobalDueAlarms();
+        function _doSubmitCourseReminder() {
+            fetch(`/api/courses/{{ course.id }}/reminder/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    closeReminderModal();
+                    if (typeof window.checkGlobalDueAlarms === 'function') {
+                        window.checkGlobalDueAlarms();
+                    }
+
+                    // Live dynamic UI update: add reminder to list without page refresh!
+                    const list = document.getElementById('remindersList');
+                    const empty = document.getElementById('remindersEmptyState');
+                    if (empty) empty.remove();
+
+                    const r = data.reminder;
+                    if (r && list) {
+                        const itemHtml = `
+                        <div class="reminder-item" id="reminder-item-${r.id}" style="background: var(--item-hover); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); animation: fadeIn 0.3s ease;">
+                            <div>
+                                <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(r.title)}</div>
+                                <div style="font-size: 0.85rem; color: var(--text-dim);">${escapeHtml(r.time_display)}</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="color: var(--accent); font-size: 0.75rem; font-weight: 700;">Pending</span>
+                                <button onclick="deleteReminder('${r.id}')" style="background: transparent; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px; display: flex; align-items: center;" title="Delete Reminder">
+                                    <i class='bx bx-trash'></i>
+                                </button>
+                            </div>
+                        </div>`;
+                        list.insertAdjacentHTML('afterbegin', itemHtml);
+                    }
+
+                    showABCDModal({
+                        title: 'Success',
+                        message: activeModalTab === 'reminder' ? 'Reminder saved successfully!' : 'Schedule saved successfully!',
+                        type: 'success'
+                    });
+                } else {
+                    showABCDModal({ title: 'Error', message: data.error || 'Failed to save schedule.', type: 'error' });
                 }
+            })
+            .catch(err => {
+                showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
+            });
+        }
 
-                // Live dynamic UI update: add reminder to list without page refresh!
-                const list = document.getElementById('remindersList');
-                const empty = document.getElementById('remindersEmptyState');
-                if (empty) empty.remove();
-
-                const r = data.reminder;
-                if (r && list) {
-                    const itemHtml = `
-                    <div class="reminder-item" id="reminder-item-${r.id}" style="background: var(--item-hover); padding: 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); animation: fadeIn 0.3s ease;">
-                        <div>
-                            <div style="font-weight: 700; color: var(--text-main);">${escapeHtml(r.title)}</div>
-                            <div style="font-size: 0.85rem; color: var(--text-dim);">${escapeHtml(r.time_display)}</div>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <span style="color: var(--accent); font-size: 0.75rem; font-weight: 700;">Pending</span>
-                            <button onclick="deleteReminder('${r.id}')" style="background: transparent; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px; display: flex; align-items: center;" title="Delete Reminder">
-                                <i class='bx bx-trash'></i>
-                            </button>
-                        </div>
-                    </div>`;
-                    list.insertAdjacentHTML('afterbegin', itemHtml);
-                }
-
-                showABCDModal({
-                    title: 'Success',
-                    message: activeModalTab === 'reminder' ? 'Reminder saved successfully!' : 'Schedule saved successfully!',
-                    type: 'success'
+        if (typeof window.checkAlarmSetupStatus === 'function') {
+            const evalRes = window.checkAlarmSetupStatus();
+            if (!evalRes.ok) {
+                window.showAlarmSetupChecklist({
+                    onConfirmed: function() {
+                        _doSubmitCourseReminder();
+                    },
+                    onSaveWithoutRing: function() {
+                        _doSubmitCourseReminder();
+                    }
                 });
-            } else {
-                showABCDModal({ title: 'Error', message: data.error || 'Failed to save schedule.', type: 'error' });
+                return;
             }
-        })
-        .catch(err => {
-            showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
-        });
+        }
+        _doSubmitCourseReminder();
     }
 
     function deleteReminder(reminderId) {

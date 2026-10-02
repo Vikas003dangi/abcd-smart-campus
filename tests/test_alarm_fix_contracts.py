@@ -107,6 +107,69 @@ def test_phase2_bidirectional_ack_and_exact_fallback():
     assert "checkGlobalDueAlarms" in course_content, "course_detail.html must trigger checkGlobalDueAlarms immediately on save"
     print("PASS: Phase 2 Bidirectional ACK, exact fallback, and course detail immediate sync verified")
 
+def test_phase3_reconcile_safety_and_native_guard():
+    sched_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/NativeAlarmScheduler.java")
+    sync_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/AlarmSyncActivity.java")
+    sound_content = read_file("abcd_web/static/js/abcd-sound.js")
+
+    assert "boolean confirmed" in sched_content, "reconcileWithActiveServerIds must accept confirmed boolean"
+    assert "toCancel.size() * 2 > totalStored" in sched_content, "Native guard must reject deleting > 50% stored alarms without confirmation"
+    assert '"1".equals(data.getQueryParameter("confirmed"))' in sync_content, "AlarmSyncActivity must parse confirmed query parameter"
+    assert "confirmed=1" in sound_content, "abcd-sound.js must send confirmed=1 for explicit empty list reconcile"
+    assert "else if (reminders.length === 0)" in sound_content, "confirmed=1 must only be sent when server explicitly has 0 active reminders"
+    assert "abcdalarm://reconcile?active_ids=&confirmed=1" in sound_content, "Must dispatch confirmed=1 reconcile on empty list"
+    print("PASS: Phase 3 Reconcile safety guard & 50% native deletion protection verified")
+
+def test_phase3_native_status_and_settings_bridge():
+    launcher_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/LauncherActivity.java")
+    sync_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/AlarmSyncActivity.java")
+    sound_content = read_file("abcd_web/static/js/abcd-sound.js")
+
+    assert "handleGetStatus" in launcher_content, "LauncherActivity must implement handleGetStatus"
+    assert "notifications_enabled" in launcher_content, "handleGetStatus must return notifications_enabled"
+    assert "exact_alarm_allowed" in launcher_content, "handleGetStatus must return exact_alarm_allowed"
+    assert "battery_unrestricted" in launcher_content, "handleGetStatus must return battery_unrestricted"
+    assert "is_xiaomi" in launcher_content, "handleGetStatus must detect is_xiaomi"
+    assert "openSettingsTarget" in launcher_content, "LauncherActivity must implement openSettingsTarget"
+    assert "request_notifications" in launcher_content, "LauncherActivity must handle request_notifications"
+    assert "isValidBridgeToken" in launcher_content, "LauncherActivity must validate bridge token"
+    assert "open_settings" in sync_content, "AlarmSyncActivity must support open_settings fallback"
+    assert "openNativeSettings" in sound_content, "abcd-sound.js must provide openNativeSettings helper"
+    assert "requestNativeStatus" in sound_content, "abcd-sound.js must provide requestNativeStatus helper"
+    print("PASS: Phase 3 Native status & settings bridge verified")
+
+def test_phase3_web_setup_flow_and_checklist():
+    sound_content = read_file("abcd_web/static/js/abcd-sound.js")
+    todo_content = read_file("abcd_web/users/templates/users/todo.html")
+    course_content = read_file("abcd_web/users/templates/users/course_detail.html")
+
+    assert "showAlarmSetupChecklist" in sound_content, "abcd-sound.js must implement showAlarmSetupChecklist"
+    assert "checkAlarmSetupStatus" in sound_content, "abcd-sound.js must implement checkAlarmSetupStatus"
+    assert "evaluateStatus" in sound_content, "abcd-sound.js must implement evaluateStatus"
+    assert "abcd_autostart_confirmed_at" in sound_content, "Must persist autostart confirmation in localStorage"
+    assert "abcd_floating_confirmed_at" in sound_content, "Must persist floating confirmation in localStorage"
+    assert "abcdAlarmWarningBanner" in todo_content, "todo.html must contain abcdAlarmWarningBanner"
+    assert "abcdAlarmWarningBanner" in course_content, "course_detail.html must contain abcdAlarmWarningBanner"
+    assert "showAlarmSetupChecklist" in todo_content, "todo.html must invoke showAlarmSetupChecklist"
+    assert "showAlarmSetupChecklist" in course_content, "course_detail.html must invoke showAlarmSetupChecklist"
+    print("PASS: Phase 3 Web mandatory setup flow & checklist modal verified")
+
+def test_phase4_heads_up_channels_and_delegation():
+    app_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/Application.java")
+    delegation_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/DelegationService.java")
+    alarm_service_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/AlarmPlaybackService.java")
+
+    assert "CHANNEL_GENERAL_V3_ID = \"abcd_general_channel_v3\"" in app_content, "Must define abcd_general_channel_v3"
+    assert "CHANNEL_INAPP_V2_ID = \"abcd_inapp_channel_v2\"" in app_content, "Must define abcd_inapp_channel_v2"
+    assert "NotificationManager.IMPORTANCE_HIGH" in app_content, "New channels must use IMPORTANCE_HIGH"
+    assert "NotificationCompat.VISIBILITY_PUBLIC" in app_content or "Notification.VISIBILITY_PUBLIC" in app_content, "New channels must use VISIBILITY_PUBLIC"
+    assert "CHANNEL_INAPP_V2_ID" in delegation_content, "DelegationService must route foreground to CHANNEL_INAPP_V2_ID"
+    assert "CHANNEL_GENERAL_V3_ID" in delegation_content, "DelegationService must route background to CHANNEL_GENERAL_V3_ID"
+    assert "recoverBuilder" in delegation_content, "DelegationService must keep recoverBuilder logic"
+    assert "CATEGORY_ALARM" in alarm_service_content, "AlarmPlaybackService must set CATEGORY_ALARM"
+    assert "CATEGORY_REMINDER" in alarm_service_content, "AlarmPlaybackService must set CATEGORY_REMINDER"
+    print("PASS: Phase 4 Heads-up notification channels & service routing verified")
+
 if __name__ == "__main__":
     print("Running Alarm Architecture Fix Verification Checks...")
     test_android_manifest()
@@ -119,4 +182,9 @@ if __name__ == "__main__":
     test_phase1_expiry_bug_fixed()
     test_phase1_recurrence_engine_and_test_hook()
     test_phase2_bidirectional_ack_and_exact_fallback()
-    print("\nALL 10 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
+    test_phase3_reconcile_safety_and_native_guard()
+    test_phase3_native_status_and_settings_bridge()
+    test_phase3_web_setup_flow_and_checklist()
+    test_phase4_heads_up_channels_and_delegation()
+    print("\nALL 14 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
+
