@@ -349,8 +349,9 @@ class NavigationExitModalTests(TestCase):
         self.assertIn("sessionStorage.setItem('abcd_debug', '1')", content)
         self.assertIn('native log unavailable - channel not established', content)
 
-        # Fix 3: Late port tolerance and retries
-        self.assertIn('waiting up to 2s', content)
+        # Fast exit without port: immediate bind-time intent priming (no 3s or 2s wait)
+        self.assertIn("els.confirmBtn.setAttribute('href', self.INTENT_FALLBACK_URL)", content)
+        self.assertNotIn('waiting up to 2s', content)
 
         # Template check: Confirm exit button is rendered as a real anchor tag for natural user tap
         tmpl_path = os.path.join(settings.BASE_DIR, 'users', 'templates', 'partials', '_home_base_exit.html')
