@@ -456,13 +456,16 @@
             if (els.confirmBtn && !els.confirmBtn._abcdBound) {
                 els.confirmBtn._abcdBound = true;
 
-                // FIX 6: Arm fallback intent link if no port exists after 3 seconds in Android app
+                // Ensure href is '#' by default
+                els.confirmBtn.setAttribute('href', '#');
+
+                // FIX 6: Set the intent href ONLY when fallback is primed (no port after 3s)
                 setTimeout(function() {
                     const isApp = self.detectAndroidApp();
                     const intentFallbackAllowed = (typeof window.ABCD_EXIT_INTENT_FALLBACK === 'undefined' || window.ABCD_EXIT_INTENT_FALLBACK !== false);
                     if (isApp && !window._abcdTwaPort && intentFallbackAllowed && els.confirmBtn) {
                         els.confirmBtn.setAttribute('href', self.INTENT_FALLBACK_URL);
-                        if (window._abcdDlog) window._abcdDlog('Intent fallback primed (3s elapsed, no port)');
+                        if (window._abcdDlog) window._abcdDlog('Intent fallback primed (no port after 3s)');
                     }
                 }, 3000);
 
@@ -479,28 +482,35 @@
                     }
 
                     // Android App path:
-                    // Primary: If PostMessage port is already available, use postMessage
+                    // If a port exists: preventDefault() and send port.postMessage('exit')
                     if (window._abcdTwaPort) {
                         e.preventDefault();
+                        try {
+                            window._abcdTwaPort.postMessage('exit');
+                            if (window._abcdDlog) window._abcdDlog('EXIT: port.postMessage("exit") sent');
+                            if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
+                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port.postMessage("exit") sent OK');
+                            }
+                        } catch(err) {
+                            if (window._abcdDlog) window._abcdDlog('EXIT port err: ' + err.message);
+                        }
                         self.doActualExit();
                         return;
                     }
 
-                    // FIX 6: Fallback Option A - triggered by user's own tap on real <a> element
+                    // Fallback is primed (no port after 3s, href set to intent URL)
                     if (currentHref === self.INTENT_FALLBACK_URL && intentFallbackAllowed) {
                         if (window._abcdDlog) window._abcdDlog('fallback intent link used');
                         if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
                             window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - fallback intent link used');
                         }
-                        // Allow natural browser link activation to intent:// URL
+                        // Natural user tap activates the intent link (no preventDefault, no scripted navigation)
                         return;
                     }
 
-                    // FIX 3: Tolerate late port - if EXIT was tapped without a port, retry for ~2 seconds
+                    // Fallback not yet primed (tapped before 3s or href still '#'):
+                    // FIX 3: Tolerate late port - show nothing destructive, log it, and retry for ~2 seconds
                     e.preventDefault();
-                    if (intentFallbackAllowed) {
-                        els.confirmBtn.setAttribute('href', self.INTENT_FALLBACK_URL);
-                    }
                     if (window._abcdDlog) window._abcdDlog('EXIT tapped: port not ready, waiting up to 2s...');
                     if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
                         window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port not ready, waiting up to 2s...');
@@ -522,8 +532,11 @@
                         if (retryCount >= maxRetries) {
                             clearInterval(retryInterval);
                             if (window._abcdDlog) window._abcdDlog('EXIT retry timeout: no port arrived');
+                            if (intentFallbackAllowed && els.confirmBtn) {
+                                els.confirmBtn.setAttribute('href', self.INTENT_FALLBACK_URL);
+                            }
                             if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
-                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - retry timeout (no port). Intent fallback armed.');
+                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - retry timeout (no port). Intent fallback primed for next tap.');
                             }
                         }
                     }, 100);
