@@ -9104,10 +9104,10 @@
                 <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
                   👁 View Student
                 </button>
-                <button type="button" class="btn btn-success hold-action-btn" data-action="approve" data-seat-id="{{ req.seat.id }}">
+                <button type="button" class="btn btn-success hold-action-btn" data-action="approve" data-seat-id="{{ req.seat.id }}" data-request-id="{{ req.id }}">
                   ✅ Approve
                 </button>
-                <button type="button" class="btn btn-danger hold-action-btn" data-action="deny" data-seat-id="{{ req.seat.id }}">
+                <button type="button" class="btn btn-danger hold-action-btn" data-action="deny" data-seat-id="{{ req.seat.id }}" data-request-id="{{ req.id }}">
                   ❌ Deny
                 </button>
               </div>
@@ -9290,10 +9290,10 @@
                 <button type="button" class="btn view-quick-profile-btn" onclick="openQuickStudentProfile('{{ req.student.id }}')">
                   👁 View Student
                 </button>
-                <button type="button" class="btn btn-success hold-action-btn" data-action="approve" data-seat-id="{{ req.seat.id }}">
+                <button type="button" class="btn btn-success hold-action-btn" data-action="approve" data-seat-id="{{ req.seat.id }}" data-request-id="{{ req.id }}">
                   ✅ Approve Cancel
                 </button>
-                <button type="button" class="btn btn-danger hold-action-btn" data-action="deny" data-seat-id="{{ req.seat.id }}">
+                <button type="button" class="btn btn-danger hold-action-btn" data-action="deny" data-seat-id="{{ req.seat.id }}" data-request-id="{{ req.id }}">
                   ❌ Deny Cancel
                 </button>
               </div>
@@ -10035,6 +10035,7 @@
 
       const action = btn.dataset.action;
       const seatId = btn.dataset.seatId;
+      const requestId = btn.dataset.requestId;
 
       const confirmed = await window.showStyledConfirm(
         'Confirm Action',
@@ -10056,6 +10057,7 @@
           },
           body: JSON.stringify({
             seat_id: seatId,
+            request_id: requestId,
             action: action
           })
         });
@@ -10063,16 +10065,32 @@
         const data = await res.json();
 
         if (data.status === 'success') {
-          await window.showStyledAlert('Success', data.message);
+          // Immediately animate out the request card for instant real feedback
+          const card = btn.closest('.request-item');
+          if (card) {
+            card.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(-10px) scale(0.96)';
+            setTimeout(() => {
+              const list = card.parentElement;
+              card.remove();
+              if (list && list.children.length === 0) {
+                const section = list.closest('.batch-section');
+                if (section) section.remove();
+              }
+            }, 300);
+          }
+
+          await window.showStyledAlert('Success', data.message, 'success');
           if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
           if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
         } else {
-          await window.showStyledAlert('Failed', data.message || 'Action failed');
+          await window.showStyledAlert('Failed', data.message || 'Action failed', 'error');
         }
 
       } catch (err) {
         console.error(err);
-        await window.showStyledAlert('Error', 'Server error while processing hold request');
+        await window.showStyledAlert('Error', 'Server error while processing hold request', 'error');
       } finally {
         if (typeof window.setButtonLoading === 'function') {
           window.setButtonLoading(btn, false);
@@ -15222,6 +15240,24 @@ function showTeacherStyledPopup({ title = 'Notice', message = '', type = 'info',
     });
 }
 
+function removeTeacherRequestCardItem(reqId) {
+    const btn = document.querySelector(`button[onclick*="'${reqId}'"], button[onclick*="\"${reqId}\""]`);
+    const card = btn?.closest('.request-item');
+    if (card) {
+        card.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(-10px) scale(0.96)';
+        setTimeout(() => {
+            const list = card.parentElement;
+            card.remove();
+            if (list && list.children.length === 0) {
+                const sec = list.closest('.batch-section');
+                if (sec) sec.remove();
+            }
+        }, 300);
+    }
+}
+
 async function approveSwitchRequest(reqId) {
     try {
         const response = await fetch(`/teacher/seat_switch/${reqId}/approve/`, {
@@ -15245,6 +15281,7 @@ async function approveSwitchRequest(reqId) {
                 }
             });
         } else if (response.ok) {
+            removeTeacherRequestCardItem(reqId);
             showTeacherStyledPopup({
                 title: 'Success',
                 message: 'Seat switch request approved successfully!',
@@ -15281,6 +15318,7 @@ async function rejectSwitchRequest(reqId, isSilent = false) {
         });
         const data = await response.json();
         if (response.ok) {
+            removeTeacherRequestCardItem(reqId);
             if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
             if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
             if (!isSilent) {
@@ -15317,6 +15355,7 @@ async function approveLeaveRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
+            removeTeacherRequestCardItem(reqId);
             showTeacherStyledPopup({
                 title: 'Success',
                 message: data.message || 'Seat leave request approved successfully! The temporary assignment has been terminated.',
@@ -15354,6 +15393,7 @@ async function rejectLeaveRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
+            removeTeacherRequestCardItem(reqId);
             showTeacherStyledPopup({
                 title: 'Success',
                 message: 'Seat leave request has been rejected.',
@@ -15391,6 +15431,7 @@ async function approveHoldChangeRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
+            removeTeacherRequestCardItem(reqId);
             showTeacherStyledPopup({
                 title: 'Success',
                 message: data.message || 'Hold change request approved successfully! Hold end date and fee expiry updated.',
@@ -15428,6 +15469,7 @@ async function rejectHoldChangeRequest(reqId) {
         });
         const data = await response.json();
         if (response.ok) {
+            removeTeacherRequestCardItem(reqId);
             showTeacherStyledPopup({
                 title: 'Success',
                 message: data.message || 'Hold change request has been rejected.',

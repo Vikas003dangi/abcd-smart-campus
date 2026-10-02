@@ -9433,12 +9433,18 @@ def manage_hold_request_api(request):
     try:
         data = json.loads(request.body or '{}')
         seat_id = data.get('seat_id')
-        seat = Seat.objects.select_for_update().get(id=seat_id)
-
+        request_id = data.get('request_id')
         action = data.get('action')  # approve | deny
+
+        if not seat_id and request_id:
+            hr_preview = SeatHoldRequest.objects.filter(id=request_id).values('seat_id').first()
+            if hr_preview:
+                seat_id = hr_preview['seat_id']
 
         if not seat_id or action not in ['approve', 'deny']:
             return JsonResponse({'status': 'error', 'message': 'seat_id and valid action required.'}, status=400)
+
+        seat = Seat.objects.select_for_update().get(id=seat_id)
         
         # --------------------------------------------------
         # PARTIAL ALLOTMENT: APPROVE SPECIAL SEAT REQUEST
@@ -9527,11 +9533,20 @@ def manage_hold_request_api(request):
         # --------------------------------------------------
 
         # FULL HOLD REQUEST MANAGEMENT
-        hold_request = SeatHoldRequest.objects.select_for_update().filter(
-            seat_id=seat_id
-        ).filter(
-            models.Q(status='pending') | models.Q(status='approved', cancel_requested=True)
-        ).first()
+        hold_request = None
+        if request_id:
+            hold_request = SeatHoldRequest.objects.select_for_update().filter(
+                id=request_id
+            ).filter(
+                models.Q(status='pending') | models.Q(status='approved', cancel_requested=True)
+            ).first()
+
+        if not hold_request:
+            hold_request = SeatHoldRequest.objects.select_for_update().filter(
+                seat_id=seat_id
+            ).filter(
+                models.Q(status='pending') | models.Q(status='approved', cancel_requested=True)
+            ).first()
 
         if not hold_request:
             return JsonResponse({'status': 'error', 'message': 'Pending or cancelable hold request not found.'}, status=404)
@@ -9540,19 +9555,18 @@ def manage_hold_request_api(request):
 
         owner_assignment = SeatAssignment.objects.filter(
             seat=seat,
-            student=student,
-            is_active=True
+            student=student
         ).first()
 
-        if not owner_assignment:
-            return JsonResponse({'status': 'error', 'message': 'Seat owner assignment not found.'}, status=400)
+        if action == 'approve' and not owner_assignment and getattr(student, 'seat_id', None) != seat.id:
+            return JsonResponse({'status': 'error', 'message': 'Seat owner assignment not found for this student.'}, status=400)
 
         if hold_request.cancel_requested:
             if action == 'approve':
                 hold_request.delete()
                 
                 today = timezone.localdate()
-                hold_started = (owner_assignment.hold_start_date and owner_assignment.hold_start_date <= today)
+                hold_started = bool(owner_assignment and owner_assignment.hold_start_date and owner_assignment.hold_start_date <= today)
                 
                 # Revert seat hold state
                 seat.hold_status = 'none'
@@ -9565,17 +9579,18 @@ def manage_hold_request_api(request):
                     seat.hold_start_date = None
                     seat.hold_end_date = None
                 
-                seat.status = 'occupied'
+                seat.status = 'occupied' if (owner_assignment or getattr(student, 'seat_id', None) == seat.id) else 'available'
                 seat.save()
                 
                 # Revert assignment hold state
-                owner_assignment.hold_status = 'none'
-                if hold_started:
-                    owner_assignment.hold_end_date = today
-                else:
-                    owner_assignment.hold_start_date = None
-                    owner_assignment.hold_end_date = None
-                owner_assignment.save()
+                if owner_assignment:
+                    owner_assignment.hold_status = 'none'
+                    if hold_started:
+                        owner_assignment.hold_end_date = today
+                    else:
+                        owner_assignment.hold_start_date = None
+                        owner_assignment.hold_end_date = None
+                    owner_assignment.save()
                 
                 # Revert student status
                 student.status = 'admitted'
@@ -9646,27 +9661,36 @@ def manage_hold_request_api(request):
             seat.hold_student = student
             seat.hold_start_date = start_date
             seat.hold_end_date = end_date
+            seat.hold_request_date = None
+            seat.hold_request_duration = None
             
-            owner_assignment.hold_start_date = start_date
-            owner_assignment.hold_end_date = end_date
+            if owner_assignment:
+                owner_assignment.hold_start_date = start_date
+                owner_assignment.hold_end_date = end_date
 
             today = timezone.localdate()
             if start_date <= today:
                 seat.status = 'on_hold'
                 seat.hold_status = 'active'
-                owner_assignment.hold_status = 'active'
+                if owner_assignment:
+                    owner_assignment.hold_status = 'active'
                 student.status = 'on_hold'
                 student.save(update_fields=['status'])
             else:
                 # Keep seat available/occupied until start date
                 seat.hold_status = 'none'
-                owner_assignment.hold_status = 'none'
+                if owner_assignment:
+                    owner_assignment.hold_status = 'none'
             
             seat.save()
-            owner_assignment.save()
+            if owner_assignment:
+                owner_assignment.save()
 
             # Recalculate fee expiry with hold extension
             _recalc_fee_expiry_with_hold(student)
+
+            # Clean up prior approved requests for this seat to prevent unique_together violation
+            SeatHoldRequest.objects.filter(seat=seat, status='approved').exclude(id=hold_request.id).delete()
 
             # Mark request approved
             hold_request.status = 'approved'
@@ -9689,8 +9713,15 @@ def manage_hold_request_api(request):
 
         # ---------- DENY ----------
 
-        hold_request.status = 'rejected'
-        hold_request.save(update_fields=['status'])
+        # Cleanly reset seat hold request fields
+        if seat.hold_status == 'pending':
+            seat.hold_status = 'none'
+        seat.hold_request_date = None
+        seat.hold_request_duration = None
+        seat.save(update_fields=['hold_status', 'hold_request_date', 'hold_request_duration'])
+
+        # Delete request to prevent unique_together collision and vanish it
+        hold_request.delete()
 
         create_notification(
             user=student.user,
@@ -15967,7 +15998,13 @@ def notifications_api_view(request):
         # Counts
         overdue_count = len(overdue_students)
         total_admission_requests = pending_students.count()
-        total_hold_requests = pending_hold_requests.count() + cancel_hold_requests.count()
+        total_hold_requests = (
+            pending_hold_requests.count()
+            + cancel_hold_requests.count()
+            + SeatSwitchRequest.objects.filter(status='pending').count()
+            + SeatLeaveRequest.objects.filter(status='pending').count()
+            + SeatHoldChangeRequest.objects.filter(status='pending').count()
+        )
         total_pending_achievements = pending_achievements.count()
         pending_complaints_count = active_complaints.count()
         
@@ -18790,9 +18827,12 @@ def approve_seat_switch(request, pk):
             )
 
             try:
-                notifications.send_seat_switch_approval_email(student, target_seat, target_shift)
+                transaction.on_commit(lambda: notifications.send_seat_switch_approval_email(student, target_seat, target_shift))
             except Exception:
-                pass
+                try:
+                    notifications.send_seat_switch_approval_email(student, target_seat, target_shift)
+                except Exception:
+                    pass
 
             notifications.broadcast_seat_update()
             return JsonResponse({'status': 'success', 'message': 'Request approved successfully.'})
@@ -18811,31 +18851,38 @@ def reject_seat_switch(request, pk):
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
 
+    from django.db import transaction
     from users.models import SeatSwitchRequest
     from users.notifications import create_notification
 
     try:
-        req = SeatSwitchRequest.objects.get(pk=pk, status='pending')
-        student = req.student
+        with transaction.atomic():
+            req = SeatSwitchRequest.objects.select_for_update().get(pk=pk, status='pending')
+            student = req.student
+            target_seat = req.target_seat
+            target_shift = req.target_shift
 
-        req.status = 'rejected'
-        req.save(update_fields=['status'])
-        req.delete()  # Remove request to vanish it
+            req.status = 'rejected'
+            req.save(update_fields=['status'])
+            req.delete()  # Remove request to vanish it
 
-        create_notification(
-            user=student.user,
-            title="Seat Switch Rejected",
-            message=f"Your request to switch to seat {req.target_seat.seat_number} has been rejected.",
-            category="seat_change"
-        )
+            create_notification(
+                user=student.user,
+                title="Seat Switch Rejected",
+                message=f"Your request to switch to seat {target_seat.seat_number} has been rejected.",
+                category="seat_change"
+            )
 
-        try:
-            notifications.send_seat_rejection_email(student, req.target_seat, req.target_shift)
-        except Exception:
-            pass
+            try:
+                transaction.on_commit(lambda: notifications.send_seat_rejection_email(student, target_seat, target_shift))
+            except Exception:
+                try:
+                    notifications.send_seat_rejection_email(student, target_seat, target_shift)
+                except Exception:
+                    pass
 
-        notifications.broadcast_seat_update()
-        return JsonResponse({'status': 'success', 'message': 'Request rejected successfully.'})
+            notifications.broadcast_seat_update()
+            return JsonResponse({'status': 'success', 'message': 'Request rejected successfully.'})
 
     except SeatSwitchRequest.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Request not found or already processed.'}, status=404)

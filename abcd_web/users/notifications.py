@@ -897,8 +897,6 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         return
 
     try:
-        from django.db import close_old_connections
-        close_old_connections()
         subscriptions = PushSubscription.objects.filter(user=user)
         if not subscriptions.exists():
             return
