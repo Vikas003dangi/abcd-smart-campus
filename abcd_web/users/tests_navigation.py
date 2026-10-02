@@ -257,12 +257,14 @@ class NavigationExitModalTests(TestCase):
         self.assertContains(resp, 'v=3.0.0')
 
     def test_assetlinks_contains_play_signing_cert_and_low_cache_ttl(self):
-        """Verify assetlinks.json serves the 72:AB... fingerprint and 60s max-age."""
+        """Verify assetlinks.json serves the 72:AB... fingerprint, use_as_origin, and 60s max-age."""
         resp = self.client.get('/.well-known/assetlinks.json')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp['Cache-Control'], 'public, max-age=60')
         import json
         data = json.loads(resp.content.decode('utf-8'))
+        relations = data[0]['relation']
+        self.assertIn('delegate_permission/common.use_as_origin', relations)
         fingerprints = data[0]['target']['sha256_cert_fingerprints']
         self.assertIn(
             '72:AB:7B:61:FC:3D:16:2C:CF:B8:11:1B:59:E2:D6:3A:BD:F3:26:F6:2D:35:0F:82:C4:65:67:4B:DE:F5:8F:56',

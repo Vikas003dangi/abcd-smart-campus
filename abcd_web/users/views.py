@@ -19655,7 +19655,8 @@ def assetlinks_json_view(request):
         {
             "relation": [
                 "delegate_permission/common.handle_all_urls",
-                "delegate_permission/common.get_login_creds"
+                "delegate_permission/common.get_login_creds",
+                "delegate_permission/common.use_as_origin"
             ],
             "target": {
                 "namespace": "android_app",
