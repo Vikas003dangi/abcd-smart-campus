@@ -281,9 +281,9 @@ class NavigationExitModalTests(TestCase):
         self.assertIn('ABCD Smart Campus Coaching And Library Ganj Basoda', content)
         self.assertIn('https://www.google.com/search?q=', content)
 
-        # Android exit uses hidden iframe dispatch with abcdexit scheme (avoids Chrome external-app dialog)
-        self.assertIn('abcdexit://close', content)
-        self.assertIn('abcd-exit-bridge', content)
+        # Android exit uses TWA postMessage communication (avoids Chrome external-app dialog and subframe scheme blocks)
+        self.assertIn('_abcdTwaPort', content)
+        self.assertIn("postMessage('exit'", content)
 
         # Verify doActualExit does NOT contain any history.go or history.back
         exit_method_start = content.find('doActualExit: function()')

@@ -21,6 +21,19 @@
 (function(window, document) {
     'use strict';
 
+    // Capture Custom Tabs / TWA postMessage port or handshake early
+    if (typeof window !== 'undefined' && !window._abcdTwaListenerAttached) {
+        window._abcdTwaListenerAttached = true;
+        window.addEventListener('message', function(event) {
+            if (event.ports && event.ports.length > 0) {
+                window._abcdTwaPort = event.ports[0];
+                if (window._abcdTwaPort && typeof window._abcdTwaPort.start === 'function') {
+                    try { window._abcdTwaPort.start(); } catch(e) {}
+                }
+            }
+        });
+    }
+
     if (window.ABCDNav && window.ABCDNav.__initialized) {
         return;
     }
@@ -533,17 +546,40 @@
                     try { window.Android.finish(); return; } catch(e) {}
                 }
 
-                // B. Primary: Hidden iframe dispatch to ExitActivity via custom scheme.
-                // Uses iframe.src (NOT window.location.href) to avoid Chrome's
-                // "Continue to ABCD Campus?" external-app confirmation dialog.
-                // Same proven pattern as sendNativeTwaMessage() in abcd-sound.js.
-                try {
-                    var exitFrame = document.createElement('iframe');
-                    exitFrame.style.display = 'none';
-                    exitFrame.id = 'abcd-exit-bridge';
-                    document.body.appendChild(exitFrame);
-                    exitFrame.src = 'abcdexit://close';
-                } catch(e) {}
+                // B. Primary: Custom Tabs / TWA postMessage Exit channel.
+                // Communicates directly with LauncherActivity via CustomTabsCallback.onPostMessage.
+                // Triggers native LauncherActivity.terminateApp(context) with zero Chrome dialogs
+                // and zero external navigation prompts.
+                function dispatchTwaExit() {
+                    let sent = false;
+                    if (window._abcdTwaPort) {
+                        try {
+                            window._abcdTwaPort.postMessage('exit');
+                            sent = true;
+                        } catch(e) {}
+                    }
+                    try {
+                        window.postMessage('exit', '*');
+                        window.postMessage({ type: 'ABCD_EXIT', action: 'exit' }, '*');
+                    } catch(e) {}
+                    try {
+                        if (window.parent && window.parent !== window) {
+                            window.parent.postMessage('exit', '*');
+                        }
+                    } catch(e) {}
+                    return sent;
+                }
+
+                dispatchTwaExit();
+
+                var attempts = 0;
+                var interval = setInterval(function() {
+                    attempts++;
+                    var done = dispatchTwaExit();
+                    if (done || attempts >= 10) {
+                        clearInterval(interval);
+                    }
+                }, 50);
 
                 // CRITICAL CONTRACT: Under NO circumstances pop history stack backward!
                 return;
