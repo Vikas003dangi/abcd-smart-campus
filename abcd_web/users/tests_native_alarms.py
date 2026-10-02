@@ -44,6 +44,41 @@ class NativeAlarmAuthTestCase(TestCase):
         original = signer.unsign(token, max_age=3600)
         self.assertEqual(original, f"{self.task.id}:{self.user.id}")
 
+    def test_active_reminders_api_returns_all_recurrence_fields_and_plain_reminders(self):
+        # Create a recurring task with until_date, day_of_month, interval_days, and plain reminder (alarm_enabled=False)
+        recurring_task = TodoTask.objects.create(
+            user=self.user,
+            category='REMINDER',
+            is_done=False,
+            is_trash=False,
+            metadata={
+                'title': 'Monthly Fee Reminder',
+                'recurrence': 'monthly',
+                'day_of_month': 28,
+                'interval_days': 15,
+                'until_date': '2026-12-31',
+                'days_of_week': [0, 2, 4],
+                'alarm_enabled': False,  # Plain reminder (gentle notification)
+                'alarm_status': 'ringing',
+                'time_str': '14:30'
+            }
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('users:active_reminders_api'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        reminders = data.get('reminders', [])
+        rem = next(r for r in reminders if r['id'] == recurring_task.id)
+
+        self.assertFalse(rem['is_alarm'], "Plain reminder must have is_alarm=False")
+        self.assertEqual(rem['recurrence'], 'monthly')
+        self.assertEqual(rem['day_of_month'], 28)
+        self.assertEqual(rem['interval_days'], 15)
+        self.assertEqual(rem['until_date'], '2026-12-31')
+        self.assertEqual(rem['days_of_week'], '0,2,4')
+        self.assertEqual(rem['time_str'], '14:30')
+
     def test_unauthenticated_post_without_token_fails(self):
         # Client not logged in
         url = reverse('users:todo_reminder_action', kwargs={'task_id': self.task.id})
@@ -232,6 +267,7 @@ class NativeTwaCapabilityGatingTests(TestCase):
                 isNativeActive: context.window.isNativeAlarmTwaActive(),
                 swMessagesCount: swMessages.length,
                 iframeSourcesCount: iframeSources.length,
+                iframeSources: iframeSources,
                 iframeSource: iframeSources[0] || null
             }}));
         }}, 30);
@@ -275,5 +311,7 @@ class NativeTwaCapabilityGatingTests(TestCase):
         data = self._run_node_scenario(setup_js)
         self.assertTrue(data["isNativeActive"], "New TWA with bridge_token must activate native alarm mode")
         self.assertEqual(data["swMessagesCount"], 1, "New TWA must notify Service Worker of SET_TWA_MODE")
-        self.assertEqual(data["iframeSourcesCount"], 1, "New TWA must dispatch abcdalarm://schedule")
-        self.assertIn("bridge_token=auth-uuid-test-999", data["iframeSource"])
+        self.assertEqual(data["iframeSourcesCount"], 2, "New TWA must dispatch abcdalarm://reconcile and abcdalarm://schedule")
+        self.assertTrue(any("abcdalarm://reconcile" in s for s in data["iframeSources"]), "Must dispatch reconcile")
+        self.assertTrue(any("abcdalarm://schedule" in s for s in data["iframeSources"]), "Must dispatch schedule")
+        self.assertTrue(all("bridge_token=auth-uuid-test-999" in s for s in data["iframeSources"]), "All dispatches must preserve bridge_token")

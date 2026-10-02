@@ -886,7 +886,22 @@
     }
 
     let twaBridgeIframe = null;
-    function sendNativeTwaMessage(schemeUri) {
+    let twaDispatchQueue = [];
+    let isDispatchingTwa = false;
+    const pendingNativeAcks = {}; // taskId -> { uri, attempts, timer }
+
+    function processTwaQueue() {
+        if (isDispatchingTwa || twaDispatchQueue.length === 0) return;
+        isDispatchingTwa = true;
+        const nextUri = twaDispatchQueue.shift();
+        sendNativeTwaMessageDirect(nextUri);
+        setTimeout(function () {
+            isDispatchingTwa = false;
+            processTwaQueue();
+        }, 75);
+    }
+
+    function sendNativeTwaMessageDirect(schemeUri) {
         if (!isNativeAlarmTwaActive()) return;
         try {
             const token = getTwaBridgeToken();
@@ -905,17 +920,84 @@
         }
     }
 
+    function sendNativeTwaMessage(schemeUri) {
+        twaDispatchQueue.push(schemeUri);
+        processTwaQueue();
+    }
+
+    function handleNativeScheduleAck(ack) {
+        if (!ack || !ack.id) return;
+        const taskId = String(ack.id);
+        if (pendingNativeAcks[taskId]) {
+            clearTimeout(pendingNativeAcks[taskId].timer);
+            delete pendingNativeAcks[taskId];
+        }
+        if (ack.ok) {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'CONFIRM_NATIVE_TASK',
+                    id: taskId,
+                    exact: Boolean(ack.exact)
+                });
+            }
+        }
+    }
+
+    window.addEventListener('message', function (event) {
+        if (!event || !event.data) return;
+        let data = event.data;
+        if (typeof data === 'string' && data.trim().startsWith('{')) {
+            try { data = JSON.parse(data); } catch (e) {}
+        }
+        if (data && data.type === 'schedule_ack') {
+            handleNativeScheduleAck(data);
+        }
+    });
+
+    function trackPendingSchedule(taskId, uri) {
+        if (pendingNativeAcks[taskId]) {
+            clearTimeout(pendingNativeAcks[taskId].timer);
+        }
+        pendingNativeAcks[taskId] = {
+            uri: uri,
+            attempts: 1,
+            timer: setTimeout(function () {
+                retryUnacknowledgedSchedule(taskId);
+            }, 3500)
+        };
+    }
+
+    function retryUnacknowledgedSchedule(taskId) {
+        const pending = pendingNativeAcks[taskId];
+        if (!pending) return;
+        if (pending.attempts < 2) {
+            pending.attempts += 1;
+            console.debug('[ABCD Sound] Retrying native alarm schedule for task:', taskId, 'attempt:', pending.attempts);
+            sendNativeTwaMessage(pending.uri);
+            pending.timer = setTimeout(function () {
+                retryUnacknowledgedSchedule(taskId);
+            }, 3500);
+        } else {
+            console.warn('[ABCD Sound] Native schedule ACK timed out for task:', taskId, '- leaving unconfirmed so Web Push remains active fallback.');
+            delete pendingNativeAcks[taskId];
+        }
+    }
+
     function syncRemindersToNativeTwa(reminders) {
         if (!isNativeAlarmTwaActive() || !Array.isArray(reminders)) return;
         try {
             const scheduledTasks = [];
+            const activeIds = [];
 
             reminders.forEach(function (rem) {
                 if (!rem || rem.alarm_status === 'stopped') return;
-                // Sync alarms AND course-source reminders to native.
-                // Alarms get exact wake-up via AlarmManager; course reminders also need
-                // native scheduling so they survive TWA being closed/killed by MIUI.
-                if (!rem.is_alarm && rem.source !== 'course') return;
+                // Sync all alarms AND plain reminders AND course-source reminders to native.
+                // Every sounding reminder gets native scheduling so it survives TWA being closed/killed.
+                // (Previously skipped plain reminders if !rem.is_alarm && rem.source !== 'course')
+                const isAlarmVal = rem.is_alarm ? 1 : 0;
+
+                const taskId = (rem.source === 'course' && !String(rem.id).startsWith('course_')) ? 'course_' + rem.id : String(rem.id);
+                activeIds.push(taskId);
 
                 let triggerMillis = 0;
                 if (rem.recurrence === 'once' && rem.fire_at) {
@@ -934,20 +1016,30 @@
                 }
 
                 if (triggerMillis > Date.now()) {
-                    const cleanTitle = encodeURIComponent(rem.title || 'Scheduled Alarm');
-                    const cleanNote = encodeURIComponent(rem.note || 'Your scheduled alarm is ringing now!');
-                    const cleanSound = encodeURIComponent(rem.sound || '/static/audio/alarm.mp3');
+                    const cleanTitle = encodeURIComponent(rem.title || 'Scheduled Reminder');
+                    const cleanNote = encodeURIComponent(rem.note || 'Your scheduled reminder is ringing now!');
+                    const defaultSound = isAlarmVal ? '/static/audio/alarm.mp3' : '/static/audio/PWA.mp3';
+                    const cleanSound = encodeURIComponent(rem.sound || defaultSound);
                     const cleanActionToken = encodeURIComponent(rem.action_token || '');
                     const cleanRecurrence = encodeURIComponent(rem.recurrence || 'once');
                     const cleanScheduleTime = encodeURIComponent(rem.time_str || '');
                     const cleanDaysOfWeek = encodeURIComponent(rem.days_of_week || '');
-                    const isAlarmVal = rem.is_alarm ? 1 : 0;
-                    const uri = `abcdalarm://schedule?id=${encodeURIComponent(rem.id)}&time=${triggerMillis}&title=${cleanTitle}&body=${cleanNote}&is_alarm=${isAlarmVal}&sound=${cleanSound}&action_token=${cleanActionToken}&recurrence=${cleanRecurrence}&schedule_time=${cleanScheduleTime}&days_of_week=${cleanDaysOfWeek}`;
-                    sendNativeTwaMessage(uri);
+                    const cleanDayOfMonth = encodeURIComponent(rem.day_of_month || 1);
+                    const cleanIntervalDays = encodeURIComponent(rem.interval_days || 1);
+                    const cleanUntilDate = encodeURIComponent(rem.until_date || '');
 
-                    scheduledTasks.push({ id: String(rem.id), triggerAt: triggerMillis });
+                    const uri = `abcdalarm://schedule?id=${encodeURIComponent(taskId)}&time=${triggerMillis}&title=${cleanTitle}&body=${cleanNote}&is_alarm=${isAlarmVal}&sound=${cleanSound}&action_token=${cleanActionToken}&recurrence=${cleanRecurrence}&schedule_time=${cleanScheduleTime}&days_of_week=${cleanDaysOfWeek}&day_of_month=${cleanDayOfMonth}&interval_days=${cleanIntervalDays}&until_date=${cleanUntilDate}`;
+                    sendNativeTwaMessage(uri);
+                    trackPendingSchedule(taskId, uri);
+
+                    scheduledTasks.push({ id: taskId, triggerAt: triggerMillis });
                 }
             });
+
+            // Reconcile active server tasks with native AlarmManager (cancel any removed tasks)
+            if (activeIds.length > 0) {
+                sendNativeTwaMessage(`abcdalarm://reconcile?active_ids=${encodeURIComponent(activeIds.join(','))}`);
+            }
 
             // Notify Service Worker of confirmed native tasks for exact per-task suppression
             if (navigator.serviceWorker && navigator.serviceWorker.controller) {

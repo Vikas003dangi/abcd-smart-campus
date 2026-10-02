@@ -967,6 +967,12 @@ def active_reminders_api(request):
         _action_signer = TimestampSigner(salt='abcd-reminder-action')
         action_token = _action_signer.sign(f"{t.id}:{request.user.id}")
 
+        raw_dow = meta.get('days_of_week', '')
+        if isinstance(raw_dow, (list, tuple)):
+            days_of_week_str = ",".join(str(d) for d in raw_dow)
+        else:
+            days_of_week_str = str(raw_dow or '')
+
         unified_reminders.append({
             'id': t.id,
             'source': 'todo',
@@ -975,7 +981,9 @@ def active_reminders_api(request):
             'recurrence': recurrence,
             'fire_at': fire_at,
             'time_str': meta.get('time_str', '00:00'),
-            'days_of_week': meta.get('days_of_week', ''),
+            'days_of_week': days_of_week_str,
+            'day_of_month': meta.get('day_of_month', 1),
+            'interval_days': meta.get('interval_days', 1),
             'until_date': meta.get('until_date'),
             'is_alarm': is_alarm,
             'alarm_status': alarm_status,
@@ -1003,6 +1011,12 @@ def active_reminders_api(request):
         course_title = lr.course.title if lr.course else 'Course'
         course_id = lr.course.id if lr.course else None
 
+        raw_course_dow = lr.days_of_week or ''
+        if isinstance(raw_course_dow, (list, tuple)):
+            course_dow_str = ",".join(str(d) for d in raw_course_dow)
+        else:
+            course_dow_str = str(raw_course_dow or '')
+
         unified_reminders.append({
             'id': lr.id,
             'source': 'course',
@@ -1012,7 +1026,10 @@ def active_reminders_api(request):
             'recurrence': lr.recurrence_type,
             'fire_at': fire_at,
             'time_str': time_str,
-            'days_of_week': lr.days_of_week or '',
+            'days_of_week': course_dow_str,
+            'day_of_month': 1,
+            'interval_days': 1,
+            'until_date': None,
             'is_alarm': False,
             'alarm_status': 'ringing' if lr.is_sent else None,
             'sound': '/static/audio/alarms and reminders.mp3',

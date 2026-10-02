@@ -87,6 +87,10 @@ function isTaskNativelyScheduled(taskId) {
     return getNativeScheduledTasks().then(function (tasks) {
         var task = tasks[String(taskId)];
         if (!task) return false;
+        // Require confirmed exact alarm scheduling: if exact is false or missing, do NOT suppress push
+        if (task.exact !== true) {
+            return false;
+        }
         var now = Date.now();
         // Invalidate if scheduled trigger time is in the past by more than 24 hours
         if (task.triggerAt && now > (task.triggerAt + 24 * 60 * 60 * 1000)) {
@@ -173,6 +177,20 @@ self.addEventListener('message', function (event) {
                 }
             });
             saveNativeScheduledTasks(syncMap);
+        }
+    } else if (event.data && event.data.type === 'CONFIRM_NATIVE_TASK') {
+        if (event.data.id) {
+            var confTaskId = String(event.data.id);
+            var isExact = Boolean(event.data.exact);
+            getNativeScheduledTasks().then(function (tasks) {
+                var existing = tasks[confTaskId] || {};
+                tasks[confTaskId] = {
+                    triggerAt: existing.triggerAt || 0,
+                    exact: isExact,
+                    confirmedAt: Date.now()
+                };
+                saveNativeScheduledTasks(tasks);
+            });
         }
     } else if (event.data && event.data.type === 'REMOVE_NATIVE_TASK') {
         if (event.data.taskId) {

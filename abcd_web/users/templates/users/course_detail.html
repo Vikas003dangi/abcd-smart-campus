@@ -3143,6 +3143,9 @@
         .then(data => {
             if (data.success) {
                 closeReminderModal();
+                if (typeof window.checkGlobalDueAlarms === 'function') {
+                    window.checkGlobalDueAlarms();
+                }
 
                 // Live dynamic UI update: add reminder to list without page refresh!
                 const list = document.getElementById('remindersList');

@@ -65,12 +65,47 @@ def test_abcd_sound_contracts():
     assert re.search(r"function\s+startABCDAlarm\([^)]*skipAudio\)", content), "startABCDAlarm must accept skipAudio parameter"
     assert "if (!skipAudio)" in content, "tryPlayAlarmAudio must be guarded by !skipAudio"
     assert "isNativeAlarmTwaActive()" in content, "checkUrlAlarmTrigger must check isNativeAlarmTwaActive()"
-    assert "!rem.is_alarm && rem.source !== 'course'" in content, "syncRemindersToNativeTwa must sync course reminders"
     assert "rem.is_alarm ? 1 : 0" in content, "syncRemindersToNativeTwa must dynamically compute is_alarm"
     assert "&is_alarm=${isAlarmVal}" in content, "syncRemindersToNativeTwa must pass dynamic isAlarmVal in URI"
     assert "&is_alarm=1" not in content, "syncRemindersToNativeTwa must NEVER hardcode &is_alarm=1"
-    assert "tasks: scheduledTasks" in content, "syncRemindersToNativeTwa must sync scheduledTasks to Service Worker"
+    assert "CONFIRM_NATIVE_TASK" in content, "abcd-sound.js must send CONFIRM_NATIVE_TASK to sw"
+    assert "schedule_ack" in content, "abcd-sound.js must listen for schedule_ack"
+    assert "abcdalarm://reconcile" in content, "abcd-sound.js must dispatch abcdalarm://reconcile"
     print("PASS: abcd-sound.js replay prevention, dynamic course reminder channel, and task sync verified")
+
+def test_phase1_expiry_bug_fixed():
+    sched_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/NativeAlarmScheduler.java")
+    recv_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/AlarmReceiver.java")
+    assert "STALE_MISSED_GRACE_MILLIS = 6 * 60 * 60 * 1000L" in sched_content, "Must define 6-hour missed alarm grace period"
+    assert "OFFLINE_EXPIRY_GRACE_MILLIS" not in sched_content, "Must eliminate 14-day expiry rule"
+    assert "14 * 24 * 60 * 60" not in sched_content, "Must eliminate 14-day expiry calculation"
+    assert "reconcileWithActiveServerIds" in sched_content, "Must implement reconcileWithActiveServerIds"
+    assert "STALE_MISSED_GRACE_MILLIS" in recv_content, "AlarmReceiver must use STALE_MISSED_GRACE_MILLIS"
+    print("PASS: Phase 1 Expiry bug fix & reconciliation purge verified")
+
+def test_phase1_recurrence_engine_and_test_hook():
+    sched_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/NativeAlarmScheduler.java")
+    gradle_content = read_file("abcd-twa/app/build.gradle")
+    assert "calculateNextTrigger" in sched_content, "Must implement calculateNextTrigger"
+    assert "every_n_days" in sched_content, "Must support every_n_days"
+    assert "monthly" in sched_content, "Must support monthly"
+    assert "weekly" in sched_content, "Must support weekly"
+    assert "until_date" in sched_content, "Must support until_date"
+    assert "test_short_" in sched_content, "Must support test_short_ debug hook"
+    assert "ENABLE_TEST_ALARM_SHORT_TIMING" in gradle_content, "app/build.gradle must define ENABLE_TEST_ALARM_SHORT_TIMING BuildConfig flag"
+    print("PASS: Phase 1 Recurrence engine and test hook verified")
+
+def test_phase2_bidirectional_ack_and_exact_fallback():
+    sync_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/AlarmSyncActivity.java")
+    launcher_content = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/LauncherActivity.java")
+    sw_content = read_file("abcd_web/static/sw.js")
+    course_content = read_file("abcd_web/users/templates/users/course_detail.html")
+
+    assert "sendPostMessageToPage" in launcher_content, "LauncherActivity must have sendPostMessageToPage"
+    assert "schedule_ack" in sync_content, "AlarmSyncActivity must dispatch schedule_ack"
+    assert "task.exact !== true" in sw_content, "sw.js must require confirmed task.exact === true before suppressing push"
+    assert "checkGlobalDueAlarms" in course_content, "course_detail.html must trigger checkGlobalDueAlarms immediately on save"
+    print("PASS: Phase 2 Bidirectional ACK, exact fallback, and course detail immediate sync verified")
 
 if __name__ == "__main__":
     print("Running Alarm Architecture Fix Verification Checks...")
@@ -81,4 +116,7 @@ if __name__ == "__main__":
     test_alarm_sync_activity_cancel()
     test_sw_push_suppression_and_persistence()
     test_abcd_sound_contracts()
-    print("\nALL 7 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
+    test_phase1_expiry_bug_fixed()
+    test_phase1_recurrence_engine_and_test_hook()
+    test_phase2_bidirectional_ack_and_exact_fallback()
+    print("\nALL 10 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
