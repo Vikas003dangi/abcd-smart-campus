@@ -24,9 +24,19 @@
     // Capture Custom Tabs / TWA postMessage port or handshake early
     if (typeof window !== 'undefined' && !window._abcdTwaListenerAttached) {
         window._abcdTwaListenerAttached = true;
+        window._abcdTwaDiag = { msgs: [], portSet: false };
         window.addEventListener('message', function(event) {
+            try {
+                window._abcdTwaDiag.msgs.push({
+                    t: Date.now(), origin: event.origin || '',
+                    data: typeof event.data === 'string' ? event.data.slice(0, 60) : typeof event.data,
+                    ports: event.ports ? event.ports.length : 0
+                });
+                if (window._abcdTwaDiag.msgs.length > 20) window._abcdTwaDiag.msgs.shift();
+            } catch(e) {}
             if (event.ports && event.ports.length > 0) {
                 window._abcdTwaPort = event.ports[0];
+                window._abcdTwaDiag.portSet = true;
                 if (window._abcdTwaPort && typeof window._abcdTwaPort.start === 'function') {
                     try { window._abcdTwaPort.start(); } catch(e) {}
                 }
@@ -551,12 +561,16 @@
                 // Triggers native LauncherActivity.terminateApp(context) with zero Chrome dialogs
                 // and zero external navigation prompts.
                 function dispatchTwaExit() {
-                    let sent = false;
+                    var sent = false;
+                    if (window._abcdDlog) window._abcdDlog('EXIT: port=' + !!window._abcdTwaPort);
                     if (window._abcdTwaPort) {
                         try {
                             window._abcdTwaPort.postMessage('exit');
                             sent = true;
-                        } catch(e) {}
+                            if (window._abcdDlog) window._abcdDlog('EXIT: port.postMessage OK');
+                        } catch(e) {
+                            if (window._abcdDlog) window._abcdDlog('EXIT err: ' + e.message);
+                        }
                     }
                     try {
                         window.postMessage('exit', '*');
@@ -630,5 +644,63 @@
     window.goBackOrHomeBase = function(e) {
         ABCDNav.handleBack(e, 'ui-button');
     };
+
+    // =====================================================================
+    // POSTMESSAGE DEBUG OVERLAY — activate: ?abcd_debug=1  deactivate: ?abcd_debug=0
+    // =====================================================================
+    (function() {
+        var on = window.location.search.indexOf('abcd_debug=1') > -1;
+        if (on) try { sessionStorage.setItem('abcd_debug', '1'); } catch(e) {}
+        if (window.location.search.indexOf('abcd_debug=0') > -1) {
+            try { sessionStorage.removeItem('abcd_debug'); } catch(e) {}
+            return;
+        }
+        if (!on) try { on = sessionStorage.getItem('abcd_debug') === '1'; } catch(e) {}
+        if (!on) return;
+
+        window._abcdDebugLog = [];
+        window._abcdDlog = function(msg) {
+            window._abcdDebugLog.push(new Date().toLocaleTimeString() + ' ' + msg);
+            if (window._abcdDebugLog.length > 40) window._abcdDebugLog.shift();
+        };
+
+        function render() {
+            var el = document.getElementById('abcdDbg');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'abcdDbg';
+                el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.92);color:#0f0;' +
+                    'font:11px/1.4 monospace;padding:8px 10px;z-index:99999999;max-height:40vh;overflow-y:auto;';
+                (document.body || document.documentElement).appendChild(el);
+            }
+            var cv = 0;
+            try { var m = navigator.userAgent.match(/Chrome\/(\d+)/); if (m) cv = parseInt(m[1]); } catch(e) {}
+            var dm = 'browser';
+            try {
+                if (window.matchMedia('(display-mode: standalone)').matches) dm = 'standalone';
+                else if (window.matchMedia('(display-mode: fullscreen)').matches) dm = 'fullscreen';
+            } catch(e) {}
+            var diag = window._abcdTwaDiag || { msgs: [], portSet: false };
+            var h = '<b style="color:#ff0">ABCD PostMessage Debug</b> ' +
+                '<span onclick="sessionStorage.removeItem(\'abcd_debug\');location.reload()" ' +
+                'style="float:right;cursor:pointer;color:#f66">[close]</span><br>' +
+                'Chrome: <b>' + (cv || '?') + '</b> ' + (cv >= 115 ? '\u2705' : '\u274C need \u2265115') +
+                ' | display: ' + dm + '<br>' +
+                'isApp: ' + (window.ABCDNav ? window.ABCDNav.detectAndroidApp() : '?') +
+                ' | msgs rcvd: ' + diag.msgs.length +
+                ' | port: <b style="color:' + (window._abcdTwaPort ? '#0f0' : '#f66') + '">' +
+                (window._abcdTwaPort ? 'SET \u2705' : 'NOT SET \u274C') + '</b><br>';
+            if (diag.msgs.length) {
+                var last = diag.msgs[diag.msgs.length - 1];
+                h += 'last msg: data=' + last.data + ' origin=' + last.origin + ' ports=' + last.ports + '<br>';
+            }
+            if (window._abcdDebugLog.length) {
+                h += '<br>' + window._abcdDebugLog.join('<br>');
+            }
+            el.innerHTML = h;
+        }
+        if (document.body) render(); else document.addEventListener('DOMContentLoaded', render);
+        setInterval(render, 1500);
+    })();
 
 })(window, document);

@@ -285,6 +285,7 @@ class NavigationExitModalTests(TestCase):
 
         # Android exit uses TWA postMessage communication (avoids Chrome external-app dialog and subframe scheme blocks)
         self.assertIn('_abcdTwaPort', content)
+        self.assertIn('_abcdTwaDiag', content)
         self.assertIn("postMessage('exit'", content)
 
         # Verify doActualExit does NOT contain any history.go or history.back
