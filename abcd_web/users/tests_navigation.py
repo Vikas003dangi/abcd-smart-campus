@@ -330,3 +330,31 @@ class NavigationExitModalTests(TestCase):
         play_apps = [app for app in related if app.get('platform') == 'play' and app.get('id') == 'in.abcdcampus.app']
         self.assertEqual(len(play_apps), 1)
         self.assertEqual(play_apps[0]['url'], 'https://play.google.com/store/apps/details?id=in.abcdcampus.app')
+
+    def test_exit_intent_fallback_and_diagnostic_overlay(self):
+        """Verify abcd-nav.js and template include intent fallback, real anchor tag, and debug overlay."""
+        import os
+        from django.conf import settings
+        js_path = os.path.join(settings.BASE_DIR, 'static', 'js', 'abcd-nav.js')
+        with open(js_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Fix 6: Intent fallback URL and feature flag
+        self.assertIn('intent://close#Intent;scheme=abcdexit;package=in.abcdcampus.app;end', content)
+        self.assertIn('ABCD_EXIT_INTENT_FALLBACK', content)
+        self.assertIn('fallback intent link used', content)
+
+        # Fix 1 & 2: Hidden 5-tap debug trigger and copy log button
+        self.assertIn('copyAbcdDebugLog', content)
+        self.assertIn("sessionStorage.setItem('abcd_debug', '1')", content)
+        self.assertIn('native log unavailable - channel not established', content)
+
+        # Fix 3: Late port tolerance and retries
+        self.assertIn('waiting up to 2s', content)
+
+        # Template check: Confirm exit button is rendered as a real anchor tag for natural user tap
+        tmpl_path = os.path.join(settings.BASE_DIR, 'users', 'templates', 'partials', '_home_base_exit.html')
+        with open(tmpl_path, 'r', encoding='utf-8') as f:
+            tmpl_content = f.read()
+        self.assertIn('<a href="#" id="abcdExitConfirmBtn" role="button"', tmpl_content)
+

@@ -24,22 +24,73 @@
     // Capture Custom Tabs / TWA postMessage port or handshake early
     if (typeof window !== 'undefined' && !window._abcdTwaListenerAttached) {
         window._abcdTwaListenerAttached = true;
-        window._abcdTwaDiag = { msgs: [], portSet: false };
+        window._abcdTwaDiag = {
+            msgs: [],
+            portSet: false,
+            lastPortsLength: 0,
+            nativeLogs: [],
+            nativeSha256: null,
+            exitAttempts: []
+        };
         window.addEventListener('message', function(event) {
             try {
+                var dStr = '';
+                var isNativeLog = false;
+                if (typeof event.data === 'string') {
+                    dStr = event.data;
+                    if (dStr.indexOf('abcd_native_log') > -1) {
+                        try {
+                            var parsed = JSON.parse(dStr);
+                            if (parsed.type === 'abcd_native_log') {
+                                isNativeLog = true;
+                                window._abcdTwaDiag.nativeLogs = parsed.logs || [];
+                                window._abcdTwaDiag.nativeSha256 = parsed.signing_sha256 || null;
+                            }
+                        } catch(e) {}
+                    }
+                } else if (event.data && typeof event.data === 'object') {
+                    if (event.data.type === 'abcd_native_log') {
+                        isNativeLog = true;
+                        window._abcdTwaDiag.nativeLogs = event.data.logs || [];
+                        window._abcdTwaDiag.nativeSha256 = event.data.signing_sha256 || null;
+                    }
+                    dStr = JSON.stringify(event.data);
+                }
+                var pLen = (event.ports && event.ports.length) ? event.ports.length : 0;
+                window._abcdTwaDiag.lastPortsLength = pLen;
                 window._abcdTwaDiag.msgs.push({
-                    t: Date.now(), origin: event.origin || '',
-                    data: typeof event.data === 'string' ? event.data.slice(0, 60) : typeof event.data,
-                    ports: event.ports ? event.ports.length : 0
+                    t: new Date().toLocaleTimeString(),
+                    origin: event.origin || '',
+                    data: dStr.slice(0, 60),
+                    ports: pLen,
+                    isNativeLog: isNativeLog
                 });
                 if (window._abcdTwaDiag.msgs.length > 20) window._abcdTwaDiag.msgs.shift();
             } catch(e) {}
+
+            // FIX 3: accept new port each time and replace the old one
             if (event.ports && event.ports.length > 0) {
                 window._abcdTwaPort = event.ports[0];
                 window._abcdTwaDiag.portSet = true;
+                if (window._abcdDlog) window._abcdDlog('New MessagePort received & assigned (ports=' + event.ports.length + ')');
                 if (window._abcdTwaPort && typeof window._abcdTwaPort.start === 'function') {
                     try { window._abcdTwaPort.start(); } catch(e) {}
                 }
+                try {
+                    window._abcdTwaPort.onmessage = function(portEvent) {
+                        try {
+                            if (portEvent.data) {
+                                var pData = portEvent.data;
+                                if (typeof pData === 'string' && pData.indexOf('abcd_native_log') > -1) {
+                                    var pParsed = JSON.parse(pData);
+                                    window._abcdTwaDiag.nativeLogs = pParsed.logs || [];
+                                    window._abcdTwaDiag.nativeSha256 = pParsed.signing_sha256 || null;
+                                }
+                                if (window._abcdDlog) window._abcdDlog('Port onmsg: ' + String(pData).slice(0, 40));
+                            }
+                        } catch(e) {}
+                    };
+                } catch(e) {}
             }
         });
     }
@@ -383,6 +434,8 @@
             };
         },
 
+        INTENT_FALLBACK_URL: 'intent://close#Intent;scheme=abcdexit;package=in.abcdcampus.app;end',
+
         bindExitModalEvents: function() {
             const self = this;
             const els = self.getModalElements();
@@ -402,7 +455,79 @@
             }
             if (els.confirmBtn && !els.confirmBtn._abcdBound) {
                 els.confirmBtn._abcdBound = true;
-                els.confirmBtn.addEventListener('click', function() { self.doActualExit(); });
+
+                // FIX 6: Arm fallback intent link if no port exists after 3 seconds in Android app
+                setTimeout(function() {
+                    const isApp = self.detectAndroidApp();
+                    const intentFallbackAllowed = (typeof window.ABCD_EXIT_INTENT_FALLBACK === 'undefined' || window.ABCD_EXIT_INTENT_FALLBACK !== false);
+                    if (isApp && !window._abcdTwaPort && intentFallbackAllowed && els.confirmBtn) {
+                        els.confirmBtn.setAttribute('href', self.INTENT_FALLBACK_URL);
+                        if (window._abcdDlog) window._abcdDlog('Intent fallback primed (3s elapsed, no port)');
+                    }
+                }, 3000);
+
+                els.confirmBtn.addEventListener('click', function(e) {
+                    const isApp = self.detectAndroidApp();
+                    const intentFallbackAllowed = (typeof window.ABCD_EXIT_INTENT_FALLBACK === 'undefined' || window.ABCD_EXIT_INTENT_FALLBACK !== false);
+                    const currentHref = els.confirmBtn.getAttribute('href');
+
+                    if (!isApp) {
+                        // Normal browser path: execute standard web close & Google fallback
+                        e.preventDefault();
+                        self.doActualExit();
+                        return;
+                    }
+
+                    // Android App path:
+                    // Primary: If PostMessage port is already available, use postMessage
+                    if (window._abcdTwaPort) {
+                        e.preventDefault();
+                        self.doActualExit();
+                        return;
+                    }
+
+                    // FIX 6: Fallback Option A - triggered by user's own tap on real <a> element
+                    if (currentHref === self.INTENT_FALLBACK_URL && intentFallbackAllowed) {
+                        if (window._abcdDlog) window._abcdDlog('fallback intent link used');
+                        if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
+                            window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - fallback intent link used');
+                        }
+                        // Allow natural browser link activation to intent:// URL
+                        return;
+                    }
+
+                    // FIX 3: Tolerate late port - if EXIT was tapped without a port, retry for ~2 seconds
+                    e.preventDefault();
+                    if (intentFallbackAllowed) {
+                        els.confirmBtn.setAttribute('href', self.INTENT_FALLBACK_URL);
+                    }
+                    if (window._abcdDlog) window._abcdDlog('EXIT tapped: port not ready, waiting up to 2s...');
+                    if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
+                        window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port not ready, waiting up to 2s...');
+                    }
+
+                    var retryCount = 0;
+                    var maxRetries = 20; // 20 * 100ms = 2000ms
+                    var retryInterval = setInterval(function() {
+                        retryCount++;
+                        if (window._abcdTwaPort) {
+                            clearInterval(retryInterval);
+                            if (window._abcdDlog) window._abcdDlog('EXIT retry: port arrived late, sending postMessage');
+                            if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
+                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - port arrived late, sent exit OK');
+                            }
+                            self.doActualExit();
+                            return;
+                        }
+                        if (retryCount >= maxRetries) {
+                            clearInterval(retryInterval);
+                            if (window._abcdDlog) window._abcdDlog('EXIT retry timeout: no port arrived');
+                            if (window._abcdTwaDiag && window._abcdTwaDiag.exitAttempts) {
+                                window._abcdTwaDiag.exitAttempts.push(new Date().toLocaleTimeString() + ' - retry timeout (no port). Intent fallback armed.');
+                            }
+                        }
+                    }, 100);
+                });
             }
 
             // Bind "Got It" button in the fallback view
@@ -646,33 +771,42 @@
     };
 
     // =====================================================================
-    // POSTMESSAGE DEBUG OVERLAY — activate: ?abcd_debug=1  deactivate: ?abcd_debug=0
+    // POSTMESSAGE DEBUG OVERLAY — activate: ?abcd_debug=1 or tap logo 5x in 3s
     // =====================================================================
     (function() {
-        var on = window.location.search.indexOf('abcd_debug=1') > -1;
-        if (on) try { sessionStorage.setItem('abcd_debug', '1'); } catch(e) {}
-        if (window.location.search.indexOf('abcd_debug=0') > -1) {
-            try { sessionStorage.removeItem('abcd_debug'); } catch(e) {}
-            return;
-        }
-        if (!on) try { on = sessionStorage.getItem('abcd_debug') === '1'; } catch(e) {}
-        if (!on) return;
-
-        window._abcdDebugLog = [];
+        window._abcdDebugLog = window._abcdDebugLog || [];
         window._abcdDlog = function(msg) {
             window._abcdDebugLog.push(new Date().toLocaleTimeString() + ' ' + msg);
-            if (window._abcdDebugLog.length > 40) window._abcdDebugLog.shift();
+            if (window._abcdDebugLog.length > 50) window._abcdDebugLog.shift();
         };
 
-        function render() {
-            var el = document.getElementById('abcdDbg');
-            if (!el) {
-                el = document.createElement('div');
-                el.id = 'abcdDbg';
-                el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.92);color:#0f0;' +
-                    'font:11px/1.4 monospace;padding:8px 10px;z-index:99999999;max-height:40vh;overflow-y:auto;';
-                (document.body || document.documentElement).appendChild(el);
+        // Hidden trigger: tap page title or logo 5 times within 3 seconds
+        var tapCount = 0;
+        var lastTapTime = 0;
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            if (!target) return;
+            var isLogo = !!target.closest('header, nav, .logo, .logoImage, .site-logo, .brand, .brand-logo, h1, #abcdExitTitle, [data-logo], img[alt*="logo" i]');
+            if (isLogo) {
+                var now = Date.now();
+                if (now - lastTapTime < 3000) {
+                    tapCount++;
+                } else {
+                    tapCount = 1;
+                }
+                lastTapTime = now;
+                if (tapCount >= 5) {
+                    tapCount = 0;
+                    try { sessionStorage.setItem('abcd_debug', '1'); } catch(e) {}
+                    initOverlay();
+                }
             }
+        }, true);
+
+        window.copyAbcdDebugLog = function() {
+            var lines = [];
+            lines.push('=== ABCD TWA / EXIT DIAGNOSTIC REPORT ===');
+            lines.push('Timestamp: ' + new Date().toISOString());
             var cv = 0;
             try { var m = navigator.userAgent.match(/Chrome\/(\d+)/); if (m) cv = parseInt(m[1]); } catch(e) {}
             var dm = 'browser';
@@ -680,27 +814,144 @@
                 if (window.matchMedia('(display-mode: standalone)').matches) dm = 'standalone';
                 else if (window.matchMedia('(display-mode: fullscreen)').matches) dm = 'fullscreen';
             } catch(e) {}
-            var diag = window._abcdTwaDiag || { msgs: [], portSet: false };
-            var h = '<b style="color:#ff0">ABCD PostMessage Debug</b> ' +
-                '<span onclick="sessionStorage.removeItem(\'abcd_debug\');location.reload()" ' +
-                'style="float:right;cursor:pointer;color:#f66">[close]</span><br>' +
-                'Chrome: <b>' + (cv || '?') + '</b> ' + (cv >= 115 ? '\u2705' : '\u274C need \u2265115') +
-                ' | display: ' + dm + '<br>' +
-                'isApp: ' + (window.ABCDNav ? window.ABCDNav.detectAndroidApp() : '?') +
-                ' | msgs rcvd: ' + diag.msgs.length +
-                ' | port: <b style="color:' + (window._abcdTwaPort ? '#0f0' : '#f66') + '">' +
-                (window._abcdTwaPort ? 'SET \u2705' : 'NOT SET \u274C') + '</b><br>';
-            if (diag.msgs.length) {
-                var last = diag.msgs[diag.msgs.length - 1];
-                h += 'last msg: data=' + last.data + ' origin=' + last.origin + ' ports=' + last.ports + '<br>';
+            lines.push('Chrome: ' + (cv || '?'));
+            lines.push('Display: ' + dm);
+            lines.push('isApp: ' + (window.ABCDNav ? window.ABCDNav.detectAndroidApp() : '?'));
+            lines.push('Port: ' + (window._abcdTwaPort ? 'SET' : 'NOT SET'));
+            var diag = window._abcdTwaDiag || { msgs: [], portSet: false, lastPortsLength: 0, nativeLogs: [], exitAttempts: [] };
+            lines.push('Messages received: ' + diag.msgs.length + ' (last ports.length: ' + diag.lastPortsLength + ')');
+            lines.push('Fallback Intent Flag: ' + (typeof window.ABCD_EXIT_INTENT_FALLBACK !== 'undefined' ? window.ABCD_EXIT_INTENT_FALLBACK : true));
+            lines.push('\n--- EXIT ATTEMPTS ---');
+            if (diag.exitAttempts && diag.exitAttempts.length) {
+                diag.exitAttempts.forEach(function(a) { lines.push(a); });
+            } else {
+                lines.push('(no exit attempts recorded)');
             }
-            if (window._abcdDebugLog.length) {
-                h += '<br>' + window._abcdDebugLog.join('<br>');
+            lines.push('\n--- WEB LOGS ---');
+            (window._abcdDebugLog || []).forEach(function(l) { lines.push(l); });
+            lines.push('\n--- NATIVE STAGE LOGS ---');
+            if (diag.nativeLogs && diag.nativeLogs.length) {
+                diag.nativeLogs.forEach(function(n) { lines.push(n); });
+                if (diag.nativeSha256) lines.push('Cert SHA256: ' + diag.nativeSha256);
+            } else {
+                lines.push('native log unavailable - channel not established');
             }
+            var text = lines.join('\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    alert('ABCD Diagnostic Log copied to clipboard!');
+                }).catch(function() {
+                    prompt('Copy log below:', text);
+                });
+            } else {
+                prompt('Copy log below:', text);
+            }
+        };
+
+        function render() {
+            var on = false;
+            try {
+                if (window.location.search.indexOf('abcd_debug=1') > -1) {
+                    sessionStorage.setItem('abcd_debug', '1');
+                    on = true;
+                } else if (window.location.search.indexOf('abcd_debug=0') > -1) {
+                    sessionStorage.removeItem('abcd_debug');
+                    var old = document.getElementById('abcdDbg');
+                    if (old) old.remove();
+                    return;
+                } else {
+                    on = sessionStorage.getItem('abcd_debug') === '1';
+                }
+            } catch(e) {}
+
+            if (!on) return;
+
+            var el = document.getElementById('abcdDbg');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'abcdDbg';
+                el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(5,5,10,0.96);color:#0f0;' +
+                    'font:11px/1.35 SFMono-Regular,Consolas,Menlo,monospace;padding:10px 12px;z-index:99999999;max-height:48vh;overflow-y:auto;' +
+                    'border-top:2px solid #38bdf8;box-shadow:0 -4px 20px rgba(0,0,0,0.8);';
+                (document.body || document.documentElement).appendChild(el);
+            }
+
+            var cv = 0;
+            try { var m = navigator.userAgent.match(/Chrome\/(\d+)/); if (m) cv = parseInt(m[1]); } catch(e) {}
+            var dm = 'browser';
+            try {
+                if (window.matchMedia('(display-mode: standalone)').matches) dm = 'standalone';
+                else if (window.matchMedia('(display-mode: fullscreen)').matches) dm = 'fullscreen';
+            } catch(e) {}
+            var diag = window._abcdTwaDiag || { msgs: [], portSet: false, lastPortsLength: 0, nativeLogs: [], exitAttempts: [] };
+            var isApp = window.ABCDNav ? window.ABCDNav.detectAndroidApp() : false;
+
+            var h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px solid #334155;padding-bottom:4px;">' +
+                '<b style="color:#38bdf8;font-size:12px;">ABCD TWA PostMessage Debug</b>' +
+                '<div>' +
+                '<button type="button" onclick="window.copyAbcdDebugLog()" style="background:#2563eb;color:#fff;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;margin-right:8px;font-weight:600;">Copy Log</button>' +
+                '<span onclick="sessionStorage.removeItem(\'abcd_debug\');document.getElementById(\'abcdDbg\').remove()" style="cursor:pointer;color:#f87171;font-weight:bold;">[close]</span>' +
+                '</div></div>';
+
+            h += '<div>' +
+                'Chrome: <b style="color:#f1f5f9;">' + (cv || '?') + '</b> ' + (cv >= 115 ? '<span style="color:#4ade80;">\u2705</span>' : '<span style="color:#ef4444;">\u274C (need \u2265115)</span>') +
+                ' | display: <b style="color:#f1f5f9;">' + dm + '</b>' +
+                ' | isApp: <b style="color:' + (isApp ? '#4ade80' : '#f59e0b') + ';">' + isApp + '</b><br>' +
+                'port: <b style="color:' + (window._abcdTwaPort ? '#4ade80' : '#ef4444') + '">' + (window._abcdTwaPort ? 'SET \u2705' : 'NOT SET \u274C') + '</b>' +
+                ' (last ports.len: ' + diag.lastPortsLength + ')' +
+                ' | msgs rcvd: <b>' + diag.msgs.length + '</b><br>' +
+                'fallback flag: <b style="color:#94a3b8;">' + (typeof window.ABCD_EXIT_INTENT_FALLBACK !== 'undefined' ? window.ABCD_EXIT_INTENT_FALLBACK : true) + '</b>' +
+                '</div>';
+
+            // Exit attempts section
+            h += '<div style="margin-top:6px;color:#fbbf24;"><b>Exit attempts:</b> ';
+            if (diag.exitAttempts && diag.exitAttempts.length) {
+                h += '<br>' + diag.exitAttempts.map(function(a) { return '<span style="color:#e2e8f0;">\u2022 ' + a + '</span>'; }).join('<br>');
+            } else {
+                h += '<span style="color:#94a3b8;">none yet</span>';
+            }
+            h += '</div>';
+
+            // Native log section
+            h += '<div style="margin-top:6px;border-top:1px dashed #475569;padding-top:4px;">' +
+                '<b style="color:#c084fc;">Native Stage Log:</b><br>';
+            if (diag.nativeLogs && diag.nativeLogs.length) {
+                h += diag.nativeLogs.map(function(nl) { return '<span style="color:#e9d5ff;">' + nl + '</span>'; }).join('<br>');
+                if (diag.nativeSha256) {
+                    h += '<br><span style="color:#38bdf8;">Cert SHA256: ' + diag.nativeSha256 + '</span>';
+                }
+            } else {
+                h += '<span style="color:#f87171;">native log unavailable - channel not established</span>';
+            }
+            h += '</div>';
+
+            // Recent web events / logs
+            if (window._abcdDebugLog && window._abcdDebugLog.length) {
+                h += '<div style="margin-top:6px;border-top:1px dashed #475569;padding-top:4px;color:#94a3b8;">' +
+                    '<b style="color:#94a3b8;">Web Log:</b><br>' +
+                    window._abcdDebugLog.slice(-8).join('<br>') +
+                    '</div>';
+            }
+
             el.innerHTML = h;
         }
-        if (document.body) render(); else document.addEventListener('DOMContentLoaded', render);
-        setInterval(render, 1500);
+
+        function initOverlay() {
+            render();
+            if (!window._abcdOverlayInterval) {
+                window._abcdOverlayInterval = setInterval(render, 1500);
+            }
+        }
+        window._abcdInitDebugOverlay = initOverlay;
+
+        var shouldInit = false;
+        try {
+            shouldInit = (window.location.search.indexOf('abcd_debug=1') > -1) || (sessionStorage.getItem('abcd_debug') === '1');
+        } catch(e) {}
+        if (shouldInit) {
+            if (document.body) initOverlay();
+            else document.addEventListener('DOMContentLoaded', initOverlay);
+        }
     })();
 
 })(window, document);
