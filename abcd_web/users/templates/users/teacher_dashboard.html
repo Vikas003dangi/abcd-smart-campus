@@ -10146,10 +10146,12 @@
             if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
             if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
           } else {
-            form.submit();
+            const errorMsg = (data && data.message) ? data.message : 'Action could not be completed.';
+            await window.showStyledAlert('Action Failed', errorMsg, 'error');
           }
         } catch (err) {
-          form.submit();
+          console.error(err);
+          await window.showStyledAlert('Network Error', 'There was a problem communicating with the server.', 'error');
         } finally {
           if (typeof window.setButtonLoading === 'function') {
             window.setButtonLoading(actionBtn, false);
