@@ -107,6 +107,31 @@ class ComplaintsHardeningTests(TestCase):
             self.assertTrue(mock_msg.called)
             self.assertIn("Daily limit reached", str(mock_msg.call_args))
 
+    def test_complaint_daily_limit_exempts_staff(self):
+        today = timezone.now()
+        for i in range(5):
+            Complaint.objects.create(
+                student=self.student,
+                role='student',
+                subject=Complaint.SUBJECT_NOISE,
+                message=f"Complaint #{i+1}",
+                created_at=today
+            )
+
+        request = self.factory.post('/complaints/', {
+            'subject': Complaint.SUBJECT_WIFI,
+            'message': 'Staff submitted 6th complaint'
+        })
+        staff_user = User.objects.create_user(username='staff_complaint_sub', password='password123', is_staff=True)
+        request.user = staff_user
+        request.session = {'active_dashboard': 'student'}
+
+        with patch('django.contrib.messages.error') as mock_msg_err:
+            with patch('users.views.send_admin_alert_email'):
+                with patch('users.views._get_or_create_complainant_profile', return_value=self.student):
+                    response = student_complaints_view(request)
+                    self.assertFalse(mock_msg_err.called)
+
 
 class ProfilePhotoRateLimitTests(TestCase):
     def setUp(self):

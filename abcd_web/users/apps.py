@@ -39,9 +39,9 @@ class UsersConfig(AppConfig):
         except Exception as e:
             sys.stderr.write(f"Scheduler auto-start error: {e}\n")
 
-        # Check required environment variables and log warning for missing keys (names only, no values)
+        # Check required settings and log warning for missing keys (names only, no values)
+        # Reports a variable present only if the resolved settings value is non-empty
         try:
-            import os
             import logging
             from django.conf import settings
 
@@ -54,13 +54,16 @@ class UsersConfig(AppConfig):
                 'CLOUDINARY_API_KEY',
                 'CLOUDINARY_API_SECRET',
             ]
-            missing_keys = [
-                k for k in required_keys
-                if not os.environ.get(k) and not getattr(settings, k, None)
-            ]
+            missing_keys = []
+            for k in required_keys:
+                val = getattr(settings, k, None)
+                if val is None or not str(val).strip():
+                    missing_keys.append(k)
+
             if missing_keys:
                 app_logger.warning(
-                    f"[STARTUP SECURITY CHECK] Missing required environment variables: {', '.join(missing_keys)}"
+                    "[STARTUP SECURITY CHECK] Missing or empty required configuration: %s",
+                    ', '.join(missing_keys)
                 )
         except Exception:
             pass

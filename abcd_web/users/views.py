@@ -5077,15 +5077,16 @@ def student_complaints_view(request):
     current_role = request.session.get('active_dashboard', 'student')
 
     if request.method == "POST":
-        # Enforce daily limit: max 5 complaints per user per day
-        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        daily_count = Complaint.objects.filter(
-            student=student,
-            created_at__gte=today_start
-        ).count()
-        if daily_count >= 5:
-            messages.error(request, "Daily limit reached: You can submit at most 5 complaints per day. Please try again tomorrow.")
-            return redirect("users:student_complaints")
+        # Enforce daily limit: max 5 complaints per user per day (exempt staff)
+        if not (request.user.is_staff or request.user.is_superuser):
+            today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            daily_count = Complaint.objects.filter(
+                student=student,
+                created_at__gte=today_start
+            ).count()
+            if daily_count >= 5:
+                messages.error(request, "Daily limit reached: You can submit at most 5 complaints per day. Please try again tomorrow.")
+                return redirect("users:student_complaints")
 
         form = ComplaintForm(request.POST, request.FILES)
         if form.is_valid():
@@ -20467,12 +20468,11 @@ def email_diagnostics_view(request):
                 }, status=405)
 
             rate_key = f"rate_limit_diag_email_send_{request.user.pk}"
-            if cache.get(rate_key):
+            if not cache.add(rate_key, True, timeout=30):
                 return JsonResponse({
                     'status': 'error',
                     'message': 'Rate limit exceeded: please wait 30 seconds before sending another test email.'
                 }, status=429)
-            cache.set(rate_key, True, timeout=30)
 
             t0 = time.time()
             try:

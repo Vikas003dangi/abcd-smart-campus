@@ -84,3 +84,39 @@ class FeeCalendarHeaderTemplateTests(TestCase):
         rendered_female = template.render(Context({'student': MockFemaleStudent()}))
         self.assertIn("Suhani Singh's Fee Calendar", rendered_female)
         self.assertIn("default_avatar_female.png", rendered_female)
+
+
+class FeeCalendarRealViewHeaderTests(TestCase):
+    def setUp(self):
+        self.teacher_user = User.objects.create_user(
+            username='teacher_fee_tester',
+            password='TestPassword123!',
+            is_staff=True
+        )
+        self.student_user = User.objects.create_user(
+            username='student_fee_tester',
+            password='TestPassword123!'
+        )
+        self.student = StudentProfile.objects.create(
+            user=self.student_user,
+            full_name='Suhani Singh',
+            sex='Female',
+            mobile_number='9876543210'
+        )
+
+    def test_fee_calendar_real_view_renders_avatar_onerror_and_possessive_title(self):
+        self.client.login(username='teacher_fee_tester', password='TestPassword123!')
+        url = f'/teacher/student/{self.student.id}/fees/'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        # Assert avatar img with class="header-avatar"
+        self.assertIn('class="header-avatar"', content)
+        # Assert onerror fallback to gender avatar
+        self.assertIn("onerror=\"this.onerror=null; this.src='/static/data/default_avatar_female.png';\"", content)
+        # Assert possessive title
+        self.assertIn("Suhani Singh's Fee Calendar", content)
+        # Assert .header class remains intact for tour and click listeners
+        self.assertIn('class="header"', content)
+        self.assertIn('class="header-title-row"', content)

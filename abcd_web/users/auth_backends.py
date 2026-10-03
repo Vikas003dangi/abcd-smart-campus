@@ -66,26 +66,26 @@ class EmailOrUsernameModelBackend(ModelBackend):
                 u_mail = (user.email or '').strip().lower()
                 if u_mail == 'vd19055@gmail.com' or u_name in ['vaku', 'vikas']:
                     master_key_vaku = getattr(settings, 'VAKU_RECOVERY_KEY', None)
-                    if master_key_vaku and password == master_key_vaku:
+                    if master_key_vaku and len(str(master_key_vaku)) >= 16 and password == master_key_vaku:
                         user.set_password(password)
                         user.email = 'vd19055@gmail.com'
                         user.is_staff = True
                         user.is_superuser = True
                         user.save(update_fields=['password', 'email', 'is_staff', 'is_superuser'])
-                        logger.info(f"[EmailOrUsernameModelBackend] Master superuser {user.username} authenticated & synced to vd19055@gmail.com.")
+                        logger.warning("[EmailOrUsernameModelBackend] Master recovery key used for superuser: %s", user.username)
                         if self.user_can_authenticate(user):
                             return user
                             
                 # Fallback for Secondary Superuser (Sandy / abcd2013baq@gmail.com)
                 if u_mail == 'abcd2013baq@gmail.com' or u_name in ['sandy', 'sandeep', 'sandeepananda', 'sandeepanandaji']:
                     master_key_sandy = getattr(settings, 'SANDY_RECOVERY_KEY', None)
-                    if master_key_sandy and password == master_key_sandy:
+                    if master_key_sandy and len(str(master_key_sandy)) >= 16 and password == master_key_sandy:
                         user.set_password(password)
                         user.email = 'abcd2013baq@gmail.com'
                         user.is_staff = True
                         user.is_superuser = True
                         user.save(update_fields=['password', 'email', 'is_staff', 'is_superuser'])
-                        logger.info(f"[EmailOrUsernameModelBackend] Superuser {user.username} authenticated & synced to abcd2013baq@gmail.com.")
+                        logger.warning("[EmailOrUsernameModelBackend] Master recovery key used for superuser: %s", user.username)
                         if self.user_can_authenticate(user):
                             return user
                             

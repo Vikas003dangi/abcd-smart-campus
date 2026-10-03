@@ -53,6 +53,27 @@ class CloudinarySignalsSafeDeletionTests(TestCase):
 
         self.assertTrue(mock_safe_delete.called)
 
+    @patch('django.db.transaction.on_commit', side_effect=RuntimeError("Cannot schedule on_commit"))
+    @patch('users.models.safe_delete_file_field')
+    def test_file_update_preserves_file_if_on_commit_raises(self, mock_safe_delete, mock_on_commit):
+        """If transaction.on_commit raises or fails, the old file must NOT be deleted."""
+        complaint = Complaint.objects.create(
+            student=self.student,
+            subject=Complaint.SUBJECT_WIFI,
+            message="Wifi is down",
+            image1=SimpleUploadedFile("wifi_safe_old.jpg", b"fake_img_1", content_type="image/jpeg")
+        )
+        mock_safe_delete.reset_mock()
+
+        # Update image1 in an atomic block where on_commit fails
+        from django.db import transaction
+        with transaction.atomic():
+            complaint.image1 = SimpleUploadedFile("wifi_safe_new.jpg", b"fake_img_2", content_type="image/jpeg")
+            complaint.save()
+
+        # Must NOT delete the file because on_commit could not be scheduled safely
+        self.assertFalse(mock_safe_delete.called)
+
     @patch('users.models.safe_delete_file_field')
     def test_complaint_delete_cleans_up_images(self, mock_safe_delete):
         complaint = Complaint.objects.create(
@@ -162,9 +183,10 @@ class CloudinaryOrphansCommandTests(TestCase):
         CLOUDINARY_API_KEY='test_key',
         CLOUDINARY_API_SECRET='test_secret'
     )
+    @patch('users.management.commands.cloudinary_orphans.get_active_db_identifiers', return_value={'ref1', 'ref2', 'ref3', 'ref4', 'ref5'})
     @patch('cloudinary.uploader.destroy')
     @patch('cloudinary.api.resources')
-    def test_cloudinary_orphans_apply_with_confirm_deletes_orphan(self, mock_resources, mock_destroy):
+    def test_cloudinary_orphans_apply_with_confirm_deletes_orphan(self, mock_resources, mock_destroy, mock_get_db):
         old_date = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
         mock_resources.side_effect = [
             {
@@ -190,9 +212,92 @@ class CloudinaryOrphansCommandTests(TestCase):
         CLOUDINARY_API_KEY='test_key',
         CLOUDINARY_API_SECRET='test_secret'
     )
+    @patch('users.management.commands.cloudinary_orphans.get_active_db_identifiers', return_value={'single_item'})
+    @patch('cloudinary.uploader.destroy')
+    def test_cloudinary_orphans_apply_refuses_when_db_set_implausibly_small(self, mock_destroy, mock_get_db):
+        """If active DB references < 5, --apply must abort to prevent accidental mass deletion."""
+        out = StringIO()
+        call_command('cloudinary_orphans', apply=True, confirm='DELETE', stdout=out)
+        output = out.getvalue()
+
+        self.assertIn("empty or implausibly small", output)
+        self.assertIn("Refusing --apply", output)
+        self.assertFalse(mock_destroy.called)
+
+    @override_settings(
+        CLOUDINARY_CLOUD_NAME='test_cloud',
+        CLOUDINARY_API_KEY='test_key',
+        CLOUDINARY_API_SECRET='test_secret'
+    )
     @patch('cloudinary.uploader.destroy')
     @patch('cloudinary.api.resources')
-    def test_cloudinary_orphans_apply_without_confirm_aborts(self, mock_resources, mock_destroy):
+    def test_cloudinary_orphans_pagination_with_next_cursor(self, mock_resources, mock_destroy):
+        """Paginates using next_cursor across all pages."""
+        old_date = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+        mock_resources.side_effect = [
+            # Page 1 (image): returns next_cursor
+            {
+                'resources': [{'public_id': 'orphan_page_1', 'format': 'jpg', 'created_at': old_date, 'bytes': 100}],
+                'next_cursor': 'cursor_page_2'
+            },
+            # Page 2 (image): no next_cursor
+            {
+                'resources': [{'public_id': 'orphan_page_2', 'format': 'jpg', 'created_at': old_date, 'bytes': 100}]
+            },
+            # raw
+            {'resources': []},
+            # video
+            {'resources': []}
+        ]
+
+        out = StringIO()
+        call_command('cloudinary_orphans', stdout=out)
+        output = out.getvalue()
+
+        self.assertIn("orphan_page_1", output)
+        self.assertIn("orphan_page_2", output)
+        self.assertIn("Orphaned assets identified: 2", output)
+        # Verify next_cursor was passed on the second call
+        second_call_kwargs = mock_resources.call_args_list[1][1]
+        self.assertEqual(second_call_kwargs.get('next_cursor'), 'cursor_page_2')
+
+    @override_settings(
+        CLOUDINARY_CLOUD_NAME='test_cloud',
+        CLOUDINARY_API_KEY='test_key',
+        CLOUDINARY_API_SECRET='test_secret'
+    )
+    @patch('cloudinary.uploader.destroy')
+    @patch('cloudinary.api.resources')
+    def test_cloudinary_orphans_skips_missing_or_unparseable_created_at(self, mock_resources, mock_destroy):
+        """Assets with missing or corrupted created_at must be skipped to avoid accidental deletion."""
+        mock_resources.side_effect = [
+            {
+                'resources': [
+                    {'public_id': 'corrupt_date_asset', 'format': 'jpg', 'created_at': 'invalid_date_format', 'bytes': 100},
+                    {'public_id': 'missing_date_asset', 'format': 'jpg', 'created_at': None, 'bytes': 100},
+                ]
+            },
+            {'resources': []},
+            {'resources': []}
+        ]
+
+        out = StringIO()
+        call_command('cloudinary_orphans', stdout=out)
+        output = out.getvalue()
+
+        self.assertIn("Orphaned assets identified: 0", output)
+        self.assertNotIn("corrupt_date_asset", output)
+        self.assertNotIn("missing_date_asset", output)
+
+    @override_settings(
+        CLOUDINARY_CLOUD_NAME='test_cloud',
+        CLOUDINARY_API_KEY='test_key',
+        CLOUDINARY_API_SECRET='test_secret'
+    )
+    @patch('users.management.commands.cloudinary_orphans.get_active_db_identifiers', return_value={'ref1', 'ref2', 'ref3', 'ref4', 'ref5'})
+    @patch('cloudinary.uploader.destroy')
+    @patch('cloudinary.api.resources')
+    def test_cloudinary_orphans_apply_without_confirm_aborts(self, mock_resources, mock_destroy, mock_get_db):
         old_date = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
         mock_resources.side_effect = [
             {

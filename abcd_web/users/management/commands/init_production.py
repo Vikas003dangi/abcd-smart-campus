@@ -101,7 +101,7 @@ class Command(BaseCommand):
             pass
 
         # 4. Superuser 1: Vaku (Vikas Dangi)
-        vaku_pass = config('VAKU_PASSWORD', default=config('VAKU_RECOVERY_KEY', default=''))
+        vaku_pass = config('VAKU_RECOVERY_KEY', default='')
         vaku_user = User.objects.filter(email__iexact='vd19055@gmail.com').first()
         if not vaku_user:
             vaku_user = User.objects.filter(username__iexact='Vaku').first()
@@ -110,7 +110,7 @@ class Command(BaseCommand):
             if not vaku_pass:
                 import secrets
                 vaku_pass = secrets.token_urlsafe(16)
-                self.stdout.write(self.style.WARNING("VAKU_PASSWORD not provided; generated random password. Use reset_superuser_password to configure."))
+                self.stdout.write(self.style.WARNING("VAKU_RECOVERY_KEY not provided; generated random password. Use reset_superuser_password to configure."))
             vaku_user = User.objects.create_superuser(
                 username='Vaku',
                 email='vd19055@gmail.com',
@@ -130,11 +130,11 @@ class Command(BaseCommand):
                 vaku_user.set_password(vaku_pass)
                 self.stdout.write(self.style.SUCCESS('Updated Superuser: Vaku (password & credentials synced)'))
             else:
-                self.stdout.write(self.style.NOTICE('Preserved existing password for Superuser: Vaku (VAKU_PASSWORD not set)'))
+                self.stdout.write(self.style.NOTICE('Preserved existing password for Superuser: Vaku (VAKU_RECOVERY_KEY not set)'))
             vaku_user.save()
 
         # 5. Superuser 2: Sandy (ABCD Coaching & Library)
-        sandy_pass = config('SANDY_PASSWORD', default=config('SANDY_RECOVERY_KEY', default=''))
+        sandy_pass = config('SANDY_RECOVERY_KEY', default='')
         sandy_user = User.objects.filter(email__iexact='abcd2013baq@gmail.com').first()
         if not sandy_user:
             sandy_user = User.objects.filter(username__iexact='Sandy').first()
@@ -143,7 +143,7 @@ class Command(BaseCommand):
             if not sandy_pass:
                 import secrets
                 sandy_pass = secrets.token_urlsafe(16)
-                self.stdout.write(self.style.WARNING("SANDY_PASSWORD not provided; generated random password. Use reset_superuser_password to configure."))
+                self.stdout.write(self.style.WARNING("SANDY_RECOVERY_KEY not provided; generated random password. Use reset_superuser_password to configure."))
             sandy_user = User.objects.create_superuser(
                 username='Sandy',
                 email='abcd2013baq@gmail.com',
@@ -163,7 +163,7 @@ class Command(BaseCommand):
                 sandy_user.set_password(sandy_pass)
                 self.stdout.write(self.style.SUCCESS('Updated Superuser: Sandy (password & credentials synced)'))
             else:
-                self.stdout.write(self.style.NOTICE('Preserved existing password for Superuser: Sandy (SANDY_PASSWORD not set)'))
+                self.stdout.write(self.style.NOTICE('Preserved existing password for Superuser: Sandy (SANDY_RECOVERY_KEY not set)'))
             sandy_user.save()
 
         # 6. Ensure TeacherProfiles are set up for both superusers

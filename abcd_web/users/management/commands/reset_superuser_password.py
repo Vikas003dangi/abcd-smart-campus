@@ -1,6 +1,8 @@
 import getpass
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.core.cache import cache
 from django.db.models import Q
 
@@ -12,32 +14,72 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('username', type=str, help='Username or email of the superuser account')
+        parser.add_argument(
+            '--promote',
+            action='store_true',
+            help='Allow promoting an existing non-superuser account to superuser after typing confirmation.'
+        )
 
     def handle(self, *args, **options):
         identifier = options['username'].strip()
+        allow_promote = options.get('promote', False)
 
         user = User.objects.filter(
             Q(username__iexact=identifier) | Q(email__iexact=identifier)
         ).first()
 
         if not user:
-            raise CommandError(f"User matching '{identifier}' was not found in the database.")
+            raise CommandError(f"User matching '{identifier}' was not found in the database. Users cannot be created by this command.")
 
         if not user.is_superuser:
+            if not allow_promote:
+                raise CommandError(
+                    f"User '{user.username}' exists but is not a superuser. "
+                    f"To promote this user to superuser, re-run with the --promote flag."
+                )
+
+            confirm_username = input(
+                f"User '{user.username}' is not a superuser. To confirm promotion to superuser, type the username '{user.username}': "
+            ).strip()
+            if confirm_username != user.username:
+                raise CommandError("Username confirmation did not match. Aborting promotion.")
+
             self.stdout.write(self.style.WARNING(
-                f"User '{user.username}' is not currently marked as superuser. Upgrading to superuser and staff..."
+                f"Promoting user '{user.username}' to superuser and staff..."
             ))
             user.is_superuser = True
             user.is_staff = True
 
-        # Interactive, secure prompt: never accepted via command line args, never logged
-        pwd1 = getpass.getpass(prompt=f"New password for {user.username}: ")
-        if not pwd1:
-            raise CommandError("Password cannot be blank.")
+        # Interactive, secure prompt with validation, min length 8, and re-prompt on failure
+        # Never accepted via CLI arguments, never printed or logged
+        max_attempts = 3
+        pwd1 = None
+        for attempt in range(1, max_attempts + 1):
+            pwd_input = getpass.getpass(prompt=f"New password for {user.username}: ")
+            if not pwd_input:
+                self.stdout.write(self.style.ERROR("Password cannot be blank."))
+                continue
 
-        pwd2 = getpass.getpass(prompt="Confirm new password: ")
-        if pwd1 != pwd2:
-            raise CommandError("Passwords do not match. Aborting reset.")
+            if len(pwd_input) < 8:
+                self.stdout.write(self.style.ERROR("Password must be at least 8 characters long."))
+                continue
+
+            try:
+                validate_password(pwd_input, user=user)
+            except ValidationError as err:
+                self.stdout.write(self.style.ERROR(f"Password validation failed: {'; '.join(err.messages)}"))
+                continue
+
+            pwd2 = getpass.getpass(prompt="Confirm new password: ")
+            if pwd_input != pwd2:
+                self.stdout.write(self.style.ERROR("Passwords do not match."))
+                continue
+
+            pwd1 = pwd_input
+            break
+
+        if not pwd1:
+            raise CommandError(f"Failed to enter a valid password after {max_attempts} attempts. Aborting.")
 
         user.set_password(pwd1)
         user.save()

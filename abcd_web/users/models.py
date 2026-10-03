@@ -3047,8 +3047,13 @@ def execute_delete_file_on_change(sender, instance, **kwargs):
             transaction.on_commit(_cleanup)
         else:
             _cleanup()
-    except Exception:
-        _cleanup()
+    except Exception as e:
+        for f in targets:
+            fid = getattr(f, 'name', str(f))
+            logger.warning(
+                "Could not schedule on_commit file deletion for %s: %s. Preserving file to prevent premature destruction.",
+                fid, e
+            )
 
 
 @receiver(post_delete, sender=StudentProfile)

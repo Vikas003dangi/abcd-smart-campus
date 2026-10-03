@@ -23,9 +23,9 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-development-secret-ke
 # The cast=bool makes sure 'True' becomes True (boolean) and 'False' becomes False
 DEBUG = config('DEBUG', default=True, cast=bool) 
 
-# Recovery Keys (optional fallback credentials loaded securely from environment; accepts either name)
-VAKU_RECOVERY_KEY = config('VAKU_RECOVERY_KEY', default=config('VAKU_PASSWORD', default=None))
-SANDY_RECOVERY_KEY = config('SANDY_RECOVERY_KEY', default=config('SANDY_PASSWORD', default=None)) 
+# Recovery Keys (optional emergency fallback credentials loaded securely from environment)
+VAKU_RECOVERY_KEY = config('VAKU_RECOVERY_KEY', default=None)
+SANDY_RECOVERY_KEY = config('SANDY_RECOVERY_KEY', default=None)
 
 # Base supported domains for local, production, and staging
 DEFAULT_ALLOWED_HOSTS = {

@@ -42,11 +42,7 @@ services:
         value: "abcd2013baq@gmail.com"
       - key: EMAIL_HOST_PASSWORD
         sync: false
-      - key: VAKU_PASSWORD
-        sync: false
       - key: VAKU_RECOVERY_KEY
-        sync: false
-      - key: SANDY_PASSWORD
         sync: false
       - key: SANDY_RECOVERY_KEY
         sync: false

@@ -165,6 +165,14 @@ class Command(BaseCommand):
         active_identifiers = get_active_db_identifiers()
         self.stdout.write(f"Found {len(active_identifiers)} active media references in database.")
 
+        # Safety guard: refuse live deletion if database references are empty or suspiciously small
+        if apply_mode and len(active_identifiers) < 5:
+            self.stdout.write(self.style.ERROR(
+                f"Active media reference count ({len(active_identifiers)}) is empty or implausibly small. "
+                "Refusing --apply to prevent accidental mass deletion. Verify database integrity first."
+            ))
+            return
+
         # 2. Fetch remote assets from Cloudinary
         self.stdout.write("Querying Cloudinary assets...")
         orphans = []
@@ -174,43 +182,55 @@ class Command(BaseCommand):
         cutoff_time = now - timedelta(hours=min_age_hours)
 
         try:
-            # Query uploaded resources across types (image, raw, video)
+            # Query uploaded resources across types (image, raw, video) with next_cursor pagination
             for resource_type in ['image', 'raw', 'video']:
-                result = cloudinary.api.resources(
-                    type="upload",
-                    resource_type=resource_type,
-                    max_results=500
-                )
-                resources = result.get('resources', [])
-                total_scanned += len(resources)
+                next_cursor = None
+                while True:
+                    query_kwargs = {
+                        'type': 'upload',
+                        'resource_type': resource_type,
+                        'max_results': 500,
+                    }
+                    if next_cursor:
+                        query_kwargs['next_cursor'] = next_cursor
 
-                for res in resources:
-                    public_id = res.get('public_id', '')
-                    norm_id = normalize_cloudinary_ref(public_id).lower()
-                    root_id, _ = os.path.splitext(norm_id)
+                    result = cloudinary.api.resources(**query_kwargs)
+                    resources = result.get('resources', [])
+                    total_scanned += len(resources)
 
-                    # Check grace period (created_at)
-                    created_at_str = res.get('created_at', '')
-                    if created_at_str:
+                    for res in resources:
+                        public_id = res.get('public_id', '')
+                        norm_id = normalize_cloudinary_ref(public_id).lower()
+                        root_id, _ = os.path.splitext(norm_id)
+
+                        # Check grace period (created_at) - skip if missing or unparseable
+                        created_at_str = res.get('created_at')
+                        if not created_at_str:
+                            continue
                         try:
                             # Cloudinary timestamps: "2026-09-30T10:20:30Z"
-                            created_dt = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
-                            if created_dt > cutoff_time:
-                                skipped_recent += 1
-                                continue
+                            created_dt = datetime.fromisoformat(str(created_at_str).replace('Z', '+00:00'))
                         except Exception:
-                            pass
+                            continue
 
-                    # Check if referenced in database
-                    is_active = (norm_id in active_identifiers) or (root_id in active_identifiers)
-                    if not is_active:
-                        orphans.append({
-                            'public_id': public_id,
-                            'resource_type': resource_type,
-                            'format': res.get('format', ''),
-                            'bytes': res.get('bytes', 0),
-                            'created_at': created_at_str,
-                        })
+                        if created_dt > cutoff_time:
+                            skipped_recent += 1
+                            continue
+
+                        # Check if referenced in database
+                        is_active = (norm_id in active_identifiers) or (root_id in active_identifiers)
+                        if not is_active:
+                            orphans.append({
+                                'public_id': public_id,
+                                'resource_type': resource_type,
+                                'format': res.get('format', ''),
+                                'bytes': res.get('bytes', 0),
+                                'created_at': created_at_str,
+                            })
+
+                    next_cursor = result.get('next_cursor')
+                    if not next_cursor:
+                        break
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error querying Cloudinary API: {str(e)}"))

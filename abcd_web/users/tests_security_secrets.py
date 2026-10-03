@@ -134,3 +134,77 @@ class SecretsAndDiagnosticsSecurityTestCase(TestCase):
         self.assertTrue(test_admin.check_password('NewSecurePass!456'))
         self.assertIsNone(cache.get(f"login_failed_user_{test_admin.username}"))
         self.assertIsNone(cache.get(f"login_attempts_{test_admin.pk}"))
+
+    def test_reset_superuser_password_rejects_non_superuser_without_promote(self):
+        """Non-superuser cannot be reset without explicit --promote flag."""
+        from django.core.management.base import CommandError
+        with self.assertRaises(CommandError) as ctx:
+            call_command('reset_superuser_password', 'regular_sec_test')
+        self.assertIn("is not a superuser", str(ctx.exception))
+
+    def test_reset_superuser_password_promotes_with_flag_and_confirmation(self):
+        """Non-superuser is promoted when --promote and matching confirmation username are provided."""
+        with patch('builtins.input', return_value='regular_sec_test'):
+            with patch('getpass.getpass', side_effect=['BrandNewPass!789', 'BrandNewPass!789']):
+                call_command('reset_superuser_password', 'regular_sec_test', promote=True)
+
+        self.regular_user.refresh_from_db()
+        self.assertTrue(self.regular_user.is_superuser)
+        self.assertTrue(self.regular_user.is_staff)
+        self.assertTrue(self.regular_user.check_password('BrandNewPass!789'))
+
+    def test_reset_superuser_password_validates_and_reprompts(self):
+        """Short or invalid password is rejected and user is re-prompted."""
+        test_admin = User.objects.create_superuser(
+            username='sec_val_admin',
+            email='val_admin@example.com',
+            password='OldPassword123!'
+        )
+        # Attempt 1: short '123'
+        # Attempt 2: valid 'ComplexLongPassword!999' + confirm
+        with patch('getpass.getpass', side_effect=['123', 'ComplexLongPassword!999', 'ComplexLongPassword!999']):
+            call_command('reset_superuser_password', 'sec_val_admin')
+
+        test_admin.refresh_from_db()
+        self.assertTrue(test_admin.check_password('ComplexLongPassword!999'))
+
+    def test_recovery_key_requires_at_least_16_characters(self):
+        """Recovery key < 16 chars must be rejected by auth backend."""
+        from users.auth_backends import EmailOrUsernameModelBackend
+        backend = EmailOrUsernameModelBackend()
+
+        vaku_user = User.objects.create_superuser(
+            username='vaku_test_recovery',
+            email='vd19055@gmail.com',
+            password='InitialPassword123!'
+        )
+
+        # 15 characters key: rejected
+        with self.settings(VAKU_RECOVERY_KEY='short_15_char__'):
+            auth_user = backend.authenticate(None, username='vd19055@gmail.com', password='short_15_char__')
+            self.assertIsNone(auth_user)
+
+        # 16+ characters key: accepted and logged
+        with self.settings(VAKU_RECOVERY_KEY='strong_recovery_key_16_chars!'):
+            with self.assertLogs('users.auth_backends', level='WARNING') as log_ctx:
+                auth_user = backend.authenticate(None, username='vd19055@gmail.com', password='strong_recovery_key_16_chars!')
+                self.assertIsNotNone(auth_user)
+                self.assertEqual(auth_user.username, 'vaku_test_recovery')
+                self.assertTrue(any('Master recovery key used for superuser' in msg for msg in log_ctx.output))
+                # Confirm secret key value is never logged
+                self.assertFalse(any('strong_recovery_key_16_chars!' in msg for msg in log_ctx.output))
+
+    def test_email_diagnostics_live_send_atomic_rate_limit(self):
+        """Second live send within 30s returns 429 Too Many Requests."""
+        cache.clear()
+        request = self.factory.post('/api/diag/email-test/', {'send': '1', 'to': 'test@example.com'})
+        request.user = self.staff_user
+
+        # First request succeeds
+        resp1 = email_diagnostics_view(request)
+        self.assertEqual(resp1.status_code, 200)
+
+        # Immediate second request returns 429
+        resp2 = email_diagnostics_view(request)
+        self.assertEqual(resp2.status_code, 429)
+        self.assertIn('Rate limit exceeded', resp2.content.decode('utf-8'))
