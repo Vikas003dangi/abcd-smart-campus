@@ -7,7 +7,7 @@ from .models import (
     GuidanceRequest, ChatSession, DirectChatSession, Message, BlockedGuidance,
     RestrictedStudent, GroupChatSession, GroupMessage, GuidyBlock,
     TeacherProfile, SeatAssignment, SeatHoldRequest, SeatSwitchRequest, SeatLeaveRequest, SeatHoldChangeRequest, SeatSpecialRequest,
-    FeeTransaction, TeacherHiddenFeeTransaction, FeeTransactionAudit, DismissedFeeAlert, CourseReview, CourseQuestion, CourseAnswer,
+    FeeTransaction, TeacherHiddenFeeTransaction, FeeTransactionAudit, FeeTransactionRevision, DismissedFeeAlert, CourseReview, CourseQuestion, CourseAnswer,
     CourseShare, StudentMaterialAccess, StudentCourseInteraction,
     PerformanceRecord, StudentScore, TodoTask
 )
@@ -214,8 +214,8 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(FeeTransaction)
 class FeeTransactionAdmin(admin.ModelAdmin):
-    list_display = ('student', 'total_amount', 'receipt_number', 'payment_date', 'expiry_date', 'deleted_at')
-    list_filter = ('payment_date', 'expiry_date', 'deleted_at')
+    list_display = ('student', 'total_amount', 'receipt_number', 'payment_date', 'expiry_date', 'revision_count', 'last_modified_at', 'deleted_at')
+    list_filter = ('payment_date', 'expiry_date', 'revision_count', 'deleted_at')
     search_fields = ('student__full_name', 'receipt_number', 'student_name_snapshot')
 
 @admin.register(TeacherHiddenFeeTransaction)
@@ -228,6 +228,12 @@ class FeeTransactionAuditAdmin(admin.ModelAdmin):
     list_display = ('id', 'transaction_id', 'receipt_number', 'student_name', 'action', 'actor', 'timestamp')
     search_fields = ('receipt_number', 'student_name', 'action')
     list_filter = ('action', 'timestamp')
+
+@admin.register(FeeTransactionRevision)
+class FeeTransactionRevisionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'transaction', 'revision_number', 'old_amount', 'new_amount', 'actor', 'timestamp')
+    search_fields = ('transaction__receipt_number', 'actor__username', 'note')
+    list_filter = ('revision_number', 'timestamp')
 
 @admin.register(DismissedFeeAlert)
 class DismissedFeeAlertAdmin(admin.ModelAdmin):

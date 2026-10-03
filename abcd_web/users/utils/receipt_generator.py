@@ -316,7 +316,22 @@ def _build_info_section(elements, styles, transaction):
         fontName='Helvetica-Bold',
         textColor=colors.HexColor('#6A1B9A')
     )))
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 4))
+
+    # Revised Pill / Badge if modified
+    if getattr(transaction, 'revision_count', 0) > 0:
+        rev_count = transaction.revision_count
+        mod_date_str = transaction.last_modified_at.strftime('%d/%m/%Y') if getattr(transaction, 'last_modified_at', None) else transaction.payment_date.strftime('%d/%m/%Y')
+        elements.append(Paragraph(
+            f"<b>[ REVISED RECEIPT &bull; REVISION #{rev_count} &bull; EDITED ON {mod_date_str} ]</b>",
+            ParagraphStyle(
+                'RevisedBadge', parent=styles['Normal'],
+                alignment=1, fontSize=8.5, leading=12,
+                fontName='Helvetica-Bold',
+                textColor=colors.HexColor('#EA580C')
+            )
+        ))
+        elements.append(Spacer(1, 4))
 
     # 2. Address (centered, after heading)
     elements.append(Paragraph(
@@ -329,8 +344,9 @@ def _build_info_section(elements, styles, transaction):
     elements.append(Spacer(1, 18))
 
     # 3. Receipt No (left) / Date (right)
+    rev_suffix = f"  (Rev #{transaction.revision_count})" if getattr(transaction, 'revision_count', 0) > 0 else ""
     row = [[
-        f"Receipt No :  {transaction.receipt_number}",
+        f"Receipt No :  {transaction.receipt_number}{rev_suffix}",
         f"Date :  {transaction.payment_date.strftime('%d/%m/%Y')}"
     ]]
     t = Table(row, colWidths=[3.1 * inch, 3.1 * inch])
@@ -514,6 +530,19 @@ def generate_fee_receipt_pdf(transaction):
     _build_payment_table(elements, styles, transaction)
     _build_footer(elements, styles)
 
-    doc.build(elements, onFirstPage=draw_background, onLaterPages=draw_background)
+    def draw_page_bg(canvas, d):
+        draw_background(canvas, d)
+        if getattr(transaction, 'revision_count', 0) > 0:
+            canvas.saveState()
+            canvas.setFont('Helvetica-Bold', 52)
+            canvas.setFillColor(colors.HexColor('#EA580C'))
+            canvas.setFillAlpha(0.045)
+            w, h = d.pagesize
+            canvas.translate(w / 2.0, h / 2.0)
+            canvas.rotate(35)
+            canvas.drawCentredString(0, 0, "REVISED RECEIPT")
+            canvas.restoreState()
+
+    doc.build(elements, onFirstPage=draw_page_bg, onLaterPages=draw_page_bg)
     buf.seek(0)
     return buf

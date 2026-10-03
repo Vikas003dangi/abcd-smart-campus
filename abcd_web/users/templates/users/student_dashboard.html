@@ -5253,6 +5253,11 @@
                 <span class="fee-receipt-badge">
                   <i class='bx bx-receipt'></i> {{ fee.receipt_number }}
                 </span>
+                {% if fee.revision_count > 0 %}
+                <span class="fee-revised-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 4px;" title="Revised (Edited on {{ fee.last_modified_at|date:'d M Y'|default:fee.payment_date|date:'d M Y' }})">
+                  <i class='bx bx-edit-alt'></i> Revised
+                </span>
+                {% endif %}
                 {% else %}
                 <span style="color: #94a3b8; font-size: 0.85rem;">—</span>
                 {% endif %}

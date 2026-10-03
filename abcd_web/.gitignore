@@ -18,6 +18,7 @@ staticfiles/
 *.sqlite3-wal
 *.sqlite3-journal
 db.sqlite3
+backups/
 
 # ==================================================
 # SECRETS & ENVIRONMENT CONFIGURATIONS

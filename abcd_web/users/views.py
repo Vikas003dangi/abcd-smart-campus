@@ -19,7 +19,7 @@ from .models import (
     TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest, SeatLeaveRequest, SeatHoldChangeRequest,
     StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification,
     BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview,
-    CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, TeacherHiddenFeeTransaction, FeeTransactionAudit, StudentCourseInteraction,
+    CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, TeacherHiddenFeeTransaction, FeeTransactionAudit, FeeTransactionRevision, StudentCourseInteraction,
     PerformanceRecord, StudentScore,
     abcd_format_name,
     # Guidy Mentorship & Group Chat Models
@@ -11472,7 +11472,15 @@ def process_fees_view(request, student_id):
         return fallback
 
     try:
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body) if request.body else {}
+        except Exception:
+            data = request.POST.dict()
+            if 'actions' in data and isinstance(data['actions'], str):
+                try:
+                    data['actions'] = json.loads(data['actions'])
+                except Exception:
+                    pass
         actions = data.get('actions', [])
         use_default_expiry = data.get('use_default_expiry', True)
         expiry_date_str = data.get('expiry_date')
@@ -11748,62 +11756,176 @@ def process_fees_view(request, student_id):
                         if isinstance(amt, (int, float)):
                             total_trans_amount += amt
 
-                    # 2. Capture snapshots and create transaction
+                    # 2. Capture snapshots and create or edit transaction in-place
                     if fee_snapshots:
-                        trans_record = FeeTransaction.objects.create(
-                            student=student,
-                            teacher=request.user,
-                            receipt_number=FeeTransaction.generate_receipt_number(),
-                            payment_date=timezone.localdate(),
-                            expiry_date=student.fee_expiry_date,
-                            service_snapshot=get_student_service_details(student),
-                            months_snapshot=fee_snapshots,
-                            total_amount=total_trans_amount,
-                            student_name_snapshot=student.full_name or '',
-                            roll_number_snapshot=str(student.id) if student else '',
-                            mobile_snapshot=student.mobile_number or '',
-                            course_snapshot=student.batch or student.service_type or ''
+                        # Find all affected Payment records for this batch
+                        processed_payments = []
+                        for item in details_list_dicts:
+                            if item.get("type") != "deleted":
+                                m = item.get("month")
+                                y = item.get("year")
+                                p = Payment.objects.filter(student=student, month=m, year=y).first()
+                                if p:
+                                    processed_payments.append(p)
+
+                        # Check for existing FeeTransaction
+                        existing_tx = next(
+                            (p.fee_transaction for p in processed_payments if p.fee_transaction and p.fee_transaction.deleted_at is None),
+                            None
                         )
 
-                        # Exactly ONE idempotent in-app + web push notification for student
-                        if student.user:
-                            try:
-                                notif_tag = f"fee-receipt-{trans_record.id}"
-                                already_notified = Notification.objects.filter(
-                                    user=student.user,
-                                    meta__fee_transaction_id=trans_record.id
-                                ).exists()
+                        # If not directly linked, check candidate tx by student + month match
+                        if not existing_tx:
+                            from .management.commands.match_fee_payments import _month_year_in_snapshot
+                            candidate_txs = []
+                            for tx in FeeTransaction.objects.filter(student=student, deleted_at__isnull=True):
+                                for p in processed_payments:
+                                    if _month_year_in_snapshot(p.month, p.year, tx.months_snapshot):
+                                        if tx not in candidate_txs:
+                                            candidate_txs.append(tx)
+                            if len(candidate_txs) == 1:
+                                existing_tx = candidate_txs[0]
 
-                                if not already_notified:
-                                    notif_title = "Fee Submitted Successfully"
-                                    notif_body = f"Payment of ₹{total_trans_amount} recorded (Receipt #{trans_record.receipt_number})."
-                                    notif_link = f"/student/fees/?highlight={trans_record.id}"
-                                    notif_meta = {
-                                        "fee_transaction_id": trans_record.id,
-                                        "receipt_number": trans_record.receipt_number,
-                                        "amount": str(total_trans_amount),
-                                        "tag": notif_tag,
-                                        "actions": [
-                                            {"action": "view_receipt", "title": "View Receipt 🧾"},
-                                            {"action": "open_fees", "title": "Open Fees ↗"}
-                                        ]
-                                    }
-                                    create_notification(
-                                        user=student.user,
-                                        title=notif_title,
-                                        message=notif_body,
-                                        link=notif_link,
-                                        category="payment",
-                                        tag=notif_tag,
-                                        meta=notif_meta
-                                    )
-                            except Exception as notif_err:
-                                logging.getLogger(__name__).warning(
-                                    f"Fee notification failed for student {student.id}, transaction {trans_record.id}: {notif_err}"
+                        from decimal import Decimal
+                        if existing_tx:
+                            # In-place edit of existing receipt (keep same receipt_number)
+                            old_amount = existing_tx.total_amount
+                            old_months = existing_tx.months_snapshot
+                            old_payment_date = existing_tx.payment_date
+                            new_amount = total_trans_amount
+                            new_months = fee_snapshots
+                            new_payment_date = timezone.localdate()
+
+                            amount_changed = (Decimal(str(old_amount)) != Decimal(str(new_amount)))
+                            months_changed = (old_months != new_months)
+
+                            if amount_changed or months_changed:
+                                existing_tx.revision_count += 1
+                                existing_tx.total_amount = new_amount
+                                existing_tx.months_snapshot = new_months
+                                existing_tx.last_modified_at = timezone.now()
+                                existing_tx.last_modified_by = request.user
+                                existing_tx.expiry_date = student.fee_expiry_date
+                                # Decision 3: If student had hidden the receipt and teacher edits it, it REAPPEARS for student
+                                existing_tx.is_hidden_by_student = False
+                                existing_tx.save()
+
+                                FeeTransactionRevision.objects.create(
+                                    transaction=existing_tx,
+                                    revision_number=existing_tx.revision_count,
+                                    old_amount=old_amount,
+                                    new_amount=new_amount,
+                                    old_months=old_months,
+                                    new_months=new_months,
+                                    old_payment_date=old_payment_date,
+                                    new_payment_date=new_payment_date,
+                                    actor=request.user,
+                                    note=f"Receipt edited in-place by {request.user.username}"
                                 )
+
+                                trans_record = existing_tx
+
+                                # Link all processed payments to this transaction
+                                for p in processed_payments:
+                                    if p.fee_transaction_id != trans_record.id:
+                                        p.fee_transaction = trans_record
+                                        p.save(update_fields=['fee_transaction'])
+
+                                # Send revision notification (unique revision tag to prevent deduplication drops)
+                                if student.user:
+                                    try:
+                                        notif_tag = f"fee-receipt-{trans_record.id}-r{trans_record.revision_count}"
+                                        notif_title = "Receipt Corrected"
+                                        notif_body = f"Payment details updated to ₹{total_trans_amount} (Receipt #{trans_record.receipt_number})."
+                                        notif_link = f"/student/fees/?highlight={trans_record.id}"
+                                        notif_meta = {
+                                            "fee_transaction_id": trans_record.id,
+                                            "receipt_number": trans_record.receipt_number,
+                                            "amount": str(total_trans_amount),
+                                            "tag": notif_tag,
+                                            "revision": trans_record.revision_count,
+                                            "actions": [
+                                                {"action": "view_receipt", "title": "View Receipt 🧾"},
+                                                {"action": "open_fees", "title": "Open Fees ↗"}
+                                            ]
+                                        }
+                                        create_notification(
+                                            user=student.user,
+                                            title=notif_title,
+                                            message=notif_body,
+                                            link=notif_link,
+                                            category="payment",
+                                            tag=notif_tag,
+                                            meta=notif_meta
+                                        )
+                                    except Exception as notif_err:
+                                        logging.getLogger(__name__).warning(
+                                            f"Fee revision notification failed for student {student.id}, transaction {trans_record.id}: {notif_err}"
+                                        )
+                            else:
+                                # Idempotent: values did not change, no revision increment, no duplicate notifications
+                                trans_record = None
+                        else:
+                            # Create brand new transaction
+                            trans_record = FeeTransaction.objects.create(
+                                student=student,
+                                teacher=request.user,
+                                receipt_number=FeeTransaction.generate_receipt_number(),
+                                payment_date=timezone.localdate(),
+                                expiry_date=student.fee_expiry_date,
+                                service_snapshot=get_student_service_details(student),
+                                months_snapshot=fee_snapshots,
+                                total_amount=total_trans_amount,
+                                student_name_snapshot=student.full_name or '',
+                                roll_number_snapshot=str(student.id) if student else '',
+                                mobile_snapshot=student.mobile_number or '',
+                                course_snapshot=student.batch or student.service_type or ''
+                            )
+
+                            # Link processed payments
+                            for p in processed_payments:
+                                p.fee_transaction = trans_record
+                                p.save(update_fields=['fee_transaction'])
+
+                            # Exactly ONE idempotent in-app + web push notification for student
+                            if student.user:
+                                try:
+                                    notif_tag = f"fee-receipt-{trans_record.id}"
+                                    already_notified = Notification.objects.filter(
+                                        user=student.user,
+                                        meta__fee_transaction_id=trans_record.id
+                                    ).exists()
+
+                                    if not already_notified:
+                                        notif_title = "Fee Submitted Successfully"
+                                        notif_body = f"Payment of ₹{total_trans_amount} recorded (Receipt #{trans_record.receipt_number})."
+                                        notif_link = f"/student/fees/?highlight={trans_record.id}"
+                                        notif_meta = {
+                                            "fee_transaction_id": trans_record.id,
+                                            "receipt_number": trans_record.receipt_number,
+                                            "amount": str(total_trans_amount),
+                                            "tag": notif_tag,
+                                            "actions": [
+                                                {"action": "view_receipt", "title": "View Receipt 🧾"},
+                                                {"action": "open_fees", "title": "Open Fees ↗"}
+                                            ]
+                                        }
+                                        create_notification(
+                                            user=student.user,
+                                            title=notif_title,
+                                            message=notif_body,
+                                            link=notif_link,
+                                            category="payment",
+                                            tag=notif_tag,
+                                            meta=notif_meta
+                                        )
+                                except Exception as notif_err:
+                                    logging.getLogger(__name__).warning(
+                                        f"Fee notification failed for student {student.id}, transaction {trans_record.id}: {notif_err}"
+                                    )
                 except Exception as e:
                     import logging
-                    logging.getLogger(__name__).error(f"CRITICAL: FeeTransaction creation failed: {e}")
+                    logging.getLogger(__name__).error(f"CRITICAL: FeeTransaction processing failed: {e}")
 
         # Start thread after transaction commits
         if trans_record:
@@ -11847,12 +11969,81 @@ def delete_payment_view(request, student_id, year, month_name):
                 })
 
             student = payment.student
+            tx = payment.fee_transaction
+
+            # If unlinked, attempt safe single candidate lookup
+            if not tx and student:
+                from .management.commands.match_fee_payments import _month_year_in_snapshot
+                candidates = [
+                    c for c in FeeTransaction.objects.filter(student=student, deleted_at__isnull=True)
+                    if _month_year_in_snapshot(month_name, year, c.months_snapshot)
+                ]
+                if len(candidates) == 1:
+                    tx = candidates[0]
+
+            cleared_amount = payment.amount or 0
             payment.delete()
-            
+
+            # Handle FeeTransaction revision if linked (Decision 4: do not delete receipt, mark revised)
+            if tx and tx.deleted_at is None:
+                from decimal import Decimal
+                old_amount = tx.total_amount
+                new_amount = max(Decimal('0.00'), Decimal(str(old_amount)) - Decimal(str(cleared_amount)))
+                old_months = list(tx.months_snapshot) if isinstance(tx.months_snapshot, list) else []
+                new_months = []
+                for m in old_months:
+                    m_copy = dict(m) if isinstance(m, dict) else {'month': str(m)}
+                    raw_m = str(m_copy.get('month') or '').lower()
+                    if str(month_name).lower() in raw_m and str(year) in raw_m:
+                        m_copy['status'] = 'cleared'
+                        m_copy['note'] = 'Cleared by teacher'
+                    new_months.append(m_copy)
+
+                tx.revision_count += 1
+                tx.last_modified_at = timezone.now()
+                tx.last_modified_by = request.user
+                tx.total_amount = new_amount
+                tx.months_snapshot = new_months
+                # Decision 3: unhide for student if revised
+                tx.is_hidden_by_student = False
+                tx.save()
+
+                FeeTransactionRevision.objects.create(
+                    transaction=tx,
+                    revision_number=tx.revision_count,
+                    old_amount=old_amount,
+                    new_amount=new_amount,
+                    old_months=old_months,
+                    new_months=new_months,
+                    old_payment_date=tx.payment_date,
+                    new_payment_date=tx.payment_date,
+                    actor=request.user,
+                    note=f"Payment month {month_name} {year} cleared by teacher {request.user.username}"
+                )
+
+                if student and student.user:
+                    try:
+                        notif_tag = f"fee-receipt-{tx.id}-r{tx.revision_count}"
+                        create_notification(
+                            user=student.user,
+                            title="Receipt Corrected",
+                            message=f"{month_name} {year} payment cleared. Receipt #{tx.receipt_number} has been revised.",
+                            link=f"/student/fees/?highlight={tx.id}",
+                            category="payment",
+                            tag=notif_tag,
+                            meta={
+                                "fee_transaction_id": tx.id,
+                                "receipt_number": tx.receipt_number,
+                                "revision": tx.revision_count,
+                                "tag": notif_tag,
+                            }
+                        )
+                    except Exception as ne:
+                        logging.getLogger(__name__).warning(f"Error sending month clear notification: {ne}")
+
             # Recalculate expiry date
             from dateutil.relativedelta import relativedelta
             import calendar
-            from django.utils import timezone
             
             base_year, base_month, base_day = sync_student_fee_chain(student)
             

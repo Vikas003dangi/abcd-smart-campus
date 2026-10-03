@@ -1027,6 +1027,14 @@ class Payment(models.Model):
 
     # Actual date when teacher saved/updated this payment
     created_at = models.DateTimeField(auto_now_add=True)
+    fee_transaction = models.ForeignKey(
+        'FeeTransaction',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments',
+        help_text="Linked fee receipt/transaction for accounting and editing"
+    )
 
     class Meta:
         unique_together = ('student', 'month', 'year')
@@ -1107,6 +1115,17 @@ class FeeTransaction(models.Model):
     mobile_snapshot = models.CharField(max_length=20, blank=True, default='')
     course_snapshot = models.CharField(max_length=150, blank=True, default='')
 
+    # Revision tracking & editing
+    last_modified_at = models.DateTimeField(null=True, blank=True)
+    last_modified_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='modified_fee_transactions'
+    )
+    revision_count = models.PositiveIntegerField(default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1122,6 +1141,10 @@ class FeeTransaction(models.Model):
 
     def __str__(self):
         return f"Receipt {self.receipt_number} - {self.student_display_name}"
+
+    @property
+    def is_revised(self):
+        return self.revision_count > 0
 
     @property
     def student_display_name(self):
@@ -1224,6 +1247,46 @@ class FeeTransactionAudit(models.Model):
     def __str__(self):
         actor_name = self.actor.username if self.actor else "System"
         return f"Audit {self.action} on tx #{self.transaction_id} by {actor_name}"
+
+
+# -------------------------------------------------------------------
+# FEE TRANSACTION REVISION MODEL
+# -------------------------------------------------------------------
+class FeeTransactionRevision(models.Model):
+    """
+    Immutable revision history created whenever a FeeTransaction (receipt) is edited in-place.
+    Preserves exact snapshots of changes to amounts, months, and payment dates.
+    """
+    transaction = models.ForeignKey(
+        FeeTransaction,
+        on_delete=models.CASCADE,
+        related_name='revisions'
+    )
+    revision_number = models.PositiveIntegerField(default=1)
+    old_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    new_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    old_months = models.JSONField(default=list, blank=True)
+    new_months = models.JSONField(default=list, blank=True)
+    old_payment_date = models.DateField(null=True, blank=True)
+    new_payment_date = models.DateField(null=True, blank=True)
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fee_revisions'
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+    note = models.TextField(blank=True, default='')
+
+    class Meta:
+        verbose_name = "Fee Transaction Revision"
+        verbose_name_plural = "Fee Transaction Revisions"
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        actor_name = self.actor.username if self.actor else "System"
+        return f"Revision #{self.revision_number} for Tx #{self.transaction_id} by {actor_name}"
 
 
 

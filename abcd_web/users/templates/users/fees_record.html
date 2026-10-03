@@ -1368,7 +1368,14 @@
                         <td class="checkbox-col">
                             <input type="checkbox" class="custom-checkbox row-checkbox" data-id="{{ tx.id }}" onclick="updateSelectedCount()">
                         </td>
-                        <td><span class="receipt-id-pill" onclick="copyReceiptNo('{{ tx.receipt_number }}', event)" title="Click to copy receipt number">{{ tx.receipt_number }} <i class='bx bx-copy' style="font-size: 0.8rem; opacity: 0.7;"></i></span></td>
+                        <td>
+                            <span class="receipt-id-pill" onclick="copyReceiptNo('{{ tx.receipt_number }}', event)" title="Click to copy receipt number">{{ tx.receipt_number }} <i class='bx bx-copy' style="font-size: 0.8rem; opacity: 0.7;"></i></span>
+                            {% if tx.revision_count > 0 %}
+                            <span class="fee-revised-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 4px;" title="Revised (Edited on {{ tx.last_modified_at|date:'d M Y'|default:tx.payment_date|date:'d M Y' }})">
+                                <i class='bx bx-edit-alt'></i> Revised
+                            </span>
+                            {% endif %}
+                        </td>
                         <td><span class="student-bold">{{ tx.student_display_name }}</span></td>
                         <td style="color: #94a3b8; font-size: 0.85rem;">{{ tx.student_mobile }}</td>
                         <td style="font-weight: 600;">{{ tx.payment_date|date:"d M Y" }}</td>
@@ -1390,6 +1397,8 @@
                                     data-service="{{ tx.service_snapshot }}"
                                     data-email="{{ tx.email_sent|yesno:'true,false' }}"
                                     data-whatsapp="{{ tx.whatsapp_sent|yesno:'true,false' }}"
+                                    data-revised="{{ tx.revision_count|default:0 }}"
+                                    data-mod-date="{{ tx.last_modified_at|date:'d M Y'|default:'' }}"
                                     onclick="prepareAndOpenModal(this)">
                                 <i class='bx bx-list-ul'></i> View Details
                             </button>
@@ -1523,7 +1532,12 @@
             <div class="info-row-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 30px;">
                 <div class="field-item">
                     <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Receipt Number</label>
-                    <span id="mReceiptNo" style="font-size: 1.1rem; font-weight: 700; color: #4f46e5;">-</span>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span id="mReceiptNo" style="font-size: 1.1rem; font-weight: 700; color: #4f46e5;">-</span>
+                        <span id="mRevisedBadge" style="display: none; align-items: center; gap: 4px; font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 700; border: 1px solid rgba(245, 158, 11, 0.3);">
+                            <i class='bx bx-edit-alt'></i> Revised
+                        </span>
+                    </div>
                 </div>
                 <div class="field-item">
                     <label style="display: block; font-size: 0.7rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Payment Date</label>
@@ -1843,6 +1857,8 @@
         const service = btn.getAttribute('data-service');
         const emailSent = btn.getAttribute('data-email') === 'true';
         const whatsappSent = btn.getAttribute('data-whatsapp') === 'true';
+        const revised = btn.getAttribute('data-revised');
+        const modDate = btn.getAttribute('data-mod-date');
         
         let months = [];
         const scriptEl = document.getElementById('tx-months-' + txId);
@@ -1854,12 +1870,12 @@
             }
         }
 
-        openTxDetails(txId, months, receiptNo, name, mobile, pDate, eDate, total, service, emailSent, whatsappSent);
+        openTxDetails(txId, months, receiptNo, name, mobile, pDate, eDate, total, service, emailSent, whatsappSent, revised, modDate);
     }
 
     let activeTxId = null;
 
-    function openTxDetails(txId, months, receiptNo, name, mobile, pDate, eDate, total, service, emailSent, whatsappSent) {
+    function openTxDetails(txId, months, receiptNo, name, mobile, pDate, eDate, total, service, emailSent, whatsappSent, revised, modDate) {
         activeTxId = txId;
         document.getElementById('mReceiptNo').innerText = receiptNo;
         document.getElementById('mPaymentDate').innerText = pDate;
@@ -1868,6 +1884,16 @@
         document.getElementById('mExpiryDate').innerText = eDate;
         document.getElementById('mTotal').innerText = "₹" + total;
         document.getElementById('mService').innerText = service;
+
+        const revEl = document.getElementById('mRevisedBadge');
+        if (revEl) {
+            if (revised && parseInt(revised) > 0) {
+                revEl.style.display = 'inline-flex';
+                revEl.innerHTML = `<i class='bx bx-edit-alt'></i> Revised${modDate ? ' (Edited ' + modDate + ')' : ''}`;
+            } else {
+                revEl.style.display = 'none';
+            }
+        }
 
         const isDark = document.body.classList.contains('dark-theme');
 
