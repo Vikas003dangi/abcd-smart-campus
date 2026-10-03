@@ -58,7 +58,7 @@ def get_floor_export_data(floor_name):
             for a in active_assignments:
                 st = a.student
                 # Get latest fee transaction
-                last_txn = FeeTransaction.objects.filter(student=st).order_by('-payment_date', '-created_at').first()
+                last_txn = FeeTransaction.objects.filter(student=st, deleted_at__isnull=True).order_by('-payment_date', '-created_at').first()
                 if last_txn and last_txn.total_amount:
                     last_amount = f"Rs. {last_txn.total_amount:,.0f}"
                 else:
@@ -117,7 +117,7 @@ def get_floor_export_data(floor_name):
                 student_name = st.full_name or (st.user.username if st.user else "—")
                 mobile = st.mobile_number or "—"
 
-                last_txn = FeeTransaction.objects.filter(student=st).order_by('-payment_date', '-created_at').first()
+                last_txn = FeeTransaction.objects.filter(student=st, deleted_at__isnull=True).order_by('-payment_date', '-created_at').first()
                 if last_txn and last_txn.total_amount:
                     last_amount = f"Rs. {last_txn.total_amount:,.0f}"
                 if last_txn and last_txn.expiry_date:

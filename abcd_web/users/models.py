@@ -1018,7 +1018,7 @@ def auto_delete_broadcast_attachment_on_delete(sender, instance, **kwargs):
 # PAYMENT MODEL
 # -------------------------------------------------------------------
 class Payment(models.Model):
-    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='payments')
+    student = models.ForeignKey(StudentProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
     month = models.CharField(max_length=20)
     year = models.IntegerField()
     amount = models.DecimalField(max_digits=8, decimal_places=2)
@@ -1032,7 +1032,8 @@ class Payment(models.Model):
         unique_together = ('student', 'month', 'year')
 
     def __str__(self):
-        return f'{self.student.full_name} - {self.month} {self.year}'
+        st_name = self.student.full_name if self.student else "Former Student"
+        return f'{st_name} - {self.month} {self.year}'
 
 
 # -------------------------------------------------------------------
@@ -1047,7 +1048,9 @@ class FeeTransaction(models.Model):
     """
     student = models.ForeignKey(
         StudentProfile, 
-        on_delete=models.CASCADE, 
+        on_delete=models.SET_NULL, 
+        null=True,
+        blank=True,
         related_name='fee_transactions'
     )
     teacher = models.ForeignKey(
@@ -1088,6 +1091,22 @@ class FeeTransaction(models.Model):
         help_text="Set to True if student hid this record from their dashboard/fees view"
     )
 
+    # Soft deletion & audit
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    deleted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deleted_fee_transactions'
+    )
+
+    # Historical student snapshot (preserved even if StudentProfile is deleted)
+    student_name_snapshot = models.CharField(max_length=150, blank=True, default='')
+    roll_number_snapshot = models.CharField(max_length=50, blank=True, default='')
+    mobile_snapshot = models.CharField(max_length=20, blank=True, default='')
+    course_snapshot = models.CharField(max_length=150, blank=True, default='')
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1098,10 +1117,26 @@ class FeeTransaction(models.Model):
             models.Index(fields=['receipt_number']),
             models.Index(fields=['student', 'created_at']),
             models.Index(fields=['student', 'is_hidden_by_student']),
+            models.Index(fields=['deleted_at']),
         ]
 
     def __str__(self):
-        return f"Receipt {self.receipt_number} - {self.student.full_name}"
+        return f"Receipt {self.receipt_number} - {self.student_display_name}"
+
+    @property
+    def student_display_name(self):
+        if self.student and self.student.full_name:
+            return self.student.full_name
+        if self.student_name_snapshot:
+            roll = f" (Roll {self.roll_number_snapshot})" if self.roll_number_snapshot else ""
+            return f"Former student: {self.student_name_snapshot}{roll}"
+        return "Former student"
+
+    @property
+    def student_mobile(self):
+        if self.student and self.student.mobile_number:
+            return self.student.mobile_number
+        return self.mobile_snapshot or "—"
 
     @property
     def months_display(self):
@@ -1135,6 +1170,60 @@ class FeeTransaction(models.Model):
             # Uniqueness check against DB
             if not FeeTransaction.objects.filter(receipt_number=receipt_no).exists():
                 return receipt_no
+
+
+
+# -------------------------------------------------------------------
+# TEACHER HIDDEN FEE TRANSACTION MODEL
+# -------------------------------------------------------------------
+class TeacherHiddenFeeTransaction(models.Model):
+    """
+    Tracks fee receipts hidden by a specific teacher for their own view ("Delete for me only").
+    Does not affect other teachers, students, accounting totals, or audit logs.
+    """
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fee_transaction_hides')
+    transaction = models.ForeignKey(FeeTransaction, on_delete=models.CASCADE, related_name='teacher_hides')
+    hidden_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Teacher Hidden Fee Transaction"
+        verbose_name_plural = "Teacher Hidden Fee Transactions"
+        unique_together = ('teacher', 'transaction')
+        indexes = [
+            models.Index(fields=['teacher', 'transaction']),
+        ]
+
+    def __str__(self):
+        return f"{self.teacher.username} hid tx #{self.transaction_id}"
+
+
+# -------------------------------------------------------------------
+# FEE TRANSACTION AUDIT MODEL
+# -------------------------------------------------------------------
+class FeeTransactionAudit(models.Model):
+    """
+    Immutable audit log when fee records are soft deleted ("Delete for everyone") or modified.
+    """
+    transaction_id = models.IntegerField(db_index=True)
+    receipt_number = models.CharField(max_length=50)
+    student_id = models.IntegerField(null=True, blank=True)
+    student_name = models.CharField(max_length=150, blank=True, default='')
+    roll_number = models.CharField(max_length=50, blank=True, default='')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    months = models.TextField(blank=True, default='')
+    action = models.CharField(max_length=50) # e.g. 'delete_for_everyone'
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='fee_audits')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    reason = models.TextField(blank=True, default='')
+
+    class Meta:
+        verbose_name = "Fee Transaction Audit"
+        verbose_name_plural = "Fee Transaction Audits"
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        actor_name = self.actor.username if self.actor else "System"
+        return f"Audit {self.action} on tx #{self.transaction_id} by {actor_name}"
 
 
 

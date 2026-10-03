@@ -353,8 +353,10 @@ def _build_info_section(elements, styles, transaction):
     det = ParagraphStyle('Det', parent=styles['Normal'], fontSize=10, leading=15, fontName='Helvetica')
 
     elements.append(Paragraph("To,", lbl))
-    elements.append(Paragraph(f"Student Name :  {transaction.student.full_name}", det))
-    elements.append(Paragraph(f"Mobile No :  {transaction.student.mobile_number or 'N/A'}", det))
+    st_name = getattr(transaction, 'student_display_name', None) or (transaction.student.full_name if transaction.student else (getattr(transaction, 'student_name_snapshot', '') or "Former Student"))
+    st_mobile = getattr(transaction, 'student_mobile', None) or (transaction.student.mobile_number if transaction.student else (getattr(transaction, 'mobile_snapshot', '') or "N/A"))
+    elements.append(Paragraph(f"Student Name :  {st_name}", det))
+    elements.append(Paragraph(f"Mobile No :  {st_mobile}", det))
     elements.append(Paragraph(f"Service :  {transaction.service_snapshot}", det))
     elements.append(Spacer(1, 20))
 

@@ -7,7 +7,7 @@ from .models import (
     GuidanceRequest, ChatSession, DirectChatSession, Message, BlockedGuidance,
     RestrictedStudent, GroupChatSession, GroupMessage, GuidyBlock,
     TeacherProfile, SeatAssignment, SeatHoldRequest, SeatSwitchRequest, SeatLeaveRequest, SeatHoldChangeRequest, SeatSpecialRequest,
-    FeeTransaction, DismissedFeeAlert, CourseReview, CourseQuestion, CourseAnswer,
+    FeeTransaction, TeacherHiddenFeeTransaction, FeeTransactionAudit, DismissedFeeAlert, CourseReview, CourseQuestion, CourseAnswer,
     CourseShare, StudentMaterialAccess, StudentCourseInteraction,
     PerformanceRecord, StudentScore, TodoTask
 )
@@ -214,9 +214,20 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(FeeTransaction)
 class FeeTransactionAdmin(admin.ModelAdmin):
-    list_display = ('student', 'total_amount', 'receipt_number', 'payment_date', 'expiry_date')
-    list_filter = ('payment_date', 'expiry_date')
-    search_fields = ('student__full_name', 'receipt_number')
+    list_display = ('student', 'total_amount', 'receipt_number', 'payment_date', 'expiry_date', 'deleted_at')
+    list_filter = ('payment_date', 'expiry_date', 'deleted_at')
+    search_fields = ('student__full_name', 'receipt_number', 'student_name_snapshot')
+
+@admin.register(TeacherHiddenFeeTransaction)
+class TeacherHiddenFeeTransactionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'teacher', 'transaction', 'hidden_at')
+    search_fields = ('teacher__username', 'transaction__receipt_number')
+
+@admin.register(FeeTransactionAudit)
+class FeeTransactionAuditAdmin(admin.ModelAdmin):
+    list_display = ('id', 'transaction_id', 'receipt_number', 'student_name', 'action', 'actor', 'timestamp')
+    search_fields = ('receipt_number', 'student_name', 'action')
+    list_filter = ('action', 'timestamp')
 
 @admin.register(DismissedFeeAlert)
 class DismissedFeeAlertAdmin(admin.ModelAdmin):

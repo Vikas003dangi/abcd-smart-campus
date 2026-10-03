@@ -358,6 +358,310 @@
         border-radius: 20px;
     }
 
+    /* Tabs: Active vs Hidden */
+    .fees-record-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 25px;
+    }
+    .tab-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 22px;
+        border-radius: 100px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .tab-btn:hover {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+    .tab-btn.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+    }
+    .tab-badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.06);
+    }
+    .tab-btn.active .tab-badge {
+        background: rgba(255,255,255,0.25);
+        color: white;
+    }
+    body.dark-theme .tab-btn {
+        background: #1e293b;
+        border-color: #334155;
+        color: #94a3b8;
+    }
+    body.dark-theme .tab-btn:hover {
+        background: #334155;
+        color: #f1f5f9;
+    }
+    body.dark-theme .tab-btn.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+    }
+
+    /* Bulk restore button */
+    .bulk-restore-btn {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bulk-restore-btn:hover:not(:disabled) {
+        background: #059669;
+        color: white;
+        border-color: #059669;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    }
+    .bulk-restore-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    body.dark-theme .bulk-restore-btn {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-color: #047857;
+    }
+    body.dark-theme .bulk-restore-btn:hover:not(:disabled) {
+        background: #059669;
+        color: white;
+    }
+
+    /* Action Column Buttons */
+    .btn-action-restore {
+        padding: 6px 14px;
+        border-radius: 10px;
+        border: 1px solid #10b981;
+        background: #ecfdf5;
+        color: #059669;
+        font-weight: 700;
+        font-size: 0.82rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+    .btn-action-restore:hover {
+        background: #10b981;
+        color: white;
+    }
+    body.dark-theme .btn-action-restore {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-color: #047857;
+    }
+    body.dark-theme .btn-action-restore:hover {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-action-del-row {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        border: 1px solid #fee2e2;
+        background: #fff1f2;
+        color: #e11d48;
+        font-size: 1rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .btn-action-del-row:hover {
+        background: #e11d48;
+        color: white;
+        border-color: #e11d48;
+    }
+    body.dark-theme .btn-action-del-row {
+        background: #881337;
+        color: #fecdd3;
+        border-color: #9f1239;
+    }
+    body.dark-theme .btn-action-del-row:hover {
+        background: #e11d48;
+        color: white;
+    }
+
+    /* Delete Modal Options Stack */
+    .delete-options-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 15px;
+    }
+    .delete-option-card {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        text-align: left;
+    }
+    .btn-del-action {
+        width: 100%;
+        padding: 13px 18px;
+        border-radius: 14px;
+        border: none;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+    .btn-del-me {
+        background: #f1f5f9;
+        color: #334155;
+        border: 1px solid #cbd5e1;
+    }
+    .btn-del-me:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+    .btn-del-everyone {
+        background: #e11d48;
+        color: white;
+    }
+    .btn-del-everyone:hover {
+        background: #be123c;
+    }
+    .btn-del-cancel {
+        width: 100%;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-del-cancel:hover {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+    .delete-option-card .btn-subtext {
+        font-size: 0.78rem;
+        color: #64748b;
+        padding-left: 6px;
+        line-height: 1.4;
+    }
+    body.dark-theme .btn-del-me {
+        background: #334155;
+        color: #f1f5f9;
+        border-color: #475569;
+    }
+    body.dark-theme .btn-del-me:hover {
+        background: #475569;
+    }
+    body.dark-theme .btn-del-cancel {
+        background: #1e293b;
+        color: #94a3b8;
+        border-color: #334155;
+    }
+    body.dark-theme .btn-del-cancel:hover {
+        background: #334155;
+        color: #f1f5f9;
+    }
+    body.dark-theme .delete-option-card .btn-subtext {
+        color: #94a3b8;
+    }
+
+    /* Undo Toast Bubble */
+    .undo-toast-bubble {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 99999;
+        pointer-events: auto;
+        animation: toastSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastSlideUp {
+        from { transform: translate(-50%, 20px); opacity: 0; }
+        to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .undo-toast-inner {
+        background: #0f172a;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 100px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 0.95rem;
+    }
+    .undo-icon {
+        color: #10b981;
+        font-size: 1.25rem;
+    }
+    .undo-action-btn {
+        background: #4f46e5;
+        color: white;
+        border: none;
+        padding: 5px 14px;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .undo-action-btn:hover {
+        background: #4338ca;
+        transform: scale(1.05);
+    }
+    .undo-close-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .undo-close-btn:hover {
+        color: white;
+    }
+    @media (max-width: 768px) {
+        .undo-toast-bubble {
+            bottom: 85px; /* Above mobile bottom nav */
+            width: calc(100% - 32px);
+            max-width: 400px;
+        }
+        .undo-toast-inner {
+            justify-content: space-between;
+        }
+    }
+
     /* 5. Modal Polish */
     .confirmation-modal {
         display: none;
@@ -993,6 +1297,18 @@
         </div>
     </header>
 
+    <!-- Tabs: Active vs Hidden Records (1C) -->
+    <div class="fees-record-tabs">
+        <a href="?tab=active{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab != 'hidden' %}active{% endif %}">
+            <i class='bx bx-check-circle'></i> Active Records
+            <span class="tab-badge">{{ active_count }}</span>
+        </a>
+        <a href="?tab=hidden{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab == 'hidden' %}active{% endif %}">
+            <i class='bx bx-hide'></i> Hidden by Me
+            <span class="tab-badge">{{ hidden_count }}</span>
+        </a>
+    </div>
+
     <!-- Wide Premium Search Area -->
     <section class="search-row-area">
         <div class="search-input-container">
@@ -1019,9 +1335,15 @@
             </div>
         </div>
         <div class="selection-right">
+            {% if current_tab == 'hidden' %}
+            <button type="button" class="bulk-restore-btn" id="bulkRestoreBtn" style="display: none;" disabled onclick="submitBulkRestore()">
+                <i class='bx bx-undo'></i> Restore Selected
+            </button>
+            {% else %}
             <button type="button" class="bulk-delete-btn" id="bulkDeleteBtn" style="display: none;" disabled onclick="openBulkDeleteModal()">
                 <i class='bx bx-trash'></i> Delete
             </button>
+            {% endif %}
         </div>
     </section>
 
@@ -1042,16 +1364,16 @@
                 </thead>
                 <tbody>
                     {% for tx in page_obj %}
-                    <tr class="fee-row">
+                    <tr class="fee-row" id="fee-row-{{ tx.id }}">
                         <td class="checkbox-col">
                             <input type="checkbox" class="custom-checkbox row-checkbox" data-id="{{ tx.id }}" onclick="updateSelectedCount()">
                         </td>
                         <td><span class="receipt-id-pill" onclick="copyReceiptNo('{{ tx.receipt_number }}', event)" title="Click to copy receipt number">{{ tx.receipt_number }} <i class='bx bx-copy' style="font-size: 0.8rem; opacity: 0.7;"></i></span></td>
-                        <td><span class="student-bold">{{ tx.student.full_name }}</span></td>
-                        <td style="color: #94a3b8; font-size: 0.85rem;">{{ tx.student.mobile_number }}</td>
+                        <td><span class="student-bold">{{ tx.student_display_name }}</span></td>
+                        <td style="color: #94a3b8; font-size: 0.85rem;">{{ tx.student_mobile }}</td>
                         <td style="font-weight: 600;">{{ tx.payment_date|date:"d M Y" }}</td>
                         <td><span class="amount-success">₹{{ tx.total_amount }}</span></td>
-                        <td style="text-align: right;">
+                        <td style="text-align: right; white-space: nowrap;">
                             {% with script_id=tx.id|stringformat:"s" %}
                             {% with full_id="tx-months-"|add:script_id %}
                             {{ tx.months_snapshot|json_script:full_id }}
@@ -1060,8 +1382,8 @@
                             <button class="btn-action-ghost" 
                                     data-tx-id="{{ tx.id }}"
                                     data-receipt="{{ tx.receipt_number }}"
-                                    data-name="{{ tx.student.full_name }}"
-                                    data-mobile="{{ tx.student.mobile_number }}"
+                                    data-name="{{ tx.student_display_name }}"
+                                    data-mobile="{{ tx.student_mobile }}"
                                     data-pdate="{{ tx.payment_date|date:'d M Y' }}"
                                     data-edate="{{ tx.expiry_date|date:'d M Y' }}"
                                     data-total="{{ tx.total_amount }}"
@@ -1071,6 +1393,15 @@
                                     onclick="prepareAndOpenModal(this)">
                                 <i class='bx bx-list-ul'></i> View Details
                             </button>
+                            {% if current_tab == 'hidden' %}
+                            <button type="button" class="btn-action-restore" onclick="restoreSingleReceipt('{{ tx.id }}')" title="Restore to active view" style="margin-left: 6px;">
+                                <i class='bx bx-undo'></i> Restore
+                            </button>
+                            {% else %}
+                            <button type="button" class="btn-action-del-row" onclick="openSingleDeleteModal('{{ tx.id }}')" title="Delete receipt" style="margin-left: 6px;">
+                                <i class='bx bx-trash'></i>
+                            </button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -1110,30 +1441,69 @@
                 <i class='bx bx-search-alt-2'></i>
             </div>
         </div>
+        {% if current_tab == 'hidden' %}
+        <h3>No hidden records</h3>
+        <p>Receipts you hide with "Delete for me only" will appear here. You can restore them at any time.</p>
+        {% else %}
         <h3>No records available yet</h3>
         <p>Student fee submissions and digitally generated receipts will be automatically logged here as they occur in the system.</p>
+        {% endif %}
     </section>
     {% endif %}
 </main>
 
-<!-- Bulk Delete Confirmation Modal -->
+<!-- Delete Confirmation Modal (1A) -->
 <div id="bulkDeleteModal" class="confirmation-modal">
-    <div class="conf-content">
-        <div style="width: 60px; height: 60px; background: #fff1f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #e11d48; font-size: 1.8rem;">
-            <i class='bx bx-error-circle'></i>
+    <div class="conf-content" style="max-width: 480px; text-align: center;">
+        <div style="width: 58px; height: 58px; background: #fff1f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #e11d48; font-size: 1.8rem;">
+            <i class='bx bx-trash'></i>
         </div>
-        <h3 style="font-size: 1.4rem; font-weight: 800; color: #1e293b; margin-bottom: 10px;">Delete Selected Records?</h3>
-        <p style="color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 30px;">
-            You are about to permanently remove <b id="modalDeleteCount">0</b> fee record(s). This action cannot be undone.
+        <h3 id="modalDeleteTitle" style="font-size: 1.35rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Delete <span id="modalDeleteCount">0</span> receipt(s)?</h3>
+        <p style="color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 22px;">
+            Do you also want to delete them from the student's record?
         </p>
-        <form id="bulkDeleteForm" method="POST" action="{% url 'users:bulk_delete_fees' %}">
+        
+        <form id="bulkDeleteForm" method="POST" action="{% url 'users:bulk_delete_fees' %}" onsubmit="return false;">
             {% csrf_token %}
             <div id="selectedIdsContainer"></div>
-            <div style="display: flex; gap: 12px;">
-                <button type="button" onclick="closeBulkDeleteModal()" style="flex: 1; padding: 12px; border-radius: 14px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 700; cursor: pointer;">Cancel</button>
-                <button type="submit" style="flex: 1; padding: 12px; border-radius: 14px; border: none; background: #e11d48; color: white; font-weight: 700; cursor: pointer;">Delete</button>
+            <input type="hidden" name="action_type" id="deleteActionType" value="delete_for_everyone">
+
+            <div class="delete-options-stack">
+                <div class="delete-option-card">
+                    <button type="button" class="btn-del-action btn-del-me" onclick="executeDeleteFees('hide_for_me')">
+                        <i class='bx bx-user-x'></i> Delete for me only
+                    </button>
+                    <div class="btn-subtext">Hides from your view only. Keeps in student record & totals.</div>
+                </div>
+
+                <div class="delete-option-card">
+                    <button type="button" class="btn-del-action btn-del-everyone" onclick="executeDeleteFees('delete_for_everyone')">
+                        <i class='bx bx-trash'></i> Delete for everyone
+                    </button>
+                    <div class="btn-subtext">Removes from student record & all reports. Stored in audit log.</div>
+                </div>
+
+                <div class="delete-option-card" style="margin-top: 6px;">
+                    <button type="button" class="btn-del-cancel" onclick="closeBulkDeleteModal()">
+                        Cancel
+                    </button>
+                </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Undo Bubble Toast (1B) -->
+<div id="undoToastBubble" class="undo-toast-bubble" role="status" aria-live="polite" style="display: none;">
+    <div class="undo-toast-inner">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class='bx bx-check-circle undo-icon'></i>
+            <span id="undoToastMessage">Removed from your view.</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" id="undoToastBtn" class="undo-action-btn" onclick="executeUndoRestore()">Undo</button>
+            <button type="button" class="undo-close-btn" onclick="dismissUndoToast()" aria-label="Dismiss">&times;</button>
+        </div>
     </div>
 </div>
 
@@ -1208,28 +1578,36 @@
 
 <script>
     let isSelectionMode = false;
+    let pendingUndoIds = [];
+    let undoToastTimer = null;
+    let undoToastRemaining = 6000;
+    let undoToastStart = null;
 
     function toggleSelectionMode() {
         isSelectionMode = !isSelectionMode;
         const toggleBtn = document.getElementById('toggleSelectBtn');
         const selectionInfo = document.getElementById('selectionInfo');
         const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+        const bulkRestoreBtn = document.getElementById('bulkRestoreBtn');
         const checkboxCols = document.querySelectorAll('.checkbox-col');
         
         if (isSelectionMode) {
             toggleBtn.innerHTML = "<i class='bx bx-x'></i> Cancel";
             toggleBtn.classList.add('active');
-            selectionInfo.style.display = 'flex';
-            bulkDeleteBtn.style.display = 'flex';
+            if (selectionInfo) selectionInfo.style.display = 'flex';
+            if (bulkDeleteBtn) bulkDeleteBtn.style.display = 'flex';
+            if (bulkRestoreBtn) bulkRestoreBtn.style.display = 'flex';
             checkboxCols.forEach(col => col.style.display = 'table-cell');
         } else {
             toggleBtn.innerHTML = "<i class='bx bx-check-square'></i> Select";
             toggleBtn.classList.remove('active');
-            selectionInfo.style.display = 'none';
-            bulkDeleteBtn.style.display = 'none';
+            if (selectionInfo) selectionInfo.style.display = 'none';
+            if (bulkDeleteBtn) bulkDeleteBtn.style.display = 'none';
+            if (bulkRestoreBtn) bulkRestoreBtn.style.display = 'none';
             checkboxCols.forEach(col => col.style.display = 'none');
             // Reset all checkboxes
-            document.getElementById('selectAllCheckbox').checked = false;
+            const selectAllCb = document.getElementById('selectAllCheckbox');
+            if (selectAllCb) selectAllCb.checked = false;
             document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
             updateSelectedCount();
         }
@@ -1245,20 +1623,40 @@
     function updateSelectedCount() {
         const selected = document.querySelectorAll('.row-checkbox:checked');
         const count = selected.length;
-        document.getElementById('selectedCount').innerText = count;
+        const countEl = document.getElementById('selectedCount');
+        if (countEl) countEl.innerText = count;
         
         const deleteBtn = document.getElementById('bulkDeleteBtn');
-        deleteBtn.disabled = count === 0;
+        if (deleteBtn) deleteBtn.disabled = count === 0;
+
+        const restoreBtn = document.getElementById('bulkRestoreBtn');
+        if (restoreBtn) restoreBtn.disabled = count === 0;
 
         // Sync Select All checkbox
         const totalRows = document.querySelectorAll('.row-checkbox').length;
-        document.getElementById('selectAllCheckbox').checked = (count === totalRows && totalRows > 0);
+        const selectAllCb = document.getElementById('selectAllCheckbox');
+        if (selectAllCb) selectAllCb.checked = (count === totalRows && totalRows > 0);
+    }
+
+    function openSingleDeleteModal(txId) {
+        const container = document.getElementById('selectedIdsContainer');
+        container.innerHTML = '';
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'transaction_ids[]';
+        input.value = txId;
+        container.appendChild(input);
+
+        const countEl = document.getElementById('modalDeleteCount');
+        if (countEl) countEl.innerText = '1';
+        document.getElementById('bulkDeleteModal').style.display = 'flex';
     }
 
     function openBulkDeleteModal() {
         const selected = document.querySelectorAll('.row-checkbox:checked');
         const count = selected.length;
-        document.getElementById('modalDeleteCount').innerText = count;
+        const countEl = document.getElementById('modalDeleteCount');
+        if (countEl) countEl.innerText = count;
         
         const container = document.getElementById('selectedIdsContainer');
         container.innerHTML = '';
@@ -1275,6 +1673,163 @@
 
     function closeBulkDeleteModal() {
         document.getElementById('bulkDeleteModal').style.display = 'none';
+    }
+
+    function executeDeleteFees(actionType) {
+        const container = document.getElementById('selectedIdsContainer');
+        const inputs = container.querySelectorAll('input[name="transaction_ids[]"]');
+        const ids = Array.from(inputs).map(inp => parseInt(inp.value)).filter(n => !isNaN(n));
+        
+        if (ids.length === 0) return;
+
+        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+
+        if (actionType === 'hide_for_me') {
+            // Delete for me only -> Send AJAX, hide rows, trigger undo bubble
+            fetch("{% url 'users:bulk_delete_fees' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    transaction_ids: ids,
+                    action_type: 'hide_for_me'
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                closeBulkDeleteModal();
+                if (data.status === 'success') {
+                    // Visually remove rows
+                    ids.forEach(id => {
+                        const row = document.getElementById('fee-row-' + id);
+                        if (row) {
+                            row.style.transition = 'opacity 0.3s ease';
+                            row.style.opacity = '0';
+                            setTimeout(() => row.remove(), 300);
+                        }
+                    });
+                    // Show Undo Bubble
+                    showUndoToast(ids, "Removed from your view.");
+                } else {
+                    alert(data.message || 'Error hiding records.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('deleteActionType').value = 'hide_for_me';
+                document.getElementById('bulkDeleteForm').submit();
+            });
+        } else {
+            // Delete for everyone -> Standard POST submit (NO undo bubble)
+            const form = document.getElementById('bulkDeleteForm');
+            document.getElementById('deleteActionType').value = 'delete_for_everyone';
+            form.submit();
+        }
+    }
+
+    function restoreSingleReceipt(txId) {
+        submitRestoreIds([parseInt(txId)]);
+    }
+
+    function submitBulkRestore() {
+        const selected = document.querySelectorAll('.row-checkbox:checked');
+        const ids = Array.from(selected).map(cb => parseInt(cb.getAttribute('data-id'))).filter(n => !isNaN(n));
+        if (ids.length > 0) {
+            submitRestoreIds(ids);
+        }
+    }
+
+    function submitRestoreIds(ids) {
+        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+        fetch("{% url 'users:teacher_restore_fees' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ transaction_ids: ids })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                ids.forEach(id => {
+                    const row = document.getElementById('fee-row-' + id);
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s ease';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
+                    }
+                });
+                showUndoToast([], "Restored to your active view.", false);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                alert(data.message || 'Error restoring records.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            window.location.reload();
+        });
+    }
+
+    // 1B. UNDO BUBBLE IMPLEMENTATION
+    function showUndoToast(ids, message, showUndo = true) {
+        pendingUndoIds = ids || [];
+        const toast = document.getElementById('undoToastBubble');
+        const msgEl = document.getElementById('undoToastMessage');
+        const undoBtn = document.getElementById('undoToastBtn');
+        if (!toast) return;
+
+        if (msgEl) msgEl.innerText = message || "Removed.";
+        if (undoBtn) undoBtn.style.display = showUndo ? 'inline-block' : 'none';
+
+        toast.style.display = 'block';
+        undoToastRemaining = 6000;
+        startUndoTimer();
+
+        // Pause on hover or touch
+        toast.onmouseenter = pauseUndoTimer;
+        toast.onmouseleave = resumeUndoTimer;
+        toast.ontouchstart = pauseUndoTimer;
+        toast.ontouchend = resumeUndoTimer;
+    }
+
+    function startUndoTimer() {
+        clearTimeout(undoToastTimer);
+        undoToastStart = Date.now();
+        undoToastTimer = setTimeout(dismissUndoToast, undoToastRemaining);
+    }
+
+    function pauseUndoTimer() {
+        clearTimeout(undoToastTimer);
+        undoToastRemaining -= (Date.now() - undoToastStart);
+    }
+
+    function resumeUndoTimer() {
+        if (undoToastRemaining > 0) {
+            startUndoTimer();
+        }
+    }
+
+    function dismissUndoToast() {
+        clearTimeout(undoToastTimer);
+        const toast = document.getElementById('undoToastBubble');
+        if (toast) toast.style.display = 'none';
+        pendingUndoIds = [];
+    }
+
+    function executeUndoRestore() {
+        if (!pendingUndoIds || pendingUndoIds.length === 0) {
+            dismissUndoToast();
+            return;
+        }
+        const idsToRestore = [...pendingUndoIds];
+        dismissUndoToast();
+        submitRestoreIds(idsToRestore);
     }
 
     function prepareAndOpenModal(btn) {

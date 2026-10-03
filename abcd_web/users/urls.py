@@ -177,12 +177,14 @@ urlpatterns = [
     # Fees Record (Accounting History)
     path("teacher/fees-record/", views.fees_record_view, name="fees_record"),
     path("teacher/fees-record/bulk-delete/", views.bulk_delete_fees_action, name="bulk_delete_fees"),
+    path("teacher/fees-record/restore/", views.teacher_restore_fees_action, name="teacher_restore_fees"),
     path("teacher/fees-record/download/<int:transaction_id>/", views.download_fee_receipt_view, name="download_fee_receipt"),
     path("teacher/fee-receipt/download/<int:transaction_id>/", views.download_fee_receipt_view),
 
     # Student Fees Record
     path("student/fees/", views.student_fee_record_view, name="student_fee_record"),
     path("student/fees/delete/", views.student_hide_fee_transaction, name="student_hide_fee_transaction"),
+    path("student/fees/restore/", views.student_restore_fee_transaction, name="student_restore_fee_transaction"),
     path("student/fees/download/<int:transaction_id>/", views.student_download_fee_receipt_view, name="student_download_fee_receipt"),
     path("student/fee-receipt/download/<int:transaction_id>/", views.student_download_fee_receipt_view),
 

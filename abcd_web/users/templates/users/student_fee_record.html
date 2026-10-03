@@ -358,6 +358,196 @@
         border-radius: 20px;
     }
 
+    /* Tabs: Active vs Hidden */
+    .fees-record-tabs {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 25px;
+    }
+    .tab-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 22px;
+        border-radius: 100px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .tab-btn:hover {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+    .tab-btn.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+    }
+    .tab-badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.06);
+    }
+    .tab-btn.active .tab-badge {
+        background: rgba(255,255,255,0.25);
+        color: white;
+    }
+    body.dark-theme .tab-btn {
+        background: #1e293b;
+        border-color: #334155;
+        color: #94a3b8;
+    }
+    body.dark-theme .tab-btn:hover {
+        background: #334155;
+        color: #f1f5f9;
+    }
+    body.dark-theme .tab-btn.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+    }
+
+    /* Bulk restore button */
+    .bulk-restore-btn {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bulk-restore-btn:hover:not(:disabled) {
+        background: #059669;
+        color: white;
+        border-color: #059669;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+    }
+    .bulk-restore-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    body.dark-theme .bulk-restore-btn {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-color: #047857;
+    }
+    body.dark-theme .bulk-restore-btn:hover:not(:disabled) {
+        background: #059669;
+        color: white;
+    }
+
+    /* Action Column Buttons */
+    .btn-action-restore {
+        padding: 6px 14px;
+        border-radius: 10px;
+        border: 1px solid #10b981;
+        background: #ecfdf5;
+        color: #059669;
+        font-weight: 700;
+        font-size: 0.82rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+    .btn-action-restore:hover {
+        background: #10b981;
+        color: white;
+    }
+    body.dark-theme .btn-action-restore {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-color: #047857;
+    }
+    body.dark-theme .btn-action-restore:hover {
+        background: #10b981;
+        color: white;
+    }
+
+    /* Undo Toast Bubble */
+    .undo-toast-bubble {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 99999;
+        pointer-events: auto;
+        animation: toastSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastSlideUp {
+        from { transform: translate(-50%, 20px); opacity: 0; }
+        to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .undo-toast-inner {
+        background: #0f172a;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 100px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 0.95rem;
+    }
+    .undo-icon {
+        color: #10b981;
+        font-size: 1.25rem;
+    }
+    .undo-action-btn {
+        background: #4f46e5;
+        color: white;
+        border: none;
+        padding: 5px 14px;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .undo-action-btn:hover {
+        background: #4338ca;
+        transform: scale(1.05);
+    }
+    .undo-close-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .undo-close-btn:hover {
+        color: white;
+    }
+    @media (max-width: 768px) {
+        .undo-toast-bubble {
+            bottom: 85px; /* Above mobile bottom nav */
+            width: calc(100% - 32px);
+            max-width: 400px;
+        }
+        .undo-toast-inner {
+            justify-content: space-between;
+        }
+    }
+
     /* 5. Modal Polish */
     .confirmation-modal {
         display: none;
@@ -988,6 +1178,18 @@
         </div>
     </header>
 
+    <!-- Tabs: Active vs Hidden Records -->
+    <div class="fees-record-tabs">
+        <a href="?tab=active{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab != 'hidden' %}active{% endif %}">
+            <i class='bx bx-check-circle'></i> Active Records
+            <span class="tab-badge">{{ active_count }}</span>
+        </a>
+        <a href="?tab=hidden{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab == 'hidden' %}active{% endif %}">
+            <i class='bx bx-hide'></i> Hidden Records
+            <span class="tab-badge">{{ hidden_count }}</span>
+        </a>
+    </div>
+
     <!-- Search Area -->
     <section class="search-row-area">
         <div class="search-input-container">
@@ -1014,9 +1216,15 @@
             </div>
         </div>
         <div class="selection-right">
-            <button type="button" class="bulk-delete-btn" id="bulkDeleteBtn" style="display: none;" disabled onclick="openBulkDeleteModal()">
-                <i class='bx bx-trash'></i> Remove from Record
+            {% if current_tab == 'hidden' %}
+            <button type="button" class="bulk-restore-btn" id="bulkRestoreBtn" style="display: none;" disabled onclick="submitBulkRestore()">
+                <i class='bx bx-undo'></i> Restore Selected
             </button>
+            {% else %}
+            <button type="button" class="bulk-delete-btn" id="bulkDeleteBtn" style="display: none;" disabled onclick="openBulkDeleteModal()">
+                <i class='bx bx-hide'></i> Remove from Record
+            </button>
+            {% endif %}
         </div>
     </section>
 
@@ -1050,16 +1258,23 @@
                             {{ tx.months_snapshot|json_script:full_id }}
                             {% endwith %}
                             {% endwith %}
-                            <button class="btn-action-ghost" 
-                                    data-tx-id="{{ tx.id }}"
-                                    data-receipt="{{ tx.receipt_number }}"
-                                    data-pdate="{{ tx.payment_date|date:'d M Y' }}"
-                                    data-edate="{{ tx.expiry_date|date:'d M Y'|default:'-' }}"
-                                    data-total="{{ tx.total_amount }}"
-                                    data-service="{{ tx.service_snapshot }}"
-                                    onclick="prepareAndOpenModal(this)">
-                                <i class='bx bx-list-ul'></i> View Receipt
-                            </button>
+                            <div style="display: inline-flex; align-items: center; gap: 8px;">
+                                {% if current_tab == 'hidden' %}
+                                <button type="button" class="btn-action-restore" onclick="restoreSingleReceipt('{{ tx.id }}')" title="Restore to active records">
+                                    <i class='bx bx-undo'></i> Restore
+                                </button>
+                                {% endif %}
+                                <button class="btn-action-ghost" 
+                                        data-tx-id="{{ tx.id }}"
+                                        data-receipt="{{ tx.receipt_number }}"
+                                        data-pdate="{{ tx.payment_date|date:'d M Y' }}"
+                                        data-edate="{{ tx.expiry_date|date:'d M Y'|default:'-' }}"
+                                        data-total="{{ tx.total_amount }}"
+                                        data-service="{{ tx.service_snapshot }}"
+                                        onclick="prepareAndOpenModal(this)">
+                                    <i class='bx bx-list-ul'></i> View Receipt
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -1093,13 +1308,18 @@
     <!-- Empty State -->
     <section class="wide-empty-region">
         <div class="illustration-placeholder">
-            <i class='bx bx-folder-open'></i>
+            <i class='bx {% if current_tab == "hidden" %}bx-hide{% else %}bx-folder-open{% endif %}'></i>
             <div class="sub-icon">
                 <i class='bx bx-receipt'></i>
             </div>
         </div>
+        {% if current_tab == 'hidden' %}
+        <h3>No hidden fee records</h3>
+        <p>Receipts you remove from your view will appear here so you can restore them anytime.</p>
+        {% else %}
         <h3>No fee records available yet</h3>
         <p>When fee payments are recorded for your enrolled courses or library seat, your verified digital receipts will appear here automatically.</p>
+        {% endif %}
     </section>
     {% endif %}
 </main>
@@ -1114,7 +1334,7 @@
         <p style="color: #64748b; font-size: 0.95rem; line-height: 1.5; margin-bottom: 30px;">
             Remove from your record? Your institute's own records are not affected.
         </p>
-        <form id="bulkDeleteForm" method="POST" action="{% url 'users:student_hide_fee_transaction' %}">
+        <form id="bulkDeleteForm" method="POST" action="{% url 'users:student_hide_fee_transaction' %}" onsubmit="event.preventDefault(); submitBulkDelete();">
             {% csrf_token %}
             <div id="selectedIdsContainer"></div>
             <div style="display: flex; gap: 12px;">
@@ -1182,30 +1402,48 @@
     <span id="copyToastText">Receipt number copied!</span>
 </div>
 
+<!-- Undo Toast Bubble -->
+<div id="undoToastBubble" class="undo-toast-bubble" role="status" aria-live="polite" style="display: none;">
+    <div class="undo-toast-inner">
+        <i class='bx bx-info-circle undo-icon'></i>
+        <span id="undoToastMessage">Removed from your record.</span>
+        <button type="button" id="undoToastBtn" class="undo-action-btn" onclick="executeUndoRestore()">Undo</button>
+        <button type="button" class="undo-close-btn" onclick="dismissUndoToast()" aria-label="Close">&times;</button>
+    </div>
+</div>
+
 <script>
     let isSelectionMode = false;
+    let pendingUndoIds = [];
+    let undoToastTimer = null;
+    let undoToastStart = 0;
+    let undoToastRemaining = 6000;
 
     function toggleSelectionMode() {
         isSelectionMode = !isSelectionMode;
         const toggleBtn = document.getElementById('toggleSelectBtn');
         const selectionInfo = document.getElementById('selectionInfo');
         const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+        const bulkRestoreBtn = document.getElementById('bulkRestoreBtn');
         const checkboxCols = document.querySelectorAll('.checkbox-col');
         
         if (isSelectionMode) {
             toggleBtn.innerHTML = "<i class='bx bx-x'></i> Cancel";
             toggleBtn.classList.add('active');
             selectionInfo.style.display = 'flex';
-            bulkDeleteBtn.style.display = 'flex';
+            if (bulkDeleteBtn) bulkDeleteBtn.style.display = 'flex';
+            if (bulkRestoreBtn) bulkRestoreBtn.style.display = 'flex';
             checkboxCols.forEach(col => col.style.display = 'table-cell');
         } else {
             toggleBtn.innerHTML = "<i class='bx bx-check-square'></i> Select";
             toggleBtn.classList.remove('active');
             selectionInfo.style.display = 'none';
-            bulkDeleteBtn.style.display = 'none';
+            if (bulkDeleteBtn) bulkDeleteBtn.style.display = 'none';
+            if (bulkRestoreBtn) bulkRestoreBtn.style.display = 'none';
             checkboxCols.forEach(col => col.style.display = 'none');
             // Reset all checkboxes
-            document.getElementById('selectAllCheckbox').checked = false;
+            const selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) selectAll.checked = false;
             document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
             updateSelectedCount();
         }
@@ -1221,18 +1459,26 @@
     function updateSelectedCount() {
         const selected = document.querySelectorAll('.row-checkbox:checked');
         const count = selected.length;
-        document.getElementById('selectedCount').innerText = count;
+        const countEl = document.getElementById('selectedCount');
+        if (countEl) countEl.innerText = count;
         
         const deleteBtn = document.getElementById('bulkDeleteBtn');
-        deleteBtn.disabled = count === 0;
+        if (deleteBtn) deleteBtn.disabled = count === 0;
+
+        const restoreBtn = document.getElementById('bulkRestoreBtn');
+        if (restoreBtn) restoreBtn.disabled = count === 0;
 
         const totalRows = document.querySelectorAll('.row-checkbox').length;
-        document.getElementById('selectAllCheckbox').checked = (count === totalRows && totalRows > 0);
+        const selectAllCb = document.getElementById('selectAllCheckbox');
+        if (selectAllCb) {
+            selectAllCb.checked = (count === totalRows && totalRows > 0);
+        }
     }
 
     function openBulkDeleteModal() {
         const selected = document.querySelectorAll('.row-checkbox:checked');
         const container = document.getElementById('selectedIdsContainer');
+        if (!container) return;
         container.innerHTML = '';
         selected.forEach(cb => {
             const input = document.createElement('input');
@@ -1247,6 +1493,147 @@
 
     function closeBulkDeleteModal() {
         document.getElementById('bulkDeleteModal').style.display = 'none';
+    }
+
+    function submitBulkDelete() {
+        const selected = document.querySelectorAll('.row-checkbox:checked');
+        const ids = Array.from(selected).map(cb => parseInt(cb.getAttribute('data-id'))).filter(n => !isNaN(n));
+        if (ids.length === 0) return;
+
+        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+        fetch("{% url 'users:student_hide_fee_transaction' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ transaction_ids: ids })
+        })
+        .then(res => res.json())
+        .then(data => {
+            closeBulkDeleteModal();
+            if (data.status === 'success') {
+                ids.forEach(id => {
+                    const row = document.getElementById('fee-row-' + id);
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s ease';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
+                    }
+                });
+                if (isSelectionMode) toggleSelectionMode();
+                showUndoToast(ids, "Removed from your record.");
+            } else {
+                alert(data.message || 'Error removing records.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('bulkDeleteForm').submit();
+        });
+    }
+
+    function restoreSingleReceipt(txId) {
+        submitRestoreIds([parseInt(txId)]);
+    }
+
+    function submitBulkRestore() {
+        const selected = document.querySelectorAll('.row-checkbox:checked');
+        const ids = Array.from(selected).map(cb => parseInt(cb.getAttribute('data-id'))).filter(n => !isNaN(n));
+        if (ids.length > 0) {
+            submitRestoreIds(ids);
+        }
+    }
+
+    function submitRestoreIds(ids) {
+        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+        fetch("{% url 'users:student_restore_fee_transaction' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ transaction_ids: ids })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                ids.forEach(id => {
+                    const row = document.getElementById('fee-row-' + id);
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s ease';
+                        row.style.opacity = '0';
+                        setTimeout(() => row.remove(), 300);
+                    }
+                });
+                showUndoToast([], "Restored to your active view.", false);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                alert(data.message || 'Error restoring records.');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            window.location.reload();
+        });
+    }
+
+    // 1B. UNDO BUBBLE IMPLEMENTATION
+    function showUndoToast(ids, message, showUndo = true) {
+        pendingUndoIds = ids || [];
+        const toast = document.getElementById('undoToastBubble');
+        const msgEl = document.getElementById('undoToastMessage');
+        const undoBtn = document.getElementById('undoToastBtn');
+        if (!toast) return;
+
+        if (msgEl) msgEl.innerText = message || "Removed.";
+        if (undoBtn) undoBtn.style.display = showUndo ? 'inline-block' : 'none';
+
+        toast.style.display = 'block';
+        undoToastRemaining = 6000;
+        startUndoTimer();
+
+        // Pause on hover or touch
+        toast.onmouseenter = pauseUndoTimer;
+        toast.onmouseleave = resumeUndoTimer;
+        toast.ontouchstart = pauseUndoTimer;
+        toast.ontouchend = resumeUndoTimer;
+    }
+
+    function startUndoTimer() {
+        clearTimeout(undoToastTimer);
+        undoToastStart = Date.now();
+        undoToastTimer = setTimeout(dismissUndoToast, undoToastRemaining);
+    }
+
+    function pauseUndoTimer() {
+        clearTimeout(undoToastTimer);
+        undoToastRemaining -= (Date.now() - undoToastStart);
+    }
+
+    function resumeUndoTimer() {
+        if (undoToastRemaining > 0) {
+            startUndoTimer();
+        }
+    }
+
+    function dismissUndoToast() {
+        clearTimeout(undoToastTimer);
+        const toast = document.getElementById('undoToastBubble');
+        if (toast) toast.style.display = 'none';
+        pendingUndoIds = [];
+    }
+
+    function executeUndoRestore() {
+        if (!pendingUndoIds || pendingUndoIds.length === 0) {
+            dismissUndoToast();
+            return;
+        }
+        const idsToRestore = [...pendingUndoIds];
+        dismissUndoToast();
+        submitRestoreIds(idsToRestore);
     }
 
     function prepareAndOpenModal(btn) {

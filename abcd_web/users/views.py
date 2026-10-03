@@ -19,7 +19,7 @@ from .models import (
     TodoTask, StudentAchievement, PushSubscription, Seat, SeatSpecialRequest, SeatSwitchRequest, SeatLeaveRequest, SeatHoldChangeRequest,
     StudentProfile, Payment, Complaint, StudyMaterial, Course, CourseCategory, Notification,
     BroadcastMessage, VisitorIntent, SeatHoldRequest, CourseQuestion, CourseAnswer, CourseReview,
-    CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, StudentCourseInteraction,
+    CourseShare, StudentMaterialAccess, LearningReminder, FeeTransaction, TeacherHiddenFeeTransaction, FeeTransactionAudit, StudentCourseInteraction,
     PerformanceRecord, StudentScore,
     abcd_format_name,
     # Guidy Mentorship & Group Chat Models
@@ -4555,16 +4555,21 @@ def student_dashboard_view(request):
 
     if profile.status == 'admitted':
         try:
-            # Query last 5 non-hidden FeeTransactions for this student
+            # Query last 5 non-hidden, non-deleted FeeTransactions for this student
             fee_transactions = list(FeeTransaction.objects.filter(
                 student=profile,
-                is_hidden_by_student=False
+                is_hidden_by_student=False,
+                deleted_at__isnull=True
             ).order_by('-payment_date', '-created_at')[:5])
 
             if not fee_transactions:
-                # Fallback to legacy Payment records if no FeeTransaction exists yet
-                legacy_payments = Payment.objects.filter(student=profile).order_by('-date_paid', '-year')[:5]
-                context['fee_records'] = legacy_payments
+                # Fallback to legacy Payment records ONLY if student never had any FeeTransaction
+                has_any_fee_tx = FeeTransaction.objects.filter(student=profile).exists()
+                if not has_any_fee_tx:
+                    legacy_payments = Payment.objects.filter(student=profile).order_by('-date_paid', '-year')[:5]
+                    context['fee_records'] = legacy_payments
+                else:
+                    context['fee_records'] = []
             else:
                 context['fee_records'] = fee_transactions
 
@@ -6406,15 +6411,27 @@ def delete_selected_visitor_intents(request):
 @user_passes_test(lambda u: u.is_staff)
 def fees_record_view(request):
     search_query = request.GET.get('search', '').strip()
+    current_tab = request.GET.get('tab', 'active') # 'active' or 'hidden'
     
-    # Optimized queryset
-    transactions = FeeTransaction.objects.select_related('student').order_by('-created_at')
+    # Base queryset: Never show records deleted for everyone in normal UI
+    base_qs = FeeTransaction.objects.filter(deleted_at__isnull=True).select_related('student')
+
+    active_count = base_qs.exclude(teacher_hides__teacher=request.user).count()
+    hidden_count = base_qs.filter(teacher_hides__teacher=request.user).count()
+
+    if current_tab == 'hidden':
+        transactions = base_qs.filter(teacher_hides__teacher=request.user).order_by('-created_at')
+    else:
+        transactions = base_qs.exclude(teacher_hides__teacher=request.user).order_by('-created_at')
     
     if search_query:
         query_filter = (
             Q(receipt_number__icontains=search_query) |
             Q(student__full_name__icontains=search_query) |
-            Q(student__mobile_number__icontains=search_query)
+            Q(student__mobile_number__icontains=search_query) |
+            Q(student_name_snapshot__icontains=search_query) |
+            Q(mobile_snapshot__icontains=search_query) |
+            Q(roll_number_snapshot__icontains=search_query)
         )
         try:
             from datetime import datetime
@@ -6432,44 +6449,153 @@ def fees_record_view(request):
     return render(request, 'users/fees_record.html', {
         'page_obj': page_obj,
         'search_query': search_query,
+        'current_tab': current_tab,
+        'active_count': active_count,
+        'hidden_count': hidden_count,
     })
 
 # -------------------------------------------------------------------
-# VIEW: Teacher - Bulk Delete Fee Transactions
+# VIEW: Teacher - Delete / Hide Fee Transactions
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 @require_POST
 def bulk_delete_fees_action(request):
-    transaction_ids = request.POST.getlist('transaction_ids[]')
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type)
     
-    if not transaction_ids:
+    if request.content_type and 'application/json' in request.content_type:
+        try:
+            body_data = json.loads(request.body)
+            transaction_ids = body_data.get('transaction_ids', [])
+            action_type = body_data.get('action_type', 'delete_for_everyone')
+            reason = body_data.get('reason', '')
+        except Exception:
+            transaction_ids = []
+            action_type = 'delete_for_everyone'
+            reason = ''
+    else:
+        transaction_ids = request.POST.getlist('transaction_ids[]')
+        single_id = request.POST.get('transaction_id')
+        if single_id and not transaction_ids:
+            transaction_ids = [single_id]
+        action_type = request.POST.get('action_type', 'delete_for_everyone')
+        reason = request.POST.get('reason', '')
+    
+    valid_ids = [int(tid) for tid in transaction_ids if str(tid).isdigit()]
+    if not valid_ids:
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': 'No records selected.'}, status=400)
         messages.warning(request, "No records selected for deletion.")
         return redirect("users:fees_record")
         
     try:
         with transaction.atomic():
-            # Clean up associated notifications
-            Notification.objects.filter(meta__fee_transaction_id__in=[int(tid) for tid in transaction_ids if str(tid).isdigit()]).delete()
-            count = FeeTransaction.objects.filter(id__in=transaction_ids).delete()[0]
-            messages.success(request, f"Successfully deleted {count} fee record(s).")
+            if action_type == 'hide_for_me':
+                # Delete for me only -> Hide only for this specific teacher
+                count = 0
+                for tid in valid_ids:
+                    tx = FeeTransaction.objects.filter(id=tid, deleted_at__isnull=True).first()
+                    if tx:
+                        TeacherHiddenFeeTransaction.objects.get_or_create(teacher=request.user, transaction=tx)
+                        count += 1
+                msg = f"Removed {count} record(s) from your view."
+                if is_ajax:
+                    return JsonResponse({'status': 'success', 'message': msg, 'count': count, 'action': 'hide_for_me', 'ids': valid_ids})
+                messages.success(request, msg)
+            else:
+                # Delete for everyone -> Soft delete with audit log
+                txs = list(FeeTransaction.objects.filter(id__in=valid_ids, deleted_at__isnull=True).select_related('student'))
+                now = timezone.now()
+                for tx in txs:
+                    FeeTransactionAudit.objects.create(
+                        transaction_id=tx.id,
+                        receipt_number=tx.receipt_number,
+                        student_id=tx.student_id,
+                        student_name=tx.student_display_name,
+                        roll_number=tx.roll_number_snapshot or (str(tx.student.id) if tx.student else ''),
+                        amount=tx.total_amount,
+                        months=tx.months_display,
+                        action='delete_for_everyone',
+                        actor=request.user,
+                        reason=reason
+                    )
+                    tx.deleted_at = now
+                    tx.deleted_by = request.user
+                    tx.save(update_fields=['deleted_at', 'deleted_by'])
+                
+                # Clean up associated in-app notifications
+                Notification.objects.filter(meta__fee_transaction_id__in=valid_ids).delete()
+                count = len(txs)
+                msg = f"Successfully deleted {count} fee record(s) for everyone."
+                if is_ajax:
+                    return JsonResponse({'status': 'success', 'message': msg, 'count': count, 'action': 'delete_for_everyone', 'ids': valid_ids})
+                messages.success(request, msg)
     except Exception as e:
-        messages.error(request, f"Error deleting records: {str(e)}")
+        logger.exception(f"Error in bulk_delete_fees_action: {e}")
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        messages.error(request, f"Error processing deletion: {str(e)}")
         
     return redirect("users:fees_record")
+
+# -------------------------------------------------------------------
+# VIEW: Teacher - Restore Fee Transactions (Un-hide for teacher)
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+@require_POST
+def teacher_restore_fees_action(request):
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type)
+    
+    if request.content_type and 'application/json' in request.content_type:
+        try:
+            body_data = json.loads(request.body)
+            transaction_ids = body_data.get('transaction_ids', [])
+        except Exception:
+            transaction_ids = []
+    else:
+        transaction_ids = request.POST.getlist('transaction_ids[]')
+        single_id = request.POST.get('transaction_id')
+        if single_id and not transaction_ids:
+            transaction_ids = [single_id]
+
+    valid_ids = [int(tid) for tid in transaction_ids if str(tid).isdigit()]
+    if not valid_ids:
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': 'No records selected to restore.'}, status=400)
+        messages.warning(request, "No records selected to restore.")
+        return redirect(reverse("users:fees_record") + "?tab=hidden")
+
+    try:
+        # Strictly scoped: can only restore records hidden by THIS teacher
+        count = TeacherHiddenFeeTransaction.objects.filter(
+            teacher=request.user,
+            transaction_id__in=valid_ids
+        ).delete()[0]
+
+        msg = f"Successfully restored {count} record(s) to your view."
+        if is_ajax:
+            return JsonResponse({'status': 'success', 'message': msg, 'count': count, 'ids': valid_ids})
+        messages.success(request, msg)
+    except Exception as e:
+        logger.exception(f"Error restoring fee records for teacher {request.user.id}: {e}")
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        messages.error(request, f"Error restoring records: {str(e)}")
+
+    return redirect(reverse("users:fees_record") + "?tab=hidden")
 
 # -------------------------------------------------------------------
 # VIEW: Teacher - Download Fee Receipt PDF
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def download_fee_receipt_view(request, transaction_id):
-    import logging
-    from django.http import HttpResponse, JsonResponse
     logger = logging.getLogger(__name__)
+    transaction_obj = get_object_or_404(
+        FeeTransaction.objects.select_related('student'),
+        id=transaction_id,
+        deleted_at__isnull=True
+    )
     try:
-        from users.models import FeeTransaction
         from users.utils.receipt_generator import generate_fee_receipt_pdf
-        
-        transaction_obj = get_object_or_404(FeeTransaction.objects.select_related('student'), id=transaction_id)
         pdf_buffer = generate_fee_receipt_pdf(transaction_obj)
         
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
@@ -6490,12 +6616,19 @@ def student_fee_record_view(request):
         raise Http404("Student fee record not found.")
 
     search_query = request.GET.get('search', '').strip()
+    current_tab = request.GET.get('tab', 'active') # 'active' or 'hidden'
 
-    # Optimized queryset: ONLY logged-in student's own non-hidden records
-    transactions = FeeTransaction.objects.filter(
+    base_qs = FeeTransaction.objects.filter(
         student=profile,
-        is_hidden_by_student=False
-    ).order_by('-payment_date', '-created_at')
+        deleted_at__isnull=True
+    )
+    active_count = base_qs.filter(is_hidden_by_student=False).count()
+    hidden_count = base_qs.filter(is_hidden_by_student=True).count()
+
+    if current_tab == 'hidden':
+        transactions = base_qs.filter(is_hidden_by_student=True).order_by('-payment_date', '-created_at')
+    else:
+        transactions = base_qs.filter(is_hidden_by_student=False).order_by('-payment_date', '-created_at')
 
     if search_query:
         query_filter = (
@@ -6518,6 +6651,9 @@ def student_fee_record_view(request):
         'page_obj': page_obj,
         'search_query': search_query,
         'profile': profile,
+        'current_tab': current_tab,
+        'active_count': active_count,
+        'hidden_count': hidden_count,
     })
 
 
@@ -6531,32 +6667,98 @@ def student_hide_fee_transaction(request):
     if not profile or not (profile.status == 'admitted' or profile.is_admitted):
         raise Http404("Student fee record not found.")
 
-    transaction_ids = request.POST.getlist('transaction_ids[]')
-    single_id = request.POST.get('transaction_id')
-    if single_id and not transaction_ids:
-        transaction_ids = [single_id]
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type)
+    
+    if request.content_type and 'application/json' in request.content_type:
+        try:
+            body_data = json.loads(request.body)
+            transaction_ids = body_data.get('transaction_ids', [])
+        except Exception:
+            transaction_ids = []
+    else:
+        transaction_ids = request.POST.getlist('transaction_ids[]')
+        single_id = request.POST.get('transaction_id')
+        if single_id and not transaction_ids:
+            transaction_ids = [single_id]
 
-    if not transaction_ids:
+    valid_ids = [int(tid) for tid in transaction_ids if str(tid).isdigit()]
+    if not valid_ids:
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': 'No records selected to remove.'}, status=400)
         messages.warning(request, "No records selected to remove.")
         return redirect("users:student_fee_record")
 
     try:
-        # Atomic update of ONLY this student's records
-        valid_ids = [int(tid) for tid in transaction_ids if str(tid).isdigit()]
+        # Atomic update of ONLY this student's records (IDOR protected)
         count = FeeTransaction.objects.filter(
             id__in=valid_ids,
-            student=profile
+            student=profile,
+            deleted_at__isnull=True
         ).update(is_hidden_by_student=True)
 
-        if count > 0:
-            messages.success(request, f"Successfully removed {count} record(s) from your view.")
-        else:
-            messages.info(request, "No eligible records found to remove.")
+        msg = f"Successfully removed {count} record(s) from your view."
+        if is_ajax:
+            return JsonResponse({'status': 'success', 'message': msg, 'count': count, 'ids': valid_ids})
+        messages.success(request, msg)
     except Exception as e:
         logger.exception(f"Error hiding fee records for student {profile.id}: {e}")
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
         messages.error(request, "An error occurred while updating your records.")
 
     return redirect("users:student_fee_record")
+
+
+# -------------------------------------------------------------------
+# VIEW: Student - Restore Fee Transaction (Un-hide for student)
+# -------------------------------------------------------------------
+@login_required
+@require_POST
+def student_restore_fee_transaction(request):
+    profile = getattr(request.user, 'profile', None)
+    if not profile or not (profile.status == 'admitted' or profile.is_admitted):
+        raise Http404("Student fee record not found.")
+
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or (request.content_type and 'application/json' in request.content_type)
+    
+    if request.content_type and 'application/json' in request.content_type:
+        try:
+            body_data = json.loads(request.body)
+            transaction_ids = body_data.get('transaction_ids', [])
+        except Exception:
+            transaction_ids = []
+    else:
+        transaction_ids = request.POST.getlist('transaction_ids[]')
+        single_id = request.POST.get('transaction_id')
+        if single_id and not transaction_ids:
+            transaction_ids = [single_id]
+
+    valid_ids = [int(tid) for tid in transaction_ids if str(tid).isdigit()]
+    if not valid_ids:
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': 'No records selected to restore.'}, status=400)
+        messages.warning(request, "No records selected to restore.")
+        return redirect(reverse("users:student_fee_record") + "?tab=hidden")
+
+    try:
+        # Atomic restore of ONLY this student's records (IDOR protected)
+        count = FeeTransaction.objects.filter(
+            id__in=valid_ids,
+            student=profile,
+            deleted_at__isnull=True
+        ).update(is_hidden_by_student=False)
+
+        msg = f"Successfully restored {count} record(s) to your view."
+        if is_ajax:
+            return JsonResponse({'status': 'success', 'message': msg, 'count': count, 'ids': valid_ids})
+        messages.success(request, msg)
+    except Exception as e:
+        logger.exception(f"Error restoring fee records for student {profile.id}: {e}")
+        if is_ajax:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        messages.error(request, "An error occurred while restoring your records.")
+
+    return redirect(reverse("users:student_fee_record") + "?tab=hidden")
 
 
 # -------------------------------------------------------------------
@@ -6568,11 +6770,12 @@ def student_download_fee_receipt_view(request, transaction_id):
     if not profile:
         raise Http404("Student profile not found.")
 
-    # Strictly scoped: return 404 if not found or belongs to another student
+    # Strictly scoped: return 404 if not found or belongs to another student or deleted
     transaction_obj = get_object_or_404(
         FeeTransaction.objects.select_related('student'),
         id=transaction_id,
-        student=profile
+        student=profile,
+        deleted_at__isnull=True
     )
 
     try:
@@ -10706,6 +10909,36 @@ def delete_student_view(request, student_id):
                 except Exception:
                     pass
 
+        def _freeze_student_fee_snapshots(st):
+            if not st:
+                return
+            for tx in st.fee_transactions.all():
+                updated = False
+                if not tx.student_name_snapshot:
+                    tx.student_name_snapshot = st.full_name or ''
+                    updated = True
+                if not tx.roll_number_snapshot:
+                    tx.roll_number_snapshot = str(st.id)
+                    updated = True
+                if not tx.mobile_snapshot:
+                    tx.mobile_snapshot = st.mobile_number or ''
+                    updated = True
+                if not tx.course_snapshot:
+                    tx.course_snapshot = st.batch or st.service_type or ''
+                    updated = True
+                if updated:
+                    tx.save(update_fields=['student_name_snapshot', 'roll_number_snapshot', 'mobile_snapshot', 'course_snapshot'])
+
+        def _clean_user_notifications_and_push(u):
+            if not u:
+                return
+            Notification.objects.filter(user=u).delete()
+            try:
+                from users.models import PushSubscription
+                PushSubscription.objects.filter(user=u).delete()
+            except Exception:
+                pass
+
         with transaction.atomic():
             student = StudentProfile.objects.filter(id=student_id).select_related('user', 'seat').first()
             achievement = None
@@ -10745,6 +10978,8 @@ def delete_student_view(request, student_id):
                         # No other service at all — delete entire profile
                         if student.photo:
                             student.photo.delete(save=False)
+                        _freeze_student_fee_snapshots(student)
+                        _clean_user_notifications_and_push(user)
                         student.delete()
                         messages.success(request, f"Coaching record for {full_name} deleted (no other service).")
                         cache.delete(f"student_context_data_{user.id}")
@@ -10777,6 +11012,8 @@ def delete_student_view(request, student_id):
                         )
                         if student.photo:
                             student.photo.delete(save=False)
+                        _freeze_student_fee_snapshots(student)
+                        _clean_user_notifications_and_push(user)
                         student.delete()
                         for seat_id in involved_seat_ids:
                             if seat_id:
@@ -10842,6 +11079,8 @@ def delete_student_view(request, student_id):
                 
                 if student.photo:
                     student.photo.delete(save=False)
+                _freeze_student_fee_snapshots(student)
+                _clean_user_notifications_and_push(user)
                 student.delete()
                 
                 for seat_id in involved_seat_ids:
@@ -10869,12 +11108,15 @@ def delete_student_view(request, student_id):
                     if student:
                         if student.photo:
                             student.photo.delete(save=False)
+                        _freeze_student_fee_snapshots(student)
+                        _clean_user_notifications_and_push(user)
                         student.delete()
                     if achievement:
                         decouple_chats_for_achievement(achievement)
                         if achievement.photo:
                             achievement.photo.delete(save=False)
                         achievement.delete()
+                    _clean_user_notifications_and_push(user)
                     cache.delete(f"student_context_data_{user.id}")
                     if student and achievement:
                         messages.success(request, f"Student {full_name} admission and achievements deleted. Account preserved as guest.")
@@ -11516,7 +11758,11 @@ def process_fees_view(request, student_id):
                             expiry_date=student.fee_expiry_date,
                             service_snapshot=get_student_service_details(student),
                             months_snapshot=fee_snapshots,
-                            total_amount=total_trans_amount
+                            total_amount=total_trans_amount,
+                            student_name_snapshot=student.full_name or '',
+                            roll_number_snapshot=str(student.id) if student else '',
+                            mobile_snapshot=student.mobile_number or '',
+                            course_snapshot=student.batch or student.service_type or ''
                         )
 
                         # Exactly ONE idempotent in-app + web push notification for student
