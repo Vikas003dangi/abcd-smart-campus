@@ -1,8 +1,8 @@
 {% extends "emails/base_email.html" %}
 
+{% block preview_text %}{% if reminder_type == "submission_student" %}Your fee has been updated successfully for {{ service_details }}.{% elif reminder_type == "submission_teacher" %}{{ student.full_name }} has submitted fee for {{ service_details }}.{% elif reminder_type == "pre" %}Friendly reminder: your fee for {{ months_text }} ({{ service_details }}) is due in 10 days.{% elif reminder_type == "first_day" %}Reminder: your fee for {{ months_text }} ({{ service_details }}) is due today.{% elif reminder_type == "recurring" %}Urgent: your fee for {{ months_text }} ({{ service_details }}) is now overdue.{% else %}{{ title|default:"Important fee update regarding your ABCD enrollment." }}{% endif %}{% endblock %}
+
 {% block content %}
-<tr>
-  <td style="padding:32px;">
 
     <h2 style="margin-top:0; color:#2c3e50;">
       {{ title }}
@@ -83,7 +83,4 @@
     <p style="margin-top:32px; font-size:14px; color:#777;">
       — ABCD Coaching & Library
     </p>
-
-  </td>
-</tr>
 {% endblock %}

@@ -1,5 +1,7 @@
 {% extends "emails/base_email.html" %}
 
+{% block preview_text %}Your fee payment for {{ service_details }} has been received successfully. Your receipt is attached.{% endblock %}
+
 {% block content %}
 <h2 style="margin-bottom: 10px;">Fee Payment Receipt</h2>
 

@@ -208,6 +208,15 @@
 
 <body>
 
+  <!-- Hidden Preview / Preheader Text for Inbox Snippets & Mobile Notifications -->
+  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
+    {% block preview_text %}{{ preview_text|default:clean_subject|default:subject }}{% endblock %}
+  </div>
+  <!-- Space padding to prevent email clients from pulling subsequent header text into preview -->
+  <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
+    &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy; &#847; &zwnj; &nbsp; &#8199; &shy;
+  </div>
+
   <div class="email-wrapper">
 
     <div class="email-card">
@@ -219,8 +228,8 @@
       <div class="email-header">
         {% if logo_url %}
         <img src="{{ logo_url }}" alt="ABCD Logo" width="130" style="max-width: 130px; width: 130px; height: auto; display: block; margin: 0 auto 10px; border: 0;">
-        {% elif site_url %}
-        <img src="{{ site_url }}/static/data/dark-logo.png" alt="ABCD Logo" width="130" style="max-width: 130px; width: 130px; height: auto; display: block; margin: 0 auto 10px; border: 0;">
+        {% else %}
+        <img src="https://abcdcampus.in/static/data/light-logo.png" alt="ABCD Logo" width="130" style="max-width: 130px; width: 130px; height: auto; display: block; margin: 0 auto 10px; border: 0;">
         {% endif %}
         <h1>ABCD Coaching & Library</h1>
         <p>Premium Education & Study Environment</p>

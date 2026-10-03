@@ -1,5 +1,7 @@
 {% extends "emails/base_email.html" %}
 
+{% block preview_text %}Your ABCD registration verification code is {{ otp }}. Valid for 10 minutes.{% endblock %}
+
 {% block content %} <h2 style="margin-bottom: 10px;"> Register Verification
 </h2> <p> Hello <strong>{{ username }}</strong>,
 </p> <p> Thank you for registering at <strong>ABCD Coaching & Library</strong>. To complete your registration, please verify your email address.

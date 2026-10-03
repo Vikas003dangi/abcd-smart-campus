@@ -1,5 +1,7 @@
 {% extends "emails/base_email.html" %}
 
+{% block preview_text %}Your ABCD password reset verification code is {{ otp }}. Valid for 10 minutes.{% endblock %}
+
 {% block content %} <h2 style="margin-bottom: 10px;"> Password Reset Verification
 </h2> <p> Hello <strong>{{ username }}</strong>,
 </p> <p> We received a request to reset your password for your <strong>ABCD Coaching & Library</strong> account.

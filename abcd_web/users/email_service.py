@@ -154,56 +154,50 @@ def send_html_email(
         elif any(k in tmpl_lower or k in subj_lower for k in ['welcome']):
             illustration_name = 'welcome.png'
 
-        # Embed images as base64 data URIs so they display instantly in Gmail/Outlook
-        # without being blocked as "remote images" or appearing as attachments.
-        # This matches how professional mailers (PhonePe, Razorpay, etc.) embed logos.
-
-        def _img_to_data_uri(static_relative_path):
-            """Find a static file and return a data: URI string, or None on failure (cached in memory)."""
-            if static_relative_path in _IMAGE_DATA_URI_CACHE:
-                return _IMAGE_DATA_URI_CACHE[static_relative_path]
-            try:
-                abs_path = finders.find(static_relative_path)
-                if not abs_path:
-                    # Fallback: look directly in STATIC_ROOT / staticfiles
-                    from django.conf import settings as _s
-                    import os
-                    for root in [getattr(_s, 'STATIC_ROOT', None), getattr(_s, 'STATICFILES_DIRS', [None])[0]]:
-                        if root:
-                            candidate = os.path.join(str(root), static_relative_path)
-                            if os.path.isfile(candidate):
-                                abs_path = candidate
-                                break
-                if not abs_path:
-                    return None
-                with open(abs_path, 'rb') as f:
-                    b64 = base64.b64encode(f.read()).decode('ascii')
-                ext = static_relative_path.rsplit('.', 1)[-1].lower()
-                mime = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'gif': 'image/gif', 'svg': 'image/svg+xml'}.get(ext, 'image/png')
-                res = f"data:{mime};base64,{b64}"
-                _IMAGE_DATA_URI_CACHE[static_relative_path] = res
-                return res
-            except Exception:
-                return None
-
-        inline_images = []
-
-        # Logo: embed as base64 data URI (14KB — negligible)
-        logo_data_uri = _img_to_data_uri('data/light-logo.png')
-        site_url_clean = str(site_url).rstrip('/')
-        context['logo_url'] = logo_data_uri or f"{site_url_clean}/static/data/light-logo.png"
-
-        # Illustration: embed as base64 data URI (25–80KB per image)
-        illus_data_uri = _img_to_data_uri(f'data/email_illustrations/{illustration_name}')
-        context['illustration_url'] = illus_data_uri or f"{site_url_clean}/static/data/email_illustrations/{illustration_name}"
-
-        html_content = render_to_string(template, context)
-        
         # Sanitize subject: Strip emojis and pipe characters to guarantee deliverability
         clean_subject = re.sub(r'[\U00010000-\U0010ffff\u2600-\u27ff\u2300-\u23ff\u2b50\u200d\ufe0f\u2000-\u206f]', '', str(subject or '')).replace('|', '-').strip()
         clean_subject = re.sub(r'\s+', ' ', clean_subject)
         if not clean_subject:
             clean_subject = "ABCD Coaching & Library Update"
+
+        context['clean_subject'] = clean_subject
+        if not context.get('subject'):
+            context['subject'] = clean_subject
+
+        # Static asset base URL for emails:
+        # IMPORTANT: Gmail (Android, iOS, Web) and Outlook strictly block base64 'data:' URIs in <img> tags.
+        # This was causing broken image icons ([icon] ABCD Logo, [icon] ABCD Illustration) to display.
+        # To guarantee instant, crisp rendering without clipping or security blocks across all email clients,
+        # email images MUST use absolute public HTTPS URLs.
+        site_url_clean = str(site_url).rstrip('/')
+        if site_url_clean.startswith('https://'):
+            public_base = site_url_clean
+        else:
+            public_base = "https://abcdcampus.in"
+
+        context['logo_url'] = f"{public_base}/static/data/light-logo.png"
+        context['illustration_url'] = f"{public_base}/static/data/email_illustrations/{illustration_name}"
+
+        # Smart preheader / preview text for inbox lists and phone lock-screen notifications:
+        # Preheader text allows the email client list view and mobile push notification to show
+        # the real notification message instead of the organization name/slogan.
+        preview_text = context.get('preview_text')
+        if not preview_text:
+            for candidate_key in ['custom_text', 'message', 'notification_text', 'subtitle', 'title']:
+                val = context.get(candidate_key)
+                if val and isinstance(val, str) and val.strip():
+                    clean_val = re.sub(r'<[^>]+>', ' ', val).strip()
+                    clean_val = re.sub(r'\s+', ' ', clean_val)
+                    if clean_val and len(clean_val) > 10:
+                        preview_text = clean_val
+                        break
+        if not preview_text:
+            preview_text = clean_subject
+        context['preview_text'] = preview_text
+
+        inline_images = []
+
+        html_content = render_to_string(template, context)
 
         if not text_content:
             # Generate high-quality human-readable plain text by converting block tags to newlines

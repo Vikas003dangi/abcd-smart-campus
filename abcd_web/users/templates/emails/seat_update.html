@@ -1,9 +1,8 @@
 {% extends "emails/base_email.html" %}
 
-{% block content %}
-<tr>
-  <td style="padding: 32px;">
+{% block preview_text %}{% if custom_text %}{{ custom_text }}{% elif update_type == "seat_change_approved" or update_type == "switch_approved" %}Your seat / shift switch request has been approved. Your updated details are inside.{% elif update_type == "seat_reassigned" or update_type == "shift_reassigned" %}Your seat / shift allotment has been updated by your teacher.{% elif update_type == "switch_rejected" or update_type == "seat_rejected" %}Your request for seat / shift switch could not be approved at this time.{% elif update_type == "seat_cancelled" or update_type == "deallocated" %}Your seat reservation / allotment has been de-allocated / cancelled.{% elif update_type == "admission_rejected" %}Your admission request for ABCD Coaching & Library could not be approved at this time.{% elif update_type == "hold_approved" %}Your request to put your seat on hold has been approved.{% elif update_type == "hold_denied" %}Your seat hold request could not be approved at this time.{% else %}{{ title|default:"Update regarding your seat and allotment status at ABCD." }}{% endif %}{% endblock %}
 
+{% block content %}
     <h2 style="margin-top:0; color:#2c3e50;">
       {{ title|default:"Seat & Allotment Update" }}
     </h2>
@@ -88,7 +87,4 @@
       If you have any questions, feel free to contact us.<br>
       — ABCD Coaching & Library
     </p>
-
-  </td>
-</tr>
 {% endblock %}
