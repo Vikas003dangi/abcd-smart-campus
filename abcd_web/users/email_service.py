@@ -357,51 +357,6 @@ def send_html_email(
             smtp_user = (getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
             from_email = f'"ABCD Campus" <{smtp_user}>'
 
-        # Prepare CID inline attachments for instantaneous (0.0s) local rendering in email clients.
-        # Images are bundled directly inside the MIME multipart/related email container.
-        # This completely eliminates loading lag and works seamlessly even on low/slow mobile data!
-        smtp_html = html_content
-        smtp_inline_images = []
-
-        def _resolve_static_file(rel_path):
-            abs_p = finders.find(rel_path)
-            if not abs_p:
-                from django.conf import settings as _s
-                for root in [getattr(_s, 'STATIC_ROOT', None), getattr(_s, 'STATICFILES_DIRS', [None])[0]]:
-                    if root:
-                        cand = os.path.join(str(root), rel_path)
-                        if os.path.isfile(cand):
-                            return cand
-            return abs_p
-
-        logo_abs = _resolve_static_file('data/light-logo.png')
-        if logo_abs and os.path.isfile(logo_abs):
-            try:
-                from email.mime.image import MIMEImage
-                with open(logo_abs, 'rb') as f:
-                    logo_img = MIMEImage(f.read(), _subtype='png')
-                    logo_img.add_header('Content-ID', '<abcd_logo>')
-                    logo_img.add_header('Content-Disposition', 'inline', filename='light-logo.png')
-                    smtp_inline_images.append(logo_img)
-                    smtp_html = smtp_html.replace(context['logo_url'], 'cid:abcd_logo')
-                    smtp_html = smtp_html.replace('https://abcdcampus.in/static/data/light-logo.png', 'cid:abcd_logo')
-            except Exception as e:
-                logger.warning(f"Could not attach logo CID inline image: {e}")
-
-        illus_abs = _resolve_static_file(f'data/email_illustrations/{illustration_name}')
-        if illus_abs and os.path.isfile(illus_abs):
-            try:
-                from email.mime.image import MIMEImage
-                with open(illus_abs, 'rb') as f:
-                    illus_img = MIMEImage(f.read(), _subtype='png')
-                    illus_img.add_header('Content-ID', '<abcd_illustration>')
-                    illus_img.add_header('Content-Disposition', 'inline', filename=illustration_name)
-                    smtp_inline_images.append(illus_img)
-                    smtp_html = smtp_html.replace(context['illustration_url'], 'cid:abcd_illustration')
-                    smtp_html = smtp_html.replace(f'https://abcdcampus.in/static/data/email_illustrations/{illustration_name}', 'cid:abcd_illustration')
-            except Exception as e:
-                logger.warning(f"Could not attach illustration CID inline image: {e}")
-
         email = EmailMultiAlternatives(
             subject=clean_subject,
             body=text_content,
@@ -411,16 +366,7 @@ def send_html_email(
             headers=headers,
             connection=connection
         )
-        email.attach_alternative(smtp_html, "text/html")
-        
-        # When inline images are attached without custom file attachments, use 'related'
-        # so email clients display them strictly inline and not as separate paperclip file attachments
-        if smtp_inline_images and not attachments:
-            email.mixed_subtype = 'related'
-
-        # Attach inline images (CID) for instantaneous local rendering in email clients
-        for img_mime in smtp_inline_images:
-            email.attach(img_mime)
+        email.attach_alternative(html_content, "text/html")
 
         # Attach custom files if provided (list of tuples: (name, content, mimetype))
         if attachments:
