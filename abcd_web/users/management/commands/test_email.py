@@ -18,19 +18,38 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Diagnose and test the email delivery pipeline'
+    help = 'Diagnose and test the email delivery pipeline (supports single, specific, or all 27 sample emails)'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--to',
             type=str,
             default=None,
-            help='Recipient email address for the test email'
+            help='Recipient email address for the test email(s) (e.g. vd1905@gmail.com)'
         )
         parser.add_argument(
             '--check-only',
             action='store_true',
-            help='Only check configuration, do not send a test email'
+            help='Only check configuration, do not send any email'
+        )
+        parser.add_argument(
+            '--all',
+            action='store_true',
+            help='Send all 27 system email templates as sample emails to the recipient'
+        )
+        parser.add_argument(
+            '--template',
+            type=str,
+            default=None,
+            help='Send a specific email template (e.g. student_fee_receipt, birthday_wish_email)'
+        )
+        parser.add_argument(
+            '--export-gallery',
+            type=str,
+            nargs='?',
+            const='B:/ABCD/email_preview_gallery.html',
+            default=None,
+            help='Export all 27 rendered templates to an interactive HTML gallery file'
         )
 
     def _write(self, msg, style_func=None):
@@ -40,12 +59,22 @@ class Command(BaseCommand):
         try:
             self.stdout.write(msg)
         except UnicodeEncodeError:
-            # Fallback: strip non-ASCII chars for cp1252/Windows consoles
             safe = msg.encode('ascii', 'replace').decode('ascii')
             self.stdout.write(safe)
 
     def handle(self, *args, **options):
         self._write('\n=== ABCD EMAIL DELIVERY DIAGNOSTIC ===\n', self.style.MIGRATE_HEADING)
+
+        # Handle Gallery Export early if requested
+        if options.get('export_gallery'):
+            out_file = options['export_gallery']
+            from users.email_samples import export_email_preview_gallery
+            to_addr = options['to'] or 'vd1905@gmail.com'
+            dest = export_email_preview_gallery(out_file, recipient=to_addr)
+            self._write(f'  [OK] Exported interactive email gallery (27 templates) to:', self.style.SUCCESS)
+            self._write(f'       {dest}\n')
+            if not options['all'] and not options['to'] and not options['template']:
+                return
 
         # 1. Check all configured providers
         relay_url = (getattr(settings, 'GMAIL_RELAY_URL', '') or os.environ.get('GMAIL_RELAY_URL', '') or '').strip()
@@ -83,7 +112,7 @@ class Command(BaseCommand):
 
         # SMTP Fallback
         if smtp_user and smtp_pass:
-            self._write('  [WARN] SMTP Fallback: CONFIGURED (but BLOCKED on Render/Railway free plans)', self.style.WARNING)
+            self._write('  [WARN] SMTP Fallback: CONFIGURED (Direct SMTP port connection)', self.style.WARNING)
             self._write(f'         Host: {smtp_host}:{smtp_port}, User: {smtp_user}')
         else:
             self._write('  [MISSING] SMTP Fallback: NOT CONFIGURED', self.style.ERROR)
@@ -100,30 +129,85 @@ class Command(BaseCommand):
             )
         else:
             self._write(
-                '  [CRITICAL] VERDICT: NO HTTP EMAIL PROVIDER IS CONFIGURED!\n'
-                '       On Render/Railway free plans, SMTP is BLOCKED.\n'
-                '       Emails will FAIL in production.\n'
-                '\n'
-                '       FIX: Set BREVO_API_KEY in your Render environment variables.\n'
-                '       1. Sign up at https://app.brevo.com (free, 300 emails/day)\n'
-                '       2. Verify sender: abcd2013baq@gmail.com\n'
-                '       3. Generate API key: SMTP & API > API Keys\n'
-                '       4. Add to Render Dashboard > Environment:\n'
-                '          BREVO_API_KEY=xkeysib-your-key-here',
-                self.style.ERROR
+                '  [NOTICE] VERDICT: Only direct SMTP is configured.\n'
+                '       If Google returns 535 BadCredentials, a fresh Gmail App Password\n'
+                '       or Brevo API Key is required.',
+                self.style.WARNING
             )
 
         if options['check_only']:
             self._write('\n=== CHECK COMPLETE (no email sent) ===\n', self.style.MIGRATE_HEADING)
             return
 
-        # 2. Send a test email
-        to_email = options['to'] or getattr(settings, 'ADMIN_EMAIL', None) or smtp_user or 'abcd2013baq@gmail.com'
-
-        self._write(f'\n--- Sending test email to: {to_email} ---\n', self.style.MIGRATE_HEADING)
-
         from users.email_service import send_html_email
         import time
+
+        to_email = options['to'] or getattr(settings, 'ADMIN_EMAIL', None) or smtp_user or 'vd1905@gmail.com'
+
+        # -------------------------------------------------------------
+        # Dispatch Mode: Send ALL 27 Templates or a Specific Template
+        # -------------------------------------------------------------
+        if options['all'] or options['template']:
+            from users.email_samples import get_all_sample_emails
+            catalog = get_all_sample_emails()
+
+            if options['template']:
+                filter_key = options['template'].strip().lower()
+                catalog = [c for c in catalog if filter_key in c['id'].lower() or filter_key in c['template'].lower()]
+                if not catalog:
+                    self._write(f'  [ERROR] No email template matched "{options["template"]}"', self.style.ERROR)
+                    return
+
+            total = len(catalog)
+            self._write(f'\n--- Dispatching {total} Sample Email(s) to: {to_email} ---\n', self.style.MIGRATE_HEADING)
+
+            success_count = 0
+            for idx, item in enumerate(catalog, 1):
+                self._write(f'[{idx}/{total}] [{item["category"]}] {item["name"]}...')
+                t0 = time.time()
+                try:
+                    ok = send_html_email(
+                        subject=item['subject'],
+                        to_email=to_email,
+                        template=item['template'],
+                        context=item['context'],
+                        fail_silently=False,
+                        timeout=15,
+                        run_async=False
+                    )
+                    elapsed = time.time() - t0
+                    if ok:
+                        self._write(f'    -> [PASS] Sent in {elapsed:.1f}s ({item["subject"]})', self.style.SUCCESS)
+                        success_count += 1
+                    else:
+                        self._write(f'    -> [FAIL] Delivery returned False after {elapsed:.1f}s', self.style.ERROR)
+                except Exception as e:
+                    elapsed = time.time() - t0
+                    self._write(f'    -> [ERROR] Failed after {elapsed:.1f}s: {e}', self.style.ERROR)
+
+                if idx < total:
+                    time.sleep(1.2)
+
+            self._write('\n' + '=' * 45)
+            if success_count == total:
+                self._write(f'SUCCESS: Delivered all {success_count}/{total} sample emails to {to_email}!', self.style.SUCCESS)
+            else:
+                self._write(f'COMPLETED: {success_count}/{total} sample emails sent successfully to {to_email}.', self.style.WARNING)
+                if success_count == 0:
+                    self._write(
+                        '  NOTE: If sending failed due to 535 BadCredentials, generate a new Gmail\n'
+                        '  App Password at https://myaccount.google.com/apppasswords or set BREVO_API_KEY.\n'
+                        '  Meanwhile, you can inspect all 27 rendered emails visually in:\n'
+                        '  file:///B:/ABCD/email_preview_gallery.html',
+                        self.style.NOTICE
+                    )
+            self._write('=' * 45 + '\n')
+            return
+
+        # -------------------------------------------------------------
+        # Default: Send Single Quick Diagnostic OTP Email
+        # -------------------------------------------------------------
+        self._write(f'\n--- Sending test email to: {to_email} ---\n', self.style.MIGRATE_HEADING)
 
         start = time.time()
         result = send_html_email(
@@ -131,10 +215,10 @@ class Command(BaseCommand):
             to_email=to_email,
             template='emails/otp_register.html',
             context={
-                'username': 'TestUser',
-                'otp': '123456',
+                'username': 'Vikas Dangi',
+                'otp': '482910',
                 'subject': 'ABCD Email Test - Delivery Diagnostic',
-                'preheader': 'This is a test email to verify delivery works',
+                'preview_text': 'This is a test email to verify ABCD email delivery works perfectly',
                 'login_url': f'{settings.SITE_URL}/login/',
             },
             fail_silently=True,
@@ -155,7 +239,7 @@ class Command(BaseCommand):
             self._write(
                 f'  [FAIL] TEST EMAIL FAILED after {elapsed:.1f}s\n'
                 f'         Check the logs above for specific error details.\n'
-                f'         Most likely cause: No HTTP provider configured + SMTP port blocked.',
+                f'         Most likely cause: No HTTP provider configured + Gmail SMTP credentials rejected.',
                 self.style.ERROR
             )
 

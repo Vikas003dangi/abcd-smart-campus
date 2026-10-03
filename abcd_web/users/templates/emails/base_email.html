@@ -210,7 +210,7 @@
 
   <!-- Hidden Preview / Preheader Text for Inbox Snippets & Mobile Notifications -->
   <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
-    {% block preview_text %}{{ preview_text|default:clean_subject|default:subject }}{% endblock %}
+    {% block preview_text %}{% if preview_text %}{{ preview_text }}{% elif clean_subject %}{{ clean_subject }}{% elif subject %}{{ subject }}{% else %}ABCD Coaching & Library Update{% endif %}{% endblock %}
   </div>
   <!-- Space padding to prevent email clients from pulling subsequent header text into preview -->
   <div style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;">
