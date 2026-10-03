@@ -17,11 +17,25 @@ admin.site.site_title = "ABCD Master Admin"
 admin.site.index_title = "Master Database Control & System Architecture"
 
 
+class MediaCleanupMixin:
+    """
+    Ensures that both individual and bulk queryset deletions in Django Admin
+    execute instance.delete() so that post_delete signals fire to remove
+    remote Cloudinary and local media files.
+    """
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            obj.delete()
+
+    def delete_model(self, request, obj):
+        obj.delete()
+
+
 # -------------------------------------------------------------------
 # TEACHER / STAFF PROFILE ADMIN
 # -------------------------------------------------------------------
 @admin.register(TeacherProfile)
-class TeacherProfileAdmin(admin.ModelAdmin):
+class TeacherProfileAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('display_name', 'role_title', 'user', 'detail1', 'detail2', 'detail3')
     search_fields = ('display_name', 'role_title', 'user__username', 'user__email')
     autocomplete_fields = ['user']
@@ -31,7 +45,7 @@ class TeacherProfileAdmin(admin.ModelAdmin):
 # STUDENT PROFILE ADMIN
 # -------------------------------------------------------------------
 @admin.register(StudentProfile)
-class StudentProfileAdmin(admin.ModelAdmin):
+class StudentProfileAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = (
         'full_name', 
         'mobile_number', 
@@ -65,16 +79,17 @@ class StudentProfileAdmin(admin.ModelAdmin):
     assigned_seat_info.short_description = "Seat"
 
     def delete_model(self, request, obj):
-        if obj.user:
-            obj.user.delete()
-        else:
-            obj.delete()
+        user = obj.user
+        obj.delete()
+        if user:
+            user.delete()
 
     def delete_queryset(self, request, queryset):
-        user_ids = queryset.filter(user__isnull=False).values_list('user_id', flat=True)
+        user_ids = list(queryset.filter(user__isnull=False).values_list('user_id', flat=True))
+        for student in queryset:
+            student.delete()
         if user_ids:
-            User.objects.filter(pk__in=list(user_ids)).delete()
-        queryset.delete()
+            User.objects.filter(pk__in=user_ids).delete()
 
 
 # -------------------------------------------------------------------
@@ -153,7 +168,7 @@ class CourseCategoryAdmin(admin.ModelAdmin):
     list_editable = ('order', 'is_active')
 
 @admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
+class CourseAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('title', 'playlist_id', 'video_count', 'is_active', 'target_public', 'target_coaching', 'target_library')
     list_filter = ('is_active', 'target_public', 'target_coaching', 'target_library', 'category')
     search_fields = ('title', 'description', 'playlist_id')
@@ -161,7 +176,7 @@ class CourseAdmin(admin.ModelAdmin):
     inlines = [StudyMaterialInline]
 
 @admin.register(StudyMaterial)
-class StudyMaterialAdmin(admin.ModelAdmin):
+class StudyMaterialAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('title', 'course', 'material_type', 'is_public', 'created_at')
     list_filter = ('material_type', 'is_public', 'course')
     search_fields = ('title', 'course__title')
@@ -265,7 +280,7 @@ class DismissedFeeAlertAdmin(admin.ModelAdmin):
 # COMPLAINTS, SUPPORT & NOTIFICATIONS
 # -------------------------------------------------------------------
 @admin.register(Complaint)
-class ComplaintAdmin(admin.ModelAdmin):
+class ComplaintAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('student', 'subject', 'status', 'role', 'rating', 'created_at')
     list_filter = ('status', 'subject', 'role', 'rating')
     search_fields = ('student__full_name', 'message', 'custom_subject')
@@ -279,13 +294,13 @@ class NotificationAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'title')
 
 @admin.register(BroadcastMessage)
-class BroadcastMessageAdmin(admin.ModelAdmin):
+class BroadcastMessageAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('subject', 'sender', 'message_type', 'target_group', 'status', 'expires_at', 'created_at')
     list_filter = ('message_type', 'target_group', 'status', 'expires_at')
     search_fields = ('subject', 'message')
 
 @admin.register(BroadcastAttachment)
-class BroadcastAttachmentAdmin(admin.ModelAdmin):
+class BroadcastAttachmentAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('broadcast', 'file', 'created_at')
 
 @admin.register(VisitorIntent)
@@ -302,7 +317,7 @@ class PushSubscriptionAdmin(admin.ModelAdmin):
 # STUDENT ACHIEVEMENTS & REMINDERS
 # -------------------------------------------------------------------
 @admin.register(StudentAchievement)
-class StudentAchievementAdmin(admin.ModelAdmin):
+class StudentAchievementAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('first_name', 'last_name', 'current_post', 'selection_year', 'status', 'rating', 'created_at')
     list_filter = ('status', 'selection_year', 'rating')
     search_fields = ('first_name', 'last_name', 'current_post', 'working_city')
@@ -350,7 +365,7 @@ class DirectChatSessionAdmin(admin.ModelAdmin):
     message_count.short_description = "Messages"
 
 @admin.register(Message)
-class MessageAdmin(admin.ModelAdmin):
+class MessageAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('id', 'chat_target', 'sender', 'message_type', 'content_preview', 'is_read', 'timestamp')
     list_filter = ('message_type', 'is_read', 'timestamp')
     search_fields = ('sender__username', 'content', 'direct_session__user1__username', 'direct_session__user2__username')
@@ -388,7 +403,7 @@ class RestrictedStudentAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
 
 @admin.register(GroupChatSession)
-class GroupChatSessionAdmin(admin.ModelAdmin):
+class GroupChatSessionAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('name', 'created_by', 'member_count', 'message_count', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'created_by__username')
@@ -403,7 +418,7 @@ class GroupChatSessionAdmin(admin.ModelAdmin):
     message_count.short_description = "Messages"
 
 @admin.register(GroupMessage)
-class GroupMessageAdmin(admin.ModelAdmin):
+class GroupMessageAdmin(MediaCleanupMixin, admin.ModelAdmin):
     list_display = ('id', 'group', 'sender', 'message_type', 'content_preview', 'timestamp')
     search_fields = ('group__name', 'sender__username', 'content')
     readonly_fields = ('timestamp',)

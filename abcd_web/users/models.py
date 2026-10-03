@@ -1,6 +1,6 @@
 # users/models.py
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils import timezone
 import os
@@ -633,11 +633,8 @@ class Complaint(models.Model):
         return dict(self.SUBJECT_CHOICES).get(self.subject, "Complaint")
 
 
-@receiver(post_delete, sender=Complaint)
-def auto_delete_complaint_images_on_delete(sender, instance, **kwargs):
-    """Deletes image files from storage (Local / Cloudinary) when Complaint is deleted."""
-    for image_field in [instance.image1, instance.image2, instance.image3]:
-        safe_delete_file_field(image_field)
+# Note: Complaint image cleanup on change and delete is handled centrally by
+# prepare_delete_file_on_change, execute_delete_file_on_change, and auto_delete_file_on_delete below.
 
 
 # -------------------------------------------------------------------
@@ -2991,8 +2988,12 @@ def create_teacher_profile(sender, instance, created, **kwargs):
 @receiver(pre_save, sender=Course)
 @receiver(pre_save, sender=StudyMaterial)
 @receiver(pre_save, sender=BroadcastMessage)
-def auto_delete_file_on_change(sender, instance, **kwargs):
-    """Deletes old physical file from storage (Local / Cloudinary) when a new file is uploaded or cleared."""
+@receiver(pre_save, sender=Complaint)
+def prepare_delete_file_on_change(sender, instance, **kwargs):
+    """
+    Identifies old physical files (Cloudinary/Local) scheduled for deletion when a file field changes.
+    Does not delete during pre_save to avoid premature file destruction if the database save fails.
+    """
     if not instance.pk:
         return False
 
@@ -3001,12 +3002,53 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
     except sender.DoesNotExist:
         return False
 
-    file_fields = ['photo', 'thumbnail', 'file', 'attachment', 'banner_image']
+    file_fields = ['photo', 'thumbnail', 'file', 'attachment', 'banner_image', 'image1', 'image2', 'image3']
+    files_to_delete = getattr(instance, '_old_files_to_delete', None)
+    if files_to_delete is None:
+        files_to_delete = []
+        instance._old_files_to_delete = files_to_delete
+
     for field_name in file_fields:
+        if not hasattr(old_instance, field_name):
+            continue
         old_file = getattr(old_instance, field_name, None)
         new_file = getattr(instance, field_name, None)
         if old_file and old_file != new_file:
-            safe_delete_file_field(old_file)
+            files_to_delete.append(old_file)
+
+
+@receiver(post_save, sender=StudentProfile)
+@receiver(post_save, sender=StudentAchievement)
+@receiver(post_save, sender=GroupChatSession)
+@receiver(post_save, sender=TeacherProfile)
+@receiver(post_save, sender=Course)
+@receiver(post_save, sender=StudyMaterial)
+@receiver(post_save, sender=BroadcastMessage)
+@receiver(post_save, sender=Complaint)
+def execute_delete_file_on_change(sender, instance, **kwargs):
+    """
+    Deletes old physical file(s) from storage (Local / Cloudinary) only after the new record
+    has been successfully saved/committed to the database.
+    """
+    files_to_delete = getattr(instance, '_old_files_to_delete', None)
+    if not files_to_delete:
+        return
+
+    targets = list(files_to_delete)
+    instance._old_files_to_delete = []
+
+    def _cleanup():
+        for f in targets:
+            safe_delete_file_field(f)
+
+    try:
+        connection = transaction.get_connection()
+        if connection.in_atomic_block:
+            transaction.on_commit(_cleanup)
+        else:
+            _cleanup()
+    except Exception:
+        _cleanup()
 
 
 @receiver(post_delete, sender=StudentProfile)
@@ -3015,9 +3057,10 @@ def auto_delete_file_on_change(sender, instance, **kwargs):
 @receiver(post_delete, sender=TeacherProfile)
 @receiver(post_delete, sender=StudyMaterial)
 @receiver(post_delete, sender=BroadcastMessage)
+@receiver(post_delete, sender=Complaint)
 def auto_delete_file_on_delete(sender, instance, **kwargs):
     """Deletes physical file from storage (Local / Cloudinary) when the instance is completely deleted."""
-    file_fields = ['photo', 'thumbnail', 'file', 'attachment', 'banner_image']
+    file_fields = ['photo', 'thumbnail', 'file', 'attachment', 'banner_image', 'image1', 'image2', 'image3']
     for field_name in file_fields:
         file = getattr(instance, field_name, None)
         if file:

@@ -10602,15 +10602,8 @@ def upload_profile_photo(request, student_id):
                 import time
                 timestamp = int(time.time())
                 data = ContentFile(decoded_data, name=f"profile_{student_id}_{timestamp}.{ext}")
-                old_photo_name = student.photo.name if student.photo else None
-                old_photo_storage = student.photo.storage if (student.photo and hasattr(student.photo, 'storage')) else None
                 student.photo = data
                 student.save()
-                if old_photo_name and old_photo_storage:
-                    try:
-                        old_photo_storage.delete(old_photo_name)
-                    except Exception:
-                        pass
                 new_url = student.photo.url if student.photo else ''
                 return JsonResponse({'status': 'success', 'photo_url': new_url})
             except Exception as e:
@@ -10632,15 +10625,8 @@ def upload_profile_photo(request, student_id):
                 import time
                 timestamp = int(time.time())
                 data = ContentFile(photo_file.read(), name=f"profile_{student_id}_{timestamp}.{ext}")
-                old_photo_name = student.photo.name if student.photo else None
-                old_photo_storage = student.photo.storage if (student.photo and hasattr(student.photo, 'storage')) else None
                 student.photo = data
                 student.save()
-                if old_photo_name and old_photo_storage:
-                    try:
-                        old_photo_storage.delete(old_photo_name)
-                    except Exception:
-                        pass
                 new_url = student.photo.url if student.photo else ''
                 return JsonResponse({'status': 'success', 'photo_url': new_url})
             except Exception as e:
