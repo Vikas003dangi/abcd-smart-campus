@@ -3144,6 +3144,13 @@
         }
 
         function _doSubmitCourseReminder() {
+            const submitBtn = document.getElementById('btnSubmitReminderSchedule');
+            const originalText = submitBtn ? submitBtn.textContent : 'Save Reminder';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+            }
+
             fetch(`/api/courses/{{ course.id }}/reminder/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
@@ -3190,7 +3197,14 @@
                 }
             })
             .catch(err => {
+                console.error('[CourseDetail] Error submitting reminder:', err);
                 showABCDModal({ title: 'Error', message: 'A network error occurred.', type: 'error' });
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
             });
         }
 

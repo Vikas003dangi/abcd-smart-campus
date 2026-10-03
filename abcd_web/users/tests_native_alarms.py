@@ -1,5 +1,6 @@
 # users/tests_native_alarms.py
 import json
+from datetime import timedelta
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
@@ -315,3 +316,78 @@ class NativeTwaCapabilityGatingTests(TestCase):
         self.assertTrue(any("abcdalarm://reconcile" in s for s in data["iframeSources"]), "Must dispatch reconcile")
         self.assertTrue(any("abcdalarm://schedule" in s for s in data["iframeSources"]), "Must dispatch schedule")
         self.assertTrue(all("bridge_token=auth-uuid-test-999" in s for s in data["iframeSources"]), "All dispatches must preserve bridge_token")
+
+
+class ReminderSaveEndpointsTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='save_endpoint_user', password='password123')
+        self.client.login(username='save_endpoint_user', password='password123')
+        from users.models import Course
+        self.course = Course.objects.create(title='Python Mastery', description='Learn Python')
+
+    def test_todo_add_reminder_success(self):
+        future_dt = timezone.localtime(timezone.now()) + timedelta(hours=2)
+        payload = {
+            'title': 'Test Add Reminder',
+            'note': 'Test Note',
+            'recurrence': 'once',
+            'fire_at': future_dt.isoformat(),
+            'alarm_enabled': True,
+            'email_notify': False
+        }
+        res = self.client.post(
+            reverse('users:todo_add_reminder'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get('success'))
+        self.assertIn('task_id', data)
+        self.assertTrue(TodoTask.objects.filter(id=data['task_id'], user=self.user).exists())
+
+    def test_todo_update_reminder_success(self):
+        future_dt = timezone.localtime(timezone.now()) + timedelta(hours=3)
+        task = TodoTask.objects.create(
+            user=self.user,
+            category='REMINDER',
+            metadata={'title': 'Original Title', 'recurrence': 'once'}
+        )
+        payload = {
+            'title': 'Updated Title',
+            'note': 'Updated Note',
+            'recurrence': 'once',
+            'date': future_dt.strftime('%Y-%m-%d'),
+            'time': future_dt.strftime('%H:%M'),
+            'alarm_enabled': False
+        }
+        res = self.client.post(
+            reverse('users:todo_update_reminder', kwargs={'task_id': task.id}),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get('success'))
+        task.refresh_from_db()
+        self.assertEqual(task.metadata.get('title'), 'Updated Title')
+        self.assertFalse(task.metadata.get('alarm_enabled'))
+
+    def test_save_learning_reminder_success(self):
+        future_dt = timezone.now() + timedelta(hours=4)
+        payload = {
+            'title': 'Study Python Basics',
+            'recurrence': 'once',
+            'reminder_time': future_dt.isoformat()
+        }
+        res = self.client.post(
+            f'/api/courses/{self.course.id}/reminder/',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get('success'))
+        self.assertIn('reminder', data)
+        self.assertEqual(data['reminder']['title'], 'Study Python Basics')
+

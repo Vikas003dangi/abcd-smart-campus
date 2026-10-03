@@ -928,16 +928,32 @@
     function handleNativeScheduleAck(ack) {
         if (!ack || !ack.id) return;
         const taskId = String(ack.id);
+        const isOk = Boolean(ack.ok);
+        const isExact = Boolean(ack.exact);
+
         if (pendingNativeAcks[taskId]) {
-            clearTimeout(pendingNativeAcks[taskId].timer);
+            if (pendingNativeAcks[taskId].timer) {
+                clearTimeout(pendingNativeAcks[taskId].timer);
+            }
             delete pendingNativeAcks[taskId];
         }
-        if (ack.ok) {
+
+        // Only mark natively scheduled and suppress push IF ok=true AND exact=true
+        if (isOk && isExact) {
+            console.debug('[ABCD Sound] Native schedule ACK confirmed exact for task:', taskId);
             if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({
                     type: 'CONFIRM_NATIVE_TASK',
                     id: taskId,
-                    exact: Boolean(ack.exact)
+                    exact: true
+                });
+            }
+        } else {
+            console.warn('[ABCD Sound] Native schedule ACK NOT exact (ok=' + isOk + ', exact=' + isExact + ') for task:', taskId, '- web push will NOT be suppressed.');
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'REMOVE_NATIVE_TASK',
+                    taskId: taskId
                 });
             }
         }
@@ -1287,8 +1303,19 @@
             } else {
                 alert(guideMsg);
             }
-            if (currentChecklistOptions.onConfirmed) {
-                try { currentChecklistOptions.onConfirmed(); } catch (e) {}
+            if (currentChecklistOptions && typeof currentChecklistOptions.onConfirmed === 'function') {
+                try {
+                    currentChecklistOptions.onConfirmed();
+                } catch (e) {
+                    console.error('[ABCD Sound] Checklist browser onConfirmed error:', e);
+                    if (typeof showModalAlert === 'function') {
+                        showModalAlert('Error', 'An error occurred while saving: ' + (e.message || e));
+                    } else if (typeof showABCDModal === 'function') {
+                        showABCDModal({ title: 'Error', message: 'An error occurred while saving: ' + (e.message || e), type: 'error' });
+                    } else {
+                        alert('An error occurred while saving: ' + (e.message || e));
+                    }
+                }
             }
             return;
         }
@@ -1358,14 +1385,36 @@
         }
         closeAlarmSetupChecklist();
         if (currentChecklistOptions && typeof currentChecklistOptions.onConfirmed === 'function') {
-            try { currentChecklistOptions.onConfirmed(); } catch (e) {}
+            try {
+                currentChecklistOptions.onConfirmed();
+            } catch (e) {
+                console.error('[ABCD Sound] Checklist onConfirmed error:', e);
+                if (typeof showModalAlert === 'function') {
+                    showModalAlert('Error', 'An error occurred while saving: ' + (e.message || e));
+                } else if (typeof showABCDModal === 'function') {
+                    showABCDModal({ title: 'Error', message: 'An error occurred while saving: ' + (e.message || e), type: 'error' });
+                } else {
+                    alert('An error occurred while saving: ' + (e.message || e));
+                }
+            }
         }
     }
 
     function saveWithoutDeviceRingChecklist() {
         closeAlarmSetupChecklist();
         if (currentChecklistOptions && typeof currentChecklistOptions.onSaveWithoutRing === 'function') {
-            try { currentChecklistOptions.onSaveWithoutRing(); } catch (e) {}
+            try {
+                currentChecklistOptions.onSaveWithoutRing();
+            } catch (e) {
+                console.error('[ABCD Sound] Checklist onSaveWithoutRing error:', e);
+                if (typeof showModalAlert === 'function') {
+                    showModalAlert('Error', 'An error occurred while saving: ' + (e.message || e));
+                } else if (typeof showABCDModal === 'function') {
+                    showABCDModal({ title: 'Error', message: 'An error occurred while saving: ' + (e.message || e), type: 'error' });
+                } else {
+                    alert('An error occurred while saving: ' + (e.message || e));
+                }
+            }
         }
     }
 
@@ -1710,8 +1759,9 @@
         }
     }, { passive: true });
 
+
     function trackPendingSchedule(taskId, uri) {
-        if (pendingNativeAcks[taskId]) {
+        if (pendingNativeAcks[taskId] && pendingNativeAcks[taskId].timer) {
             clearTimeout(pendingNativeAcks[taskId].timer);
         }
         pendingNativeAcks[taskId] = {
@@ -1763,11 +1813,49 @@
                 } else if (rem.time_str) {
                     const parts = String(rem.time_str).split(':').map(Number);
                     const now = new Date();
-                    let target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parts[0] || 0, parts[1] || 0, 0);
-                    if (target.getTime() <= now.getTime()) {
-                        target.setDate(target.getDate() + 1);
+                    const targetHour = parts[0] || 0;
+                    const targetMin = parts[1] || 0;
+
+                    if (rem.recurrence === 'weekly' || rem.recurrence === 'custom') {
+                        let allowedDays = [];
+                        if (rem.recurrence === 'weekly') {
+                            allowedDays = [5, 6]; // Sat & Sun
+                        } else if (rem.days_of_week) {
+                            allowedDays = String(rem.days_of_week).split(',').map(function (d) { return parseInt(d.trim(), 10); }).filter(function (n) { return !isNaN(n); });
+                        }
+                        if (allowedDays.length === 0) allowedDays = [0, 1, 2, 3, 4, 5, 6];
+
+                        for (let i = 0; i < 14; i++) {
+                            const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, targetHour, targetMin, 0, 0);
+                            if (candidate.getTime() > now.getTime()) {
+                                const pyWkday = (candidate.getDay() + 6) % 7; // JS Sun=0 -> Python Mon=0..Sun=6
+                                if (allowedDays.includes(pyWkday)) {
+                                    triggerMillis = candidate.getTime();
+                                    break;
+                                }
+                            }
+                        }
+                    } else {
+                        // Daily or once fallback
+                        let target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), targetHour, targetMin, 0, 0);
+                        if (target.getTime() <= now.getTime()) {
+                            target.setDate(target.getDate() + 1);
+                        }
+                        triggerMillis = target.getTime();
                     }
-                    triggerMillis = target.getTime();
+                }
+
+                // Check until_date cutoff if specified
+                if (rem.until_date && triggerMillis > 0) {
+                    try {
+                        const uParts = String(rem.until_date).trim().split('-');
+                        if (uParts.length === 3) {
+                            const untilEnd = new Date(parseInt(uParts[0], 10), parseInt(uParts[1], 10) - 1, parseInt(uParts[2], 10), 23, 59, 59, 999).getTime();
+                            if (triggerMillis > untilEnd) {
+                                triggerMillis = 0;
+                            }
+                        }
+                    } catch (ignored) {}
                 }
 
                 if (triggerMillis > Date.now()) {
@@ -1799,12 +1887,12 @@
                 sendNativeTwaMessage('abcdalarm://reconcile?active_ids=&confirmed=1');
             }
 
-            // Notify Service Worker of confirmed native tasks for exact per-task suppression
+            // Inform Service Worker that TWA mode is active.
+            // Note: Per-task push suppression is ONLY activated on verified exact schedule_ack.
             if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({
                     type: 'SET_TWA_MODE',
-                    isTwa: true,
-                    tasks: scheduledTasks
+                    isTwa: true
                 });
             }
         } catch (err) {

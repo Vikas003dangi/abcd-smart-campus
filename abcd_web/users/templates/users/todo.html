@@ -13189,6 +13189,7 @@
       try { window.unlockABCDAudio(); } catch (e) {}
     }
 
+    const saveBtn = document.getElementById('saveReminderBtn');
     const title = document.getElementById('reminderTitle').value.trim();
     if (!title) {
       showModalAlert('Error', 'Please enter a reminder title.');
@@ -13309,9 +13310,19 @@
   }
 
   function _executeSaveReminder(payload, saveBtn) {
+    if (!saveBtn) {
+      saveBtn = document.getElementById('saveReminderBtn');
+    }
+    const btnText = document.getElementById('saveReminderBtnText');
+    const originalText = reminderEditingTaskId ? '💾 Save Changes' : '🔔 Set Reminder';
+    
     if (saveBtn) {
       saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving...';
+      if (btnText) {
+        btnText.textContent = 'Saving...';
+      } else {
+        saveBtn.textContent = 'Saving...';
+      }
     }
     
     const url = reminderEditingTaskId ? `/todo/update-reminder/${reminderEditingTaskId}/` : '/todo/add-reminder/';
@@ -13326,15 +13337,8 @@
     })
     .then(res => res.json())
     .then(data => {
-      if (saveBtn) {
-        saveBtn.disabled = false;
-        saveBtn.textContent = '🔔 Set Reminder';
-      }
-      if (data.success) {
+      if (data && data.success) {
         closeReminderModal();
-        // Reset button text to default for next open
-        const btnText = document.getElementById('saveReminderBtnText');
-        if (btnText) btnText.textContent = '🔔 Set Reminder';
         loadReminders();
         if (typeof window.checkGlobalDueAlarms === 'function') {
           window.checkGlobalDueAlarms();
@@ -13342,16 +13346,23 @@
         showSuccessToast(reminderEditingTaskId ? 'Reminder updated!' : 'Reminder added!');
         reminderEditingTaskId = null;
       } else {
-        showModalAlert('Error', data.error || 'Failed to save reminder.');
+        const errMsg = (data && data.error) ? data.error : 'Failed to save reminder.';
+        showModalAlert('Error', errMsg);
       }
     })
     .catch(err => {
-      console.error('Error saving reminder:', err);
+      console.error('[Todo] Error saving reminder:', err);
+      showModalAlert('Error', 'A network error occurred while saving the reminder.');
+    })
+    .finally(() => {
       if (saveBtn) {
         saveBtn.disabled = false;
-        saveBtn.textContent = '🔔 Set Reminder';
+        if (btnText) {
+          btnText.textContent = originalText;
+        } else {
+          saveBtn.textContent = originalText;
+        }
       }
-      showModalAlert('Error', 'A network error occurred.');
     });
   }
 
