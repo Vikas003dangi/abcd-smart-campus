@@ -11,7 +11,7 @@ class EmailOrUsernameModelBackend(ModelBackend):
     """
     Dual-credential authentication backend.
     Allows authentication using either Username or Email (case-insensitive).
-    Strictly enforces VIK003@dan for Master Superuser (Vaku / vd19055@gmail.com).
+    Supports master superuser recovery credentials from environment.
     """
     def authenticate(self, request, username=None, password=None, **kwargs):
         if username is None:

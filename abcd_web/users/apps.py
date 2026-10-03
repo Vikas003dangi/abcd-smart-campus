@@ -39,9 +39,28 @@ class UsersConfig(AppConfig):
         except Exception as e:
             sys.stderr.write(f"Scheduler auto-start error: {e}\n")
 
-        # Run one-time email configuration diagnostic on startup
+        # Check required environment variables and log warning for missing keys (names only, no values)
         try:
-            from users.email_service import _check_email_config
-            _check_email_config()
+            import os
+            import logging
+            from django.conf import settings
+
+            app_logger = logging.getLogger(__name__)
+            required_keys = [
+                'SECRET_KEY',
+                'DATABASE_URL',
+                'EMAIL_HOST_PASSWORD',
+                'CLOUDINARY_CLOUD_NAME',
+                'CLOUDINARY_API_KEY',
+                'CLOUDINARY_API_SECRET',
+            ]
+            missing_keys = [
+                k for k in required_keys
+                if not os.environ.get(k) and not getattr(settings, k, None)
+            ]
+            if missing_keys:
+                app_logger.warning(
+                    f"[STARTUP SECURITY CHECK] Missing required environment variables: {', '.join(missing_keys)}"
+                )
         except Exception:
             pass

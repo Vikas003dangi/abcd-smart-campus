@@ -14,7 +14,7 @@ class IPv4EmailBackend(EmailBackend):
     2. Works seamlessly with Port 465 SSL (recommended) or Port 587 STARTTLS.
     3. Dual-port auto-fallback: if Port 465 fails (timeout/firewall), attempts Port 587 STARTTLS (and vice-versa).
     4. Prevents socket hangs with an explicit timeout.
-    5. Always enforces valid sanitized credentials even if environment variables are empty.
+    5. Validates sanitized credentials and fails safely with clear logging if not configured.
     """
 
     def __init__(self, *args, **kwargs):
@@ -22,10 +22,16 @@ class IPv4EmailBackend(EmailBackend):
             kwargs['timeout'] = getattr(settings, 'EMAIL_TIMEOUT', 15)
         super().__init__(*args, **kwargs)
         self.username = (self.username or getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
-        self.password = (self.password or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
+        self.password = (self.password or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '').replace('"', '').replace("'", "")
 
     def open(self):
         if self.connection:
+            return False
+
+        if not self.password:
+            logger.warning("[IPv4EmailBackend] EMAIL_HOST_PASSWORD is not configured; email delivery aborted safely.")
+            if not self.fail_silently:
+                raise smtplib.SMTPAuthenticationError(535, "EMAIL_HOST_PASSWORD not configured")
             return False
 
         original_getaddrinfo = socket.getaddrinfo
@@ -44,7 +50,7 @@ class IPv4EmailBackend(EmailBackend):
             pass
 
         user = self.username or 'abcd2013baq@gmail.com'
-        pwd = self.password or 'cpwejcqiszcoeldd'
+        pwd = self.password
         # Allow adequate socket timeout for SSL handshake + STARTTLS negotiation (10-15s)
         step_timeout = max(int(getattr(self, 'timeout', 12) or 12), 10)
 
@@ -56,15 +62,7 @@ class IPv4EmailBackend(EmailBackend):
                 conn.ehlo()
                 conn.starttls()
                 conn.ehlo()
-            try:
-                conn.login(user, pwd)
-            except smtplib.SMTPAuthenticationError:
-                if pwd != 'cpwejcqiszcoeldd':
-                    logger.warning(f"[IPv4EmailBackend] Password authentication failed; retrying with verified fallback...")
-                    conn.login(user, 'cpwejcqiszcoeldd')
-                    self.password = 'cpwejcqiszcoeldd'
-                else:
-                    raise
+            conn.login(user, pwd)
             return conn
 
         # Determine primary and fallback ports based on settings

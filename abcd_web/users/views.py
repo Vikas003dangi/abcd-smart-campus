@@ -20374,17 +20374,23 @@ def assetlinks_json_view(request):
 def email_diagnostics_view(request):
     """
     Real-Time Production Email Diagnostics Endpoint.
+    Strictly locked to staff or superusers only.
     Tests DNS resolution, direct Port 465 SSL, direct Port 587 STARTTLS,
     and actual transactional email dispatch via send_html_email.
+    Live send requires POST with CSRF verification and a 30s rate limit.
     """
     import socket, smtplib, time
     from django.conf import settings
     from django.http import JsonResponse
+    from django.core.cache import cache
     from users.email_service import send_html_email
 
-    recipient = (request.GET.get('to') or 'abcd2013baq@gmail.com').strip()
+    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        return JsonResponse({'status': 'error', 'message': 'Forbidden: Staff or superuser access required.'}, status=403)
+
+    recipient = (request.POST.get('to') or request.GET.get('to') or 'abcd2013baq@gmail.com').strip()
     user = (getattr(settings, 'EMAIL_HOST_USER', '') or '').strip() or 'abcd2013baq@gmail.com'
-    pwd = (getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
+    pwd = (getattr(settings, 'EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '').replace('"', '').replace("'", "")
 
     results = {
         'status': 'ok',
@@ -20394,6 +20400,7 @@ def email_diagnostics_view(request):
             'EMAIL_USE_SSL': getattr(settings, 'EMAIL_USE_SSL', False),
             'EMAIL_USE_TLS': getattr(settings, 'EMAIL_USE_TLS', False),
             'EMAIL_HOST_USER': user,
+            'EMAIL_HOST_PASSWORD_CONFIGURED': bool(pwd),
             'recipient': recipient,
         }
     }
@@ -20417,36 +20424,49 @@ def email_diagnostics_view(request):
             results['dns_ipv4'] = {'status': 'error', 'error': str(e), 'latency_s': round(time.time() - t0, 3)}
 
         # 2. Port 465 SSL Direct (IPv4)
-        t0 = time.time()
-        try:
-            s = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=5, local_hostname='abcdcampus.in')
+        if not pwd:
+            results['port_465_ssl'] = {'status': 'skipped', 'message': 'EMAIL_HOST_PASSWORD not configured'}
+            results['port_587_tls'] = {'status': 'skipped', 'message': 'EMAIL_HOST_PASSWORD not configured'}
+        else:
+            t0 = time.time()
             try:
+                s = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=5, local_hostname='abcdcampus.in')
                 s.login(user, pwd)
-            except smtplib.SMTPAuthenticationError:
-                s.login(user, 'cpwejcqiszcoeldd')
-            s.quit()
-            results['port_465_ssl'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
-        except Exception as e:
-            results['port_465_ssl'] = {'status': 'error', 'error': f"{type(e).__name__}: {e}", 'latency_s': round(time.time() - t0, 3)}
+                s.quit()
+                results['port_465_ssl'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
+            except Exception as e:
+                results['port_465_ssl'] = {'status': 'error', 'error': f"{type(e).__name__}: {e}", 'latency_s': round(time.time() - t0, 3)}
 
-        # 3. Port 587 STARTTLS Direct (IPv4)
-        t0 = time.time()
-        try:
-            s = smtplib.SMTP('smtp.gmail.com', 587, timeout=5, local_hostname='abcdcampus.in')
-            s.ehlo()
-            s.starttls()
-            s.ehlo()
+            # 3. Port 587 STARTTLS Direct (IPv4)
+            t0 = time.time()
             try:
+                s = smtplib.SMTP('smtp.gmail.com', 587, timeout=5, local_hostname='abcdcampus.in')
+                s.ehlo()
+                s.starttls()
+                s.ehlo()
                 s.login(user, pwd)
-            except smtplib.SMTPAuthenticationError:
-                s.login(user, 'cpwejcqiszcoeldd')
-            s.quit()
-            results['port_587_tls'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
-        except Exception as e:
-            results['port_587_tls'] = {'status': 'error', 'error': f"{type(e).__name__}: {e}", 'latency_s': round(time.time() - t0, 3)}
+                s.quit()
+                results['port_587_tls'] = {'status': 'ok', 'latency_s': round(time.time() - t0, 3)}
+            except Exception as e:
+                results['port_587_tls'] = {'status': 'error', 'error': f"{type(e).__name__}: {e}", 'latency_s': round(time.time() - t0, 3)}
 
         # 4. Actual Dispatch via send_html_email
-        if request.GET.get('send') == '1':
+        send_requested = (request.POST.get('send') == '1' or request.GET.get('send') == '1')
+        if send_requested:
+            if request.method != 'POST':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Sending live test emails requires a POST request with CSRF verification.'
+                }, status=405)
+
+            rate_key = f"rate_limit_diag_email_send_{request.user.pk}"
+            if cache.get(rate_key):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Rate limit exceeded: please wait 30 seconds before sending another test email.'
+                }, status=429)
+            cache.set(rate_key, True, timeout=30)
+
             t0 = time.time()
             try:
                 sent = send_html_email(

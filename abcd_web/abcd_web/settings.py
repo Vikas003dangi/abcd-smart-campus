@@ -23,9 +23,9 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-development-secret-ke
 # The cast=bool makes sure 'True' becomes True (boolean) and 'False' becomes False
 DEBUG = config('DEBUG', default=True, cast=bool) 
 
-# Recovery Keys (optional fallback credentials loaded securely from environment)
-VAKU_RECOVERY_KEY = config('VAKU_RECOVERY_KEY', default=None)
-SANDY_RECOVERY_KEY = config('SANDY_RECOVERY_KEY', default=None) 
+# Recovery Keys (optional fallback credentials loaded securely from environment; accepts either name)
+VAKU_RECOVERY_KEY = config('VAKU_RECOVERY_KEY', default=config('VAKU_PASSWORD', default=None))
+SANDY_RECOVERY_KEY = config('SANDY_RECOVERY_KEY', default=config('SANDY_PASSWORD', default=None)) 
 
 # Base supported domains for local, production, and staging
 DEFAULT_ALLOWED_HOSTS = {
@@ -280,7 +280,7 @@ EMAIL_USE_TLS = False
 EMAIL_TIMEOUT = 12
 
 EMAIL_HOST_USER = (config('EMAIL_HOST_USER', default='abcd2013baq@gmail.com') or '').strip() or 'abcd2013baq@gmail.com'
-EMAIL_HOST_PASSWORD = (config('EMAIL_HOST_PASSWORD', default='cpwe jcqi szco eldd') or '').strip().replace(' ', '').replace('"', '').replace("'", "") or 'cpwejcqiszcoeldd'
+EMAIL_HOST_PASSWORD = (config('EMAIL_HOST_PASSWORD', default='') or '').strip().replace(' ', '').replace('"', '').replace("'", "")
 DEFAULT_FROM_EMAIL = f'"ABCD Campus" <{EMAIL_HOST_USER}>'
 ADMIN_EMAIL = (config('ADMIN_EMAIL', default=EMAIL_HOST_USER) or '').strip() or EMAIL_HOST_USER
 GMAIL_RELAY_URL = config('GMAIL_RELAY_URL', default='').strip()

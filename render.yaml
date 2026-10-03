@@ -41,10 +41,14 @@ services:
       - key: EMAIL_HOST_USER
         value: "abcd2013baq@gmail.com"
       - key: EMAIL_HOST_PASSWORD
-        value: "cpwe jcqi szco eldd"
+        sync: false
       - key: VAKU_PASSWORD
         sync: false
+      - key: VAKU_RECOVERY_KEY
+        sync: false
       - key: SANDY_PASSWORD
+        sync: false
+      - key: SANDY_RECOVERY_KEY
         sync: false
       - key: VAPID_PUBLIC_KEY
         sync: false
