@@ -376,7 +376,7 @@
         <!-- Photo Header -->
         <div class="photo-container">
             <div class="photo-frame" onclick="viewPhoto()">
-                <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" id="profile-img-main" crossorigin="anonymous">
+                <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" id="profile-img-main" crossorigin="anonymous" onerror="this.onerror=null; this.src='{{ student|gender_avatar }}';">
                 <div class="photo-overlay">SEE</div>
             </div>
             <div class="edit-photo-btn" onclick="openPhotoManager()" title="Manage Photo">

@@ -677,16 +677,8 @@
                     </div>
                     <div style="position: relative; width: 120px; height: 120px;">
                         <div id="photoPreviewContainerCustom" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid #eef2ff; overflow: hidden; background: #f8fafc; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); cursor: pointer;" onclick="openPhotoActionModal()">
-                            {% if achievement.photo %}
-                                <img id="photoPreviewCustom" src="{{ achievement.photo.url }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-                                <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
-                            {% elif achievement.photo_url and "default_avatar" not in achievement.photo_url and "user.png" not in achievement.photo_url %}
-                                <img id="photoPreviewCustom" src="{{ achievement.photo_url }}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-                                <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
-                            {% else %}
-                                <img id="photoPreviewCustom" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-                                <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: flex;"></i>
-                            {% endif %}
+                            <img id="photoPreviewCustom" src="{{ achievement.photo_url }}" onerror="this.onerror=null; this.src='{{ achievement|gender_avatar }}';" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                            <i id="photoPlaceholderCustom" class='bx bxs-user' style="font-size: 4rem; color: #cbd5e1; display: none;"></i>
                         </div>
                         <div onclick="openPhotoActionModal()" style="position: absolute; bottom: 0; right: 0; width: 36px; height: 36px; background: #6366f1; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.2s ease;">
                             <i class='bx bxs-pencil'></i>
@@ -1390,13 +1382,13 @@
         // Global Photo Actions functions
         window.openPhotoActionModal = function() {
             const previewImg = document.getElementById('photoPreviewCustom');
-            const hasPhoto = previewImg && previewImg.src && previewImg.style.display !== 'none' && !previewImg.src.endsWith('/');
+            const hasCustomPhoto = previewImg && previewImg.src && previewImg.style.display !== 'none' && !previewImg.src.endsWith('/') && !previewImg.src.includes('default_avatar');
             
             const btnAdjust = document.getElementById('btnAdjustPhoto');
             const btnRemove = document.getElementById('btnRemovePhoto');
             
-            if (btnAdjust) btnAdjust.style.display = hasPhoto ? 'block' : 'none';
-            if (btnRemove) btnRemove.style.display = hasPhoto ? 'block' : 'none';
+            if (btnAdjust) btnAdjust.style.display = hasCustomPhoto ? 'block' : 'none';
+            if (btnRemove) btnRemove.style.display = hasCustomPhoto ? 'block' : 'none';
             
             document.getElementById('photoActionModal').style.display = 'block';
             document.getElementById('photoActionOverlay').style.display = 'block';
@@ -1448,12 +1440,20 @@
                 
                 const previewImg = document.getElementById('photoPreviewCustom');
                 const placeholder = document.getElementById('photoPlaceholderCustom');
+                const gender = ("{{ achievement.gender|default:'' }}").toLowerCase().trim();
+                let avatarUrl = '/static/data/default_avatar.png';
+                if (gender === 'female' || gender === 'f') {
+                    avatarUrl = '/static/data/default_avatar_female.png';
+                } else if (gender === 'male' || gender === 'm') {
+                    avatarUrl = '/static/data/default_avatar_male.png';
+                }
+                avatarUrl += '?t=' + Date.now();
                 if (previewImg) {
-                    previewImg.src = "";
-                    previewImg.style.display = 'none';
+                    previewImg.src = avatarUrl;
+                    previewImg.style.display = 'block';
                 }
                 if (placeholder) {
-                    placeholder.style.display = 'flex';
+                    placeholder.style.display = 'none';
                 }
                 window.closePhotoActionModal();
             }

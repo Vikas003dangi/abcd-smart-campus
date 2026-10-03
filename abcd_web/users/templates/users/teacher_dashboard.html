@@ -8537,7 +8537,7 @@
         {% for student in pending_new_coaching_students %}
         <div class="request-item">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
+            <img src="{{ student.photo_url }}" onerror="this.onerror=null; this.src='{{ student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
             <div>
               <strong>{{ student.full_name }}</strong><br>
               <small>Coaching - {{ student.get_sex_display }}</small><br>
@@ -8618,7 +8618,7 @@
         {% for student in pending_existing_coaching_students %}
         <div class="request-item">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
+            <img src="{{ student.photo_url }}" onerror="this.onerror=null; this.src='{{ student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
             <div>
               <strong>{{ student.full_name }}</strong><br>
               <small>Coaching - {{ student.get_sex_display }}</small><br>
@@ -8704,7 +8704,7 @@
                       special-seat-request shift-special-request
                   {% endif %}">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
+            <img src="{{ student.photo_url }}" onerror="this.onerror=null; this.src='{{ student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
             <div>
               <strong>{{ student.full_name }}</strong><br>
               <small>Library - {{ student.get_sex_display }}</small><br>
@@ -8828,7 +8828,7 @@
                   {% endif %}">
 
           <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="{{ student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
+            <img src="{{ student.photo_url }}" onerror="this.onerror=null; this.src='{{ student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ student.full_name }}">
             <div>
               <strong>{{ student.full_name }}</strong><br>
               <small>Library - {{ student.get_sex_display }}</small><br>
@@ -8945,7 +8945,7 @@
         {% for req in pending_partial_requests %}
         <div class="request-item special-seat-request">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="{% if req.student %}{{ req.student.photo_url }}{% else %}{{ req.user|user_photo }}{% endif %}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.requester_name }}">
+            <img src="{% if req.student %}{{ req.student.photo_url }}{% else %}{{ req.user|user_photo }}{% endif %}" onerror="this.onerror=null; this.src='{% if req.student %}{{ req.student|gender_avatar }}{% else %}/static/data/default_avatar.png{% endif %}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.requester_name }}">
             <div>
               <strong>{{ req.requester_name }}</strong>
               {% if req.student %}
@@ -9014,7 +9014,7 @@
         {% for ach in pending_achievements %}
         <div class="request-item">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="{{ ach.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ ach.first_name }} {{ ach.last_name }}">
+            <img src="{{ ach.photo_url }}" onerror="this.onerror=null; this.src='{{ ach|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ ach.first_name }} {{ ach.last_name }}">
             <div>
               <strong>{{ ach.first_name }} {{ ach.last_name }}</strong><br>
               <small>Post: {{ ach.current_post }}</small><br>
@@ -9087,7 +9087,7 @@
             {% for req in pending_hold_requests %}
             <div class="request-item hold-request">
               <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="{{ req.student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
+                <img src="{{ req.student.photo_url }}" onerror="this.onerror=null; this.src='{{ req.student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <strong>{{ req.student.full_name }}</strong>
@@ -9130,7 +9130,7 @@
             {% for req in seat_switch_requests %}
             <div class="request-item switch-request">
               <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="{{ req.student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
+                <img src="{{ req.student.photo_url }}" onerror="this.onerror=null; this.src='{{ req.student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <strong>{{ req.student.full_name }}</strong>
@@ -9186,7 +9186,7 @@
             {% for req in seat_leave_requests %}
             <div class="request-item leave-request" style="border-left: 4px solid #ef4444;">
               <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="{{ req.student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #ef4444; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
+                <img src="{{ req.student.photo_url }}" onerror="this.onerror=null; this.src='{{ req.student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #ef4444; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <strong>{{ req.student.full_name }}</strong>
@@ -9229,7 +9229,7 @@
             {% for req in hold_change_requests %}
             <div class="request-item hold-change-request" style="border-left: 4px solid #0ea5e9;">
               <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="{{ req.student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #0ea5e9; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
+                <img src="{{ req.student.photo_url }}" onerror="this.onerror=null; this.src='{{ req.student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #0ea5e9; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <strong>{{ req.student.full_name }}</strong>
@@ -9274,7 +9274,7 @@
             {% for req in cancel_hold_requests %}
             <div class="request-item cancel-hold-request">
               <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="{{ req.student.photo_url }}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #ef4444; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
+                <img src="{{ req.student.photo_url }}" onerror="this.onerror=null; this.src='{{ req.student|gender_avatar }}';" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #ef4444; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex-shrink: 0;" alt="{{ req.student.full_name }}">
                 <div>
                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <strong>{{ req.student.full_name }}</strong>

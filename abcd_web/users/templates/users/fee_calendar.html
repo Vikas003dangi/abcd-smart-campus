@@ -1,4 +1,5 @@
 {% load static %}
+{% load dict_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -880,8 +881,10 @@
     {% include 'partials/_master_loader.html' %}
 <div class="container">
         <div class="header">
-            <h1>Fee Calendar</h1>
-            <h3>for {{ student.full_name }}</h3>
+            <div class="header-title-row" style="display: inline-flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 14px; max-width: 100%; flex-wrap: wrap;">
+                <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" class="header-avatar" onerror="this.onerror=null; this.src='{{ student|gender_avatar }}';" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2.5px solid #6366f1; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); flex-shrink: 0;">
+                <h1 style="margin: 0; line-height: 1.2; word-break: break-word; text-align: center;">{{ student.full_name|possessive }} Fee Calendar</h1>
+            </div>
             
             <div class="header-controls">
                 <a href="{% url 'users:teacher_dashboard' %}" class="back-btn">

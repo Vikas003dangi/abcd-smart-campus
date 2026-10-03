@@ -142,3 +142,47 @@ def has_user_photo(user_or_obj):
         pass
         
     return False
+
+
+@register.filter
+def possessive(name):
+    """
+    Applies English grammatical possessive rule:
+    - Names ending in 's' or 'S' receive an apostrophe only (e.g. 'Vikas' -> "Vikas'")
+    - All other names receive apostrophe-s (e.g. 'Suhani Singh' -> "Suhani Singh's")
+    """
+    if not name:
+        return ""
+    name_str = str(name).strip()
+    if not name_str:
+        return ""
+    from django.utils.safestring import mark_safe
+    from django.utils.html import escape
+    escaped = escape(name_str)
+    if name_str.endswith(('s', 'S')):
+        return mark_safe(f"{escaped}'")
+    return mark_safe(f"{escaped}'s")
+
+
+@register.filter
+def gender_avatar(obj_or_sex):
+    """
+    Resolves standard gender avatar URL:
+    - Female -> default_avatar_female.png
+    - Male -> default_avatar_male.png
+    - Blank / Other -> default_avatar.png (neutral)
+    """
+    sex = ''
+    if hasattr(obj_or_sex, 'sex'):
+        sex = obj_or_sex.sex or ''
+    elif hasattr(obj_or_sex, 'gender'):
+        sex = obj_or_sex.gender or ''
+    elif isinstance(obj_or_sex, str):
+        sex = obj_or_sex
+
+    s = str(sex).strip().lower()
+    if s in ['female', 'f']:
+        return '/static/data/default_avatar_female.png'
+    elif s in ['male', 'm']:
+        return '/static/data/default_avatar_male.png'
+    return '/static/data/default_avatar.png'

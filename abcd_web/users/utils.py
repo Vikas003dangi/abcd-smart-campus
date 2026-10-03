@@ -1820,7 +1820,10 @@ def get_profile_photo_url(user, dashboard_type=None):
             if achievement:
                 return achievement.photo_url
 
-        # Priority 2: Google OAuth picture
+        # Note: For users with a StudentProfile, TeacherProfile, or StudentAchievement, the profile
+        # branch above returns the gender avatar when no custom photo is uploaded.
+        # As designed, the Google OAuth picture below is only reached for Users without any linked Profile object.
+        # Priority 2: Google OAuth picture (unlinked user fallback)
         try:
             from social_django.models import UserSocialAuth
             social_user = UserSocialAuth.objects.filter(user=user, provider='google-oauth2').first()

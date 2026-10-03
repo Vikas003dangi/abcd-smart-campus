@@ -2273,8 +2273,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (item && item.photo_url && item.photo_url.trim() && !item.photo_url.includes('default_avatar.png')) {
           return item.photo_url;
         }
-        const isFemale = item && item.sex && (String(item.sex).toLowerCase() === 'female' || String(item.sex).toLowerCase() === 'f');
-        return isFemale ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png';
+        const s = item && item.sex ? String(item.sex).toLowerCase().trim() : '';
+        if (s === 'female' || s === 'f') return '/static/data/default_avatar_female.png';
+        if (s === 'male' || s === 'm') return '/static/data/default_avatar_male.png';
+        return '/static/data/default_avatar.png';
       };
 
 
@@ -4399,7 +4401,14 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>`;
       }
 
-      const avatarSrc = s.photo_url || (String(s.sex || '').toLowerCase().includes('fem') ? '/static/data/default_avatar_female.png' : '/static/data/default_avatar_male.png');
+      let avatarFallback = '/static/data/default_avatar.png';
+      const sexStr = String(s.sex || '').toLowerCase().trim();
+      if (sexStr === 'female' || sexStr === 'f' || sexStr.startsWith('fem')) {
+        avatarFallback = '/static/data/default_avatar_female.png';
+      } else if (sexStr === 'male' || sexStr === 'm') {
+        avatarFallback = '/static/data/default_avatar_male.png';
+      }
+      const avatarSrc = s.photo_url || avatarFallback;
       const photoHtml = `<img src="${avatarSrc}" alt="${formattedName}" style="width: 100%; height: 100%; object-fit: cover;">`;
 
       const profileContent = `
