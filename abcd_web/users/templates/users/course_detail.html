@@ -3194,9 +3194,17 @@
             });
         }
 
-        if (typeof window.checkAlarmSetupStatus === 'function') {
-            const evalRes = window.checkAlarmSetupStatus();
-            if (!evalRes.ok) {
+        var evalRes = { ok: true };
+        try {
+            if (typeof window.checkAlarmSetupStatus === 'function') {
+                evalRes = window.checkAlarmSetupStatus();
+            }
+        } catch (e) {
+            console.warn('[CourseDetail] checkAlarmSetupStatus error:', e);
+            evalRes = { ok: true };
+        }
+        if (!evalRes.ok) {
+            if (typeof window.showAlarmSetupChecklist === 'function') {
                 window.showAlarmSetupChecklist({
                     onConfirmed: function() {
                         _doSubmitCourseReminder();

@@ -21,6 +21,78 @@
 (function(window, document) {
     'use strict';
 
+    // Shared TWA / Native Custom Tabs Bridge Singleton
+    if (typeof window !== 'undefined') {
+        window.ABCD_NATIVE = window.ABCD_NATIVE || (function() {
+            var _port = window._abcdTwaPort || null;
+            var _listeners = [];
+            var _portReadyListeners = [];
+            var _lastCmd = null;
+            var _lastStatus = null;
+
+            function setPort(p) {
+                if (!p) return;
+                _port = p;
+                window._abcdTwaPort = p;
+                if (typeof p.start === 'function') {
+                    try { p.start(); } catch (e) {}
+                }
+                p.onmessage = function(ev) {
+                    var d = ev ? ev.data : null;
+                    dispatch(d);
+                };
+                var cbs = _portReadyListeners.slice();
+                cbs.forEach(function(cb) {
+                    try { cb(p); } catch (e) {}
+                });
+            }
+
+            function dispatch(data) {
+                _listeners.forEach(function(fn) {
+                    try { fn(data); } catch (e) {}
+                });
+            }
+
+            function send(payload) {
+                var str = (typeof payload === 'string') ? payload : JSON.stringify(payload);
+                _lastCmd = { time: new Date().toLocaleTimeString(), payload: str };
+                var activePort = _port || window._abcdTwaPort;
+                if (activePort && typeof activePort.postMessage === 'function') {
+                    try {
+                        activePort.postMessage(str);
+                        return true;
+                    } catch (e) {
+                        console.warn('[ABCD_NATIVE] postMessage error:', e);
+                    }
+                }
+                return false;
+            }
+
+            return {
+                getPort: function() { return _port || window._abcdTwaPort || null; },
+                setPort: setPort,
+                send: send,
+                onMessage: function(fn) {
+                    if (typeof fn === 'function' && _listeners.indexOf(fn) === -1) {
+                        _listeners.push(fn);
+                    }
+                },
+                onPortReady: function(cb) {
+                    if (typeof cb !== 'function') return;
+                    var activePort = _port || window._abcdTwaPort;
+                    if (activePort) {
+                        try { cb(activePort); } catch (e) {}
+                    } else {
+                        _portReadyListeners.push(cb);
+                    }
+                },
+                getLastCommand: function() { return _lastCmd; },
+                getLastStatus: function() { return _lastStatus; },
+                setLastStatus: function(s) { _lastStatus = s; }
+            };
+        })();
+    }
+
     // Capture Custom Tabs / TWA postMessage port or handshake early
     if (typeof window !== 'undefined' && !window._abcdTwaListenerAttached) {
         window._abcdTwaListenerAttached = true;
@@ -32,6 +104,20 @@
             nativeSha256: null,
             exitAttempts: []
         };
+
+        window.ABCD_NATIVE.onMessage(function(pData) {
+            try {
+                if (pData) {
+                    if (typeof pData === 'string' && pData.indexOf('abcd_native_log') > -1) {
+                        var pParsed = JSON.parse(pData);
+                        window._abcdTwaDiag.nativeLogs = pParsed.logs || [];
+                        window._abcdTwaDiag.nativeSha256 = pParsed.signing_sha256 || null;
+                    }
+                    if (window._abcdDlog) window._abcdDlog('Port onmsg: ' + String(pData).slice(0, 40));
+                }
+            } catch(e) {}
+        });
+
         window.addEventListener('message', function(event) {
             try {
                 var dStr = '';
@@ -68,9 +154,9 @@
                 if (window._abcdTwaDiag.msgs.length > 20) window._abcdTwaDiag.msgs.shift();
             } catch(e) {}
 
-            // accept new port each time and replace the old one
+            // accept new port each time and register with shared dispatcher
             if (event.ports && event.ports.length > 0) {
-                window._abcdTwaPort = event.ports[0];
+                window.ABCD_NATIVE.setPort(event.ports[0]);
                 window._abcdTwaDiag.portSet = true;
                 if (window._abcdDlog) window._abcdDlog('New MessagePort received & assigned (ports=' + event.ports.length + ')');
                 try {
@@ -79,24 +165,6 @@
                         confirmBtn.setAttribute('href', '#');
                         if (window._abcdDlog) window._abcdDlog('Port arrived: switched exit confirm button href to #');
                     }
-                } catch(e) {}
-                if (window._abcdTwaPort && typeof window._abcdTwaPort.start === 'function') {
-                    try { window._abcdTwaPort.start(); } catch(e) {}
-                }
-                try {
-                    window._abcdTwaPort.onmessage = function(portEvent) {
-                        try {
-                            if (portEvent.data) {
-                                var pData = portEvent.data;
-                                if (typeof pData === 'string' && pData.indexOf('abcd_native_log') > -1) {
-                                    var pParsed = JSON.parse(pData);
-                                    window._abcdTwaDiag.nativeLogs = pParsed.logs || [];
-                                    window._abcdTwaDiag.nativeSha256 = pParsed.signing_sha256 || null;
-                                }
-                                if (window._abcdDlog) window._abcdDlog('Port onmsg: ' + String(pData).slice(0, 40));
-                            }
-                        } catch(e) {}
-                    };
                 } catch(e) {}
             }
         });

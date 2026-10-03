@@ -170,6 +170,186 @@ def test_phase4_heads_up_channels_and_delegation():
     assert "CATEGORY_REMINDER" in alarm_service_content, "AlarmPlaybackService must set CATEGORY_REMINDER"
     print("PASS: Phase 4 Heads-up notification channels & service routing verified")
 
+def test_audit_causes_and_fixes():
+    sound_content = read_file("abcd_web/static/js/abcd-sound.js")
+    push_content = read_file("abcd_web/static/js/push-permission.js")
+    nav_content = read_file("abcd_web/static/js/abcd-nav.js")
+    todo_content = read_file("abcd_web/users/templates/users/todo.html")
+    course_content = read_file("abcd_web/users/templates/users/course_detail.html")
+
+    # Cause A: exported functions on window
+    exported_fns = [
+        "window.showAlarmSetupChecklist = showAlarmSetupChecklist",
+        "window.checkAlarmSetupStatus = checkAlarmSetupStatus",
+        "window.openNativeSettings = openNativeSettings",
+        "window.requestNativeNotifications = requestNativeNotifications",
+        "window.confirmAlarmSetupChecklist = confirmAlarmSetupChecklist",
+        "window.closeAlarmSetupChecklist = closeAlarmSetupChecklist",
+        "window.saveWithoutDeviceRingChecklist = saveWithoutDeviceRingChecklist",
+        "window.showNativeDebugPanel = showNativeDebugPanel",
+        "window.setAutostartConfirmed = setAutostartConfirmed",
+        "window.setFloatingConfirmed = setFloatingConfirmed",
+        "window.requestNativeStatus = requestNativeStatus",
+        "window.evaluateStatus = evaluateStatus"
+    ]
+    for fn in exported_fns:
+        assert fn in sound_content, f"Missing export on window: {fn}"
+
+    # Cause B: getBridgeToken typo fixed
+    assert "getBridgeToken(" not in sound_content, "getBridgeToken() must not exist in abcd-sound.js"
+    assert "getTwaBridgeToken()" in sound_content, "getTwaBridgeToken() must be used"
+
+    # Shared Bridge: window.ABCD_NATIVE
+    assert "window.ABCD_NATIVE = window.ABCD_NATIVE ||" in nav_content, "abcd-nav.js must define window.ABCD_NATIVE singleton"
+    assert "window.ABCD_NATIVE = window.ABCD_NATIVE ||" in sound_content, "abcd-sound.js must define window.ABCD_NATIVE singleton"
+    assert "window.ABCD_NATIVE.setPort" in nav_content, "abcd-nav.js must register port with ABCD_NATIVE"
+    assert "window.ABCD_NATIVE.onMessage" in sound_content, "abcd-sound.js must register onMessage handler with ABCD_NATIVE"
+
+    # Cause C: Decoupled Web Push registration
+    assert "registerServiceWorkerAndSync({ sendWelcome: false }).catch(" in push_content, "push-permission.js must not await registerServiceWorkerAndSync on permission grant"
+    assert "Open Notification Settings" in push_content, "push-permission.js must include Open Notification Settings button"
+
+    # Try/catch shielding in todo.html and course_detail.html
+    assert "checkAlarmSetupStatus error" in todo_content, "todo.html must shield checkAlarmSetupStatus with try/catch"
+    assert "checkAlarmSetupStatus error" in course_content, "course_detail.html must shield checkAlarmSetupStatus with try/catch"
+
+    print("PASS: Audit causes A, B, C and web contracts verified")
+
+def test_node_stubbed_window_headless():
+    import subprocess
+    node_test_script = """
+    const fs = require('fs');
+    const assert = require('assert');
+
+    const soundCode = fs.readFileSync('abcd_web/static/js/abcd-sound.js', 'utf8');
+    const pushCode = fs.readFileSync('abcd_web/static/js/push-permission.js', 'utf8');
+
+    const iframeDispatches = [];
+    const mockWindow = {
+        location: { search: '?pwa_app=1', pathname: '/', hash: '' },
+        history: { replaceState: () => {} },
+        matchMedia: () => ({ matches: true }),
+        addEventListener: () => {},
+        document: {
+            readyState: 'complete',
+            referrer: 'android-app://in.abcdcampus.app',
+            addEventListener: () => {},
+            getElementById: () => null,
+            querySelectorAll: () => [],
+            querySelector: () => null,
+            createElement: (tag) => {
+                const el = { style: {} };
+                if (tag === 'iframe') {
+                    Object.defineProperty(el, 'src', {
+                        set: (v) => iframeDispatches.push(v),
+                        get: () => iframeDispatches[iframeDispatches.length - 1]
+                    });
+                }
+                return el;
+            },
+            body: { appendChild: () => {}, dataset: {}, classList: { contains: () => false } },
+            head: { appendChild: () => {} }
+        },
+        sessionStorage: {
+            getItem: (k) => k === 'abcd_twa_bridge_token' ? 'test_token_123' : null,
+            setItem: () => {},
+            removeItem: () => {}
+        },
+        localStorage: {
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {}
+        },
+        navigator: { userAgent: 'Android ABCDApp Redmi', serviceWorker: { addEventListener: () => {} } },
+        PushManager: {},
+        Notification: { permission: 'granted', requestPermission: (cb) => Promise.resolve('granted') },
+        fetch: () => Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+    };
+
+    let capturedTimerCb = null;
+    let capturedDelay = 0;
+    const sandbox = {
+        window: mockWindow,
+        document: mockWindow.document,
+        navigator: mockWindow.navigator,
+        sessionStorage: mockWindow.sessionStorage,
+        localStorage: mockWindow.localStorage,
+        Notification: mockWindow.Notification,
+        PushManager: mockWindow.PushManager,
+        fetch: mockWindow.fetch,
+        console,
+        setTimeout: (fn, delay) => {
+            if (delay === 2000) {
+                capturedTimerCb = fn;
+                capturedDelay = delay;
+            }
+            return 123;
+        },
+        clearTimeout: () => {},
+        setInterval: () => {},
+        clearInterval: () => {}
+    };
+
+    const vm = require('vm');
+    vm.createContext(sandbox);
+    vm.runInContext(soundCode, sandbox);
+
+    // 1. Assert exported functions exist on window
+    const exported = [
+        'showAlarmSetupChecklist',
+        'checkAlarmSetupStatus',
+        'openNativeSettings',
+        'requestNativeNotifications',
+        'confirmAlarmSetupChecklist',
+        'closeAlarmSetupChecklist',
+        'saveWithoutDeviceRingChecklist',
+        'showNativeDebugPanel',
+        'setAutostartConfirmed',
+        'setFloatingConfirmed',
+        'requestNativeStatus',
+        'evaluateStatus'
+    ];
+    exported.forEach(name => {
+        assert.strictEqual(typeof mockWindow[name], 'function', 'Missing export: ' + name);
+    });
+
+    // 2. Assert evaluateStatus allows saving when status is unknown
+    const unkEval = mockWindow.evaluateStatus({ is_unknown: true });
+    assert.strictEqual(unkEval.ok, true, 'Unknown status must allow saving');
+
+    // 3. Assert evaluateStatus blocks saving only when notifications/exact_alarm are explicitly false
+    const deniedEval = mockWindow.evaluateStatus({ is_twa: true, is_unknown: false, notifications_enabled: false, exact_alarm_allowed: true });
+    assert.strictEqual(deniedEval.ok, false, 'Explicitly false notifications must block saving');
+    assert.strictEqual(deniedEval.missingRequired[0], 'notifications');
+
+    // 4. Assert openNativeSettings falls back to abcdalarm:// scheme when no port exists
+    mockWindow.openNativeSettings('battery');
+    const lastUri = iframeDispatches[iframeDispatches.length - 1];
+    assert.ok(lastUri && lastUri.includes('abcdalarm://open_settings?target=battery'), 'URI scheme fallback must be dispatched: ' + lastUri);
+    assert.ok(lastUri.includes('bridge_token=test_token_123'), 'Must attach bridge_token: ' + lastUri);
+
+    // 5. Assert requestNativeStatus sets 2s timeout and delivers unknown status
+    let statusDelivered = null;
+    mockWindow.requestNativeStatus(function(st) {
+        statusDelivered = st;
+    });
+    assert.strictEqual(capturedDelay, 2000, 'Must set 2000ms timeout for get_status');
+    assert.strictEqual(typeof capturedTimerCb, 'function', 'Must register timeout callback');
+    capturedTimerCb();
+    assert.ok(statusDelivered, 'Timeout must trigger status delivery');
+    assert.strictEqual(statusDelivered.is_unknown, true, 'Timed out status must be unknown');
+
+    // 6. Test push-permission.js immediate UI return (<300ms) without blocking
+    vm.runInContext(pushCode, sandbox);
+    assert.strictEqual(typeof mockWindow.requestAlarmNotificationPermission, 'function');
+    mockWindow.requestAlarmNotificationPermission().then(granted => {
+        assert.strictEqual(granted, true, 'Must return true when permission is granted');
+    });
+    """
+    res = subprocess.run(["node", "-e", node_test_script], cwd=BASE_DIR, capture_output=True, text=True)
+    assert res.returncode == 0, f"Node headless test failed: {res.stderr}\n{res.stdout}"
+    print("PASS: Node headless stubbed-window test verified (all 6 runtime checks passed)")
+
 if __name__ == "__main__":
     print("Running Alarm Architecture Fix Verification Checks...")
     test_android_manifest()
@@ -186,5 +366,7 @@ if __name__ == "__main__":
     test_phase3_native_status_and_settings_bridge()
     test_phase3_web_setup_flow_and_checklist()
     test_phase4_heads_up_channels_and_delegation()
-    print("\nALL 14 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
+    test_audit_causes_and_fixes()
+    test_node_stubbed_window_headless()
+    print("\nALL 16 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
 

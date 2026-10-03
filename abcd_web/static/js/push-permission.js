@@ -536,6 +536,12 @@
             </ol>
         `;
 
+        const openSettingsBtnHtml = (isApp || typeof window.openNativeSettings === 'function') ? `
+            <button type="button" class="abcd-push-btn-allow" id="abcdPushOpenSettingsBtn" style="background:#6366f1; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-weight:700; cursor:pointer;">
+                <i class='bx bx-cog'></i> Open Notification Settings
+            </button>
+        ` : '';
+
         bubble.innerHTML = `
             <div class="abcd-push-header">
                 <div class="abcd-push-title">
@@ -551,6 +557,7 @@
                 ${stepsHtml}
             </div>
             <div class="abcd-push-actions">
+                ${openSettingsBtnHtml}
                 <button type="button" class="abcd-push-btn-allow" id="abcdPushDeniedCloseBtn" data-push-dismiss="true" style="background: #475569;" onclick="window.__abcdHandlePushAction(event, 'dismiss')">
                     Got It
                 </button>
@@ -562,8 +569,15 @@
 
         const closeBtn = bubble.querySelector('#abcdPushCloseBtn');
         const gotItBtn = bubble.querySelector('#abcdPushDeniedCloseBtn');
+        const openSetBtn = bubble.querySelector('#abcdPushOpenSettingsBtn');
         if (closeBtn) closeBtn.addEventListener('click', () => dismissPrompt(true));
         if (gotItBtn) gotItBtn.addEventListener('click', () => dismissPrompt(true));
+        if (openSetBtn) openSetBtn.addEventListener('click', () => {
+            if (typeof window.openNativeSettings === 'function') {
+                window.openNativeSettings('notifications');
+            }
+            dismissPrompt(true);
+        });
     }
 
     function dismissPrompt(isUserAction = true) {
@@ -827,7 +841,10 @@
     window.requestAlarmNotificationPermission = async function () {
         if (!('Notification' in window)) return false;
         if (Notification.permission === 'granted') {
-            await registerServiceWorkerAndSync();
+            // Kick off background push registration without awaiting
+            registerServiceWorkerAndSync({ sendWelcome: false }).catch(function (err) {
+                console.warn('[Push] Background push sync error:', err);
+            });
             return true;
         }
         if (Notification.permission === 'denied') {
@@ -850,8 +867,11 @@
                 localStorage.setItem(ALLOWED_KEY, 'true');
                 localStorage.setItem('abcd_push_user_consented', 'true');
                 try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
-                await registerServiceWorkerAndSync({ sendWelcome: false });
-                playChime('/static/audio/PWA.mp3');
+                try { playChime('/static/audio/PWA.mp3'); } catch (e) {}
+                // Run Web Push registration in background without await (target < 300ms UI update)
+                registerServiceWorkerAndSync({ sendWelcome: false }).catch(function (err) {
+                    console.warn('[Push] Background push sync error:', err);
+                });
                 return true;
             } else if (perm === 'denied') {
                 showDeniedInstructions();

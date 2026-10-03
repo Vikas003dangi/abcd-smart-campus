@@ -943,9 +943,84 @@
         }
     }
 
-    let twaNativePort = null;
+    // ═════════════════════════════════════════════════════════════════════
+    // SHARED TWA / NATIVE MESSAGEPORT BRIDGE & DIAGNOSTICS SINGLETON
+    // ═════════════════════════════════════════════════════════════════════
+    if (typeof window !== 'undefined') {
+        window.ABCD_NATIVE = window.ABCD_NATIVE || (function () {
+            var _port = window._abcdTwaPort || null;
+            var _listeners = [];
+            var _portReadyListeners = [];
+            var _lastCmd = null;
+            var _lastStatus = null;
+
+            function setPort(p) {
+                if (!p) return;
+                _port = p;
+                window._abcdTwaPort = p;
+                if (typeof p.start === 'function') {
+                    try { p.start(); } catch (e) {}
+                }
+                p.onmessage = function (ev) {
+                    var d = ev ? ev.data : null;
+                    dispatch(d);
+                };
+                var cbs = _portReadyListeners.slice();
+                cbs.forEach(function (cb) {
+                    try { cb(p); } catch (e) {}
+                });
+            }
+
+            function dispatch(data) {
+                _listeners.forEach(function (fn) {
+                    try { fn(data); } catch (e) {}
+                });
+            }
+
+            function send(payload) {
+                var str = (typeof payload === 'string') ? payload : JSON.stringify(payload);
+                _lastCmd = { time: new Date().toLocaleTimeString(), payload: str };
+                var activePort = _port || window._abcdTwaPort;
+                if (activePort && typeof activePort.postMessage === 'function') {
+                    try {
+                        activePort.postMessage(str);
+                        return true;
+                    } catch (e) {
+                        console.warn('[ABCD_NATIVE] postMessage error:', e);
+                    }
+                }
+                return false;
+            }
+
+            return {
+                getPort: function () { return _port || window._abcdTwaPort || null; },
+                setPort: setPort,
+                send: send,
+                onMessage: function (fn) {
+                    if (typeof fn === 'function' && _listeners.indexOf(fn) === -1) {
+                        _listeners.push(fn);
+                    }
+                },
+                onPortReady: function (cb) {
+                    if (typeof cb !== 'function') return;
+                    var activePort = _port || window._abcdTwaPort;
+                    if (activePort) {
+                        try { cb(activePort); } catch (e) {}
+                    } else {
+                        _portReadyListeners.push(cb);
+                    }
+                },
+                getLastCommand: function () { return _lastCmd; },
+                getLastStatus: function () { return _lastStatus; },
+                setLastStatus: function (s) { _lastStatus = s; }
+            };
+        })();
+    }
+
     let cachedNativeStatus = null;
     let nativeStatusCallbacks = [];
+    let statusTimeoutTimer = null;
+    let portReadyRetryHooked = false;
 
     function handleIncomingNativeMessage(data) {
         if (!data) return;
@@ -959,13 +1034,16 @@
         }
     }
 
+    if (typeof window !== 'undefined' && window.ABCD_NATIVE && typeof window.ABCD_NATIVE.onMessage === 'function') {
+        window.ABCD_NATIVE.onMessage(handleIncomingNativeMessage);
+    }
+
     window.addEventListener('message', function (event) {
         if (!event) return;
-        if (event.ports && event.ports[0] && !twaNativePort) {
-            twaNativePort = event.ports[0];
-            twaNativePort.onmessage = function (pe) {
-                handleIncomingNativeMessage(pe.data);
-            };
+        if (event.ports && event.ports.length > 0) {
+            if (window.ABCD_NATIVE && typeof window.ABCD_NATIVE.setPort === 'function') {
+                window.ABCD_NATIVE.setPort(event.ports[0]);
+            }
         }
         if (event.data) {
             handleIncomingNativeMessage(event.data);
@@ -974,23 +1052,48 @@
 
     function postMessageToNative(jsonObj) {
         if (!jsonObj) return false;
-        const str = (typeof jsonObj === 'string') ? jsonObj : JSON.stringify(jsonObj);
-        if (twaNativePort) {
-            try {
-                twaNativePort.postMessage(str);
-                return true;
-            } catch (e) {}
+        if (window.ABCD_NATIVE && typeof window.ABCD_NATIVE.send === 'function') {
+            return window.ABCD_NATIVE.send(jsonObj);
         }
-        try {
-            window.postMessage(str, '*');
-            return true;
-        } catch (e) {}
+        var activePort = (window.ABCD_NATIVE && typeof window.ABCD_NATIVE.getPort === 'function')
+            ? window.ABCD_NATIVE.getPort()
+            : (window._abcdTwaPort || null);
+        if (activePort && typeof activePort.postMessage === 'function') {
+            try {
+                var str = (typeof jsonObj === 'string') ? jsonObj : JSON.stringify(jsonObj);
+                activePort.postMessage(str);
+                return true;
+            } catch (e) {
+                console.warn('[ABCD Sound] postMessage error:', e);
+            }
+        }
         return false;
     }
 
+    function getUnknownStatus() {
+        const isXiaomi = /Xiaomi|Redmi|POCO/i.test(navigator.userAgent);
+        return {
+            is_twa: true,
+            is_unknown: true,
+            notifications_enabled: (typeof Notification !== 'undefined' && Notification.permission === 'granted') ? true : null,
+            exact_alarm_allowed: null,
+            battery_unrestricted: null,
+            is_xiaomi: isXiaomi,
+            autostart: 'unknown',
+            channels: {}
+        };
+    }
+
     function handleNativeStatusResponse(status) {
+        if (status && !status.is_unknown && statusTimeoutTimer) {
+            clearTimeout(statusTimeoutTimer);
+            statusTimeoutTimer = null;
+        }
         cachedNativeStatus = status;
         window.__abcdNativeStatus = status;
+        if (window.ABCD_NATIVE && typeof window.ABCD_NATIVE.setLastStatus === 'function') {
+            window.ABCD_NATIVE.setLastStatus(status);
+        }
         const cbs = nativeStatusCallbacks.slice();
         nativeStatusCallbacks = [];
         cbs.forEach(function (cb) {
@@ -1007,6 +1110,7 @@
         if (!isNativeAlarmTwaActive()) {
             const fallback = {
                 is_twa: false,
+                is_unknown: false,
                 notifications_enabled: (typeof Notification !== 'undefined' && Notification.permission === 'granted'),
                 exact_alarm_allowed: false,
                 battery_unrestricted: false,
@@ -1017,9 +1121,39 @@
             handleNativeStatusResponse(fallback);
             return;
         }
-        const token = getBridgeToken();
+
+        const token = getTwaBridgeToken();
         const payload = { cmd: 'get_status', bridge_token: token };
-        postMessageToNative(payload);
+        const sent = postMessageToNative(payload);
+
+        if (!sent && !portReadyRetryHooked && window.ABCD_NATIVE && typeof window.ABCD_NATIVE.onPortReady === 'function') {
+            portReadyRetryHooked = true;
+            window.ABCD_NATIVE.onPortReady(function () {
+                portReadyRetryHooked = false;
+                if (isNativeAlarmTwaActive()) {
+                    const freshToken = getTwaBridgeToken();
+                    postMessageToNative({ cmd: 'get_status', bridge_token: freshToken });
+                }
+            });
+        }
+
+        // 2-second timeout: reject/flush callbacks with unknown status if no response received
+        if (statusTimeoutTimer) {
+            clearTimeout(statusTimeoutTimer);
+        }
+        statusTimeoutTimer = setTimeout(function () {
+            statusTimeoutTimer = null;
+            if (!cachedNativeStatus || cachedNativeStatus.is_unknown) {
+                console.debug('[ABCD Sound] Native get_status timed out (2s) - defaulting to unknown state');
+                handleNativeStatusResponse(getUnknownStatus());
+            } else {
+                const cbs = nativeStatusCallbacks.slice();
+                nativeStatusCallbacks = [];
+                cbs.forEach(function (cb) {
+                    try { cb(cachedNativeStatus); } catch (e) {}
+                });
+            }
+        }, 2000);
     }
 
     function openNativeSettings(target) {
@@ -1027,18 +1161,21 @@
         if (!isNativeAlarmTwaActive()) {
             if (typeof showModalAlert === 'function') {
                 showModalAlert('Settings Guidance', 'To configure notification permissions in your browser, tap the lock or tune icon in the address bar.');
+            } else {
+                alert('To configure notification permissions in your browser, tap the lock or tune icon in the address bar.');
             }
             return;
         }
-        const token = getBridgeToken();
+        const token = getTwaBridgeToken();
         postMessageToNative({ cmd: 'open_settings', target: target, bridge_token: token });
         sendNativeTwaMessage(`abcdalarm://open_settings?target=${encodeURIComponent(target)}&bridge_token=${encodeURIComponent(token)}`);
     }
 
     function requestNativeNotifications() {
         if (isNativeAlarmTwaActive()) {
-            const token = getBridgeToken();
+            const token = getTwaBridgeToken();
             postMessageToNative({ cmd: 'request_notifications', bridge_token: token });
+            sendNativeTwaMessage(`abcdalarm://request_notifications?bridge_token=${encodeURIComponent(token)}`);
         }
         if (typeof Notification !== 'undefined' && typeof Notification.requestPermission === 'function') {
             Notification.requestPermission().then(function () {
@@ -1070,30 +1207,43 @@
     }
 
     function evaluateStatus(status) {
-        if (!status) return { ok: false, missingRequired: ['notifications', 'exact_alarm'], missingRecommended: [], status: null };
+        if (!status || status.is_unknown === true) {
+            // Unknown status: NEVER block saving reminders!
+            return {
+                ok: true,
+                is_twa: isNativeAlarmTwaActive(),
+                is_unknown: true,
+                missingRequired: [],
+                missingRecommended: ['unknown_state'],
+                status: status || null
+            };
+        }
         if (status.is_twa === false) {
             const ok = Boolean(status.notifications_enabled);
             return {
                 ok: ok,
                 is_twa: false,
+                is_unknown: false,
                 missingRequired: ok ? [] : ['notifications'],
                 missingRecommended: [],
                 status: status
             };
         }
 
+        // TWA with valid native status received: only block if explicitly denied
         const missingRequired = [];
-        if (!status.notifications_enabled) missingRequired.push('notifications');
-        if (!status.exact_alarm_allowed) missingRequired.push('exact_alarm');
+        if (status.notifications_enabled === false) missingRequired.push('notifications');
+        if (status.exact_alarm_allowed === false) missingRequired.push('exact_alarm');
 
         const missingRecommended = [];
-        if (!status.battery_unrestricted) missingRecommended.push('battery');
+        if (status.battery_unrestricted === false) missingRecommended.push('battery');
         if (status.is_xiaomi && !isAutostartConfirmed()) missingRecommended.push('autostart');
         if (!isFloatingConfirmed()) missingRecommended.push('floating');
 
         return {
             ok: missingRequired.length === 0,
             is_twa: true,
+            is_unknown: false,
             missingRequired: missingRequired,
             missingRecommended: missingRecommended,
             status: status
@@ -1101,16 +1251,23 @@
     }
 
     function checkAlarmSetupStatus(callback) {
-        if (!cachedNativeStatus) {
-            requestNativeStatus(function (status) {
-                const res = evaluateStatus(status);
-                if (typeof callback === 'function') callback(res);
-            });
-            return { ok: false, missingRequired: ['notifications', 'exact_alarm'], missingRecommended: [], status: null };
+        try {
+            if (!cachedNativeStatus) {
+                requestNativeStatus(function (status) {
+                    const res = evaluateStatus(status);
+                    if (typeof callback === 'function') callback(res);
+                });
+                return evaluateStatus(null);
+            }
+            const res = evaluateStatus(cachedNativeStatus);
+            if (typeof callback === 'function') callback(res);
+            return res;
+        } catch (e) {
+            console.warn('[ABCD Sound] checkAlarmSetupStatus error:', e);
+            const safeFallback = { ok: true, is_twa: false, is_unknown: true, missingRequired: [], missingRecommended: [], status: null };
+            if (typeof callback === 'function') callback(safeFallback);
+            return safeFallback;
         }
-        const res = evaluateStatus(cachedNativeStatus);
-        if (typeof callback === 'function') callback(res);
-        return res;
     }
 
     let currentChecklistOptions = null;
@@ -1119,15 +1276,20 @@
         currentChecklistOptions = options || {};
 
         if (!isNativeAlarmTwaActive()) {
+            const guideMsg =
+                'Device Optimization Guide\n\n' +
+                '1. Ensure Notifications are Allowed in your browser settings.\n' +
+                '2. In Android Settings > Apps > Chrome (or your browser) > Battery, select "Unrestricted".\n\n' +
+                'Note: Device settings (Exact Alarms, MIUI Autostart, Heads-Up Banners) can only be opened directly from the ABCD Campus Android App.\n\n' +
+                'Use the ABCD Campus App for native background alarm ringing.';
             if (typeof showModalAlert === 'function') {
-                showModalAlert('Device Optimization Guide',
-                    'To ensure alarms and reminders ring on your device:\n\n' +
-                    '1. Allow Notifications in your browser.\n' +
-                    '2. In Android Settings > Apps > Chrome (or your browser) > Battery, select "Unrestricted".\n\n' +
-                    'For native background ring support, use the ABCD Campus App.'
-                );
+                showModalAlert('Device Optimization Guide', guideMsg);
+            } else {
+                alert(guideMsg);
             }
-            if (currentChecklistOptions.onConfirmed) currentChecklistOptions.onConfirmed();
+            if (currentChecklistOptions.onConfirmed) {
+                try { currentChecklistOptions.onConfirmed(); } catch (e) {}
+            }
             return;
         }
 
@@ -1135,7 +1297,7 @@
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'abcdAlarmSetupModal';
-            modal.style.cssText = 'position:fixed; inset:0; z-index:999999; background:rgba(15,23,42,0.82); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn 0.2s ease;';
+            modal.style.cssText = 'position:fixed; inset:0; z-index:999999; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:16px; animation:fadeIn 0.2s ease;';
             modal.innerHTML = `
             <div style="background:#1e1b4b; border:1px solid #4338ca; border-radius:18px; max-width:540px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 20px 45px rgba(0,0,0,0.6); color:#f8fafc; font-family:inherit; padding:24px;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
@@ -1145,7 +1307,7 @@
                         </h3>
                         <p style="margin:0; font-size:0.82rem; color:#94a3b8;">Ensure ABCD alarms ring on time when your screen is locked.</p>
                     </div>
-                    <button type="button" onclick="closeAlarmSetupChecklist()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer; line-height:1;">&times;</button>
+                    <button type="button" id="abcdChecklistCloseBtn" onclick="closeAlarmSetupChecklist()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer; line-height:1;">&times;</button>
                 </div>
 
                 <div id="abcdChecklistRowsContainer" style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
@@ -1156,15 +1318,24 @@
                     <button type="button" id="abcdChecklistConfirmBtn" onclick="confirmAlarmSetupChecklist()" style="background:#7b61ff; color:#fff; border:none; padding:13px; border-radius:12px; font-weight:700; font-size:0.95rem; cursor:pointer; box-shadow:0 4px 14px rgba(123,97,255,0.4); transition:all 0.2s;">
                         🔔 Confirm & Enable Device Ring
                     </button>
-                    <button type="button" onclick="saveWithoutDeviceRingChecklist()" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); padding:10px; border-radius:12px; font-weight:600; font-size:0.85rem; cursor:pointer;">
+                    <button type="button" id="abcdChecklistSaveWithoutBtn" onclick="saveWithoutDeviceRingChecklist()" style="background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.12); padding:10px; border-radius:12px; font-weight:600; font-size:0.85rem; cursor:pointer;">
                         Save without device ring (Web Push only)
                     </button>
                 </div>
                 <div style="margin-top:12px; text-align:center;">
-                    <a href="javascript:void(0)" onclick="showNativeDebugPanel()" style="font-size:0.75rem; color:#6366f1; text-decoration:none;">View Diagnostic Status</a>
+                    <a href="javascript:void(0)" id="abcdChecklistDiagLink" onclick="showNativeDebugPanel()" style="font-size:0.75rem; color:#6366f1; text-decoration:none;">View Diagnostic Status</a>
                 </div>
             </div>`;
             document.body.appendChild(modal);
+
+            const cBtn = document.getElementById('abcdChecklistCloseBtn');
+            if (cBtn) cBtn.addEventListener('click', closeAlarmSetupChecklist);
+            const confBtn = document.getElementById('abcdChecklistConfirmBtn');
+            if (confBtn) confBtn.addEventListener('click', confirmAlarmSetupChecklist);
+            const noRingBtn = document.getElementById('abcdChecklistSaveWithoutBtn');
+            if (noRingBtn) noRingBtn.addEventListener('click', saveWithoutDeviceRingChecklist);
+            const dLink = document.getElementById('abcdChecklistDiagLink');
+            if (dLink) dLink.addEventListener('click', showNativeDebugPanel);
         } else {
             modal.style.display = 'flex';
         }
@@ -1187,14 +1358,14 @@
         }
         closeAlarmSetupChecklist();
         if (currentChecklistOptions && typeof currentChecklistOptions.onConfirmed === 'function') {
-            currentChecklistOptions.onConfirmed();
+            try { currentChecklistOptions.onConfirmed(); } catch (e) {}
         }
     }
 
     function saveWithoutDeviceRingChecklist() {
         closeAlarmSetupChecklist();
         if (currentChecklistOptions && typeof currentChecklistOptions.onSaveWithoutRing === 'function') {
-            currentChecklistOptions.onSaveWithoutRing();
+            try { currentChecklistOptions.onSaveWithoutRing(); } catch (e) {}
         }
     }
 
@@ -1203,9 +1374,12 @@
         if (!container || !status) return;
 
         const evalRes = evaluateStatus(status);
-        const isNotifs = Boolean(status.notifications_enabled);
-        const isExact = Boolean(status.exact_alarm_allowed);
-        const isBattery = Boolean(status.battery_unrestricted);
+        const isNotifs = (status.notifications_enabled === true);
+        const notifUnknown = (status.notifications_enabled === null || typeof status.notifications_enabled === 'undefined');
+        const isExact = (status.exact_alarm_allowed === true);
+        const exactUnknown = (status.exact_alarm_allowed === null || typeof status.exact_alarm_allowed === 'undefined');
+        const isBattery = (status.battery_unrestricted === true);
+        const batteryUnknown = (status.battery_unrestricted === null || typeof status.battery_unrestricted === 'undefined');
         const isXiaomi = Boolean(status.is_xiaomi);
         const isAuto = isAutostartConfirmed();
         const isFloat = isFloatingConfirmed();
@@ -1213,48 +1387,64 @@
         let rowsHtml = '';
 
         // Row 1: Notifications
+        const notifBadgeColor = isNotifs ? 'rgba(16,185,129,0.2)' : (notifUnknown ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)');
+        const notifBadgeText = isNotifs ? '#34d399' : (notifUnknown ? '#fbbf24' : '#f87171');
+        const notifIcon = isNotifs ? '✓' : (notifUnknown ? '?' : '✕');
+        const notifIconColor = isNotifs ? '#10b981' : (notifUnknown ? '#f59e0b' : '#ef4444');
+        const notifBorder = isNotifs ? 'rgba(16,185,129,0.4)' : (notifUnknown ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.4)');
+
         rowsHtml += `
-        <div style="background:rgba(255,255,255,0.04); border:1px solid ${isNotifs ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}; border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="background:rgba(255,255,255,0.04); border:1px solid ${notifBorder}; border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
             <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:1.1rem; color:${isNotifs ? '#10b981' : '#ef4444'}; font-weight:800;">${isNotifs ? '✓' : '✕'}</span>
+                    <span style="font-size:1.1rem; color:${notifIconColor}; font-weight:800;">${notifIcon}</span>
                     <strong style="font-size:0.9rem; color:#fff;">1. Notifications Allowed</strong>
-                    <span style="font-size:0.68rem; background:${isNotifs ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color:${isNotifs ? '#34d399' : '#f87171'}; padding:2px 6px; border-radius:4px; font-weight:700;">REQUIRED</span>
+                    <span style="font-size:0.68rem; background:${notifBadgeColor}; color:${notifBadgeText}; padding:2px 6px; border-radius:4px; font-weight:700;">REQUIRED</span>
                 </div>
                 <div style="font-size:0.76rem; color:#94a3b8; margin-top:3px;">Needed so alarms and reminders ring when screen is locked.</div>
             </div>
             ${isNotifs ? '<span style="font-size:0.8rem; color:#10b981; font-weight:700;">Enabled</span>' :
-            `<button type="button" onclick="requestNativeNotifications()" style="background:#f59e0b; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Allow</button>`}
+            `<button type="button" id="abcdRowNotifBtn" onclick="requestNativeNotifications()" style="background:#f59e0b; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Allow</button>`}
         </div>`;
 
         // Row 2: Exact Alarms
+        const exactBadgeColor = isExact ? 'rgba(16,185,129,0.2)' : (exactUnknown ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)');
+        const exactBadgeText = isExact ? '#34d399' : (exactUnknown ? '#fbbf24' : '#f87171');
+        const exactIcon = isExact ? '✓' : (exactUnknown ? '?' : '✕');
+        const exactIconColor = isExact ? '#10b981' : (exactUnknown ? '#f59e0b' : '#ef4444');
+        const exactBorder = isExact ? 'rgba(16,185,129,0.4)' : (exactUnknown ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.4)');
+
         rowsHtml += `
-        <div style="background:rgba(255,255,255,0.04); border:1px solid ${isExact ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}; border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="background:rgba(255,255,255,0.04); border:1px solid ${exactBorder}; border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
             <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:1.1rem; color:${isExact ? '#10b981' : '#ef4444'}; font-weight:800;">${isExact ? '✓' : '✕'}</span>
+                    <span style="font-size:1.1rem; color:${exactIconColor}; font-weight:800;">${exactIcon}</span>
                     <strong style="font-size:0.9rem; color:#fff;">2. Exact Alarms Allowed</strong>
-                    <span style="font-size:0.68rem; background:${isExact ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}; color:${isExact ? '#34d399' : '#f87171'}; padding:2px 6px; border-radius:4px; font-weight:700;">REQUIRED</span>
+                    <span style="font-size:0.68rem; background:${exactBadgeColor}; color:${exactBadgeText}; padding:2px 6px; border-radius:4px; font-weight:700;">REQUIRED</span>
                 </div>
                 <div style="font-size:0.76rem; color:#94a3b8; margin-top:3px;">Needed by Android so alarms trigger at the exact scheduled second.</div>
             </div>
             ${isExact ? '<span style="font-size:0.8rem; color:#10b981; font-weight:700;">Allowed</span>' :
-            `<button type="button" onclick="openNativeSettings('exact_alarm')" style="background:#f59e0b; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>`}
+            `<button type="button" id="abcdRowExactBtn" onclick="openNativeSettings('exact_alarm')" style="background:#f59e0b; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>`}
         </div>`;
 
         // Row 3: Battery No Restrictions
+        const batteryIcon = isBattery ? '✓' : (batteryUnknown ? '?' : '!');
+        const batteryIconColor = isBattery ? '#10b981' : '#f59e0b';
+        const batteryBorder = isBattery ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)';
+
         rowsHtml += `
-        <div style="background:rgba(255,255,255,0.04); border:1px solid ${isBattery ? 'rgba(16,185,129,0.4)' : 'rgba(245,158,11,0.4)'}; border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="background:rgba(255,255,255,0.04); border:1px solid ${batteryBorder}; border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
             <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:1.1rem; color:${isBattery ? '#10b981' : '#f59e0b'}; font-weight:800;">${isBattery ? '✓' : '!'}</span>
+                    <span style="font-size:1.1rem; color:${batteryIconColor}; font-weight:800;">${batteryIcon}</span>
                     <strong style="font-size:0.9rem; color:#fff;">3. Battery: No Restrictions</strong>
                     <span style="font-size:0.68rem; background:rgba(99,102,241,0.2); color:#a5b4fc; padding:2px 6px; border-radius:4px; font-weight:700;">RECOMMENDED</span>
                 </div>
                 <div style="font-size:0.76rem; color:#94a3b8; margin-top:3px;">Prevents Android Doze power saver from delaying background alarms.</div>
             </div>
             ${isBattery ? '<span style="font-size:0.8rem; color:#10b981; font-weight:700;">Unrestricted</span>' :
-            `<button type="button" onclick="openNativeSettings('battery')" style="background:#6366f1; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>`}
+            `<button type="button" id="abcdRowBatteryBtn" onclick="openNativeSettings('battery')" style="background:#6366f1; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>`}
         </div>`;
 
         // Row 4: Xiaomi Autostart (if is_xiaomi)
@@ -1268,9 +1458,9 @@
                             <strong style="font-size:0.9rem; color:#fff;">4. Xiaomi / MIUI Autostart</strong>
                             <span style="font-size:0.68rem; background:rgba(99,102,241,0.2); color:#a5b4fc; padding:2px 6px; border-radius:4px; font-weight:700;">RECOMMENDED</span>
                         </div>
-                        <div style="font-size:0.76rem; color:#94a3b8; margin-top:3px;">MIUI kills apps unless Autostart is turned on in Security settings.</div>
+                        <div style="font-size:0.76rem; color:#94a3b8; margin-top:3px;">MIUI kills background apps unless Autostart is turned on in Security settings.</div>
                     </div>
-                    <button type="button" onclick="openNativeSettings('autostart')" style="background:#6366f1; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>
+                    <button type="button" id="abcdRowAutostartBtn" onclick="openNativeSettings('autostart')" style="background:#6366f1; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>
                 </div>
                 <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:8px;">
                     <input type="checkbox" id="abcdAutostartConfirmCb" ${isAuto ? 'checked' : ''} onchange="setAutostartConfirmed(this.checked)" style="accent-color:#7b61ff; cursor:pointer;">
@@ -1291,7 +1481,7 @@
                     </div>
                     <div style="font-size:0.76rem; color:#94a3b8; margin-top:3px;">Shows floating banners over other apps and on lock screen.</div>
                 </div>
-                <button type="button" onclick="openNativeSettings('channel_alarm')" style="background:#6366f1; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>
+                <button type="button" id="abcdRowChannelBtn" onclick="openNativeSettings('channel_alarm')" style="background:#6366f1; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.78rem; font-weight:700; cursor:pointer;">Open</button>
             </div>
             <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:8px;">
                 <input type="checkbox" id="abcdFloatingConfirmCb" ${isFloat ? 'checked' : ''} onchange="setFloatingConfirmed(this.checked)" style="accent-color:#7b61ff; cursor:pointer;">
@@ -1300,6 +1490,22 @@
         </div>`;
 
         container.innerHTML = rowsHtml;
+
+        // Attach listeners directly to created row elements
+        const rNotifBtn = document.getElementById('abcdRowNotifBtn');
+        if (rNotifBtn) rNotifBtn.addEventListener('click', requestNativeNotifications);
+        const rExactBtn = document.getElementById('abcdRowExactBtn');
+        if (rExactBtn) rExactBtn.addEventListener('click', function () { openNativeSettings('exact_alarm'); });
+        const rBatteryBtn = document.getElementById('abcdRowBatteryBtn');
+        if (rBatteryBtn) rBatteryBtn.addEventListener('click', function () { openNativeSettings('battery'); });
+        const rAutostartBtn = document.getElementById('abcdRowAutostartBtn');
+        if (rAutostartBtn) rAutostartBtn.addEventListener('click', function () { openNativeSettings('autostart'); });
+        const rAutostartCb = document.getElementById('abcdAutostartConfirmCb');
+        if (rAutostartCb) rAutostartCb.addEventListener('change', function () { setAutostartConfirmed(this.checked); });
+        const rChannelBtn = document.getElementById('abcdRowChannelBtn');
+        if (rChannelBtn) rChannelBtn.addEventListener('click', function () { openNativeSettings('channel_alarm'); });
+        const rFloatingCb = document.getElementById('abcdFloatingConfirmCb');
+        if (rFloatingCb) rFloatingCb.addEventListener('change', function () { setFloatingConfirmed(this.checked); });
 
         const confirmBtn = document.getElementById('abcdChecklistConfirmBtn');
         if (confirmBtn) {
@@ -1321,10 +1527,105 @@
         const banners = document.querySelectorAll('#abcdAlarmWarningBanner');
         if (!banners || banners.length === 0) return;
         const evalRes = evaluateStatus(status);
-        const shouldShow = evalRes.is_twa && evalRes.ok && evalRes.missingRecommended.length > 0;
+        const shouldShow = evalRes.is_twa && evalRes.ok && (evalRes.missingRecommended.length > 0 || evalRes.is_unknown);
         banners.forEach(function (b) {
-            b.style.display = shouldShow ? 'block' : 'none';
+            b.style.display = shouldShow ? 'flex' : 'none';
         });
+    }
+
+    // ═════════════════════════════════════════════════════════════════════
+    // ON-PHONE DEBUGGER & ERROR CAPTURE BOX
+    // ═════════════════════════════════════════════════════════════════════
+    window.__abcdErrors = window.__abcdErrors || [];
+    window.addEventListener('error', function (e) {
+        try {
+            var item = {
+                type: 'error',
+                time: new Date().toLocaleTimeString(),
+                msg: e.message || String(e),
+                src: (e.filename ? e.filename.split('/').pop() : '') + ':' + (e.lineno || '?')
+            };
+            window.__abcdErrors.push(item);
+            if (window.__abcdErrors.length > 30) window.__abcdErrors.shift();
+            renderDebugErrorBox();
+        } catch (err) {}
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+        try {
+            var reason = e ? e.reason : '';
+            var msg = (reason && (reason.message || reason.stack)) ? (reason.message || String(reason)) : String(reason);
+            var item = {
+                type: 'rejection',
+                time: new Date().toLocaleTimeString(),
+                msg: msg,
+                src: 'promise'
+            };
+            window.__abcdErrors.push(item);
+            if (window.__abcdErrors.length > 30) window.__abcdErrors.shift();
+            renderDebugErrorBox();
+        } catch (err) {}
+    });
+
+    function isDebugModeActive() {
+        try {
+            return window.location.search.includes('abcd_debug=1') || sessionStorage.getItem('abcd_debug') === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function renderDebugErrorBox() {
+        if (!isDebugModeActive()) return;
+        let box = document.getElementById('abcdDebugErrorBox');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'abcdDebugErrorBox';
+            box.style.cssText = 'position:fixed; bottom:10px; left:10px; right:10px; z-index:99999999; background:rgba(15,23,42,0.95); border:1px solid #ef4444; border-radius:10px; padding:10px 12px; color:#f8fafc; font-family:monospace; font-size:11px; max-height:220px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,0.7);';
+            box.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">
+                <strong style="color:#f87171;">🐞 ABCD Phone Debugger</strong>
+                <div>
+                    <button type="button" id="abcdDebugRefreshBtn" style="background:#3b82f6; color:#fff; border:none; padding:2px 6px; border-radius:4px; font-size:10px; cursor:pointer; margin-right:4px;">Status</button>
+                    <button type="button" id="abcdDebugClearBtn" style="background:#475569; color:#fff; border:none; padding:2px 6px; border-radius:4px; font-size:10px; cursor:pointer; margin-right:4px;">Clear</button>
+                    <button type="button" id="abcdDebugCloseBtn" style="background:transparent; color:#94a3b8; border:none; font-size:14px; cursor:pointer;">&times;</button>
+                </div>
+            </div>
+            <div id="abcdDebugStatusRow" style="color:#38bdf8; margin-bottom:4px;"></div>
+            <div id="abcdDebugErrorsList" style="display:flex; flex-direction:column; gap:4px;"></div>`;
+            document.body.appendChild(box);
+
+            const closeBtn = document.getElementById('abcdDebugCloseBtn');
+            if (closeBtn) closeBtn.onclick = function () { box.style.display = 'none'; };
+            const clearBtn = document.getElementById('abcdDebugClearBtn');
+            if (clearBtn) clearBtn.onclick = function () { window.__abcdErrors = []; renderDebugErrorBox(); };
+            const refreshBtn = document.getElementById('abcdDebugRefreshBtn');
+            if (refreshBtn) refreshBtn.onclick = function () { requestNativeStatus(); renderDebugErrorBox(); };
+        } else {
+            box.style.display = 'block';
+        }
+
+        const statusRow = document.getElementById('abcdDebugStatusRow');
+        if (statusRow) {
+            const portActive = (window.ABCD_NATIVE && window.ABCD_NATIVE.getPort()) ? 'CONNECTED' : (window._abcdTwaPort ? 'CONNECTED' : 'DISCONNECTED');
+            const lastCmd = (window.ABCD_NATIVE && window.ABCD_NATIVE.getLastCommand()) || null;
+            const lastSt = (window.ABCD_NATIVE && window.ABCD_NATIVE.getLastStatus()) || cachedNativeStatus || null;
+            statusRow.innerHTML = `Port: <b>${portActive}</b> | Token: <b>${Boolean(getTwaBridgeToken())}</b><br>` +
+                (lastCmd ? `Last Cmd: <span style="color:#94a3b8;">${lastCmd.payload} (${lastCmd.time})</span><br>` : '') +
+                (lastSt ? `Last Status: <span style="color:#a5b4fc;">notifs=${lastSt.notifications_enabled}, exact=${lastSt.exact_alarm_allowed}, unknown=${Boolean(lastSt.is_unknown)}</span>` : '');
+        }
+
+        const list = document.getElementById('abcdDebugErrorsList');
+        if (list) {
+            if (window.__abcdErrors.length === 0) {
+                list.innerHTML = '<span style="color:#10b981;">No JS errors recorded.</span>';
+            } else {
+                list.innerHTML = window.__abcdErrors.map(function (err) {
+                    return `<div style="background:rgba(239,68,68,0.15); padding:4px 6px; border-radius:4px; word-break:break-all;">
+                        <span style="color:#f87171;">[${err.time}] ${err.type}</span>: ${err.msg} <span style="color:#94a3b8;">(${err.src || ''})</span>
+                    </div>`;
+                }).join('');
+            }
+        }
     }
 
     function showNativeDebugPanel() {
@@ -1337,24 +1638,43 @@
             <div style="background:#0f172a; border:1px solid #334155; border-radius:14px; max-width:600px; width:100%; max-height:85vh; display:flex; flex-direction:column; padding:20px; color:#e2e8f0; font-family:monospace;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                     <strong style="color:#38bdf8;">Native Diagnostic Status (Debug)</strong>
-                    <button type="button" onclick="document.getElementById('abcdNativeDebugModal').style.display='none'" style="background:transparent; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer;">&times;</button>
+                    <button type="button" id="abcdDiagModalCloseBtn" onclick="document.getElementById('abcdNativeDebugModal').style.display='none'" style="background:transparent; border:none; color:#94a3b8; font-size:1.4rem; cursor:pointer;">&times;</button>
                 </div>
                 <pre id="abcdNativeDebugJson" style="flex:1; overflow-y:auto; background:#020617; padding:12px; border-radius:8px; font-size:0.75rem; white-space:pre-wrap; word-break:break-all;"></pre>
                 <div style="display:flex; gap:10px; margin-top:12px;">
-                    <button type="button" onclick="requestNativeStatus()" style="flex:1; background:#6366f1; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:700;">Refresh Status</button>
-                    <button type="button" onclick="document.getElementById('abcdNativeDebugModal').style.display='none'" style="flex:1; background:#334155; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer;">Close</button>
+                    <button type="button" id="abcdDiagRefreshBtn" onclick="requestNativeStatus()" style="flex:1; background:#6366f1; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:700;">Refresh Status</button>
+                    <button type="button" id="abcdDiagCloseFooterBtn" onclick="document.getElementById('abcdNativeDebugModal').style.display='none'" style="flex:1; background:#334155; color:#fff; border:none; padding:8px; border-radius:6px; cursor:pointer;">Close</button>
                 </div>
             </div>`;
             document.body.appendChild(p);
+
+            const cBtn = document.getElementById('abcdDiagModalCloseBtn');
+            if (cBtn) cBtn.addEventListener('click', function () { p.style.display = 'none'; });
+            const cFoot = document.getElementById('abcdDiagCloseFooterBtn');
+            if (cFoot) cFoot.addEventListener('click', function () { p.style.display = 'none'; });
+            const refBtn = document.getElementById('abcdDiagRefreshBtn');
+            if (refBtn) refBtn.addEventListener('click', function () { requestNativeStatus(); });
         } else {
             p.style.display = 'flex';
         }
+
         const pre = document.getElementById('abcdNativeDebugJson');
+        const portStatus = (window.ABCD_NATIVE && window.ABCD_NATIVE.getPort()) ? 'CONNECTED' : (window._abcdTwaPort ? 'CONNECTED' : 'DISCONNECTED');
+        const diagSnapshot = {
+            twa_active: isNativeAlarmTwaActive(),
+            bridge_token_present: Boolean(getTwaBridgeToken()),
+            port_status: portStatus,
+            last_command_sent: (window.ABCD_NATIVE && window.ABCD_NATIVE.getLastCommand()) || null,
+            last_status: (window.ABCD_NATIVE && window.ABCD_NATIVE.getLastStatus()) || cachedNativeStatus || null,
+            recorded_js_errors: window.__abcdErrors || [],
+            twa_diag: window._abcdTwaDiag || null
+        };
         if (pre) {
-            pre.textContent = JSON.stringify(window.__abcdNativeStatus || { note: 'No status yet. Requesting from native...' }, null, 2);
+            pre.textContent = JSON.stringify(diagSnapshot, null, 2);
         }
         requestNativeStatus(function (st) {
-            if (pre) pre.textContent = JSON.stringify(st, null, 2);
+            diagSnapshot.last_status = st;
+            if (pre) pre.textContent = JSON.stringify(diagSnapshot, null, 2);
         });
     }
 
@@ -1369,6 +1689,11 @@
             requestNativeStatus();
         }
     });
+    if (window.ABCD_NATIVE && typeof window.ABCD_NATIVE.onPortReady === 'function') {
+        window.ABCD_NATIVE.onPortReady(function () {
+            if (isNativeAlarmTwaActive()) requestNativeStatus();
+        });
+    }
 
     let longPressTimer = null;
     document.addEventListener('touchstart', function (e) {
@@ -1726,6 +2051,21 @@
     window.checkGlobalDueAlarms = checkGlobalDueAlarms;
     window.syncABCDReminders = checkGlobalDueAlarms;
     window.isNativeAlarmTwaActive = isNativeAlarmTwaActive;
+    window.getTwaBridgeToken = getTwaBridgeToken;
+
+    // Alarm Setup Checklist, Native Bridge & Diagnostics (Phase 3 & 4)
+    window.showAlarmSetupChecklist = showAlarmSetupChecklist;
+    window.checkAlarmSetupStatus = checkAlarmSetupStatus;
+    window.openNativeSettings = openNativeSettings;
+    window.requestNativeNotifications = requestNativeNotifications;
+    window.confirmAlarmSetupChecklist = confirmAlarmSetupChecklist;
+    window.closeAlarmSetupChecklist = closeAlarmSetupChecklist;
+    window.saveWithoutDeviceRingChecklist = saveWithoutDeviceRingChecklist;
+    window.showNativeDebugPanel = showNativeDebugPanel;
+    window.setAutostartConfirmed = setAutostartConfirmed;
+    window.setFloatingConfirmed = setFloatingConfirmed;
+    window.requestNativeStatus = requestNativeStatus;
+    window.evaluateStatus = evaluateStatus;
 
     // Initialize preloading and URL trigger on DOM load or immediate
     if (document.readyState === 'loading') {

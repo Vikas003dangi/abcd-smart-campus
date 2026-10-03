@@ -12746,6 +12746,10 @@
   window.enableAlarmNotificationsNow = async function () {
     const btn = document.getElementById('enableAlarmNotifBtn');
     if (('Notification' in window) && Notification.permission === 'denied') {
+      if (typeof window.openNativeSettings === 'function' && typeof window.isNativeAlarmTwaActive === 'function' && window.isNativeAlarmTwaActive()) {
+        window.openNativeSettings('notifications');
+        return;
+      }
       showModalAlert(
         'Allow Notifications for Alarms',
         'Notifications are currently blocked in your phone or browser settings.\n\nTo allow alarms to ring:\n\n1. In the ABCD Campus App:\n   Open Phone Settings > Apps > ABCD Campus > Notifications > Turn ON.\n\n2. In Chrome / Browser:\n   Tap the lock or tune icon next to the address bar > Site Settings / Permissions > Notifications > Allow.\n\nOnce allowed, return here and set your reminder!'
@@ -12760,14 +12764,22 @@
     try {
       if (typeof window.requestAlarmNotificationPermission === 'function') {
         const granted = await window.requestAlarmNotificationPermission();
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = granted ? 'Enabled' : (Notification.permission === 'denied' ? 'Settings Guide' : 'Enable');
+        }
         updateReminderPermissionNotice();
         if (granted) {
           if (typeof showSuccessToast === 'function') showSuccessToast('Notifications activated! Alarms will ring reliably.');
         } else if (('Notification' in window) && Notification.permission === 'denied') {
-          showModalAlert(
-            'Notifications Blocked',
-            'Notifications are blocked in your browser or device settings. Please allow notifications in your phone Settings > Apps > ABCD Campus > Notifications.'
-          );
+          if (typeof window.openNativeSettings === 'function' && typeof window.isNativeAlarmTwaActive === 'function' && window.isNativeAlarmTwaActive()) {
+            window.openNativeSettings('notifications');
+          } else {
+            showModalAlert(
+              'Notifications Blocked',
+              'Notifications are blocked in your browser or device settings. Please allow notifications in your phone Settings > Apps > ABCD Campus > Notifications.'
+            );
+          }
         }
       } else if ('Notification' in window) {
         const perm = await new Promise((resolve) => {
@@ -12780,17 +12792,25 @@
             resolve(Notification.permission || 'denied');
           }
         });
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = (perm === 'granted') ? 'Enabled' : (perm === 'denied' ? 'Settings Guide' : 'Enable');
+        }
         updateReminderPermissionNotice();
         if (perm === 'granted') {
           if (typeof window.registerServiceWorkerAndSync === 'function') {
-            await window.registerServiceWorkerAndSync();
+            window.registerServiceWorkerAndSync().catch(err => console.warn('[Todo] Background sync error:', err));
           }
           if (typeof showSuccessToast === 'function') showSuccessToast('Notifications activated! Alarms will ring reliably.');
         } else if (perm === 'denied') {
-          showModalAlert(
-            'Notifications Blocked',
-            'Notifications are blocked in your browser or device settings. Please allow notifications in your phone Settings > Apps > ABCD Campus > Notifications.'
-          );
+          if (typeof window.openNativeSettings === 'function' && typeof window.isNativeAlarmTwaActive === 'function' && window.isNativeAlarmTwaActive()) {
+            window.openNativeSettings('notifications');
+          } else {
+            showModalAlert(
+              'Notifications Blocked',
+              'Notifications are blocked in your browser or device settings. Please allow notifications in your phone Settings > Apps > ABCD Campus > Notifications.'
+            );
+          }
         }
       } else {
         showModalAlert(
@@ -12801,7 +12821,7 @@
     } catch (e) {
       console.error('Error enabling notifications:', e);
     } finally {
-      if (btn) {
+      if (btn && btn.textContent === 'Enabling...') {
         btn.disabled = false;
         btn.textContent = (('Notification' in window) && Notification.permission === 'denied') ? 'Settings Guide' : 'Enable';
       }
@@ -12823,15 +12843,25 @@
     if (alarmTog && !alarmTog._noticeHooked) {
       alarmTog.addEventListener('change', function() {
         updateReminderPermissionNotice();
-        if (alarmTog.checked && typeof window.checkAlarmSetupStatus === 'function') {
-          const res = window.checkAlarmSetupStatus();
+        if (alarmTog.checked) {
+          var res = { ok: true };
+          try {
+            if (typeof window.checkAlarmSetupStatus === 'function') {
+              res = window.checkAlarmSetupStatus();
+            }
+          } catch (e) {
+            console.warn('[Todo] checkAlarmSetupStatus error:', e);
+            res = { ok: true };
+          }
           if (!res.ok) {
-            window.showAlarmSetupChecklist({
-              onSaveWithoutRing: function() {
-                alarmTog.checked = false;
-                updateReminderPermissionNotice();
-              }
-            });
+            if (typeof window.showAlarmSetupChecklist === 'function') {
+              window.showAlarmSetupChecklist({
+                onSaveWithoutRing: function() {
+                  alarmTog.checked = false;
+                  updateReminderPermissionNotice();
+                }
+              });
+            }
           }
         }
       });
@@ -13233,21 +13263,31 @@
       }
     }
     
-    if (alarm_enabled && typeof window.checkAlarmSetupStatus === 'function') {
-      const evalRes = window.checkAlarmSetupStatus();
+    if (alarm_enabled) {
+      var evalRes = { ok: true };
+      try {
+        if (typeof window.checkAlarmSetupStatus === 'function') {
+          evalRes = window.checkAlarmSetupStatus();
+        }
+      } catch (e) {
+        console.warn('[Todo] checkAlarmSetupStatus error:', e);
+        evalRes = { ok: true };
+      }
       if (!evalRes.ok) {
-        window.showAlarmSetupChecklist({
-          onConfirmed: function() {
-            _executeSaveReminder(payload, saveBtn);
-          },
-          onSaveWithoutRing: function() {
-            payload.alarm_enabled = false;
-            const tog = document.getElementById('reminderAlarmToggle');
-            if (tog) tog.checked = false;
-            _executeSaveReminder(payload, saveBtn);
-          }
-        });
-        return;
+        if (typeof window.showAlarmSetupChecklist === 'function') {
+          window.showAlarmSetupChecklist({
+            onConfirmed: function() {
+              _executeSaveReminder(payload, saveBtn);
+            },
+            onSaveWithoutRing: function() {
+              payload.alarm_enabled = false;
+              const tog = document.getElementById('reminderAlarmToggle');
+              if (tog) tog.checked = false;
+              _executeSaveReminder(payload, saveBtn);
+            }
+          });
+          return;
+        }
       }
     }
     _executeSaveReminder(payload, saveBtn);
