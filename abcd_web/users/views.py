@@ -3342,7 +3342,7 @@ def logout_view(request):
                 logger.debug(f"[Logout] Error disassociating push subscription: {e}")
         logout(request)
         messages.info(request, "You have been logged out.")
-    response = redirect('users:home_page')
+    response = redirect(f"{reverse('users:home_page')}?logout_clean=1")
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
@@ -6617,6 +6617,7 @@ def student_fee_record_view(request):
 
     search_query = request.GET.get('search', '').strip()
     current_tab = request.GET.get('tab', 'active') # 'active' or 'hidden'
+    highlight_id = request.GET.get('highlight', '').strip()
 
     base_qs = FeeTransaction.objects.filter(
         student=profile,
@@ -6624,6 +6625,18 @@ def student_fee_record_view(request):
     )
     active_count = base_qs.filter(is_hidden_by_student=False).count()
     hidden_count = base_qs.filter(is_hidden_by_student=True).count()
+
+    highlight_status = None
+    if highlight_id:
+        try:
+            h_id = int(highlight_id)
+            target_tx = FeeTransaction.objects.filter(student=profile, id=h_id).first()
+            if not target_tx or target_tx.deleted_at is not None:
+                highlight_status = 'deleted'
+            elif target_tx.is_hidden_by_student and current_tab != 'hidden':
+                highlight_status = 'hidden'
+        except (ValueError, TypeError):
+            highlight_status = 'deleted'
 
     if current_tab == 'hidden':
         transactions = base_qs.filter(is_hidden_by_student=True).order_by('-payment_date', '-created_at')
@@ -6654,6 +6667,8 @@ def student_fee_record_view(request):
         'current_tab': current_tab,
         'active_count': active_count,
         'hidden_count': hidden_count,
+        'highlight_id': highlight_id,
+        'highlight_status': highlight_status,
     })
 
 
@@ -17811,11 +17826,35 @@ def todo_reminder_action(request, task_id):
         now = timezone.localtime(timezone.now())
         meta = task.metadata if isinstance(task.metadata, dict) else {}
 
+        # Late-arrival & timestamp check
+        created_at_val = data.get('created_at')
+        created_dt = None
+        if created_at_val:
+            try:
+                if isinstance(created_at_val, (int, float)):
+                    from datetime import datetime
+                    created_dt = timezone.make_aware(datetime.fromtimestamp(created_at_val / 1000.0), timezone.get_current_timezone())
+                elif str(created_at_val).isdigit():
+                    from datetime import datetime
+                    created_dt = timezone.make_aware(datetime.fromtimestamp(int(created_at_val) / 1000.0), timezone.get_current_timezone())
+                else:
+                    from .utils import parse_flexible_datetime
+                    created_dt = parse_flexible_datetime(str(created_at_val))
+            except Exception:
+                created_dt = None
+
         if action == 'stop':
+            rec = meta.get('recurrence', 'once')
+            # Guard against late-arriving stop for a past occurrence of a recurring alarm
+            if rec != 'once' and created_dt and task.last_notified_at:
+                last_notified_local = timezone.localtime(task.last_notified_at)
+                if created_dt < task.last_notified_at and created_dt.date() < last_notified_local.date():
+                    logger.info(f"[To-Do Reminder] Ignored late stop for past occurrence of task {task.id} (created {created_dt}, current cycle {last_notified_local})")
+                    return JsonResponse({'success': True, 'action': 'ignored', 'message': 'Stop was for a past occurrence that has already advanced.'})
+
             meta['alarm_status'] = 'stopped'
             meta['next_retry_at'] = None
             task.metadata = meta
-            rec = meta.get('recurrence', 'once')
             if rec == 'once':
                 task.is_done = True
             task.save()
@@ -17828,7 +17867,24 @@ def todo_reminder_action(request, task_id):
             if not is_alarm:
                 return JsonResponse({'success': False, 'error': 'Simple reminders cannot be snoozed.'}, status=400)
 
+            # Idempotency & resurrection guard: Never revive an alarm that was already stopped
+            if meta.get('alarm_status') == 'stopped':
+                logger.info(f"[To-Do Reminder] Snooze rejected for already-stopped task {task.id}")
+                return JsonResponse({'success': True, 'action': 'ignored', 'message': 'Alarm is already stopped; snooze ignored.'})
+
             minutes = int(data.get('minutes', 15) or 15)
+
+            # Expiration guard: If snooze was requested while offline and duration has already passed
+            if created_dt:
+                elapsed = now - created_dt
+                if elapsed > timedelta(minutes=minutes):
+                    logger.info(f"[To-Do Reminder] Snooze expired for task {task.id} (elapsed {elapsed.total_seconds() / 60:.1f}m > {minutes}m window)")
+                    return JsonResponse({
+                        'success': True,
+                        'action': 'expired',
+                        'message': f'Snooze window of {minutes} minutes has already elapsed while offline.'
+                    })
+
             snooze_until = now + timedelta(minutes=minutes)
             meta['alarm_status'] = 'snoozed'
             meta['next_retry_at'] = snooze_until.isoformat()

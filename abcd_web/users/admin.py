@@ -218,6 +218,25 @@ class FeeTransactionAdmin(admin.ModelAdmin):
     list_filter = ('payment_date', 'expiry_date', 'revision_count', 'deleted_at')
     search_fields = ('student__full_name', 'receipt_number', 'student_name_snapshot')
 
+    def delete_model(self, request, obj):
+        try:
+            Notification.objects.filter(meta__fee_transaction_id=obj.id).delete()
+            Notification.objects.filter(link__icontains=f"highlight={obj.id}").delete()
+        except Exception:
+            pass
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        try:
+            tx_ids = list(queryset.values_list('id', flat=True))
+            for tx_id in tx_ids:
+                Notification.objects.filter(meta__fee_transaction_id=tx_id).delete()
+                Notification.objects.filter(link__icontains=f"highlight={tx_id}").delete()
+        except Exception:
+            pass
+        super().delete_queryset(request, queryset)
+
+
 @admin.register(TeacherHiddenFeeTransaction)
 class TeacherHiddenFeeTransactionAdmin(admin.ModelAdmin):
     list_display = ('id', 'teacher', 'transaction', 'hidden_at')

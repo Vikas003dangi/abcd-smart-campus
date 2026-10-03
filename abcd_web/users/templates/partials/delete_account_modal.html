@@ -458,6 +458,9 @@
             const data = await response.json();
 
             if (data.status === 'ok' && data.redirect_url) {
+                if (typeof window.cancelAllNativeAlarms === 'function') {
+                    window.cancelAllNativeAlarms();
+                }
                 window.location.href = data.redirect_url;
             } else {
                 submitBtn.disabled = false;

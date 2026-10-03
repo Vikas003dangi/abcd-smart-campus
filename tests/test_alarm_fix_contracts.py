@@ -350,6 +350,67 @@ def test_node_stubbed_window_headless():
     assert res.returncode == 0, f"Node headless test failed: {res.stderr}\n{res.stdout}"
     print("PASS: Node headless stubbed-window test verified (all 6 runtime checks passed)")
 
+def test_fix1_push_registration_warning():
+    push_js = read_file("abcd_web/static/js/push-permission.js")
+    todo_html = read_file("abcd_web/users/templates/users/todo.html")
+    assert "push_registration_failed" in push_js, "push-permission.js must track push_registration_failed flag in localStorage"
+    assert "showPushRegistrationWarning" in push_js, "push-permission.js must export showPushRegistrationWarning"
+    assert "hidePushRegistrationWarning" in push_js, "push-permission.js must export hidePushRegistrationWarning"
+    assert "addEventListener('online'" in push_js or 'addEventListener("online"' in push_js, "push-permission.js must attach online event listener for retry"
+    assert "push_registration_failed" in todo_html, "todo.html must check push_registration_failed for banner display"
+    print("PASS: Fix 1 Web Push Registration Failure Warning contracts verified")
+
+def test_fix3_persistent_outbox_and_idempotency():
+    outbox_java = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/ActionOutbox.java")
+    manifest = read_file("abcd-twa/app/src/main/AndroidManifest.xml")
+    action_recv = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/ActionReceiver.java")
+    views_py = read_file("abcd_web/users/views.py")
+    utils_py = read_file("abcd_web/users/utils.py")
+
+    assert "MAX_ATTEMPTS = 10" in outbox_java, "ActionOutbox must cap attempts at 10"
+    assert "3 * 24 * 60 * 60 * 1000L" in outbox_java, "ActionOutbox must cap age at 3 days"
+    assert "SUCCESS_DROP" in outbox_java and "NOT_FOUND_DROP" in outbox_java and "AUTH_DROP" in outbox_java and "RETRY" in outbox_java, "ActionOutbox must evaluate HTTP status codes"
+    assert "ActionOutboxJobService" in manifest, "AndroidManifest must register ActionOutboxJobService"
+    assert "android.permission.BIND_JOB_SERVICE" in manifest, "ActionOutboxJobService must require BIND_JOB_SERVICE permission"
+    assert "ActionOutbox.enqueue" in action_recv, "ActionReceiver must enqueue failed actions into persistent outbox"
+    assert "alarm_status" in views_py and "stopped" in views_py, "views.py todo_reminder_action must guard against reviving stopped alarms"
+    assert "_fired_today" in utils_py, "utils.py must allow stopped recurring alarms to ring on future days"
+    print("PASS: Fix 3 Persistent Outbox and Idempotency contracts verified")
+
+def test_fix4_cancel_all_alarms_on_logout_and_account_deletion():
+    sound_js = read_file("abcd_web/static/js/abcd-sound.js")
+    views_py = read_file("abcd_web/users/views.py")
+    delete_modal = read_file("abcd_web/users/templates/partials/delete_account_modal.html")
+    account_del = read_file("abcd_web/users/templates/users/account_deleted.html")
+    launcher = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/LauncherActivity.java")
+    alarm_sync = read_file("abcd-twa/app/src/main/java/in/abcdcampus/app/AlarmSyncActivity.java")
+
+    assert "cancelAllNativeAlarms" in sound_js, "abcd-sound.js must export cancelAllNativeAlarms"
+    assert "abcdalarm://cancel_all" in sound_js, "abcd-sound.js must support abcdalarm://cancel_all fallback"
+    assert "logout_clean" in sound_js, "abcd-sound.js must detect logout clean parameter"
+    assert "logout_clean=1" in views_py, "logout_view in views.py must redirect with logout_clean=1"
+    assert "cancelAllNativeAlarms" in delete_modal, "delete_account_modal.html must invoke cancelAllNativeAlarms"
+    assert "cancelAllNativeAlarms" in account_del, "account_deleted.html must invoke cancelAllNativeAlarms"
+    assert '"cancel_all".equalsIgnoreCase(cmd)' in launcher or 'cmd.equals("cancel_all")' in launcher, "LauncherActivity must handle cancel_all command"
+    assert "handleCancelAll" in launcher, "LauncherActivity must implement handleCancelAll"
+    assert "cancel_all" in alarm_sync, "AlarmSyncActivity must handle cancel_all scheme URI"
+    print("PASS: Fix 4 Native Alarm Cancellation on Logout & Account Deletion contracts verified")
+
+def test_fix5_fee_highlight_and_cleanup():
+    views_py = read_file("abcd_web/users/views.py")
+    template_html = read_file("abcd_web/users/templates/users/student_fee_record.html")
+    models_py = read_file("abcd_web/users/models.py")
+    admin_py = read_file("abcd_web/users/admin.py")
+
+    assert "highlight_status" in views_py, "student_fee_record_view must set highlight_status"
+    assert "feeHighlightAlert" in template_html, "student_fee_record.html must contain feeHighlightAlert element"
+    assert "highlight_status == 'deleted'" in template_html, "student_fee_record.html must check highlight_status == 'deleted'"
+    assert "highlight_status == 'hidden'" in template_html, "student_fee_record.html must check highlight_status == 'hidden'"
+    assert "cleanup_fee_transaction_notifications_on_delete" in models_py, "models.py must register post_delete cleanup for FeeTransaction"
+    assert "cleanup_student_profile_notifications_on_delete" in models_py, "models.py must register post_delete cleanup for StudentProfile"
+    assert "delete_model" in admin_py and "FeeTransactionAdmin" in admin_py, "admin.py FeeTransactionAdmin must override delete_model"
+    print("PASS: Fix 5 Fee Highlight Banner and Notification Cleanup contracts verified")
+
 if __name__ == "__main__":
     print("Running Alarm Architecture Fix Verification Checks...")
     test_android_manifest()
@@ -368,5 +429,10 @@ if __name__ == "__main__":
     test_phase4_heads_up_channels_and_delegation()
     test_audit_causes_and_fixes()
     test_node_stubbed_window_headless()
-    print("\nALL 16 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
+    test_fix1_push_registration_warning()
+    test_fix3_persistent_outbox_and_idempotency()
+    test_fix4_cancel_all_alarms_on_logout_and_account_deletion()
+    test_fix5_fee_highlight_and_cleanup()
+    print("\nALL 20 VERIFICATION CHECKS PASSED SUCCESSFULLY.")
+
 

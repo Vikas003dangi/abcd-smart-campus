@@ -2760,7 +2760,7 @@ class GroupMessage(models.Model):
 # -------------------------------------------------------------------
 # SIGNALS for Fee System Hardening
 # -------------------------------------------------------------------
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
 @receiver(post_save, sender=StudentProfile)
@@ -2778,6 +2778,32 @@ def cleanup_fee_notifications_on_change(sender, instance, **kwargs):
         Notification.objects.filter(category="fee", meta__student_id=instance.id).delete()
         # Clean up dismissed fee alerts for this student when fee is extended/changed
         DismissedFeeAlert.objects.filter(student=instance).exclude(expiry_date=instance.fee_expiry_date).delete()
+
+
+@receiver(post_delete, sender=FeeTransaction)
+def cleanup_fee_transaction_notifications_on_delete(sender, instance, **kwargs):
+    """
+    Clean up in-app notifications pointing to a deleted FeeTransaction.
+    """
+    try:
+        Notification.objects.filter(meta__fee_transaction_id=instance.id).delete()
+        Notification.objects.filter(link__icontains=f"highlight={instance.id}").delete()
+    except Exception:
+        pass
+
+
+@receiver(post_delete, sender=StudentProfile)
+def cleanup_student_profile_notifications_on_delete(sender, instance, **kwargs):
+    """
+    Clean up staff and fee notifications referring to a deleted StudentProfile.
+    """
+    try:
+        Notification.objects.filter(category__in=["fee", "fee_teacher"], meta__student_id=instance.id).delete()
+        if instance.user_id:
+            Notification.objects.filter(user_id=instance.user_id, category__in=["fee", "payment"]).delete()
+    except Exception:
+        pass
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

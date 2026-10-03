@@ -718,9 +718,102 @@
         }
     }
 
+    function showPushRegistrationWarning(options = {}) {
+        const isOffline = options.reason === 'offline' || (typeof navigator !== 'undefined' && !navigator.onLine);
+        
+        // 1. Update the reminder notification notice in todo.html if present
+        const todoNotice = document.getElementById('reminderNotificationNotice');
+        const todoNoticeText = document.getElementById('reminderNotificationNoticeText');
+        const todoBtn = document.getElementById('enableAlarmNotifBtn');
+        if (todoNotice && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            todoNotice.style.display = 'block';
+            if (isOffline) {
+                if (todoNoticeText) {
+                    todoNoticeText.innerHTML = 'Push alerts will retry when online. <b>Device alarms will still ring on time.</b>';
+                }
+                if (todoBtn) {
+                    todoBtn.style.display = 'none';
+                }
+            } else {
+                if (todoNoticeText) {
+                    todoNoticeText.innerHTML = 'Push alerts could not be set up. Tap Retry. <b>Device alarms will still ring on time.</b>';
+                }
+                if (todoBtn) {
+                    todoBtn.style.display = '';
+                    todoBtn.textContent = 'Retry';
+                    todoBtn.style.background = '#f59e0b';
+                    todoBtn.onclick = function() {
+                        todoBtn.disabled = true;
+                        todoBtn.textContent = 'Retrying...';
+                        registerServiceWorkerAndSync().finally(() => {
+                            todoBtn.disabled = false;
+                            todoBtn.textContent = 'Retry';
+                        });
+                    };
+                }
+            }
+            return;
+        }
+
+        // 2. Global non-blocking amber notice if not inside the todo modal
+        let banner = document.getElementById('abcd-push-warning-notice');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'abcd-push-warning-notice';
+            banner.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:999999; max-width:92vw; width:480px; background:#fffbeb; border:1.5px solid #f59e0b; border-radius:12px; padding:10px 14px; box-shadow:0 10px 25px rgba(245,158,11,0.25); display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:0.84rem; color:#92400e; font-family:system-ui,-apple-system,sans-serif; transition:opacity 0.3s ease;';
+            document.body.appendChild(banner);
+        }
+
+        const msgHtml = isOffline 
+            ? '<span>Push alerts will retry when online. <b>Device alarms will still ring on time.</b></span>'
+            : '<span>Push alerts could not be set up. Tap Retry. <b>Device alarms will still ring on time.</b></span>';
+
+        const btnHtml = isOffline
+            ? ''
+            : '<button type="button" id="abcdPushWarningRetryBtn" style="background:#f59e0b; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:0.8rem; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">Retry</button>';
+
+        banner.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><i class='bx bx-bell-minus' style="font-size:1.2rem; flex-shrink:0; color:#d97706;"></i>${msgHtml}</div>${btnHtml}`;
+        banner.style.display = 'flex';
+
+        const retryBtn = document.getElementById('abcdPushWarningRetryBtn');
+        if (retryBtn) {
+            retryBtn.onclick = function() {
+                retryBtn.disabled = true;
+                retryBtn.textContent = 'Retrying...';
+                registerServiceWorkerAndSync().finally(() => {
+                    retryBtn.disabled = false;
+                    retryBtn.textContent = 'Retry';
+                });
+            };
+        }
+    }
+
+    function hidePushRegistrationWarning() {
+        const banner = document.getElementById('abcd-push-warning-notice');
+        if (banner) {
+            banner.style.opacity = '0';
+            setTimeout(() => { try { banner.remove(); } catch(e){} }, 300);
+        }
+        const todoNotice = document.getElementById('reminderNotificationNotice');
+        if (todoNotice && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            todoNotice.style.display = 'none';
+        }
+    }
+
     async function registerServiceWorkerAndSync(options = {}) {
         try {
-            if (Notification.permission !== 'granted') {
+            if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+                return null;
+            }
+
+            if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                try {
+                    localStorage.setItem('push_registration_failed', JSON.stringify({ timestamp: Date.now(), reason: 'offline' }));
+                } catch (e) {}
+                showPushRegistrationWarning({ reason: 'offline' });
+                window.addEventListener('online', function onOnline() {
+                    registerServiceWorkerAndSync({ sendWelcome: false });
+                }, { once: true });
                 return null;
             }
 
@@ -749,6 +842,10 @@
 
             if (!vapidPublicKey) {
                 console.warn('VAPID public key missing. Web Push subscription postponed.');
+                try {
+                    localStorage.setItem('push_registration_failed', JSON.stringify({ timestamp: Date.now(), reason: 'vapid_missing' }));
+                } catch (e) {}
+                showPushRegistrationWarning({ reason: 'vapid_missing' });
                 return reg;
             }
 
@@ -773,25 +870,44 @@
                 }
             }
 
-            if (sub) {
-                const csrfToken = getCsrfToken();
-                const payload = sub.toJSON ? sub.toJSON() : JSON.parse(JSON.stringify(sub));
-                if (options.sendWelcome) {
-                    payload.send_welcome = true;
-                }
-                await fetch('/api/save-push-subscription/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify(payload)
-                });
+            if (!sub) {
+                try {
+                    localStorage.setItem('push_registration_failed', JSON.stringify({ timestamp: Date.now(), reason: 'subscribe_failed' }));
+                } catch (e) {}
+                showPushRegistrationWarning({ reason: 'subscribe_failed' });
+                return reg;
             }
+
+            const csrfToken = getCsrfToken();
+            const payload = sub.toJSON ? sub.toJSON() : JSON.parse(JSON.stringify(sub));
+            if (options.sendWelcome) {
+                payload.send_welcome = true;
+            }
+            const saveResp = await fetch('/api/save-push-subscription/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!saveResp.ok) {
+                throw new Error('Save push subscription failed with status ' + saveResp.status);
+            }
+
+            try {
+                localStorage.removeItem('push_registration_failed');
+            } catch (e) {}
+            hidePushRegistrationWarning();
 
             return reg;
         } catch (err) {
             console.error('Failed to register Web Push Subscription:', err);
+            try {
+                localStorage.setItem('push_registration_failed', JSON.stringify({ timestamp: Date.now(), reason: 'error', error: String(err) }));
+            } catch (e) {}
+            showPushRegistrationWarning({ reason: 'error' });
             return null;
         }
     }
@@ -837,6 +953,8 @@
 
     window.ensureNotificationPermission = window.promptNotificationForAction;
     window.registerServiceWorkerAndSync = registerServiceWorkerAndSync;
+    window.showPushRegistrationWarning = showPushRegistrationWarning;
+    window.hidePushRegistrationWarning = hidePushRegistrationWarning;
 
     window.requestAlarmNotificationPermission = async function () {
         if (!('Notification' in window)) return false;

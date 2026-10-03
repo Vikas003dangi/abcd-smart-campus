@@ -1152,6 +1152,88 @@
         outline: 2px solid #c084fc !important;
         background: rgba(192, 132, 252, 0.15) !important;
     }
+
+    /* Highlight Notification Banner */
+    .highlight-notice-banner {
+        margin-bottom: 24px;
+        padding: 14px 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    .highlight-notice-banner .highlight-alert-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .highlight-notice-banner .highlight-close-btn {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        opacity: 0.7;
+        line-height: 1;
+    }
+    .highlight-notice-banner .highlight-close-btn:hover {
+        opacity: 1;
+    }
+    .highlight-deleted {
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        color: #b91c1c;
+    }
+    .highlight-deleted i {
+        font-size: 1.3rem;
+        color: #ef4444;
+        flex-shrink: 0;
+    }
+    .highlight-deleted .highlight-close-btn {
+        color: #b91c1c;
+    }
+    .highlight-hidden {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #b45309;
+    }
+    .highlight-hidden i {
+        font-size: 1.3rem;
+        color: #f59e0b;
+        flex-shrink: 0;
+    }
+    .highlight-hidden a {
+        color: #b45309;
+        font-weight: 700;
+        text-decoration: underline;
+        margin-left: 4px;
+    }
+    .highlight-hidden .highlight-close-btn {
+        color: #b45309;
+    }
+    body.dark-theme .highlight-deleted {
+        background: rgba(239, 68, 68, 0.15) !important;
+        border-color: rgba(239, 68, 68, 0.4) !important;
+        color: #fca5a5 !important;
+    }
+    body.dark-theme .highlight-deleted i,
+    body.dark-theme .highlight-deleted .highlight-close-btn {
+        color: #fca5a5 !important;
+    }
+    body.dark-theme .highlight-hidden {
+        background: rgba(245, 158, 11, 0.15) !important;
+        border-color: rgba(245, 158, 11, 0.4) !important;
+        color: #fcd34d !important;
+    }
+    body.dark-theme .highlight-hidden a,
+    body.dark-theme .highlight-hidden i,
+    body.dark-theme .highlight-hidden .highlight-close-btn {
+        color: #fcd34d !important;
+    }
 </style>
 {% endblock %}
 
@@ -1189,6 +1271,25 @@
             <span class="tab-badge">{{ hidden_count }}</span>
         </a>
     </div>
+
+    <!-- Highlight Alert Notice (for deleted or hidden receipts linked from notifications) -->
+    {% if highlight_status == 'deleted' %}
+    <div class="highlight-notice-banner highlight-deleted" id="feeHighlightAlert" role="alert">
+        <div class="highlight-alert-content">
+            <i class='bx bx-info-circle'></i>
+            <span>This receipt is no longer available or has been removed.</span>
+        </div>
+        <button type="button" class="highlight-close-btn" onclick="document.getElementById('feeHighlightAlert').remove()">&times;</button>
+    </div>
+    {% elif highlight_status == 'hidden' %}
+    <div class="highlight-notice-banner highlight-hidden" id="feeHighlightAlert" role="alert">
+        <div class="highlight-alert-content">
+            <i class='bx bx-hide'></i>
+            <span>This receipt is hidden. <a href="?tab=hidden{% if highlight_id %}&highlight={{ highlight_id }}{% endif %}">Tap here to view it in Hidden Records</a>.</span>
+        </div>
+        <button type="button" class="highlight-close-btn" onclick="document.getElementById('feeHighlightAlert').remove()">&times;</button>
+    </div>
+    {% endif %}
 
     <!-- Search Area -->
     <section class="search-row-area">
@@ -1963,6 +2064,16 @@
             if (targetRow) {
                 targetRow.classList.add('active-row-match');
                 targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (!document.getElementById('feeHighlightAlert')) {
+                // Client-side fallback if server banner not already rendered
+                const tabsContainer = document.querySelector('.fees-record-tabs');
+                if (tabsContainer) {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.id = 'feeHighlightAlert';
+                    alertDiv.className = 'highlight-notice-banner highlight-hidden';
+                    alertDiv.innerHTML = '<div class="highlight-alert-content"><i class="bx bx-info-circle"></i><span>This receipt is no longer available or may be located in another tab.</span></div><button type="button" class="highlight-close-btn" onclick="this.parentElement.remove()">&times;</button>';
+                    tabsContainer.parentNode.insertBefore(alertDiv, tabsContainer.nextSibling);
+                }
             }
         }
     });

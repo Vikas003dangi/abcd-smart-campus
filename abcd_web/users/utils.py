@@ -1232,12 +1232,26 @@ def process_todo_notifications():
         if task.category == 'REMINDER':
             meta = task.metadata if isinstance(task.metadata, dict) else {}
 
-            # If task is already marked stopped, completed, or trashed, skip
-            if task.is_done or task.is_trash or meta.get('alarm_status') == 'stopped':
+            # If task is already marked completed or trashed, skip
+            if task.is_done or task.is_trash:
                 continue
 
-            title          = meta.get('title', 'Reminder')
+            # ── Dedup helper: has this task already fired today? ───────
+            def _fired_today(t, now_local):
+                return (
+                    t.last_notified_at is not None
+                    and timezone.localtime(t.last_notified_at).date() >= now_local.date()
+                )
+
             recurrence     = meta.get('recurrence', 'once')
+            alarm_status   = meta.get('alarm_status')
+
+            # If alarm was stopped: 'once' never fires again; recurring stays silent only for remainder of today
+            if alarm_status == 'stopped':
+                if recurrence == 'once' or _fired_today(task, now):
+                    continue
+
+            title          = meta.get('title', 'Reminder')
             email_notify   = bool(meta.get('email_notify', False))
             alarm_enabled  = meta.get('alarm_enabled', True)
             is_alarm       = alarm_enabled is True or str(alarm_enabled).lower() == 'true' or alarm_enabled == 1
@@ -1263,13 +1277,6 @@ def process_todo_notifications():
                     return now_local.replace(hour=hrs, minute=mins, second=0, microsecond=0)
                 except Exception:
                     return now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-
-            # ── Dedup helper: has this task already fired today? ───────
-            def _fired_today(task, now_local):
-                return (
-                    task.last_notified_at is not None
-                    and timezone.localtime(task.last_notified_at).date() >= now_local.date()
-                )
 
             # ── Check active snooze or 30-min unacknowledged retry ──
             next_retry_str = meta.get('next_retry_at')

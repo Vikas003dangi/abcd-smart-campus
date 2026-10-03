@@ -12723,12 +12723,14 @@
     if (!notice) return;
     if (alarmOn && ('Notification' in window) && Notification.permission !== 'granted') {
       notice.style.display = 'block';
+      if (btn) btn.style.display = '';
       if (Notification.permission === 'denied') {
         if (noticeText) noticeText.textContent = 'Notifications are blocked in settings. Alarms cannot ring while screen is off.';
         if (btn) {
           btn.textContent = 'Settings Guide';
           btn.style.background = '#ef4444';
           btn.style.boxShadow = '0 2px 8px rgba(239,68,68,0.3)';
+          btn.onclick = enableAlarmNotificationsNow;
         }
       } else {
         if (noticeText) noticeText.textContent = 'Enable notifications so your alarm rings even when your screen is locked.';
@@ -12736,10 +12738,23 @@
           btn.textContent = 'Enable';
           btn.style.background = '#f59e0b';
           btn.style.boxShadow = '0 2px 8px rgba(245,158,11,0.3)';
+          btn.onclick = enableAlarmNotificationsNow;
         }
+      }
+    } else if (alarmOn && ('Notification' in window) && Notification.permission === 'granted' && localStorage.getItem('push_registration_failed')) {
+      if (typeof window.showPushRegistrationWarning === 'function') {
+        let reason = 'network';
+        try {
+          const fData = JSON.parse(localStorage.getItem('push_registration_failed') || '{}');
+          if (fData.reason) reason = fData.reason;
+        } catch(e) {}
+        window.showPushRegistrationWarning({ reason: reason });
       }
     } else {
       notice.style.display = 'none';
+      if (typeof window.hidePushRegistrationWarning === 'function') {
+        window.hidePushRegistrationWarning();
+      }
     }
   }
 

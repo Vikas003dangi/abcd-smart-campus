@@ -2016,12 +2016,7 @@
                     playABCDSound('pwa', 0.85);
                 }
             } else if (event.data.type === 'ABCD_ACCOUNT_DELETED') {
-                window.__abcdCachedReminders = [];
-                globalFiredAlarmIds.clear();
-                locallyStoppedAlarmIds.clear();
-                saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
-                saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
-                sendNativeTwaMessage('abcdalarm://clear');
+                cancelAllNativeAlarms();
             }
         });
     }
@@ -2036,6 +2031,47 @@
             }
         }
     });
+
+    function cancelAllNativeAlarms() {
+        try {
+            window.__abcdCachedReminders = [];
+            if (typeof globalFiredAlarmIds !== 'undefined' && globalFiredAlarmIds.clear) {
+                globalFiredAlarmIds.clear();
+                saveStoredAlarmSet('firedAlarmIds', globalFiredAlarmIds);
+            }
+            if (typeof locallyStoppedAlarmIds !== 'undefined' && locallyStoppedAlarmIds.clear) {
+                locallyStoppedAlarmIds.clear();
+                saveStoredAlarmSet('locallyStoppedAlarmIds', locallyStoppedAlarmIds);
+            }
+            const token = getTwaBridgeToken();
+            postMessageToNative({ cmd: 'cancel_all', bridge_token: token });
+            sendNativeTwaMessage('abcdalarm://cancel_all');
+        } catch (e) {
+            console.warn('[ABCD Sound] Error cancelling all native alarms:', e);
+        }
+    }
+
+    // Auto-intercept logout clicks across all pages to clear native alarms before session ends
+    if (typeof document !== 'undefined') {
+        document.addEventListener('click', function (e) {
+            try {
+                const target = e.target && e.target.closest ? e.target.closest('a[href*="/logout/"], a[href$="/logout"], .nav-logout-btn, .sidebar-logout-btn, #confirmLogoutBtn, [data-action="logout"]') : null;
+                if (target) {
+                    cancelAllNativeAlarms();
+                }
+            } catch (err) {}
+        }, true);
+    }
+
+    // Clean-up hook if page arrived via logout redirect (?logout_clean=1)
+    if (typeof window !== 'undefined' && window.location && window.location.search && window.location.search.includes('logout_clean=1')) {
+        cancelAllNativeAlarms();
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('logout_clean');
+            window.history.replaceState({}, document.title, url.pathname + (url.search ? url.search : '') + url.hash);
+        } catch (e) {}
+    }
 
     // Expose global methods on window
     window.playABCDSound = playABCDSound;
@@ -2052,6 +2088,7 @@
     window.syncABCDReminders = checkGlobalDueAlarms;
     window.isNativeAlarmTwaActive = isNativeAlarmTwaActive;
     window.getTwaBridgeToken = getTwaBridgeToken;
+    window.cancelAllNativeAlarms = cancelAllNativeAlarms;
 
     // Alarm Setup Checklist, Native Bridge & Diagnostics (Phase 3 & 4)
     window.showAlarmSetupChecklist = showAlarmSetupChecklist;

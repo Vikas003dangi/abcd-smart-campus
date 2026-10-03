@@ -31,4 +31,9 @@
     </a>
   </div>
 </div>
+<script>
+  if (typeof window.cancelAllNativeAlarms === 'function') {
+    window.cancelAllNativeAlarms();
+  }
+</script>
 {% endblock %}

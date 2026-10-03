@@ -303,3 +303,63 @@ class StudentFeeRecordTests(TestCase):
                 )
             except Exception as e:
                 self.fail(f"create_notification raised an exception on push failure: {e}")
+
+    # -------------------------------------------------------------
+    # 9. FIX 5 - HIGHLIGHT NOTICE & NOTIFICATION CLEANUP
+    # -------------------------------------------------------------
+    def test_highlight_deleted_receipt_shows_clear_message(self):
+        """Notification link to deleted/nonexistent receipt shows clear notice."""
+        self.client.force_login(self.student_user_a)
+        resp = self.client.get(reverse('users:student_fee_record') + '?highlight=999999')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "This receipt is no longer available or has been removed.")
+
+    def test_highlight_hidden_receipt_shows_hidden_notice(self):
+        """Notification link to hidden receipt shows prompt pointing to Hidden Records tab."""
+        self.tx_a1.is_hidden_by_student = True
+        self.tx_a1.save(update_fields=['is_hidden_by_student'])
+
+        self.client.force_login(self.student_user_a)
+        resp = self.client.get(reverse('users:student_fee_record') + f'?highlight={self.tx_a1.id}')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "This receipt is hidden")
+        self.assertContains(resp, "Tap here to view it in Hidden Records")
+
+    def test_fee_transaction_delete_cleans_notifications(self):
+        """Deleting a FeeTransaction cleans up associated in-app notifications."""
+        notif = Notification.objects.create(
+            user=self.student_user_a,
+            title="Receipt Corrected",
+            message="Payment details updated",
+            link=f"/student/fees/?highlight={self.tx_a2.id}",
+            category="payment",
+            meta={"fee_transaction_id": self.tx_a2.id}
+        )
+        self.assertTrue(Notification.objects.filter(id=notif.id).exists())
+
+        self.tx_a2.delete()
+        self.assertFalse(Notification.objects.filter(id=notif.id).exists())
+
+    def test_student_profile_delete_cleans_notifications(self):
+        """Deleting a StudentProfile cleans up fee notifications referring to that student."""
+        temp_user = User.objects.create_user(username='temp_std', email='temp@example.com', password='Password123!')
+        temp_profile = StudentProfile.objects.create(
+            user=temp_user,
+            full_name='Temp Student',
+            mobile_number='9999999999',
+            dob=date(2002, 1, 1),
+            status='admitted',
+            is_admitted=True
+        )
+        teacher_notif = Notification.objects.create(
+            user=self.teacher_user,
+            title="Fee Due Alert",
+            message="Fee due for student",
+            category="fee_teacher",
+            meta={"student_id": temp_profile.id}
+        )
+        self.assertTrue(Notification.objects.filter(id=teacher_notif.id).exists())
+
+        temp_profile.delete()
+        self.assertFalse(Notification.objects.filter(id=teacher_notif.id).exists())
+
