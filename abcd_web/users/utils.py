@@ -2079,5 +2079,88 @@ def strip_html_for_notification(text):
     return s
 
 
+# -------------------------------------------------------------------
+# SECURITY HARDENING: IMAGE GUARD & METADATA SANITIZER
+# -------------------------------------------------------------------
+MAX_IMAGE_PIXELS = 36_000_000
 
 
+def sanitize_and_prepare_image(file_or_bytes, max_size_mb=5, max_pixels=MAX_IMAGE_PIXELS):
+    """
+    Validates uploaded images against size and decompression bomb attacks,
+    normalizes orientation via EXIF transpose, and re-encodes clean image data
+    with EXIF/GPS metadata completely stripped.
+
+    Returns:
+        tuple (cleaned_bytes: bytes, normalized_extension: str)
+    Raises:
+        ValidationError: if the image exceeds limits or is corrupted.
+    """
+    import io
+    from PIL import Image, ImageOps
+    from django.core.exceptions import ValidationError
+
+    if not file_or_bytes:
+        raise ValidationError("No image data provided.")
+
+    # Read raw bytes safely
+    if hasattr(file_or_bytes, 'read'):
+        file_or_bytes.seek(0)
+        raw_bytes = file_or_bytes.read()
+        file_or_bytes.seek(0)
+    elif isinstance(file_or_bytes, bytes):
+        raw_bytes = file_or_bytes
+    else:
+        raise ValidationError("Unsupported image data type.")
+
+    # 1. Size guard
+    if len(raw_bytes) > max_size_mb * 1024 * 1024:
+        raise ValidationError(f"Image size exceeds the {max_size_mb}MB limit.")
+
+    # 2. Decompression Bomb and format verification
+    try:
+        Image.MAX_IMAGE_PIXELS = max_pixels
+        with Image.open(io.BytesIO(raw_bytes)) as img:
+            width, height = img.size
+            if width * height > max_pixels:
+                raise ValidationError("Image resolution exceeds the maximum allowed limit.")
+
+            # Correct orientation before stripping metadata
+            try:
+                img = ImageOps.exif_transpose(img)
+            except Exception:
+                pass
+
+            orig_format = (img.format or 'JPEG').upper()
+            if orig_format in ('JPEG', 'JPG'):
+                target_format = 'JPEG'
+                ext = 'jpg'
+            elif orig_format == 'PNG':
+                target_format = 'PNG'
+                ext = 'png'
+            elif orig_format == 'WEBP':
+                target_format = 'WEBP'
+                ext = 'webp'
+            else:
+                target_format = 'JPEG'
+                ext = 'jpg'
+
+            if target_format == 'JPEG' and img.mode in ('RGBA', 'LA', 'P'):
+                img = img.convert('RGB')
+
+            out_buffer = io.BytesIO()
+            if target_format == 'JPEG':
+                img.save(out_buffer, format='JPEG', quality=85, optimize=True)
+            elif target_format == 'PNG':
+                img.save(out_buffer, format='PNG', optimize=True)
+            elif target_format == 'WEBP':
+                img.save(out_buffer, format='WEBP', quality=85)
+
+            return out_buffer.getvalue(), ext
+
+    except (Image.DecompressionBombError, getattr(Image, 'DecompressionBombWarning', Exception)):
+        raise ValidationError("Image resolution is abnormally large (decompression bomb protection).")
+    except ValidationError:
+        raise
+    except Exception as e:
+        raise ValidationError(f"Invalid or corrupted image format: {str(e)}")

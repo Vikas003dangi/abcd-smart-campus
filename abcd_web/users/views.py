@@ -5077,6 +5077,16 @@ def student_complaints_view(request):
     current_role = request.session.get('active_dashboard', 'student')
 
     if request.method == "POST":
+        # Enforce daily limit: max 5 complaints per user per day
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        daily_count = Complaint.objects.filter(
+            student=student,
+            created_at__gte=today_start
+        ).count()
+        if daily_count >= 5:
+            messages.error(request, "Daily limit reached: You can submit at most 5 complaints per day. Please try again tomorrow.")
+            return redirect("users:student_complaints")
+
         form = ComplaintForm(request.POST, request.FILES)
         if form.is_valid():
             complaint = form.save(commit=False)
@@ -10561,76 +10571,87 @@ def upload_profile_photo(request, student_id):
     student = get_object_or_404(StudentProfile, id=student_id)
     
     # Permission check: Staff or the student themselves
-    print(f"DEBUG: upload_profile_photo called for student {student_id}")
     if not request.user.is_staff and student.user != request.user:
-        print(f"DEBUG: Permission denied for user {request.user}")
         return HttpResponseForbidden("You are not authorized to perform this action.")
     
     if request.method == 'POST':
+        # Rate limit checks for non-staff users (10s cooldown, 10 changes/day)
+        from django.core.cache import cache
+        cooldown_key = f"photo_cooldown_user_{request.user.id}"
+        daily_key = f"photo_daily_count_user_{request.user.id}_{timezone.localdate().isoformat()}"
+        daily_count = 0
+
+        if not request.user.is_staff:
+            if cache.get(cooldown_key):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Please wait 10 seconds before changing your photo again.'
+                }, status=429)
+
+            daily_count = cache.get(daily_key, 0)
+            if daily_count >= 10:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Daily photo update limit reached (maximum 10 changes per day). Please try again tomorrow.'
+                }, status=429)
+
         photo_file = request.FILES.get('photo')
         photo_base64 = request.POST.get('photo_base64')
-        allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
-        from PIL import Image
+        from users.utils import sanitize_and_prepare_image
+        import time
+        from django.core.files.base import ContentFile
         
         if photo_base64:
             try:
                 import base64
-                import io
-                from django.core.files.base import ContentFile
-                
                 if ';base64,' not in photo_base64:
                     return JsonResponse({'status': 'error', 'message': 'Invalid photo payload.'}, status=400)
                 
-                format, imgstr = photo_base64.split(';base64,')
-                raw_ext = format.split('/')[-1].lower()
-                if raw_ext in ('jpeg', 'jpg'):
-                    ext = 'jpg'
-                elif raw_ext == 'png':
-                    ext = 'png'
-                elif raw_ext == 'webp':
-                    ext = 'webp'
-                else:
-                    return JsonResponse({'status': 'error', 'message': 'Allowed formats: JPG, PNG, WEBP.'}, status=400)
-                
+                format_part, imgstr = photo_base64.split(';base64,')
                 decoded_data = base64.b64decode(imgstr)
-                if len(decoded_data) > 5 * 1024 * 1024:
-                    return JsonResponse({'status': 'error', 'message': 'Image exceeds 5MB limit.'}, status=400)
+
+                cleaned_bytes, ext = sanitize_and_prepare_image(decoded_data, max_size_mb=5)
                 
-                image = Image.open(io.BytesIO(decoded_data))
-                image.verify()
-                
-                import time
                 timestamp = int(time.time())
-                data = ContentFile(decoded_data, name=f"profile_{student_id}_{timestamp}.{ext}")
+                data = ContentFile(cleaned_bytes, name=f"profile_{student_id}_{timestamp}.{ext}")
                 student.photo = data
                 student.save()
+
+                # Update rate limit cache on success
+                if not request.user.is_staff:
+                    cache.set(cooldown_key, True, timeout=10)
+                    try:
+                        cache.incr(daily_key)
+                    except Exception:
+                        cache.set(daily_key, daily_count + 1, timeout=86400)
+
                 new_url = student.photo.url if student.photo else ''
                 return JsonResponse({'status': 'success', 'photo_url': new_url})
             except Exception as e:
-                return JsonResponse({'status': 'error', 'message': f'Invalid image data: {str(e)}'}, status=400)
+                err_msg = str(e.message if hasattr(e, 'message') else e)
+                return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
                 
         elif photo_file:
             try:
-                ext = (photo_file.name.split('.')[-1] if '.' in photo_file.name else '').lower()
-                if ext not in allowed_extensions:
-                    return JsonResponse({'status': 'error', 'message': 'Allowed formats: JPG, PNG, WEBP.'}, status=400)
-                    
-                if photo_file.size > 5 * 1024 * 1024:
-                    return JsonResponse({'status': 'error', 'message': 'File size exceeds 5MB limit.'}, status=400)
-                
-                image = Image.open(photo_file)
-                image.verify()
-                photo_file.seek(0)
-                
-                import time
+                cleaned_bytes, ext = sanitize_and_prepare_image(photo_file, max_size_mb=5)
                 timestamp = int(time.time())
-                data = ContentFile(photo_file.read(), name=f"profile_{student_id}_{timestamp}.{ext}")
+                data = ContentFile(cleaned_bytes, name=f"profile_{student_id}_{timestamp}.{ext}")
                 student.photo = data
                 student.save()
+
+                # Update rate limit cache on success
+                if not request.user.is_staff:
+                    cache.set(cooldown_key, True, timeout=10)
+                    try:
+                        cache.incr(daily_key)
+                    except Exception:
+                        cache.set(daily_key, daily_count + 1, timeout=86400)
+
                 new_url = student.photo.url if student.photo else ''
                 return JsonResponse({'status': 'success', 'photo_url': new_url})
             except Exception as e:
-                return JsonResponse({'status': 'error', 'message': f'Invalid image file: {str(e)}'}, status=400)
+                err_msg = str(e.message if hasattr(e, 'message') else e)
+                return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
     
         return JsonResponse({'status': 'error', 'message': 'No file received'}, status=400)
 

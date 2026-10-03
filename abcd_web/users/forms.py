@@ -486,6 +486,20 @@ class ComplaintForm(forms.ModelForm):
         else:
             # Clear manual subject when selecting a fixed option to prevent dual subjects
             cleaned["custom_subject"] = ""
+
+        # Validate and sanitize attached complaint images (5MB limit, decompression bomb guard, EXIF stripping)
+        from users.utils import sanitize_and_prepare_image
+        from django.core.files.base import ContentFile
+        for img_field in ["image1", "image2", "image3"]:
+            img_file = cleaned.get(img_field)
+            if img_file and hasattr(img_file, 'read'):
+                try:
+                    cleaned_bytes, ext = sanitize_and_prepare_image(img_file, max_size_mb=5)
+                    cleaned[img_field] = ContentFile(cleaned_bytes, name=getattr(img_file, 'name', f"complaint.{ext}"))
+                except Exception as e:
+                    err_msg = str(e.message if hasattr(e, 'message') else e)
+                    self.add_error(img_field, err_msg)
+
         return cleaned
 
 
