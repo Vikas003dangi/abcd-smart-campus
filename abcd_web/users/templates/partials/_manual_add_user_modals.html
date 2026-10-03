@@ -768,7 +768,7 @@ window.ABCDManualAddManager = (function() {
             html += `
                 <div class="mam-user-item" onclick="ABCDManualAddManager.selectUser(${idx})">
                     <div class="mam-user-info">
-                        <img src="${u.photo_url}" class="mam-user-avatar" alt="${u.full_name}">
+                        <img src="${(typeof window.abcdAvatar === 'function') ? window.abcdAvatar(u.photo_url, u.sex || u.gender) : (u.photo_url || '/static/data/default_avatar.png')}" class="mam-user-avatar" alt="${u.full_name}" data-avatar-sex="${u.sex || u.gender || ''}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${u.sex || u.gender || ''}') : '/static/data/default_avatar.png');">
                         <div>
                             <div class="mam-user-name">${u.full_name}</div>
                             <div class="mam-user-meta">@${u.username} &bull; ${u.current_service}</div>
@@ -807,7 +807,7 @@ window.ABCDManualAddManager = (function() {
         // Render selected user card
         const card = document.getElementById('mamPickerSelectedUserCard');
         card.innerHTML = `
-            <img src="${selectedExistingUser.photo_url}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1;">
+            <img src="${(typeof window.abcdAvatar === 'function') ? window.abcdAvatar(selectedExistingUser.photo_url, selectedExistingUser.sex || selectedExistingUser.gender) : (selectedExistingUser.photo_url || '/static/data/default_avatar.png')}" alt="${selectedExistingUser.full_name}" data-avatar-sex="${selectedExistingUser.sex || selectedExistingUser.gender || ''}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${selectedExistingUser.sex || selectedExistingUser.gender || ''}') : '/static/data/default_avatar.png');" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #6366f1;">
             <div>
                 <div style="font-weight: 800; font-size: 1rem; color: #1e293b;">${selectedExistingUser.full_name}</div>
                 <div style="font-size: 0.82rem; color: #64748b;">@${selectedExistingUser.username} &bull; ${selectedExistingUser.mobile_number || 'No mobile'}</div>

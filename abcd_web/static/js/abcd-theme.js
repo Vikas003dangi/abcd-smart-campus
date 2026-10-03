@@ -224,6 +224,46 @@
           observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
         }
       }, { once: true });
-    }
+  }
+
+  // 3. Early Synchronous Avatar Resolvers for <head> scripts
+  if (typeof window.abcdGenderAvatar !== 'function') {
+    window.abcdGenderAvatar = function (sex) {
+      const s = (sex || '').toString().trim().toLowerCase();
+      if (s === 'female' || s === 'f' || s.startsWith('fem')) {
+        return '/static/data/default_avatar_female.png';
+      }
+      if (s === 'male' || s === 'm' || s.startsWith('mal')) {
+        return '/static/data/default_avatar_male.png';
+      }
+      return '/static/data/default_avatar.png';
+    };
+  }
+
+  if (typeof window.abcdAvatar !== 'function') {
+    window.abcdAvatar = function (photoUrl, sex) {
+      if (photoUrl && typeof photoUrl === 'string') {
+        const clean = photoUrl.trim();
+        const lower = clean.toLowerCase();
+        if (
+          clean !== '' &&
+          lower !== 'none' &&
+          lower !== 'null' &&
+          lower !== 'undefined' &&
+          lower !== 'no_photo' &&
+          lower !== 'false'
+        ) {
+          if (clean.endsWith('/default_avatar.png') || clean === '/static/data/default_avatar.png') {
+            const genderAv = window.abcdGenderAvatar(sex);
+            if (genderAv !== '/static/data/default_avatar.png') {
+              return genderAv;
+            }
+          }
+          return clean;
+        }
+      }
+      return window.abcdGenderAvatar(sex);
+    };
   }
 })();
+

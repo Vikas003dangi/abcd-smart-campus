@@ -120,3 +120,119 @@ class FeeCalendarRealViewHeaderTests(TestCase):
         # Assert .header class remains intact for tour and click listeners
         self.assertIn('class="header"', content)
         self.assertIn('class="header-title-row"', content)
+
+
+class AvatarEndpointsAndFallbacksTests(TestCase):
+    def setUp(self):
+        self.teacher_user = User.objects.create_user(
+            username='teacher_avatar_tester',
+            password='TestPassword123!',
+            is_staff=True
+        )
+        self.male_user = User.objects.create_user(
+            username='male_student_tester',
+            password='TestPassword123!'
+        )
+        self.male_student = StudentProfile.objects.create(
+            user=self.male_user,
+            full_name='Rohan Sharma',
+            sex='Male',
+            service_type='Library',
+            mobile_number='9876543211',
+            status='admitted',
+            is_admitted=True
+        )
+        self.female_user = User.objects.create_user(
+            username='female_student_tester',
+            password='TestPassword123!'
+        )
+        self.female_student = StudentProfile.objects.create(
+            user=self.female_user,
+            full_name='Pooja Verma',
+            sex='Female',
+            service_type='Coaching',
+            mobile_number='9876543212',
+            status='admitted',
+            is_admitted=True
+        )
+
+    def test_student_profile_photo_url_fallbacks(self):
+        # Male student without photo
+        self.assertEqual(self.male_student.photo_url, '/static/data/default_avatar_male.png')
+        # Female student without photo
+        self.assertEqual(self.female_student.photo_url, '/static/data/default_avatar_female.png')
+        # Student with empty/None sex
+        self.male_student.sex = ''
+        self.male_student.save()
+        self.assertEqual(self.male_student.photo_url, '/static/data/default_avatar.png')
+
+    def test_student_achievement_photo_url_fallbacks(self):
+        import datetime
+        ach_m = StudentAchievement.objects.create(
+            user=self.male_user,
+            first_name='Rohan',
+            last_name='Sharma',
+            gender='Male',
+            dob=datetime.date(2000, 1, 1),
+            selection_year=2024,
+            status='approved'
+        )
+        self.assertEqual(ach_m.photo_url, '/static/data/default_avatar_male.png')
+
+        ach_f = StudentAchievement.objects.create(
+            user=self.female_user,
+            first_name='Pooja',
+            last_name='Verma',
+            gender='Female',
+            dob=datetime.date(2002, 5, 10),
+            selection_year=2024,
+            status='approved'
+        )
+        self.assertEqual(ach_f.photo_url, '/static/data/default_avatar_female.png')
+
+    def test_teacher_notifications_api_returns_valid_avatar_and_sex(self):
+        from users.models import Notification
+        Notification.objects.create(
+            user=self.teacher_user,
+            title="Test notification for Pooja",
+            message="Test notification for Pooja",
+            meta={'student_id': self.female_student.id}
+        )
+        self.client.login(username='teacher_avatar_tester', password='TestPassword123!')
+        res = self.client.get('/api/notifications/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        notifs = data.get('notifications', [])
+        self.assertTrue(len(notifs) >= 1)
+        found = False
+        for n in notifs:
+            s_obj = n.get('student_obj')
+            if s_obj and s_obj.get('full_name') == 'Pooja Verma':
+                found = True
+                self.assertEqual(s_obj.get('photo_url'), '/static/data/default_avatar_female.png')
+                self.assertEqual(s_obj.get('sex'), 'Female')
+        self.assertTrue(found)
+
+    def test_todo_search_students_returns_valid_avatar_and_sex(self):
+        self.client.login(username='teacher_avatar_tester', password='TestPassword123!')
+        res = self.client.get('/todo/search-students/?q=all')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        students = data.get('students', [])
+        self.assertTrue(len(students) >= 2)
+        for s in students:
+            self.assertTrue(s.get('photo_url'), f"Empty photo_url for {s}")
+            self.assertNotEqual(s.get('photo_url'), 'None')
+            self.assertIn('sex', s)
+
+    def test_teacher_get_users_for_manual_api_returns_valid_avatar_and_sex(self):
+        self.client.login(username='teacher_avatar_tester', password='TestPassword123!')
+        res = self.client.get('/api/teacher/get-users-for-manual/?context=library')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        users = data.get('users', [])
+        for u in users:
+            self.assertTrue(u.get('photo_url'), f"Empty photo_url for {u}")
+            self.assertNotEqual(u.get('photo_url'), 'None')
+            self.assertIn('sex', u)
+

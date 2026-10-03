@@ -2270,13 +2270,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Helper to resolve student photo or gender avatar
       const getStudentAvatarSrc = (item) => {
+        if (typeof window.abcdAvatar === 'function' && item) {
+          return window.abcdAvatar(item.photo_url, item.sex || item.gender);
+        }
         if (item && item.photo_url && item.photo_url.trim() && !item.photo_url.includes('default_avatar.png')) {
           return item.photo_url;
         }
-        const s = item && item.sex ? String(item.sex).toLowerCase().trim() : '';
+        const s = item && (item.sex || item.gender) ? String(item.sex || item.gender).toLowerCase().trim() : '';
         if (s === 'female' || s === 'f') return '/static/data/default_avatar_female.png';
         if (s === 'male' || s === 'm') return '/static/data/default_avatar_male.png';
         return '/static/data/default_avatar.png';
+      };
+
+      const getStudentAvatarImg = (item, style) => {
+        const src = getStudentAvatarSrc(item);
+        const s = item && (item.sex || item.gender) ? String(item.sex || item.gender) : '';
+        const fallback = (typeof window.abcdGenderAvatar === 'function') ? window.abcdGenderAvatar(s) : (s.toLowerCase() === 'female' || s.toLowerCase() === 'f' ? '/static/data/default_avatar_female.png' : (s.toLowerCase() === 'male' || s.toLowerCase() === 'm' ? '/static/data/default_avatar_male.png' : '/static/data/default_avatar.png'));
+        const safeStyle = style || 'width:100%; height:100%; object-fit:cover;';
+        return `<img src="${src}" data-avatar-sex="${escapeHTML(s)}" onerror="this.onerror=null; this.src='${fallback}';" style="${safeStyle}">`;
       };
 
 
@@ -2378,7 +2389,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div>
                         <div style="display:flex; align-items:center; gap:12px;">
                             <div class="request-avatar-wrap">
-                                <img src="${getStudentAvatarSrc(p)}" style="width:100%; height:100%; object-fit:cover;">
+                                ${getStudentAvatarImg(p)}
                             </div>
                             <div>
                                 <p class="request-student-name">
@@ -2425,7 +2436,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="shift-block" style="background:#f5f5f5; padding:12px 15px; margin-bottom:10px; border-radius:8px;">
                     <div style="display:flex; align-items:center; gap:12px;">
                         <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.1); flex-shrink:0; background:#fff; display:flex; align-items:center; justify-content:center;">
-                            <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
+                            ${getStudentAvatarImg(a)}
                         </div>
                         <div>
                           <p style="margin:0; font-size:0.9rem;"><strong>${label}</strong>: ${statusStr}</p>
@@ -2562,11 +2573,11 @@ document.addEventListener('DOMContentLoaded', () => {
             title = `Seat ${getFormattedSeatNumber(seatNumber)} - Hold + Temp`;
             const ownerPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
+                    ${getStudentAvatarImg(owner)}
                 </div>`;
             const tenantPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    <img src="${getStudentAvatarSrc(tenant)}" style="width:100%; height:100%; object-fit:cover;">
+                    ${getStudentAvatarImg(tenant)}
                 </div>`;
 
             content = `
@@ -2598,11 +2609,11 @@ document.addEventListener('DOMContentLoaded', () => {
             title = `Seat ${getFormattedSeatNumber(seatNumber)} - On Hold (Temp Pending)`;
             const ownerPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
+                    ${getStudentAvatarImg(owner)}
                 </div>`;
             const pendingPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #ec4899; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    <img src="${getStudentAvatarSrc(pendingTenant)}" style="width:100%; height:100%; object-fit:cover;">
+                    ${getStudentAvatarImg(pendingTenant)}
                 </div>`;
 
             content = `
@@ -2634,7 +2645,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title = `Seat ${getFormattedSeatNumber(seatNumber)} - On Hold`;
             const ownerPhotoHtml = `
                 <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
+                    ${getStudentAvatarImg(owner)}
                 </div>`;
 
             content = `
@@ -2668,7 +2679,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Occupied`;
               const photoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      <img src="${getStudentAvatarSrc(regularOccupant)}" style="width:100%; height:100%; object-fit:cover;">
+                      ${getStudentAvatarImg(regularOccupant)}
                   </div>`;
 
               content = `
@@ -2696,7 +2707,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Occupied`;
               const photoHtml = `
                   <div style="width:50px; height:50px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 4px 10px rgba(99,102,241,0.2); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      <img src="${getStudentAvatarSrc(regularOccupant)}" style="width:100%; height:100%; object-fit:cover;">
+                      ${getStudentAvatarImg(regularOccupant)}
                   </div>`;
 
               content = `
@@ -2723,7 +2734,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const photoHtml = `
                 <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                    <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
+                    ${getStudentAvatarImg(a)}
                 </div>`;
 
             if (hasScheduledHold) {
@@ -2833,7 +2844,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return `
                   <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
                       <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid ${borderHex}; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                          <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
+                          ${getStudentAvatarImg(owner)}
                       </div>
                       <div>
                         <p style="margin:0; font-size:0.9rem; color:var(--text-main);">On Hold by <strong>${ownerName}</strong> (${owner.hold_days || 0} days left)</p>
@@ -2854,7 +2865,7 @@ document.addEventListener('DOMContentLoaded', () => {
               // Render Temporary Tenant Row
               const tempPhotoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
+                      ${getStudentAvatarImg(a)}
                   </div>`;
               
               content += `
@@ -2886,7 +2897,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Temporary Tenant (No Owner)`;
               const tempPhotoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
+                      ${getStudentAvatarImg(a)}
                   </div>`;
               content = `
                 <div class="shift-block" style="background: rgba(52, 152, 219, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(52, 152, 219, 0.15);">
@@ -2910,7 +2921,7 @@ document.addEventListener('DOMContentLoaded', () => {
               
               const ownerPhotoHtml = `
                   <div style="width:40px; height:40px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
+                      ${getStudentAvatarImg(a)}
                   </div>`;
                   
               const holdEndLabelFull = a.hold_end_date
@@ -2936,7 +2947,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (mTenant) {
                   const mTenantPhotoHtml = `
                       <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                          <img src="${getStudentAvatarSrc(mTenant)}" style="width:100%; height:100%; object-fit:cover;">
+                          ${getStudentAvatarImg(mTenant)}
                       </div>`;
                   content += `
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">Morning: <span style="color:#3498db;">Temp</span></p>
@@ -2962,7 +2973,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (eTenant) {
                   const eTenantPhotoHtml = `
                       <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                          <img src="${getStudentAvatarSrc(eTenant)}" style="width:100%; height:100%; object-fit:cover;">
+                          ${getStudentAvatarImg(eTenant)}
                       </div>`;
                   content += `
                     <p style="margin-bottom:10px; font-weight:700; color: var(--text-main);">Evening: <span style="color:#3498db;">Temp</span></p>
@@ -2998,7 +3009,7 @@ document.addEventListener('DOMContentLoaded', () => {
               title = `Seat ${formattedSeat} - Full Day`;
               const photoHtml = `
                   <div style="width:50px; height:50px; border-radius:50%; overflow:hidden; border:2px solid #6366f1; box-shadow:0 4px 10px rgba(99,102,241,0.2); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                      <img src="${getStudentAvatarSrc(a)}" style="width:100%; height:100%; object-fit:cover;">
+                      ${getStudentAvatarImg(a)}
                   </div>`;
               content = `
                 <div class="shift-block occupied" style="padding:15px; margin-bottom:15px;">
@@ -3065,7 +3076,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ownerName = escapeHTML(abcdFormatName(owner.student_name));
                 const photoHtml = `
                     <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid ${owner.hold_status === 'active' ? '#f39c12' : '#6366f1'}; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
+                        ${getStudentAvatarImg(owner)}
                     </div>`;
 
                 if (owner.hold_status === 'active') {
@@ -3120,11 +3131,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tenantName = escapeHTML(abcdFormatName(tenant.student_name));
                 const ownerPhotoHtml = `
                     <div style="width:28px; height:28px; border-radius:50%; overflow:hidden; border:2px solid #f39c12; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        <img src="${getStudentAvatarSrc(owner)}" style="width:100%; height:100%; object-fit:cover;">
+                        ${getStudentAvatarImg(owner)}
                     </div>`;
                 const tenantPhotoHtml = `
                     <div style="width:28px; height:28px; border-radius:50%; overflow:hidden; border:2px solid #3498db; flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        <img src="${getStudentAvatarSrc(tenant)}" style="width:100%; height:100%; object-fit:cover;">
+                        ${getStudentAvatarImg(tenant)}
                     </div>`;
 
                 const holdEndLabelHT = owner.hold_end_date
@@ -3156,7 +3167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const tenantName = escapeHTML(abcdFormatName(tenant.student_name));
                 const tenantPhotoHtml = `
                     <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; border:2px solid #3498db; box-shadow:0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; background:#f8fafc; display:flex; align-items:center; justify-content:center;">
-                        <img src="${getStudentAvatarSrc(tenant)}" style="width:100%; height:100%; object-fit:cover;">
+                        ${getStudentAvatarImg(tenant)}
                     </div>`;
 
                 content += `
@@ -3247,7 +3258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div>
                     <div style="display:flex; align-items:center; gap:12px;">
                         <div class="request-avatar-wrap">
-                            <img src="${getStudentAvatarSrc(p)}" style="width:100%; height:100%; object-fit:cover;">
+                            ${getStudentAvatarImg(p)}
                         </div>
                         <div>
                             <p class="request-student-name">
@@ -4408,8 +4419,8 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (sexStr === 'male' || sexStr === 'm') {
         avatarFallback = '/static/data/default_avatar_male.png';
       }
-      const avatarSrc = s.photo_url || avatarFallback;
-      const photoHtml = `<img src="${avatarSrc}" alt="${formattedName}" style="width: 100%; height: 100%; object-fit: cover;">`;
+      const avatarSrc = (typeof window.abcdAvatar === 'function') ? window.abcdAvatar(s.photo_url, s.sex) : (s.photo_url || avatarFallback);
+      const photoHtml = `<img src="${avatarSrc}" alt="${formattedName}" data-avatar-sex="${s.sex || ''}" onerror="this.onerror=null; this.src='${avatarFallback}';" style="width: 100%; height: 100%; object-fit: cover;">`;
 
       const profileContent = `
         <div class="profile-card-preview" style="text-align: center;">

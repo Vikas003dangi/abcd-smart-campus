@@ -1024,7 +1024,7 @@
 
                 <div class="ach-photo-wrapper">
                     <div class="ach-photo-ring"></div>
-                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}">
+                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}" data-avatar-sex="{{ ach.gender }}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('{{ ach.gender }}') : '/static/data/default_avatar.png');">
                 </div>
                 <div class="ach-name">{{ ach.first_name }} {{ ach.last_name }}</div>
                 <div class="ach-post">{{ ach.short_achievement }}</div>
@@ -1073,7 +1073,7 @@
                 data-year="{{ ach.selection_year }}" data-rating="{{ ach.rating }}">
                 <div class="ach-photo-wrapper">
                     <div class="ach-photo-ring"></div>
-                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}">
+                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}" data-avatar-sex="{{ ach.gender }}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('{{ ach.gender }}') : '/static/data/default_avatar.png');">
                 </div>
                 <div class="ach-name">{{ ach.first_name }} {{ ach.last_name }}</div>
                 <div class="ach-post">{{ ach.short_achievement }}</div>

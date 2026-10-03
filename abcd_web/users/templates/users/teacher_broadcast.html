@@ -253,7 +253,7 @@
                                   <input type="checkbox" name="selected_user_ids[]" value="{{ student.user.id }}" style="accent-color: #61358d;">
                                   <div class="user-avatar-wrapper">
                                       {% if student.photo %}
-                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" data-avatar-sex="{{ student.sex }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                           <div class="user-avatar-initial" style="display: none;">{{ student.full_name|slice:":1"|upper }}</div>
                                       {% else %}
                                           <div class="user-avatar-initial">{{ student.full_name|slice:":1"|upper }}</div>
@@ -282,7 +282,7 @@
                                   <input type="checkbox" name="selected_user_ids[]" value="{{ student.user.id }}" style="accent-color: #61358d;">
                                   <div class="user-avatar-wrapper">
                                       {% if student.photo %}
-                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" data-avatar-sex="{{ student.sex }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                           <div class="user-avatar-initial" style="display: none;">{{ student.full_name|slice:":1"|upper }}</div>
                                       {% else %}
                                           <div class="user-avatar-initial">{{ student.full_name|slice:":1"|upper }}</div>
@@ -311,7 +311,7 @@
                                   <input type="checkbox" name="selected_user_ids[]" value="{{ student.user.id }}" style="accent-color: #61358d;">
                                   <div class="user-avatar-wrapper">
                                       {% if student.photo %}
-                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <img src="{{ student.photo.url }}" class="user-avatar-img" alt="{{ student.full_name }}" data-avatar-sex="{{ student.sex }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                           <div class="user-avatar-initial" style="display: none;">{{ student.full_name|slice:":1"|upper }}</div>
                                       {% else %}
                                           <div class="user-avatar-initial">{{ student.full_name|slice:":1"|upper }}</div>
@@ -337,7 +337,7 @@
                                   <input type="checkbox" name="selected_user_ids[]" value="{{ al.user.id }}" style="accent-color: #61358d;">
                                   <div class="user-avatar-wrapper">
                                       {% if al.photo %}
-                                          <img src="{{ al.photo.url }}" class="user-avatar-img" alt="{{ al.full_name }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+                                          <img src="{{ al.photo.url }}" class="user-avatar-img" alt="{{ al.full_name }}" data-avatar-sex="{{ al.gender }}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
                                           <div class="user-avatar-initial" style="display: none;">{{ al.full_name|slice:":1"|upper }}</div>
                                       {% else %}
                                           <div class="user-avatar-initial">{{ al.full_name|slice:":1"|upper }}</div>

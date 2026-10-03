@@ -4586,18 +4586,16 @@ def student_dashboard_view(request):
                 for r in records:
                     scores = []
                     for s in r.scores.all():
-                        s_photo_url = None
-                        if s.student and s.student.photo:
-                            try:
-                                s_photo_url = s.student.photo.url
-                            except (ValueError, AttributeError):
-                                s_photo_url = None
+                        s_student = getattr(s, 'student', None)
+                        s_photo_url = s_student.photo_url if s_student else '/static/data/default_avatar.png'
+                        s_sex = getattr(s_student, 'sex', '') if s_student else ''
 
                         scores.append({
-                            'id': str(s.student.id) if s.student else '',
-                            'name': s.student.full_name if s.student else 'Unknown',
+                            'id': str(s_student.id) if s_student else '',
+                            'name': s_student.full_name if s_student else 'Unknown',
                             'marks': s.marks_obtained,
-                            'photo_url': s_photo_url
+                            'photo_url': s_photo_url,
+                            'sex': s_sex
                         })
                     records_list.append({
                         'id': str(r.id),
@@ -7464,7 +7462,8 @@ def teacher_get_users_for_manual_api(request):
                     'mobile_number': p.mobile_number or '',
                     'whatsapp_number': p.whatsapp_number or '',
                     'current_service': f"Library Student (Seat: {p.seat.seat_number if p.seat else 'No Seat'})",
-                    'photo_url': get_profile_photo_url(p.user),
+                    'photo_url': p.photo_url or get_profile_photo_url(p.user),
+                    'sex': p.sex or 'Male',
                     'gender': p.sex or 'Male',
                     'dob': str(p.dob) if p.dob else ''
                 })
@@ -7490,7 +7489,8 @@ def teacher_get_users_for_manual_api(request):
                         'mobile_number': al.mobile_number or '',
                         'whatsapp_number': al.whatsapp_number or '',
                         'current_service': f"Alumni ({al.short_achievement or al.current_post})",
-                        'photo_url': get_profile_photo_url(al.user),
+                        'photo_url': al.photo_url or get_profile_photo_url(al.user),
+                        'sex': al.gender or 'Male',
                         'gender': al.gender or 'Male',
                         'dob': str(al.dob) if al.dob else ''
                     })
@@ -7520,7 +7520,8 @@ def teacher_get_users_for_manual_api(request):
                     'mobile_number': p.mobile_number or '',
                     'whatsapp_number': p.whatsapp_number or '',
                     'current_service': f"Coaching Student ({p.batch or 'No Batch'})",
-                    'photo_url': get_profile_photo_url(p.user),
+                    'photo_url': p.photo_url or get_profile_photo_url(p.user),
+                    'sex': p.sex or 'Male',
                     'gender': p.sex or 'Male',
                     'dob': str(p.dob) if p.dob else ''
                 })
@@ -7546,7 +7547,8 @@ def teacher_get_users_for_manual_api(request):
                         'mobile_number': al.mobile_number or '',
                         'whatsapp_number': al.whatsapp_number or '',
                         'current_service': f"Alumni ({al.short_achievement or al.current_post})",
-                        'photo_url': get_profile_photo_url(al.user),
+                        'photo_url': al.photo_url or get_profile_photo_url(al.user),
+                        'sex': al.gender or 'Male',
                         'gender': al.gender or 'Male',
                         'dob': str(al.dob) if al.dob else ''
                     })
@@ -7576,7 +7578,8 @@ def teacher_get_users_for_manual_api(request):
                     'mobile_number': p.mobile_number or '',
                     'whatsapp_number': p.whatsapp_number or '',
                     'current_service': f"{p.service_type} Student",
-                    'photo_url': get_profile_photo_url(p.user),
+                    'photo_url': p.photo_url or get_profile_photo_url(p.user),
+                    'sex': p.sex or 'Male',
                     'gender': p.sex or 'Male',
                     'dob': str(p.dob) if p.dob else ''
                 })
@@ -10286,7 +10289,7 @@ def api_student_quick_profile(request, student_id):
         data = {
             'id': student.id,
             'full_name': student.full_name or 'N/A',
-            'photo_url': student.photo_url or '',
+            'photo_url': student.photo_url or '/static/data/default_avatar.png',
             'status': student.status,
             'status_display': student.get_status_display(),
             'dob': student.dob.strftime('%d %b %Y') if student.dob else 'Not set',
@@ -10339,10 +10342,11 @@ def api_alumni_quick_profile(request, achievement_id):
         data = {
             'id': ach.id,
             'full_name': ach.full_name,
-            'photo_url': ach.photo_url or '',
+            'photo_url': ach.photo_url or '/static/data/default_avatar.png',
             'status': ach.status,
             'status_display': ach.get_status_display(),
             'dob': ach.dob.strftime('%d %b %Y') if ach.dob else 'Not set',
+            'sex': ach.gender or 'Not set',
             'gender': ach.gender or 'Not set',
             'current_post': ach.current_post,
             'selection_year': ach.selection_year,
@@ -16670,7 +16674,8 @@ def notifications_api_view(request):
                     student_obj = {
                         'id': s_obj.id,
                         'full_name': s_obj.full_name,
-                        'photo_url': get_profile_photo_url(s_obj.user),
+                        'photo_url': s_obj.photo_url or get_profile_photo_url(s_obj.user),
+                        'sex': getattr(s_obj, 'sex', '') or '',
                         'mobile_number': s_obj.mobile_number,
                         'service_type': s_obj.service_type
                     }
@@ -16713,7 +16718,8 @@ def notifications_api_view(request):
                 'fee_expiry_date': s.fee_expiry_date.strftime("%d %b"),
                 'mobile_number': s.mobile_number,
                 'whatsapp_number': s.whatsapp_number or s.mobile_number,
-                'photo_url': get_profile_photo_url(s.user)
+                'photo_url': s.photo_url or get_profile_photo_url(s.user),
+                'sex': getattr(s, 'sex', '') or ''
             })
             
         return JsonResponse({
@@ -16932,34 +16938,24 @@ def todo_search_students(request):
         elif s.service_type == 'Coaching':
             service_info = f"Coaching - {s.batch if s.batch else 'General'}"
 
-        s_photo_url = None
-        if s and s.photo:
-            try:
-                s_photo_url = s.photo_url if hasattr(s, 'photo_url') else s.photo.url
-            except (ValueError, AttributeError):
-                s_photo_url = None
-
+        s_photo_url = s.photo_url if (s and hasattr(s, 'photo_url')) else (get_profile_photo_url(s.user) if (s and s.user) else '/static/data/default_avatar.png')
         results.append({
             'id': f"s_{s.id}",
             'name': s.full_name,
             'type': 'Student',
             'photo_url': s_photo_url,
+            'sex': getattr(s, 'sex', ''),
             'detail': service_info
         })
     
     for a in alumni:
-        a_photo_url = None
-        if a and a.photo:
-            try:
-                a_photo_url = a.photo.url
-            except (ValueError, AttributeError):
-                a_photo_url = None
-
+        a_photo_url = a.photo_url if (a and hasattr(a, 'photo_url')) else (get_profile_photo_url(a.user) if (a and a.user) else '/static/data/default_avatar.png')
         results.append({
             'id': f"a_{a.id}",
             'name': a.full_name,
             'type': 'Alumni',
             'photo_url': a_photo_url,
+            'sex': getattr(a, 'gender', ''),
             'detail': a.current_post if a.current_post else "Alumni Success"
         })
         
@@ -17009,47 +17005,37 @@ def todo_add_fee_reminder(request):
                 student = students_map.get(sid)
                 name = student.full_name if student else "Unknown"
                 service = student.service_type if student else "Library"
-                photo_url = None
-                if student and student.photo:
-                    try:
-                        photo_url = student.photo_url if hasattr(student, 'photo_url') else student.photo.url
-                    except (ValueError, AttributeError):
-                        photo_url = None
+                photo_url = student.photo_url if (student and hasattr(student, 'photo_url')) else (get_profile_photo_url(student.user) if (student and student.user) else '/static/data/default_avatar.png')
+                item_sex = getattr(student, 'sex', '') if student else ''
             elif sid_raw.startswith('a_'):
                 sid = sid_raw[2:]
                 alumni = alumni_map.get(sid)
                 name = alumni.full_name if alumni else "Unknown"
                 service = "Alumni"
-                photo_url = None
-                if alumni and alumni.photo:
-                    try:
-                        photo_url = alumni.photo.url
-                    except (ValueError, AttributeError):
-                        photo_url = None
+                photo_url = alumni.photo_url if (alumni and hasattr(alumni, 'photo_url')) else (get_profile_photo_url(alumni.user) if (alumni and alumni.user) else '/static/data/default_avatar.png')
+                item_sex = getattr(alumni, 'gender', '') if alumni else ''
             elif sid_raw.startswith('m_'):
                 # Manual entry created in UI
                 name = sel.get('name', 'Unknown')
                 service = "Custom Entry"
-                photo_url = None
+                photo_url = '/static/data/default_avatar.png'
+                item_sex = ''
             else:
                 # Fallback for old data or direct IDs
                 sid = sid_raw
                 student = students_map.get(sid)
                 name = student.full_name if student else "Unknown"
                 service = student.service_type if student else "Library"
-                photo_url = None
-                if student and student.photo:
-                    try:
-                        photo_url = student.photo_url if hasattr(student, 'photo_url') else student.photo.url
-                    except (ValueError, AttributeError):
-                        photo_url = None
+                photo_url = student.photo_url if (student and hasattr(student, 'photo_url')) else (get_profile_photo_url(student.user) if (student and student.user) else '/static/data/default_avatar.png')
+                item_sex = getattr(student, 'sex', '') if student else ''
                 
             enriched_metadata.append({
                 'id': sid_raw,
                 'name': name,
                 'amount': amount,
                 'detail': service,
-                'photo_url': photo_url
+                'photo_url': photo_url,
+                'sex': item_sex
             })
             
         delete_at = timezone.now() + timedelta(hours=delete_hours) if auto_delete else None
@@ -17283,31 +17269,36 @@ def todo_update_task(request, task_id):
                     student = StudentProfile.objects.filter(id=sid).first()
                     name = student.full_name if student else "Unknown"
                     service = student.service_type if student else "Library"
-                    photo_url = student.photo.url if student and student.photo else None
+                    photo_url = student.photo_url if (student and hasattr(student, 'photo_url')) else (get_profile_photo_url(student.user) if (student and student.user) else '/static/data/default_avatar.png')
+                    item_sex = getattr(student, 'sex', '') if student else ''
                 elif sid_raw.startswith('a_'):
                     sid = sid_raw[2:]
                     alumni = StudentAchievement.objects.filter(id=sid).first()
                     name = alumni.full_name if alumni else "Unknown"
                     service = "Alumni"
-                    photo_url = alumni.photo.url if alumni and alumni.photo else None
+                    photo_url = alumni.photo_url if (alumni and hasattr(alumni, 'photo_url')) else (get_profile_photo_url(alumni.user) if (alumni and alumni.user) else '/static/data/default_avatar.png')
+                    item_sex = getattr(alumni, 'gender', '') if alumni else ''
                 elif sid_raw.startswith('m_'):
                     # Manual entry created in UI
                     name = sel.get('name', 'Unknown')
                     service = "Custom Entry"
-                    photo_url = None
+                    photo_url = '/static/data/default_avatar.png'
+                    item_sex = ''
                 else:
                     sid = sid_raw
                     student = StudentProfile.objects.filter(id=sid).first()
                     name = student.full_name if student else "Unknown"
                     service = student.service_type if student else "Library"
-                    photo_url = student.photo.url if student and student.photo else None
+                    photo_url = student.photo_url if (student and hasattr(student, 'photo_url')) else (get_profile_photo_url(student.user) if (student and student.user) else '/static/data/default_avatar.png')
+                    item_sex = getattr(student, 'sex', '') if student else ''
                 
                 enriched_metadata.append({
                     'id': sid_raw,
                     'name': name,
                     'amount': amount,
                     'detail': service,
-                    'photo_url': photo_url
+                    'photo_url': photo_url,
+                    'sex': item_sex
                 })
             task.metadata = enriched_metadata
         elif 'metadata' in data:

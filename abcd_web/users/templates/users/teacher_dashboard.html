@@ -10818,7 +10818,7 @@
           body.innerHTML = `
             <div class="profile-card-preview">
               <div class="profile-avatar-wrap">
-                <img src="${avatarSrc}" alt="${safeEscape(s.full_name)}" onerror="this.onerror=null; this.src='${defaultAvatar}';">
+                <img src="${avatarSrc}" alt="${safeEscape(s.full_name)}" data-avatar-sex="${s.sex || ''}" onerror="this.onerror=null; this.src='${defaultAvatar}';">
               </div>
               <h3 class="profile-name">${safeEscape(s.full_name)}</h3>
               <div style="margin-bottom: 12px;">
@@ -10906,7 +10906,7 @@
           body.innerHTML = `
             <div class="profile-card-preview">
               <div class="profile-avatar-wrap">
-                <img src="${avatarSrc}" alt="${safeEscape(a.full_name)}" onerror="this.onerror=null; this.src='${defaultAvatar}';">
+                <img src="${avatarSrc}" alt="${safeEscape(a.full_name)}" data-avatar-sex="${a.gender || ''}" onerror="this.onerror=null; this.src='${defaultAvatar}';">
               </div>
               <h3 class="profile-name">${safeEscape(a.full_name)}</h3>
               <div style="margin-bottom: 12px;">
@@ -14377,7 +14377,7 @@
               <input type="checkbox" class="expired-fee-checkbox" value="${s.id}" onchange="updateExpiredDeleteBtnState()" style="display: none; transform: scale(1.15); cursor: pointer; margin-right: 2px;">
               
               <div class="notif-avatar-container expired-avatar">
-                <img src="${s.photo_url || '/static/data/default_avatar.png'}" alt="${formattedName}" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="${(typeof window.abcdAvatar === 'function') ? window.abcdAvatar(s.photo_url, s.sex) : (s.photo_url || '/static/data/default_avatar.png')}" alt="${formattedName}" data-avatar-sex="${s.sex || ''}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${s.sex || ''}') : '/static/data/default_avatar.png');" style="width: 100%; height: 100%; object-fit: cover;">
               </div>
 
               <div class="expired-student-info">
@@ -14484,7 +14484,7 @@
           if (n.student_obj) {
             html += `
               <div class="notif-avatar-container">
-                <img src="${n.student_obj.photo_url || '/static/data/default_avatar.png'}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="${(typeof window.abcdAvatar === 'function') ? window.abcdAvatar(n.student_obj.photo_url, n.student_obj.sex) : (n.student_obj.photo_url || '/static/data/default_avatar.png')}" alt="Profile" data-avatar-sex="${n.student_obj.sex || ''}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${n.student_obj.sex || ''}') : '/static/data/default_avatar.png');" style="width: 100%; height: 100%; object-fit: cover;">
               </div>
               <div style="flex: 1; min-width: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">

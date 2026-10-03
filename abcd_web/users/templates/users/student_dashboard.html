@@ -5170,7 +5170,7 @@
                 {% for ach in achievements %}
                 <a href="{% url 'users:achievement_detail' ach.id %}" class="ach-card-item" aria-label="Connect with {{ ach.first_name }} {{ ach.last_name }}" tabindex="0">
                   <div class="circle-view">
-                    <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }}" loading="lazy" decoding="async">
+                    <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }}" data-avatar-sex="{{ ach.gender }}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('{{ ach.gender }}') : '/static/data/default_avatar.png');" loading="lazy" decoding="async">
                     <div class="circle-overlay">
                       <div class="overlay-name">{{ ach.first_name }}</div>
                       <div class="overlay-post">{{ ach.short_achievement }}</div>
@@ -5179,7 +5179,7 @@
                   
                   <div class="expanded-view">
                     <div class="exp-photo-wrap">
-                      <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }} {{ ach.last_name }}" loading="lazy" decoding="async">
+                      <img src="{{ ach.photo_url }}" alt="{{ ach.first_name }} {{ ach.last_name }}" data-avatar-sex="{{ ach.gender }}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('{{ ach.gender }}') : '/static/data/default_avatar.png');" loading="lazy" decoding="async">
                     </div>
                     <div class="exp-details">
                       <h4>{{ ach.first_name }} {{ ach.last_name }}</h4>
@@ -7723,7 +7723,8 @@
           if (record.percent && record.marks) scoreStr += ' | ';
           if (record.marks) scoreStr += score.marks + '/' + record.total;
 
-          const photo = score.photo_url || "{% static 'data/default_avatar.png' %}";
+          const itemSex = score.sex || '';
+          const photo = (typeof window.abcdAvatar === 'function') ? window.abcdAvatar(score.photo_url, itemSex) : (score.photo_url || "{% static 'data/default_avatar.png' %}");
           
           tracksHtml += `
             <div class="race-track-container ${isMe ? 'highlighted' : ''}" id="${isMe ? 'my-track-' + record.id : ''}">
@@ -7735,7 +7736,7 @@
               </div>
               <div class="race-track">
                 <div class="race-progress" style="width: 0%;" data-target-width="${pct}">
-                  <img src="${photo}" class="race-marker" alt="Student">
+                  <img src="${photo}" class="race-marker" alt="Student" data-avatar-sex="${itemSex}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${itemSex}') : '/static/data/default_avatar.png');">
                 </div>
               </div>
             </div>

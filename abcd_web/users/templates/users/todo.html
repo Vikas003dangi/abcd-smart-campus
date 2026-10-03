@@ -6905,10 +6905,10 @@
         const safeDetail = escapeHtml(s.detail || '');
         const safeAmount = escapeHtml(s.amount != null ? s.amount : '');
         const safeId = escapeHtml(s.id || '');
-        const photoUrl = s.photo_url || (typeof allStudentsData !== 'undefined' && allStudentsData.find(st => st.id == s.id || st.id == 's_' + s.id || st.id == 'a_' + s.id)?.photo_url);
-        const avatarHtml = photoUrl
-          ? `<img src="${encodeURI(photoUrl)}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
-          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(s.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${escapeHtml(getStudentInitials(s.name))}</div>`;
+        const itemSex = s.sex || (typeof allStudentsData !== 'undefined' && allStudentsData.find(st => st.id == s.id || st.id == 's_' + s.id || st.id == 'a_' + s.id)?.sex) || '';
+        const rawPhoto = s.photo_url || (typeof allStudentsData !== 'undefined' && allStudentsData.find(st => st.id == s.id || st.id == 's_' + s.id || st.id == 'a_' + s.id)?.photo_url);
+        const resolvedPhoto = (typeof window.abcdAvatar === 'function') ? window.abcdAvatar(rawPhoto, itemSex) : (rawPhoto || '/static/data/default_avatar.png');
+        const avatarHtml = `<img src="${encodeURI(resolvedPhoto)}" class="student-photo" data-avatar-sex="${escapeHtml(itemSex)}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${escapeHtml(itemSex)}') : '/static/data/default_avatar.png');" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="${safeName}">`;
 
         return `
               <div style="display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 12px 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
@@ -7828,9 +7828,9 @@
         const safeName = escapeHtml(st.name || '');
         const safeDetail = escapeHtml(st.detail || '');
         const safePhotoUrl = st.photo_url ? escapeHtml(st.photo_url) : null;
-        const avatarHtml = safePhotoUrl
-          ? `<img src="${safePhotoUrl}" class="student-photo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`
-          : `<div class="student-photo-initials" style="width: 40px; height: 40px; border-radius: 50%; background: ${getStudentInitialsColor(st.name)}; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; flex-shrink: 0;">${escapeHtml(getStudentInitials(st.name))}</div>`;
+        const itemSex = escapeHtml(st.sex || '');
+        const avatarSrc = (typeof window.abcdAvatar === 'function') ? window.abcdAvatar(st.photo_url, st.sex) : (st.photo_url || '/static/data/default_avatar.png');
+        const avatarHtml = `<img src="${avatarSrc}" class="student-photo" data-avatar-sex="${itemSex}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${itemSex}') : '/static/data/default_avatar.png');" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" alt="Photo">`;
         const nameHtml = `<h4 class="student-name" style="margin: 0 0 3px 0; font-weight: 600; color: #1e293b; font-size: 0.92rem;">${safeName}</h4>`;
 
         row.innerHTML = `
