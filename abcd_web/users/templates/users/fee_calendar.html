@@ -885,6 +885,13 @@
                 <img src="{{ student.photo_url }}" alt="{{ student.full_name }}" class="header-avatar" onerror="this.onerror=null; this.src='{{ student|gender_avatar }}';" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2.5px solid #6366f1; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); flex-shrink: 0;">
                 <h1 style="margin: 0; line-height: 1.2; word-break: break-word; text-align: center;">{{ student.full_name|possessive }} Fee Calendar</h1>
             </div>
+            {% if is_both %}
+            <div class="service-calendar-badge-wrapper" style="margin-top: -6px; margin-bottom: 14px; text-align: center;">
+                <span class="service-calendar-pill" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.3px; {% if current_service == 'coaching' %}background: rgba(99, 102, 241, 0.12); color: #4f46e5; border: 1.5px solid rgba(99, 102, 241, 0.25);{% else %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1.5px solid rgba(16, 185, 129, 0.25);{% endif %}">
+                    {% if current_service == 'coaching' %}🎓 Coaching{% else %}📚 Library{% endif %}
+                </span>
+            </div>
+            {% endif %}
             
             <div class="header-controls">
                 <a href="{% url 'users:teacher_dashboard' %}" class="back-btn">

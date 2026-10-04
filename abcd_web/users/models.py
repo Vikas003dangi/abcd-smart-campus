@@ -330,44 +330,68 @@ class StudentProfile(models.Model):
         if save and self.pk:
             self.save(update_fields=['fee_expiry_date', 'coaching_fee_expiry_date', 'library_fee_expiry_date'])
 
+    def get_service_type_display(self):
+        """
+        Displays 'Coaching & Library' for 'Both' service students.
+        """
+        if self.service_type == 'Both':
+            return 'Coaching & Library'
+        display_method = getattr(super(), 'get_service_type_display', None)
+        if callable(display_method):
+            return display_method()
+        return self.service_type or ''
+
     @property
     def service_type_display(self):
         """
         Human-friendly service display. Shows 'Coaching & Library' instead of 'Both'.
         """
-        if self.service_type == 'Both':
-            return 'Coaching & Library'
-        return self.get_service_type_display() if hasattr(self, 'get_service_type_display') else (self.service_type or '')
+        return self.get_service_type_display()
+
+    @property
+    def is_dual_service(self):
+        """
+        True if the student is enrolled in both services (explicit 'Both' or has both batch and seat).
+        """
+        return self.service_type == 'Both' or bool(self.batch and self.seat_id)
 
     @property
     def effective_coaching_expiry(self):
         """
         Returns coaching_fee_expiry_date if set.
-        For 'Both' dual students, falls back to fee_expiry_date if coaching has not been
-        independently set yet and fee_expiry_date is older than library_fee_expiry_date (or library is unset).
+        For 'Both' or dual students, only uses fee_expiry_date if coaching has not been
+        independently set yet and library has not claimed fee_expiry_date.
+        For pure 'Coaching' students, falls back to fee_expiry_date.
+        For pure 'Library' students with no coaching enrollment, returns None (never leaks library expiry).
         """
-        if self.service_type == 'Both':
-            if self.coaching_fee_expiry_date is not None:
-                return self.coaching_fee_expiry_date
-            if self.fee_expiry_date is not None and (self.library_fee_expiry_date is None or self.fee_expiry_date < self.library_fee_expiry_date):
+        if self.coaching_fee_expiry_date is not None:
+            return self.coaching_fee_expiry_date
+        if self.service_type == 'Coaching':
+            return self.fee_expiry_date
+        if self.service_type == 'Both' or (self.batch and self.seat_id):
+            if self.fee_expiry_date is not None and (self.library_fee_expiry_date is None or self.fee_expiry_date != self.library_fee_expiry_date):
                 return self.fee_expiry_date
             return None
-        return self.coaching_fee_expiry_date if self.coaching_fee_expiry_date is not None else self.fee_expiry_date
+        return None
 
     @property
     def effective_library_expiry(self):
         """
         Returns library_fee_expiry_date if set.
-        For 'Both' dual students, falls back to fee_expiry_date if library has not been
-        independently set yet and fee_expiry_date is older than coaching_fee_expiry_date (or coaching is unset).
+        For 'Both' or dual students, only uses fee_expiry_date if library has not been
+        independently set yet and coaching has not claimed fee_expiry_date.
+        For pure 'Library' students, falls back to fee_expiry_date.
+        For pure 'Coaching' students with no library enrollment, returns None (never leaks coaching expiry).
         """
-        if self.service_type == 'Both':
-            if self.library_fee_expiry_date is not None:
-                return self.library_fee_expiry_date
-            if self.fee_expiry_date is not None and (self.coaching_fee_expiry_date is None or self.fee_expiry_date < self.coaching_fee_expiry_date):
+        if self.library_fee_expiry_date is not None:
+            return self.library_fee_expiry_date
+        if self.service_type == 'Library':
+            return self.fee_expiry_date
+        if self.service_type == 'Both' or (self.batch and self.seat_id):
+            if self.fee_expiry_date is not None and (self.coaching_fee_expiry_date is None or self.fee_expiry_date != self.coaching_fee_expiry_date):
                 return self.fee_expiry_date
             return None
-        return self.library_fee_expiry_date if self.library_fee_expiry_date is not None else self.fee_expiry_date
+        return None
 
     @property
     def is_coaching_overdue(self):
