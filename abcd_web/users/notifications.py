@@ -1029,6 +1029,19 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         except Exception:
             pass
 
+    import hashlib
+    from django.core.cache import cache
+
+    # Per-notification dedupe key (user + tag + content hash) with 8s window using cache.add
+    # Prevents duplicate sends from retried or double-fired events
+    tag_key = str(unique_tag)
+    if tag_key == "abcd-notification":
+        tag_key = f"{tag_key}_{hashlib.md5((formatted_title + clean_body).encode()).hexdigest()[:16]}"
+    dedupe_key = f"push_dedupe_{user.id}_{tag_key}"
+    if not cache.add(dedupe_key, True, timeout=8):
+        logger.debug(f"[Push] Duplicate push send suppressed by cache dedupe for user {user.id}, tag {tag_key}")
+        return True
+
     from pywebpush import webpush, WebPushException
 
     # Deduplicate subscriptions: keep newest active subscriptions, avoid duplicate endpoints
@@ -1038,6 +1051,32 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
         if sub.endpoint and sub.endpoint not in seen_endpoints:
             seen_endpoints.add(sub.endpoint)
             unique_subs.append(sub)
+
+    # TWA-aware filtering:
+    # If a user has both a TWA subscription and a mobile browser subscription:
+    # Send only to the TWA subscription if it has recent activity (within 30 days),
+    # avoiding duplicate notifications on the same mobile device.
+    # Keep desktop browser subscriptions active so desktop notifications continue to work.
+    # If the user has no recent TWA activity (> 30 days or uninstalled), fall back to browser subscriptions.
+    from django.utils import timezone
+    from datetime import timedelta
+
+    cutoff_30d = timezone.now() - timedelta(days=30)
+    has_active_twa = any(
+        getattr(s, 'client_type', None) == 'twa' and (
+            getattr(s, 'last_active_at', None) is None or getattr(s, 'last_active_at', None) >= cutoff_30d
+        )
+        for s in unique_subs
+    )
+
+    if has_active_twa:
+        # Keep all TWA subscriptions AND any desktop subscriptions; suppress only mobile browser duplicates
+        filtered = [
+            s for s in unique_subs
+            if getattr(s, 'client_type', None) in ('twa', 'desktop')
+        ]
+        if filtered:
+            unique_subs = filtered
 
     # Clean topic for RFC 8030 push collapsing (alphanumeric and dashes, max 32 chars)
     topic_header = re.sub(r'[^a-zA-Z0-9_-]', '-', str(unique_tag))[:32].strip('-')

@@ -138,7 +138,16 @@
                     if (!sub) return;
 
                     // 4. Save (or refresh) subscription in DB — silent, no UI
+                    var isTwa = Boolean(
+                        (typeof getTwaBridgeToken === 'function' && getTwaBridgeToken()) ||
+                        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('abcd_twa_bridge_token')) ||
+                        (typeof window !== 'undefined' && window.location && window.location.search && window.location.search.includes('bridge_token=')) ||
+                        (typeof document !== 'undefined' && document.referrer && document.referrer.includes('android-app://in.abcdcampus.app'))
+                    );
+                    var ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent.toLowerCase() : '';
+                    var isMobile = ua.includes('android') || ua.includes('iphone') || ua.includes('ipad') || ua.includes('mobile');
                     var payload = sub.toJSON ? sub.toJSON() : JSON.parse(JSON.stringify(sub));
+                    payload.client_type = isTwa ? 'twa' : (isMobile ? 'browser' : 'desktop');
                     await fetch('/api/save-push-subscription/', {
                         method: 'POST',
                         headers: {
@@ -879,7 +888,16 @@
             }
 
             const csrfToken = getCsrfToken();
+            const isTwaExplicit = Boolean(
+                (typeof getTwaBridgeToken === 'function' && getTwaBridgeToken()) ||
+                (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('abcd_twa_bridge_token')) ||
+                (typeof window !== 'undefined' && window.location && window.location.search && window.location.search.includes('bridge_token=')) ||
+                (typeof document !== 'undefined' && document.referrer && document.referrer.includes('android-app://in.abcdcampus.app'))
+            );
+            const uaExplicit = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent.toLowerCase() : '';
+            const isMobileExplicit = uaExplicit.includes('android') || uaExplicit.includes('iphone') || uaExplicit.includes('ipad') || uaExplicit.includes('mobile');
             const payload = sub.toJSON ? sub.toJSON() : JSON.parse(JSON.stringify(sub));
+            payload.client_type = isTwaExplicit ? 'twa' : (isMobileExplicit ? 'browser' : 'desktop');
             if (options.sendWelcome) {
                 payload.send_welcome = true;
             }

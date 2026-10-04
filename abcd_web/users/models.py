@@ -1366,10 +1366,12 @@ class PushSubscription(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     endpoint = models.TextField(unique=True)
     keys = models.JSONField()
+    client_type = models.CharField(max_length=20, choices=[('twa', 'TWA'), ('browser', 'Browser'), ('desktop', 'Desktop')], null=True, blank=True, default='browser')
     created_at = models.DateTimeField(auto_now_add=True)
+    last_active_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"PushSubscription({self.user.email})"
+        return f"PushSubscription({self.user.email} - {self.client_type or 'browser'})"
 # -----------------------------------------------------------------------------
 
 # ============================================================
@@ -3143,24 +3145,6 @@ def dispatch_realtime_notification_on_save(sender, instance, created, **kwargs):
                 )
     except Exception as e:
         logger.debug("Realtime notification channel broadcast error: %s", e)
-
-    # 2. Asynchronous Web Push notification to user devices
-    try:
-        # Skip generic push for Guidy messages because Guidy chat sends dedicated,
-        # avatar-tagged push notifications with unread badge count and sound.
-        if getattr(instance, 'category', None) == 'guidy':
-            return
-
-        import threading
-        from .notifications import send_push
-        threading.Thread(
-            target=send_push,
-            args=(instance.user, instance.title, instance.message, instance.link or "/"),
-            kwargs={"category": getattr(instance, 'category', 'general')},
-            daemon=True
-        ).start()
-    except Exception as e:
-        logger.debug("Realtime notification web push dispatch error: %s", e)
 
 
 # -------------------------------------------------------------------

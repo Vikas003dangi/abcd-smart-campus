@@ -2639,6 +2639,13 @@
         };
 
         window.confirmExpiryAndSubmit = async function() {
+            const modalConfirmBtn = document.querySelector('.btn-submit-modal');
+            if (modalConfirmBtn) {
+                if (modalConfirmBtn.disabled) return;
+                modalConfirmBtn.disabled = true;
+                modalConfirmBtn.textContent = 'Submitting...';
+            }
+
             const chk = document.getElementById('defaultExpiryCheckbox');
             let manualExpiryDate = null;
             if (!chk.checked) {
@@ -2653,10 +2660,14 @@
             
             let payload;
             if (window._isDirectEditExpiry) {
-                if (!manualExpiryDate) return;
+                if (!manualExpiryDate) {
+                    if (modalConfirmBtn) { modalConfirmBtn.disabled = false; modalConfirmBtn.textContent = 'Confirm & Submit'; }
+                    return;
+                }
                 payload = { actions: [], expiry_date: manualExpiryDate, use_default_expiry: false };
             } else {
                 if (!sessionSavedActions || sessionSavedActions.length === 0) {
+                    if (modalConfirmBtn) { modalConfirmBtn.disabled = false; modalConfirmBtn.textContent = 'Confirm & Submit'; }
                     await window.showStyledAlert('No Changes', 'There are no saved fee actions to submit.');
                     return;
                 }

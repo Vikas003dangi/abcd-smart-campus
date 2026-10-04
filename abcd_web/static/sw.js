@@ -440,7 +440,13 @@ self.addEventListener('push', function (event) {
                 }
             }
 
-            return self.registration.showNotification(title, options);
+            // Deduplicate: check if a notification with this tag is already active in the notification tray
+            return self.registration.getNotifications({ tag: options.tag }).then(function (existing) {
+                if (existing && existing.length > 0 && !options.renotify) {
+                    return;
+                }
+                return self.registration.showNotification(title, options);
+            });
         });
         })
     );

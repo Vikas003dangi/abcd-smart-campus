@@ -11515,6 +11515,22 @@ def process_fees_view(request, student_id):
         final_dispatch = data.get('final_dispatch', False)
 
         student = get_object_or_404(StudentProfile, id=student_id)
+
+        # Fee submission idempotency lock (teacher + student + service/months + amount for 10 seconds)
+        if final_dispatch or (actions and not save_only):
+            from django.core.cache import cache
+            service_str = str(data.get('service') or getattr(student, 'service_type', '') or '').strip().lower()
+            months_summary = ",".join(sorted(f"{a.get('month')}-{a.get('year')}" for a in actions if isinstance(a, dict)))
+            total_submit_amount = sum(_safe_fee_amount(a.get('amount')) for a in actions if isinstance(a, dict))
+
+            fee_idemp_key = f"fee_lock_{request.user.id}_{student.id}_{service_str}_{months_summary}_{total_submit_amount}"
+            if not cache.add(fee_idemp_key, True, timeout=10):
+                logger.warning(f"[process_fees_view] Duplicate fee submission blocked by idempotency key: {fee_idemp_key}")
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Fee submission already processed (duplicate request ignored).',
+                    'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
+                })
         
         notification_details = []
         details_list_dicts = []
@@ -12760,11 +12776,24 @@ def save_push_subscription(request):
         if not endpoint or not keys:
             return JsonResponse({'status': 'error', 'message': 'Missing endpoint or keys'}, status=400)
 
+        client_type = data.get('client_type')
+        if not client_type:
+            bridge_token = request.session.get('abcd_twa_bridge_token') or request.GET.get('bridge_token')
+            if bridge_token:
+                client_type = 'twa'
+            else:
+                user_agent = (request.META.get('HTTP_USER_AGENT') or '').lower()
+                is_mobile = any(k in user_agent for k in ('android', 'iphone', 'ipad', 'mobile'))
+                client_type = 'browser' if is_mobile else 'desktop'
+        if client_type not in ('twa', 'browser', 'desktop'):
+            client_type = 'browser'
+
         sub, created = PushSubscription.objects.update_or_create(
             endpoint=endpoint,
             defaults={
                 'user': request.user,
-                'keys': keys
+                'keys': keys,
+                'client_type': client_type,
             }
         )
 
@@ -12772,11 +12801,11 @@ def save_push_subscription(request):
         request.session['push_endpoint'] = endpoint
         request.session.modified = True
 
-        # Prune old subscriptions for this user to keep database clean and prevent duplicates,
-        # but ALWAYS protect and keep the subscription that this request just saved/updated!
+        # Prune old subscriptions for this user to keep database clean and prevent duplicates.
+        # Rule: Keep at most 2 active subscriptions per user (e.g. 1 TWA/Mobile + 1 Desktop).
         user_subs = PushSubscription.objects.filter(user=request.user).exclude(id=sub.id).order_by('-id')
-        if user_subs.count() > 2:
-            old_ids = list(user_subs.values_list('id', flat=True)[2:])
+        if user_subs.count() > 1:
+            old_ids = list(user_subs.values_list('id', flat=True)[1:])
             PushSubscription.objects.filter(id__in=old_ids).delete()
 
         # Optional welcome push notification from server
