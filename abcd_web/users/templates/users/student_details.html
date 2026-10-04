@@ -260,6 +260,71 @@
         border: 1px solid rgba(239, 68, 68, 0.2);
     }
 
+    .fee-choice-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        border: 1.5px solid transparent;
+        margin-bottom: 12px;
+    }
+    .fee-choice-card.coaching {
+        background: rgba(99, 102, 241, 0.08);
+        border-color: rgba(99, 102, 241, 0.22);
+    }
+    .fee-choice-card.coaching:hover {
+        background: rgba(99, 102, 241, 0.16);
+        border-color: #6366f1;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+    }
+    .fee-choice-card.library {
+        background: rgba(16, 185, 129, 0.08);
+        border-color: rgba(16, 185, 129, 0.22);
+    }
+    .fee-choice-card.library:hover {
+        background: rgba(16, 185, 129, 0.16);
+        border-color: #10b981;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+    }
+    .fee-choice-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    .coaching .fee-choice-icon {
+        background: rgba(99, 102, 241, 0.15);
+        color: #6366f1;
+    }
+    .library .fee-choice-icon {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+    body.dark-theme .fee-choice-card.coaching {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(129, 140, 248, 0.35);
+    }
+    body.dark-theme .fee-choice-card.coaching .fee-service-title {
+        color: #c7d2fe !important;
+    }
+    body.dark-theme .fee-choice-card.library {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(52, 211, 153, 0.35);
+    }
+    body.dark-theme .fee-choice-card.library .fee-service-title {
+        color: #a7f3d0 !important;
+    }
+
     @media (max-width: 480px) {
         .profile-card { padding: 25px 15px; }
         .student-name { font-size: 1.6rem; }
@@ -358,6 +423,66 @@
                 <span class="detail-label">Email</span>
                 <span class="detail-value">{{ student.user.email|default:"Not provided" }}</span>
             </div>
+            {% if student.service_type == 'Both' %}
+                <div class="detail-row">
+                    <span class="detail-label">Coaching Expiry</span>
+                    <span class="detail-value">
+                        {% if student.effective_coaching_expiry %}
+                            {% if student.is_coaching_overdue %}
+                                <span style="color: #ef4444; font-weight: 600;"><i class='bx bx-error-circle'></i> Expired ({{ student.effective_coaching_expiry|date:'d M Y' }})</span>
+                            {% else %}
+                                <span style="color: #10b981; font-weight: 600;">{{ student.effective_coaching_expiry|date:'d M Y' }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: var(--profile-muted);">Not set</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Library Expiry</span>
+                    <span class="detail-value">
+                        {% if student.effective_library_expiry %}
+                            {% if student.is_library_overdue %}
+                                <span style="color: #ef4444; font-weight: 600;"><i class='bx bx-error-circle'></i> Expired ({{ student.effective_library_expiry|date:'d M Y' }})</span>
+                            {% else %}
+                                <span style="color: #10b981; font-weight: 600;">{{ student.effective_library_expiry|date:'d M Y' }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: var(--profile-muted);">Not set</span>
+                        {% endif %}
+                    </span>
+                </div>
+            {% elif student.service_type == 'Coaching' %}
+                <div class="detail-row">
+                    <span class="detail-label">Fee Expiry</span>
+                    <span class="detail-value">
+                        {% if student.effective_coaching_expiry %}
+                            {% if student.is_coaching_overdue %}
+                                <span style="color: #ef4444; font-weight: 600;"><i class='bx bx-error-circle'></i> Expired ({{ student.effective_coaching_expiry|date:'d M Y' }})</span>
+                            {% else %}
+                                <span style="color: #10b981; font-weight: 600;">{{ student.effective_coaching_expiry|date:'d M Y' }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: var(--profile-muted);">Not set</span>
+                        {% endif %}
+                    </span>
+                </div>
+            {% elif student.service_type == 'Library' %}
+                <div class="detail-row">
+                    <span class="detail-label">Fee Expiry</span>
+                    <span class="detail-value">
+                        {% if student.effective_library_expiry %}
+                            {% if student.is_library_overdue %}
+                                <span style="color: #ef4444; font-weight: 600;"><i class='bx bx-error-circle'></i> Expired ({{ student.effective_library_expiry|date:'d M Y' }})</span>
+                            {% else %}
+                                <span style="color: #10b981; font-weight: 600;">{{ student.effective_library_expiry|date:'d M Y' }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span style="color: var(--profile-muted);">Not set</span>
+                        {% endif %}
+                    </span>
+                </div>
+            {% endif %}
         </div>
 
         <div class="footer-actions">
@@ -365,9 +490,9 @@
                 <i class='bx bx-arrow-back'></i> Back
             </a>
             {% if student.service_type == 'Both' %}
-            <a href="{% url 'users:fee_calendar' student.id %}" class="pill-btn btn-success" style="background: #10b981; color: white;">
+            <button type="button" class="pill-btn btn-success" style="background: #10b981; color: white;" onclick="openFeeChoiceModal()">
                 <i class='bx bx-credit-card'></i> Pay Fees
-            </a>
+            </button>
             {% elif student.service_type == 'Coaching' %}
             <a href="{% url 'users:fee_calendar' student.id %}?service=coaching" class="pill-btn btn-success" style="background: #10b981; color: white;">
                 <i class='bx bx-credit-card'></i> Pay Fees
@@ -471,6 +596,84 @@
 </div>
 <div id="deleteModalOverlay" class="modal-overlay" onclick="closeDeleteModal()"></div>
 
+{% if student.service_type == 'Both' %}
+<!-- Fee Choice Modal for Dual-Service Students -->
+<div id="feeChoiceModal" class="modal-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--profile-text); display: flex; align-items: center; gap: 8px;">
+            <i class='bx bx-credit-card' style="color: #10b981;"></i> Select Fee Calendar
+        </h3>
+        <button type="button" onclick="closeFeeChoiceModal()" aria-label="Close" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; line-height: 1; display: flex; align-items: center;"><i class='bx bx-x'></i></button>
+    </div>
+    <p style="color: var(--profile-muted, #64748b); font-size: 0.88rem; margin: 0 0 18px 0; line-height: 1.45;">
+        <strong>{{ student.full_name }}</strong> is enrolled in both <strong>Coaching & Library</strong>.<br>Choose which fee calendar to open:
+    </p>
+
+    <div style="display: flex; flex-direction: column;">
+        <a href="{% url 'users:fee_calendar' student.id %}?service=coaching" class="fee-choice-card coaching">
+            <div class="fee-choice-icon">
+                <i class='bx bxs-graduation'></i>
+            </div>
+            <div style="flex: 1; text-align: left;">
+                <div class="fee-service-title" style="font-weight: 700; font-size: 1.02rem; color: #4f46e5;">Coaching Fee Calendar</div>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+                    {% if student.coaching_fee_expiry_date %}
+                        {% if student.is_coaching_overdue %}
+                            <span style="color: #ef4444; font-weight: 600;">🔴 Expired: {{ student.coaching_fee_expiry_date|date:"d M Y" }}</span>
+                        {% else %}
+                            <span style="color: #10b981; font-weight: 600;">🟢 Due: {{ student.coaching_fee_expiry_date|date:"d M Y" }}</span>
+                        {% endif %}
+                    {% elif student.effective_coaching_expiry %}
+                        {% if student.is_coaching_overdue %}
+                            <span style="color: #ef4444; font-weight: 600;">🔴 Expired: {{ student.effective_coaching_expiry|date:"d M Y" }}</span>
+                        {% else %}
+                            <span style="color: #10b981; font-weight: 600;">🟢 Due: {{ student.effective_coaching_expiry|date:"d M Y" }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span style="color: #94a3b8;">⚪ Not Set</span>
+                    {% endif %}
+                </div>
+            </div>
+            <i class='bx bx-chevron-right' style="font-size: 1.4rem; color: #6366f1;"></i>
+        </a>
+
+        <a href="{% url 'users:fee_calendar' student.id %}?service=library" class="fee-choice-card library">
+            <div class="fee-choice-icon">
+                <i class='bx bxs-book-reader'></i>
+            </div>
+            <div style="flex: 1; text-align: left;">
+                <div class="fee-service-title" style="font-weight: 700; font-size: 1.02rem; color: #059669;">Library Fee Calendar</div>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+                    {% if student.library_fee_expiry_date %}
+                        {% if student.is_library_overdue %}
+                            <span style="color: #ef4444; font-weight: 600;">🔴 Expired: {{ student.library_fee_expiry_date|date:"d M Y" }}</span>
+                        {% else %}
+                            <span style="color: #10b981; font-weight: 600;">🟢 Due: {{ student.library_fee_expiry_date|date:"d M Y" }}</span>
+                        {% endif %}
+                    {% elif student.effective_library_expiry %}
+                        {% if student.is_library_overdue %}
+                            <span style="color: #ef4444; font-weight: 600;">🔴 Expired: {{ student.effective_library_expiry|date:"d M Y" }}</span>
+                        {% else %}
+                            <span style="color: #10b981; font-weight: 600;">🟢 Due: {{ student.effective_library_expiry|date:"d M Y" }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span style="color: #94a3b8;">⚪ Not Set</span>
+                    {% endif %}
+                </div>
+            </div>
+            <i class='bx bx-chevron-right' style="font-size: 1.4rem; color: #10b981;"></i>
+        </a>
+    </div>
+
+    <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+        <button type="button" class="pill-btn btn-grey" onclick="closeFeeChoiceModal()" style="padding: 8px 20px;">
+            Cancel
+        </button>
+    </div>
+</div>
+<div id="feeChoiceModalOverlay" class="modal-overlay" onclick="closeFeeChoiceModal()"></div>
+{% endif %}
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="{% static 'js/image-cropper-modal.js' %}"></script>
 <script>
@@ -502,8 +705,28 @@
         if (e.key === 'Escape') {
             closePhotoView();
             closePhotoManager();
+            closeFeeChoiceModal();
+            closeDeleteModal();
         }
     });
+
+    function openFeeChoiceModal() {
+        const modal = document.getElementById('feeChoiceModal');
+        const overlay = document.getElementById('feeChoiceModalOverlay');
+        if (modal && overlay) {
+            modal.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+    }
+
+    function closeFeeChoiceModal() {
+        const modal = document.getElementById('feeChoiceModal');
+        const overlay = document.getElementById('feeChoiceModalOverlay');
+        if (modal && overlay) {
+            modal.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+    }
 
     function handleFileSelect(event) {
         const file = event.target.files && event.target.files[0];

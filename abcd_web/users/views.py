@@ -11203,12 +11203,8 @@ def fee_calendar_view(request, student_id):
     is_both = (student.service_type == 'Both')
     
     if is_both and not raw_service:
-        # A 'Both' student opened without ?service: show a clear choice, never guess
-        context = {
-            'student': student,
-            'is_both_selection': True,
-        }
-        return render(request, 'users/fee_calendar_choice.html', context)
+        # A 'Both' student opened without ?service: redirect directly to coaching calendar cleanly
+        return redirect(f"{reverse('users:fee_calendar', args=[student.id])}?service=coaching")
     
     if is_both:
         current_service = 'coaching' if raw_service == 'coaching' else 'library'

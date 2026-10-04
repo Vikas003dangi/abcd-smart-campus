@@ -886,10 +886,19 @@
                 <h1 style="margin: 0; line-height: 1.2; word-break: break-word; text-align: center;">{{ student.full_name|possessive }} Fee Calendar</h1>
             </div>
             {% if is_both %}
-            <div class="service-calendar-badge-wrapper" style="margin-top: -6px; margin-bottom: 14px; text-align: center;">
+            <div class="service-calendar-badge-wrapper" style="margin-top: -6px; margin-bottom: 14px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
                 <span class="service-calendar-pill" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.3px; {% if current_service == 'coaching' %}background: rgba(99, 102, 241, 0.12); color: #4f46e5; border: 1.5px solid rgba(99, 102, 241, 0.25);{% else %}background: rgba(16, 185, 129, 0.12); color: #059669; border: 1.5px solid rgba(16, 185, 129, 0.25);{% endif %}">
-                    {% if current_service == 'coaching' %}🎓 Coaching{% else %}📚 Library{% endif %}
+                    {% if current_service == 'coaching' %}🎓 Coaching Fee Calendar{% else %}📚 Library Fee Calendar{% endif %}
                 </span>
+                {% if current_service == 'coaching' %}
+                <a href="{% url 'users:fee_calendar' student.id %}?service=library{% if selected_year %}&year={{ selected_year }}{% endif %}" class="service-calendar-switch-link" style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; text-decoration: none; background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); transition: all 0.2s;" title="Switch to Library Fee Calendar">
+                    <span>Switch to Library</span> <i class='bx bx-right-arrow-alt'></i>
+                </a>
+                {% else %}
+                <a href="{% url 'users:fee_calendar' student.id %}?service=coaching{% if selected_year %}&year={{ selected_year }}{% endif %}" class="service-calendar-switch-link" style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; text-decoration: none; background: rgba(99, 102, 241, 0.1); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.3); transition: all 0.2s;" title="Switch to Coaching Fee Calendar">
+                    <span>Switch to Coaching</span> <i class='bx bx-right-arrow-alt'></i>
+                </a>
+                {% endif %}
             </div>
             {% endif %}
             
