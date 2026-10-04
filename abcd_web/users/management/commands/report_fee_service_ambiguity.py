@@ -2,26 +2,24 @@
 Management command to audit and report service ambiguity in Fee Payments and Transactions.
 
 Part C4 Requirement:
-Detects and reports records where `service` ('coaching' vs 'library') is ambiguous,
+Detects and reports records where `service` ('coaching' vs 'library') is unassigned,
 particularly for dual-service ('Both') students.
-Provides optional `--fix` flag to safely auto-backfill service attributes based on
-`service_snapshot` and student profile defaults.
+STRICTLY READ-ONLY: Never rewrites or guesses legacy data.
 """
 
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 from users.models import StudentProfile, Payment, FeeTransaction
-from users.views import sync_student_fee_chain
 
 
 class Command(BaseCommand):
-    help = "Audit and report service ambiguity in Fee Payments and Fee Transactions."
+    help = "Audit and report service ambiguity in Fee Payments and Fee Transactions (strictly read-only)."
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--fix',
             action='store_true',
-            help='Safely backfill empty service fields where unambiguous context exists.',
+            help='Dry-run inspect potential resolutions without modifying any database records.',
         )
         parser.add_argument(
             '--verbose',
@@ -104,68 +102,38 @@ class Command(BaseCommand):
         self.stdout.write(f"Dual-service students missing library expiry: {missing_library_exp}")
 
         if fix:
-            self.stdout.write(self.style.MIGRATE_HEADING("\n=== Applying Safe Auto-Backfill (--fix) ==="))
-            fixed_tx = 0
-            fixed_payments = 0
+            self.stdout.write(self.style.MIGRATE_HEADING("\n=== Dry-Run Ambiguity Analysis (--fix flag) ==="))
+            self.stdout.write(
+                self.style.WARNING(
+                    "NOTICE: Automatic data rewriting is permanently disabled by policy.\n"
+                    "Legacy fee rows remain intact with NULL/blank service and continue rendering safely.\n"
+                    "No database modifications were made."
+                )
+            )
+            inspect_tx = 0
+            inspect_payments = 0
 
-            # 1. Backfill FeeTransaction where service_snapshot clearly specifies
             for tx in FeeTransaction.objects.filter(Q(service__isnull=True) | Q(service='')):
                 snap = (tx.service_snapshot or '').lower()
-                resolved = None
                 if 'coaching' in snap and 'library' not in snap:
-                    resolved = 'coaching'
+                    inspect_tx += 1
                 elif 'library' in snap and 'coaching' not in snap:
-                    resolved = 'library'
+                    inspect_tx += 1
                 elif tx.student and tx.student.service_type in ['Coaching', 'Library']:
-                    resolved = tx.student.service_type.lower()
+                    inspect_tx += 1
 
-                if resolved:
-                    tx.service = resolved
-                    tx.save(update_fields=['service'])
-                    fixed_tx += 1
-
-            # 2. Backfill Payment where service is blank
             for p in Payment.objects.filter(Q(service__isnull=True) | Q(service='')):
-                resolved = None
-                # Check student's service_type if single
                 if p.student and p.student.service_type in ['Coaching', 'Library']:
-                    resolved = p.student.service_type.lower()
-                elif p.student and p.student.service_type == 'Both':
-                    # Check linked fee transactions in same month/year
-                    matching_tx = FeeTransaction.objects.filter(
-                        student=p.student,
-                        month=p.month,
-                        year=p.year
-                    ).exclude(Q(service__isnull=True) | Q(service='')).first()
-                    if matching_tx:
-                        resolved = matching_tx.service
-                    else:
-                        snap_tx = FeeTransaction.objects.filter(
-                            student=p.student,
-                            month=p.month,
-                            year=p.year
-                        ).first()
-                        if snap_tx and snap_tx.service_snapshot:
-                            snap = snap_tx.service_snapshot.lower()
-                            if 'coaching' in snap and 'library' not in snap:
-                                resolved = 'coaching'
-                            elif 'library' in snap and 'coaching' not in snap:
-                                resolved = 'library'
+                    inspect_payments += 1
 
-                if resolved:
-                    p.service = resolved
-                    p.save(update_fields=['service'])
-                    fixed_payments += 1
-
-            self.stdout.write(self.style.SUCCESS(f"Successfully backfilled {fixed_tx} transactions and {fixed_payments} payments."))
-
-            # 3. Resync affected dual-service chains
-            resynced = 0
-            for student, _, _ in students_with_ambiguity:
-                sync_student_fee_chain(student, service='coaching')
-                sync_student_fee_chain(student, service='library')
-                resynced += 1
-
-            self.stdout.write(self.style.SUCCESS(f"Resynced fee chains for {resynced} dual-service students."))
+            self.stdout.write(
+                f"\nPotential unambiguous legacy rows identified (read-only): "
+                f"{inspect_tx} transactions, {inspect_payments} payments.\n"
+                f"Status: Preserved without changes."
+            )
         else:
-            self.stdout.write(self.style.NOTICE("\nRun with --fix to automatically backfill unambiguous records."))
+            self.stdout.write(
+                self.style.NOTICE(
+                    "\nAll legacy records are preserved as-is. Run with --verbose for student details."
+                )
+            )

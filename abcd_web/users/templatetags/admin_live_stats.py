@@ -24,8 +24,9 @@ def get_admin_live_stats():
         admitted_students = StudentProfile.objects.filter(status='admitted').count()
         pending_students = StudentProfile.objects.filter(status='pending').count()
         on_hold_students = StudentProfile.objects.filter(status='on_hold').count()
-        coaching_students = StudentProfile.objects.filter(service_type='Coaching').count()
-        library_students = StudentProfile.objects.filter(service_type='Library').count()
+        coaching_students = StudentProfile.objects.filter(service_type__in=['Coaching', 'Both']).count()
+        library_students = StudentProfile.objects.filter(service_type__in=['Library', 'Both']).count()
+        both_students = StudentProfile.objects.filter(service_type='Both').count()
 
         # Seat Statistics
         total_seats = Seat.objects.count()
@@ -61,6 +62,7 @@ def get_admin_live_stats():
             'on_hold_students': on_hold_students,
             'coaching_students': coaching_students,
             'library_students': library_students,
+            'both_students': both_students,
             'total_seats': total_seats,
             'available_seats': available_seats,
             'occupied_seats': occupied_seats,

@@ -68,7 +68,7 @@ class StudentProfileAdmin(MediaCleanupMixin, admin.ModelAdmin):
             'fields': ('full_name', 'dob', 'sex', 'mobile_number', 'whatsapp_number', 'sex_other', 'photo', 'email')
         }),
         ('Service Details', {
-            'fields': ('service_type', 'batch', 'seat', 'shift', 'fee_expiry_date') 
+            'fields': ('service_type', 'batch', 'seat', 'shift', 'fee_expiry_date', 'coaching_fee_expiry_date', 'library_fee_expiry_date') 
         }),
     )
 
@@ -222,15 +222,15 @@ class StudentScoreAdmin(admin.ModelAdmin):
 # -------------------------------------------------------------------
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('student', 'month', 'year', 'amount', 'date_paid')
-    list_filter = ('year', 'month', 'student__service_type', 'student__seat__floor')
+    list_display = ('student', 'service', 'month', 'year', 'amount', 'date_paid')
+    list_filter = ('service', 'year', 'month', 'student__service_type', 'student__seat__floor')
     search_fields = ('student__full_name', 'student__mobile_number')
     readonly_fields = ('date_paid',)
 
 @admin.register(FeeTransaction)
 class FeeTransactionAdmin(admin.ModelAdmin):
-    list_display = ('student', 'total_amount', 'receipt_number', 'payment_date', 'expiry_date', 'revision_count', 'last_modified_at', 'deleted_at')
-    list_filter = ('payment_date', 'expiry_date', 'revision_count', 'deleted_at')
+    list_display = ('student', 'service', 'total_amount', 'receipt_number', 'payment_date', 'expiry_date', 'revision_count', 'last_modified_at', 'deleted_at')
+    list_filter = ('service', 'payment_date', 'expiry_date', 'revision_count', 'deleted_at')
     search_fields = ('student__full_name', 'receipt_number', 'student_name_snapshot')
 
     def delete_model(self, request, obj):

@@ -1331,7 +1331,7 @@
     </div>
 
     {% for student in students %}
-    <div class="student-row {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}" data-name="{{ student.full_name|lower }}">
+    <div class="student-row {% if selected_service == 'Coaching' %}{% if student.is_coaching_overdue %}is-overdue{% endif %}{% elif selected_service == 'Library' %}{% if student.is_library_overdue %}is-overdue{% endif %}{% else %}{% if student.is_coaching_overdue or student.is_library_overdue or student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}{% endif %}" data-name="{{ student.full_name|lower }}">
 
       <span class="row-id">#{{ student.id }}</span>
       <div class="avatar-frame">
@@ -1339,8 +1339,18 @@
       </div>
       <span class="row-name">
         {{ student.full_name }}
-        {% if student.fee_expiry_date and student.fee_expiry_date <= today %}
-          <span class="overdue-badge" title="Fee Overdue since {{ student.fee_expiry_date|date:'d M Y' }}">?? Overdue</span>
+        {% if selected_service == 'Coaching' %}
+          {% if student.is_coaching_overdue %}
+            <span class="overdue-badge" title="Coaching Fee Overdue since {{ student.effective_coaching_expiry|date:'d M Y' }}">🔴 Overdue</span>
+          {% endif %}
+        {% elif selected_service == 'Library' %}
+          {% if student.is_library_overdue %}
+            <span class="overdue-badge" title="Library Fee Overdue since {{ student.effective_library_expiry|date:'d M Y' }}">🔴 Overdue</span>
+          {% endif %}
+        {% else %}
+          {% if student.is_coaching_overdue or student.is_library_overdue or student.fee_expiry_date and student.fee_expiry_date <= today %}
+            <span class="overdue-badge" title="Fee Overdue since {{ student.fee_expiry_date|date:'d M Y' }}">🔴 Overdue</span>
+          {% endif %}
         {% endif %}
       </span>
 

@@ -9327,7 +9327,7 @@
         <div class="student-grid">
           {% for student in students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            class="student-card {% if student.is_coaching_overdue %}is-overdue{% endif %}"
             data-status="coaching admitted occupied">
             <div class="student-header">
               <div class="student-avatar">
@@ -9374,7 +9374,7 @@
         <div class="student-grid">
           {% for student in students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            class="student-card {% if student.is_library_overdue %}is-overdue{% endif %}"
             data-status="library {% if student.is_temporary %}temporary temp tenant tanent temporary allotted partial{% else %}admitted occupied{% endif %}">
             <div class="student-header">
               <div class="student-avatar">
@@ -9431,7 +9431,7 @@
         <div class="student-grid">
           {% for student in hold_library_students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            class="student-card {% if student.is_library_overdue %}is-overdue{% endif %}"
             data-status="hold on_hold on hold library">
             <div class="student-header">
               <div class="student-avatar">
@@ -9534,7 +9534,7 @@
         <div class="student-grid">
           {% for student in no_seat_library_students %}
           <div
-            class="student-card {% if student.fee_expiry_date and student.fee_expiry_date <= today %}is-overdue{% endif %}"
+            class="student-card {% if student.is_library_overdue %}is-overdue{% endif %}"
             data-status="no seat noseat no-seat unassigned library">
             <div class="student-header">
               <div class="student-avatar">
@@ -14371,8 +14371,8 @@
           }
 
           html += `
-            <div class="teacher-notif-item expired-fee-item" data-student-id="${s.id}">
-              <input type="checkbox" class="expired-fee-checkbox" value="${s.id}" onchange="updateExpiredDeleteBtnState()" style="display: none; transform: scale(1.15); cursor: pointer; margin-right: 2px;">
+            <div class="teacher-notif-item expired-fee-item" data-student-id="${s.id}" data-service="${s.service_code || ''}">
+              <input type="checkbox" class="expired-fee-checkbox" value="${s.id}" data-service="${s.service_code || ''}" onchange="updateExpiredDeleteBtnState()" style="display: none; transform: scale(1.15); cursor: pointer; margin-right: 2px;">
               
               <div class="notif-avatar-container expired-avatar">
                 <img src="${(typeof window.abcdAvatar === 'function') ? window.abcdAvatar(s.photo_url, s.sex) : (s.photo_url || '/static/data/default_avatar.png')}" alt="${formattedName}" data-avatar-sex="${s.sex || ''}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('${s.sex || ''}') : '/static/data/default_avatar.png');" style="width: 100%; height: 100%; object-fit: cover;">
@@ -14655,8 +14655,12 @@
 
     function deleteSelectedExpiredFeeAlerts() {
       const selectedCbs = document.querySelectorAll('.expired-fee-checkbox:checked');
-      const studentIds = Array.from(selectedCbs).map(cb => cb.value);
-      if (studentIds.length === 0) {
+      const items = Array.from(selectedCbs).map(cb => ({
+        student_id: cb.value,
+        service: cb.dataset.service || ''
+      }));
+      const studentIds = Array.from(new Set(items.map(it => it.student_id)));
+      if (items.length === 0) {
         closeDismissExpiredModal();
         return;
       }
@@ -14669,14 +14673,17 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ student_ids: studentIds })
+        body: JSON.stringify({ items: items, student_ids: studentIds })
       })
       .then(res => res.json())
       .then(data => {
         closeDismissExpiredModal();
         if (data.status === 'success') {
-          studentIds.forEach(id => {
-            const item = document.querySelector(`.expired-fee-item[data-student-id="${id}"]`);
+          items.forEach(it => {
+            const selector = it.service 
+              ? `.expired-fee-item[data-student-id="${it.student_id}"][data-service="${it.service}"]`
+              : `.expired-fee-item[data-student-id="${it.student_id}"]`;
+            const item = document.querySelector(selector) || document.querySelector(`.expired-fee-item[data-student-id="${it.student_id}"]`);
             if (item) {
               item.style.opacity = '0';
               item.style.transform = 'translateX(20px)';

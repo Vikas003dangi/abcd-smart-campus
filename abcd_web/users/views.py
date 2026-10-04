@@ -5753,18 +5753,17 @@ def teacher_dashboard_view(request):
 
 
     # ---------------- Fee Expiry Tracking ----------------
+    overdue_q = (
+        Q(fee_expiry_date__isnull=False, fee_expiry_date__lte=today) |
+        Q(coaching_fee_expiry_date__isnull=False, coaching_fee_expiry_date__lte=today) |
+        Q(library_fee_expiry_date__isnull=False, library_fee_expiry_date__lte=today)
+    )
     overdue_count = cache.get('overdue_students_count')
     if overdue_count is None:
-        overdue_count = admitted_students.filter(
-            fee_expiry_date__isnull=False,
-            fee_expiry_date__lte=today
-        ).count()
+        overdue_count = admitted_students.filter(overdue_q).distinct().count()
         cache.set('overdue_students_count', overdue_count, 30)
 
-    overdue_students = admitted_students.filter(
-        fee_expiry_date__isnull=False,
-        fee_expiry_date__lte=today
-    ).select_related('user', 'seat').order_by('fee_expiry_date')
+    overdue_students = admitted_students.filter(overdue_q).distinct().select_related('user', 'seat').order_by('fee_expiry_date')
 
 
     if search_query:
@@ -11394,25 +11393,38 @@ def calculate_hold_extension_days(student):
 
 def _recalc_fee_expiry_with_hold(student):
     """
-    Recalculates fee expiry from the chain rule, then adds hold extension.
-    Called when a hold starts/ends to keep expiry in sync.
+    Recalculates library fee expiry from the chain rule, then adds hold extension.
+    A seat hold is strictly a library facility feature, so hold extensions MUST only
+    extend library_fee_expiry_date, then call sync_overall_fee_expiry_date().
+    If library_fee_expiry_date is empty, falls back to the shared fee_expiry_date without guessing.
+    Coaching fee expiry is unaffected.
     """
     from dateutil.relativedelta import relativedelta
     import calendar as cal_mod
 
-    base_year, base_month, base_day = sync_student_fee_chain(student)
+    # If student does not have Library or Both service, library seat holds do not apply
+    if student.service_type not in ['Library', 'Both']:
+        return
+
+    hold_days = calculate_hold_extension_days(student)
+
+    # 1. Try to sync chain for library
+    base_year, base_month, base_day = sync_student_fee_chain(student, service='library')
     if base_year is not None:
         next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
         _, last_day = cal_mod.monthrange(next_month_date.year, next_month_date.month)
         final_day = min(base_day, last_day)
-        student.fee_expiry_date = datetime(next_month_date.year, next_month_date.month, final_day).date()
-        
-        hold_days = calculate_hold_extension_days(student)
+        lib_expiry = datetime(next_month_date.year, next_month_date.month, final_day).date()
         if hold_days > 0:
-            student.fee_expiry_date += timedelta(days=hold_days)
-        
-        student.save(update_fields=['fee_expiry_date'])
-    # If no payments exist, don't touch fee_expiry_date
+            lib_expiry += timedelta(days=hold_days)
+        student.library_fee_expiry_date = lib_expiry
+    else:
+        # Fall back to existing library_fee_expiry_date or shared fee_expiry_date without guessing
+        base_exp = student.library_fee_expiry_date or student.fee_expiry_date
+        if base_exp:
+            student.library_fee_expiry_date = base_exp + timedelta(days=hold_days) if hold_days > 0 else base_exp
+
+    student.sync_overall_fee_expiry_date(save=True)
 
 
 def sync_student_fee_chain(student, service=None):
@@ -11588,8 +11600,8 @@ def process_fees_view(request, student_id):
                 except Exception:
                     pass
         actions = data.get('actions', [])
-        use_default_expiry = data.get('use_default_expiry', True)
         expiry_date_str = data.get('expiry_date')
+        use_default_expiry = data.get('use_default_expiry', False if expiry_date_str else True)
         save_only = data.get('save_only', False)
         final_dispatch = data.get('final_dispatch', False)
 
@@ -13551,14 +13563,14 @@ def student_progress_view(request):
     # Filter students list
     if selected_service == 'Library':
         students = StudentProfile.objects.filter(
-            service_type='Library', 
+            service_type__in=['Library', 'Both'], 
             status='admitted',
             seat__floor=selected_floor
         ).order_by('full_name')
     elif selected_service == 'Alumni':
         students = StudentAchievement.objects.filter(status='approved').order_by('first_name')
     elif selected_service == 'All':
-        coaching_students = list(StudentProfile.objects.filter(service_type='Coaching', status='admitted'))
+        coaching_students = list(StudentProfile.objects.filter(service_type__in=['Coaching', 'Both'], status='admitted'))
         library_students = list(StudentProfile.objects.filter(service_type='Library', status='admitted'))
         alumni_students = list(StudentAchievement.objects.filter(status='approved'))
         def _get_student_sort_name(x):
@@ -13567,14 +13579,20 @@ def student_progress_view(request):
             fname = getattr(x, 'first_name', '')
             lname = getattr(x, 'last_name', '')
             return f"{fname} {lname}".strip().lower()
-        students = sorted(coaching_students + library_students + alumni_students, key=_get_student_sort_name)
+        # Avoid duplicate dual students
+        seen_ids = set()
+        all_unique = []
+        for st in coaching_students + library_students:
+            if st.id not in seen_ids:
+                seen_ids.add(st.id)
+                all_unique.append(st)
+        students = sorted(all_unique + alumni_students, key=_get_student_sort_name)
     else:
-        # Coaching
-        students = StudentProfile.objects.filter(
-            service_type='Coaching', 
-            batch=selected_batch, 
-            status='admitted'
-        ).order_by('full_name')
+        # Coaching (or default)
+        coaching_filter = {'service_type__in': ['Coaching', 'Both'], 'status': 'admitted'}
+        if selected_batch:
+            coaching_filter['batch'] = selected_batch
+        students = StudentProfile.objects.filter(**coaching_filter).order_by('full_name')
 
     # Fetch records for the visual leaderboard
     score_prefetch = Prefetch(
@@ -16783,28 +16801,92 @@ def notifications_api_view(request):
         
         from .models import DismissedFeeAlert
         raw_overdue_students = StudentProfile.objects.filter(
-            status='admitted',
-            fee_expiry_date__isnull=False,
-            fee_expiry_date__lte=today
+            status='admitted'
+        ).filter(
+            Q(fee_expiry_date__lte=today) |
+            Q(coaching_fee_expiry_date__lte=today) |
+            Q(library_fee_expiry_date__lte=today)
         ).select_related('user', 'seat').order_by('fee_expiry_date')
         
-        dismissed_map = set(
+        dismissed_records = list(
             DismissedFeeAlert.objects.filter(teacher=user)
-            .values_list('student_id', 'expiry_date')
+            .values_list('student_id', 'expiry_date', 'service')
         )
+        dismissed_set = set(dismissed_records)
+        legacy_dismissed_set = {(sid, exp) for sid, exp, svc in dismissed_records if svc is None}
 
-        overdue_students = []
+        overdue_list = []
         for s in raw_overdue_students:
-            if (s.id, s.fee_expiry_date) in dismissed_map:
-                continue
-            overdue_students.append(s)
-        
+            first_name = s.first_name
+            is_both = (s.service_type == 'Both')
+            if is_both:
+                c_exp = s.effective_coaching_expiry
+                if c_exp and c_exp <= today:
+                    if (s.id, c_exp, 'coaching') not in dismissed_set and (s.id, c_exp) not in legacy_dismissed_set:
+                        overdue_list.append({
+                            'id': s.id,
+                            'full_name': s.full_name,
+                            'first_name': first_name,
+                            'service_type': 'Both',
+                            'service': 'coaching',
+                            'service_code': 'coaching',
+                            'service_label': 'Coaching',
+                            'is_both': True,
+                            'service_details': f"Coaching • Expired: {c_exp.strftime('%d %b')}",
+                            'fee_expiry_date': c_exp.strftime("%d %b"),
+                            'mobile_number': s.mobile_number,
+                            'whatsapp_number': s.whatsapp_number or s.mobile_number,
+                            'photo_url': s.photo_url or get_profile_photo_url(s.user),
+                            'sex': getattr(s, 'sex', '') or ''
+                        })
+                l_exp = s.effective_library_expiry
+                if l_exp and l_exp <= today:
+                    if (s.id, l_exp, 'library') not in dismissed_set and (s.id, l_exp) not in legacy_dismissed_set:
+                        overdue_list.append({
+                            'id': s.id,
+                            'full_name': s.full_name,
+                            'first_name': first_name,
+                            'service_type': 'Both',
+                            'service': 'library',
+                            'service_code': 'library',
+                            'service_label': 'Library',
+                            'is_both': True,
+                            'service_details': f"Library • Expired: {l_exp.strftime('%d %b')}",
+                            'fee_expiry_date': l_exp.strftime("%d %b"),
+                            'mobile_number': s.mobile_number,
+                            'whatsapp_number': s.whatsapp_number or s.mobile_number,
+                            'photo_url': s.photo_url or get_profile_photo_url(s.user),
+                            'sex': getattr(s, 'sex', '') or ''
+                        })
+            else:
+                svc = 'coaching' if s.service_type == 'Coaching' else 'library'
+                exp = s.coaching_fee_expiry_date if svc == 'coaching' else s.library_fee_expiry_date
+                exp = exp or s.fee_expiry_date
+                if exp and exp <= today:
+                    if (s.id, exp, svc) not in dismissed_set and (s.id, exp, None) not in dismissed_set and (s.id, exp) not in legacy_dismissed_set:
+                        overdue_list.append({
+                            'id': s.id,
+                            'full_name': s.full_name,
+                            'first_name': first_name,
+                            'service_type': s.service_type,
+                            'service': svc,
+                            'service_code': svc,
+                            'service_label': svc.capitalize(),
+                            'is_both': False,
+                            'service_details': f"Expired: {exp.strftime('%d %b')}",
+                            'fee_expiry_date': exp.strftime("%d %b"),
+                            'mobile_number': s.mobile_number,
+                            'whatsapp_number': s.whatsapp_number or s.mobile_number,
+                            'photo_url': s.photo_url or get_profile_photo_url(s.user),
+                            'sex': getattr(s, 'sex', '') or ''
+                        })
+
         active_complaints = Complaint.objects.exclude(
             status=Complaint.STATUS_RESOLVED
         ).select_related("student", "student__user")
         
         # Counts
-        overdue_count = len(overdue_students)
+        overdue_count = len(overdue_list)
         total_admission_requests = pending_students.count()
         total_hold_requests = (
             pending_hold_requests.count()
@@ -16879,42 +16961,7 @@ def notifications_api_view(request):
                 'student_obj': student_obj,
                 'meta': n.meta if isinstance(n.meta, dict) else {}
             })
-            
-        overdue_list = []
-        for s in overdue_students:
-            first_name = s.full_name.strip().split()[0] if s.full_name else "Student"
-            is_both = (s.service_type == 'Both')
-            service_detail_str = ""
-            if is_both:
-                expired_services = []
-                if s.coaching_fee_expiry_date and s.coaching_fee_expiry_date <= today:
-                    expired_services.append("Coaching")
-                if s.library_fee_expiry_date and s.library_fee_expiry_date <= today:
-                    expired_services.append("Library")
-                if not expired_services:
-                    if s.coaching_fee_expiry_date == s.fee_expiry_date:
-                        expired_services.append("Coaching")
-                    else:
-                        expired_services.append("Library")
-                service_detail_str = " & ".join(expired_services)
-            
-            expiry_str = s.fee_expiry_date.strftime("%d %b") if s.fee_expiry_date else ""
-            subtext_str = f"{service_detail_str} • Expired: {expiry_str}" if service_detail_str else f"Expired: {expiry_str}"
 
-            overdue_list.append({
-                'id': s.id,
-                'full_name': s.full_name,
-                'first_name': first_name,
-                'service_type': s.service_type,
-                'is_both': is_both,
-                'service_details': subtext_str,
-                'fee_expiry_date': s.fee_expiry_date.strftime("%d %b"),
-                'mobile_number': s.mobile_number,
-                'whatsapp_number': s.whatsapp_number or s.mobile_number,
-                'photo_url': s.photo_url or get_profile_photo_url(s.user),
-                'sex': getattr(s, 'sex', '') or ''
-            })
-            
         return JsonResponse({
             'role': 'teacher',
             'total_notification_count': total_notification_count,
@@ -16992,33 +17039,86 @@ def dismiss_fee_expired_alerts(request):
     
     import json
     student_ids = []
+    items = []
     try:
         if request.body:
             data = json.loads(request.body)
+            items = data.get('items', [])
             student_ids = data.get('student_ids', [])
     except Exception:
         pass
 
-    if not student_ids:
+    if not student_ids and not items:
         student_ids = request.POST.getlist('student_ids')
 
-    if not student_ids:
+    if not student_ids and not items:
         return JsonResponse({'status': 'error', 'message': 'No students selected.'}, status=400)
 
-    students = StudentProfile.objects.filter(id__in=student_ids, fee_expiry_date__isnull=False)
-    dismissed_count = 0
     from .models import DismissedFeeAlert
-    for s in students:
-        DismissedFeeAlert.objects.get_or_create(
-            teacher=request.user,
-            student=s,
-            expiry_date=s.fee_expiry_date
-        )
-        dismissed_count += 1
+    today = timezone.localdate() if timezone.is_aware(timezone.now()) else timezone.now().date()
+    dismissed_count = 0
+
+    if items:
+        target_ids = [it.get('student_id') for it in items if it.get('student_id')]
+        students_map = {s.id: s for s in StudentProfile.objects.filter(id__in=target_ids)}
+        for it in items:
+            sid = it.get('student_id')
+            svc = (it.get('service') or '').strip().lower()
+            try:
+                numeric_sid = int(sid)
+            except (ValueError, TypeError):
+                numeric_sid = None
+            s = students_map.get(sid) or (students_map.get(numeric_sid) if numeric_sid is not None else None)
+            if not s:
+                continue
+            
+            exp_date = None
+            if svc == 'coaching':
+                exp_date = s.coaching_fee_expiry_date or s.fee_expiry_date
+            elif svc == 'library':
+                exp_date = s.library_fee_expiry_date or s.fee_expiry_date
+            else:
+                exp_date = s.fee_expiry_date or s.coaching_fee_expiry_date or s.library_fee_expiry_date
+
+            if exp_date:
+                DismissedFeeAlert.objects.get_or_create(
+                    teacher=request.user,
+                    student=s,
+                    expiry_date=exp_date,
+                    service=svc if svc in ('coaching', 'library') else None
+                )
+                dismissed_count += 1
+    else:
+        students = StudentProfile.objects.filter(id__in=student_ids)
+        for s in students:
+            is_both = (s.service_type == 'Both')
+            if is_both:
+                if s.coaching_fee_expiry_date and s.coaching_fee_expiry_date <= today:
+                    DismissedFeeAlert.objects.get_or_create(
+                        teacher=request.user,
+                        student=s,
+                        expiry_date=s.coaching_fee_expiry_date,
+                        service='coaching'
+                    )
+                if s.library_fee_expiry_date and s.library_fee_expiry_date <= today:
+                    DismissedFeeAlert.objects.get_or_create(
+                        teacher=request.user,
+                        student=s,
+                        expiry_date=s.library_fee_expiry_date,
+                        service='library'
+                    )
+            if s.fee_expiry_date:
+                DismissedFeeAlert.objects.get_or_create(
+                    teacher=request.user,
+                    student=s,
+                    expiry_date=s.fee_expiry_date,
+                    service=None
+                )
+            dismissed_count += 1
 
     return JsonResponse({
         'status': 'success',
-        'message': f'Successfully dismissed {dismissed_count} student(s) from Fee Expired List.',
+        'message': f'Successfully dismissed {dismissed_count} alert(s) from Fee Expired List.',
         'dismissed_count': dismissed_count
     })
 

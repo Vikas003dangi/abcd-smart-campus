@@ -524,24 +524,26 @@ def send_hold_request_status(student, seat, status):
 
 
 # --- FEE REMINDER NOTIFICATIONS ---
-def send_fee_reminder_email(student, reminder_type, date_text):
+def send_fee_reminder_email(student, reminder_type, date_text, service=None):
     """
     Sends fee reminder email.
     Types: 'pre_10' (10 days advance), 'first_day' (due today), 'recurring_3day' (every 3 days overdue).
+    Supports optional `service` ('coaching' or 'library') for independent dual-service reminders.
     """
     from .utils import get_user_notification_email
     target_email = get_user_notification_email(student)
     if not target_email:
         return
 
-    service_details = get_student_service_details(student)
+    service_details = get_student_service_details(student, service=service)
+    svc_prefix = f" {service.capitalize()}" if service in ('coaching', 'library') else ""
 
     if reminder_type == "pre_10":
-        subject = "Your ABCD Fee is Due in 10 Days"
+        subject = f"Your ABCD{svc_prefix} Fee is Due in 10 Days"
     elif reminder_type == "first_day":
-        subject = "Your ABCD Fee is Due Today"
+        subject = f"Your ABCD{svc_prefix} Fee is Due Today"
     else:  # "recurring_3day"
-        subject = "URGENT: Your ABCD Fee is Overdue"
+        subject = f"URGENT: Your ABCD{svc_prefix} Fee is Overdue"
 
     try:
         send_html_email(
@@ -552,6 +554,7 @@ def send_fee_reminder_email(student, reminder_type, date_text):
                 "title": subject,
                 "student": student,
                 "reminder_type": reminder_type,
+                "service": service,
                 "service_details": service_details,
                 "months_text": date_text,
                 "date": localdate().strftime("%d %b %Y"),
@@ -559,16 +562,17 @@ def send_fee_reminder_email(student, reminder_type, date_text):
             },
             fail_silently=False,
         )
-        logger.info(f"Fee reminder email ({reminder_type}) sent to {student.full_name} ({target_email}).")
+        logger.info(f"Fee reminder email ({reminder_type}{svc_prefix}) sent to {student.full_name} ({target_email}).")
     except Exception as e:
-        logger.error(f"Failed to send fee reminder email ({reminder_type}): {e}")
+        logger.error(f"Failed to send fee reminder email ({reminder_type}{svc_prefix}): {e}")
 
 
-def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str):
+def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str, service=None):
     """
     Sends WhatsApp fee reminders strictly for:
     - 'pre_5': 5 days before expiry (Template: fee_reminder_5day)
     - 'warning_1day': 1 day after expiry warning (Template: fee_warning_overdue)
+    Supports optional `service` ('coaching' or 'library') for independent dual-service reminders.
     """
     if not has_whatsapp_configured():
         logger.info("WhatsApp fee reminder SKIPPED: Meta Cloud API not configured.")
@@ -579,7 +583,7 @@ def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str):
     if not clean_number:
         return
 
-    service_details = get_student_service_details(student)
+    service_details = get_student_service_details(student, service=service)
 
     if reminder_type == "pre_5":
         template_name = "fee_reminder_5day"
@@ -614,7 +618,7 @@ def send_fee_reminder_whatsapp(student, reminder_type, expiry_date_str):
         if res.status_code != 200:
             logger.warning(f"WhatsApp fee reminder template '{template_name}' error ({res.text})")
         else:
-            logger.info(f"Sent WhatsApp fee reminder '{reminder_type}' to {safe_student_name}.")
+            logger.info(f"Sent WhatsApp fee reminder '{reminder_type}' ({service or 'all'}) to {safe_student_name}.")
     except Exception as e:
         logger.error(f"Error sending WhatsApp fee reminder ({reminder_type}): {e}")
 

@@ -305,8 +305,12 @@ class StudentProfile(models.Model):
         For single service students, synchronizes with the respective service expiry.
         """
         if self.service_type == 'Both':
-            dates = [d for d in [self.coaching_fee_expiry_date, self.library_fee_expiry_date] if d is not None]
-            self.fee_expiry_date = min(dates) if dates else None
+            c_exp = self.coaching_fee_expiry_date if self.coaching_fee_expiry_date is not None else self.fee_expiry_date
+            l_exp = self.library_fee_expiry_date if self.library_fee_expiry_date is not None else self.fee_expiry_date
+            dates = [d for d in [c_exp, l_exp] if d is not None]
+            if dates:
+                self.fee_expiry_date = min(dates)
+            # If both are None (legacy 'Both' student), preserve self.fee_expiry_date without guessing
         elif self.service_type == 'Coaching':
             if self.coaching_fee_expiry_date:
                 self.fee_expiry_date = self.coaching_fee_expiry_date
@@ -315,6 +319,48 @@ class StudentProfile(models.Model):
                 self.fee_expiry_date = self.library_fee_expiry_date
         if save and self.pk:
             self.save(update_fields=['fee_expiry_date', 'coaching_fee_expiry_date', 'library_fee_expiry_date'])
+
+    @property
+    def effective_coaching_expiry(self):
+        """
+        Returns coaching_fee_expiry_date if set; falls back to fee_expiry_date
+        when empty so existing 'Both' students show correctly before any new payment.
+        """
+        if self.coaching_fee_expiry_date is not None:
+            return self.coaching_fee_expiry_date
+        return self.fee_expiry_date
+
+    @property
+    def effective_library_expiry(self):
+        """
+        Returns library_fee_expiry_date if set; falls back to fee_expiry_date
+        when empty so existing 'Both' students show correctly before any new payment.
+        """
+        if self.library_fee_expiry_date is not None:
+            return self.library_fee_expiry_date
+        return self.fee_expiry_date
+
+    @property
+    def is_coaching_overdue(self):
+        """
+        True if coaching fee is expired as of today. For 'Both' dual students,
+        evaluates effective_coaching_expiry (falling back to fee_expiry_date when empty).
+        """
+        from django.utils import timezone
+        today = timezone.localdate()
+        exp = self.effective_coaching_expiry
+        return bool(exp and exp <= today)
+
+    @property
+    def is_library_overdue(self):
+        """
+        True if library fee is expired as of today. For 'Both' dual students,
+        evaluates effective_library_expiry (falling back to fee_expiry_date when empty).
+        """
+        from django.utils import timezone
+        today = timezone.localdate()
+        exp = self.effective_library_expiry
+        return bool(exp and exp <= today)
 
     @property
     def first_name(self):
@@ -925,19 +971,27 @@ class Notification(models.Model):
 
 class DismissedFeeAlert(models.Model):
     """
-    Tracks fee expired alerts dismissed by a teacher for a specific student and fee_expiry_date.
+    Tracks fee expired alerts dismissed by a teacher for a specific student, service, and expiry_date.
     If the student's fee is later extended and then expires again on a new date, they automatically reappear.
     """
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="dismissed_fee_alerts")
     student = models.ForeignKey('StudentProfile', on_delete=models.CASCADE, related_name="dismissed_fee_alerts")
+    service = models.CharField(
+        max_length=20,
+        choices=[('coaching', 'Coaching'), ('library', 'Library')],
+        null=True,
+        blank=True,
+        help_text="Service for which alert was dismissed (coaching vs library, NULL for single/legacy)"
+    )
     expiry_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('teacher', 'student', 'expiry_date')
+        unique_together = ('teacher', 'student', 'expiry_date', 'service')
 
     def __str__(self):
-        return f"Dismissed alert for {self.student.full_name} ({self.expiry_date}) by {self.teacher.username}"
+        svc = f" ({self.service.capitalize()})" if self.service else ""
+        return f"Dismissed alert for {self.student.full_name}{svc} ({self.expiry_date}) by {self.teacher.username}"
 
 # -------------------------------------------------------------------
 # BROADCAST MESSAGE MODEL (history container)
@@ -2807,13 +2861,27 @@ def cleanup_fee_notifications_on_change(sender, instance, **kwargs):
     DELETE all existing fee notifications for that student.
     """
     today = timezone.localtime(timezone.now()).date()
-    if instance.fee_expiry_date is None or instance.fee_expiry_date > today:
-        # Delete for Student
-        Notification.objects.filter(user=instance.user, category="fee").delete()
-        # Delete for Teacher/Staff (alerts about this student)
-        Notification.objects.filter(category="fee", meta__student_id=instance.id).delete()
-        # Clean up dismissed fee alerts for this student when fee is extended/changed
-        DismissedFeeAlert.objects.filter(student=instance).exclude(expiry_date=instance.fee_expiry_date).delete()
+    if instance.service_type == 'Both':
+        # Service-aware notification cleanup for dual students
+        if instance.coaching_fee_expiry_date and instance.coaching_fee_expiry_date > today:
+            Notification.objects.filter(user=instance.user, category="fee", meta__service="coaching").delete()
+            Notification.objects.filter(category="fee", meta__student_id=instance.id, meta__service="coaching").delete()
+            DismissedFeeAlert.objects.filter(student=instance, service="coaching").exclude(expiry_date=instance.coaching_fee_expiry_date).delete()
+
+        if instance.library_fee_expiry_date and instance.library_fee_expiry_date > today:
+            Notification.objects.filter(user=instance.user, category="fee", meta__service="library").delete()
+            Notification.objects.filter(category="fee", meta__student_id=instance.id, meta__service="library").delete()
+            DismissedFeeAlert.objects.filter(student=instance, service="library").exclude(expiry_date=instance.library_fee_expiry_date).delete()
+
+        # If overall expiry is now active (both services paid/valid), clean legacy untagged reminders
+        if instance.fee_expiry_date is None or instance.fee_expiry_date > today:
+            Notification.objects.filter(user=instance.user, category="fee", meta__service__isnull=True).delete()
+            Notification.objects.filter(category="fee", meta__student_id=instance.id, meta__service__isnull=True).delete()
+    else:
+        if instance.fee_expiry_date is None or instance.fee_expiry_date > today:
+            Notification.objects.filter(user=instance.user, category="fee").delete()
+            Notification.objects.filter(category="fee", meta__student_id=instance.id).delete()
+            DismissedFeeAlert.objects.filter(student=instance).exclude(expiry_date=instance.fee_expiry_date).delete()
 
 
 @receiver(post_delete, sender=FeeTransaction)
