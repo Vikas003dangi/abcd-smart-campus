@@ -1,0 +1,261 @@
+{% load static %}
+<!-- Floating Return Toast / Bubble: Visible ONLY when navigating from admission form, achievement form, or register.html -->
+<style>
+  .legal-return-toast {
+    position: fixed;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px 10px 18px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    animation: legalToastSlideIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    max-width: 92vw;
+    box-sizing: border-box;
+  }
+
+  html.dark-theme .legal-return-toast,
+  body.dark-theme .legal-return-toast,
+  [data-theme='dark'] .legal-return-toast {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.98) 100%);
+    border-color: rgba(52, 211, 153, 0.45);
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.65), 0 0 24px rgba(52, 211, 153, 0.2);
+  }
+
+  @keyframes legalToastSlideIn {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, 28px) scale(0.94);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
+  }
+
+  .legal-return-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  .legal-return-arrow-wrap {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.88rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    flex-shrink: 0;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .legal-return-btn:hover .legal-return-arrow-wrap {
+    transform: translateX(-3px) scale(1.08);
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  }
+
+  .legal-return-text-group {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    line-height: 1.25;
+  }
+
+  .legal-return-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+  }
+
+  html.dark-theme .legal-return-label,
+  body.dark-theme .legal-return-label,
+  [data-theme='dark'] .legal-return-label {
+    color: #f1f5f9;
+  }
+
+  .legal-return-hint {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .legal-return-hint .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    display: inline-block;
+  }
+
+  .legal-return-dismiss {
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    color: #cbd5e1;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    margin-left: 4px;
+    flex-shrink: 0;
+  }
+
+  .legal-return-dismiss:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+  }
+
+  @media (max-width: 640px) {
+    .legal-return-toast {
+      padding: 8px 12px 8px 14px;
+      gap: 10px;
+    }
+    .legal-return-label {
+      font-size: 0.82rem;
+    }
+    .legal-return-hint {
+      font-size: 0.68rem;
+    }
+    .legal-return-arrow-wrap {
+      width: 28px;
+      height: 28px;
+      font-size: 0.8rem;
+    }
+  }
+</style>
+
+<div id="legalReturnToast" class="legal-return-toast" role="status" aria-live="polite">
+  <a href="#" class="legal-return-btn" id="legalReturnActionBtn">
+    <div class="legal-return-arrow-wrap">
+      <i class="fa-solid fa-arrow-left"></i>
+    </div>
+    <div class="legal-return-text-group">
+      <span class="legal-return-label" id="legalReturnLabel">Back to Form</span>
+      <span class="legal-return-hint"><span class="dot"></span> Saved progress ready</span>
+    </div>
+  </a>
+  <button type="button" class="legal-return-dismiss" id="legalReturnDismissBtn" title="Dismiss" aria-label="Dismiss">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
+</div>
+
+<script>
+(function() {
+  function initLegalReturnToast() {
+    try {
+      const raw = sessionStorage.getItem('abcd_legal_return_info');
+      if (!raw) return;
+
+      const info = JSON.parse(raw);
+      if (!info || !info.url || !info.source) return;
+
+      // STRICT VALIDATION: ONLY admission, achievement, or register!
+      const allowedSources = ['admission', 'achievement', 'register'];
+      if (!allowedSources.includes(info.source)) {
+        sessionStorage.removeItem('abcd_legal_return_info');
+        return;
+      }
+
+      // Check timestamp expiration (2 hours)
+      if (info.timestamp && (Date.now() - info.timestamp > 2 * 60 * 60 * 1000)) {
+        sessionStorage.removeItem('abcd_legal_return_info');
+        return;
+      }
+
+      // Check referrer: if arrived from an internal page that is unrelated, clear return info
+      if (document.referrer) {
+        try {
+          const refUrl = new URL(document.referrer, window.location.origin);
+          const refPath = refUrl.pathname.toLowerCase();
+          const isLegalPage = (p) => p.includes('terms') || p.includes('privacy');
+          const isAllowedRef = isLegalPage(refPath) || 
+                               refPath.includes('admission') || 
+                               refPath.includes('achievement') || 
+                               refPath.includes('register') || 
+                               refPath.includes('login');
+
+          // If referrer is on the same host but is an unrelated page (e.g. home, dashboard, courses), clear return info
+          if (refUrl.origin === window.location.origin && !isAllowedRef) {
+            sessionStorage.removeItem('abcd_legal_return_info');
+            return;
+          }
+        } catch (e) {}
+      }
+
+      const toast = document.getElementById('legalReturnToast');
+      const actionBtn = document.getElementById('legalReturnActionBtn');
+      const labelEl = document.getElementById('legalReturnLabel');
+      const dismissBtn = document.getElementById('legalReturnDismissBtn');
+
+      if (!toast || !actionBtn || !labelEl) return;
+
+      labelEl.textContent = info.label || 'Back to Form';
+      actionBtn.setAttribute('href', info.url);
+
+      // Adjust positioning based on bottom nav bars if present
+      const bottomNav = document.querySelector('.bottom-nav-menu, .guest-bottom-nav');
+      if (bottomNav && window.getComputedStyle(bottomNav).display !== 'none') {
+        toast.style.bottom = '82px';
+      } else {
+        toast.style.bottom = '26px';
+      }
+
+      toast.style.display = 'inline-flex';
+
+      // Click handler
+      actionBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.playABCDSound) window.playABCDSound('button');
+        // Clear return info upon returning
+        sessionStorage.removeItem('abcd_legal_return_info');
+        window.location.href = info.url;
+      });
+
+      // Dismiss handler
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          toast.style.display = 'none';
+          sessionStorage.removeItem('abcd_legal_return_info');
+        });
+      }
+    } catch(err) {
+      console.warn('Legal return toast init error:', err);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLegalReturnToast);
+  } else {
+    initLegalReturnToast();
+  }
+})();
+</script>

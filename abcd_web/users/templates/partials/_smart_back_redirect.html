@@ -193,5 +193,22 @@
             cp.async = true;
             document.head.appendChild(cp);
         }
+
+        // On non-form pages, clicking legal links clears any previous form return toast
+        document.addEventListener('click', function(e) {
+            const target = e.target ? e.target.closest('a') : null;
+            if (target && target.href && (target.href.includes('/terms') || target.href.includes('/privacy'))) {
+                const path = window.location.pathname.toLowerCase();
+                const isFormPage = path.includes('admission') || 
+                                   path.includes('achievement') || 
+                                   path.includes('register') ||
+                                   path.includes('login') ||
+                                   path.includes('terms') ||
+                                   path.includes('privacy');
+                if (!isFormPage) {
+                    try { sessionStorage.removeItem('abcd_legal_return_info'); } catch(err) {}
+                }
+            }
+        }, true);
     })();
 </script>

@@ -2101,7 +2101,7 @@
                 <div class="checkbox-group">
                     {{ form.confirmation }}
                     <label for="id_confirmation">
-                        I confirm that all details provided are genuine and correct, and I agree to the <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener">Terms of Service</a> and <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener">Privacy Policy</a> (compliant with DPDP Act, 2023 & Campus Guidelines).
+                        I confirm that all details provided are genuine and correct, and I agree to the <a href="{% url 'users:terms_of_service' %}" class="legal-flow-link">Terms of Service</a> and <a href="{% url 'users:privacy_policy' %}" class="legal-flow-link">Privacy Policy</a> (compliant with DPDP Act, 2023 & Campus Guidelines).
                     </label>
                 </div>
                 <button type="submit" class="submit-btn" id="submitBtn">Submit Application</button>
@@ -2968,6 +2968,25 @@
                     }
                 });
             }
+
+            // Intercept legal links to auto-save draft & setup legal return info
+            const legalLinks = document.querySelectorAll('a[href*="/terms/"], a[href*="/privacy/"], a.legal-flow-link');
+            legalLinks.forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (window.admissionDraftManager && typeof window.admissionDraftManager.saveDraft === 'function') {
+                        window.admissionDraftManager.saveDraft();
+                    }
+                    try {
+                        sessionStorage.setItem('abcd_legal_return_info', JSON.stringify({
+                            url: window.location.href,
+                            label: 'Back to Admission Form',
+                            source: 'admission',
+                            timestamp: Date.now()
+                        }));
+                    } catch (e) {}
+                    window.allowPageUnload = true;
+                });
+            });
         });
     </script>
     <script>window.__disablePermissionPrompts = true;</script>

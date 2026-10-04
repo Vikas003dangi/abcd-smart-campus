@@ -1806,8 +1806,8 @@
 
                 <div class="auth-legal-notice">
                     By continuing, you agree to our 
-                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener">Terms of Service</a> & 
-                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener">Privacy Policy</a>.
+                    <a href="{% url 'users:terms_of_service' %}" class="auth-legal-link">Terms of Service</a> & 
+                    <a href="{% url 'users:privacy_policy' %}" class="auth-legal-link">Privacy Policy</a>.
                 </div>
             </form>
         </div>
@@ -1867,8 +1867,8 @@
 
                 <div class="auth-legal-notice">
                     By continuing, you agree to our 
-                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener">Terms of Service</a> & 
-                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener">Privacy Policy</a>.
+                    <a href="{% url 'users:terms_of_service' %}" class="auth-legal-link">Terms of Service</a> & 
+                    <a href="{% url 'users:privacy_policy' %}" class="auth-legal-link">Privacy Policy</a>.
                 </div>
 
                 </form>
@@ -2095,10 +2095,114 @@
 
         registerBtn.addEventListener('click', () => {
             Login_Registration_Card.classList.add('active');
+            saveAuthDraft(false);
         });
         loginBtn.addEventListener('click', () => {
             Login_Registration_Card.classList.remove('active');
+            saveAuthDraft(false);
         });
+
+        // --- Form Draft & Session Preservation for Login / Register ---
+        function saveAuthDraft(isLegalNavigation = false) {
+            try {
+                const isRegister = Login_Registration_Card ? Login_Registration_Card.classList.contains('active') : false;
+                const loginUserInput = document.getElementById('login_username');
+                const loginPassInput = document.getElementById('login_password');
+                const regUserInput = document.querySelector('#manualRegisterForm input[name="username"]');
+                const regEmailInput = document.getElementById('reg_email_input');
+                const regPass1Input = document.querySelector('#manualRegisterForm input[name="password1"]');
+                const regPass2Input = document.querySelector('#manualRegisterForm input[name="password2"]');
+
+                const draft = {
+                    isRegister: isRegister,
+                    loginUsername: loginUserInput ? loginUserInput.value : '',
+                    loginPassword: loginPassInput ? loginPassInput.value : '',
+                    regUsername: regUserInput ? regUserInput.value : '',
+                    regEmail: regEmailInput ? regEmailInput.value : '',
+                    regPass1: regPass1Input ? regPass1Input.value : '',
+                    regPass2: regPass2Input ? regPass2Input.value : '',
+                    timestamp: Date.now()
+                };
+
+                sessionStorage.setItem('abcd_auth_draft', JSON.stringify(draft));
+
+                if (isLegalNavigation) {
+                    sessionStorage.setItem('abcd_legal_return_info', JSON.stringify({
+                        url: window.location.href,
+                        label: isRegister ? 'Back to Registration' : 'Back to Login',
+                        source: 'register',
+                        timestamp: Date.now()
+                    }));
+                }
+            } catch(e) {}
+        }
+
+        function restoreAuthDraft() {
+            try {
+                const raw = sessionStorage.getItem('abcd_auth_draft');
+                if (!raw) return;
+                const draft = JSON.parse(raw);
+                if (!draft) return;
+
+                if (draft.isRegister && Login_Registration_Card) {
+                    Login_Registration_Card.classList.add('active');
+                } else if (Login_Registration_Card && !draft.isRegister) {
+                    Login_Registration_Card.classList.remove('active');
+                }
+
+                if (draft.loginUsername) {
+                    const el = document.getElementById('login_username');
+                    if (el) el.value = draft.loginUsername;
+                }
+                if (draft.loginPassword) {
+                    const el = document.getElementById('login_password');
+                    if (el) el.value = draft.loginPassword;
+                }
+                if (draft.regUsername) {
+                    const el = document.querySelector('#manualRegisterForm input[name="username"]');
+                    if (el) el.value = draft.regUsername;
+                }
+                if (draft.regEmail) {
+                    const el = document.getElementById('reg_email_input');
+                    if (el) {
+                        el.value = draft.regEmail;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+                if (draft.regPass1) {
+                    const el = document.querySelector('#manualRegisterForm input[name="password1"]');
+                    if (el) el.value = draft.regPass1;
+                }
+                if (draft.regPass2) {
+                    const el = document.querySelector('#manualRegisterForm input[name="password2"]');
+                    if (el) el.value = draft.regPass2;
+                }
+            } catch(e) {}
+        }
+
+        // Attach listeners to legal links in login & register boxes
+        document.querySelectorAll('.auth-legal-notice a, a.auth-legal-link').forEach(function(link) {
+            link.addEventListener('click', function() {
+                saveAuthDraft(true);
+                window.allowPageUnload = true;
+            });
+        });
+
+        // Track changes to keep draft updated silently
+        document.querySelectorAll('.login-form-box form, .Registration-form-box form').forEach(function(form) {
+            form.addEventListener('input', function() {
+                saveAuthDraft(false);
+            });
+            form.addEventListener('submit', function() {
+                try {
+                    sessionStorage.removeItem('abcd_auth_draft');
+                    sessionStorage.removeItem('abcd_legal_return_info');
+                } catch(e) {}
+            });
+        });
+
+        // Restore draft on load
+        restoreAuthDraft();
 
         // --- Theme Toggle Logic ---
         function toggleTheme() {
