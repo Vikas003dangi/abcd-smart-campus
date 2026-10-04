@@ -6612,8 +6612,9 @@ def download_fee_receipt_view(request, transaction_id):
     )
     try:
         from users.utils.receipt_generator import generate_fee_receipt_pdf
+        from django.http import HttpResponse
         pdf_buffer = generate_fee_receipt_pdf(transaction_obj)
-        
+
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="Fee_Receipt_{transaction_obj.receipt_number}.pdf"'
         return response
