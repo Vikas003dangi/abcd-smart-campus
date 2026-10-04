@@ -11285,6 +11285,7 @@ def fee_calendar_view(request, student_id):
         'hold_periods_json': _json.dumps(get_student_hold_periods(student) if current_service == 'library' else []),
         'current_service': current_service,
         'active_service': current_service,
+        'active_expiry': active_expiry,
         'is_both': is_both,
         'coaching_expiry': student.coaching_fee_expiry_date,
         'library_expiry': student.library_fee_expiry_date,
@@ -11406,6 +11407,12 @@ def _recalc_fee_expiry_with_hold(student):
     if student.service_type not in ['Library', 'Both']:
         return
 
+    # If library fee expiry is None (cleared or unpaid), do not resurrect a ghost date
+    if student.service_type == 'Both' and student.library_fee_expiry_date is None:
+        return
+    if student.service_type == 'Library' and student.library_fee_expiry_date is None and student.fee_expiry_date is None:
+        return
+
     hold_days = calculate_hold_extension_days(student)
 
     # 1. Try to sync chain for library
@@ -11419,8 +11426,8 @@ def _recalc_fee_expiry_with_hold(student):
             lib_expiry += timedelta(days=hold_days)
         student.library_fee_expiry_date = lib_expiry
     else:
-        # Fall back to existing library_fee_expiry_date or shared fee_expiry_date without guessing
-        base_exp = student.library_fee_expiry_date or student.fee_expiry_date
+        # Fall back to existing library_fee_expiry_date without guessing
+        base_exp = student.library_fee_expiry_date or (student.fee_expiry_date if student.service_type == 'Library' else None)
         if base_exp:
             student.library_fee_expiry_date = base_exp + timedelta(days=hold_days) if hold_days > 0 else base_exp
 
@@ -11677,9 +11684,27 @@ def process_fees_view(request, student_id):
                         student.coaching_fee_expiry_date = None
                     else:
                         student.library_fee_expiry_date = None
-                    student.sync_overall_fee_expiry_date(save=False)
-                    student.save()
-                    return JsonResponse({'status': 'success', 'message': 'Expiry date cleared successfully.'})
+
+                    if student.service_type == 'Both':
+                        remaining_dates = [d for d in [student.coaching_fee_expiry_date, student.library_fee_expiry_date] if d is not None]
+                        student.fee_expiry_date = min(remaining_dates) if remaining_dates else None
+                    elif student.service_type == 'Coaching':
+                        student.fee_expiry_date = None
+                    else:
+                        student.fee_expiry_date = None
+
+                    student.save(update_fields=['coaching_fee_expiry_date', 'library_fee_expiry_date', 'fee_expiry_date'])
+                    from django.core.cache import cache
+                    cache.delete('overdue_students_count')
+                    try:
+                        Notification.objects.filter(
+                            user=student.user,
+                            category="fee",
+                            meta__service=target_service
+                        ).delete()
+                    except Exception:
+                        pass
+                    return JsonResponse({'status': 'success', 'message': f'{target_service.capitalize()} fee expiry date cleared successfully.'})
 
                 month = action_data.get('month')
                 year = action_data.get('year')
@@ -12128,6 +12153,9 @@ def process_fees_view(request, student_id):
         display_exp = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
         if not display_exp and student.service_type != 'Both':
             display_exp = student.fee_expiry_date
+
+        from django.core.cache import cache
+        cache.delete('overdue_students_count')
 
         return JsonResponse({
             'status': 'success',

@@ -560,4 +560,126 @@ class ServiceAwareFeesTestCase(TestCase):
         # 6. Does not clear coaching alert or mark coaching as paid
         self.assertEqual(self.student.coaching_fee_expiry_date, None)  # untouched!
 
+    def test_dismissed_fee_alert_service_isolation(self):
+        """Dismissing fee alert for coaching does not dismiss fee alert for library."""
+        today = timezone.localdate()
+        self.student.coaching_fee_expiry_date = today - timedelta(days=2)
+        self.student.library_fee_expiry_date = today - timedelta(days=2)
+        self.student.save()
+
+        self.client.force_login(self.teacher_user)
+        dismiss_url = reverse('users:dismiss_fee_expired_alerts')
+
+        # Dismiss coaching
+        res = self.client.post(dismiss_url, json.dumps({
+            'items': [{'student_id': self.student.id, 'service': 'coaching'}]
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+
+        # Check DB
+        self.assertTrue(DismissedFeeAlert.objects.filter(student=self.student, service='coaching').exists())
+        self.assertFalse(DismissedFeeAlert.objects.filter(student=self.student, service='library').exists())
+
+        # Dismiss library
+        res_lib = self.client.post(dismiss_url, json.dumps({
+            'items': [{'student_id': self.student.id, 'service': 'library'}]
+        }), content_type='application/json')
+        self.assertEqual(res_lib.status_code, 200)
+        self.assertTrue(DismissedFeeAlert.objects.filter(student=self.student, service='library').exists())
+
+    def test_whatsapp_fee_receipt_service_branding(self):
+        """WhatsApp fee receipt correctly identifies service name in the message."""
+        from users.notifications import send_fee_receipt_whatsapp
+        from users.models import FeeTransaction
+        today = timezone.localdate()
+        tx = FeeTransaction.objects.create(
+            student=self.student,
+            receipt_number='ABCD_26/1234567',
+            payment_date=today,
+            total_amount=800,
+            months_snapshot=[{'month': 'April', 'amount': 800, 'status': 'paid'}],
+            service='library',
+            service_snapshot='Library Service'
+        )
+        with patch('users.notifications.has_whatsapp_configured', return_value=True):
+            with patch('users.notifications.requests.post') as mock_post:
+                # 1st call for upload returns media id, 2nd call sends message
+                upload_resp = MagicMock()
+                upload_resp.status_code = 200
+                upload_resp.json.return_value = {'id': 'media_123'}
+
+                send_resp = MagicMock()
+                send_resp.status_code = 200
+
+                mock_post.side_effect = [upload_resp, send_resp]
+
+                send_fee_receipt_whatsapp(self.student, tx, b'%PDF-test')
+                self.assertEqual(mock_post.call_count, 2)
+
+                # Inspect 2nd call (send payload sent to Facebook API)
+                send_call_args = mock_post.call_args_list[1]
+                json_body = send_call_args[1].get('json', {})
+                body_params = json_body.get('template', {}).get('components', [])[1].get('parameters', [])
+                param_texts = [p.get('text') for p in body_params]
+                self.assertIn('Library Service', param_texts)
+
+    def test_process_fees_clear_expiry_service_isolation(self):
+        """Clearing coaching expiry leaves library expiry intact."""
+        today = timezone.localdate()
+        self.student.coaching_fee_expiry_date = today + timedelta(days=10)
+        self.student.library_fee_expiry_date = today + timedelta(days=20)
+        self.student.sync_overall_fee_expiry_date(save=True)
+
+        self.client.force_login(self.teacher_user)
+        process_url = reverse('users:process_fees', args=[self.student.id])
+        res = self.client.post(process_url, json.dumps({
+            'actions': [{'action': 'clear_expiry'}],
+            'service': 'coaching'
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+
+        self.student.refresh_from_db()
+        self.assertIsNone(self.student.coaching_fee_expiry_date)
+        self.assertEqual(self.student.library_fee_expiry_date, today + timedelta(days=20))
+        self.assertEqual(self.student.fee_expiry_date, today + timedelta(days=20))
+
+
+    @patch('users.notifications.send_fee_reminder_email')
+    @patch('users.notifications.send_fee_reminder_whatsapp')
+    @patch('users.notifications.send_push')
+    def test_process_fees_clear_expiry_suppresses_reminders_and_alerts(self, mock_push, mock_wa, mock_email):
+        """Clearing expiry guarantees student is skipped by reminders and overdue alerts."""
+        today = timezone.localdate()
+        # Student was overdue in coaching
+        self.student.coaching_fee_expiry_date = today - timedelta(days=5)
+        self.student.library_fee_expiry_date = None
+        self.student.sync_overall_fee_expiry_date(save=True)
+
+        self.client.force_login(self.teacher_user)
+        process_url = reverse('users:process_fees', args=[self.student.id])
+        res = self.client.post(f"{process_url}?service=coaching", json.dumps({
+            'actions': [{'action': 'clear_expiry'}],
+            'service': 'coaching'
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+
+        self.student.refresh_from_db()
+        self.assertIsNone(self.student.coaching_fee_expiry_date)
+        self.assertIsNone(self.student.effective_coaching_expiry)
+        self.assertIsNone(self.student.fee_expiry_date)
+
+        # 1. Reminder command check: no emails, whatsapps, or push sent
+        call_command('send_fee_reminders')
+        self.assertEqual(mock_email.call_count, 0)
+        self.assertEqual(mock_wa.call_count, 0)
+        self.assertEqual(mock_push.call_count, 0)
+
+        # 2. Notifications API check: must NOT appear in overdue list
+        notif_url = reverse('users:notifications_api')
+        res_notif = self.client.get(notif_url)
+        self.assertEqual(res_notif.status_code, 200)
+        overdue_list = res_notif.json().get('overdue_students', [])
+        overdue_ids = [item['id'] for item in overdue_list]
+        self.assertNotIn(self.student.id, overdue_ids)
+
 

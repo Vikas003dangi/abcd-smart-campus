@@ -305,40 +305,60 @@ class StudentProfile(models.Model):
         For single service students, synchronizes with the respective service expiry.
         """
         if self.service_type == 'Both':
-            c_exp = self.coaching_fee_expiry_date if self.coaching_fee_expiry_date is not None else self.fee_expiry_date
-            l_exp = self.library_fee_expiry_date if self.library_fee_expiry_date is not None else self.fee_expiry_date
-            dates = [d for d in [c_exp, l_exp] if d is not None]
+            dates = []
+            if self.coaching_fee_expiry_date is not None:
+                dates.append(self.coaching_fee_expiry_date)
+            elif self.fee_expiry_date is not None and (self.library_fee_expiry_date is None or self.fee_expiry_date < self.library_fee_expiry_date):
+                dates.append(self.fee_expiry_date)
+
+            if self.library_fee_expiry_date is not None:
+                dates.append(self.library_fee_expiry_date)
+            elif self.fee_expiry_date is not None and (self.coaching_fee_expiry_date is None or self.fee_expiry_date < self.coaching_fee_expiry_date):
+                dates.append(self.fee_expiry_date)
+
             if dates:
                 self.fee_expiry_date = min(dates)
-            # If both are None (legacy 'Both' student), preserve self.fee_expiry_date without guessing
+            elif self.coaching_fee_expiry_date is None and self.library_fee_expiry_date is None:
+                # Both explicit fields are None; preserve existing fee_expiry_date if present
+                pass
+            else:
+                self.fee_expiry_date = None
         elif self.service_type == 'Coaching':
-            if self.coaching_fee_expiry_date:
-                self.fee_expiry_date = self.coaching_fee_expiry_date
+            self.fee_expiry_date = self.coaching_fee_expiry_date
         elif self.service_type == 'Library':
-            if self.library_fee_expiry_date:
-                self.fee_expiry_date = self.library_fee_expiry_date
+            self.fee_expiry_date = self.library_fee_expiry_date
         if save and self.pk:
             self.save(update_fields=['fee_expiry_date', 'coaching_fee_expiry_date', 'library_fee_expiry_date'])
 
     @property
     def effective_coaching_expiry(self):
         """
-        Returns coaching_fee_expiry_date if set; falls back to fee_expiry_date
-        when empty so existing 'Both' students show correctly before any new payment.
+        Returns coaching_fee_expiry_date if set.
+        For 'Both' dual students, falls back to fee_expiry_date if coaching has not been
+        independently set yet and fee_expiry_date is older than library_fee_expiry_date (or library is unset).
         """
-        if self.coaching_fee_expiry_date is not None:
-            return self.coaching_fee_expiry_date
-        return self.fee_expiry_date
+        if self.service_type == 'Both':
+            if self.coaching_fee_expiry_date is not None:
+                return self.coaching_fee_expiry_date
+            if self.fee_expiry_date is not None and (self.library_fee_expiry_date is None or self.fee_expiry_date < self.library_fee_expiry_date):
+                return self.fee_expiry_date
+            return None
+        return self.coaching_fee_expiry_date if self.coaching_fee_expiry_date is not None else self.fee_expiry_date
 
     @property
     def effective_library_expiry(self):
         """
-        Returns library_fee_expiry_date if set; falls back to fee_expiry_date
-        when empty so existing 'Both' students show correctly before any new payment.
+        Returns library_fee_expiry_date if set.
+        For 'Both' dual students, falls back to fee_expiry_date if library has not been
+        independently set yet and fee_expiry_date is older than coaching_fee_expiry_date (or coaching is unset).
         """
-        if self.library_fee_expiry_date is not None:
-            return self.library_fee_expiry_date
-        return self.fee_expiry_date
+        if self.service_type == 'Both':
+            if self.library_fee_expiry_date is not None:
+                return self.library_fee_expiry_date
+            if self.fee_expiry_date is not None and (self.coaching_fee_expiry_date is None or self.fee_expiry_date < self.coaching_fee_expiry_date):
+                return self.fee_expiry_date
+            return None
+        return self.library_fee_expiry_date if self.library_fee_expiry_date is not None else self.fee_expiry_date
 
     @property
     def is_coaching_overdue(self):

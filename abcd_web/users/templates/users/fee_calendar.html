@@ -982,7 +982,7 @@
         <div class="expiry-info-container">
             <p class="expiry-text">
                 <i class='bx bx-calendar-exclamation expiry-icon'></i>
-                Current Expiry Date: <span class="expiry-val">{% if student.fee_expiry_date %}{{ student.fee_expiry_date|date:'d b Y' }}{% else %}Not Set{% endif %}</span>
+                Current Expiry Date: <span class="expiry-val">{% if active_expiry %}{{ active_expiry|date:'d b Y' }}{% elif student.fee_expiry_date and not is_both %}{{ student.fee_expiry_date|date:'d b Y' }}{% else %}Not Set{% endif %}</span>
                 <button type="button" onclick="openExpiryModal(true)" class="expiry-action-btn expiry-edit-btn">
                     <i class='bx bx-edit-alt'></i> Edit
                 </button>
@@ -2153,7 +2153,8 @@
         });
 
         const submitBtn = document.getElementById('submit-all-fees-btn');
-        const processUrl = `{% url 'users:process_fees' student.id %}`;
+        const currentService = '{{ current_service|default:"" }}';
+        const processUrl = `{% url 'users:process_fees' student.id %}{% if current_service %}?service={{ current_service }}{% endif %}`;
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
         // Card input listeners
@@ -2215,7 +2216,8 @@
                     },
                     body: JSON.stringify({
                         actions: [payloadAction],
-                        save_only: true
+                        save_only: true,
+                        service: currentService
                     })
                 });
 
@@ -2416,7 +2418,8 @@
                     },
                     body: JSON.stringify({
                         actions: [payloadAction],
-                        save_only: true
+                        save_only: true,
+                        service: currentService
                     })
                 });
 
@@ -2664,14 +2667,14 @@
                     if (modalConfirmBtn) { modalConfirmBtn.disabled = false; modalConfirmBtn.textContent = 'Confirm & Submit'; }
                     return;
                 }
-                payload = { actions: [], expiry_date: manualExpiryDate, use_default_expiry: false };
+                payload = { actions: [], expiry_date: manualExpiryDate, use_default_expiry: false, service: currentService };
             } else {
                 if (!sessionSavedActions || sessionSavedActions.length === 0) {
                     if (modalConfirmBtn) { modalConfirmBtn.disabled = false; modalConfirmBtn.textContent = 'Confirm & Submit'; }
                     await window.showStyledAlert('No Changes', 'There are no saved fee actions to submit.');
                     return;
                 }
-                payload = { actions: sessionSavedActions, expiry_date: manualExpiryDate, use_default_expiry: chk.checked, final_dispatch: true };
+                payload = { actions: sessionSavedActions, expiry_date: manualExpiryDate, use_default_expiry: chk.checked, final_dispatch: true, service: currentService };
             }
             
             submitBtn.disabled = true;
@@ -2716,7 +2719,7 @@
 
         async function submitSingleAction(actions) {
             try {
-                const response = await fetch(processUrl, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken}, body:JSON.stringify({actions}) });
+                const response = await fetch(processUrl, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken}, body:JSON.stringify({actions, service: currentService}) });
                 let data = null;
                 try {
                     data = await response.json();
