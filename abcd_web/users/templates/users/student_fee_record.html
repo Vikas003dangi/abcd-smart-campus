@@ -1,16 +1,62 @@
 {% extends 'users/student_dashboard.html' %}
 {% load static %}
 
-{% block title %}Fees Record | Student Dashboard{% endblock %}
+{% block title %}My Fees Record | Student Dashboard{% endblock %}
 
 {% block extra_css %}
 <style>
     /* Professional Student Fees Record - Matching Teacher Accounting Theme */
     .fees-record-container {
-        padding: 40px 40px 80px;
+        padding: 25px 40px 80px;
         max-width: 1400px;
-        margin: 0 auto;
+        margin: 35px auto 80px;
         min-height: 90vh;
+    }
+
+    /* Back Button Component */
+    .record-back-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        margin-top: 10px;
+        margin-bottom: 25px;
+    }
+    .btn-record-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        color: #475569;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        transition: all 0.2s ease;
+    }
+    .btn-record-back i {
+        font-size: 0.95rem;
+        transition: transform 0.2s ease;
+    }
+    .btn-record-back:hover {
+        color: #4f46e5;
+        background: #eef2ff;
+        border-color: #c7d2fe;
+        transform: translateX(-2px);
+        box-shadow: 0 3px 8px rgba(99, 102, 241, 0.12);
+    }
+    body.dark-theme .btn-record-back {
+        color: #cbd5e1;
+        background: #1e293b;
+        border-color: #334155;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    body.dark-theme .btn-record-back:hover {
+        color: #c7d2fe;
+        background: rgba(99, 102, 241, 0.2);
+        border-color: #6366f1;
     }
 
     /* 1. Header Section */
@@ -863,7 +909,14 @@
 
     /* Tablet Responsiveness (541px - 991px) */
     @media (min-width: 541px) and (max-width: 991px) {
-        .fees-record-container { padding: 20px 16px 60px; }
+        .fees-record-container { 
+            padding: 20px 20px 60px; 
+            margin: 25px auto 60px;
+        }
+        .record-back-wrapper {
+            margin-top: 8px;
+            margin-bottom: 20px;
+        }
         .fees-table-layout th,
         .fees-table-layout td {
             padding: 14px 12px;
@@ -882,7 +935,22 @@
 
     /* Small Mobile Screens ONLY (<= 540px) */
     @media (max-width: 540px) {
-        .fees-record-container { padding: 12px 8px 40px; }
+        .fees-record-container { 
+            padding: 16px 12px 40px; 
+            margin: 20px auto 40px;
+        }
+        .record-back-wrapper {
+            margin-top: 6px;
+            margin-bottom: 16px;
+        }
+        .btn-record-back {
+            padding: 4px 10px;
+            font-size: 0.72rem;
+            gap: 4px;
+        }
+        .btn-record-back i {
+            font-size: 0.88rem;
+        }
         .record-header-section { margin-bottom: 25px; }
         .record-header-section h1 { font-size: 1.8rem; }
         .header-subtext { font-size: 0.9rem; }
@@ -1240,9 +1308,10 @@
 {% block content %}
 <main class="fees-record-container">
     <!-- In-Page Back Button -->
-    <div style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 24px;">
-        <a href="{% url 'users:student_dashboard' %}" class="btn-action-ghost" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none; padding: 7px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;">
-            <i class='bx bx-arrow-back'></i> Back to Dashboard
+    <div class="record-back-wrapper">
+        <a href="{% url 'users:student_dashboard' %}" class="btn-record-back">
+            <i class='bx bx-arrow-back'></i>
+            <span>Back to Dashboard</span>
         </a>
     </div>
 

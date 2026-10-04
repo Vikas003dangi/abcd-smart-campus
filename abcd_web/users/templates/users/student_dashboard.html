@@ -4883,7 +4883,7 @@
       <li>
         <a href="{% url 'users:student_fee_record' %}" class="{% if request.resolver_match.url_name == 'student_fee_record' %}active{% endif %}">
           <i class='bx bxs-receipt'></i>
-          <span>Fees Record</span>
+          <span>My Fees Record</span>
         </a>
       </li>
       {% endif %}
@@ -5251,11 +5251,13 @@
       </a>
       {% endif %}
 
-      <!-- 9. Contact -->
-      <a href="{% url 'users:contact' %}" class="app-card">
-        <i class='bx bx-phone'></i>
-        <span>Contact</span>
+      <!-- 9. Fees Record -->
+      {% if profile.status == 'admitted' and request.session.active_dashboard != 'alumni' %}
+      <a href="{% url 'users:student_fee_record' %}" class="app-card">
+        <i class='bx bx-wallet'></i>
+        <span>My Fees Record</span>
       </a>
+      {% endif %}
 
       <!-- 10. Your Progress (if coaching student) -->
       {% if profile.service_type == 'Coaching' or profile.service_type == 'Both' or is_approved_coaching %}
@@ -5864,7 +5866,7 @@
             <li><a href="{% url 'users:student_dashboard' %}#student-performance-hub" onclick="if(document.getElementById('student-performance-hub')){ document.getElementById('student-performance-hub').scrollIntoView({ behavior: 'smooth' }); }"><i class='bx bx-chevron-right'></i>Your Performance</a></li>
             {% endif %}
 
-            <li><a href="{% url 'users:student_fee_record' %}"><i class='bx bx-chevron-right'></i>Fees Record</a></li>
+            <li><a href="{% url 'users:student_fee_record' %}"><i class='bx bx-chevron-right'></i>My Fees Record</a></li>
             <li><a href="{% url 'users:courses' %}"><i class='bx bx-chevron-right'></i>Courses</a></li>
             <li><a href="{% url 'users:todo_hub' %}"><i class='bx bx-chevron-right'></i>TO-DOs</a></li>
             <li><a href="{% url 'users:guidy_home' %}"><i class='bx bx-chevron-right'></i>Guidy - Chat</a></li>
