@@ -673,36 +673,8 @@
   }
 
   /* ------------------------------------------------------------- */
-  /* Print Optimization                                            */
+  /* Print Optimization handled via _legal_print_doc_style.html     */
   /* ------------------------------------------------------------- */
-  @media print {
-    .legal-top-bar, .toc-card, .legal-floating-pdf-btn, .cross-link-card, .sidebar-wrapper, .footer, .top-nav-menu {
-      display: none !important;
-    }
-    .legal-wrapper {
-      max-width: 100% !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      color: #000000 !important;
-    }
-    .legal-hero {
-      background: none !important;
-      color: #000000 !important;
-      border: 1px solid #ccc !important;
-      box-shadow: none !important;
-      padding: 20px !important;
-    }
-    .legal-hero h1, .legal-hero p, .hero-kicker, .hero-badge-pill {
-      color: #000000 !important;
-    }
-    .legal-card {
-      background: none !important;
-      border: 1px solid #ddd !important;
-      box-shadow: none !important;
-      color: #000000 !important;
-      break-inside: avoid;
-    }
-  }
 
   /* ------------------------------------------------------------- */
   /* Compact & Non-Space Eating Mobile Typography (<= 768px & 480px)*/
@@ -1147,6 +1119,7 @@
     <span>Save / Print PDF</span>
   </button>
 
+  {% include 'partials/_legal_print_doc_style.html' with doc_title='Terms of Service' %}
 </main>
 {% include 'partials/_smart_back_redirect.html' %}
 {% include 'partials/_legal_return_toast.html' %}

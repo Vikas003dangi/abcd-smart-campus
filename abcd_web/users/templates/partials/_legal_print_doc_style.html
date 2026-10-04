@@ -1,0 +1,492 @@
+{% load static %}
+<!-- ==========================================================================
+     ABCD SMART CAMPUS - FORMAL LEGAL DOCUMENT PRINT / PDF STYLESHEET & ASSETS
+     Ensures pure white paper background, formal dark ink, institutional headers,
+     faint background watermark (ABCD Campus) on every page, running corner headers
+     with document title & page numbering, and zero dependency on web themes.
+========================================================================== -->
+
+<!-- Watermark: Appears on every printed page via position: fixed in print media -->
+<div class="legal-print-watermark" aria-hidden="true">
+  <div class="print-watermark-inner">
+    <div class="print-watermark-title">ABCD</div>
+    <div class="print-watermark-subtitle">Campus</div>
+  </div>
+</div>
+
+<!-- Running Header: Positioned at top-right corner of every printed page -->
+<div class="legal-print-running-header" aria-hidden="true">
+  <span>ABCD Campus &nbsp;|&nbsp; {{ doc_title|default:'Official Legal Policy' }} &nbsp;|&nbsp; <span class="print-page-num-indicator">Page <span class="page-current-num"></span></span></span>
+</div>
+
+<style>
+  /* --------------------------------------------------------------------------
+     SCREEN STYLES: Hidden on screen, active ONLY during Print / Save PDF
+     -------------------------------------------------------------------------- */
+  .legal-print-watermark,
+  .legal-print-running-header,
+  .legal-print-sign-off {
+    display: none;
+  }
+
+  /* --------------------------------------------------------------------------
+     PRINT / PDF EXPORT ENGINE: Pure Formal Document Layout
+     -------------------------------------------------------------------------- */
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 18mm 14mm 16mm 14mm;
+      @top-right {
+        content: "ABCD Campus | {{ doc_title|default:'Official Document' }} | Page " counter(page);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 8pt;
+        color: #475569;
+        font-weight: 500;
+      }
+      @bottom-right {
+        content: "ABCD Smart Campus • Ganj Basoda (M.P.) • Page " counter(page) " of " counter(pages);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 7.5pt;
+        color: #64748b;
+      }
+    }
+
+    /* 1. Global Reset: Remove all screen colors, gradients, dark mode, shadows */
+    *, *::before, *::after {
+      background: transparent !important;
+      color: inherit !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    html, body {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+      font-size: 10pt !important;
+      line-height: 1.55 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+
+    .legal-wrapper {
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      color: #0f172a !important;
+    }
+
+    /* 2. Hide ALL Web Navigation & Screen UI Elements */
+    header.top-nav-menu,
+    .top-nav-menu,
+    nav.navbar,
+    .navbar,
+    .sidebar-wrapper,
+    .sidebar,
+    .bottom-nav-menu,
+    .guest-bottom-nav,
+    .mob-bottom-bar,
+    footer,
+    .site-footer,
+    .footer,
+    .legal-top-bar,
+    .legal-tabs-container,
+    .toc-card,
+    .cross-link-card,
+    .legal-floating-pdf-btn,
+    .legal-return-toast,
+    #scrollToTopBtn,
+    .scroll-to-top,
+    .back-btn,
+    .theme-toggle,
+    .pwa-install-banner,
+    .master-loader-overlay,
+    .modal,
+    .modal-overlay-styled,
+    .admission-modal-styled,
+    #statusModal,
+    #statusModalOverlay,
+    .messages-container,
+    script,
+    style {
+      display: none !important;
+    }
+
+    /* 3. Faint Background Watermark: Repeated on every page */
+    .legal-print-watermark {
+      display: flex !important;
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -9999;
+      pointer-events: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .print-watermark-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transform: rotate(-32deg);
+      opacity: 0.045; /* extremely faint so reading text is 100% effortless */
+      user-select: none;
+      text-align: center;
+    }
+
+    .print-watermark-title {
+      font-size: 130pt;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      color: #000000 !important;
+      line-height: 0.88;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      text-transform: uppercase;
+      margin-left: 0.18em;
+    }
+
+    .print-watermark-subtitle {
+      font-size: 46pt;
+      font-weight: 700;
+      letter-spacing: 0.26em;
+      color: #000000 !important;
+      line-height: 1.1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      text-transform: uppercase;
+      margin-top: 10pt;
+      margin-left: 0.26em;
+    }
+
+    /* 4. Running Corner Header (Top-Right of every page) */
+    .legal-print-running-header {
+      display: block !important;
+      position: fixed !important;
+      top: -10mm;
+      right: 0;
+      font-size: 8pt;
+      font-weight: 600;
+      color: #64748b !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      text-align: right;
+      letter-spacing: 0.02em;
+      border-bottom: 0.5pt solid #cbd5e1;
+      padding-bottom: 3pt;
+      width: 100%;
+      z-index: 1000;
+    }
+
+    .print-page-num-indicator::after {
+      content: counter(page);
+    }
+
+    /* 5. Formal Institutional Header (Replaces web hero) */
+    .legal-hero {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 2pt solid #0f172a !important;
+      border-radius: 0 !important;
+      padding: 0 0 12pt 0 !important;
+      margin-bottom: 16pt !important;
+      box-shadow: none !important;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    .hero-kicker {
+      display: block !important;
+      font-size: 8.5pt !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.12em !important;
+      color: #475569 !important;
+      margin-bottom: 4pt !important;
+      border: none !important;
+      padding: 0 !important;
+      background: none !important;
+    }
+
+    .hero-kicker i {
+      display: none !important;
+    }
+
+    .hero-title-group h1 {
+      font-size: 20pt !important;
+      font-weight: 800 !important;
+      color: #0f172a !important;
+      line-height: 1.2 !important;
+      margin: 0 0 6pt 0 !important;
+      letter-spacing: -0.02em !important;
+    }
+
+    .hero-title-group h1 i {
+      display: none !important;
+    }
+
+    .hero-subtitle {
+      font-size: 9.8pt !important;
+      line-height: 1.5 !important;
+      color: #334155 !important;
+      margin: 0 0 8pt 0 !important;
+    }
+
+    .hero-badges-wrap {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 10pt !important;
+      margin-top: 8pt !important;
+      padding-top: 6pt !important;
+      border-top: 0.5pt solid #cbd5e1 !important;
+    }
+
+    .hero-badge-pill {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      font-size: 8.5pt !important;
+      color: #475569 !important;
+      border-radius: 0 !important;
+    }
+
+    .hero-badge-pill i {
+      display: none !important;
+    }
+
+    .hero-badge-pill strong {
+      color: #0f172a !important;
+    }
+
+    /* 6. Legal Sections, Cards & Typography */
+    .legal-card {
+      background: transparent !important;
+      border: none !important;
+      border-bottom: 0.5pt solid #e2e8f0 !important;
+      border-radius: 0 !important;
+      padding: 10pt 0 !important;
+      margin: 0 0 10pt 0 !important;
+      box-shadow: none !important;
+      color: #0f172a !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .legal-card:last-of-type {
+      border-bottom: none !important;
+    }
+
+    .legal-card h2 {
+      font-size: 12pt !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin: 0 0 6pt 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6pt !important;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    .legal-card h2 i {
+      display: none !important;
+    }
+
+    .sec-num {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      font-size: 8pt !important;
+      font-weight: 700 !important;
+      padding: 1.5pt 5pt !important;
+      border-radius: 3pt !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .legal-card h3 {
+      font-size: 10.5pt !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin: 8pt 0 4pt 0 !important;
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    .legal-card p,
+    .legal-card li {
+      font-size: 9.5pt !important;
+      line-height: 1.55 !important;
+      color: #1e293b !important;
+      margin-bottom: 5pt !important;
+    }
+
+    .legal-card ul {
+      margin: 4pt 0 8pt 18pt !important;
+      padding: 0 !important;
+    }
+
+    .legal-card strong {
+      color: #0f172a !important;
+      font-weight: 700 !important;
+    }
+
+    .legal-card a {
+      color: #0f172a !important;
+      text-decoration: underline !important;
+    }
+
+    /* Formal Callouts */
+    .legal-callout {
+      background: #f8fafc !important;
+      border: 0.5pt solid #cbd5e1 !important;
+      border-left: 3pt solid #0f172a !important;
+      border-radius: 4pt !important;
+      padding: 6pt 10pt !important;
+      margin: 6pt 0 !important;
+      color: #1e293b !important;
+      font-size: 9pt !important;
+      line-height: 1.45 !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .legal-callout.highlight {
+      background: #f1f5f9 !important;
+      border-left-color: #0f172a !important;
+    }
+
+    /* Formal Contact Grid in Print */
+    .contact-desk-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8pt !important;
+      margin-top: 8pt !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .contact-desk-item {
+      border: 0.5pt solid #cbd5e1 !important;
+      border-radius: 4pt !important;
+      padding: 6pt 8pt !important;
+      background: #f8fafc !important;
+      display: block !important;
+    }
+
+    .contact-desk-icon-box {
+      display: none !important;
+    }
+
+    .contact-desk-info h4 {
+      font-size: 9pt !important;
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin: 0 0 2pt 0 !important;
+    }
+
+    .contact-desk-info p {
+      font-size: 8.5pt !important;
+      color: #334155 !important;
+      margin: 0 !important;
+      line-height: 1.35 !important;
+    }
+
+    /* Formal Institutional Sign-off Block */
+    .legal-print-sign-off {
+      display: block !important;
+      margin-top: 20pt !important;
+      padding-top: 10pt !important;
+      border-top: 1.5pt solid #0f172a !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .print-sign-grid {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: flex-end !important;
+      font-size: 8.5pt !important;
+      color: #475569 !important;
+    }
+
+    .print-sign-col p {
+      margin: 2pt 0 !important;
+      line-height: 1.35 !important;
+    }
+
+    .print-sign-right {
+      text-align: right !important;
+    }
+
+    .print-seal-line {
+      font-weight: 700 !important;
+      color: #0f172a !important;
+      margin-top: 18pt !important;
+      border-top: 0.5pt solid #0f172a !important;
+      display: inline-block !important;
+      padding-top: 3pt !important;
+      min-width: 140pt !important;
+    }
+  }
+</style>
+
+<!-- Institutional Print Sign-Off (rendered only on print at the bottom of document) -->
+<div class="legal-print-sign-off" aria-hidden="true">
+  <div class="print-sign-grid">
+    <div class="print-sign-col">
+      <p><strong>Issued By:</strong> ABCD Smart Campus Administration</p>
+      <p>Ganj Basoda, District Vidisha, Madhya Pradesh - 464221</p>
+      <p>Official Statutory Gazette Copy &nbsp;|&nbsp; DPDP Act, 2023 Compliant</p>
+    </div>
+    <div class="print-sign-col print-sign-right">
+      <p><strong>Approved & Authenticated:</strong></p>
+      <div class="print-seal-line">Managing Director / Authorized Signatory</div>
+      <p style="font-size: 8pt; color: #64748b;">ABCD Coaching & Library</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Enhance Print Button & PDF Filename
+  function setupPdfPrintFilename() {
+    const docTitle = "{{ doc_title|default:'Legal_Document' }}".replace(/[^a-zA-Z0-9_-]/g, '_');
+    const pdfButtons = document.querySelectorAll('.legal-floating-pdf-btn');
+
+    pdfButtons.forEach(function(btn) {
+      btn.onclick = function(e) {
+        e.preventDefault();
+        const originalTitle = document.title;
+        try {
+          document.title = "ABCD_Campus_" + docTitle + "_Official.pdf";
+        } catch(err) {}
+
+        if (window.playABCDSound) window.playABCDSound('button');
+
+        window.print();
+
+        setTimeout(function() {
+          try {
+            document.title = originalTitle;
+          } catch(err) {}
+        }, 1200);
+      };
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupPdfPrintFilename);
+  } else {
+    setupPdfPrintFilename();
+  }
+})();
+</script>
