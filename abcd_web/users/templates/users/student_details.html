@@ -364,9 +364,19 @@
             <a href="{% url 'users:teacher_dashboard' %}" class="pill-btn btn-grey">
                 <i class='bx bx-arrow-back'></i> Back
             </a>
+            {% if student.service_type == 'Both' %}
             <a href="{% url 'users:fee_calendar' student.id %}" class="pill-btn btn-success" style="background: #10b981; color: white;">
                 <i class='bx bx-credit-card'></i> Pay Fees
             </a>
+            {% elif student.service_type == 'Coaching' %}
+            <a href="{% url 'users:fee_calendar' student.id %}?service=coaching" class="pill-btn btn-success" style="background: #10b981; color: white;">
+                <i class='bx bx-credit-card'></i> Pay Fees
+            </a>
+            {% else %}
+            <a href="{% url 'users:fee_calendar' student.id %}?service=library" class="pill-btn btn-success" style="background: #10b981; color: white;">
+                <i class='bx bx-credit-card'></i> Pay Fees
+            </a>
+            {% endif %}
             <a href="{% url 'users:edit_student' student.id %}" class="pill-btn btn-indigo">
                 <i class='bx bxs-edit-alt'></i> Edit
             </a>

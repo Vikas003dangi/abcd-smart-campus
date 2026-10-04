@@ -4562,15 +4562,23 @@ def student_dashboard_view(request):
                 deleted_at__isnull=True
             ).order_by('-payment_date', '-created_at')[:5])
 
-            if not fee_transactions:
-                # Fallback to legacy Payment records ONLY if student never had any FeeTransaction
-                has_any_fee_tx = FeeTransaction.objects.filter(student=profile).exists()
-                if not has_any_fee_tx:
-                    legacy_payments = Payment.objects.filter(student=profile).order_by('-date_paid', '-year')[:5]
-                    context['fee_records'] = legacy_payments
-                else:
-                    context['fee_records'] = []
+            if profile.service_type == 'Both':
+                context['is_both_services'] = True
+                coaching_tx = list(FeeTransaction.objects.filter(
+                    student=profile,
+                    is_hidden_by_student=False,
+                    deleted_at__isnull=True
+                ).exclude(Q(service='library') | Q(service='', service_snapshot__icontains='library')).order_by('-payment_date', '-created_at')[:5])
+                library_tx = list(FeeTransaction.objects.filter(
+                    student=profile,
+                    is_hidden_by_student=False,
+                    deleted_at__isnull=True
+                ).filter(Q(service='library') | Q(service='', service_snapshot__icontains='library')).order_by('-payment_date', '-created_at')[:5])
+                context['coaching_fee_records'] = coaching_tx
+                context['library_fee_records'] = library_tx
+                context['fee_records'] = fee_transactions
             else:
+                context['is_both_services'] = False
                 context['fee_records'] = fee_transactions
 
             # --- LEADERBOARD LOGIC ---
@@ -6652,6 +6660,23 @@ def student_fee_record_view(request):
     else:
         transactions = base_qs.filter(is_hidden_by_student=False).order_by('-payment_date', '-created_at')
 
+    service_filter = request.GET.get('service', '').strip().lower()
+    is_both = (profile.service_type == 'Both')
+    coaching_count = 0
+    library_count = 0
+    if is_both:
+        coaching_count = base_qs.filter(is_hidden_by_student=(current_tab == 'hidden')).filter(
+            Q(service='coaching') | Q(service='', service_snapshot__icontains='coaching')
+        ).count()
+        library_count = base_qs.filter(is_hidden_by_student=(current_tab == 'hidden')).filter(
+            Q(service='library') | Q(service='', service_snapshot__icontains='library')
+        ).count()
+
+    if service_filter in ['coaching', 'library']:
+        transactions = transactions.filter(
+            Q(service=service_filter) | Q(service='', service_snapshot__icontains=service_filter)
+        )
+
     if search_query:
         query_filter = (
             Q(receipt_number__icontains=search_query) |
@@ -6669,6 +6694,7 @@ def student_fee_record_view(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    today = timezone.now().date()
     return render(request, 'users/student_fee_record.html', {
         'page_obj': page_obj,
         'search_query': search_query,
@@ -6678,6 +6704,14 @@ def student_fee_record_view(request):
         'hidden_count': hidden_count,
         'highlight_id': highlight_id,
         'highlight_status': highlight_status,
+        'is_both': is_both,
+        'service_filter': service_filter,
+        'coaching_count': coaching_count,
+        'library_count': library_count,
+        'coaching_expiry': profile.coaching_fee_expiry_date,
+        'library_expiry': profile.library_fee_expiry_date,
+        'coaching_expired': bool(profile.coaching_fee_expiry_date and profile.coaching_fee_expiry_date <= today),
+        'library_expired': bool(profile.library_fee_expiry_date and profile.library_fee_expiry_date <= today),
     })
 
 
@@ -11165,12 +11199,39 @@ def delete_student_view(request, student_id):
 def fee_calendar_view(request, student_id):
     student = get_object_or_404(StudentProfile, id=student_id)
     
+    # Service handling
+    raw_service = request.GET.get('service', '').strip().lower()
+    is_both = (student.service_type == 'Both')
+    
+    if is_both and not raw_service:
+        # A 'Both' student opened without ?service: show a clear choice, never guess
+        context = {
+            'student': student,
+            'is_both_selection': True,
+        }
+        return render(request, 'users/fee_calendar_choice.html', context)
+    
+    if is_both:
+        current_service = 'coaching' if raw_service == 'coaching' else 'library'
+    elif student.service_type == 'Coaching':
+        current_service = 'coaching'
+    else:
+        current_service = 'library'
+
     try:
         selected_year = int(request.GET.get('year', timezone.localdate().year))
     except ValueError:
         selected_year = timezone.localdate().year
 
-    payments = Payment.objects.filter(student=student, year=selected_year)
+    # Filter payments for this service
+    payments_qs = Payment.objects.filter(student=student)
+    if is_both:
+        payments_qs = payments_qs.filter(service=current_service)
+    else:
+        # Single-service student: match exact service or legacy NULL rows
+        payments_qs = payments_qs.filter(Q(service=current_service) | Q(service__isnull=True))
+
+    payments = payments_qs.filter(year=selected_year)
     payment_data = {p.month: p for p in payments}
     all_months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
     
@@ -11188,14 +11249,10 @@ def fee_calendar_view(request, student_id):
 
     # Build a list of all paid entries (all years) so JS can compute the range highlight
     import json as _json
-    _month_num_map = {
-        "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,
-        "July":7,"August":8,"September":9,"October":10,"November":11,"December":12
-    }
+    _month_num_map = MONTH_NUM
     # Sort by year and then month number
-    all_payments_qs = Payment.objects.filter(student=student)
-    all_payments_list_raw = list(all_payments_qs)
-    all_payments_list_raw.sort(key=lambda p: (int(p.year), _month_num_map.get(p.month, 1)))
+    all_payments_list_raw = list(payments_qs)
+    all_payments_list_raw.sort(key=lambda p: (int(p.year) if str(p.year).isdigit() else 0, _month_num_map.get(p.month, 1)))
 
     all_payments_list = []
     for p in all_payments_list_raw:
@@ -11208,7 +11265,16 @@ def fee_calendar_view(request, student_id):
                 "amount": float(p.amount) if p.amount is not None else 0.0,
             })
     all_payments_json = _json.dumps(all_payments_list)
-    expiry_date_json = _json.dumps(student.fee_expiry_date.strftime("%Y-%m-%d") if student.fee_expiry_date else None)
+    
+    # Active expiry date for this service
+    if is_both:
+        active_expiry = student.coaching_fee_expiry_date if current_service == 'coaching' else student.library_fee_expiry_date
+    else:
+        active_expiry = (
+            student.coaching_fee_expiry_date if student.service_type == 'Coaching'
+            else (student.library_fee_expiry_date or student.fee_expiry_date)
+        )
+    expiry_date_json = _json.dumps(active_expiry.strftime("%Y-%m-%d") if active_expiry else None)
 
     context = {
         'student': student,
@@ -11217,7 +11283,12 @@ def fee_calendar_view(request, student_id):
         'year_range': range(timezone.localdate().year - 5, timezone.localdate().year + 6),
         'all_payments_json': all_payments_json,
         'expiry_date_json': expiry_date_json,
-        'hold_periods_json': _json.dumps(get_student_hold_periods(student)),
+        'hold_periods_json': _json.dumps(get_student_hold_periods(student) if current_service == 'library' else []),
+        'current_service': current_service,
+        'active_service': current_service,
+        'is_both': is_both,
+        'coaching_expiry': student.coaching_fee_expiry_date,
+        'library_expiry': student.library_fee_expiry_date,
     }
     return render(request, 'users/fee_calendar.html', context)
 
@@ -11344,15 +11415,18 @@ def _recalc_fee_expiry_with_hold(student):
     # If no payments exist, don't touch fee_expiry_date
 
 
-def sync_student_fee_chain(student):
+def sync_student_fee_chain(student, service=None):
     """
     Recalculates the implicit 'date_paid' for zero-amount payments based on the highest
     preceding explicit payment's day, creating a 'chain' rule.
+    Supports service-aware chain calculation when service ('coaching' or 'library') is passed.
+    For legacy NULL-service payments or single-service students, gracefully falls back.
     Returns the final (base_year, base_month, base_day) of the highest month to be used for expiry.
     """
     from datetime import datetime
     import calendar
     from django.utils import timezone
+    from django.db.models import Q
     from .models import Payment
     
     month_map = {
@@ -11361,7 +11435,15 @@ def sync_student_fee_chain(student):
         "September": 9, "October": 10, "November": 11, "December": 12
     }
     
-    all_payments = list(Payment.objects.filter(student=student))
+    payments_qs = Payment.objects.filter(student=student)
+    if service:
+        service_clean = service.strip().lower()
+        if student.service_type == 'Both':
+            payments_qs = payments_qs.filter(service=service_clean)
+        else:
+            payments_qs = payments_qs.filter(Q(service=service_clean) | Q(service__isnull=True))
+
+    all_payments = list(payments_qs)
     all_payments.sort(key=lambda p: (int(p.year) if str(p.year).isdigit() else 0, month_map.get(p.month, 1)))
     
     current_settlement_day = None
@@ -11462,45 +11544,42 @@ def send_receipt_notifications_async(transaction_id, student_id):
         close_old_connections()
 
 
+def _safe_fee_amount(val):
+    if val is None or val == '':
+        return 0
+    try:
+        cleaned = str(val).replace('₹', '').replace(',', '').strip()
+        return int(float(cleaned))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _safe_fee_date(val, fallback=None):
+    if not val:
+        return fallback or timezone.localdate()
+    from datetime import date as dt_date, datetime as dt_datetime
+    if isinstance(val, (dt_date, dt_datetime)):
+        return val.date() if isinstance(val, dt_datetime) else val
+    try:
+        from datetime import datetime
+        return datetime.strptime(str(val).strip(), '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        try:
+            from datetime import datetime
+            return datetime.strptime(str(val).strip(), '%d-%m-%Y').date()
+        except (ValueError, TypeError):
+            return fallback or timezone.localdate()
+
+
 @require_POST
 def process_fees_view(request, student_id):
-    if not request.user.is_authenticated:
-        return JsonResponse({'status': 'error', 'message': 'Authentication required. Please log in.'}, status=401)
-    if not (request.user.is_staff or request.user.is_superuser):
-        return JsonResponse({'status': 'error', 'message': 'Permission denied. Teacher access required.'}, status=403)
-
-    from datetime import date
-    from django.utils import timezone
-    from users.models import Payment, StudentProfile, FeeTransaction
-    from users.utils.receipt_generator import generate_fee_receipt_pdf
-    from users.notifications import get_student_service_details
-
-    def _safe_fee_amount(val):
-        if val is None or val == '':
-            return 0
-        try:
-            return int(float(str(val).strip()))
-        except (ValueError, TypeError):
-            return 0
-
-    def _safe_fee_date(val, fallback=None):
-        if not val:
-            return fallback
-        if isinstance(val, datetime):
-            return val.date()
-        if isinstance(val, date):
-            return val
-        val_str = str(val).strip()
-        for fmt in ('%Y-%m-%d', '%d %b %Y', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%d-%b-%Y'):
-            try:
-                return datetime.strptime(val_str, fmt).date()
-            except (ValueError, TypeError):
-                continue
-        return fallback
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
 
     try:
+        import json
         try:
-            data = json.loads(request.body) if request.body else {}
+            data = json.loads(request.body)
         except Exception:
             data = request.POST.dict()
             if 'actions' in data and isinstance(data['actions'], str):
@@ -11516,20 +11595,34 @@ def process_fees_view(request, student_id):
 
         student = get_object_or_404(StudentProfile, id=student_id)
 
+        # Determine target service (coaching or library)
+        raw_service = str(data.get('service') or request.GET.get('service') or '').strip().lower()
+        if student.service_type == 'Both':
+            if raw_service not in ('coaching', 'library'):
+                return JsonResponse({'status': 'error', 'message': 'Please specify service (coaching or library) for dual-service students.'}, status=400)
+            target_service = raw_service
+        elif student.service_type == 'Coaching':
+            target_service = 'coaching'
+        else:
+            target_service = 'library'
+
         # Fee submission idempotency lock (teacher + student + service/months + amount for 10 seconds)
         if final_dispatch or (actions and not save_only):
             from django.core.cache import cache
-            service_str = str(data.get('service') or getattr(student, 'service_type', '') or '').strip().lower()
+            service_str = target_service
             months_summary = ",".join(sorted(f"{a.get('month')}-{a.get('year')}" for a in actions if isinstance(a, dict)))
             total_submit_amount = sum(_safe_fee_amount(a.get('amount')) for a in actions if isinstance(a, dict))
 
             fee_idemp_key = f"fee_lock_{request.user.id}_{student.id}_{service_str}_{months_summary}_{total_submit_amount}"
             if not cache.add(fee_idemp_key, True, timeout=10):
                 logger.warning(f"[process_fees_view] Duplicate fee submission blocked by idempotency key: {fee_idemp_key}")
+                display_exp = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
+                if not display_exp and student.service_type != 'Both':
+                    display_exp = student.fee_expiry_date
                 return JsonResponse({
                     'status': 'success',
                     'message': 'Fee submission already processed (duplicate request ignored).',
-                    'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
+                    'fee_expiry_date': display_exp.strftime('%d %b %Y') if display_exp else 'Not Set'
                 })
         
         notification_details = []
@@ -11554,6 +11647,9 @@ def process_fees_view(request, student_id):
                     explicit_day = pd.day
                     break
         
+        current_service_expiry = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
+        if not explicit_day and current_service_expiry:
+            explicit_day = current_service_expiry.day
         if not explicit_day and student.fee_expiry_date:
             explicit_day = student.fee_expiry_date.day
         if not explicit_day:
@@ -11565,8 +11661,12 @@ def process_fees_view(request, student_id):
                 action_type = action_data.get('action')
                 
                 if action_type == 'clear_expiry':
-                    student.fee_expiry_date = None
-                    student.save(update_fields=['fee_expiry_date'])
+                    if target_service == 'coaching':
+                        student.coaching_fee_expiry_date = None
+                    else:
+                        student.library_fee_expiry_date = None
+                    student.sync_overall_fee_expiry_date(save=False)
+                    student.save()
                     return JsonResponse({'status': 'success', 'message': 'Expiry date cleared successfully.'})
 
                 month = action_data.get('month')
@@ -11586,7 +11686,9 @@ def process_fees_view(request, student_id):
                 if final_dispatch:
                     if action_type in ['add_fee', 'edit_fee']:
                         amount_val = _safe_fee_amount(action_data.get('amount'))
-                        existing_p = Payment.objects.filter(student=student, month=month, year=year).first()
+                        existing_p = Payment.objects.filter(student=student, month=month, year=year, service=target_service).first()
+                        if not existing_p and student.service_type != 'Both':
+                            existing_p = Payment.objects.filter(student=student, month=month, year=year, service__isnull=True).first()
                         fallback_d = existing_p.date_paid if (existing_p and existing_p.date_paid) else timezone.localdate()
                         payment_date = _safe_fee_date(action_data.get('payment_date'), fallback=fallback_d)
                         
@@ -11602,7 +11704,9 @@ def process_fees_view(request, student_id):
                             "type": "paid"
                         })
                     elif action_type == 'mark_as_paid':
-                        payment = Payment.objects.filter(student=student, month=month, year=year).first()
+                        payment = Payment.objects.filter(student=student, month=month, year=year, service=target_service).first()
+                        if not payment and student.service_type != 'Both':
+                            payment = Payment.objects.filter(student=student, month=month, year=year, service__isnull=True).first()
                         p_date = payment.date_paid if payment and payment.date_paid else timezone.localdate()
                         notification_details.append(
                             f"{month} marked as paid on {p_date.strftime('%d %b %Y')}"
@@ -11629,7 +11733,10 @@ def process_fees_view(request, student_id):
                 else:
                     # Ordinary processing or save_only
                     if action_type == 'delete_fee':
-                        Payment.objects.filter(student=student, month=month, year=year).delete()
+                        del_qs = Payment.objects.filter(student=student, month=month, year=year, service=target_service)
+                        if not del_qs.exists() and student.service_type != 'Both':
+                            del_qs = Payment.objects.filter(student=student, month=month, year=year, service__isnull=True)
+                        del_qs.delete()
                         notification_details.append(
                             f"{month} payment cleared"
                         )
@@ -11642,7 +11749,7 @@ def process_fees_view(request, student_id):
                         })
                     else:
                         payment, created = Payment.objects.get_or_create(
-                            student=student, month=month, year=year, defaults={'amount': 0}
+                            student=student, service=target_service, month=month, year=year, defaults={'amount': 0}
                         )
 
                         if action_type == 'add_fee':
@@ -11715,58 +11822,74 @@ def process_fees_view(request, student_id):
                 from dateutil.relativedelta import relativedelta
                 import calendar
                 
-                # 1. Run the chain rule to sync all dates properly
-                base_year, base_month, base_day = sync_student_fee_chain(student)
+                # 1. Run the chain rule to sync all dates properly for target service
+                base_year, base_month, base_day = sync_student_fee_chain(student, service=target_service)
                 
                 if use_default_expiry:
                     if base_year is not None:
                         next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
                         _, last_day = calendar.monthrange(next_month_date.year, next_month_date.month)
                         final_day = min(base_day, last_day)
+                        computed_exp = datetime(next_month_date.year, next_month_date.month, final_day).date()
                         
-                        student.fee_expiry_date = datetime(next_month_date.year, next_month_date.month, final_day).date()
-                        
-                        # Extend expiry by actual hold days
-                        hold_days = calculate_hold_extension_days(student)
-                        if hold_days > 0 and student.fee_expiry_date:
-                            student.fee_expiry_date += timedelta(days=hold_days)
+                        # Extend expiry by actual hold days for library service
+                        if target_service == 'library':
+                            hold_days = calculate_hold_extension_days(student)
+                            if hold_days > 0 and computed_exp:
+                                computed_exp += timedelta(days=hold_days)
                     else:
-                        student.fee_expiry_date = None
+                        computed_exp = None
                     
-                    student.save()
+                    if target_service == 'coaching':
+                        student.coaching_fee_expiry_date = computed_exp
+                    else:
+                        student.library_fee_expiry_date = computed_exp
                 elif expiry_date_str:
                     parsed_exp = _safe_fee_date(expiry_date_str)
-                    if parsed_exp:
-                        student.fee_expiry_date = parsed_exp
-                        student.save()
+                    if target_service == 'coaching':
+                        student.coaching_fee_expiry_date = parsed_exp
+                    else:
+                        student.library_fee_expiry_date = parsed_exp
+
+                student.sync_overall_fee_expiry_date(save=False)
+                student.save()
             else:
                 # Direct edit of expiry date without fee actions
                 if expiry_date_str:
                     parsed_exp = _safe_fee_date(expiry_date_str)
-                    if parsed_exp:
-                        student.fee_expiry_date = parsed_exp
-                        student.save()
-                        return JsonResponse({
-                            'status': 'success',
-                            'message': 'Expiry date updated successfully!',
-                            'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y')
-                        })
+                    if target_service == 'coaching':
+                        student.coaching_fee_expiry_date = parsed_exp
+                    else:
+                        student.library_fee_expiry_date = parsed_exp
+                    student.sync_overall_fee_expiry_date(save=False)
+                    student.save()
+                    display_exp = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
+                    if not display_exp and student.service_type != 'Both':
+                        display_exp = student.fee_expiry_date
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Expiry date updated successfully!',
+                        'fee_expiry_date': display_exp.strftime('%d %b %Y') if display_exp else 'Not Set'
+                    })
 
             # If it's a save_only AJAX call from a single month card:
             if save_only:
+                display_exp = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
+                if not display_exp and student.service_type != 'Both':
+                    display_exp = student.fee_expiry_date
                 return JsonResponse({
                     'status': 'success',
                     'message': 'Saved successfully',
-                    'fee_expiry_date': student.fee_expiry_date.strftime('%d %b %Y') if student.fee_expiry_date else 'Not Set'
+                    'fee_expiry_date': display_exp.strftime('%d %b %Y') if display_exp else 'Not Set'
                 })
 
             if notification_details:
                 teacher_name = request.user.username 
-                today_str = timezone.localdate().strftime("%d %b %Y")
                 details_text = "\n".join(notification_details)
 
                 # --- ABCD NEW ACCOUNTING INTEGRATION ---
                 try:
+                    from .notifications import get_student_service_details
                     # 1. Build immutable month snapshots
                     fee_snapshots = []
                     total_trans_amount = 0
@@ -11807,7 +11930,9 @@ def process_fees_view(request, student_id):
                             if item.get("type") != "deleted":
                                 m = item.get("month")
                                 y = item.get("year")
-                                p = Payment.objects.filter(student=student, month=m, year=y).first()
+                                p = Payment.objects.filter(student=student, month=m, year=y, service=target_service).first()
+                                if not p and student.service_type != 'Both':
+                                    p = Payment.objects.filter(student=student, month=m, year=y, service__isnull=True).first()
                                 if p:
                                     processed_payments.append(p)
 
@@ -11817,11 +11942,11 @@ def process_fees_view(request, student_id):
                             None
                         )
 
-                        # If not directly linked, check candidate tx by student + month match
+                        # If not directly linked, check candidate tx by student + service + month match
                         if not existing_tx:
                             from .management.commands.match_fee_payments import _month_year_in_snapshot
                             candidate_txs = []
-                            for tx in FeeTransaction.objects.filter(student=student, deleted_at__isnull=True):
+                            for tx in FeeTransaction.objects.filter(student=student, deleted_at__isnull=True, service=target_service):
                                 for p in processed_payments:
                                     if _month_year_in_snapshot(p.month, p.year, tx.months_snapshot):
                                         if tx not in candidate_txs:
@@ -11830,6 +11955,10 @@ def process_fees_view(request, student_id):
                                 existing_tx = candidate_txs[0]
 
                         from decimal import Decimal
+                        active_exp = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
+                        if not active_exp and student.service_type != 'Both':
+                            active_exp = student.fee_expiry_date
+
                         if existing_tx:
                             # In-place edit of existing receipt (keep same receipt_number)
                             old_amount = existing_tx.total_amount
@@ -11848,7 +11977,9 @@ def process_fees_view(request, student_id):
                                 existing_tx.months_snapshot = new_months
                                 existing_tx.last_modified_at = timezone.now()
                                 existing_tx.last_modified_by = request.user
-                                existing_tx.expiry_date = student.fee_expiry_date
+                                existing_tx.expiry_date = active_exp
+                                existing_tx.service = target_service
+                                existing_tx.service_snapshot = get_student_service_details(student, service=target_service)
                                 # Decision 3: If student had hidden the receipt and teacher edits it, it REAPPEARS for student
                                 existing_tx.is_hidden_by_student = False
                                 existing_tx.save()
@@ -11862,10 +11993,8 @@ def process_fees_view(request, student_id):
                                     new_months=new_months,
                                     old_payment_date=old_payment_date,
                                     new_payment_date=new_payment_date,
-                                    actor=request.user,
-                                    note=f"Receipt edited in-place by {request.user.username}"
+                                    actor=request.user
                                 )
-
                                 trans_record = existing_tx
 
                                 # Link all processed payments to this transaction
@@ -11878,12 +12007,13 @@ def process_fees_view(request, student_id):
                                 if student.user:
                                     try:
                                         notif_tag = f"fee-receipt-{trans_record.id}-r{trans_record.revision_count}"
-                                        notif_title = "Receipt Corrected"
-                                        notif_body = f"Payment details updated to ₹{total_trans_amount} (Receipt #{trans_record.receipt_number})."
+                                        notif_title = f"{target_service.capitalize()} Receipt Corrected" if student.service_type == 'Both' else "Receipt Corrected"
+                                        notif_body = f"{target_service.capitalize()} payment details updated to ₹{total_trans_amount} (Receipt #{trans_record.receipt_number})."
                                         notif_link = f"/student/fees/?highlight={trans_record.id}"
                                         notif_meta = {
                                             "fee_transaction_id": trans_record.id,
                                             "receipt_number": trans_record.receipt_number,
+                                            "service": target_service,
                                             "amount": str(total_trans_amount),
                                             "tag": notif_tag,
                                             "revision": trans_record.revision_count,
@@ -11915,14 +12045,15 @@ def process_fees_view(request, student_id):
                                 teacher=request.user,
                                 receipt_number=FeeTransaction.generate_receipt_number(),
                                 payment_date=timezone.localdate(),
-                                expiry_date=student.fee_expiry_date,
-                                service_snapshot=get_student_service_details(student),
+                                expiry_date=active_exp,
+                                service=target_service,
+                                service_snapshot=get_student_service_details(student, service=target_service),
                                 months_snapshot=fee_snapshots,
                                 total_amount=total_trans_amount,
                                 student_name_snapshot=student.full_name or '',
                                 roll_number_snapshot=str(student.id) if student else '',
                                 mobile_snapshot=student.mobile_number or '',
-                                course_snapshot=student.batch or student.service_type or ''
+                                course_snapshot=(student.batch if target_service == 'coaching' else (f"Seat {student.seat.seat_number}" if student.seat else "Library")) or (getattr(student, 'course', None) or ('Coaching' if target_service == 'coaching' else 'Library'))
                             )
 
                             # Link processed payments
@@ -11940,12 +12071,13 @@ def process_fees_view(request, student_id):
                                     ).exists()
 
                                     if not already_notified:
-                                        notif_title = "Fee Submitted Successfully"
-                                        notif_body = f"Payment of ₹{total_trans_amount} recorded (Receipt #{trans_record.receipt_number})."
+                                        notif_title = f"{target_service.capitalize()} Fee Submitted" if student.service_type == 'Both' else "Fee Submitted Successfully"
+                                        notif_body = f"Payment of ₹{total_trans_amount} for {target_service.capitalize()} recorded (Receipt #{trans_record.receipt_number})."
                                         notif_link = f"/student/fees/?highlight={trans_record.id}"
                                         notif_meta = {
                                             "fee_transaction_id": trans_record.id,
                                             "receipt_number": trans_record.receipt_number,
+                                            "service": target_service,
                                             "amount": str(total_trans_amount),
                                             "tag": notif_tag,
                                             "actions": [
@@ -11981,16 +12113,22 @@ def process_fees_view(request, student_id):
             t.daemon = True
             t.start()
 
+        display_exp = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
+        if not display_exp and student.service_type != 'Both':
+            display_exp = student.fee_expiry_date
+
         return JsonResponse({
             'status': 'success',
-            'message': f'Successfully processed {len(notification_details)} month(s). Notifications are being sent in the background.'
+            'message': f'Successfully processed {len(notification_details)} month(s). Notifications are being sent in the background.',
+            'receipt_number': trans_record.receipt_number if trans_record else None,
+            'fee_expiry_date': display_exp.strftime('%d %b %Y') if display_exp else 'Not Set'
         })
 
     except Exception as e:
         import logging
         logging.getLogger(__name__).exception(f"Error in process_fees_view: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
+
 @login_required
 @user_passes_test(lambda u: u.is_staff)
 def delete_payment_view(request, student_id, year, month_name):
@@ -11998,12 +12136,21 @@ def delete_payment_view(request, student_id, year, month_name):
         return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
     
     try:
+        req_service = request.POST.get('service') or request.GET.get('service')
+        if req_service:
+            req_service = req_service.strip().lower()
+
         with transaction.atomic():
-            payment = Payment.objects.filter(
+            pay_qs = Payment.objects.filter(
                 student_id=student_id,
                 year=year,
                 month=month_name
-            ).first()
+            )
+            if req_service:
+                filtered_qs = pay_qs.filter(service=req_service)
+                payment = filtered_qs.first() if filtered_qs.exists() else pay_qs.filter(service__isnull=True).first()
+            else:
+                payment = pay_qs.first()
 
             if not payment:
                 return JsonResponse({
@@ -12013,12 +12160,15 @@ def delete_payment_view(request, student_id, year, month_name):
 
             student = payment.student
             tx = payment.fee_transaction
+            target_service = payment.service or req_service
+            if not target_service and student:
+                target_service = 'coaching' if student.service_type == 'Coaching' else 'library'
 
             # If unlinked, attempt safe single candidate lookup
             if not tx and student:
                 from .management.commands.match_fee_payments import _month_year_in_snapshot
                 candidates = [
-                    c for c in FeeTransaction.objects.filter(student=student, deleted_at__isnull=True)
+                    c for c in FeeTransaction.objects.filter(student=student, deleted_at__isnull=True, service=target_service)
                     if _month_year_in_snapshot(month_name, year, c.months_snapshot)
                 ]
                 if len(candidates) == 1:
@@ -12084,41 +12234,49 @@ def delete_payment_view(request, student_id, year, month_name):
                     except Exception as ne:
                         logging.getLogger(__name__).warning(f"Error sending month clear notification: {ne}")
 
-            # Recalculate expiry date
+            # Recalculate expiry date for target service
             from dateutil.relativedelta import relativedelta
             import calendar
             
-            base_year, base_month, base_day = sync_student_fee_chain(student)
+            base_year, base_month, base_day = sync_student_fee_chain(student, service=target_service)
             
             if base_year is not None:
                 next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
                 _, last_day = calendar.monthrange(next_month_date.year, next_month_date.month)
                 final_day = min(base_day, last_day)
                 
-                student.fee_expiry_date = datetime(next_month_date.year, next_month_date.month, final_day).date()
-                # Extend expiry by actual hold days
-                hold_days = calculate_hold_extension_days(student)
-                if hold_days > 0:
-                    student.fee_expiry_date += timedelta(days=hold_days)
+                computed_exp = datetime(next_month_date.year, next_month_date.month, final_day).date()
+                if target_service == 'library':
+                    hold_days = calculate_hold_extension_days(student)
+                    if hold_days > 0:
+                        computed_exp += timedelta(days=hold_days)
             else:
-                student.fee_expiry_date = None
-                
+                computed_exp = None
+            
+            if target_service == 'coaching':
+                student.coaching_fee_expiry_date = computed_exp
+            else:
+                student.library_fee_expiry_date = computed_exp
+            student.sync_overall_fee_expiry_date(save=False)
             student.save()
 
+            display_exp = student.coaching_fee_expiry_date if target_service == 'coaching' else student.library_fee_expiry_date
+            if not display_exp and student.service_type != 'Both':
+                display_exp = student.fee_expiry_date
+                
             return JsonResponse({
                 'status': 'success',
-                'message': f'{month_name} {year} has been cleared.'
+                'message': f'Successfully cleared {month_name} {year}. Expiry updated to {display_exp.strftime("%d %b %Y") if display_exp else "Not Set"}.',
+                'fee_expiry_date': display_exp.strftime("%d %b %Y") if display_exp else 'Not Set'
             })
-    
+
     except Exception as e:
         import logging
         logging.getLogger(__name__).exception(f"Error in delete_payment_view: {e}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
-# ======================================================
-# VIEW: Teacher Broadcast Message
-@login_required
-@user_passes_test(is_teacher)
+
+
+
 def teacher_broadcast_view(request):
     from .models import Seat, StudentProfile, StudentAchievement
 
@@ -16725,24 +16883,30 @@ def notifications_api_view(request):
         overdue_list = []
         for s in overdue_students:
             first_name = s.full_name.strip().split()[0] if s.full_name else "Student"
-            service_detail_str = s.service_type or ""
-            if s.service_type == 'Coaching':
-                if s.batch:
-                    service_detail_str = f"Coaching ({s.batch})"
-            elif s.service_type == 'Library':
-                shift_label = s.shift.replace('_', ' ').title() if s.shift else "General"
-                service_detail_str = f"Library ({shift_label})"
-            elif s.service_type == 'Both':
-                service_detail_str = "Coaching & Library"
+            is_both = (s.service_type == 'Both')
+            service_detail_str = ""
+            if is_both:
+                expired_services = []
+                if s.coaching_fee_expiry_date and s.coaching_fee_expiry_date <= today:
+                    expired_services.append("Coaching")
+                if s.library_fee_expiry_date and s.library_fee_expiry_date <= today:
+                    expired_services.append("Library")
+                if not expired_services:
+                    if s.coaching_fee_expiry_date == s.fee_expiry_date:
+                        expired_services.append("Coaching")
+                    else:
+                        expired_services.append("Library")
+                service_detail_str = " & ".join(expired_services)
             
             expiry_str = s.fee_expiry_date.strftime("%d %b") if s.fee_expiry_date else ""
-            subtext_str = f"{service_detail_str} • Expired: {expiry_str}"
+            subtext_str = f"{service_detail_str} • Expired: {expiry_str}" if service_detail_str else f"Expired: {expiry_str}"
 
             overdue_list.append({
                 'id': s.id,
                 'full_name': s.full_name,
                 'first_name': first_name,
                 'service_type': s.service_type,
+                'is_both': is_both,
                 'service_details': subtext_str,
                 'fee_expiry_date': s.fee_expiry_date.strftime("%d %b"),
                 'mobile_number': s.mobile_number,

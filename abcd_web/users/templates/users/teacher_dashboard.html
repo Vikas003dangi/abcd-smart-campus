@@ -9346,7 +9346,7 @@
             </div>
             <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
               <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
+              <a href="{% url 'users:fee_calendar' student.id %}?service=coaching" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -9407,7 +9407,7 @@
             </div>
             <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
               <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
+              <a href="{% url 'users:fee_calendar' student.id %}?service=library" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -9463,7 +9463,7 @@
 
             <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
               <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
+              <a href="{% url 'users:fee_calendar' student.id %}?service=library" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -9515,7 +9515,7 @@
             </div>
             <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
               <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
+              <a href="{% url 'users:fee_calendar' student.id %}?service=library" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -9554,7 +9554,7 @@
             </div>
             <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
               <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
-              <a href="{% url 'users:fee_calendar' student.id %}" class="btn btn-success btn-fees-compact">💰 Fees</a>
+              <a href="{% url 'users:fee_calendar' student.id %}?service=library" class="btn btn-success btn-fees-compact">💰 Fees</a>
             </div>
           </div>
           {% endfor %}
@@ -14358,18 +14358,16 @@
           const cleanWaNum = rawNum.replace(/\D/g, '');
           const waUrl = cleanWaNum ? `https://wa.me/91${cleanWaNum}` : `tel:${s.mobile_number}`;
 
-          let serviceName = s.service_type || 'Service';
+          let serviceName = '';
           let expiryDate = s.fee_expiry_date || '';
-          if (s.service_details && s.service_details.includes(' • Expired: ')) {
-            const parts = s.service_details.split(' • Expired: ');
-            serviceName = parts[0];
-            expiryDate = parts[1] || s.fee_expiry_date;
-          } else if (s.service_details && s.service_details.includes(' • Exp: ')) {
-            const parts = s.service_details.split(' • Exp: ');
-            serviceName = parts[0];
-            expiryDate = parts[1] || s.fee_expiry_date;
-          } else if (s.service_details) {
-            serviceName = s.service_details;
+          if (s.is_both) {
+            if (s.service_details && s.service_details.includes(' • Expired: ')) {
+              serviceName = s.service_details.split(' • Expired: ')[0];
+            } else if (s.service_details && s.service_details.includes(' • Exp: ')) {
+              serviceName = s.service_details.split(' • Exp: ')[0];
+            } else {
+              serviceName = s.service_details || 'Both';
+            }
           }
 
           html += `
@@ -14382,7 +14380,7 @@
 
               <div class="expired-student-info">
                 <span class="notif-title-inline">${formattedName}</span>
-                <span class="notif-service-line" title="${serviceName}">${serviceName}</span>
+                ${serviceName ? `<span class="notif-service-line" title="${serviceName}">${serviceName}</span>` : ''}
                 <span class="notif-expiry-badge"><i class='bx bx-time-five'></i> Expired: ${expiryDate}</span>
               </div>
 

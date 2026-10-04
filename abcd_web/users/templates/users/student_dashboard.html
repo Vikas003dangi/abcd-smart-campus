@@ -5339,11 +5339,120 @@
     {% endif %}
 
     {% if profile.status == 'admitted' and fee_records %}
+    {% if is_both_services %}
+    <!-- Dual Services: Distinct Coaching Fees Section -->
+    <div class="fee-history" style="margin-bottom: 24px;">
+      <div class="fee-history-header">
+        <h2 class="fee-history-title">
+          <i class='bx bx-book-open fee-title-icon'></i>
+          <span>🎓 Coaching Fees</span>
+          <span style="font-size: 0.8rem; font-weight: 500; color: #64748b; margin-left: 8px;">Expiry: <strong style="color: #1e293b;">{{ profile.coaching_fee_expiry_date|date:'d M Y'|default:'Not Set' }}</strong></span>
+        </h2>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <a href="{% url 'users:student_fee_record' %}?service=coaching" class="btn-all-fees-header" title="Open fee records">
+            <i class='bx bx-receipt'></i> All Fees
+          </a>
+        </div>
+      </div>
+      <div class="fee-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Receipt #</th>
+              <th>📅 Period / Month</th>
+              <th>💰 Amount</th>
+              <th>📆 Payment Date</th>
+              <th>✅ Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fee in coaching_fee_records %}
+            <tr class="fee-table-row">
+              <td>
+                {% if fee.receipt_number %}
+                <span class="fee-receipt-badge"><i class='bx bx-receipt'></i> {{ fee.receipt_number }}</span>
+                {% if fee.revision_count > 0 %}<span class="fee-revised-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 4px;" title="Revised"><i class='bx bx-edit-alt'></i> Revised</span>{% endif %}
+                {% else %}<span style="color: #94a3b8; font-size: 0.85rem;">—</span>{% endif %}
+              </td>
+              <td>{% if fee.months_display %}{{ fee.months_display }}{% elif fee.date_paid %}({{ fee.date_paid|date:"d" }}) {{ fee.month }} {{ fee.year }}{% else %}{{ fee.month }} {{ fee.year }}{% endif %}</td>
+              <td style="font-weight: 700; color: #10b981;">₹{% if fee.total_amount is not None %}{{ fee.total_amount }}{% else %}{{ fee.amount }}{% endif %}</td>
+              <td>{% if fee.payment_date %}{{ fee.payment_date|date:"d M Y" }}{% elif fee.created_at %}{{ fee.created_at|date:"d M Y" }}{% else %}—{% endif %}</td>
+              <td><span class="fee-status-paid" style="color: #28a745; font-weight: 600;">✅ Paid</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">No coaching fee payments recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="fee-view-more-container">
+          <a href="{% url 'users:student_fee_record' %}?service=coaching" class="fee-view-more-btn">
+            <span>View More</span>
+            <i class='bx bx-right-arrow-alt' style="font-size: 1.15rem;"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dual Services: Distinct Library Fees Section -->
+    <div class="fee-history">
+      <div class="fee-history-header">
+        <h2 class="fee-history-title">
+          <i class='bx bx-library fee-title-icon'></i>
+          <span>📚 Library Fees</span>
+          <span style="font-size: 0.8rem; font-weight: 500; color: #64748b; margin-left: 8px;">Expiry: <strong style="color: #1e293b;">{{ profile.library_fee_expiry_date|date:'d M Y'|default:'Not Set' }}</strong></span>
+        </h2>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <a href="{% url 'users:student_fee_record' %}?service=library" class="btn-all-fees-header" title="Open fee records">
+            <i class='bx bx-receipt'></i> All Fees
+          </a>
+        </div>
+      </div>
+      <div class="fee-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Receipt #</th>
+              <th>📅 Period / Month</th>
+              <th>💰 Amount</th>
+              <th>📆 Payment Date</th>
+              <th>✅ Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fee in library_fee_records %}
+            <tr class="fee-table-row">
+              <td>
+                {% if fee.receipt_number %}
+                <span class="fee-receipt-badge"><i class='bx bx-receipt'></i> {{ fee.receipt_number }}</span>
+                {% if fee.revision_count > 0 %}<span class="fee-revised-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 4px;" title="Revised"><i class='bx bx-edit-alt'></i> Revised</span>{% endif %}
+                {% else %}<span style="color: #94a3b8; font-size: 0.85rem;">—</span>{% endif %}
+              </td>
+              <td>{% if fee.months_display %}{{ fee.months_display }}{% elif fee.date_paid %}({{ fee.date_paid|date:"d" }}) {{ fee.month }} {{ fee.year }}{% else %}{{ fee.month }} {{ fee.year }}{% endif %}</td>
+              <td style="font-weight: 700; color: #10b981;">₹{% if fee.total_amount is not None %}{{ fee.total_amount }}{% else %}{{ fee.amount }}{% endif %}</td>
+              <td>{% if fee.payment_date %}{{ fee.payment_date|date:"d M Y" }}{% elif fee.created_at %}{{ fee.created_at|date:"d M Y" }}{% else %}—{% endif %}</td>
+              <td><span class="fee-status-paid" style="color: #28a745; font-weight: 600;">✅ Paid</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 16px;">No library fee payments recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="fee-view-more-container">
+          <a href="{% url 'users:student_fee_record' %}" class="fee-view-more-btn">
+            <span>View More</span>
+            <i class='bx bx-right-arrow-alt' style="font-size: 1.15rem;"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <!-- Single Service Section -->
     <div class="fee-history">
       <div class="fee-history-header">
         <h2 class="fee-history-title">
           <i class='bx bx-receipt fee-title-icon'></i>
-          <span>Fee Payment History</span>
+          <span>{% if profile.service_type == 'Library' %}📚 Library Fees{% else %}🎓 Coaching Fees{% endif %}</span>
+          <span style="font-size: 0.8rem; font-weight: 500; color: #64748b; margin-left: 8px;">Expiry: <strong style="color: #1e293b;">{{ profile.fee_expiry_date|date:'d M Y'|default:'Not Set' }}</strong></span>
         </h2>
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span class="fee-history-badge"><i class='bx bx-check-shield'></i> Verified Records</span>
@@ -5366,57 +5475,20 @@
           <tbody>
             {% for fee in fee_records %}
             <tr class="fee-table-row">
-              <!-- Receipt # -->
               <td>
                 {% if fee.receipt_number %}
-                <span class="fee-receipt-badge">
-                  <i class='bx bx-receipt'></i> {{ fee.receipt_number }}
-                </span>
-                {% if fee.revision_count > 0 %}
-                <span class="fee-revised-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 4px;" title="Revised (Edited on {{ fee.last_modified_at|date:'d M Y'|default:fee.payment_date|date:'d M Y' }})">
-                  <i class='bx bx-edit-alt'></i> Revised
-                </span>
-                {% endif %}
-                {% else %}
-                <span style="color: #94a3b8; font-size: 0.85rem;">—</span>
-                {% endif %}
+                <span class="fee-receipt-badge"><i class='bx bx-receipt'></i> {{ fee.receipt_number }}</span>
+                {% if fee.revision_count > 0 %}<span class="fee-revised-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 4px;" title="Revised"><i class='bx bx-edit-alt'></i> Revised</span>{% endif %}
+                {% else %}<span style="color: #94a3b8; font-size: 0.85rem;">—</span>{% endif %}
               </td>
-
-              <!-- Month / Period column -->
-              <td>
-                {% if fee.months_display %}
-                {{ fee.months_display }}
-                {% elif fee.date_paid %}
-                ({{ fee.date_paid|date:"d" }}) {{ fee.month }} {{ fee.year }}
-                {% else %}
-                {{ fee.month }} {{ fee.year }}
-                {% endif %}
-              </td>
-
-              <!-- Amount column -->
-              <td style="font-weight: 700; color: #10b981;">
-                ₹{% if fee.total_amount is not None %}{{ fee.total_amount }}{% else %}{{ fee.amount }}{% endif %}
-              </td>
-
-              <!-- Payment Date column -->
-              <td>
-                {% if fee.payment_date %}
-                {{ fee.payment_date|date:"d M Y" }}
-                {% elif fee.created_at %}
-                {{ fee.created_at|date:"d M Y" }}
-                {% else %}
-                —
-                {% endif %}
-              </td>
-
-              <!-- Status column -->
+              <td>{% if fee.months_display %}{{ fee.months_display }}{% elif fee.date_paid %}({{ fee.date_paid|date:"d" }}) {{ fee.month }} {{ fee.year }}{% else %}{{ fee.month }} {{ fee.year }}{% endif %}</td>
+              <td style="font-weight: 700; color: #10b981;">₹{% if fee.total_amount is not None %}{{ fee.total_amount }}{% else %}{{ fee.amount }}{% endif %}</td>
+              <td>{% if fee.payment_date %}{{ fee.payment_date|date:"d M Y" }}{% elif fee.created_at %}{{ fee.created_at|date:"d M Y" }}{% else %}—{% endif %}</td>
               <td><span class="fee-status-paid" style="color: #28a745; font-weight: 600;">✅ Paid</span></td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
-
-        <!-- View More Button linking to Student Fee Record -->
         <div class="fee-view-more-container">
           <a href="{% url 'users:student_fee_record' %}" class="fee-view-more-btn">
             <span>View More</span>
@@ -5424,7 +5496,7 @@
           </a>
         </div>
       </div>
-    </div>
+    {% endif %}
     {% elif profile.status == 'admitted' %}
       </div>
     </div>

@@ -1329,13 +1329,65 @@
         </div>
     </header>
 
+    <!-- Dual Service Expiry Status Cards & Service Filter -->
+    {% if is_both %}
+    <div class="service-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0 24px 0;">
+        <div class="service-expiry-card card-coaching" style="background: white; border-radius: 18px; padding: 18px 22px; border: 1.5px solid {% if service_filter == 'coaching' %}#2563eb{% else %}#bfdbfe{% endif %}; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #1e40af; font-size: 1.05rem; margin-bottom: 4px;">
+                    🎓 Coaching Fees
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b;">
+                    Expiry: <strong style="color: {% if coaching_expired %}#dc2626{% else %}#0f172a{% endif %};">{{ coaching_expiry|date:'d M Y'|default:'Not Set' }}</strong>
+                    {% if coaching_expired %}<span style="color: #dc2626; font-size: 0.75rem; font-weight: 700; margin-left: 4px;">(Expired)</span>{% endif %}
+                </div>
+            </div>
+            <a href="?tab={{ current_tab }}&service=coaching{% if search_query %}&search={{ search_query }}{% endif %}" style="padding: 7px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; text-decoration: none; {% if service_filter == 'coaching' %}background: #2563eb; color: white;{% else %}background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;{% endif %}">
+                View ({{ coaching_count }})
+            </a>
+        </div>
+        <div class="service-expiry-card card-library" style="background: white; border-radius: 18px; padding: 18px 22px; border: 1.5px solid {% if service_filter == 'library' %}#db2777{% else %}#fbcfe8{% endif %}; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 6px; font-weight: 700; color: #9d174d; font-size: 1.05rem; margin-bottom: 4px;">
+                    📚 Library Fees
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b;">
+                    Expiry: <strong style="color: {% if library_expired %}#dc2626{% else %}#0f172a{% endif %};">{{ library_expiry|date:'d M Y'|default:'Not Set' }}</strong>
+                    {% if library_expired %}<span style="color: #dc2626; font-size: 0.75rem; font-weight: 700; margin-left: 4px;">(Expired)</span>{% endif %}
+                </div>
+            </div>
+            <a href="?tab={{ current_tab }}&service=library{% if search_query %}&search={{ search_query }}{% endif %}" style="padding: 7px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; text-decoration: none; {% if service_filter == 'library' %}background: #db2777; color: white;{% else %}background: #fdf2f8; color: #db2777; border: 1px solid #fbcfe8;{% endif %}">
+                View ({{ library_count }})
+            </a>
+        </div>
+    </div>
+    {% if service_filter %}
+    <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 0.85rem; color: #64748b;">Showing: <strong>{{ service_filter|title }} Fees</strong></span>
+        <a href="?tab={{ current_tab }}{% if search_query %}&search={{ search_query }}{% endif %}" style="font-size: 0.82rem; color: #4f46e5; text-decoration: underline;">Clear filter (Show All)</a>
+    </div>
+    {% endif %}
+    {% else %}
+    <!-- Single Service Expiry Status Card -->
+    <div style="margin: 20px 0 24px 0;">
+        <div style="background: white; border-radius: 18px; padding: 16px 20px; border: 1.5px solid #e2e8f0; display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.04);">
+            <span style="font-weight: 700; color: #334155; font-size: 1rem;">
+                {% if profile.service_type == 'Library' %}📚 Library Fees{% else %}🎓 Coaching Fees{% endif %}
+            </span>
+            <span style="color: #64748b; font-size: 0.88rem;">
+                Expiry: <strong style="color: #0f172a;">{{ profile.fee_expiry_date|date:'d M Y'|default:'Not Set' }}</strong>
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Tabs: Active vs Hidden Records -->
     <div class="fees-record-tabs">
-        <a href="?tab=active{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab != 'hidden' %}active{% endif %}">
+        <a href="?tab=active{% if service_filter %}&service={{ service_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab != 'hidden' %}active{% endif %}">
             <i class='bx bx-check-circle'></i> Active Records
             <span class="tab-badge">{{ active_count }}</span>
         </a>
-        <a href="?tab=hidden{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab == 'hidden' %}active{% endif %}">
+        <a href="?tab=hidden{% if service_filter %}&service={{ service_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="tab-btn {% if current_tab == 'hidden' %}active{% endif %}">
             <i class='bx bx-hide'></i> Hidden Records
             <span class="tab-badge">{{ hidden_count }}</span>
         </a>
@@ -1420,6 +1472,15 @@
                         </td>
                         <td>
                             <span class="receipt-id-pill" onclick="copyReceiptNo('{{ tx.receipt_number }}', event)" title="Click to copy receipt number">{{ tx.receipt_number }} <i class='bx bx-copy' style="font-size: 0.8rem; opacity: 0.7;"></i></span>
+                            {% if tx.service %}
+                            <span class="fee-service-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; {% if tx.service == 'library' %}background: rgba(219, 39, 119, 0.1); color: #db2777; border: 1px solid rgba(219, 39, 119, 0.25);{% else %}background: rgba(37, 99, 235, 0.1); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.25);{% endif %} font-weight: 600; margin-left: 4px;">
+                                {{ tx.service|title }}
+                            </span>
+                            {% elif tx.service_snapshot %}
+                            <span class="fee-service-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(100, 116, 139, 0.1); color: #475569; border: 1px solid rgba(100, 116, 139, 0.25); font-weight: 600; margin-left: 4px;">
+                                {{ tx.service_snapshot|title }}
+                            </span>
+                            {% endif %}
                             {% if tx.revision_count > 0 %}
                             <span class="fee-revised-pill" style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(245, 158, 11, 0.12); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3); margin-left: 4px;" title="Revised (Edited on {{ tx.last_modified_at|date:'d M Y'|default:tx.payment_date|date:'d M Y' }})">
                                 <i class='bx bx-edit-alt'></i> Revised

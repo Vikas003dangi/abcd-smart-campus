@@ -1,0 +1,43 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Select Service - Fee Calendar | ABCD{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 600px;">
+    <div class="card shadow-sm border-0 rounded-4 p-4 text-center" style="background: var(--card-bg, #ffffff);">
+        <div class="mb-3">
+            <span style="font-size: 3rem;">💰</span>
+        </div>
+        <h3 class="fw-bold mb-2" style="color: var(--text-color, #1e293b);">Select Service Fee Calendar</h3>
+        <p class="text-muted mb-4">
+            <strong>{{ student.full_name }}</strong> is enrolled in <strong>Both Coaching & Library</strong>.
+            Please choose which service fee calendar you want to manage:
+        </p>
+
+        <div class="d-grid gap-3">
+            <a href="{% url 'users:fee_calendar' student.id %}?service=coaching" class="btn btn-outline-primary btn-lg rounded-3 py-3 fw-bold d-flex align-items-center justify-content-center gap-2">
+                <span style="font-size: 1.4rem;">📚</span>
+                <span>Coaching Fee Calendar</span>
+                {% if student.coaching_fee_expiry_date %}
+                <small class="badge bg-primary ms-auto" style="font-size: 0.75rem;">Due: {{ student.coaching_fee_expiry_date|date:"d M Y" }}</small>
+                {% endif %}
+            </a>
+
+            <a href="{% url 'users:fee_calendar' student.id %}?service=library" class="btn btn-outline-success btn-lg rounded-3 py-3 fw-bold d-flex align-items-center justify-content-center gap-2">
+                <span style="font-size: 1.4rem;">📖</span>
+                <span>Library Fee Calendar</span>
+                {% if student.library_fee_expiry_date %}
+                <small class="badge bg-success ms-auto" style="font-size: 0.75rem;">Due: {{ student.library_fee_expiry_date|date:"d M Y" }}</small>
+                {% endif %}
+            </a>
+        </div>
+
+        <div class="mt-4 pt-2 border-top">
+            <a href="{% url 'users:teacher_dashboard' %}" class="btn btn-link text-muted text-decoration-none">
+                ← Back to Teacher Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

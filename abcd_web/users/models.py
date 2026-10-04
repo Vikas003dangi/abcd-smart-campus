@@ -292,9 +292,29 @@ class StudentProfile(models.Model):
     is_admitted = models.BooleanField(default=False)
     is_manual_pending = models.BooleanField(default=False)
     fee_expiry_date = models.DateField(null=True, blank=True)
+    coaching_fee_expiry_date = models.DateField(null=True, blank=True)
+    library_fee_expiry_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     approved_at = models.DateTimeField(null=True, blank=True)
     password_last_updated = models.DateTimeField(null=True, blank=True)
+
+    def sync_overall_fee_expiry_date(self, save=True):
+        """
+        Keeps fee_expiry_date = the EARLIER of coaching and library expiry for dual students
+        so the fee-expired list, alerts and scheduler keep working seamlessly.
+        For single service students, synchronizes with the respective service expiry.
+        """
+        if self.service_type == 'Both':
+            dates = [d for d in [self.coaching_fee_expiry_date, self.library_fee_expiry_date] if d is not None]
+            self.fee_expiry_date = min(dates) if dates else None
+        elif self.service_type == 'Coaching':
+            if self.coaching_fee_expiry_date:
+                self.fee_expiry_date = self.coaching_fee_expiry_date
+        elif self.service_type == 'Library':
+            if self.library_fee_expiry_date:
+                self.fee_expiry_date = self.library_fee_expiry_date
+        if save and self.pk:
+            self.save(update_fields=['fee_expiry_date', 'coaching_fee_expiry_date', 'library_fee_expiry_date'])
 
     @property
     def first_name(self):
@@ -1016,6 +1036,14 @@ def auto_delete_broadcast_attachment_on_delete(sender, instance, **kwargs):
 # -------------------------------------------------------------------
 class Payment(models.Model):
     student = models.ForeignKey(StudentProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
+    service = models.CharField(
+        max_length=20,
+        choices=[('coaching', 'Coaching'), ('library', 'Library')],
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Service for which fee is paid (coaching vs library, NULL for legacy rows)"
+    )
     month = models.CharField(max_length=20)
     year = models.IntegerField()
     amount = models.DecimalField(max_digits=8, decimal_places=2)
@@ -1034,11 +1062,12 @@ class Payment(models.Model):
     )
 
     class Meta:
-        unique_together = ('student', 'month', 'year')
+        unique_together = ('student', 'service', 'month', 'year')
 
     def __str__(self):
         st_name = self.student.full_name if self.student else "Former Student"
-        return f'{st_name} - {self.month} {self.year}'
+        svc_str = f" ({self.service.capitalize()})" if self.service else ""
+        return f'{st_name}{svc_str} - {self.month} {self.year}'
 
 
 # -------------------------------------------------------------------
@@ -1054,8 +1083,8 @@ class FeeTransaction(models.Model):
     student = models.ForeignKey(
         StudentProfile, 
         on_delete=models.SET_NULL, 
-        null=True,
-        blank=True,
+        null=True, 
+        blank=True, 
         related_name='fee_transactions'
     )
     teacher = models.ForeignKey(
@@ -1063,6 +1092,14 @@ class FeeTransaction(models.Model):
         on_delete=models.SET_NULL, 
         null=True, 
         related_name='processed_fee_transactions'
+    )
+    service = models.CharField(
+        max_length=20,
+        choices=[('coaching', 'Coaching'), ('library', 'Library')],
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Service for which fee was paid (coaching vs library, NULL for legacy rows)"
     )
     
     # Format: ABCD_YY/RANDOM7 (e.g. ABCD_26/00243514)

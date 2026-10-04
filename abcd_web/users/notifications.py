@@ -10,15 +10,20 @@ from django.utils.timezone import now, localdate
 logger = logging.getLogger(__name__)
 
 # --- UPDATED Helper function to work with Seat, Batch, Floor, and Shift ---
-def get_student_service_details(student):
+def get_student_service_details(student, service=None):
     """
     Returns a comprehensive, accurate string of the student's service details:
     - Coaching: 'Coaching (Batch: <Batch Name>)'
     - Library: 'Library (<Floor>, Seat <Number>, Shift: <Shift Name>)'
-    - Both: Combined full details of both services
+    - If service is specified ('coaching' or 'library'), returns ONLY that service.
+    - Both (when service is not specified): Combined full details of both services
     - Never returns 'N/A'
     """
     if not student:
+        if service == 'coaching':
+            return "Coaching Service"
+        if service == 'library':
+            return "Library Service"
         return "Coaching & Library Services"
 
     service_type = getattr(student, 'service_type', None)
@@ -64,6 +69,14 @@ def get_student_service_details(student):
         seat_part = f"Library (Shift: {shift_display})"
     else:
         seat_part = "Library"
+
+    # If specific service is requested, return ONLY that service
+    if service:
+        s_clean = str(service).strip().lower()
+        if s_clean == 'coaching':
+            return batch_str
+        elif s_clean == 'library':
+            return seat_part
 
     # 3. Assemble based on service_type
     if service_type == 'Coaching':
@@ -1064,7 +1077,7 @@ def send_push(user, title, body, url="/", icon=None, badge=None, tag=None, sound
     cutoff_30d = timezone.now() - timedelta(days=30)
     has_active_twa = any(
         getattr(s, 'client_type', None) == 'twa' and (
-            getattr(s, 'last_active_at', None) is None or getattr(s, 'last_active_at', None) >= cutoff_30d
+            getattr(s, 'last_active_at', None) is not None and getattr(s, 'last_active_at', None) >= cutoff_30d
         )
         for s in unique_subs
     )
