@@ -150,7 +150,7 @@
         .Login-Registration_card {
             position: relative;
             width: 900px;
-            height: 500px;
+            height: 525px;
             background-color:#faf9f617;
             border-radius: 30px;
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
@@ -169,7 +169,7 @@
             align-items: center;
             color: #112a3b;
             text-align: center;
-            padding: 40px;
+            padding: 30px 40px;
             z-index: 1;
             transition: .6s ease-in-out,visibility 0s 0.6s;
         }
@@ -185,6 +185,7 @@
 
         .form-box.Registration-form-box {
             visibility: hidden;
+            padding: 16px 36px;
         }
 
         .Login-Registration_card.active .Registration-form-box {
@@ -198,23 +199,25 @@
         }
 
         .Login-Registration_card h1 {
-            font-size: 2.5rem;
-            margin: -10px 0 20px;
+            font-size: 2.3rem;
+            margin: -5px 0 16px;
         }
 
         .Registration-form-box h1 {
-            font-size: 2.3rem;
+            font-size: 1.85rem;
+            margin: 0 0 8px;
+            line-height: 1.2;
         }
 
         .input-box {
             position: relative;
             width: 100%;
-            margin: 30px 0;
+            margin: 24px 0;
         }
 
         .input-box input{
             width: 100%;   
-            padding: 13px 50px 13px 15px;
+            padding: 12px 50px 12px 15px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 0.9rem;
@@ -225,14 +228,14 @@
         }
 
         .Registration-form-box .input-box {
-            margin-bottom: 10px;  /* previously maybe 18-20px */
+            margin: 7px 0 !important;
         }
 
-        .Registration-form-box.input-box input{
+        .Registration-form-box .input-box input{
             width: 100%;
-            padding: 10px 12px;    /* previously maybe 16px */
-            height: 42px;          /* previously around 50-55px */
-            font-size: 0.9rem;
+            padding: 8px 45px 8px 14px;
+            height: 38px;
+            font-size: 0.88rem;
         }
 
         .input-box input:focus{
@@ -305,6 +308,12 @@
             background-color: rgba(184, 184, 162, 0.705);
         }
 
+        .Registration-form-box .register-btn {
+            height: 42px;
+            font-size: 1.25rem;
+            margin-top: 2px;
+        }
+
         .Login-Registration_card p{
             margin: 20px 0 10px;
             font-size: 1rem;
@@ -316,10 +325,51 @@
             text-align: center;
         }
 
+        .Registration-form-box .social-login {
+            margin-top: 8px;
+        }
+
         .social-text {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 0.5rem;
+            font-size: 0.88rem;
+            color: rgba(255, 255, 255, 0.82);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+            margin-bottom: 0.4rem;
+        }
+
+        .Registration-form-box .social-text {
+            font-size: 0.82rem;
+            margin-bottom: 3px;
+        }
+
+        .Registration-form-box .google-btn {
+            padding: 7px 18px;
+            font-size: 0.84rem;
+        }
+
+        .auth-legal-notice {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.76rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+            line-height: 1.4;
+        }
+
+        .auth-legal-notice a {
+            color: #93c5fd;
+            text-decoration: underline;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .auth-legal-notice a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .Registration-form-box .auth-legal-notice {
+            margin-top: 7px;
+            font-size: 0.74rem;
         }
 
         .google-btn {
@@ -526,13 +576,13 @@
             }
 
             .Registration-form-box h1 {
-            font-size: 2rem;
+                font-size: 1.55rem;
+            }
         }
-        }
-        @media (max-height: 700px) or (min-width: 401px) {
-            
+        @media (max-height: 700px) and (max-width: 800px) {
             .Registration-form-box h1 {
-                font-size: 1.5rem;}
+                font-size: 1.45rem;
+            }
         }
 
 
@@ -1221,6 +1271,23 @@
         html.dark-theme .social-text {
             color: #94a3b8;
             font-weight: 500;
+            text-shadow: none;
+        }
+
+        body.dark-theme .auth-legal-notice,
+        html.dark-theme .auth-legal-notice {
+            color: rgba(226, 232, 240, 0.82);
+            text-shadow: none;
+        }
+
+        body.dark-theme .auth-legal-notice a,
+        html.dark-theme .auth-legal-notice a {
+            color: #c084fc;
+        }
+
+        body.dark-theme .auth-legal-notice a:hover,
+        html.dark-theme .auth-legal-notice a:hover {
+            color: #f3e8ff;
         }
 
         body.dark-theme .input-box input,
@@ -1737,10 +1804,10 @@
                     </a>
                 </div>
 
-                <div class="auth-legal-notice" style="margin-top: 14px; text-align: center; font-size: 0.76rem; color: #64748b; line-height: 1.4;">
+                <div class="auth-legal-notice">
                     By continuing, you agree to our 
-                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Terms of Service</a> & 
-                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Privacy Policy</a>.
+                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener">Terms of Service</a> & 
+                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener">Privacy Policy</a>.
                 </div>
             </form>
         </div>
@@ -1798,10 +1865,10 @@
                     </a>
                 </div>
 
-                <div class="auth-legal-notice" style="margin-top: 14px; text-align: center; font-size: 0.76rem; color: #64748b; line-height: 1.4;">
-                    By registering, you agree to our 
-                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Terms of Service</a> & 
-                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline; font-weight: 600;">Privacy Policy</a>.
+                <div class="auth-legal-notice">
+                    By continuing, you agree to our 
+                    <a href="{% url 'users:terms_of_service' %}" target="_blank" rel="noopener">Terms of Service</a> & 
+                    <a href="{% url 'users:privacy_policy' %}" target="_blank" rel="noopener">Privacy Policy</a>.
                 </div>
 
                 </form>
