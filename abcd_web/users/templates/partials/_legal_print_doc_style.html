@@ -2,19 +2,17 @@
 <!-- ==========================================================================
      ABCD SMART CAMPUS - FORMAL LEGAL DOCUMENT PRINT / PDF STYLESHEET & ASSETS
      Pure white paper background, formal dark ink, institutional typography,
-     generous paper margins (22mm top/bottom, 18mm left/right), dead-center
+     compact balanced margins (6mm top/bottom, 8mm left/right), dead-center
      faded background watermark (ABCD Campus) on every page, running corner header
      with "ABCD Campus | {doc_title} | Page X of Y", and client-only PDF generation.
 ========================================================================== -->
 
-<!-- Watermark: Dead-center SVG vector fixed across all printed pages (Layer z-index: 1) -->
+<!-- Watermark: Dead-center institutional watermark fixed across all printed pages (Layer z-index: 0) -->
 <div class="legal-print-watermark" aria-hidden="true">
-  <svg class="print-watermark-svg" viewBox="0 0 600 600" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-    <g transform="translate(300, 300) rotate(-35)">
-      <text x="0" y="-12" text-anchor="middle" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="115" font-weight="900" fill="#1e293b" fill-opacity="0.10" letter-spacing="14">ABCD</text>
-      <text x="0" y="62" text-anchor="middle" dominant-baseline="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="42" font-weight="800" fill="#1e293b" fill-opacity="0.12" letter-spacing="18">CAMPUS</text>
-    </g>
-  </svg>
+  <div class="watermark-center-box">
+    <div class="watermark-title">ABCD</div>
+    <div class="watermark-sub">CAMPUS</div>
+  </div>
 </div>
 
 <style>
@@ -32,12 +30,12 @@
   @media print {
     @page {
       size: A4 portrait;
-      /* Generous formal paper margins: leaves proper breathing room on all 4 edges */
-      margin: 22mm 18mm 20mm 18mm;
+      /* Clean, compact margins: reduced top/bottom to 6mm, balanced left/right 8mm */
+      margin: 6mm 8mm 6mm 8mm;
       @top-right {
         content: "ABCD Campus | {{ doc_title|default:'Official Legal Policy' }} | Page " counter(page) " of " counter(pages);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        font-size: 8pt;
+        font-size: 7.5pt;
         color: #64748b;
         font-weight: 600;
         letter-spacing: 0.01em;
@@ -45,7 +43,7 @@
       @bottom-right {
         content: "ABCD Smart Campus • Ganj Basoda (M.P.) • Official Statutory Document";
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        font-size: 7.5pt;
+        font-size: 7pt;
         color: #94a3b8;
       }
     }
@@ -60,6 +58,7 @@
     }
 
     html, body {
+      display: block !important;
       background: #ffffff !important;
       color: #0f172a !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
@@ -68,19 +67,25 @@
       margin: 0 !important;
       padding: 0 !important;
       width: 100% !important;
+      height: 100% !important;
+      border: none !important;
+      outline: none !important;
+      float: none !important;
     }
 
-    /* Content container elevated above the watermark with safe internal margin */
+    /* Content container elevated above the watermark with zero artificial borders or padding */
     .legal-wrapper {
-      position: relative !important;
-      z-index: 2 !important;
+      position: static !important;
+      z-index: auto !important;
       background: transparent !important;
       box-sizing: border-box !important;
       max-width: 100% !important;
       width: 100% !important;
       margin: 0 auto !important;
-      padding: 0 4mm !important; /* Ensures text never hugs the physical edge */
+      padding: 0 !important;
       color: #0f172a !important;
+      border: none !important;
+      outline: none !important;
     }
 
     /* 2. Hide ALL Web Navigation, Tabs, Buttons & Chrome */
@@ -119,38 +124,71 @@
       display: none !important;
     }
 
-    /* 3. Faint Background Watermark: Dead-center on every page */
+    /* 3. Faint Background Watermark: 100% dead-center horizontally & vertically across every page */
+    body > .legal-print-watermark,
     .legal-print-watermark {
       display: block !important;
       position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      width: 440pt !important;
-      height: 440pt !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      z-index: 1 !important;
-      pointer-events: none !important;
-      opacity: 1 !important;
-      overflow: visible !important;
-    }
-
-    .print-watermark-svg {
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
       width: 100% !important;
       height: 100% !important;
-      display: block !important;
-      overflow: visible !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+      overflow: hidden !important;
+      text-align: center !important;
+      box-sizing: border-box !important;
     }
 
-    /* 4. Formal Institutional Header (Clean Paper Styling) */
+    .watermark-center-box {
+      display: block !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      margin-top: 48vh !important;
+      transform: translateY(-50%) !important;
+      text-align: center !important;
+      user-select: none !important;
+    }
+
+    .watermark-title {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+      font-size: 78pt !important;
+      font-weight: 900 !important;
+      color: #1e293b !important;
+      opacity: 0.08 !important;
+      letter-spacing: 14pt !important;
+      line-height: 1 !important;
+      margin: 0 0 10pt 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .watermark-sub {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+      font-size: 28pt !important;
+      font-weight: 800 !important;
+      color: #1e293b !important;
+      opacity: 0.10 !important;
+      letter-spacing: 18pt !important;
+      line-height: 1 !important;
+      margin: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* 4. Formal Institutional Header (Clean Paper Styling, Soft Divider) */
     .legal-hero {
       background: transparent !important;
       border: none !important;
-      border-bottom: 1.5pt solid #0f172a !important;
+      border-bottom: 1px solid #e2e8f0 !important;
       border-radius: 0 !important;
-      padding: 0 0 10pt 0 !important;
-      margin-bottom: 14pt !important;
+      padding: 0 0 8pt 0 !important;
+      margin-bottom: 10pt !important;
       box-shadow: none !important;
       page-break-after: avoid;
       break-after: avoid;
@@ -198,9 +236,9 @@
       display: flex !important;
       flex-wrap: wrap !important;
       gap: 6pt 16pt !important;
-      margin-top: 6pt !important;
-      padding-top: 6pt !important;
-      border-top: 0.5pt solid #cbd5e1 !important;
+      margin-top: 5pt !important;
+      padding-top: 5pt !important;
+      border-top: 1px solid #e2e8f0 !important;
     }
 
     .hero-badge-pill {
@@ -224,10 +262,10 @@
     .legal-card {
       background: transparent !important;
       border: none !important;
-      border-bottom: 0.5pt solid #e2e8f0 !important;
+      border-bottom: 0.5pt solid #f1f5f9 !important;
       border-radius: 0 !important;
-      padding: 8pt 0 10pt 0 !important;
-      margin: 0 0 8pt 0 !important;
+      padding: 6pt 0 8pt 0 !important;
+      margin: 0 0 6pt 0 !important;
       box-shadow: none !important;
       color: #0f172a !important;
       page-break-inside: avoid;
@@ -239,10 +277,10 @@
     }
 
     .legal-card h2 {
-      font-size: 11.5pt !important;
+      font-size: 11.2pt !important;
       font-weight: 700 !important;
       color: #0f172a !important;
-      margin: 0 0 5pt 0 !important;
+      margin: 0 0 4pt 0 !important;
       display: flex !important;
       align-items: center !important;
       gap: 5pt !important;
@@ -254,13 +292,15 @@
       display: none !important;
     }
 
+    /* Refined, elegant light badge (No solid black blocks) */
     .sec-num {
-      background: #0f172a !important;
-      color: #ffffff !important;
+      background: #f1f5f9 !important;
+      color: #334155 !important;
       font-size: 7.5pt !important;
       font-weight: 700 !important;
-      padding: 1pt 4.5pt !important;
-      border-radius: 2.5pt !important;
+      padding: 1pt 5pt !important;
+      border-radius: 3pt !important;
+      border: 1px solid #cbd5e1 !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
@@ -269,7 +309,7 @@
       font-size: 9.8pt !important;
       font-weight: 700 !important;
       color: #0f172a !important;
-      margin: 6pt 0 3pt 0 !important;
+      margin: 5pt 0 2pt 0 !important;
       page-break-after: avoid;
       break-after: avoid;
     }
@@ -277,14 +317,14 @@
     .legal-card p,
     .legal-card li {
       font-size: 9pt !important;
-      line-height: 1.52 !important;
+      line-height: 1.5 !important;
       color: #1e293b !important;
-      margin-bottom: 4pt !important;
+      margin-bottom: 3.5pt !important;
       text-align: justify !important;
     }
 
     .legal-card ul {
-      margin: 3pt 0 6pt 16pt !important;
+      margin: 2pt 0 5pt 14pt !important;
       padding: 0 !important;
     }
 
@@ -298,14 +338,14 @@
       text-decoration: underline !important;
     }
 
-    /* Formal Callouts */
+    /* Formal Callouts with Soft Slate Border (No Harsh Black) */
     .legal-callout {
       background: rgba(248, 250, 252, 0.9) !important;
-      border: 0.5pt solid #cbd5e1 !important;
-      border-left: 3pt solid #0f172a !important;
+      border: 1px solid #e2e8f0 !important;
+      border-left: 3px solid #94a3b8 !important;
       border-radius: 3pt !important;
-      padding: 6pt 10pt !important;
-      margin: 6pt 0 !important;
+      padding: 5pt 8pt !important;
+      margin: 5pt 0 !important;
       color: #1e293b !important;
       font-size: 8.8pt !important;
       line-height: 1.45 !important;
@@ -317,15 +357,15 @@
 
     .legal-callout.highlight {
       background: rgba(241, 245, 249, 0.95) !important;
-      border-left-color: #0f172a !important;
+      border-left-color: #94a3b8 !important;
     }
 
     /* 6. Section 11 Administration Contact Desk: Clean Table Grid */
     .contact-desk-grid {
       display: grid !important;
       grid-template-columns: 1fr 1fr !important;
-      gap: 6pt !important;
-      margin-top: 6pt !important;
+      gap: 5pt !important;
+      margin-top: 5pt !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       box-sizing: border-box !important;
@@ -333,9 +373,9 @@
     }
 
     .contact-desk-item {
-      border: 0.5pt solid #cbd5e1 !important;
+      border: 1px solid #e2e8f0 !important;
       border-radius: 3pt !important;
-      padding: 6pt 10pt !important;
+      padding: 5pt 8pt !important;
       background: rgba(248, 250, 252, 0.85) !important;
       box-sizing: border-box !important;
     }
@@ -358,12 +398,12 @@
       line-height: 1.35 !important;
     }
 
-    /* 7. Institutional Sign-Off Block (Aligned & Fit Within Margins) */
+    /* 7. Institutional Sign-Off Block (Soft Gray Border, Aligned) */
     .legal-print-sign-off {
       display: block !important;
-      margin-top: 14pt !important;
-      padding-top: 8pt !important;
-      border-top: 1.2pt solid #0f172a !important;
+      margin-top: 12pt !important;
+      padding-top: 7pt !important;
+      border-top: 1px solid #cbd5e1 !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       box-sizing: border-box !important;
@@ -400,9 +440,9 @@
 
     .print-seal-line {
       font-weight: 700 !important;
-      color: #0f172a !important;
-      margin-top: 16pt !important;
-      border-top: 0.8pt solid #0f172a !important;
+      color: #1e293b !important;
+      margin-top: 14pt !important;
+      border-top: 1px solid #94a3b8 !important;
       display: inline-block !important;
       padding-top: 3pt !important;
       width: 150pt !important;
@@ -430,6 +470,14 @@
 
 <script>
 (function() {
+  // Move watermark to body so no wrapper styles or parents offset it in print mode
+  function ensureWatermarkInBody() {
+    const wm = document.querySelector('.legal-print-watermark');
+    if (wm && wm.parentElement !== document.body) {
+      document.body.prepend(wm);
+    }
+  }
+
   // Enhance Print Button & PDF Filename (Local Client-Side Only - 0 bytes saved on server/db)
   function setupPdfPrintFilename() {
     const docTitle = "{{ doc_title|default:'Legal_Document' }}".replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -438,6 +486,7 @@
     pdfButtons.forEach(function(btn) {
       btn.onclick = function(e) {
         e.preventDefault();
+        ensureWatermarkInBody();
         const originalTitle = document.title;
         try {
           document.title = "ABCD_Campus_" + docTitle + "_Official.pdf";
@@ -458,8 +507,12 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupPdfPrintFilename);
+    document.addEventListener('DOMContentLoaded', function() {
+      ensureWatermarkInBody();
+      setupPdfPrintFilename();
+    });
   } else {
+    ensureWatermarkInBody();
     setupPdfPrintFilename();
   }
 })();

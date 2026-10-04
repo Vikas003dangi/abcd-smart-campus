@@ -1118,9 +1118,9 @@
     <i class="fa-solid fa-file-pdf"></i>
     <span>Save / Print PDF</span>
   </button>
-
-  {% include 'partials/_legal_print_doc_style.html' with doc_title='Terms of Service' %}
 </main>
+
+{% include 'partials/_legal_print_doc_style.html' with doc_title='Terms of Service' %}
 {% include 'partials/_smart_back_redirect.html' %}
 {% include 'partials/_legal_return_toast.html' %}
 {% endblock %}

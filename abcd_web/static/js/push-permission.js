@@ -728,6 +728,11 @@
     }
 
     function showPushRegistrationWarning(options = {}) {
+        // Throttle: only show once per session to avoid nagging on every page load
+        const WARN_SESSION_KEY = 'abcd_push_warn_shown';
+        if (sessionStorage.getItem(WARN_SESSION_KEY) === 'true') return;
+        sessionStorage.setItem(WARN_SESSION_KEY, 'true');
+
         const isOffline = options.reason === 'offline' || (typeof navigator !== 'undefined' && !navigator.onLine);
         
         // 1. Update the reminder notification notice in todo.html if present
@@ -850,11 +855,8 @@
             }
 
             if (!vapidPublicKey) {
-                console.warn('VAPID public key missing. Web Push subscription postponed.');
-                try {
-                    localStorage.setItem('push_registration_failed', JSON.stringify({ timestamp: Date.now(), reason: 'vapid_missing' }));
-                } catch (e) {}
-                showPushRegistrationWarning({ reason: 'vapid_missing' });
+                console.warn('VAPID public key missing. Web Push subscription postponed. Device alarms will still work.');
+                // Silent return — no nagging banner. Device-local alarms are unaffected.
                 return reg;
             }
 
