@@ -13292,13 +13292,13 @@ def hall_of_fame_view(request):
                 base_template = 'users/guest_page.html'
     
     # Achievements for everyone
-    approved = StudentAchievement.objects.filter(status='approved').order_by('-id')
+    approved = StudentAchievement.objects.filter(status='approved').select_related('user').order_by('-id')
     
     # For teachers: moderation context (pending requests)
     pending = []
     
     if is_teacher:
-        pending = StudentAchievement.objects.filter(status='pending').order_by('-id')
+        pending = StudentAchievement.objects.filter(status='pending').select_related('user').order_by('-id')
 
     # Navigation context
     profile = None
@@ -17019,26 +17019,86 @@ def notifications_api_view(request):
                 'created_at': localtime(n.created_at).strftime("%d %b %Y, %I:%M %p")
             })
             
+        fee_alerts = []
         fee_alert = None
         profile = getattr(user, 'profile', None)
-        if profile and profile.fee_expiry_date:
+        if profile:
             expiry_threshold = today + timedelta(days=10)
-            if profile.fee_expiry_date <= today:
-                fee_alert = {
-                    'type': 'overdue',
-                    'date_str': profile.fee_expiry_date.strftime("%d %b %Y")
-                }
-            elif profile.fee_expiry_date <= expiry_threshold:
-                fee_alert = {
-                    'type': 'warning',
-                    'date_str': profile.fee_expiry_date.strftime("%d %b %Y")
-                }
+            if profile.service_type == 'Both':
+                if profile.coaching_fee_expiry_date:
+                    if profile.coaching_fee_expiry_date <= today:
+                        fee_alerts.append({
+                            'service': 'coaching',
+                            'service_label': 'Coaching',
+                            'type': 'overdue',
+                            'date_str': profile.coaching_fee_expiry_date.strftime("%d %b %Y")
+                        })
+                    elif profile.coaching_fee_expiry_date <= expiry_threshold:
+                        fee_alerts.append({
+                            'service': 'coaching',
+                            'service_label': 'Coaching',
+                            'type': 'warning',
+                            'date_str': profile.coaching_fee_expiry_date.strftime("%d %b %Y")
+                        })
+                if profile.library_fee_expiry_date:
+                    if profile.library_fee_expiry_date <= today:
+                        fee_alerts.append({
+                            'service': 'library',
+                            'service_label': 'Library',
+                            'type': 'overdue',
+                            'date_str': profile.library_fee_expiry_date.strftime("%d %b %Y")
+                        })
+                    elif profile.library_fee_expiry_date <= expiry_threshold:
+                        fee_alerts.append({
+                            'service': 'library',
+                            'service_label': 'Library',
+                            'type': 'warning',
+                            'date_str': profile.library_fee_expiry_date.strftime("%d %b %Y")
+                        })
+                if not fee_alerts and profile.fee_expiry_date:
+                    if profile.fee_expiry_date <= today:
+                        fee_alerts.append({
+                            'service': 'both',
+                            'service_label': 'Coaching & Library',
+                            'type': 'overdue',
+                            'date_str': profile.fee_expiry_date.strftime("%d %b %Y")
+                        })
+                    elif profile.fee_expiry_date <= expiry_threshold:
+                        fee_alerts.append({
+                            'service': 'both',
+                            'service_label': 'Coaching & Library',
+                            'type': 'warning',
+                            'date_str': profile.fee_expiry_date.strftime("%d %b %Y")
+                        })
+            else:
+                target_exp = (
+                    profile.coaching_fee_expiry_date if profile.service_type == 'Coaching'
+                    else profile.library_fee_expiry_date
+                ) or profile.fee_expiry_date
+                svc_label = 'Coaching' if profile.service_type == 'Coaching' else 'Library'
+                if target_exp:
+                    if target_exp <= today:
+                        fee_alerts.append({
+                            'service': profile.service_type.lower(),
+                            'service_label': svc_label,
+                            'type': 'overdue',
+                            'date_str': target_exp.strftime("%d %b %Y")
+                        })
+                    elif target_exp <= expiry_threshold:
+                        fee_alerts.append({
+                            'service': profile.service_type.lower(),
+                            'service_label': svc_label,
+                            'type': 'warning',
+                            'date_str': target_exp.strftime("%d %b %Y")
+                        })
+            fee_alert = fee_alerts[0] if fee_alerts else None
                 
         return JsonResponse({
             'role': 'student',
             'unread_count': notifications_qs.filter(is_read=False).count(),
             'notifications': notif_list,
-            'fee_alert': fee_alert
+            'fee_alert': fee_alert,
+            'fee_alerts': fee_alerts
         })
 
 

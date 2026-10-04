@@ -7288,15 +7288,20 @@
       html += `<input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">`;
 
       // Fee alert
-      if (data.fee_alert) {
-        if (data.fee_alert.type === 'overdue') {
+      const feeAlerts = (data.fee_alerts && data.fee_alerts.length > 0)
+        ? data.fee_alerts
+        : (data.fee_alert ? [data.fee_alert] : []);
+
+      feeAlerts.forEach(alert => {
+        const svcLabel = alert.service_label ? `${alert.service_label} ` : '';
+        if (alert.type === 'overdue') {
           html += `
             <div class="notif-item" style="border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.05);">
               <div class="notif-title" style="color: #ef4444;">
-                <i class='bx bxs-error-circle' style="margin-right: 6px;"></i> ⚠️ Fee Overdue!
+                <i class='bx bxs-error-circle' style="margin-right: 6px;"></i> ⚠️ ${svcLabel}Fee Overdue!
               </div>
               <div class="notif-message">
-                <p>Your subscription expired on <strong>${data.fee_alert.date_str}</strong>. Please renew immediately to avoid service interruption.</p>
+                <p>Your ${svcLabel.toLowerCase()}subscription expired on <strong>${alert.date_str}</strong>. Please renew immediately to avoid service interruption.</p>
               </div>
               <div class="notif-footer">
                 <a class="notif-link-btn" href="https://wa.me/919827662450" style="background: #25d366; color: white !important;">
@@ -7305,19 +7310,19 @@
               </div>
             </div>
           `;
-        } else if (data.fee_alert.type === 'warning') {
+        } else if (alert.type === 'warning') {
           html += `
             <div class="notif-item" style="border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.05);">
               <div class="notif-title" style="color: #f59e0b;">
-                <i class='bx bxs-time-five' style="margin-right: 6px;"></i> Renewal Reminder
+                <i class='bx bxs-time-five' style="margin-right: 6px;"></i> ${svcLabel}Renewal Reminder
               </div>
               <div class="notif-message">
-                <p>Your subscription is expiring in a few days (<strong>${data.fee_alert.date_str}</strong>). Kindly settle your dues.</p>
+                <p>Your ${svcLabel.toLowerCase()}subscription is expiring in a few days (<strong>${alert.date_str}</strong>). Kindly settle your dues.</p>
               </div>
             </div>
           `;
         }
-      }
+      });
 
       // Notifications
       if (data.notifications.length > 0) {
@@ -7358,7 +7363,7 @@
         
         if (notifControls) notifControls.style.display = 'flex';
       } else {
-        if (!data.fee_alert) {
+        if (feeAlerts.length === 0) {
           html += `
             <div class="notif-empty">
               <i class='bx bx-bell-off' style="font-size: 3.5rem; opacity: 0.3; margin-bottom: 15px;"></i>

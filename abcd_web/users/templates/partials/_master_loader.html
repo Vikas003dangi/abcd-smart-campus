@@ -985,22 +985,26 @@
 
       // Crucial: When returning from external apps (WhatsApp, Phone Call, Maps, Mail, Google OAuth), instantly dismiss loader!
       window.addEventListener('pageshow', function(event) {
+          window.__isNavigating = false;
           window.hideMasterLoader();
       });
 
       window.addEventListener('visibilitychange', function() {
-          if (document.visibilityState === 'visible') {
+          if (document.visibilityState === 'visible' && window.__isHandlingExternalIntent) {
               window.hideMasterLoader();
           }
       });
 
       window.addEventListener('focus', function() {
-          window.hideMasterLoader();
+          if (window.__isHandlingExternalIntent) {
+              window.hideMasterLoader();
+          }
       });
 
       // Allow tapping the loader to dismiss it if it persists
       loader.addEventListener('click', function(e) {
           if (e.target === loader || e.target.closest('.loader-btn-cancel') || e.target.closest('#loader-error-container')) {
+              window.__isNavigating = false;
               window.hideMasterLoader();
           }
       });
@@ -1009,9 +1013,11 @@
           if (window.__isHandlingExternalIntent || window.isDownloadingFile || window.__isLightboxOpen) {
               return;
           }
+          window.__isNavigating = true;
           clearTimeout(showDebounceTimer);
           showDebounceTimer = setTimeout(() => {
               if (window.__isHandlingExternalIntent || window.isDownloadingFile || window.__isLightboxOpen) {
+                  window.__isNavigating = false;
                   return;
               }
               resetErrorUI();
@@ -1024,12 +1030,13 @@
               if (!navigator.onLine) {
                   showOfflineUI();
               }
-              // Safety fallback: if navigation stalls or does not complete in 5s, dismiss loader
+              // Safety fallback: if navigation stalls or does not complete in 6s, dismiss loader
               clearTimeout(navigationSafetyTimer);
               navigationSafetyTimer = setTimeout(() => {
+                  window.__isNavigating = false;
                   window.hideMasterLoader();
-              }, 5000);
-          }, 200);
+              }, 6000);
+          }, 80);
       }
 
       // Check if a link is an external app intent, phone call, whatsapp, map, or media file

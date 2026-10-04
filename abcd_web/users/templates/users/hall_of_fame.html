@@ -9,8 +9,10 @@
 
 {% block extra_css %}
 {{ block.super }}
+{% if is_teacher %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 <link rel="stylesheet" href="{% static 'css/image-cropper-modal.css' %}">
+{% endif %}
 <style>
     .hall-add-manual-btn {
         display: inline-flex;
@@ -1024,7 +1026,7 @@
 
                 <div class="ach-photo-wrapper">
                     <div class="ach-photo-ring"></div>
-                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}" data-avatar-sex="{{ ach.gender }}" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('{{ ach.gender }}') : '/static/data/default_avatar.png');">
+                    <img src="{{ ach.photo_url }}" class="ach-photo" alt="{{ ach.first_name }}" data-avatar-sex="{{ ach.gender }}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src=(typeof window.abcdGenderAvatar === 'function' ? window.abcdGenderAvatar('{{ ach.gender }}') : '/static/data/default_avatar.png');">
                 </div>
                 <div class="ach-name">{{ ach.first_name }} {{ ach.last_name }}</div>
                 <div class="ach-post">{{ ach.short_achievement }}</div>
@@ -1459,8 +1461,10 @@
         };
     })();
 </script>
+{% if is_teacher %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script src="{% static 'js/image-cropper-modal.js' %}"></script>
 {% include 'partials/_manual_add_user_modals.html' %}
+{% endif %}
 {% include 'partials/_smart_back_redirect.html' %}
 {% endblock %}

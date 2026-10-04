@@ -331,6 +331,15 @@ class StudentProfile(models.Model):
             self.save(update_fields=['fee_expiry_date', 'coaching_fee_expiry_date', 'library_fee_expiry_date'])
 
     @property
+    def service_type_display(self):
+        """
+        Human-friendly service display. Shows 'Coaching & Library' instead of 'Both'.
+        """
+        if self.service_type == 'Both':
+            return 'Coaching & Library'
+        return self.get_service_type_display() if hasattr(self, 'get_service_type_display') else (self.service_type or '')
+
+    @property
     def effective_coaching_expiry(self):
         """
         Returns coaching_fee_expiry_date if set.
