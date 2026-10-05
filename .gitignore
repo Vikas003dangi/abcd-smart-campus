@@ -124,4 +124,6 @@ abcd-twa/
 *.apk
 *.aab
 *.keystore
+*.jks
+keystore.properties
 *.idsig
