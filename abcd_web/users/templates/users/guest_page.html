@@ -3297,7 +3297,7 @@
         color: #333 !important;
         border-radius: 24px !important;
         padding: 30px 32px 35px 32px !important;
-        max-width: 480px !important;
+        max-width: 500px !important;
         width: 92% !important;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
         text-align: center !important;
@@ -3531,18 +3531,55 @@
         line-height: 1.5 !important;
     }
 
-    .choice-modal-card .button-group { display: flex !important; gap: 16px !important; flex-wrap: wrap !important; justify-content: center !important; }
+    .choice-modal-card .button-group {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin-top: 4px !important;
+    }
+
+    .choice-modal-card .choice-primary-actions {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 12px !important;
+        width: 100% !important;
+        justify-content: center !important;
+        align-items: stretch !important;
+    }
+
     .choice-modal-card .btn {
-        padding: 14px 28px !important;
+        padding: 13px 20px !important;
         border: none !important;
         border-radius: 50px !important;
-        font-size: 1rem !important;
+        font-size: 0.95rem !important;
         font-weight: 600 !important;
         cursor: pointer !important;
         text-decoration: none !important;
-        display: inline-block !important;
-        transition: all 0.3s ease !important;
-        min-width: 170px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        line-height: 1.25 !important;
+    }
+
+    .choice-modal-card .choice-primary-actions .btn {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        padding: 13px 12px !important;
+        font-size: 0.92rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.2px !important;
+        white-space: nowrap !important;
+    }
+
+    .choice-modal-card .btn-guest {
+        width: 100% !important;
+        max-width: 300px !important;
+        padding: 12px 24px !important;
+        font-size: 0.94rem !important;
     }
 
     #admissionChoiceModal .choice-modal-card .btn-primary,
@@ -3550,13 +3587,29 @@
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
         color: white !important;
         border: none !important;
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3) !important;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.32) !important;
     }
 
     #admissionChoiceModal .choice-modal-card .btn-primary:hover,
     body.dark-theme #admissionChoiceModal .choice-modal-card .btn-primary:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 26px rgba(102, 126, 234, 0.45) !important;
+        color: white !important;
+    }
+
+    #admissionChoiceModal .choice-modal-card .btn-alumni,
+    body.dark-theme #admissionChoiceModal .choice-modal-card .btn-alumni {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.32) !important;
+    }
+
+    #admissionChoiceModal .choice-modal-card .btn-alumni:hover,
+    body.dark-theme #admissionChoiceModal .choice-modal-card .btn-alumni:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 26px rgba(245, 158, 11, 0.45) !important;
+        color: white !important;
     }
 
     #admissionChoiceModal .choice-modal-card .btn-secondary,
@@ -3564,13 +3617,19 @@
         background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%) !important;
         color: #333 !important;
         border: none !important;
-        box-shadow: 0 10px 20px rgba(252, 182, 159, 0.3) !important;
+        box-shadow: 0 8px 20px rgba(252, 182, 159, 0.3) !important;
     }
 
     #admissionChoiceModal .choice-modal-card .btn-secondary:hover,
     body.dark-theme #admissionChoiceModal .choice-modal-card .btn-secondary:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 15px 30px rgba(252, 182, 159, 0.4) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 26px rgba(252, 182, 159, 0.4) !important;
+        color: #333 !important;
+    }
+
+    #admissionChoiceModal .choice-modal-card .btn:active,
+    body.dark-theme #admissionChoiceModal .choice-modal-card .btn:active {
+        transform: translateY(0) !important;
     }
 
     #admissionChoiceModal .choice-modal-card a[href*="logout"],
@@ -3579,10 +3638,12 @@
     body.dark-theme #admissionChoiceModal .choice-modal-card a[href*="logout"]:hover { opacity: 1 !important; }
 
     @media (max-width: 600px) {
-        .choice-modal-card { padding: 25px 18px !important; margin: 15px !important; }
-        .choice-modal-header h1 { font-size: 1.7rem !important; }
-        .choice-modal-card .button-group { flex-direction: column !important; align-items: center !important; }
-        .choice-modal-card .btn { width: 100% !important; max-width: 280px !important; }
+        .choice-modal-card { padding: 22px 16px 26px 16px !important; margin: 12px !important; max-width: 95% !important; }
+        .choice-modal-header h1 { font-size: 1.6rem !important; }
+        .choice-modal-card .button-group { gap: 10px !important; }
+        .choice-modal-card .choice-primary-actions { gap: 10px !important; }
+        .choice-modal-card .choice-primary-actions .btn { font-size: 0.85rem !important; padding: 11px 8px !important; }
+        .choice-modal-card .btn-guest { width: 100% !important; max-width: 290px !important; font-size: 0.9rem !important; padding: 11px 16px !important; }
     }
 
     @media (max-width: 500px) {
@@ -3592,13 +3653,20 @@
     }
 
     @media (max-width: 450px) {
-        .choice-modal-card { padding: 20px 15px !important; margin: 12px !important; }
+        .choice-modal-card { padding: 18px 12px 22px 12px !important; margin: 10px !important; }
         .choice-modal-message, .choice-modal-card { max-height: 90vh !important; }
         .choice-modal-header h1 { font-size: 1.2rem !important; }
-        .choice-modal-header p { font-size: 0.9rem !important; line-height: 1.3 !important; }
-        .choice-modal-message { font-size: 0.9rem !important; }
-        .choice-modal-card .btn { font-size: 0.85rem !important; padding: 12px 20px !important; min-width: 140px !important; }
-        .choice-modal-card .button-group { gap: 8px !important; }
+        .choice-modal-header p { font-size: 0.88rem !important; line-height: 1.3 !important; }
+        .choice-modal-message { font-size: 0.88rem !important; padding: 12px 14px !important; margin-bottom: 16px !important; }
+        .choice-modal-card .button-group { gap: 9px !important; }
+        .choice-modal-card .choice-primary-actions { gap: 8px !important; }
+        .choice-modal-card .choice-primary-actions .btn { font-size: 0.81rem !important; padding: 10px 5px !important; letter-spacing: 0 !important; }
+        .choice-modal-card .btn-guest { max-width: 270px !important; font-size: 0.85rem !important; padding: 10px 14px !important; }
+    }
+
+    @media (max-width: 340px) {
+        .choice-modal-card .choice-primary-actions { flex-direction: column !important; gap: 8px !important; align-items: center !important; }
+        .choice-modal-card .choice-primary-actions .btn { width: 100% !important; max-width: 240px !important; }
     }
   </style>
 {% endblock %}
@@ -5064,12 +5132,21 @@
         <div class="choice-modal-message">
             <strong>🌟 Complete Your Journey!</strong><br>
             We're excited to have you here! To provide you with the best experience and access to our premium coaching and library services, we'd love to know more about you. <br>
-            <b>Please share your details for admission or continue as a guest to explore.</b>
+            <b>Please share your details for admission, register your alumni achievements, or continue as a guest to explore.</b>
         </div>
         
-        <div class="button-group">
-            <a href="{% url 'users:admission_form' %}" class="btn btn-primary">📝 Get Admission</a>
-            <a href="javascript:void(0)" onclick="closeChoiceModal(); return false;" class="btn btn-secondary">👤 Continue as Guest</a>
+        <div class="button-group choice-button-group">
+            <div class="choice-primary-actions">
+                <a href="{% url 'users:admission_form' %}" class="btn btn-primary" title="Student Admission Form - Enroll for Coaching & Library">
+                    <span>📝 Student Admission</span>
+                </a>
+                <a href="{% url 'users:achievement_form' %}" class="btn btn-alumni" title="Alumni Registration - Share Your Achievements">
+                    <span>🏆 Alumni Registration</span>
+                </a>
+            </div>
+            <a href="javascript:void(0)" onclick="closeChoiceModal(); return false;" class="btn btn-secondary btn-guest" title="Continue Exploring as Guest">
+                <span>👤 Continue as Guest</span>
+            </a>
         </div>
     </div>
 </div>
