@@ -313,6 +313,12 @@ class NavigationExitModalTests(TestCase):
         self.assertIn('function openPlayStore()', content)
         self.assertIn('window.location.href = PLAY_STORE_MARKET_URI', content)
 
+        # iOS detection and dedicated PWA install guide modal
+        self.assertIn('function showIOSInstallModal()', content)
+        self.assertIn('function showIOSPointerHint()', content)
+        self.assertIn('Add to Home Screen', content)
+        self.assertIn('abcdIOSInstallModal', content)
+
         # Suppressed when running inside app container
         self.assertIn('function isRunningInsideApp()', content)
         self.assertIn("sessionStorage.getItem('abcd_is_android_app') === '1'", content)

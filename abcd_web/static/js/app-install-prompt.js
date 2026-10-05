@@ -96,14 +96,17 @@
         return;
     }
 
-    // Detect iOS Safari
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    // Detect iOS devices (iPhone, iPod, iPad, iPadOS with touch)
+    const isIOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     let deferredPrompt = null;
     let pwaOverlay = null;
     let installModal = null;
+    let iosInstallModal = null;
     let openInAppModal = null;
     let smartBanner = null;
+    let iosPointerHint = null;
 
     // 1. Inject Styles for the VIP Modals and Smart Banner
     function injectStyles() {
@@ -541,6 +544,114 @@
                     font-size: 1.2rem;
                 }
             }
+
+            /* ═══ iOS Dedicated Install Guide Styles ═══ */
+            .abcd-ios-step-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                margin: 16px 0 20px 0;
+            }
+            .abcd-ios-step-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                background: rgba(124, 58, 237, 0.05);
+                border: 1px solid rgba(124, 58, 237, 0.12);
+                border-radius: 14px;
+                padding: 10px 14px;
+                font-size: 0.88rem;
+                line-height: 1.4;
+                color: #334155;
+            }
+            body.dark-theme .abcd-ios-step-item {
+                background: rgba(168, 85, 247, 0.08);
+                border-color: rgba(168, 85, 247, 0.2);
+                color: #cbd5e1;
+            }
+            .abcd-ios-step-num {
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #7c3aed, #6366f1);
+                color: #ffffff;
+                font-size: 0.8rem;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .abcd-ios-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                background: rgba(124, 58, 237, 0.12);
+                color: #7c3aed;
+                padding: 2px 7px;
+                border-radius: 6px;
+                font-weight: 700;
+                font-size: 0.82rem;
+                white-space: nowrap;
+            }
+            body.dark-theme .abcd-ios-pill {
+                background: rgba(168, 85, 247, 0.22);
+                color: #c084fc;
+            }
+            .abcd-ios-perks {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px 14px;
+                margin-bottom: 18px;
+                padding: 8px 12px;
+                background: rgba(16, 185, 129, 0.08);
+                border: 1px solid rgba(16, 185, 129, 0.2);
+                border-radius: 10px;
+                font-size: 0.78rem;
+                font-weight: 600;
+                color: #059669;
+            }
+            body.dark-theme .abcd-ios-perks {
+                background: rgba(16, 185, 129, 0.15);
+                border-color: rgba(16, 185, 129, 0.3);
+                color: #34d399;
+            }
+            .abcd-ios-perks span {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .abcd-ios-pointer-hint {
+                position: fixed;
+                bottom: 18px;
+                left: 50%;
+                transform: translateX(-50%) translateY(20px);
+                background: linear-gradient(135deg, #17022C, #2e0854);
+                color: #ffffff;
+                padding: 10px 18px;
+                border-radius: 30px;
+                font-size: 0.84rem;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(124, 58, 237, 0.4);
+                border: 1.5px solid rgba(168, 85, 247, 0.4);
+                z-index: 50000;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s ease;
+                pointer-events: none;
+                text-align: center;
+                width: max-content;
+                max-width: 90vw;
+            }
+            .abcd-ios-pointer-hint.visible {
+                opacity: 1;
+                visibility: visible;
+                transform: translateX(-50%) translateY(0);
+            }
         `;
         document.head.appendChild(style);
     }
@@ -561,8 +672,9 @@
         if (pwaOverlay) pwaOverlay.classList.remove('visible');
         if (installModal) installModal.classList.remove('visible');
         if (openInAppModal) openInAppModal.classList.remove('visible');
+        if (iosInstallModal) iosInstallModal.classList.remove('visible');
         setTimeout(() => {
-            if (window.__abcd_active_prompt === 'install' || window.__abcd_active_prompt === 'open_in_app') {
+            if (window.__abcd_active_prompt === 'install' || window.__abcd_active_prompt === 'open_in_app' || window.__abcd_active_prompt === 'ios_install') {
                 window.__abcd_active_prompt = null;
             }
         }, 300);
@@ -694,15 +806,21 @@
             installModal.className = 'abcd-pwa-modal';
             installModal.id = 'abcdInstallModal';
 
-            const installBtnText = isIOS 
-                ? `<i class='bx bx-export'></i> Add to Home Screen` 
-                : `<i class='bx bxs-download'></i> Install ABCD App Now`;
+            const installBtnText = isAndroid
+                ? `<i class='bx bxl-play-store'></i> Install from Google Play`
+                : (isIOS
+                    ? `<i class='bx bxl-apple'></i> Install on iPhone`
+                    : `<i class='bx bxs-download'></i> Install ABCD App Now`);
 
-            const helperNote = isIOS
-                ? `<div style="font-size:0.8rem; color:#8b5cf6; margin-bottom:12px; text-align:center;">
-                     Tap the <strong>Share</strong> button <i class='bx bx-share'></i> below and select <strong>'Add to Home Screen'</strong>.
+            const helperNote = isAndroid
+                ? `<div style="font-size:0.8rem; color:#10b981; margin-bottom:12px; text-align:center; font-weight:600;">
+                     <i class='bx bxs-check-shield'></i> Official release verified on Google Play Store
                    </div>`
-                : '';
+                : (isIOS
+                    ? `<div style="font-size:0.8rem; color:#8b5cf6; margin-bottom:12px; text-align:center; font-weight:600;">
+                         <i class='bx bxl-apple'></i> Installs directly on iPhone as a standalone app
+                       </div>`
+                    : '');
 
             installModal.innerHTML = `
                 <div class="abcd-pwa-ambient-glow"></div>
@@ -759,6 +877,9 @@
                 if (isAndroid) {
                     openPlayStore();
                     hideActiveModal();
+                } else if (isIOS) {
+                    hideActiveModal();
+                    showIOSInstallModal();
                 } else if (deferredPrompt) {
                     deferredPrompt.prompt();
                     const choice = await deferredPrompt.userChoice;
@@ -767,11 +888,6 @@
                     }
                     deferredPrompt = null;
                     window.deferredInstallPrompt = null;
-                    hideActiveModal();
-                } else if (isIOS) {
-                    if (window.CustomPopup) {
-                        CustomPopup.alert('On Safari iOS: Tap the Share button at the bottom of your screen and choose "Add to Home Screen".', 'Install Instructions');
-                    }
                     hideActiveModal();
                 } else {
                     if (window.CustomPopup) {
@@ -786,6 +902,132 @@
         requestAnimationFrame(() => {
             pwaOverlay.classList.add('visible');
             installModal.classList.add('visible');
+        });
+    }
+
+    // Helper: Floating hint pointing towards iOS Safari share bar
+    function showIOSPointerHint() {
+        if (!iosPointerHint) {
+            iosPointerHint = document.createElement('div');
+            iosPointerHint.className = 'abcd-ios-pointer-hint';
+            iosPointerHint.id = 'abcdIOSPointerHint';
+            iosPointerHint.innerHTML = `<i class='bx bx-down-arrow-alt bx-fade-down'></i> Tap Share <i class='bx bx-export'></i> below & choose "Add to Home Screen"`;
+            document.body.appendChild(iosPointerHint);
+        }
+        requestAnimationFrame(() => {
+            iosPointerHint.classList.add('visible');
+        });
+        setTimeout(() => {
+            if (iosPointerHint) iosPointerHint.classList.remove('visible');
+        }, 5500);
+    }
+
+    // 3b. Build and Show Dedicated iOS "Install on iPhone" Modal (PWA)
+    function showIOSInstallModal() {
+        if (sessionStorage.getItem(DISMISS_INSTALL_SESSION_KEY) === 'true') {
+            return;
+        }
+
+        // Hide lower-priority alert/choice modals if open so they do not collide
+        const existingAlert = document.getElementById('alert-overlay');
+        if (existingAlert && existingAlert.classList.contains('visible')) {
+            existingAlert.classList.remove('visible');
+        }
+        const existingChoice = document.getElementById('admissionChoiceModal');
+        if (existingChoice && existingChoice.style.display === 'flex') {
+            existingChoice.style.display = 'none';
+        }
+
+        getOrCreateOverlay();
+
+        if (!iosInstallModal) {
+            iosInstallModal = document.createElement('div');
+            iosInstallModal.className = 'abcd-pwa-modal abcd-ios-install-modal';
+            iosInstallModal.id = 'abcdIOSInstallModal';
+
+            const isChrome = /CriOS/i.test(navigator.userAgent);
+            const shareLocation = isChrome
+                ? "Look at the top-right address bar or Chrome menu <i class='bx bx-dots-horizontal-rounded'></i>"
+                : "Look at the bottom toolbar in Safari";
+
+            iosInstallModal.innerHTML = `
+                <div class="abcd-pwa-ambient-glow"></div>
+                <button class="abcd-pwa-close-btn" id="abcdIOSCloseBtn" aria-label="Close">&times;</button>
+                <div class="abcd-pwa-badge">
+                    <i class='bx bxl-apple'></i> iPhone & iPad App
+                </div>
+                <div class="abcd-pwa-header">
+                    <div class="abcd-pwa-icon-wrap">
+                        <i class='bx bxs-graduation'></i>
+                    </div>
+                    <div>
+                        <h3 class="abcd-pwa-title">Install ABCD on iPhone</h3>
+                        <p class="abcd-pwa-subtitle">Add to your Home Screen to use ABCD Campus as a full standalone app.</p>
+                    </div>
+                </div>
+
+                <div class="abcd-ios-step-list">
+                    <div class="abcd-ios-step-item">
+                        <div class="abcd-ios-step-num">1</div>
+                        <div>
+                            <div>Tap the <strong>Share</strong> button <span class="abcd-ios-pill"><i class='bx bx-export'></i> Share</span></div>
+                            <div style="font-size:0.78rem; opacity:0.8; margin-top:2px;">${shareLocation}</div>
+                        </div>
+                    </div>
+                    <div class="abcd-ios-step-item">
+                        <div class="abcd-ios-step-num">2</div>
+                        <div>
+                            <div>Scroll down & select <span class="abcd-ios-pill"><i class='bx bx-plus-square'></i> Add to Home Screen</span></div>
+                            <div style="font-size:0.78rem; opacity:0.8; margin-top:2px;">This installs ABCD Campus directly to your apps.</div>
+                        </div>
+                    </div>
+                    <div class="abcd-ios-step-item">
+                        <div class="abcd-ios-step-num">3</div>
+                        <div>
+                            <div>Tap <strong>"Add"</strong> in the top-right corner.</div>
+                            <div style="font-size:0.78rem; opacity:0.8; margin-top:2px;">Launch anytime from your Home Screen with zero browser clutter!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="abcd-ios-perks">
+                    <span><i class='bx bxs-check-shield'></i> Standalone App</span>
+                    <span><i class='bx bxs-zap'></i> 2x Faster</span>
+                    <span><i class='bx bxs-bell-ring'></i> Instant Alerts</span>
+                </div>
+
+                <div class="abcd-pwa-actions">
+                    <button class="abcd-pwa-btn-main" id="abcdIOSGotItBtn">
+                        <i class='bx bx-check-circle'></i> Got It, Show Me
+                    </button>
+                    <button class="abcd-pwa-btn-sec" id="abcdIOSLaterBtn">
+                        Continue in Browser
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(iosInstallModal);
+
+            document.getElementById('abcdIOSCloseBtn').addEventListener('click', () => {
+                sessionStorage.setItem(DISMISS_INSTALL_SESSION_KEY, 'true');
+                hideActiveModal();
+            });
+
+            document.getElementById('abcdIOSLaterBtn').addEventListener('click', () => {
+                sessionStorage.setItem(DISMISS_INSTALL_SESSION_KEY, 'true');
+                hideActiveModal();
+            });
+
+            document.getElementById('abcdIOSGotItBtn').addEventListener('click', () => {
+                sessionStorage.setItem(DISMISS_INSTALL_SESSION_KEY, 'true');
+                hideActiveModal();
+                showIOSPointerHint();
+            });
+        }
+
+        window.__abcd_active_prompt = 'ios_install';
+        requestAnimationFrame(() => {
+            pwaOverlay.classList.add('visible');
+            iosInstallModal.classList.add('visible');
         });
     }
 
@@ -898,6 +1140,10 @@
     async function triggerInstallFlow() {
         if (isAndroid) {
             openPlayStore();
+            return;
+        }
+        if (isIOS) {
+            showIOSInstallModal();
             return;
         }
         if (deferredPrompt) {
