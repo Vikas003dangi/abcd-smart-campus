@@ -532,6 +532,12 @@
         .hero-content.text-top-high {
             margin-top: 15px !important;
         }
+        .hero-content.text-top-ultra {
+            margin-top: -6px !important;
+        }
+        .hero-content.text-top-ultra h1 {
+            margin-bottom: 2px !important;
+        }
     }
 
     @media (max-width: 400px) {
@@ -649,6 +655,14 @@
     .hero-content.text-top-high {
         padding-top: 0;
         margin-top: -25px;
+    }
+
+    .hero-content.text-top-ultra {
+        padding-top: 0;
+        margin-top: -38px;
+    }
+    .hero-content.text-top-ultra h1 {
+        margin-bottom: 4px;
     }
 
     .hero-content.text-bottom-near {
@@ -2178,7 +2192,7 @@
                 image: "{% static 'data/webp/5th.webp' %}?v=2",
                 heading: "The Gems of ABCD",
                 subheading: "Passionate mentors and bright minds driving our legacy of excellence.",
-                posClass: "text-top-high",
+                posClass: "text-top-ultra",
                 pClass: "one-line"
             },
             {
