@@ -1,10 +1,10 @@
 {% load static %}
 <!-- ==========================================================================
      ABCD SMART CAMPUS - FORMAL LEGAL DOCUMENT PRINT / PDF STYLESHEET & ASSETS
-     Pure white paper background, formal dark ink, institutional typography,
-     compact balanced margins (6mm top/bottom, 8mm left/right), dead-center
-     faded background watermark (ABCD Campus) on every page, running corner header
-     with "ABCD Campus | {doc_title} | Page X of Y", and client-only PDF generation.
+     Uniform light wheat paper background (#faf6ee), formal institutional ink,
+     100% theme independence (light/dark screen theme will NOT affect print/PDF),
+     multi-page uniform background coverage, dead-center watermark, running header
+     and client-side print engine.
 ========================================================================== -->
 
 <!-- Watermark: Dead-center institutional watermark fixed across all printed pages (Layer z-index: 0) -->
@@ -30,8 +30,9 @@
   @media print {
     @page {
       size: A4 portrait;
-      /* Clean, compact margins: reduced top/bottom to 6mm, balanced left/right 8mm */
+      /* Balanced margins: 6mm top/bottom, 8mm left/right */
       margin: 6mm 8mm 6mm 8mm;
+      background-color: #faf6ee;
       @top-right {
         content: "ABCD Campus | {{ doc_title|default:'Official Legal Policy' }} | Page " counter(page) " of " counter(pages);
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -48,7 +49,7 @@
       }
     }
 
-    /* 1. Reset Colors for Paper: No gradients, no dark backgrounds, no web shadows */
+    /* 1. Global Reset & Theme Override: Force clean light wheat paper & dark ink */
     *, *::before, *::after {
       box-shadow: none !important;
       text-shadow: none !important;
@@ -57,9 +58,44 @@
       print-color-adjust: exact !important;
     }
 
-    html, body {
+    /* Reset CSS Variables so no dark-theme variables leak into print */
+    :root,
+    html,
+    html.dark-theme,
+    html[data-theme='dark'],
+    body,
+    body.dark-theme,
+    body[data-theme='dark'] {
+      --legal-primary: #4f46e5 !important;
+      --legal-card-bg: transparent !important;
+      --legal-card-border: #e6dcce !important;
+      --legal-card-shadow: none !important;
+      --legal-text: #1e293b !important;
+      --legal-heading: #0f172a !important;
+      --legal-subheading: #2e1065 !important;
+      --legal-muted: #64748b !important;
+      --legal-callout-bg: #f4eee2 !important;
+      --legal-callout-border: #dcd0c0 !important;
+      --legal-desk-bg: #f5eee1 !important;
+      --legal-desk-border: #e8dfd5 !important;
+      color-scheme: light !important;
+    }
+
+    /* Target all container combinations to eliminate dark backgrounds & ensure all pages have #faf6ee */
+    html,
+    html.dark-theme,
+    html:not(.dark-theme),
+    html[data-theme='dark'],
+    html[data-theme='light'],
+    body,
+    body.dark-theme,
+    body:not(.dark-theme),
+    body[data-theme='dark'],
+    body[data-theme='light'] {
       display: block !important;
-      background: #ffffff !important;
+      background-color: #faf6ee !important;
+      background-image: none !important;
+      background: #faf6ee !important;
       color: #0f172a !important;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
       font-size: 9.2pt !important;
@@ -67,17 +103,23 @@
       margin: 0 !important;
       padding: 0 !important;
       width: 100% !important;
-      height: 100% !important;
+      /* CRITICAL: height must be auto so multi-page documents maintain #faf6ee on pages 2, 3, 4+ */
+      height: auto !important;
+      min-height: 100% !important;
       border: none !important;
       outline: none !important;
       float: none !important;
     }
 
-    /* Content container elevated above the watermark with zero artificial borders or padding */
-    .legal-wrapper {
+    /* Content wrapper: Seamless light wheat across all pages */
+    .legal-wrapper,
+    main.legal-wrapper,
+    main {
       position: static !important;
       z-index: auto !important;
-      background: transparent !important;
+      background-color: #faf6ee !important;
+      background-image: none !important;
+      background: #faf6ee !important;
       box-sizing: border-box !important;
       max-width: 100% !important;
       width: 100% !important;
@@ -86,9 +128,11 @@
       color: #0f172a !important;
       border: none !important;
       outline: none !important;
+      height: auto !important;
+      min-height: 100% !important;
     }
 
-    /* 2. Hide ALL Web Navigation, Tabs, Buttons & Chrome */
+    /* 2. Hide ALL Web Navigation, Tabs, Buttons, Sidebars & Overlays */
     header.top-nav-menu,
     .top-nav-menu,
     nav.navbar,
@@ -160,7 +204,7 @@
       font-size: 78pt !important;
       font-weight: 900 !important;
       color: #1e293b !important;
-      opacity: 0.08 !important;
+      opacity: 0.06 !important;
       letter-spacing: 14pt !important;
       line-height: 1 !important;
       margin: 0 0 10pt 0 !important;
@@ -173,7 +217,7 @@
       font-size: 28pt !important;
       font-weight: 800 !important;
       color: #1e293b !important;
-      opacity: 0.10 !important;
+      opacity: 0.08 !important;
       letter-spacing: 18pt !important;
       line-height: 1 !important;
       margin: 0 !important;
@@ -181,26 +225,42 @@
       print-color-adjust: exact !important;
     }
 
-    /* 4. Formal Institutional Header (Clean Paper Styling, Soft Divider) */
+    /* 4. Formal Institutional Header (Clean Light Paper Styling, Soft Divider) */
+    html .legal-hero,
+    html.dark-theme .legal-hero,
+    body .legal-hero,
+    body.dark-theme .legal-hero,
     .legal-hero {
       background: transparent !important;
+      background-image: none !important;
       border: none !important;
-      border-bottom: 1px solid #e2e8f0 !important;
+      border-bottom: 1.5px solid #e8dfd5 !important;
       border-radius: 0 !important;
       padding: 0 0 8pt 0 !important;
       margin-bottom: 10pt !important;
       box-shadow: none !important;
+      color: #0f172a !important;
       page-break-after: avoid;
       break-after: avoid;
     }
 
+    html .legal-hero::before,
+    html.dark-theme .legal-hero::before,
+    .legal-hero::before {
+      display: none !important;
+    }
+
+    html .hero-kicker,
+    html.dark-theme .hero-kicker,
+    body .hero-kicker,
+    body.dark-theme .hero-kicker,
     .hero-kicker {
       display: block !important;
       font-size: 8pt !important;
       font-weight: 700 !important;
       text-transform: uppercase !important;
       letter-spacing: 0.12em !important;
-      color: #475569 !important;
+      color: #64748b !important;
       margin-bottom: 3pt !important;
       border: none !important;
       padding: 0 !important;
@@ -211,6 +271,10 @@
       display: none !important;
     }
 
+    html .hero-title-group h1,
+    html.dark-theme .hero-title-group h1,
+    body .hero-title-group h1,
+    body.dark-theme .hero-title-group h1,
     .hero-title-group h1 {
       font-size: 19pt !important;
       font-weight: 800 !important;
@@ -224,6 +288,10 @@
       display: none !important;
     }
 
+    html .hero-subtitle,
+    html.dark-theme .hero-subtitle,
+    body .hero-subtitle,
+    body.dark-theme .hero-subtitle,
     .hero-subtitle {
       font-size: 9.2pt !important;
       line-height: 1.48 !important;
@@ -232,15 +300,21 @@
       text-align: justify !important;
     }
 
+    html .hero-badges-wrap,
+    html.dark-theme .hero-badges-wrap,
     .hero-badges-wrap {
       display: flex !important;
       flex-wrap: wrap !important;
       gap: 6pt 16pt !important;
       margin-top: 5pt !important;
       padding-top: 5pt !important;
-      border-top: 1px solid #e2e8f0 !important;
+      border-top: 1px solid #e8dfd5 !important;
     }
 
+    html .hero-badge-pill,
+    html.dark-theme .hero-badge-pill,
+    body .hero-badge-pill,
+    body.dark-theme .hero-badge-pill,
     .hero-badge-pill {
       background: transparent !important;
       border: none !important;
@@ -254,15 +328,22 @@
       display: none !important;
     }
 
+    html .hero-badge-pill strong,
+    html.dark-theme .hero-badge-pill strong,
     .hero-badge-pill strong {
       color: #0f172a !important;
     }
 
     /* 5. Legal Sections & Cards: Avoid Awkward Breaks */
+    html .legal-card,
+    html.dark-theme .legal-card,
+    body .legal-card,
+    body.dark-theme .legal-card,
     .legal-card {
       background: transparent !important;
+      background-image: none !important;
       border: none !important;
-      border-bottom: 0.5pt solid #f1f5f9 !important;
+      border-bottom: 0.5pt solid #eee5d8 !important;
       border-radius: 0 !important;
       padding: 6pt 0 8pt 0 !important;
       margin: 0 0 6pt 0 !important;
@@ -276,6 +357,10 @@
       border-bottom: none !important;
     }
 
+    html .legal-card h2,
+    html.dark-theme .legal-card h2,
+    body .legal-card h2,
+    body.dark-theme .legal-card h2,
     .legal-card h2 {
       font-size: 11.2pt !important;
       font-weight: 700 !important;
@@ -292,19 +377,27 @@
       display: none !important;
     }
 
-    /* Refined, elegant light badge (No solid black blocks) */
+    /* Refined, elegant light badge on paper */
+    html .sec-num,
+    html.dark-theme .sec-num,
+    body .sec-num,
+    body.dark-theme .sec-num,
     .sec-num {
-      background: #f1f5f9 !important;
+      background: #f2ebde !important;
       color: #334155 !important;
       font-size: 7.5pt !important;
       font-weight: 700 !important;
       padding: 1pt 5pt !important;
       border-radius: 3pt !important;
-      border: 1px solid #cbd5e1 !important;
+      border: 1px solid #dcd0c0 !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
 
+    html .legal-card h3,
+    html.dark-theme .legal-card h3,
+    body .legal-card h3,
+    body.dark-theme .legal-card h3,
     .legal-card h3 {
       font-size: 9.8pt !important;
       font-weight: 700 !important;
@@ -314,6 +407,14 @@
       break-after: avoid;
     }
 
+    html .legal-card p,
+    html.dark-theme .legal-card p,
+    html .legal-card li,
+    html.dark-theme .legal-card li,
+    body .legal-card p,
+    body.dark-theme .legal-card p,
+    body .legal-card li,
+    body.dark-theme .legal-card li,
     .legal-card p,
     .legal-card li {
       font-size: 9pt !important;
@@ -328,6 +429,10 @@
       padding: 0 !important;
     }
 
+    html .legal-card strong,
+    html.dark-theme .legal-card strong,
+    body .legal-card strong,
+    body.dark-theme .legal-card strong,
     .legal-card strong {
       color: #0f172a !important;
       font-weight: 700 !important;
@@ -338,11 +443,15 @@
       text-decoration: underline !important;
     }
 
-    /* Formal Callouts with Soft Slate Border (No Harsh Black) */
+    /* Formal Callouts with Warm Light Wheat Accent */
+    html .legal-callout,
+    html.dark-theme .legal-callout,
+    body .legal-callout,
+    body.dark-theme .legal-callout,
     .legal-callout {
-      background: rgba(248, 250, 252, 0.9) !important;
-      border: 1px solid #e2e8f0 !important;
-      border-left: 3px solid #94a3b8 !important;
+      background: #f4eee2 !important;
+      border: 1px solid #e6dcce !important;
+      border-left: 3px solid #b8a892 !important;
       border-radius: 3pt !important;
       padding: 5pt 8pt !important;
       margin: 5pt 0 !important;
@@ -356,8 +465,8 @@
     }
 
     .legal-callout.highlight {
-      background: rgba(241, 245, 249, 0.95) !important;
-      border-left-color: #94a3b8 !important;
+      background: #efe7d9 !important;
+      border-left-color: #9d8b74 !important;
     }
 
     /* 6. Section 11 Administration Contact Desk: Clean Table Grid */
@@ -372,11 +481,15 @@
       width: 100% !important;
     }
 
+    html .contact-desk-item,
+    html.dark-theme .contact-desk-item,
+    body .contact-desk-item,
+    body.dark-theme .contact-desk-item,
     .contact-desk-item {
-      border: 1px solid #e2e8f0 !important;
+      border: 1px solid #e6dcce !important;
       border-radius: 3pt !important;
       padding: 5pt 8pt !important;
-      background: rgba(248, 250, 252, 0.85) !important;
+      background: #f4eee2 !important;
       box-sizing: border-box !important;
     }
 
@@ -384,6 +497,8 @@
       display: none !important;
     }
 
+    html .contact-desk-info h4,
+    html.dark-theme .contact-desk-info h4,
     .contact-desk-info h4 {
       font-size: 8.5pt !important;
       font-weight: 700 !important;
@@ -391,6 +506,8 @@
       margin: 0 0 2pt 0 !important;
     }
 
+    html .contact-desk-info p,
+    html.dark-theme .contact-desk-info p,
     .contact-desk-info p {
       font-size: 8pt !important;
       color: #334155 !important;
@@ -398,12 +515,12 @@
       line-height: 1.35 !important;
     }
 
-    /* 7. Institutional Sign-Off Block (Soft Gray Border, Aligned) */
+    /* 7. Institutional Sign-Off Block (Soft Neutral Border, Aligned) */
     .legal-print-sign-off {
       display: block !important;
       margin-top: 12pt !important;
       padding-top: 7pt !important;
-      border-top: 1px solid #cbd5e1 !important;
+      border-top: 1px solid #dcd0c0 !important;
       page-break-inside: avoid !important;
       break-inside: avoid !important;
       box-sizing: border-box !important;
@@ -442,7 +559,7 @@
       font-weight: 700 !important;
       color: #1e293b !important;
       margin-top: 14pt !important;
-      border-top: 1px solid #94a3b8 !important;
+      border-top: 1px solid #8c7e6c !important;
       display: inline-block !important;
       padding-top: 3pt !important;
       width: 150pt !important;
@@ -478,6 +595,53 @@
     }
   }
 
+  // Active theme management during printing:
+  // Temporarily strips dark-theme class before print, restoring it after dialog closes
+  let wasDarkTheme = false;
+  let originalEarlyThemeContent = null;
+
+  function prepareDocumentForPrint() {
+    ensureWatermarkInBody();
+    const docEl = document.documentElement;
+    const bodyEl = document.body;
+    wasDarkTheme = docEl.classList.contains('dark-theme') || (bodyEl && bodyEl.classList.contains('dark-theme'));
+
+    if (wasDarkTheme) {
+      docEl.classList.remove('dark-theme');
+      docEl.setAttribute('data-theme', 'light');
+      if (bodyEl) {
+        bodyEl.classList.remove('dark-theme');
+        bodyEl.setAttribute('data-theme', 'light');
+      }
+      const earlyStyle = document.getElementById('abcd-early-theme-style');
+      if (earlyStyle) {
+        originalEarlyThemeContent = earlyStyle.textContent;
+        earlyStyle.textContent = 'html, body { background-color: #faf6ee !important; color-scheme: light !important; }';
+      }
+    }
+  }
+
+  function restoreDocumentAfterPrint() {
+    if (wasDarkTheme) {
+      const docEl = document.documentElement;
+      const bodyEl = document.body;
+      docEl.classList.add('dark-theme');
+      docEl.setAttribute('data-theme', 'dark');
+      if (bodyEl) {
+        bodyEl.classList.add('dark-theme');
+        bodyEl.setAttribute('data-theme', 'dark');
+      }
+      const earlyStyle = document.getElementById('abcd-early-theme-style');
+      if (earlyStyle && originalEarlyThemeContent !== null) {
+        earlyStyle.textContent = originalEarlyThemeContent;
+      }
+      wasDarkTheme = false;
+    }
+  }
+
+  window.addEventListener('beforeprint', prepareDocumentForPrint);
+  window.addEventListener('afterprint', restoreDocumentAfterPrint);
+
   // Enhance Print Button & PDF Filename (Local Client-Side Only - 0 bytes saved on server/db)
   function setupPdfPrintFilename() {
     const docTitle = "{{ doc_title|default:'Legal_Document' }}".replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -486,7 +650,8 @@
     pdfButtons.forEach(function(btn) {
       btn.onclick = function(e) {
         e.preventDefault();
-        ensureWatermarkInBody();
+        prepareDocumentForPrint();
+
         const originalTitle = document.title;
         try {
           document.title = "ABCD_Campus_" + docTitle + "_Official.pdf";
@@ -501,7 +666,8 @@
           try {
             document.title = originalTitle;
           } catch(err) {}
-        }, 1200);
+          restoreDocumentAfterPrint();
+        }, 1500);
       };
     });
   }
