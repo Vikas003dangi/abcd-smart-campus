@@ -29,6 +29,13 @@
 
 button,
 a,
+img,
+.card,
+.nav-item,
+.menu-item,
+.navbar,
+.bottom-nav-menu,
+.top-nav-menu,
 [role="button"],
 [tabindex],
 .btn,
@@ -39,7 +46,11 @@ a,
     -webkit-tap-highlight-color: transparent !important;
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
     outline: none !important;
-    -webkit-touch-callout: none;
+    -webkit-touch-callout: none !important;
+}
+
+img {
+    -webkit-user-drag: none;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -225,36 +236,54 @@ a,
 /* DARK THEME SUPPORT */
 /* ================================================== */
 
-body.dark-theme .custom-popup {
+body.dark-theme .custom-popup,
+html.dark-theme .custom-popup,
+[data-theme="dark"] .custom-popup {
     background: #1f1b2e !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
 }
 
-body.dark-theme .custom-popup-header {
+body.dark-theme .custom-popup-header,
+html.dark-theme .custom-popup-header,
+[data-theme="dark"] .custom-popup-header {
     border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
-body.dark-theme .custom-popup-body {
+body.dark-theme .custom-popup-body,
+html.dark-theme .custom-popup-body,
+[data-theme="dark"] .custom-popup-body {
     color: #f1f5f9 !important;
 }
 
 body.dark-theme .custom-popup-body p,
 body.dark-theme .custom-popup-body div,
-body.dark-theme .custom-popup-body span {
+body.dark-theme .custom-popup-body span,
+html.dark-theme .custom-popup-body p,
+html.dark-theme .custom-popup-body div,
+html.dark-theme .custom-popup-body span,
+[data-theme="dark"] .custom-popup-body p,
+[data-theme="dark"] .custom-popup-body div,
+[data-theme="dark"] .custom-popup-body span {
     color: #f1f5f9 !important;
 }
 
-body.dark-theme .custom-popup-actions {
+body.dark-theme .custom-popup-actions,
+html.dark-theme .custom-popup-actions,
+[data-theme="dark"] .custom-popup-actions {
     background: rgba(0, 0, 0, 0.3) !important;
     border-top-color: rgba(255, 255, 255, 0.1);
 }
 
-body.dark-theme .custom-popup-btn.btn-secondary {
+body.dark-theme .custom-popup-btn.btn-secondary,
+html.dark-theme .custom-popup-btn.btn-secondary,
+[data-theme="dark"] .custom-popup-btn.btn-secondary {
     background: rgba(255, 255, 255, 0.12) !important;
     color: #cbd5e1 !important;
 }
 
-body.dark-theme .custom-popup-btn.btn-secondary:hover {
+body.dark-theme .custom-popup-btn.btn-secondary:hover,
+html.dark-theme .custom-popup-btn.btn-secondary:hover,
+[data-theme="dark"] .custom-popup-btn.btn-secondary:hover {
     background: rgba(255, 255, 255, 0.22) !important;
 }
 

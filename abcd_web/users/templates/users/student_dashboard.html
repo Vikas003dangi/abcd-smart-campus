@@ -10,25 +10,54 @@
   <meta name="theme-color" content="#fff2de" id="theme-color-meta">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff2de">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#fff2de">
+  <style id="abcd-early-theme-style">
+    html, html.dark-theme, html:not(.dark-theme) { transition: none !important; }
+  </style>
   <script>
     (function(){
       try {
         var s = localStorage.getItem('theme');
         var d = (s === 'dark' || s === 'dark-theme');
+        var r = document.documentElement;
         if (d) {
-          document.documentElement.classList.add('dark-theme');
-        } else if (s === 'light' || s === 'light-theme') {
-          document.documentElement.classList.remove('dark-theme');
+          r.classList.add('dark-theme');
+          r.setAttribute('data-theme', 'dark');
+          r.style.colorScheme = 'dark';
+        } else {
+          r.classList.remove('dark-theme');
+          r.setAttribute('data-theme', 'light');
+          r.style.colorScheme = 'light';
         }
-        var c = d ? '#17022c' : '#fff2de';
+        var p = (window.location.pathname || '').toLowerCase();
+        var isDash = p.includes('dashboard') || p.includes('seat') || p.includes('calendar') || p.includes('admission') || p.includes('register');
+        var c = d ? (p.includes('guidy') ? '#0f172a' : (isDash ? '#17022c' : '#0b1329')) : (isDash ? '#fff2de' : '#ffffff');
         var cs = document.getElementById('color-scheme-meta');
         if (cs) cs.content = d ? 'dark' : 'light';
         var metas = document.querySelectorAll('meta[name="theme-color"]');
         metas.forEach(function(m){ m.content = c; });
+        var st = document.getElementById('abcd-early-theme-style');
+        if (st) {
+          st.textContent = d
+            ? 'html, html.dark-theme { background-color: ' + c + ' !important; color-scheme: dark !important; } html.dark-theme body { background-color: ' + c + ' !important; background-image: none; color-scheme: dark !important; }'
+            : 'html, html:not(.dark-theme) { background-color: ' + c + ' !important; color-scheme: light !important; }';
+        }
+        if (document.body) {
+          if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+          else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+        } else if (window.MutationObserver) {
+          var obs = new MutationObserver(function() {
+            if (document.body) {
+              if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+              else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+              obs.disconnect();
+            }
+          });
+          obs.observe(r, { childList: true });
+        }
       } catch(e){}
     })();
   </script>
-  <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v7"></script>
+  <script src="{% static 'js/abcd-theme.js' %}?v=20261005-v1"></script>
   <meta name="csrf-token" content="{{ csrf_token }}">
   <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
   <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
@@ -55,11 +84,11 @@
 
   <style>
     :root {
-      --z-toast: 110000;
-      --z-modal: 100001;
-      --z-modal-overlay: 100000;
-      --z-popup: 90000;
-      --z-popup-overlay: 89999;
+      --z-toast: 3000090;
+      --z-modal: 3000011;
+      --z-modal-overlay: 3000010;
+      --z-popup: 3000001;
+      --z-popup-overlay: 3000000;
       --z-sidebar: 2000;
       --z-header: 1000;
       --z-dropdown: 500;
@@ -1419,7 +1448,7 @@
       height: 100dvh;
       background: rgba(248, 249, 250, 0.98);
       box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
-      z-index: 3000020 !important;
+      z-index: 2999905 !important;
       transform: translate3d(100%, 0, 0);
       will-change: transform;
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1444,7 +1473,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.45);
-      z-index: 3000019 !important;
+      z-index: 2999900 !important;
       display: none;
       opacity: 0;
       backdrop-filter: blur(0px);
@@ -7188,18 +7217,10 @@
       }
 
       themeToggle.addEventListener('click', function () {
-        document.body.classList.toggle('dark-theme');
-        const isDark = document.body.classList.contains('dark-theme');
-        let theme = isDark ? 'dark' : 'light';
-
-        // Update boxicon
-        if (bxIcon) {
-          bxIcon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
-        }
-
-        localStorage.setItem('theme', theme);
-        if (typeof window.syncThemeColor === 'function') {
-          window.syncThemeColor();
+        if (typeof window.abcdToggleTheme === 'function') {
+          window.abcdToggleTheme();
+        } else if (typeof window.toggleTheme === 'function') {
+          window.toggleTheme();
         }
       });
     }

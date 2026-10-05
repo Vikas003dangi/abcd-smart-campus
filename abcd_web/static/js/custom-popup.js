@@ -56,7 +56,7 @@ window.isPureBackdrop = function(el) {
         elId === 'seatmodaloverlay' || elId === 'statusmodaloverlay' || elId === 'logoutconfirmoverlay' ||
         elId === 'pwdoverlay' || elId === 'holdoverlay' || elId === 'cropoverlay' || elId === 'photoactionoverlay' ||
         elId === 'photomanageroverlay' || elId === 'deletemodaloverlay' || elId === 'modaloverlay' ||
-        elId === 'deletescopemodaloverlay' || elId === 'dismissexpiredmodaloverlay') {
+        elId === 'deletescopemodaloverlay' || elId === 'dismissexpiredmodaloverlay' || elId === 'quickprofilemodaloverlay') {
         return true;
     }
 
@@ -270,7 +270,12 @@ var CustomPopup = window.CustomPopup || (function () {
             '.teacher-modal', '.popup', '.custom-popup', '.abcd-modal-overlay',
             '.seat-interest-overlay', '.choice-modal-overlay', '.choice-modal-card',
             '.reg-success-overlay', '.reg-success-card', '.alert-overlay', '.welcome-modal-card',
-            '.student-banner-overlay', '.student-banner-card', '.notif-panel', '.notif-overlay',
+            '.student-banner-overlay', '.student-banner-card',
+            '.notif-panel', '.notif-overlay', '.teacher-notif-panel', '.teacher-notif-overlay',
+            '.broadcast-panel-container', '.broadcast-overlay',
+            '[class*="notif-panel"]', '[class*="notif-overlay"]',
+            '[class*="broadcast-panel"]', '[class*="broadcast-overlay"]',
+            '#teacherNotifPanel', '#teacherNotifOverlay', '#broadcastPanelContainer', '#broadcastOverlay',
             '.todo-modal-overlay', '.todo-modal', '.picker-overlay', '.styled-modal-overlay',
             '.fp-overlay', '.fp-card', '#logoutConfirmModal', '#logoutConfirmOverlay',
             '.todo-color-picker', '.note-color-palette', '.note-bg-picker-dropdown', '.custom-color-picker-board',
@@ -792,7 +797,7 @@ window.showABCDModal = function (opts) {
             ? window.getHighestZIndex(excludeList) 
             : 3000000;
 
-        const baseZ = Math.max(highestZ + 10, 3000000);
+        const baseZ = Math.max(highestZ + 10, 3000010);
 
         // 1. PAIRED OVERLAY is ALWAYS set to baseZ (rendered BEHIND the dialog!)
         if (targetOverlay) {
@@ -938,7 +943,7 @@ window.showABCDModal = function (opts) {
     function initAutoStacking() {
         const handleVisibilityChange = (el) => {
             if (!el || !el.matches) return;
-            const selector = '.modal, .fees-modal, .admission-modal, .teacher-modal, .abcd-modal-overlay, .seat-interest-overlay, .choice-modal-overlay, .choice-modal-card, .reg-success-overlay, .reg-success-card, .alert-overlay, .welcome-modal-card, .student-banner-overlay, .student-banner-card, .notif-panel, .notif-overlay, .todo-modal-overlay, .todo-modal, .picker-overlay, .styled-modal-overlay, .fp-overlay, .fp-card, [id*="Modal"], [id*="modal"], [id*="Popup"], [id*="popup"], div[class*="modal"], div[class*="popup"], [role="dialog"], dialog';
+            const selector = '.modal, .fees-modal, .admission-modal, .teacher-modal, .abcd-modal-overlay, .seat-interest-overlay, .choice-modal-overlay, .choice-modal-card, .reg-success-overlay, .reg-success-card, .alert-overlay, .welcome-modal-card, .student-banner-overlay, .student-banner-card, .notif-panel, .notif-overlay, .teacher-notif-panel, .teacher-notif-overlay, .broadcast-panel-container, .broadcast-overlay, [class*="notif-panel"], [class*="notif-overlay"], [class*="broadcast-panel"], [class*="broadcast-overlay"], #teacherNotifPanel, #teacherNotifOverlay, #broadcastPanelContainer, #broadcastOverlay, .todo-modal-overlay, .todo-modal, .picker-overlay, .styled-modal-overlay, .fp-overlay, .fp-card, [id*="Modal"], [id*="modal"], [id*="Popup"], [id*="popup"], div[class*="modal"], div[class*="popup"], [role="dialog"], dialog';
             if (el.matches(selector)) {
                 window.enhanceSelectElements(el);
                 if (el.id === 'customPopupOverlay' || el.id === 'customPopup') return;

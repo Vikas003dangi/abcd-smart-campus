@@ -2564,11 +2564,14 @@
             initAchievementChart();
         }
 
-        // Re-render chart on theme toggle if logic exists in student_dashboard.html
+        // Re-render chart on theme toggle
+        window.addEventListener('abcd-theme-change', () => {
+            initAchievementChart();
+        });
         const themeBtn = document.querySelector('.theme-btn') || document.getElementById('theme-toggle');
         if (themeBtn) {
             themeBtn.addEventListener('click', () => {
-                setTimeout(initAchievementChart, 300);
+                setTimeout(initAchievementChart, 50);
             });
         }
 

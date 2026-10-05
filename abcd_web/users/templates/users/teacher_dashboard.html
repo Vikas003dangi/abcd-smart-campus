@@ -10,25 +10,54 @@
   <meta name="theme-color" content="#fff2de" id="theme-color-meta">
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff2de">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#fff2de">
+  <style id="abcd-early-theme-style">
+    html, html.dark-theme, html:not(.dark-theme) { transition: none !important; }
+  </style>
   <script>
     (function(){
       try {
         var s = localStorage.getItem('theme');
         var d = (s === 'dark' || s === 'dark-theme');
+        var r = document.documentElement;
         if (d) {
-          document.documentElement.classList.add('dark-theme');
-        } else if (s === 'light' || s === 'light-theme') {
-          document.documentElement.classList.remove('dark-theme');
+          r.classList.add('dark-theme');
+          r.setAttribute('data-theme', 'dark');
+          r.style.colorScheme = 'dark';
+        } else {
+          r.classList.remove('dark-theme');
+          r.setAttribute('data-theme', 'light');
+          r.style.colorScheme = 'light';
         }
-        var c = d ? '#17022c' : '#fff2de';
+        var p = (window.location.pathname || '').toLowerCase();
+        var isDash = p.includes('dashboard') || p.includes('seat') || p.includes('calendar') || p.includes('admission') || p.includes('register');
+        var c = d ? (p.includes('guidy') ? '#0f172a' : (isDash ? '#17022c' : '#0b1329')) : (isDash ? '#fff2de' : '#ffffff');
         var cs = document.getElementById('color-scheme-meta');
         if (cs) cs.content = d ? 'dark' : 'light';
         var metas = document.querySelectorAll('meta[name="theme-color"]');
         metas.forEach(function(m){ m.content = c; });
+        var st = document.getElementById('abcd-early-theme-style');
+        if (st) {
+          st.textContent = d
+            ? 'html, html.dark-theme { background-color: ' + c + ' !important; color-scheme: dark !important; } html.dark-theme body { background-color: ' + c + ' !important; background-image: none; color-scheme: dark !important; }'
+            : 'html, html:not(.dark-theme) { background-color: ' + c + ' !important; color-scheme: light !important; }';
+        }
+        if (document.body) {
+          if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+          else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+        } else if (window.MutationObserver) {
+          var obs = new MutationObserver(function() {
+            if (document.body) {
+              if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+              else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+              obs.disconnect();
+            }
+          });
+          obs.observe(r, { childList: true });
+        }
       } catch(e){}
     })();
   </script>
-  <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v7"></script>
+  <script src="{% static 'js/abcd-theme.js' %}?v=20261005-v1"></script>
   <link rel="icon" type="image/png" href="{% static 'data/favicon/favicon-96x96.png' %}" sizes="96x96" />
   <link rel="icon" type="image/png" href="{% static 'data/favicon/web-app-manifest-192x192.png' %}" sizes="192x192" />
   <link rel="icon" type="image/svg+xml" href="{% static 'data/favicon/favicon.svg' %}" />
@@ -1671,7 +1700,7 @@
       height: 100dvh;
       background: #fff;
       box-shadow: -4px 0 25px rgba(0, 0, 0, 0.15);
-      z-index: 3000020 !important;
+      z-index: 2999905 !important;
       transform: translate3d(100%, 0, 0);
       will-change: transform;
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1695,7 +1724,7 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.45);
-      z-index: 3000019 !important;
+      z-index: 2999900 !important;
       opacity: 0;
       pointer-events: none;
       backdrop-filter: blur(0px);
@@ -3478,7 +3507,7 @@
       width: 100%;
       height: 100%;
       background: rgba(15, 10, 30, 0.68);
-      z-index: 99998;
+      z-index: 3000010;
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
       transition: opacity 0.25s ease;
@@ -3489,7 +3518,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 99999;
+      z-index: 3000011;
       max-width: 520px;
       width: min(520px, 92vw);
       max-height: 85vh;
@@ -4882,7 +4911,7 @@
       height: 100vh;
       height: 100dvh;
       background: #ffffff;
-      z-index: 3000020 !important;
+      z-index: 2999905 !important;
       box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
       transform: translate3d(100%, 0, 0);
       will-change: transform;
@@ -4923,7 +4952,7 @@
       position: fixed;
       inset: 0;
       background: rgba(15, 23, 42, 0.45);
-      z-index: 3000019 !important;
+      z-index: 2999900 !important;
       opacity: 0;
       pointer-events: none;
       backdrop-filter: blur(0px);
@@ -10628,19 +10657,10 @@
 
       if (themeToggle) {
         themeToggle.addEventListener('click', function () {
-          body.classList.toggle('dark-theme');
-          const isDark = body.classList.contains('dark-theme');
-          let theme = isDark ? 'dark' : 'light';
-          const bxIcon = themeToggle.querySelector('i');
-          if (bxIcon) {
-            bxIcon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
-          }
-          if (themeIcon) {
-            themeIcon.src = isDark ? "{% static 'data/night.png' %}" : "{% static 'data/day.png' %}";
-          }
-          localStorage.setItem('theme', theme);
-          if (typeof window.syncThemeColor === 'function') {
-            window.syncThemeColor();
+          if (typeof window.abcdToggleTheme === 'function') {
+            window.abcdToggleTheme();
+          } else if (typeof window.toggleTheme === 'function') {
+            window.toggleTheme();
           }
         });
       }
@@ -10729,11 +10749,16 @@
       function openModal() {
         modalOverlay.classList.add('active');
         modal.classList.add('active');
+        if (typeof window.bringToFront === 'function' && modal) {
+          window.bringToFront(modal);
+        }
       }
 
       function closeModal() {
         modalOverlay.classList.remove('active');
         modal.classList.remove('active');
+        modalOverlay.style.removeProperty('z-index');
+        modal.style.removeProperty('z-index');
         modalEditSeatBtn.style.display = 'none';
         // Don't clear currentForm here - it might still be needed for form submission
       }
@@ -10764,6 +10789,9 @@
 
         overlay.style.display = 'block';
         modal.style.display = 'block';
+        if (typeof window.bringToFront === 'function') {
+          window.bringToFront(modal);
+        }
 
         try {
           const res = await fetch(`/api/teacher/student-profile/${encodeURIComponent(studentId)}/`);
@@ -10885,6 +10913,9 @@
 
         overlay.style.display = 'block';
         modal.style.display = 'block';
+        if (typeof window.bringToFront === 'function') {
+          window.bringToFront(modal);
+        }
 
         try {
           const res = await fetch(`/api/teacher/alumni-profile/${encodeURIComponent(achId)}/`);
@@ -10967,8 +10998,14 @@
       window.closeQuickProfileModal = function() {
         const modal = document.getElementById('quickProfileModal');
         const overlay = document.getElementById('quickProfileModalOverlay');
-        if (modal) modal.style.display = 'none';
-        if (overlay) overlay.style.display = 'none';
+        if (modal) {
+          modal.style.display = 'none';
+          modal.style.removeProperty('z-index');
+        }
+        if (overlay) {
+          overlay.style.display = 'none';
+          overlay.style.removeProperty('z-index');
+        }
       };
 
       document.addEventListener('keydown', function(e) {
@@ -11340,11 +11377,16 @@
 
         deleteScopeModal.classList.add('active');
         deleteScopeOverlay.classList.add('active');
+        if (typeof window.bringToFront === 'function') {
+          window.bringToFront(deleteScopeModal);
+        }
       }
 
       function closeDeleteScopeModal() {
         deleteScopeModal.classList.remove('active');
         deleteScopeOverlay.classList.remove('active');
+        deleteScopeModal.style.removeProperty('z-index');
+        deleteScopeOverlay.style.removeProperty('z-index');
         deleteFormToSubmit = null;
       }
 
@@ -14643,14 +14685,25 @@
         textEl.textContent = `Are you sure you want to delete ${selectedCbs.length} selected student(s) from the Fee Expired List?`;
       }
       if (modalOverlay) modalOverlay.classList.add('active');
-      if (modal) modal.classList.add('active');
+      if (modal) {
+        modal.classList.add('active');
+        if (typeof window.bringToFront === 'function') {
+          window.bringToFront(modal);
+        }
+      }
     }
 
     function closeDismissExpiredModal() {
       const modalOverlay = document.getElementById('dismissExpiredModalOverlay');
       const modal = document.getElementById('dismissExpiredModal');
-      if (modalOverlay) modalOverlay.classList.remove('active');
-      if (modal) modal.classList.remove('active');
+      if (modalOverlay) {
+        modalOverlay.classList.remove('active');
+        modalOverlay.style.removeProperty('z-index');
+      }
+      if (modal) {
+        modal.classList.remove('active');
+        modal.style.removeProperty('z-index');
+      }
     }
 
     function deleteSelectedExpiredFeeAlerts() {

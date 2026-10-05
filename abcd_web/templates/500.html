@@ -1,26 +1,65 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>500 - Server Hiccup | ABCD Smart Campus</title>
+  <meta name="color-scheme" content="light" id="color-scheme-meta">
+  <meta name="theme-color" content="#fff2de" id="theme-color-meta">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff2de">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#fff2de">
+  <style id="abcd-early-theme-style">
+    html, html.dark-theme, html:not(.dark-theme) { transition: none !important; }
+  </style>
+  <script>
+    (function(){
+      try {
+        var s = localStorage.getItem('theme');
+        var d = (s === 'dark' || s === 'dark-theme');
+        var r = document.documentElement;
+        if (d) {
+          r.classList.add('dark-theme');
+          r.setAttribute('data-theme', 'dark');
+          r.style.colorScheme = 'dark';
+        } else {
+          r.classList.remove('dark-theme');
+          r.setAttribute('data-theme', 'light');
+          r.style.colorScheme = 'light';
+        }
+        var p = (window.location.pathname || '').toLowerCase();
+        var isDash = p.includes('dashboard') || p.includes('seat') || p.includes('calendar') || p.includes('admission') || p.includes('register');
+        var c = d ? (p.includes('guidy') ? '#0f172a' : (isDash ? '#17022c' : '#0b1329')) : (isDash ? '#fff2de' : '#ffffff');
+        var cs = document.getElementById('color-scheme-meta');
+        if (cs) cs.content = d ? 'dark' : 'light';
+        var metas = document.querySelectorAll('meta[name="theme-color"]');
+        metas.forEach(function(m){ m.content = c; });
+        var st = document.getElementById('abcd-early-theme-style');
+        if (st) {
+          st.textContent = d
+            ? 'html, html.dark-theme { background-color: ' + c + ' !important; color-scheme: dark !important; } html.dark-theme body { background-color: ' + c + ' !important; background-image: none; color-scheme: dark !important; }'
+            : 'html, html:not(.dark-theme) { background-color: ' + c + ' !important; color-scheme: light !important; }';
+        }
+        if (document.body) {
+          if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+          else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+        } else if (window.MutationObserver) {
+          var obs = new MutationObserver(function() {
+            if (document.body) {
+              if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+              else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+              obs.disconnect();
+            }
+          });
+          obs.observe(r, { childList: true });
+        }
+      } catch(e){}
+    })();
+  </script>
+  <script src="{% static 'js/abcd-theme.js' %}?v=20261005-v1"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <script>
-    // Immediate early theme detection to prevent flash of wrong theme
-    (function() {
-      try {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'dark' || saved === 'dark-theme' || (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark-theme');
-        } else {
-          document.documentElement.classList.remove('dark-theme');
-        }
-      } catch (e) {}
-    })();
-  </script>
 
   <style>
     :root {

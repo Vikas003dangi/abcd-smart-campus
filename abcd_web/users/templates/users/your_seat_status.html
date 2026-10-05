@@ -18,25 +18,54 @@
     <meta name="theme-color" content="#fff2de" id="theme-color-meta" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff2de">
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#fff2de">
+    <style id="abcd-early-theme-style">
+      html, html.dark-theme, html:not(.dark-theme) { transition: none !important; }
+    </style>
     <script>
       (function(){
         try {
           var s = localStorage.getItem('theme');
           var d = (s === 'dark' || s === 'dark-theme');
+          var r = document.documentElement;
           if (d) {
-            document.documentElement.classList.add('dark-theme');
-          } else if (s === 'light' || s === 'light-theme') {
-            document.documentElement.classList.remove('dark-theme');
+            r.classList.add('dark-theme');
+            r.setAttribute('data-theme', 'dark');
+            r.style.colorScheme = 'dark';
+          } else {
+            r.classList.remove('dark-theme');
+            r.setAttribute('data-theme', 'light');
+            r.style.colorScheme = 'light';
           }
-          var c = d ? '#17022c' : '#fff2de';
+          var p = (window.location.pathname || '').toLowerCase();
+          var isDash = p.includes('dashboard') || p.includes('seat') || p.includes('calendar') || p.includes('admission') || p.includes('register');
+          var c = d ? (p.includes('guidy') ? '#0f172a' : (isDash ? '#17022c' : '#0b1329')) : (isDash ? '#fff2de' : '#ffffff');
           var cs = document.getElementById('color-scheme-meta');
           if (cs) cs.content = d ? 'dark' : 'light';
           var metas = document.querySelectorAll('meta[name="theme-color"]');
           metas.forEach(function(m){ m.content = c; });
+          var st = document.getElementById('abcd-early-theme-style');
+          if (st) {
+            st.textContent = d
+              ? 'html, html.dark-theme { background-color: ' + c + ' !important; color-scheme: dark !important; } html.dark-theme body { background-color: ' + c + ' !important; background-image: none; color-scheme: dark !important; }'
+              : 'html, html:not(.dark-theme) { background-color: ' + c + ' !important; color-scheme: light !important; }';
+          }
+          if (document.body) {
+            if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+            else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+          } else if (window.MutationObserver) {
+            var obs = new MutationObserver(function() {
+              if (document.body) {
+                if (d) { document.body.classList.add('dark-theme'); document.body.setAttribute('data-theme', 'dark'); }
+                else { document.body.classList.remove('dark-theme'); document.body.setAttribute('data-theme', 'light'); }
+                obs.disconnect();
+              }
+            });
+            obs.observe(r, { childList: true });
+          }
         } catch(e){}
       })();
     </script>
-    <script src="{% static 'js/abcd-theme.js' %}?v=20260920-v7"></script>
+    <script src="{% static 'js/abcd-theme.js' %}?v=20261005-v1"></script>
 
     <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
     <link href='https://cdn.boxicons.com/fonts/brands/boxicons-brands.min.css' rel='stylesheet'>
@@ -3739,19 +3768,8 @@
 
         // --- Theme Persistence ---
         function toggleTheme() {
-            const isDark = !document.body.classList.contains('dark-theme');
-            document.body.classList.toggle('dark-theme', isDark);
-            if (document.documentElement) {
-                document.documentElement.classList.toggle('dark-theme', isDark);
-                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-            }
-            try {
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-            } catch (e) {}
-            const icon = document.getElementById('themeIcon');
-            if (icon) icon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
-            if (typeof window.syncThemeColor === 'function') {
-                requestAnimationFrame(() => window.syncThemeColor());
+            if (typeof window.abcdToggleTheme === 'function') {
+                window.abcdToggleTheme();
             }
         }
         const savedTheme = localStorage.getItem('theme');

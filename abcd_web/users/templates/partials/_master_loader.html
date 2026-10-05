@@ -78,8 +78,14 @@
   }
 
   /* --- LIGHT THEME STYLE OVERRIDES --- */
-  .master-loader-overlay.light-theme {
+  .master-loader-overlay.light-theme,
+  html:not(.dark-theme) .master-loader-overlay:not(.dark-theme) {
       background: radial-gradient(circle at center, #ffffff 0%, #f1f5f9 100%);
+  }
+
+  html.dark-theme .master-loader-overlay,
+  html[data-theme="dark"] .master-loader-overlay {
+      background: radial-gradient(circle at center, #111a2e 0%, #080d1a 100%);
   }
 
   .master-loader-overlay.light-theme .loader-brand {
@@ -728,15 +734,23 @@
 <div id="master-loader" class="master-loader-overlay">
   <script>
       (function() {
-          const savedTheme = localStorage.getItem('theme');
-          const loader = document.getElementById('master-loader');
-          if (savedTheme === 'dark' || savedTheme === 'dark-theme') {
-              loader.classList.add('dark-theme');
-              loader.classList.remove('light-theme');
-          } else {
-              loader.classList.add('light-theme');
-              loader.classList.remove('dark-theme');
+          function applyLoaderTheme(isDark) {
+              const loader = document.getElementById('master-loader');
+              if (!loader) return;
+              if (isDark) {
+                  loader.classList.add('dark-theme');
+                  loader.classList.remove('light-theme');
+              } else {
+                  loader.classList.add('light-theme');
+                  loader.classList.remove('dark-theme');
+              }
           }
+          const savedTheme = localStorage.getItem('theme');
+          const isDark = (savedTheme === 'dark' || savedTheme === 'dark-theme' || (document.documentElement && document.documentElement.classList.contains('dark-theme')));
+          applyLoaderTheme(isDark);
+          window.addEventListener('abcd-theme-change', function(e) {
+              applyLoaderTheme(e && e.detail ? e.detail.isDark : false);
+          });
       })();
   </script>
   

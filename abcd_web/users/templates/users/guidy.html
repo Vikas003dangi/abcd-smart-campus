@@ -4121,6 +4121,11 @@ let currentlyPlayingAudio = null;
 document.addEventListener('DOMContentLoaded', () => {
   syncActiveChatToServiceWorker(currentChatType, currentChatId);
   buildBgCanvas();
+  // Rebuild background canvas immediately upon live theme change
+  window.addEventListener('abcd-theme-change', () => {
+    const canvas = document.querySelector('.g-bg-canvas');
+    if (canvas) { canvas.innerHTML = ''; buildBgCanvas(); }
+  });
   // Refresh background icons every 5 minutes for variety
   setInterval(() => {
     const canvas = document.querySelector('.g-bg-canvas');
