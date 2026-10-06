@@ -14156,10 +14156,29 @@ def guidy_home(request):
     session_id = request.GET.get('session')
     group_id = request.GET.get('group')
     direct_id = request.GET.get('direct')
+    chat_with_id = request.GET.get('chat_with')
     active_group = None
     active_direct = None
     group_messages_qs = []
     group_members_str = ""
+
+    # Deep link: Open or create 1-to-1 chat with a specific user (e.g. ABCD Asst.)
+    if chat_with_id and not direct_id and not session_id and not group_id:
+        try:
+            target_user = User.objects.filter(id=chat_with_id, is_active=True).first()
+            if target_user and target_user != user:
+                direct_session = DirectChatSession.objects.filter(
+                    (Q(user1=user, user2=target_user) | Q(user1=target_user, user2=user))
+                ).first()
+                if not direct_session:
+                    direct_session = DirectChatSession.objects.create(
+                        user1=user,
+                        user2=target_user,
+                        is_active=True
+                    )
+                direct_id = str(direct_session.id)
+        except Exception:
+            pass
 
     if session_id:
         try:
@@ -21009,14 +21028,20 @@ def request_delete_account_otp_view(request):
     # Send email notification
     from .email_service import send_html_email
     try:
+        asst_user = User.objects.filter(email='vd19055@gmail.com').first()
+        asst_param = f"?chat_with={asst_user.id}" if asst_user else ""
+        guidy_asst_url = request.build_absolute_uri(reverse('users:guidy_home') + asst_param)
+
         send_html_email(
             subject="ABCD Campus - Security Verification Code for Account Deletion",
             to_email=recipient_email,
-            template="emails/otp_register.html",
+            template="emails/account_deletion_otp.html",
             context={
-                'username': user.username,
+                'user': user,
+                'username': user.get_full_name() or user.username,
                 'otp': otp,
-                'purpose': 'permanently delete your ABCD Campus account',
+                'expiry_minutes': 10,
+                'guidy_asst_url': guidy_asst_url,
             },
             fail_silently=True,
             timeout=8,

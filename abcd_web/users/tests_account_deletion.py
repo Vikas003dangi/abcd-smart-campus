@@ -5,6 +5,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models import Q
 from social_core.exceptions import AuthForbidden
 
 from unittest.mock import patch
@@ -458,4 +459,75 @@ class AccountDeletionTestCase(TestCase):
         # Lock was cleared
         from django.core.cache import cache
         self.assertIsNone(cache.get(f"account_deletion_lock_{user.id}"))
+
+    @patch('users.email_service.send_html_email')
+    def test_deletion_otp_uses_correct_template_and_no_registration_wording(self, mock_email):
+        """Verify request_delete_account_otp sends account_deletion_otp.html without registration wording."""
+        from django.template.loader import render_to_string
+
+        user = User.objects.create_user(
+            username="otp_test_user",
+            email="otp_test@example.com",
+            password="TestPassword123!"
+        )
+        self.client.login(username="otp_test_user", password="TestPassword123!")
+
+        res = self.client.post(reverse("users:request_delete_account_otp"))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json().get("status"), "ok")
+
+        # Verify send_html_email was called with account_deletion_otp.html
+        self.assertTrue(mock_email.called)
+        call_kwargs = mock_email.call_args.kwargs
+        self.assertEqual(call_kwargs.get("template"), "emails/account_deletion_otp.html")
+        self.assertEqual(call_kwargs.get("to_email"), "otp_test@example.com")
+
+        context = call_kwargs.get("context", {})
+        rendered_html = render_to_string("emails/account_deletion_otp.html", context)
+
+        # Assert registration wording is completely absent
+        self.assertNotIn("Register Verification", rendered_html)
+        self.assertNotIn("Complete Registration", rendered_html)
+        self.assertNotIn("Thank you for registering", rendered_html)
+
+        # Assert deletion content is present
+        self.assertIn("Account Deletion Request", rendered_html)
+        self.assertIn("Not you? Contact ABCD Asst.", rendered_html)
+        self.assertIn("fee transactions", rendered_html)
+        self.assertIn("Valid for <strong>10 minutes</strong>", rendered_html)
+        self.assertIn(context.get("otp"), rendered_html)
+
+    def test_guidy_deep_link_chat_with(self):
+        """Verify /guidy/?chat_with=<id> opens direct chat and redirects logged-out users."""
+        asst = User.objects.create_superuser(
+            username="asst_admin",
+            email="vd19055@gmail.com",
+            password="AdminPassword123!"
+        )
+        student_user = User.objects.create_user(
+            username="deep_link_stud",
+            email="dl@test.com",
+            password="StudPassword123!"
+        )
+
+        # 1. Logged-out user is redirected to login with next param
+        self.client.logout()
+        res_logged_out = self.client.get(f"{reverse('users:guidy_home')}?chat_with={asst.id}")
+        self.assertEqual(res_logged_out.status_code, 302)
+        self.assertIn(reverse('users:login'), res_logged_out.url)
+        self.assertIn("chat_with", res_logged_out.url)
+
+        # 2. Logged-in user has DirectChatSession created and loaded
+        self.client.login(username="deep_link_stud", password="StudPassword123!")
+        res_logged_in = self.client.get(f"{reverse('users:guidy_home')}?chat_with={asst.id}")
+        self.assertEqual(res_logged_in.status_code, 200)
+
+        # Verify DirectChatSession exists
+        from users.models import DirectChatSession
+        session = DirectChatSession.objects.filter(
+            (Q(user1=student_user, user2=asst) | Q(user1=asst, user2=student_user))
+        ).first()
+        self.assertIsNotNone(session)
+        self.assertTrue(session.is_active)
+
 

@@ -1,0 +1,73 @@
+{% extends "emails/base_email.html" %}
+
+{% block preview_text %}Your ABCD account deletion verification code is {{ otp }}. Valid for 10 minutes.{% endblock %}
+
+{% block content %}
+<h2 style="margin-top: 0; margin-bottom: 12px; color: #1e293b; font-size: 20px; font-weight: 700;">
+    Account Deletion Request
+</h2>
+
+<p style="margin: 0 0 16px; color: #475569; font-size: 15px; line-height: 1.6;">
+    Hello <strong>{{ username }}</strong>,
+</p>
+
+<p style="margin: 0 0 16px; color: #475569; font-size: 15px; line-height: 1.6;">
+    We are sorry to see you go. A request was received to permanently delete your ABCD Smart Campus account.
+</p>
+
+<!-- OTP BOX -->
+<div style="
+  margin: 24px 0;
+  padding: 24px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  text-align: center;
+">
+  <p style="margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 600;">
+    Your Deletion Verification Code
+  </p>
+  <div style="
+    font-size: 32px;
+    letter-spacing: 8px;
+    font-weight: 800;
+    color: #4f46e5;
+    font-family: 'Courier New', monospace;
+  ">
+    {{ otp }}
+  </div>
+  <p style="margin: 8px 0 0; font-size: 13px; color: #64748b;">
+    Valid for <strong>{{ expiry_minutes|default:10 }} minutes</strong>
+  </p>
+</div>
+
+<!-- ACTIONS SUMMARY -->
+<div style="background: #f1f5f9; border-radius: 10px; padding: 18px 20px; margin: 24px 0;">
+  <h3 style="margin: 0 0 10px; font-size: 14px; font-weight: 700; color: #334155;">
+    What this action does:
+  </h3>
+  <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; line-height: 1.65; color: #475569;">
+    <li>Permanently removes your profile information, saved seat assignments, personal to-do tasks, and notifications.</li>
+    <li>Disassociates direct chat sessions and archives participation.</li>
+    <li>Preserves public discussion threads by marking your authored questions and answers as <em>Deleted user</em>.</li>
+    <li>Official fee transactions and invoice receipts are safely retained for institute accounts and statutory compliance.</li>
+  </ul>
+</div>
+
+<p style="margin: 20px 0 12px; font-size: 14px; color: #dc2626; font-weight: 600;">
+  🔒 If this wasn't you, don't share this code with anyone. Your account remains secure as long as this code is not entered.
+</p>
+
+<!-- SUPPORT CTA BUTTON -->
+<div style="text-align: center; margin: 28px 0 20px;">
+  <a href="{{ guidy_asst_url|default:'/guidy/' }}"
+     class="btn"
+     style="display: inline-block; padding: 12px 26px; background-color: #4f46e5; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);">
+     💬 Not you? Contact ABCD Asst.
+  </a>
+</div>
+
+<p style="margin: 20px 0 0; font-size: 13px; color: #94a3b8; text-align: center;">
+  Need assistance or wish to cancel? You can simply close the deletion window.
+</p>
+{% endblock %}
