@@ -190,15 +190,23 @@ class CourseReviewAdmin(admin.ModelAdmin):
 
 @admin.register(CourseQuestion)
 class CourseQuestionAdmin(admin.ModelAdmin):
-    list_display = ('course', 'student', 'question', 'is_resolved', 'created_at')
+    list_display = ('course', 'get_author', 'question', 'is_resolved', 'created_at')
     list_filter = ('is_resolved', 'course')
     search_fields = ('course__title', 'student__full_name', 'question')
 
+    @admin.display(description='Author')
+    def get_author(self, obj):
+        return obj.author_name
+
 @admin.register(CourseAnswer)
 class CourseAnswerAdmin(admin.ModelAdmin):
-    list_display = ('question', 'user', 'answer_text', 'is_teacher_answer', 'created_at')
+    list_display = ('question', 'get_author', 'answer_text', 'is_teacher_answer', 'created_at')
     list_filter = ('is_teacher_answer',)
     search_fields = ('user__username', 'answer_text')
+
+    @admin.display(description='Author')
+    def get_author(self, obj):
+        return obj.author_name
 
 
 # -------------------------------------------------------------------

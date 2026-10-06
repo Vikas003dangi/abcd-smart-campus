@@ -1354,10 +1354,10 @@
             {% for q in questions %}
             <div class="qa-thread" id="qa-{{ q.id }}" style="padding: 24px 20px;">
               <div style="display: flex; gap: 16px;">
-                <div class="qa-avatar">{{ q.student.full_name|slice:":1" }}</div>
+                <div class="qa-avatar">{% if q.student %}{{ q.student.full_name|slice:":1" }}{% else %}?{% endif %}</div>
                 <div class="qa-main">
                   <div class="qa-meta">
-                    <span class="qa-author">{{ q.student.full_name }}</span>
+                    <span class="qa-author">{% if q.student %}{{ q.student.full_name }}{% else %}Deleted user{% endif %}</span>
                     {% if q.material %}<span class="qa-lesson-tag" style="background: rgba(164, 53, 240, 0.1); color: var(--accent); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700;">{{ q.material.title }}</span>{% endif %}
                     <span class="qa-time">{{ q.created_at|timesince }} ago</span>
                   </div>
@@ -1387,8 +1387,10 @@
                           {% if ans.is_teacher_answer %}
                           ABCD <i class='bx bxs-check-circle verified-tick' title="Verified Teacher"></i>
                           <span class="teacher-badge">Teacher</span>
-                          {% else %}
+                          {% elif ans.user %}
                           {{ ans.user.get_full_name|default:ans.user.username }}
+                          {% else %}
+                          Deleted user
                           {% endif %}
                         </span>
                         <span class="qa-time">{{ ans.created_at|timesince }} ago</span>
@@ -1405,7 +1407,7 @@
                                 style="font-size: 0.75rem;" 
                                 data-qid="{{ q.id }}" 
                                 data-ansid="{{ ans.id }}" 
-                                data-author="{{ ans.user.get_full_name|default:ans.user.username|escapejs }}" 
+                                data-author="{% if ans.user %}{{ ans.user.get_full_name|default:ans.user.username|escapejs }}{% else %}Deleted user{% endif %}" 
                                 data-isteacher="{{ ans.is_teacher_answer|yesno:'true,false' }}"
                                 onclick="handleReplyClick(this)">
                             <i class='bx bx-reply' style="font-size: 0.9rem;"></i>
@@ -1423,7 +1425,7 @@
                           <div class="reply-item" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start;">
                               <div style="flex: 1;">
                                   <div class="qa-meta" style="font-size: 0.8rem;">
-                                      <span class="qa-author">{{ reply.user.get_full_name|default:reply.user.username }}</span>
+                                      <span class="qa-author">{% if reply.user %}{{ reply.user.get_full_name|default:reply.user.username }}{% else %}Deleted user{% endif %}</span>
                                       <span class="qa-time">{{ reply.created_at|timesince }} ago</span>
                                   </div>
                                   <div style="font-size: 0.9rem; color: var(--text-main);">{{ reply.answer_text }}</div>

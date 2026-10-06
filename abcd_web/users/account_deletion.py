@@ -13,6 +13,7 @@ Enforces:
 7. Complete session invalidation.
 """
 
+import json
 import logging
 import uuid
 from datetime import timedelta
@@ -238,7 +239,10 @@ def perform_account_deletion(user, role=None):
             SeatLeaveRequest.objects.filter(student=student).delete()
             SeatHoldChangeRequest.objects.filter(student=student).delete()
 
-        SeatSpecialRequest.objects.filter(Q(user=user) | Q(student=student)).delete()
+        if student:
+            SeatSpecialRequest.objects.filter(Q(user=user) | Q(student=student)).delete()
+        else:
+            SeatSpecialRequest.objects.filter(user=user).delete()
 
         # -------------------------------------------------------------
         # B. Communication, Social & Real-Time Data Removal

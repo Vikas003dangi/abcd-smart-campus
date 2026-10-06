@@ -1,20 +1,31 @@
 # users/tests_account_deletion.py
 import datetime
+import json
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from social_core.exceptions import AuthForbidden
 
+from unittest.mock import patch
+
 from users.models import (
     StudentProfile,
     StudentAchievement,
     Seat,
     SeatAssignment,
+    SeatSpecialRequest,
     FeeTransaction,
     QuarantineIdentity,
     TodoTask,
     Notification,
+    Course,
+    CourseQuestion,
+    CourseAnswer,
+    PushSubscription,
+    Complaint,
+    DirectChatSession,
+    Message,
 )
 from users.forms import InitialRegisterForm
 from users.account_deletion import (
@@ -312,3 +323,139 @@ class AccountDeletionTestCase(TestCase):
         res2 = self.client.get(reverse("users:account_deleted"))
         self.assertEqual(res2.status_code, 200)
         self.assertContains(res2, "Account Successfully Deleted")
+
+    @patch('users.email_service.send_html_email')
+    @patch('pywebpush.webpush')
+    def test_student_deletion_with_course_questions_and_answers_regression(self, mock_webpush, mock_email):
+        """Verify student deletion does NOT crash with IntegrityError on Q&A models."""
+        course = Course.objects.create(title="History 101", description="Test Course")
+        student_user = User.objects.create_user(
+            username="qa_student",
+            email="qa_student@example.com",
+            password="QAPassword123!"
+        )
+        profile = StudentProfile.objects.create(
+            user=student_user,
+            full_name="QA Student",
+            mobile_number="9876543299",
+            service_type="Coaching"
+        )
+        question = CourseQuestion.objects.create(
+            course=course,
+            student=profile,
+            question="What is the syllabus timeline?"
+        )
+        answer = CourseAnswer.objects.create(
+            question=question,
+            user=student_user,
+            answer_text="Here is my question follow up."
+        )
+
+        self.client.login(username="qa_student", password="QAPassword123!")
+        res = self.client.post(reverse("users:delete_account"), {
+            "password": "QAPassword123!",
+            "confirmation_text": "DELETE THIS PROFILE"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json().get("status"), "ok")
+
+        # Question is preserved with student=None
+        question.refresh_from_db()
+        self.assertIsNone(question.student)
+        self.assertEqual(question.author_name, "Deleted user")
+        self.assertIn("Deleted user", str(question))
+
+        # Answer is preserved with user=None
+        answer.refresh_from_db()
+        self.assertIsNone(answer.user)
+        self.assertEqual(answer.author_name, "Deleted user")
+        self.assertIn("Deleted user", str(answer))
+
+        # Non-staff cannot delete orphaned QA item
+        other_user = User.objects.create_user(
+            username="other_stud",
+            email="other@example.com",
+            password="OtherPassword123!"
+        )
+        self.client.login(username="other_stud", password="OtherPassword123!")
+        del_qa_res = self.client.post(
+            reverse("users:delete_qa_item"),
+            data=json.dumps({"type": "question", "id": question.id}),
+            content_type="application/json"
+        )
+        self.assertEqual(del_qa_res.status_code, 403)
+
+    @patch('users.email_service.send_html_email')
+    def test_guest_deletion_does_not_wipe_unrelated_guest_seat_requests_regression(self, mock_email):
+        """Verify guest deletion only purges their own SeatSpecialRequest without wiping other guests."""
+        guest_a = User.objects.create_user(username="guest_a", email="ga@test.com", password="PassA123!")
+        guest_b = User.objects.create_user(username="guest_b", email="gb@test.com", password="PassB123!")
+
+        req_a = SeatSpecialRequest.objects.create(
+            user=guest_a,
+            student=None,
+            seat=self.seat,
+            requested_shift="morning"
+        )
+        req_b = SeatSpecialRequest.objects.create(
+            user=guest_b,
+            student=None,
+            seat=self.seat,
+            requested_shift="morning"
+        )
+
+        self.client.login(username="guest_a", password="PassA123!")
+        res = self.client.post(reverse("users:delete_account"), {
+            "password": "PassA123!",
+            "confirmation_text": "DELETE THIS PROFILE"
+        })
+        self.assertEqual(res.status_code, 200)
+
+        # req_a deleted, req_b preserved
+        self.assertFalse(SeatSpecialRequest.objects.filter(id=req_a.id).exists())
+        self.assertTrue(SeatSpecialRequest.objects.filter(id=req_b.id).exists())
+
+    @patch('users.email_service.send_html_email')
+    @patch('pywebpush.webpush')
+    def test_student_deletion_with_push_and_json_import_regression(self, mock_webpush, mock_email):
+        """Verify silent push runs without NameError: name 'json' is not defined."""
+        user = User.objects.create_user(username="push_user", email="push@test.com", password="PushPass123!")
+        StudentProfile.objects.create(user=user, full_name="Push User", mobile_number="9876543201")
+        PushSubscription.objects.create(
+            user=user,
+            endpoint="https://example.com/push/test",
+            keys={"p256dh": "key1", "auth": "auth1"}
+        )
+
+        self.client.login(username="push_user", password="PushPass123!")
+        res = self.client.post(reverse("users:delete_account"), {
+            "password": "PushPass123!",
+            "confirmation_text": "DELETE THIS PROFILE"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json().get("status"), "ok")
+        self.assertFalse(PushSubscription.objects.filter(user=user).exists())
+
+    @patch('users.account_deletion.perform_account_deletion')
+    def test_unexpected_error_logs_and_returns_generic_message(self, mock_perform):
+        """Verify unhandled exceptions return 500 with generic message and release concurrency lock."""
+        from django.db import DatabaseError
+        mock_perform.side_effect = DatabaseError("Simulated Neon DB connection timeout")
+
+        user = User.objects.create_user(username="err_user", email="err@test.com", password="ErrPass123!")
+        self.client.login(username="err_user", password="ErrPass123!")
+
+        res = self.client.post(reverse("users:delete_account"), {
+            "password": "ErrPass123!",
+            "confirmation_text": "DELETE THIS PROFILE"
+        })
+        self.assertEqual(res.status_code, 500)
+        self.assertEqual(
+            res.json().get("message"),
+            "An unexpected error occurred during account deletion. Please try again or contact support."
+        )
+
+        # Lock was cleared
+        from django.core.cache import cache
+        self.assertIsNone(cache.get(f"account_deletion_lock_{user.id}"))
+

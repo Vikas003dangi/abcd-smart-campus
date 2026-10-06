@@ -2160,7 +2160,7 @@ class SeatHoldChangeRequest(models.Model):
 
 class CourseQuestion(models.Model):
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='questions')
-    student = models.ForeignKey('StudentProfile', on_delete=models.CASCADE, related_name='course_questions')
+    student = models.ForeignKey('StudentProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='course_questions')
     material = models.ForeignKey('StudyMaterial', on_delete=models.SET_NULL, null=True, blank=True, related_name='questions')
     question = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -2172,11 +2172,18 @@ class CourseQuestion(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Question by {self.student.full_name} on {self.course.title}"
+        author = self.author_name
+        return f"Question by {author} on {self.course.title}"
+
+    @property
+    def author_name(self):
+        if self.student:
+            return self.student.full_name
+        return "Deleted user"
 
 class CourseAnswer(models.Model):
     question = models.ForeignKey(CourseQuestion, on_delete=models.CASCADE, related_name='answers')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_answers')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='course_answers')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     answer_text = models.TextField()
     is_teacher_answer = models.BooleanField(default=False)
@@ -2185,6 +2192,17 @@ class CourseAnswer(models.Model):
 
     class Meta:
         ordering = ['created_at']
+
+    def __str__(self):
+        return f"Answer by {self.author_name} on Question #{self.question_id}"
+
+    @property
+    def author_name(self):
+        if self.is_teacher_answer:
+            return "ABCD Teacher"
+        if self.user:
+            return self.user.get_full_name() or self.user.username
+        return "Deleted user"
 
 class CourseReview(models.Model):
     course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='reviews')

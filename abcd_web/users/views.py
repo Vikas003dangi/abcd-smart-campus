@@ -1208,12 +1208,14 @@ def delete_qa_item(request):
         if target_type == 'question':
             item = get_object_or_404(CourseQuestion, id=target_id)
             # Permission: Owner or Staff
-            if request.user != item.student.user and not request.user.is_staff:
+            is_owner = bool(item.student and item.student.user_id == request.user.id)
+            if not is_owner and not request.user.is_staff:
                 return JsonResponse({"success": False, "error": "Permission denied"}, status=403)
         elif target_type == 'answer':
             item = get_object_or_404(CourseAnswer, id=target_id)
             # Permission: Owner or Staff
-            if request.user != item.user and not request.user.is_staff:
+            is_owner = bool(item.user_id and item.user_id == request.user.id)
+            if not is_owner and not request.user.is_staff:
                 return JsonResponse({"success": False, "error": "Permission denied"}, status=403)
         else:
             return JsonResponse({"success": False, "error": "Invalid target type"}, status=400)
