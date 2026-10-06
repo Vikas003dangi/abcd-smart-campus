@@ -2707,6 +2707,8 @@ class Message(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     is_delivered = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
+    is_auto_reply = models.BooleanField(default=False, db_index=True)
+    auto_reply_topic = models.CharField(max_length=50, blank=True, default='')
     deleted_by = models.ManyToManyField(
         User,
         related_name='deleted_messages',
@@ -3376,4 +3378,92 @@ class QuarantineIdentity(models.Model):
 
     def __str__(self):
         return f"{self.username_normalized} ({self.email_normalized}) quarantined until {self.quarantine_until}"
+
+
+# -------------------------------------------------------------------
+# SMART AUTO-REPLY MODELS
+# -------------------------------------------------------------------
+class AutoReplyConfig(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='auto_reply_config'
+    )
+    is_enabled = models.BooleanField(default=False)
+    wait_minutes = models.PositiveIntegerField(
+        default=5,
+        help_text="Minutes to wait before auto-replying if owner has not responded"
+    )
+    cooldown_hours = models.PositiveIntegerField(
+        default=6,
+        help_text="Hours to wait before sending another auto-reply to the same conversation"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Auto-Reply Configuration"
+        verbose_name_plural = "Auto-Reply Configurations"
+
+    def __str__(self):
+        status = "Enabled" if self.is_enabled else "Disabled"
+        return f"{self.user.get_full_name() or self.user.username} ({status}, {self.wait_minutes}m wait)"
+
+
+class AutoReplyLog(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('human_replied', 'Cancelled - Human Replied First'),
+        ('cancelled', 'Cancelled'),
+        ('skipped_cooldown', 'Skipped - Cooldown Active'),
+    ]
+
+    account = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='auto_reply_logs'
+    )
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='incoming_auto_replies'
+    )
+    direct_session = models.ForeignKey(
+        DirectChatSession,
+        on_delete=models.CASCADE,
+        related_name='auto_reply_logs'
+    )
+    trigger_message = models.ForeignKey(
+        Message,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='triggered_auto_replies'
+    )
+    reply_message = models.ForeignKey(
+        Message,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sent_auto_replies'
+    )
+    detected_topic = models.CharField(max_length=50, blank=True)
+    matched_keywords = models.CharField(max_length=255, blank=True)
+    chosen_response = models.TextField(blank=True)
+    variant_index = models.PositiveSmallIntegerField(default=0)
+    due_at = models.DateTimeField(db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
+    human_replied_first = models.BooleanField(default=False)
+    flagged_emergency = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Auto-Reply Log"
+        verbose_name_plural = "Auto-Reply Logs"
+
+    def __str__(self):
+        return f"[{self.status}] {self.sender.username} -> {self.account.username} ({self.detected_topic})"
 

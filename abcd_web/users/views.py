@@ -15003,6 +15003,14 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         file_name=uploaded_file.name if uploaded_file else '',
     )
 
+    # 🤖 Smart Auto-Reply Handler
+    if direct_session:
+        try:
+            from users.auto_reply import handle_direct_message_sent
+            handle_direct_message_sent(msg)
+        except Exception as e:
+            logger.error(f"[AutoReply] Error handling direct message {msg.id}: {e}", exc_info=True)
+
     # 🔔 Consolidated Guidy notification for the OTHER participant
     try:
         if session:
@@ -15122,6 +15130,8 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         'is_pinned': msg.is_pinned,
         'media_expired': msg.media_expired,
         'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
+        'is_auto_reply': getattr(msg, 'is_auto_reply', False),
+        'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
     }
 
     try:
@@ -15304,6 +15314,8 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
             'is_deleted_for_all': msg.is_deleted_for_all,
             'media_expired': msg.media_expired,
             'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
+            'is_auto_reply': getattr(msg, 'is_auto_reply', False),
+            'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
         })
 
     # Fetch read message ids sent by request.user
@@ -19184,6 +19196,8 @@ def guidy_load_older(request):
             'is_deleted_for_all': msg.is_deleted_for_all,
             'media_expired': msg.media_expired,
             'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
+            'is_auto_reply': getattr(msg, 'is_auto_reply', False),
+            'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
         })
 
     return JsonResponse({
@@ -19484,6 +19498,8 @@ def guidy_load_chat_api(request):
                 'is_deleted_for_all': bool(msg.is_deleted_for_all),
                 'media_expired': bool(msg.media_expired),
                 'is_verified': bool(msg.sender and (msg.sender.is_staff or msg.sender.is_superuser)),
+                'is_auto_reply': getattr(msg, 'is_auto_reply', False),
+                'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
             })
 
         # Generate URLs

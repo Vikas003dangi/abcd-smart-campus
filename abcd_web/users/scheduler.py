@@ -102,6 +102,15 @@ def execute_high_frequency_tasks():
         logger.error(f"Scheduler Error [process_todo]: {e}", exc_info=True)
         results['todo_and_learning'] = f"error: {str(e)}"
 
+    # 3. Smart Auto-Replies
+    try:
+        from users.auto_reply import process_due_auto_replies
+        replies_sent = process_due_auto_replies()
+        results['auto_replies'] = f"ok (sent: {replies_sent})"
+    except Exception as e:
+        logger.error(f"Scheduler Error [process_due_auto_replies]: {e}", exc_info=True)
+        results['auto_replies'] = f"error: {str(e)}"
+
     close_old_connections()
     return results
 

@@ -9,7 +9,8 @@ from .models import (
     TeacherProfile, SeatAssignment, SeatHoldRequest, SeatSwitchRequest, SeatLeaveRequest, SeatHoldChangeRequest, SeatSpecialRequest,
     FeeTransaction, TeacherHiddenFeeTransaction, FeeTransactionAudit, FeeTransactionRevision, DismissedFeeAlert, CourseReview, CourseQuestion, CourseAnswer,
     CourseShare, StudentMaterialAccess, StudentCourseInteraction,
-    PerformanceRecord, StudentScore, TodoTask
+    PerformanceRecord, StudentScore, TodoTask,
+    AutoReplyConfig, AutoReplyLog
 )
 
 admin.site.site_header = "ABCD Smart Campus • Master Administration"
@@ -374,8 +375,8 @@ class DirectChatSessionAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(MediaCleanupMixin, admin.ModelAdmin):
-    list_display = ('id', 'chat_target', 'sender', 'message_type', 'content_preview', 'is_read', 'timestamp')
-    list_filter = ('message_type', 'is_read', 'timestamp')
+    list_display = ('id', 'chat_target', 'sender', 'is_auto_reply', 'auto_reply_topic', 'message_type', 'content_preview', 'is_read', 'timestamp')
+    list_filter = ('is_auto_reply', 'auto_reply_topic', 'message_type', 'is_read', 'timestamp')
     search_fields = ('sender__username', 'content', 'direct_session__user1__username', 'direct_session__user2__username')
     readonly_fields = ('session', 'direct_session', 'sender', 'timestamp')
 
@@ -439,3 +440,19 @@ class GroupMessageAdmin(MediaCleanupMixin, admin.ModelAdmin):
 class GuidyBlockAdmin(admin.ModelAdmin):
     list_display = ('blocker', 'blocked', 'created_at')
     search_fields = ('blocker__username', 'blocked__username')
+
+
+@admin.register(AutoReplyConfig)
+class AutoReplyConfigAdmin(admin.ModelAdmin):
+    list_display = ('user', 'is_enabled', 'wait_minutes', 'cooldown_hours', 'updated_at')
+    list_editable = ('is_enabled', 'wait_minutes', 'cooldown_hours')
+    search_fields = ('user__username', 'user__email', 'user__first_name', 'user__last_name')
+    list_filter = ('is_enabled',)
+
+
+@admin.register(AutoReplyLog)
+class AutoReplyLogAdmin(admin.ModelAdmin):
+    list_display = ('id', 'created_at', 'account', 'sender', 'detected_topic', 'status', 'human_replied_first', 'flagged_emergency', 'due_at')
+    list_filter = ('status', 'detected_topic', 'flagged_emergency', 'human_replied_first', 'account')
+    search_fields = ('sender__username', 'sender__email', 'account__username', 'matched_keywords', 'chosen_response')
+    readonly_fields = ('created_at', 'sent_at', 'trigger_message', 'reply_message')

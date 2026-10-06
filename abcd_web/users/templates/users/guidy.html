@@ -1015,6 +1015,81 @@ body.dark-theme .g-msg-row.theirs .g-expired-media-notice i {
 .g-bubble.pinned-msg { border-left: 3px solid #fbbf24; }
 .g-bubble.starred-msg { border-right: 3px solid #f59e0b; }
 
+/* Smart Auto-Reply Bubble */
+.g-bubble.auto-reply-bubble {
+  border: 1.5px solid #8b5cf6 !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%) !important;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.12);
+}
+body.dark-theme .g-bubble.auto-reply-bubble {
+  border: 1.5px solid #a78bfa !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(99, 102, 241, 0.10) 100%) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.auto-reply-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.12);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+body.dark-theme .auto-reply-badge {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.25);
+}
+.auto-reply-disclaimer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.73rem;
+  color: var(--g-sub, #6b7280);
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(139, 92, 246, 0.25);
+  font-style: italic;
+}
+.auto-reply-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.auto-reply-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #6d28d9;
+  background: rgba(109, 40, 217, 0.08);
+  border: 1px solid rgba(109, 40, 217, 0.25);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.auto-reply-chip:hover {
+  background: #7c3aed;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+body.dark-theme .auto-reply-chip {
+  color: #ddd6fe;
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+body.dark-theme .auto-reply-chip:hover {
+  background: #8b5cf6;
+  color: #ffffff;
+}
+
 /* Reply Preview inside bubble */
 .g-reply-preview {
   background: var(--g-bg); border-left: 4px solid var(--g-primary-s);
@@ -3028,8 +3103,11 @@ body.dark-theme .search-highlight {
                     {% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
                   </div>
                   {% endif %}
-                  <div class="g-bubble {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}starred-msg{% endif %}">
+                  <div class="g-bubble {% if msg.is_auto_reply %}auto-reply-bubble{% endif %} {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}starred-msg{% endif %}">
                     <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
+                    {% if msg.is_auto_reply %}
+                      <div class="auto-reply-badge"><i class='bx bx-bot'></i> Smart Auto-Reply</div>
+                    {% endif %}
                     {% if msg.media_expired and msg.message_type != 'text' %}
                       <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
                     {% elif msg.message_type == 'image' and msg.file %}
@@ -3050,6 +3128,9 @@ body.dark-theme .search-highlight {
                       </div>
                     {% endif %}
                     {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
+                    {% if msg.is_auto_reply %}
+                      <div class="auto-reply-disclaimer"><i class='bx bx-info-circle'></i> Automated response &bull; {{ msg.sender.get_full_name|default:msg.sender.username }} will reply personally soon.</div>
+                    {% endif %}
                   </div>
                   <div class="g-msg-meta">
                     {% if msg.is_pinned %}<i class='bx bx-pin g-msg-pin-ico'></i>{% endif %}
@@ -5659,6 +5740,58 @@ function jumpToDate(dateString) {
   }
 }
 
+const AUTO_REPLY_CHIPS_MAP = {
+  'emergency': [
+    { label: 'Tele-MANAS (14416)', url: 'tel:14416', icon: 'bx-phone-call' },
+    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' }
+  ],
+  'fees_dispute': [
+    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' },
+    { label: 'Complaint Desk', url: '/complaints/', icon: 'bx-support' }
+  ],
+  'complaint': [
+    { label: 'Complaint Desk', url: '/complaints/', icon: 'bx-support' },
+    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' }
+  ],
+  'fees': [
+    { label: 'Dashboard & Fees', url: '/dashboard/', icon: 'bx-receipt' },
+    { label: 'Campus Services', url: '/services/', icon: 'bx-info-circle' }
+  ],
+  'seats': [
+    { label: 'Live Seat Layout', url: '/library-availability/', icon: 'bx-chair' },
+    { label: 'My Seat', url: '/my-seat/', icon: 'bx-book-reader' }
+  ],
+  'timings': [
+    { label: 'Campus Services', url: '/services/', icon: 'bx-time' },
+    { label: 'Contact Page', url: '/contact/', icon: 'bx-phone' }
+  ],
+  'admission': [
+    { label: 'Admission Form', url: '/admission-form/', icon: 'bx-edit' },
+    { label: 'Campus Services', url: '/services/', icon: 'bx-graduation' }
+  ],
+  'auth': [
+    { label: 'Forgot Password', url: '/forgot-password/', icon: 'bx-key' },
+    { label: 'Login Page', url: '/login/', icon: 'bx-log-in' }
+  ],
+  'courses': [
+    { label: 'Browse Courses', url: '/courses/', icon: 'bx-book-open' }
+  ],
+  'greeting': [
+    { label: 'Campus Services', url: '/services/', icon: 'bx-grid-alt' },
+    { label: 'Library Availability', url: '/library-availability/', icon: 'bx-chair' }
+  ],
+  'fallback': [
+    { label: 'Campus Services', url: '/services/', icon: 'bx-grid-alt' },
+    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' }
+  ]
+};
+
+function buildAutoReplyChips(topic) {
+  const chips = AUTO_REPLY_CHIPS_MAP[topic] || AUTO_REPLY_CHIPS_MAP['fallback'];
+  if (!chips || !chips.length) return '';
+  return `<div class="auto-reply-chips">${chips.map(c => `<a href="${c.url}" class="auto-reply-chip" target="${c.url.startsWith('tel:') ? '_self' : '_blank'}"><i class='bx ${c.icon}'></i> ${escHtml(c.label)}</a>`).join('')}</div>`;
+}
+
 function appendMessage(msg) {
   const area = document.getElementById('gMessages');
   if (!area) return;
@@ -5817,10 +5950,18 @@ function appendMessage(msg) {
     bubbleHtml = `<div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);"><i class="bx bx-block"></i> deleted msg</div>`;
   } else {
     const isJumbo = !msg.file_url && isOnlyEmojis(msg.content || '');
-    const bubbleClass = `g-bubble ${msg.is_pinned ? 'pinned-msg' : ''} ${isJumbo ? 'jumbo-emoji-bubble' : ''} ${msg.file_url ? 'g-bubble-media' : ''}`;
+    const isAuto = !!msg.is_auto_reply;
+    const bubbleClass = `g-bubble ${isAuto ? 'auto-reply-bubble' : ''} ${msg.is_pinned ? 'pinned-msg' : ''} ${isJumbo ? 'jumbo-emoji-bubble' : ''} ${msg.file_url ? 'g-bubble-media' : ''}`;
+    let autoReplyHdr = isAuto ? `<div class="auto-reply-badge"><i class='bx bx-bot'></i> Smart Auto-Reply</div>` : '';
+    let autoReplyFtr = isAuto ? `<div class="auto-reply-disclaimer"><i class='bx bx-info-circle'></i> Automated response &bull; ${escHtml(msg.sender_name || 'Owner')} will reply personally soon.</div>` : '';
+    let autoReplyChips = (isAuto && typeof buildAutoReplyChips === 'function') ? buildAutoReplyChips(msg.auto_reply_topic) : '';
+
     bubbleHtml = `<div class="${bubbleClass}">
                     <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
+                    ${autoReplyHdr}
                     ${mediaHtml}<span class="g-msg-text">${formatMessageContent(msg.content||'')}</span>
+                    ${autoReplyChips}
+                    ${autoReplyFtr}
                   </div>
                   <div class="g-msg-meta"><span>${msg.timestamp}</span>${tickHtml}</div>`;
   }
@@ -8254,9 +8395,12 @@ function showNoChatPlaceholder(updateHistory = true) {
     placeholder.style.display = 'flex';
   }
 
-  if (updateHistory) {
-    history.pushState(null, '', window.location.pathname);
-  }
+  // Always normalize URL back to clean /guidy/ without query parameters
+  try {
+    if (window.location.search) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+  } catch(histErr) {}
 }
 
 async function loadChatAJAX(type, id, pushState = true) {
@@ -8378,10 +8522,14 @@ async function loadChatAJAX(type, id, pushState = true) {
       cfg.dataset.reqPk = REQ_PK;
     }
 
-    // Push state to browser history
+    // Update browser URL to reflect current chat without accumulating history stack
     if (pushState) {
       const newUrl = window.location.pathname + '?' + data.chat_type + '=' + data.chat_id;
-      history.pushState({ type: data.chat_type, id: data.chat_id }, '', newUrl);
+      try {
+        history.replaceState({ type: data.chat_type, id: data.chat_id }, '', newUrl);
+      } catch (histErr) {
+        console.warn('replaceState error:', histErr);
+      }
     }
 
     // Update Header Avatar
@@ -8652,54 +8800,153 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
 }
 
 window.handleCustomSmartBack = async function() {
-  // 1. Close self profile pane if open (works on mobile and desktop)
-  const selfPane = document.getElementById('guidySelfProfilePane');
-  if (selfPane && selfPane.style.display !== 'none') {
-    const closed = await closeSelfProfilePane();
-    if (closed === false) {
-      return true; // User cancelled discard, stay in edit mode
-    }
-    return true; // Self profile pane closed cleanly
-  }
+  // -----------------------------------------------------------------
+  // LEVEL 3: Close any open modal / popup / drawer / dropdown FIRST
+  // -----------------------------------------------------------------
 
-  // 2. Close blocked contacts sidebar if open
-  const blockedSidebar = document.getElementById('blockedContactsSidebar');
-  if (blockedSidebar && blockedSidebar.style.display !== 'none') {
-    closeBlockedContactsModal();
+  // 1. In-page search bar
+  const searchBar = document.getElementById('gSearchBar');
+  if (searchBar && searchBar.classList.contains('open')) {
+    if (typeof closeSearchBar === 'function') closeSearchBar();
+    else searchBar.classList.remove('open');
     return true;
   }
 
-  // 3. Close active chat if chat area is open (mobile or desktop)
+  // 2. Profile drawer
+  const profDrawer = document.getElementById('profileDrawer');
+  if (profDrawer && profDrawer.classList.contains('open')) {
+    if (typeof closeProfileDrawer === 'function') closeProfileDrawer();
+    else profDrawer.classList.remove('open');
+    return true;
+  }
+
+  // 3. Contact List / New Chat / New Group modal (opened by + FAB)
+  const contactModal = document.getElementById('contactListModal');
+  if (contactModal && contactModal.classList.contains('open')) {
+    if (typeof closeContactListModal === 'function') closeContactListModal();
+    else contactModal.classList.remove('open');
+    return true;
+  }
+
+  // 4. Procedure modals (Dual / Alumni / Student)
+  const dualModal = document.getElementById('dualProcedureModal');
+  if (dualModal && dualModal.classList.contains('open')) {
+    if (typeof closeDualProcedure === 'function') closeDualProcedure();
+    else dualModal.classList.remove('open');
+    return true;
+  }
+  const alumniModal = document.getElementById('alumniProcedureModal');
+  if (alumniModal && alumniModal.classList.contains('open')) {
+    if (typeof closeAlumniProcedure === 'function') closeAlumniProcedure();
+    else alumniModal.classList.remove('open');
+    return true;
+  }
+  const studentModal = document.getElementById('studentProcedureModal');
+  if (studentModal && studentModal.classList.contains('open')) {
+    if (typeof closeStudentProcedure === 'function') closeStudentProcedure();
+    else studentModal.classList.remove('open');
+    return true;
+  }
+
+  // 5. Delete confirmation modal
+  const delModal = document.getElementById('delModal');
+  if (delModal && delModal.classList.contains('open')) {
+    if (typeof closeDelModal === 'function') closeDelModal();
+    else delModal.classList.remove('open');
+    return true;
+  }
+
+  // 6. Sender warning modal
+  const warnModal = document.getElementById('senderWarningModal');
+  if (warnModal && warnModal.classList.contains('open')) {
+    warnModal.classList.remove('open');
+    return true;
+  }
+
+  // 7. Self profile pane (works on mobile and desktop)
+  const selfPane = document.getElementById('guidySelfProfilePane');
+  if (selfPane && selfPane.style.display !== 'none' && selfPane.style.display !== '') {
+    if (typeof closeSelfProfilePane === 'function') {
+      const closed = await closeSelfProfilePane();
+      if (closed === false) return true; // User cancelled discard, stay
+    } else {
+      selfPane.style.display = 'none';
+    }
+    return true;
+  }
+
+  // 8. Blocked contacts sidebar
+  const blockedSidebar = document.getElementById('blockedContactsSidebar');
+  if (blockedSidebar && blockedSidebar.style.display !== 'none' && blockedSidebar.style.display !== '') {
+    if (typeof closeBlockedContactsModal === 'function') closeBlockedContactsModal();
+    else if (typeof closeBlockedContactsSidebar === 'function') closeBlockedContactsSidebar();
+    else blockedSidebar.style.display = 'none';
+    return true;
+  }
+
+  // 9. Sidebar 3-dot dropdown menu
+  const sbDropdown = document.getElementById('gSidebarDropdown');
+  if (sbDropdown && sbDropdown.style.display === 'block') {
+    sbDropdown.style.display = 'none';
+    return true;
+  }
+
+  // 10. Header action menu
+  const actMenu = document.getElementById('actionMenu');
+  if (actMenu && (actMenu.classList.contains('open') || actMenu.style.display === 'block')) {
+    if (typeof closeMenu === 'function') closeMenu();
+    else { actMenu.classList.remove('open'); actMenu.style.display = 'none'; }
+    return true;
+  }
+
+  // 11. Message context menu
+  const ctxMenu = document.querySelector('.g-ctx-menu.open') || document.getElementById('msgContextMenu');
+  if (ctxMenu && ctxMenu.classList.contains('open')) {
+    ctxMenu.classList.remove('open');
+    return true;
+  }
+
+  // 12. Message selection modes
+  if (typeof selectMode !== 'undefined' && selectMode) {
+    if (typeof exitSelectMode === 'function') exitSelectMode();
+    return true;
+  }
+  if (typeof selectModeForAction !== 'undefined' && selectModeForAction) {
+    if (typeof exitSelectModeForAction === 'function') exitSelectModeForAction();
+    return true;
+  }
+
+  // 13. Any generic open modals in Guidy
+  const genericOpenModal = document.querySelector('.g-modal-bg.open, .g-contact-modal-bg.open, .g-del-modal-bg.open');
+  if (genericOpenModal) {
+    genericOpenModal.classList.remove('open');
+    return true;
+  }
+
+  // -----------------------------------------------------------------
+  // LEVEL 2: Close active chat / chat area -> Return to Side Body
+  // -----------------------------------------------------------------
   const shell = document.getElementById('gShell');
   const isChatActive = shell && shell.classList.contains('chat-active');
+  const isBodyChatActive = document.body.classList.contains('chat-active');
   const container = document.getElementById('chatContainerWrapper');
   const isChatContainerVisible = container && !container.classList.contains('g-pane-hidden') && container.style.display !== 'none';
-  const hasActiveId = Boolean((typeof SESSION_ID !== 'undefined' && SESSION_ID) || 
-                              (typeof DIRECT_ID !== 'undefined' && DIRECT_ID) || 
-                              (typeof GROUP_ID !== 'undefined' && GROUP_ID));
+  const hasActiveId = Boolean(
+    (typeof currentChatId !== 'undefined' && currentChatId) ||
+    (typeof SESSION_ID !== 'undefined' && SESSION_ID) || 
+    (typeof DIRECT_ID !== 'undefined' && DIRECT_ID) || 
+    (typeof GROUP_ID !== 'undefined' && GROUP_ID)
+  );
 
-  if (isChatActive || isChatContainerVisible || hasActiveId) {
+  if (isChatActive || isBodyChatActive || isChatContainerVisible || hasActiveId) {
     showNoChatPlaceholder(false);
-    return true;
+    return true; // Consumed: returned to side body
   }
 
-  // 4. Handle URL params if popstate transitioned between chats
-  const params = new URLSearchParams(window.location.search);
-  const session = params.get('session');
-  const direct = params.get('direct');
-  const group = params.get('group');
-
-  if (group) {
-    loadChatAJAX('group', group, false);
-    return true;
-  } else if (direct) {
-    loadChatAJAX('direct', direct, false);
-    return true;
-  } else if (session) {
-    loadChatAJAX('session', session, false);
-    return true;
-  }
-
+  // -----------------------------------------------------------------
+  // LEVEL 1: Already on Side Body (no modal, no active chat)
+  // Return false so ABCDNav navigates to Home Base (/dashboard/)!
+  // -----------------------------------------------------------------
   return false;
 };
 
@@ -8707,8 +8954,10 @@ window.handleCustomSmartBack = async function() {
 if (window.ABCDNav && typeof window.ABCDNav.registerInPageHandler === 'function') {
   window.ABCDNav.registerInPageHandler(window.handleCustomSmartBack);
 } else {
-  window.addEventListener('popstate', () => {
-    window.handleCustomSmartBack();
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.ABCDNav && typeof window.ABCDNav.registerInPageHandler === 'function') {
+      window.ABCDNav.registerInPageHandler(window.handleCustomSmartBack);
+    }
   });
 }
 
