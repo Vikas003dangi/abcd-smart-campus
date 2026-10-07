@@ -1,7 +1,7 @@
 # users/views.py
 import logging
 logger = logging.getLogger(__name__)
-import requests, os, re, datetime, json, random, threading, time
+import requests, os, re, datetime, json, random, threading, time, uuid
 from django.db.models import F, Q, Avg, Count, Prefetch
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
@@ -20927,6 +20927,16 @@ def email_diagnostics_view(request):
 # SECURE ACCOUNT DELETION & 7-DAY QUARANTINE VIEWS
 # ===================================================================
 
+def _deletion_code_hash(user_id, code):
+    """
+    Generates a secure, salted SHA-256 hash for account deletion verification OTP.
+    Prevents pre-computed rainbow table attacks if cache or session is inspected.
+    """
+    import hashlib
+    salt = f"del_otp_{user_id}_{settings.SECRET_KEY}"
+    return hashlib.sha256(f"{salt}:{code}".encode('utf-8')).hexdigest()
+
+
 @login_required
 @require_POST
 @never_cache
@@ -20942,11 +20952,13 @@ def delete_account_view(request):
     """
     user = request.user
 
+    ref_code = f"DEL-{uuid.uuid4().hex[:4].upper()}"
+
     # 1. Staff / Superuser accounts cannot self-delete
     if user.is_staff or user.is_superuser:
         return JsonResponse({
             'status': 'error',
-            'message': 'Administrative and staff accounts cannot be deleted self-service.'
+            'message': 'Staff and administrative accounts cannot be deleted self-service.'
         }, status=403)
 
     # 2. Concurrency lock (prevents double submission / race conditions)
@@ -20977,15 +20989,37 @@ def delete_account_view(request):
                     'message': 'Incorrect current password. Please enter your valid password.'
                 }, status=400)
         else:
-            # Passwordless / Google OAuth account: verify email OTP
-            otp = request.POST.get('otp', '').strip()
-            stored_otp = request.session.get('account_deletion_otp')
-            otp_expiry = request.session.get('account_deletion_otp_expiry', 0)
-            if not otp or not stored_otp or otp != stored_otp or time.time() > otp_expiry:
+            # Passwordless / Google OAuth account: verify email code
+            submitted_code = request.POST.get('otp', '').strip()
+            if not submitted_code:
                 cache.delete(lock_key)
                 return JsonResponse({
                     'status': 'error',
-                    'message': 'Invalid or expired email verification code. Please request a new code.'
+                    'message': 'Please verify your email verification code before deleting your account.'
+                }, status=400)
+
+            otp_data = cache.get(f"del_account_otp_{user.id}")
+
+            if not otp_data or not otp_data.get('verified'):
+                cache.delete(lock_key)
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Please verify your email verification code before deleting your account.'
+                }, status=400)
+
+            if time.time() > otp_data.get('expiry', 0):
+                cache.delete(lock_key)
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Your verification code has expired. Please request and verify a new code.'
+                }, status=400)
+
+            import hmac
+            if not hmac.compare_digest(_deletion_code_hash(user.id, submitted_code), otp_data.get('code_hash', '')):
+                cache.delete(lock_key)
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Verification code mismatch. Please verify your code again.'
                 }, status=400)
 
         # 5. Perform the deletion workflow
@@ -20996,11 +21030,10 @@ def delete_account_view(request):
             cache.delete(lock_key)
             return JsonResponse({
                 'status': 'error',
-                'message': result.get('message', 'Failed to complete deletion.')
+                'message': result.get('message', f'Failed to complete deletion. (Ref: {ref_code})')
             }, status=500)
 
         # 6. Session & Authentication Invalidation
-        user_id = getattr(user, 'id', None)
         logout(request)
 
         return JsonResponse({
@@ -21011,13 +21044,14 @@ def delete_account_view(request):
     except Exception as e:
         cache.delete(lock_key)
         target_uid = getattr(user, 'id', None)
-        logger.exception(f"[ACCOUNT_DELETION_VIEW] Error during deletion for user {target_uid}: {e}")
-        err_msg = 'An unexpected error occurred during account deletion. Please try again or contact support.'
+        logger.exception(f"[ACCOUNT_DELETION_VIEW] [Ref: {ref_code}] Error during deletion for user {target_uid}: {e}")
+        err_msg = f'Account deletion encountered an issue. Please contact support with reference code: {ref_code}'
         if settings.DEBUG:
             err_msg = f"{err_msg} (Error: {e})"
         return JsonResponse({
             'status': 'error',
             'message': err_msg,
+            'ref_code': ref_code,
             'detail': str(e) if settings.DEBUG else None
         }, status=500)
     finally:
@@ -21029,11 +21063,15 @@ def delete_account_view(request):
 def request_delete_account_otp_view(request):
     """
     Sends a 6-digit verification OTP to the user's registered email
-    for account deletion verification (primarily for Google OAuth users without passwords).
+    for account deletion verification.
+    Stores code hashed, enforces 60-second cooldown, invalidates older codes.
     """
     user = request.user
     if user.is_staff or user.is_superuser:
-        return JsonResponse({'status': 'error', 'message': 'Staff accounts cannot be deleted.'}, status=403)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Staff and administrative accounts cannot be deleted self-service.'
+        }, status=403)
 
     recipient_email = user.email
     if not recipient_email and hasattr(user, 'profile') and user.profile.email:
@@ -21046,22 +21084,38 @@ def request_delete_account_otp_view(request):
     if not recipient_email:
         return JsonResponse({
             'status': 'error',
-            'message': 'No verified email address is associated with this account. Please contact support.'
+            'message': 'No registered email address is associated with this account. Please add an email address in profile settings or contact support.'
         }, status=400)
 
-    # Cooldown check
+    # 60-second cooldown check
     cooldown_key = f"del_otp_cooldown_{user.id}"
     if cache.get(cooldown_key):
         return JsonResponse({
             'status': 'error',
-            'message': 'Please wait 60 seconds before requesting another verification code.'
+            'message': 'Please wait 60 seconds before requesting another verification code.',
+            'cooldown': True
         }, status=429)
 
     import random
     otp = f"{random.randint(100000, 999999)}"
-    request.session['account_deletion_otp'] = otp
-    request.session['account_deletion_otp_expiry'] = time.time() + 600  # 10 minutes
+    code_hash = _deletion_code_hash(user.id, otp)
+
+    # Store code hashed in cache with 10-minute expiry (supersedes any older code)
+    cache_key = f"del_account_otp_{user.id}"
+    cache.set(cache_key, {
+        'code_hash': code_hash,
+        'expiry': time.time() + 600,  # 10 minutes
+        'attempts': 0,
+        'verified': False,
+    }, timeout=600)
+
+    # Also record in session as fallback
+    request.session['account_deletion_otp_hash'] = code_hash
+    request.session['account_deletion_otp_expiry'] = time.time() + 600
+    request.session['account_deletion_otp_attempts'] = 0
+    request.session['account_deletion_otp_verified'] = False
     request.session.modified = True
+
     cache.set(cooldown_key, True, timeout=60)
 
     # Mask email for safe UI display (e.g. j***@example.com)
@@ -21095,7 +21149,111 @@ def request_delete_account_otp_view(request):
 
     return JsonResponse({
         'status': 'ok',
-        'message': f'A verification code has been sent to your registered email ({masked_email}).'
+        'message': f'A verification code has been sent to your registered email ({masked_email}).',
+        'cooldown_seconds': 60
+    })
+
+
+@login_required
+@require_POST
+@never_cache
+def verify_delete_account_otp_view(request):
+    """
+    Verifies the 6-digit account deletion code submitted by the user.
+    Checks:
+    - Code exists and has not expired (10 min).
+    - Max 5 wrong attempts (invalidates code if exceeded).
+    - Constant-time hash verification.
+    - Sets verified flag on success.
+    """
+    user = request.user
+    if user.is_staff or user.is_superuser:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Staff and administrative accounts cannot be deleted self-service.'
+        }, status=403)
+
+    submitted_code = request.POST.get('otp', '').strip()
+    if not submitted_code or len(submitted_code) != 6 or not submitted_code.isdigit():
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Please enter a valid 6-digit verification code.'
+        }, status=400)
+
+    cache_key = f"del_account_otp_{user.id}"
+    otp_data = cache.get(cache_key)
+
+    # Fallback to session if cache expired or absent
+    if not otp_data and request.session.get('account_deletion_otp_hash'):
+        otp_data = {
+            'code_hash': request.session.get('account_deletion_otp_hash'),
+            'expiry': request.session.get('account_deletion_otp_expiry', 0),
+            'attempts': request.session.get('account_deletion_otp_attempts', 0),
+            'verified': request.session.get('account_deletion_otp_verified', False),
+        }
+
+    if not otp_data:
+        return JsonResponse({
+            'status': 'error',
+            'message': "No verification code was requested or the code has expired. Please click 'Get Code' to receive a new code."
+        }, status=400)
+
+    # Expiry check
+    if time.time() > otp_data.get('expiry', 0):
+        cache.delete(cache_key)
+        request.session.pop('account_deletion_otp_hash', None)
+        request.session.pop('account_deletion_otp_verified', None)
+        return JsonResponse({
+            'status': 'error',
+            'message': "Your verification code has expired. Please click 'Get Code' to request a new code."
+        }, status=400)
+
+    # Attempt limit check (max 5)
+    current_attempts = otp_data.get('attempts', 0)
+    if current_attempts >= 5:
+        cache.delete(cache_key)
+        request.session.pop('account_deletion_otp_hash', None)
+        request.session.pop('account_deletion_otp_verified', None)
+        return JsonResponse({
+            'status': 'error',
+            'message': "Maximum verification attempts exceeded. For your security, this code has been invalidated. Please click 'Get Code' to request a new code."
+        }, status=400)
+
+    import hmac
+    submitted_hash = _deletion_code_hash(user.id, submitted_code)
+    expected_hash = otp_data.get('code_hash', '')
+
+    if not hmac.compare_digest(submitted_hash, expected_hash):
+        current_attempts += 1
+        otp_data['attempts'] = current_attempts
+        rem = 5 - current_attempts
+        cache.set(cache_key, otp_data, timeout=int(max(1, otp_data['expiry'] - time.time())))
+        request.session['account_deletion_otp_attempts'] = current_attempts
+        request.session.modified = True
+
+        if rem <= 0:
+            cache.delete(cache_key)
+            request.session.pop('account_deletion_otp_hash', None)
+            request.session.pop('account_deletion_otp_verified', None)
+            return JsonResponse({
+                'status': 'error',
+                'message': "Maximum verification attempts exceeded. For your security, this code has been invalidated. Please click 'Get Code' to request a new code."
+            }, status=400)
+
+        return JsonResponse({
+            'status': 'error',
+            'message': f"The verification code you entered is incorrect. ({rem} attempt{'s' if rem != 1 else ''} remaining)."
+        }, status=400)
+
+    # Code matches! Mark as verified
+    otp_data['verified'] = True
+    cache.set(cache_key, otp_data, timeout=600)
+    request.session['account_deletion_otp_verified'] = True
+    request.session.modified = True
+
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Verification code confirmed successfully.'
     })
 
 

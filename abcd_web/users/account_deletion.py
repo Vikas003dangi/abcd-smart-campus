@@ -18,7 +18,7 @@ import logging
 import uuid
 from datetime import timedelta
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 from django.core.cache import cache
 
@@ -208,13 +208,35 @@ def perform_account_deletion(user, role=None):
         if not original_email and achievement.email:
             original_email = achievement.email
 
-    # Guidy chat message attachments sent by this user
-    for msg in Message.objects.filter(sender=user).exclude(file='').exclude(file=None):
+    # Guidy chat message attachments in 1-on-1 sessions and solo groups being deleted
+    user_direct_sessions = DirectChatSession.objects.filter(Q(user1=user) | Q(user2=user))
+    user_direct_session_ids = list(user_direct_sessions.values_list('id', flat=True))
+
+    user_chat_sessions = ChatSession.objects.filter(Q(user_one=user) | Q(user_two=user))
+    user_chat_session_ids = list(user_chat_sessions.values_list('id', flat=True))
+
+    all_target_messages = Message.objects.filter(
+        Q(direct_session_id__in=user_direct_session_ids) |
+        Q(session_id__in=user_chat_session_ids) |
+        Q(sender=user)
+    )
+    for msg in all_target_messages.exclude(file='').exclude(file=None):
         if msg.file:
             files_to_delete.append(msg.file)
+
     for gmsg in GroupMessage.objects.filter(sender=user).exclude(file='').exclude(file=None):
         if gmsg.file:
             files_to_delete.append(gmsg.file)
+
+    # Solo groups created by user that will be deleted
+    user_created_groups = GroupChatSession.objects.filter(created_by=user)
+    for grp in user_created_groups:
+        if grp.members.exclude(id=user.id).count() == 0:
+            if grp.photo:
+                files_to_delete.append(grp.photo)
+            for sgmsg in grp.messages.exclude(file='').exclude(file=None):
+                if sgmsg.file:
+                    files_to_delete.append(sgmsg.file)
 
     involved_seat_ids = set()
 
@@ -262,7 +284,7 @@ def perform_account_deletion(user, role=None):
         # -------------------------------------------------------------
         # B. Communication, Social & Real-Time Data Removal
         # -------------------------------------------------------------
-        # Notifications and push subscriptions
+        # 1. Notifications and push subscriptions
         Notification.objects.filter(user=user).delete()
 
         # Send silent push to client devices to clear local scheduled alarms upon account deletion
@@ -286,50 +308,91 @@ def perform_account_deletion(user, role=None):
 
         PushSubscription.objects.filter(user=user).delete()
 
-        # Personal study tasks, reminders, intent logs
+        # 2. Personal study tasks, reminders, intent logs
         TodoTask.objects.filter(user=user).delete()
         LearningReminder.objects.filter(user=user).delete()
         BannerViewLog.objects.filter(user=user).delete()
         VisitorIntent.objects.filter(user=user).delete()
 
-        # Guidy 1-to-1 chats and guidance
+        # 3. Clean up AutoReply models FIRST (they reference DirectChatSession and Message)
+        AutoReplyLog.objects.filter(
+            Q(account=user) |
+            Q(sender=user) |
+            Q(direct_session_id__in=user_direct_session_ids) |
+            Q(trigger_message__in=all_target_messages) |
+            Q(reply_message__in=all_target_messages)
+        ).delete()
+        AutoReplyConfig.objects.filter(user=user).delete()
+
+        # 4. Clean up fee alerts
+        DismissedFeeAlert.objects.filter(Q(teacher=user) | (Q(student=student) if student else Q())).delete()
+
+        # 5. Break message reply_to self-references to prevent self-referential FK constraints
+        all_target_messages.filter(reply_to__isnull=False).update(reply_to=None)
+
+        # 6. Clear M2M deleted_by on target messages
+        Message.deleted_by.through.objects.filter(
+            Q(message_id__in=all_target_messages.values('id')) |
+            Q(user_id=user.id)
+        ).delete()
+
+        # 7. CRITICAL (PostgreSQL): Delete all 1-to-1 messages BEFORE deleting sessions.
+        # DirectChatSession and ChatSession have foreign keys with null=True in Message.
+        # In PostgreSQL (INITIALLY IMMEDIATE FK checks), deleting sessions before messages
+        # violates users_message_direct_session_id_fk / users_message_session_id_fk.
+        all_target_messages.delete()
+
+        # 8. Delete DirectChatSession objects (now safe because all referencing messages are deleted)
+        DirectChatSession.objects.filter(id__in=user_direct_session_ids).delete()
+
+        # 9. Delete ChatSession objects (now safe because all referencing messages are deleted)
+        ChatSession.objects.filter(id__in=user_chat_session_ids).delete()
+
+        # 10. Guidy guidance requests & blocks (now safe because ChatSession.request was already deleted)
         GuidanceRequest.objects.filter(Q(student=user) | (Q(alumni__user=user) if achievement else Q())).delete()
         BlockedGuidance.objects.filter(student=user).delete()
         RestrictedStudent.objects.filter(student=user).delete()
         GuidyBlock.objects.filter(Q(blocker=user) | Q(blocked=user)).delete()
 
-        # Delete direct chat sessions and 1-to-1 messages
-        DirectChatSession.objects.filter(Q(user1=user) | Q(user2=user)).delete()
-        ChatSession.objects.filter(Q(user_one=user) | Q(user_two=user)).delete()
-        Message.objects.filter(sender=user).delete()
+        # 11. Group chats: remove user or reassign/delete solo groups in proper order
+        for group in user_created_groups:
+            other_member = group.members.exclude(id=user.id).first()
+            if other_member:
+                group.created_by = other_member
+                group.save(update_fields=['created_by'])
+            else:
+                # Solo group: delete messages and M2Ms first, then delete group
+                grp_msgs = GroupMessage.objects.filter(group=group)
+                grp_msgs.filter(reply_to__isnull=False).update(reply_to=None)
+                GroupMessage.read_by.through.objects.filter(groupmessage__group=group).delete()
+                GroupMessage.deleted_by.through.objects.filter(groupmessage__group=group).delete()
+                GroupMessage.starred_by.through.objects.filter(groupmessage__group=group).delete()
+                grp_msgs.delete()
+                group.members.clear()
+                group.deleted_for_users.clear()
+                group.delete()
 
-        # Clean up auto-reply configurations and communication logs
-        AutoReplyConfig.objects.filter(user=user).delete()
-        AutoReplyLog.objects.filter(Q(account=user) | Q(sender=user)).delete()
+        # Anonymize user's remaining group messages in other groups before removing membership
+        # Reassigning sender ensures hard deletion of user does not cascade and delete group messages
+        for gmsg in GroupMessage.objects.filter(sender=user):
+            other_member = gmsg.group.members.exclude(id=user.id).first() or gmsg.group.created_by
+            if other_member and other_member.id != user.id:
+                gmsg.sender = other_member
+            gmsg.content = "[This message was deleted by a former user]"
+            gmsg.file = ""
+            gmsg.is_deleted_for_all = True
+            gmsg.save(update_fields=['sender', 'content', 'file', 'is_deleted_for_all'])
 
-        # Clean up fee alerts
-        DismissedFeeAlert.objects.filter(Q(teacher=user) | (Q(student=student) if student else Q())).delete()
-
-        # Group chats: remove user from membership; anonymize sent group messages
         for group in GroupChatSession.objects.filter(members=user):
             group.members.remove(user)
-            if group.created_by == user:
-                # If group has other members, reassign creator to staff or next member
-                other_member = group.members.exclude(id=user.id).first()
-                if other_member:
-                    group.created_by = other_member
-                    group.save(update_fields=['created_by'])
-                else:
-                    group.delete()
 
-        GroupMessage.objects.filter(sender=user).update(
-            content="[This message was deleted by a former user]",
-            file="",
-            is_deleted_for_all=True,
-        )
+        # Clear user from remaining group M2M tables
+        GroupChatSession.deleted_for_users.through.objects.filter(user_id=user.id).delete()
+        GroupMessage.read_by.through.objects.filter(user_id=user.id).delete()
+        GroupMessage.deleted_by.through.objects.filter(user_id=user.id).delete()
+        GroupMessage.starred_by.through.objects.filter(user_id=user.id).delete()
 
-
-        # Academic forum content: anonymize to protect thread continuity
+        # 12. Academic forum content: anonymize to protect thread continuity
         if student:
             CourseQuestion.objects.filter(student=student).update(student=None)
             CourseReview.objects.filter(student=student).delete()
@@ -339,10 +402,11 @@ def perform_account_deletion(user, role=None):
             StudentScore.objects.filter(student=student).delete()
 
         CourseAnswer.objects.filter(user=user).update(user=None)
+        CourseQuestion.upvotes.through.objects.filter(user_id=user.id).delete()
+        CourseAnswer.upvotes.through.objects.filter(user_id=user.id).delete()
 
         # Complaints: delete or anonymize
         if student:
-            # Anonymize complaint details while preserving basic metrics if needed
             Complaint.objects.filter(student=student).update(
                 message="[User account and personal grievance details deleted]",
                 feedback="[Account deleted]",
@@ -359,8 +423,8 @@ def perform_account_deletion(user, role=None):
         try:
             from social_django.models import UserSocialAuth
             UserSocialAuth.objects.filter(user=user).delete()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[ACCOUNT_DELETION] Non-fatal OAuth link cleanup: {e}")
 
         # -------------------------------------------------------------
         # C. Financial Retention & Core Identity Erasure / Anonymization

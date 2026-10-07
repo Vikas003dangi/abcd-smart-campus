@@ -55,6 +55,7 @@ urlpatterns = [
     path('profile/change-password/', views.change_password_view, name='change_password'),
     path('profile/delete-account/', views.delete_account_view, name='delete_account'),
     path('profile/delete-account/request-otp/', views.request_delete_account_otp_view, name='request_delete_account_otp'),
+    path('profile/delete-account/verify-otp/', views.verify_delete_account_otp_view, name='verify_delete_account_otp'),
     path('profile/otp-status/', views.otp_status_view, name='otp_status'),
     path('api/validate-email/', views.validate_email_api, name='validate_email_api'),
     path('my-seat/', views.your_seat_status_view, name='your_seat_status'),

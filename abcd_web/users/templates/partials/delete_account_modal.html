@@ -211,30 +211,58 @@
         opacity: 0.6;
         cursor: not-allowed;
     }
-    .otp-request-btn {
-        background: #f1f5f9;
-        border: 1px solid #cbd5e1;
-        color: #334155;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        font-weight: 600;
+    .otp-action-btn {
+        background: #2563eb;
+        border: 1.5px solid #1d4ed8;
+        color: #ffffff !important;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
         cursor: pointer;
-        margin-top: 6px;
-        transition: all 0.2s;
+        white-space: nowrap;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.28);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 110px;
+        height: 44px;
+        box-sizing: border-box;
     }
-    .otp-request-btn:hover {
-        background: #e2e8f0;
+    .otp-action-btn:hover:not(:disabled) {
+        background: #1d4ed8;
+        box-shadow: 0 4px 10px rgba(29, 78, 216, 0.35);
+        transform: translateY(-1px);
     }
-    body.dark-theme .otp-request-btn,
-    html.dark-theme .otp-request-btn {
-        background: #0f172a;
-        border-color: #334155;
-        color: #cbd5e1;
+    .otp-action-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
     }
-    body.dark-theme .otp-request-btn:hover,
-    html.dark-theme .otp-request-btn:hover {
-        background: #1e293b;
+    .otp-action-btn.btn-verified {
+        background: #16a34a !important;
+        border-color: #15803d !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(22, 163, 74, 0.28);
+        cursor: default;
+    }
+    body.dark-theme .otp-action-btn,
+    html.dark-theme .otp-action-btn {
+        background: #3b82f6;
+        border-color: #2563eb;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+    body.dark-theme .otp-action-btn:hover:not(:disabled),
+    html.dark-theme .otp-action-btn:hover:not(:disabled) {
+        background: #2563eb;
+    }
+    body.dark-theme .otp-action-btn.btn-verified,
+    html.dark-theme .otp-action-btn.btn-verified {
+        background: #22c55e !important;
+        border-color: #16a34a !important;
     }
 </style>
 
@@ -271,6 +299,7 @@
                     required
                     placeholder="Enter your current password"
                     autocomplete="current-password"
+                    oninput="checkDeleteConfirmationMatch()"
                 >
             </div>
         {% else %}
@@ -286,14 +315,27 @@
                         placeholder="6-digit code"
                         maxlength="6"
                         pattern="\d{6}"
-                        style="letter-spacing: 2px; font-weight: 700; text-align: center; max-width: 140px;"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        style="letter-spacing: 3px; font-weight: 700; text-align: center; max-width: 150px; height: 44px;"
+                        oninput="handleOtpInputChange(this)"
                     >
-                    <button type="button" class="otp-request-btn" id="delOtpRequestBtn" onclick="handleSendDeleteOtp()">
-                        Send Code via Email
+                    <button
+                        type="button"
+                        class="otp-action-btn"
+                        id="delOtpActionBtn"
+                        onclick="handleOtpActionButton()"
+                        {% if not user.email and not user.profile.email and not user.achievements.first.email %}disabled{% endif %}
+                    >
+                        Get Code
                     </button>
                 </div>
-                <small id="delOtpNotice" style="display: block; font-size: 0.76rem; color: #64748b; margin-top: 4px;">
-                    Google OAuth account detected. We will send a 6-digit confirmation code to your registered email.
+                <small id="delOtpNotice" style="display: block; font-size: 0.76rem; color: #64748b; margin-top: 6px; line-height: 1.4;">
+                    {% if not user.email and not user.profile.email and not user.achievements.first.email %}
+                        <span style="color: #dc2626; font-weight: 600;">No registered email address is associated with this account. Please add an email address in profile settings or contact support.</span>
+                    {% else %}
+                        We will send a 6-digit confirmation code to your registered email.
+                    {% endif %}
                 </small>
             </div>
         {% endif %}
@@ -325,6 +367,11 @@
 
 <!-- JAVASCRIPT HANDLER (100% ZERO NATIVE BROWSER DIALOGS) -->
 <script>
+    let isOtpVerified = false;
+    let resendCooldownSeconds = 0;
+    let cooldownInterval = null;
+    const hasUsablePassword = {% if user.has_usable_password %}true{% else %}false{% endif %};
+
     function showDeleteModalError(msg) {
         const box = document.getElementById('delAccErrorBox');
         if (box) {
@@ -356,8 +403,8 @@
             const confirmInput = document.getElementById('del_confirmation_text');
             if (confirmInput) {
                 confirmInput.value = '';
-                checkDeleteConfirmationMatch();
             }
+            checkDeleteConfirmationMatch();
         }
     }
 
@@ -376,19 +423,92 @@
         const submitBtn = document.getElementById('delSubmitBtn');
         if (!input || !submitBtn) return;
         const val = input.value.trim();
-        if (val === 'DELETE THIS PROFILE') {
-            submitBtn.disabled = false;
-            clearDeleteModalError();
+        const isPhraseMatched = (val === 'DELETE THIS PROFILE');
+
+        if (hasUsablePassword) {
+            const pwdInput = document.getElementById('del_current_password');
+            const hasPassword = pwdInput && pwdInput.value.length > 0;
+            submitBtn.disabled = !(isPhraseMatched && hasPassword);
         } else {
-            submitBtn.disabled = true;
+            submitBtn.disabled = !(isPhraseMatched && isOtpVerified);
+        }
+
+        if (isPhraseMatched) {
+            clearDeleteModalError();
         }
     }
 
-    async function handleSendDeleteOtp() {
+    function handleOtpInputChange(input) {
+        // Strip non-digits
+        input.value = input.value.replace(/\D/g, '');
+        const val = input.value.trim();
+
+        // If previously verified and user modifies digits, invalidate verification state
+        if (isOtpVerified) {
+            isOtpVerified = false;
+            const btn = document.getElementById('delOtpActionBtn');
+            if (btn) {
+                btn.classList.remove('btn-verified');
+                btn.disabled = false;
+            }
+            const notice = document.getElementById('delOtpNotice');
+            if (notice) {
+                notice.innerText = "Verification code modified. Please verify again.";
+                notice.style.color = "#dc2626";
+            }
+        }
+
+        updateOtpButtonState();
+        checkDeleteConfirmationMatch();
+    }
+
+    function updateOtpButtonState() {
+        const btn = document.getElementById('delOtpActionBtn');
+        const input = document.getElementById('del_account_otp');
+        if (!btn) return;
+
+        if (isOtpVerified) {
+            btn.innerHTML = "<i class='bx bx-check'></i> Verified";
+            btn.classList.add('btn-verified');
+            btn.disabled = true;
+            return;
+        }
+
+        btn.classList.remove('btn-verified');
+
+        if (input && input.value.length === 6) {
+            btn.innerHTML = "Verify";
+            btn.disabled = false;
+        } else {
+            if (resendCooldownSeconds > 0) {
+                btn.innerHTML = `Resend in ${resendCooldownSeconds}s`;
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = "Get Code";
+                btn.disabled = false;
+            }
+        }
+    }
+
+    function handleOtpActionButton() {
+        const input = document.getElementById('del_account_otp');
+        const val = input ? input.value.trim() : '';
+
+        if (val.length === 6 && !isOtpVerified) {
+            verifyDeleteOtp(val);
+        } else {
+            requestDeleteOtp();
+        }
+    }
+
+    async function requestDeleteOtp() {
         clearDeleteModalError();
-        const btn = document.getElementById('delOtpRequestBtn');
+        const btn = document.getElementById('delOtpActionBtn');
         const notice = document.getElementById('delOtpNotice');
-        if (btn) btn.disabled = true;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Sending...";
+        }
 
         try {
             const csrfToken = document.querySelector('#deleteAccountForm [name=csrfmiddlewaretoken]')?.value;
@@ -405,9 +525,14 @@
                     notice.innerText = data.message || "Code sent. Please check your inbox.";
                     notice.style.color = "#16a34a";
                 }
-                if (window.CustomPopup && typeof window.CustomPopup.alert === 'function') {
-                    window.CustomPopup.alert(data.message, "Verification Code Sent");
+                startCooldownTimer(data.cooldown_seconds || 60);
+                const otpInput = document.getElementById('del_account_otp');
+                if (otpInput) {
+                    otpInput.value = '';
+                    otpInput.focus();
                 }
+                isOtpVerified = false;
+                checkDeleteConfirmationMatch();
             } else {
                 const errMsg = data.message || "Failed to send code.";
                 if (notice) {
@@ -415,17 +540,98 @@
                     notice.style.color = "#dc2626";
                 }
                 showDeleteModalError(errMsg);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = "Get Code";
+                }
             }
         } catch (err) {
-            const errNetwork = "Error requesting verification code. Please check your connection and try again.";
+            const errNetwork = "Error requesting verification code. Please check your connection.";
             if (notice) {
                 notice.innerText = errNetwork;
                 notice.style.color = "#dc2626";
             }
             showDeleteModalError(errNetwork);
-        } finally {
-            setTimeout(() => { if (btn) btn.disabled = false; }, 30000);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = "Get Code";
+            }
         }
+    }
+
+    async function verifyDeleteOtp(code) {
+        clearDeleteModalError();
+        const btn = document.getElementById('delOtpActionBtn');
+        const notice = document.getElementById('delOtpNotice');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Verifying...";
+        }
+
+        try {
+            const csrfToken = document.querySelector('#deleteAccountForm [name=csrfmiddlewaretoken]')?.value;
+            const fd = new FormData();
+            fd.append('otp', code);
+
+            const res = await fetch("{% url 'users:verify_delete_account_otp' %}", {
+                method: "POST",
+                body: fd,
+                headers: {
+                    "X-CSRFToken": csrfToken,
+                    "X-Requested-With": "XMLHttpRequest",
+                }
+            });
+            const data = await res.json();
+            if (data.status === 'ok') {
+                isOtpVerified = true;
+                if (notice) {
+                    notice.innerText = "Email code verified successfully.";
+                    notice.style.color = "#16a34a";
+                }
+                updateOtpButtonState();
+                checkDeleteConfirmationMatch();
+            } else {
+                isOtpVerified = false;
+                const errMsg = data.message || "Invalid verification code.";
+                if (notice) {
+                    notice.innerText = errMsg;
+                    notice.style.color = "#dc2626";
+                }
+                showDeleteModalError(errMsg);
+                const otpInput = document.getElementById('del_account_otp');
+                if (otpInput) {
+                    otpInput.value = '';
+                }
+                updateOtpButtonState();
+                checkDeleteConfirmationMatch();
+            }
+        } catch (err) {
+            isOtpVerified = false;
+            const errNetwork = "Error verifying code. Please check your connection and try again.";
+            if (notice) {
+                notice.innerText = errNetwork;
+                notice.style.color = "#dc2626";
+            }
+            showDeleteModalError(errNetwork);
+            updateOtpButtonState();
+            checkDeleteConfirmationMatch();
+        }
+    }
+
+    function startCooldownTimer(seconds) {
+        resendCooldownSeconds = seconds;
+        if (cooldownInterval) clearInterval(cooldownInterval);
+
+        cooldownInterval = setInterval(() => {
+            resendCooldownSeconds--;
+            if (resendCooldownSeconds <= 0) {
+                clearInterval(cooldownInterval);
+                resendCooldownSeconds = 0;
+            }
+            updateOtpButtonState();
+        }, 1000);
+
+        updateOtpButtonState();
     }
 
     async function handleDeleteAccountSubmit(e) {
@@ -438,6 +644,11 @@
 
         if (!confirmInput || confirmInput.value.trim() !== 'DELETE THIS PROFILE') {
             showDeleteModalError('Please type the exact confirmation text: DELETE THIS PROFILE');
+            return;
+        }
+
+        if (!hasUsablePassword && !isOtpVerified) {
+            showDeleteModalError('Please verify your email verification code before deleting your account.');
             return;
         }
 

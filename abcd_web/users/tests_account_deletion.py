@@ -27,6 +27,10 @@ from users.models import (
     Complaint,
     DirectChatSession,
     Message,
+    ChatSession,
+    GroupChatSession,
+    GroupMessage,
+    GuidanceRequest,
     DismissedFeeAlert,
     AutoReplyConfig,
     AutoReplyLog,
@@ -45,12 +49,23 @@ from users.views import link_existing_account_by_email
 class AccountDeletionTestCase(TestCase):
     def setUp(self):
         self.client = Client()
+        # Mock external email and push services so NO real emails or pushes are sent during tests
+        self.email_patcher = patch('users.email_service.send_html_email')
+        self.mock_email = self.email_patcher.start()
+        self.push_patcher = patch('pywebpush.webpush')
+        self.mock_push = self.push_patcher.start()
+
         # Create test seat
         self.seat = Seat.objects.create(
             seat_number="101",
             floor="Ground Floor",
             status="occupied"
         )
+
+    def tearDown(self):
+        self.email_patcher.stop()
+        self.push_patcher.stop()
+        super().tearDown()
 
 
     def test_normalize_identity(self):
@@ -454,9 +469,9 @@ class AccountDeletionTestCase(TestCase):
             "confirmation_text": "DELETE THIS PROFILE"
         })
         self.assertEqual(res.status_code, 500)
-        self.assertEqual(
-            res.json().get("message"),
-            "An unexpected error occurred during account deletion. Please try again or contact support."
+        self.assertIn(
+            "Account deletion encountered an issue. Please contact support with reference code: DEL-",
+            res.json().get("message", "")
         )
 
         # Lock was cleared
@@ -640,6 +655,240 @@ class AccountDeletionTestCase(TestCase):
         # User A's latest message (8:15 AM) is now newest -> User A must be FIRST
         self.assertEqual(chats3[0]['id'], session_a.id)
         self.assertEqual(chats3[1]['id'], session_b.id)
+
+    def test_production_fk_violation_prevention_direct_chats(self):
+        """
+        REGRESSION TEST FOR REAL PRODUCTION CRASH:
+        DETAIL: Key (id)=(34) is still referenced from table "users_message".
+        Raised at: DirectChatSession.objects.filter(Q(user1=user) | Q(user2=user)).delete()
+        Verifies that messages and child references are deleted BEFORE DirectChatSession,
+        preventing PostgreSQL ForeignKeyViolation.
+        """
+        user_target = User.objects.create_user(username="target_u15", email="u15@test.com", password="Password123!")
+        peer1 = User.objects.create_user(username="peer1", email="peer1@test.com", password="Password123!")
+        peer2 = User.objects.create_user(username="peer2", email="peer2@test.com", password="Password123!")
+
+        # Session 1: target user is user1
+        session1 = DirectChatSession.objects.create(user1=user_target, user2=peer1)
+        m1 = Message.objects.create(direct_session=session1, sender=user_target, content="Hello peer1")
+        m2 = Message.objects.create(direct_session=session1, sender=peer1, content="Hello target", reply_to=m1)
+        m1.deleted_by.add(user_target)
+
+        # Auto reply log referencing session 1 and messages
+        AutoReplyLog.objects.create(
+            account=user_target,
+            sender=peer1,
+            direct_session=session1,
+            trigger_message=m2,
+            reply_message=m1,
+            detected_topic="fees",
+            chosen_response="Fee response",
+            due_at=timezone.now()
+        )
+
+        # Session 2: target user is user2
+        session2 = DirectChatSession.objects.create(user1=peer2, user2=user_target)
+        m3 = Message.objects.create(direct_session=session2, sender=peer2, content="Msg from peer2")
+        m4 = Message.objects.create(direct_session=session2, sender=user_target, content="Reply from target", reply_to=m3)
+
+        # Track query execution order: message delete queries must precede session delete queries
+        from django.test.utils import CaptureQueriesContext
+        from django.db import connection
+
+        with CaptureQueriesContext(connection) as ctx:
+            result = perform_account_deletion(user_target)
+
+        self.assertTrue(result['success'])
+        self.assertFalse(User.objects.filter(id=user_target.id).exists())
+        self.assertFalse(DirectChatSession.objects.filter(id__in=[session1.id, session2.id]).exists())
+        self.assertFalse(Message.objects.filter(id__in=[m1.id, m2.id, m3.id, m4.id]).exists())
+        self.assertFalse(AutoReplyLog.objects.filter(direct_session_id=session1.id).exists())
+
+        # Inspect SQL statements executed to verify ordering
+        sql_statements = [q['sql'] for q in ctx.captured_queries]
+        msg_delete_indices = [
+            i for i, sql in enumerate(sql_statements)
+            if 'DELETE FROM "users_message"' in sql or 'DELETE FROM users_message' in sql
+        ]
+        session_delete_indices = [
+            i for i, sql in enumerate(sql_statements)
+            if 'DELETE FROM "users_directchatsession"' in sql or 'DELETE FROM users_directchatsession' in sql
+        ]
+
+        if msg_delete_indices and session_delete_indices:
+            # Child message delete must be executed strictly BEFORE session delete
+            self.assertLess(
+                min(msg_delete_indices),
+                min(session_delete_indices),
+                "Child messages MUST be deleted from the database BEFORE parent DirectChatSession is deleted!"
+            )
+
+    def test_account_deletion_with_mentorship_chat_session(self):
+        """
+        Verifies that ChatSession and GuidanceRequest are deleted in strictly safe order
+        without foreign key violations.
+        """
+        student_user = User.objects.create_user(username="mentee", email="mentee@test.com", password="Password123!")
+        alumni_user = User.objects.create_user(username="mentor", email="mentor@test.com", password="Password123!")
+        ach = StudentAchievement.objects.create(
+            user=alumni_user,
+            first_name="Mentor",
+            last_name="Alumni",
+            email="mentor@test.com",
+            current_post="Mentor",
+            selection_year=2025,
+            dob=datetime.date(2000, 1, 1),
+            status="approved"
+        )
+
+        req = GuidanceRequest.objects.create(student=student_user, alumni=ach, message="Career guidance")
+        chat = ChatSession.objects.create(user_one=student_user, user_two=alumni_user, request=req)
+        m1 = Message.objects.create(session=chat, sender=student_user, content="Need guidance")
+        m2 = Message.objects.create(session=chat, sender=alumni_user, content="Sure let's talk")
+
+        result = perform_account_deletion(student_user)
+        self.assertTrue(result['success'])
+        self.assertFalse(User.objects.filter(id=student_user.id).exists())
+        self.assertFalse(ChatSession.objects.filter(id=chat.id).exists())
+        self.assertFalse(Message.objects.filter(id__in=[m1.id, m2.id]).exists())
+        self.assertFalse(GuidanceRequest.objects.filter(id=req.id).exists())
+
+    def test_account_deletion_with_group_chat_solo_and_member(self):
+        """
+        Verifies group chats:
+        - Solo group created by user is cleanly purged (messages, M2Ms, group).
+        - Multi-member group has user removed, messages anonymized.
+        """
+        user_del = User.objects.create_user(username="group_creator", email="gc@test.com", password="Password123!")
+        other_user = User.objects.create_user(username="group_other", email="go@test.com", password="Password123!")
+
+        # Solo group created by user
+        solo_group = GroupChatSession.objects.create(name="Solo Group", created_by=user_del)
+        solo_group.members.add(user_del)
+        gm_solo = GroupMessage.objects.create(group=solo_group, sender=user_del, content="Solo message")
+
+        # Shared group
+        shared_group = GroupChatSession.objects.create(name="Shared Group", created_by=other_user)
+        shared_group.members.add(user_del, other_user)
+        gm_shared = GroupMessage.objects.create(group=shared_group, sender=user_del, content="My shared post")
+        gm_shared.read_by.add(user_del, other_user)
+
+        result = perform_account_deletion(user_del)
+        self.assertTrue(result['success'])
+        self.assertFalse(GroupChatSession.objects.filter(id=solo_group.id).exists())
+        self.assertFalse(GroupMessage.objects.filter(id=gm_solo.id).exists())
+
+        # Shared group is preserved
+        self.assertTrue(GroupChatSession.objects.filter(id=shared_group.id).exists())
+        self.assertNotIn(user_del, shared_group.members.all())
+        # User's group message is anonymized
+        gm_shared.refresh_from_db()
+        self.assertTrue(gm_shared.is_deleted_for_all)
+        self.assertEqual(gm_shared.content, "[This message was deleted by a former user]")
+
+    def test_otp_verification_full_lifecycle(self):
+        """
+        Verifies the complete code-verification flow:
+        - request-otp sends code and starts 60s cooldown
+        - request-otp within 60s returns 429
+        - wrong code gives remaining attempts
+        - 5 wrong attempts invalidates code
+        - new code supersedes previous
+        - expired code is rejected
+        - correct code verifies successfully
+        - delete-account requires verified code for passwordless accounts
+        - delete-account succeeds with verified code
+        """
+        oauth_user = User.objects.create_user(username="oauth_user", email="oauth@test.com")
+        oauth_user.set_unusable_password()
+        oauth_user.save()
+
+        self.client.force_login(oauth_user)
+
+        # 1. Request OTP
+        from django.core.cache import cache
+        cache.clear()
+        res1 = self.client.post(reverse("users:request_delete_account_otp"))
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(res1.json().get('status'), 'ok')
+
+        # 2. Cooldown check: second request within 60s returns 429
+        res2 = self.client.post(reverse("users:request_delete_account_otp"))
+        self.assertEqual(res2.status_code, 429)
+
+        # Retrieve stored hash from cache
+        otp_data = cache.get(f"del_account_otp_{oauth_user.id}")
+        self.assertIsNotNone(otp_data)
+        self.assertIn('code_hash', otp_data)
+
+        # 3. Wrong code returns 400 with attempts remaining
+        res_wrong = self.client.post(reverse("users:verify_delete_account_otp"), {'otp': '000000'})
+        self.assertEqual(res_wrong.status_code, 400)
+        self.assertIn("incorrect", res_wrong.json().get('message', ''))
+
+        # 4. Attempt limit check: exhaust 5 attempts (1 was used in step 3, 3 here, 1 in exhausted call)
+        for _ in range(3):
+            self.client.post(reverse("users:verify_delete_account_otp"), {'otp': '000000'})
+
+        res_exhausted = self.client.post(reverse("users:verify_delete_account_otp"), {'otp': '000000'})
+        self.assertEqual(res_exhausted.status_code, 400)
+        self.assertIn("exceeded", res_exhausted.json().get('message', ''))
+
+        # 5. Clear cooldown and request new code (supersedes previous)
+        cache.delete(f"del_otp_cooldown_{oauth_user.id}")
+        res_new = self.client.post(reverse("users:request_delete_account_otp"))
+        self.assertEqual(res_new.status_code, 200)
+
+        # Inject known code in cache for testing verification
+        from users.views import _deletion_code_hash
+        known_code = "654321"
+        cache.set(f"del_account_otp_{oauth_user.id}", {
+            'code_hash': _deletion_code_hash(oauth_user.id, known_code),
+            'expiry': timezone.now().timestamp() + 600,
+            'attempts': 0,
+            'verified': False,
+        }, timeout=600)
+
+        # 6. Attempt delete BEFORE verifying -> rejected
+        res_del_early = self.client.post(reverse("users:delete_account"), {
+            'confirmation_text': 'DELETE THIS PROFILE',
+            'otp': known_code,
+        })
+        self.assertEqual(res_del_early.status_code, 400)
+        self.assertIn("verify", res_del_early.json().get('message', ''))
+
+        # 7. Verify code
+        res_verify = self.client.post(reverse("users:verify_delete_account_otp"), {'otp': known_code})
+        self.assertEqual(res_verify.status_code, 200)
+        self.assertEqual(res_verify.json().get('status'), 'ok')
+
+        # 8. Now delete succeeds
+        res_del_ok = self.client.post(reverse("users:delete_account"), {
+            'confirmation_text': 'DELETE THIS PROFILE',
+            'otp': known_code,
+        })
+        self.assertEqual(res_del_ok.status_code, 200)
+        self.assertEqual(res_del_ok.json().get('status'), 'ok')
+        self.assertFalse(User.objects.filter(username="oauth_user").exists())
+
+    def test_error_visibility_and_support_reference(self):
+        """
+        Verifies that unexpected errors include a unique reference code (DEL-XXXX)
+        and friendly user message.
+        """
+        err_user = User.objects.create_user(username="err_ref_u", email="err_ref@test.com", password="Password123!")
+        self.client.login(username="err_ref_u", password="Password123!")
+
+        with patch("users.account_deletion.perform_account_deletion", side_effect=RuntimeError("Test DB Disconnect")):
+            res = self.client.post(reverse("users:delete_account"), {
+                "password": "Password123!",
+                "confirmation_text": "DELETE THIS PROFILE"
+            })
+            self.assertEqual(res.status_code, 500)
+            data = res.json()
+            self.assertEqual(data.get("status"), "error")
+            self.assertIn("reference code: DEL-", data.get("message", ""))
+            self.assertTrue(data.get("ref_code", "").startswith("DEL-"))
 
 
 
