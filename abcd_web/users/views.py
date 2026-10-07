@@ -20712,10 +20712,36 @@ def cron_maintenance_view(request):
         }, status=403)
 
     if request.GET.get('debug') == 'auto_reply':
-        from users.models import AutoReplyLog, DirectChatSession, Message, AutoReplyConfig, TeacherProfile
+        from users.models import AutoReplyLog, DirectChatSession, Message, AutoReplyConfig, TeacherProfile, User
         from users.utils import get_user_display_name
         from django.utils import timezone
-        
+        from django.db.models import Q
+        from users.auto_reply import ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL, handle_direct_message_sent, process_due_auto_replies, get_or_create_auto_reply_config
+
+        # 1. Force enable main accounts
+        for email in (ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL):
+            u = User.objects.filter(email__iexact=email).first()
+            if u:
+                cfg = get_or_create_auto_reply_config(u)
+                if not cfg.is_enabled:
+                    cfg.is_enabled = True
+                    cfg.save(update_fields=['is_enabled'])
+
+        # 2. Backfill unreplied messages for main accounts
+        backfilled = 0
+        main_users = list(User.objects.filter(Q(email__iexact=ABCD_ASST_EMAIL) | Q(email__iexact=SANDEEP_SIR_EMAIL)))
+        for mu in main_users:
+            sessions = DirectChatSession.objects.filter(Q(user1=mu) | Q(user2=mu), is_active=True)
+            for s in sessions:
+                last_msg = s.messages.order_by('-timestamp').first()
+                if last_msg and last_msg.sender != mu and not last_msg.is_auto_reply:
+                    has_reply = s.messages.filter(sender=mu, timestamp__gt=last_msg.timestamp).exists()
+                    if not has_reply:
+                        handle_direct_message_sent(last_msg)
+                        backfilled += 1
+
+        sent_now = process_due_auto_replies()
+
         session_id = request.GET.get('session_id', 50)
         session_obj = DirectChatSession.objects.filter(id=session_id).first()
         s_data = None
@@ -20753,6 +20779,8 @@ def cron_maintenance_view(request):
         
         return JsonResponse({
             'now_iso': timezone.now().isoformat(),
+            'backfilled_count': backfilled,
+            'sent_now': sent_now,
             'session_info': s_data,
             'recent_logs': logs,
         })

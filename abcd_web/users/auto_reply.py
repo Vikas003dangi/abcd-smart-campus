@@ -459,7 +459,8 @@ def handle_direct_message_sent(message):
     topic, matched_kw = classify_message(message.content)
     is_emergency = (topic == 'emergency')
 
-    due_at = now + timedelta(minutes=config.wait_minutes)
+    msg_time = getattr(message, 'timestamp', None) or now
+    due_at = msg_time + timedelta(minutes=config.wait_minutes)
 
     if existing_pending:
         # Keep timer from original message or update topic if high-priority (e.g. emergency)
@@ -476,7 +477,7 @@ def handle_direct_message_sent(message):
         _wake_scheduler()
         return
 
-    due_at = now + timedelta(minutes=config.wait_minutes)
+    due_at = msg_time + timedelta(minutes=config.wait_minutes)
 
     AutoReplyLog.objects.create(
         account=recipient,
