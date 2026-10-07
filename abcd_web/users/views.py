@@ -4,7 +4,7 @@ logger = logging.getLogger(__name__)
 import requests, os, re, datetime, json, random, threading, time, uuid
 from django.db.models import F, Q, Avg, Count, Prefetch
 from django.views.decorators.csrf import csrf_exempt
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404, resolve_url
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.http import require_POST, require_http_methods
@@ -12,7 +12,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.forms import SetPasswordForm
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden, FileResponse, Http404
+from django.http import JsonResponse, HttpResponseForbidden, FileResponse, Http404, HttpResponse
 from django.urls import reverse
 from django.conf import settings
 from .models import (
