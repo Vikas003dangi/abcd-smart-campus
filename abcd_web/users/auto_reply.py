@@ -342,15 +342,14 @@ def is_staff_or_teacher(user):
 def get_or_create_auto_reply_config(user):
     """
     Returns or creates the AutoReplyConfig for a user.
-    Forces is_enabled=True for main accounts on initial creation.
+    Forces is_enabled=True for main accounts (ABCD Asst. & Sandeep Sir).
     Sets default wait_minutes to 5 for ABCD Asst, 15 for Sandeep Sir.
     """
     from users.models import AutoReplyConfig
     email_clean = (user.email or '').strip().lower()
-    username_clean = (user.username or '').strip().lower()
 
-    is_asst = (email_clean == ABCD_ASST_EMAIL or username_clean in ('vaku', 'vikas', 'vd19055'))
-    is_sandeep = (email_clean == SANDEEP_SIR_EMAIL or username_clean in ('sandeepananda', 'sandeep'))
+    is_asst = (email_clean == ABCD_ASST_EMAIL)
+    is_sandeep = (email_clean == SANDEEP_SIR_EMAIL)
     is_main = is_asst or is_sandeep
 
     defaults = {
@@ -359,6 +358,11 @@ def get_or_create_auto_reply_config(user):
         'cooldown_hours': 6,
     }
     config, created = AutoReplyConfig.objects.get_or_create(user=user, defaults=defaults)
+    # Ensure main accounts have is_enabled=True
+    if is_main and not config.is_enabled:
+        config.is_enabled = True
+        config.wait_minutes = 5 if is_asst else 15
+        config.save(update_fields=['is_enabled', 'wait_minutes'])
     return config
 
 
@@ -399,9 +403,14 @@ def handle_direct_message_sent(message):
     # Case 2: The recipient has AutoReplyConfig configured
     recip_email = (recipient.email or '').strip().lower()
     recip_username = (recipient.username or '').strip().lower()
+    from users.utils import get_user_display_name
+    recip_display = (get_user_display_name(recipient) or '').lower()
+
     is_target_account = (
         recip_email in (ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL) or
-        recip_username in ('vaku', 'vikas', 'vd19055', 'abcd_asst', 'sandeepananda', 'sandeep') or
+        recip_username in ('vaku', 'vikas', 'vd19055', 'sandeepananda', 'sandeep') or
+        recip_display in ('abcd asst.', 'abcd asst') or
+        'abcd asst.' in recip_display or 'sandeep sir' in recip_display or
         hasattr(recipient, 'auto_reply_config')
     )
 

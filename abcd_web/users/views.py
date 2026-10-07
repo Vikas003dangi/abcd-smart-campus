@@ -20711,6 +20711,52 @@ def cron_maintenance_view(request):
             "message": "Unauthorized. Please provide a valid ?key= parameter or authenticate as staff."
         }, status=403)
 
+    if request.GET.get('debug') == 'auto_reply':
+        from users.models import AutoReplyLog, DirectChatSession, Message, AutoReplyConfig, TeacherProfile
+        from users.utils import get_user_display_name
+        from django.utils import timezone
+        
+        session_id = request.GET.get('session_id', 50)
+        session_obj = DirectChatSession.objects.filter(id=session_id).first()
+        s_data = None
+        if session_obj:
+            t1 = TeacherProfile.objects.filter(user=session_obj.user1).first()
+            t2 = TeacherProfile.objects.filter(user=session_obj.user2).first()
+            c1 = getattr(session_obj.user1, 'auto_reply_config', None)
+            c2 = getattr(session_obj.user2, 'auto_reply_config', None)
+            s_data = {
+                'id': session_obj.id,
+                'user1': {
+                    'id': session_obj.user1.id,
+                    'username': session_obj.user1.username,
+                    'email': session_obj.user1.email,
+                    'display_name': get_user_display_name(session_obj.user1),
+                    'is_staff': session_obj.user1.is_staff,
+                    'teacher_display_name': t1.display_name if t1 else None,
+                    'config': {'is_enabled': c1.is_enabled, 'wait_minutes': c1.wait_minutes} if c1 else None,
+                },
+                'user2': {
+                    'id': session_obj.user2.id,
+                    'username': session_obj.user2.username,
+                    'email': session_obj.user2.email,
+                    'display_name': get_user_display_name(session_obj.user2),
+                    'is_staff': session_obj.user2.is_staff,
+                    'teacher_display_name': t2.display_name if t2 else None,
+                    'config': {'is_enabled': c2.is_enabled, 'wait_minutes': c2.wait_minutes} if c2 else None,
+                },
+                'recent_messages': list(session_obj.messages.order_by('-timestamp')[:5].values('id', 'sender_id', 'content', 'timestamp', 'is_auto_reply')),
+            }
+        
+        logs = list(AutoReplyLog.objects.order_by('-created_at')[:10].values(
+            'id', 'account_id', 'sender_id', 'direct_session_id', 'status', 'due_at', 'created_at', 'sent_at', 'detected_topic'
+        ))
+        
+        return JsonResponse({
+            'now_iso': timezone.now().isoformat(),
+            'session_info': s_data,
+            'recent_logs': logs,
+        })
+
     mode = request.GET.get('mode', 'all').lower()
     if mode not in ['high_frequency', 'daily', 'all']:
         mode = 'all'
