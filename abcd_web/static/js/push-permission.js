@@ -20,54 +20,6 @@
 
     // Check if current page is in the blacklist where NO notification permission popups should EVER show
     function isPageExcluded() {
-        if (window.__disablePermissionPrompts === true || window.__disablePushPrompts === true) {
-            return true;
-        }
-        if (document.querySelector('meta[name="disable-permission-prompts"]') ||
-            document.querySelector('meta[name="disable-push-prompts"]')) {
-            return true;
-        }
-        if (document.body && (
-            document.body.dataset.disablePermissionPrompts === 'true' ||
-            document.body.dataset.disablePushPrompts === 'true' ||
-            document.body.classList.contains('no-permission-prompts')
-        )) {
-            return true;
-        }
-
-        const path = (window.location.pathname || '').toLowerCase();
-        const excludedPaths = [
-            '/register',
-            '/login',
-            '/admission',
-            '/achievement',
-            '/seat',
-            '/dashboard',
-            '/student-dashboard',
-            '/teacher-dashboard',
-            '/alumni-dashboard',
-            '/student_dashboard',
-            '/teacher_dashboard',
-            '/alumni_dashboard',
-            '/guidy',
-            '/todo',
-        ];
-        for (let i = 0; i < excludedPaths.length; i++) {
-            if (path.includes(excludedPaths[i])) return true;
-        }
-
-        if (document.getElementById('admissionForm') ||
-            document.getElementById('achievementForm') ||
-            document.getElementById('registrationForm') ||
-            document.getElementById('loginForm') ||
-            document.querySelector('.admission-form-container') ||
-            document.querySelector('.achievement-form-container') ||
-            document.getElementById('seatModalOverlay') ||
-            document.getElementById('seatModalContainer') ||
-            document.getElementById('seatInterestOverlay')) {
-            return true;
-        }
-
         return false;
     }
 
@@ -408,9 +360,12 @@
         });
         bubble = null;
 
-        const title = options.title || 'Enable Notifications';
-        const body = options.body || 'Get instant alerts for class updates, live library seat availability, and Guidy study support.';
-        const allowBtnText = options.allowBtnText || 'Allow Alerts';
+        const isDenied = (typeof Notification !== 'undefined' && Notification.permission === 'denied');
+        const title = options.title || (isDenied ? 'Notifications Disabled' : 'Enable Notifications');
+        const body = options.body || (isDenied
+            ? 'Notifications are currently turned off on this device. Tap below to see how to enable them.'
+            : 'Get instant alerts for class updates, live library seat availability, and Guidy study support.');
+        const allowBtnText = options.allowBtnText || (isDenied ? 'How to Enable' : 'Allow Alerts');
 
         bubble = document.createElement('div');
         bubble.className = 'abcd-push-bubble';
@@ -483,8 +438,10 @@
     }
 
     function showBubble(options = {}) {
+        if (typeof Notification === 'undefined' || Notification.permission === 'granted') return;
         if (isPageExcluded() && !options.force) return;
         if (window.__abcd_active_prompt && window.__abcd_active_prompt !== 'notification' && !options.force) {
+            setTimeout(() => showBubble(options), 2000);
             return;
         }
         buildBubble(options);
@@ -1101,30 +1058,9 @@
     }
 
     function shouldShowPrompt() {
-        if (Notification.permission === 'granted' || Notification.permission === 'denied') {
+        if (typeof Notification === 'undefined' || Notification.permission === 'granted') {
             return false;
         }
-        // Once the user has ever allowed (even if browser forgets state temporarily during navigation)
-        if (localStorage.getItem(ALLOWED_KEY) === 'true' || localStorage.getItem('abcd_push_user_consented') === 'true') {
-            return false;
-        }
-
-        // --- NEW: Force show once per session on first eligible page load ---
-        if (!sessionStorage.getItem('abcd_push_shown_session_v2')) {
-            sessionStorage.setItem('abcd_push_shown_session_v2', 'true');
-            return true;
-        }
-        // --------------------------------------------------------------------
-
-        if (sessionStorage.getItem(DISMISS_SESSION_KEY) === 'true') {
-            return false;
-        }
-        try {
-            const snoozeUntil = parseInt(localStorage.getItem(SNOOZE_KEY) || '0', 10);
-            if (snoozeUntil && Date.now() < snoozeUntil) {
-                return false;
-            }
-        } catch (e) {}
         return true;
     }
 
@@ -1139,21 +1075,20 @@
     }, true);
 
     // 7. Initialization
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         localStorage.setItem(ALLOWED_KEY, 'true');
         localStorage.setItem('abcd_push_user_consented', 'true');
         try { localStorage.removeItem(SNOOZE_KEY); } catch (e) {}
         registerServiceWorkerAndSync();
-    } else {
-        // DO NOT wipe ALLOWED_KEY here — permission may temporarily read as 'default'
-        // during page navigation even when the user has previously granted it.
+    } else if (typeof Notification !== 'undefined') {
         if (shouldShowPrompt()) {
+            const delay = 800;
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
-                    setTimeout(showBubble, 1200);
+                    setTimeout(showBubble, delay);
                 });
             } else {
-                setTimeout(showBubble, 1200);
+                setTimeout(showBubble, delay);
             }
         }
     }
