@@ -1502,6 +1502,66 @@
             color: #f87171 !important;
         }
 
+        /* Library Fee Offer Info Box */
+        .library-offer-box {
+            margin-top: 14px;
+            margin-bottom: 6px;
+            padding: 10px 14px;
+            background: #fffbeb;
+            border: 1px dashed #d97706;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            cursor: default;
+            transition: all 0.2s ease;
+        }
+        .library-offer-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .library-offer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #d97706;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .library-offer-text {
+            font-size: 0.92rem;
+            color: #92400e;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        body.dark-theme .library-offer-box,
+        html.dark-theme .library-offer-box,
+        body[data-theme="dark"] .library-offer-box,
+        html[data-theme="dark"] .library-offer-box {
+            background: rgba(245, 158, 11, 0.12) !important;
+            border: 1px dashed rgba(245, 158, 11, 0.5) !important;
+        }
+        body.dark-theme .library-offer-badge,
+        html.dark-theme .library-offer-badge,
+        body[data-theme="dark"] .library-offer-badge,
+        html[data-theme="dark"] .library-offer-badge {
+            background: #f59e0b !important;
+            color: #1e1b4b !important;
+        }
+        body.dark-theme .library-offer-text,
+        html.dark-theme .library-offer-text,
+        body[data-theme="dark"] .library-offer-text,
+        html[data-theme="dark"] .library-offer-text {
+            color: #fef3c7 !important;
+        }
+
         /* ================================================== */
         /* SEAT SELECTION MODAL RESPONSIVE STYLES */
         /* ================================================== */
@@ -2079,6 +2139,16 @@
                     <div style="margin-top:12px;">
                         <div id="selectedSeatPreview" class="seat-selected-none">
                             No seat selected
+                        </div>
+                    </div>
+                    <div class="library-offer-box" id="libraryFeeOfferBox">
+                        <div class="library-offer-content">
+                            <span class="library-offer-badge">
+                                <i class='bx bxs-offer'></i> Live OFFER
+                            </span>
+                            <span class="library-offer-text">
+                                Get Extra % Discount on Paying 3 months / 6 months or 1 year Fees One-Time.
+                            </span>
                         </div>
                     </div>
                 </div>
