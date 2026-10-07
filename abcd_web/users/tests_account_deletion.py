@@ -27,6 +27,9 @@ from users.models import (
     Complaint,
     DirectChatSession,
     Message,
+    DismissedFeeAlert,
+    AutoReplyConfig,
+    AutoReplyLog,
 )
 from users.forms import InitialRegisterForm
 from users.account_deletion import (
@@ -523,11 +526,120 @@ class AccountDeletionTestCase(TestCase):
         self.assertEqual(res_logged_in.status_code, 200)
 
         # Verify DirectChatSession exists
-        from users.models import DirectChatSession
         session = DirectChatSession.objects.filter(
             (Q(user1=student_user, user2=asst) | Q(user1=asst, user2=student_user))
         ).first()
         self.assertIsNotNone(session)
         self.assertTrue(session.is_active)
+
+    def test_quarantine_identity_handles_duplicates_safely(self):
+        """Verify quarantine_identity purges duplicate entries and does not crash with MultipleObjectsReturned."""
+        now = timezone.now()
+        # Seed two pre-existing records with same normalized username
+        QuarantineIdentity.objects.create(
+            username_normalized="duplicate_user",
+            email_normalized="dup1@test.com",
+            quarantine_until=now + datetime.timedelta(days=7),
+            user_role="user"
+        )
+        QuarantineIdentity.objects.create(
+            username_normalized="duplicate_user",
+            email_normalized="dup2@test.com",
+            quarantine_until=now + datetime.timedelta(days=7),
+            user_role="user"
+        )
+        self.assertEqual(QuarantineIdentity.objects.filter(username_normalized="duplicate_user").count(), 2)
+
+        # Calling quarantine_identity should safely replace them without MultipleObjectsReturned
+        record = quarantine_identity(username="Duplicate_User", email="fresh_dup@test.com", role="student", days=7)
+        self.assertIsNotNone(record)
+        self.assertEqual(QuarantineIdentity.objects.filter(username_normalized="duplicate_user").count(), 1)
+        self.assertEqual(record.email_normalized, "fresh_dup@test.com")
+
+    @patch('users.email_service.send_html_email')
+    def test_account_deletion_cleans_auto_reply_config_and_logs(self, mock_email):
+        """Verify account deletion purges AutoReplyConfig and AutoReplyLog cleanly."""
+        user = User.objects.create_user(
+            username="ar_user",
+            email="ar_user@example.com",
+            password="ARPassword123!"
+        )
+        staff = User.objects.create_superuser(
+            username="ar_staff_lead",
+            email="ar_staff@example.com",
+            password="StaffPass123!"
+        )
+        session = DirectChatSession.objects.create(user1=user, user2=staff)
+        msg = Message.objects.create(direct_session=session, sender=user, content="Need assistance")
+
+        config = AutoReplyConfig.objects.create(user=user, is_enabled=True)
+        log = AutoReplyLog.objects.create(
+            account=staff,
+            sender=user,
+            direct_session=session,
+            trigger_message=msg,
+            due_at=timezone.now()
+        )
+
+        self.client.login(username="ar_user", password="ARPassword123!")
+        res = self.client.post(reverse("users:delete_account"), {
+            "password": "ARPassword123!",
+            "confirmation_text": "DELETE THIS PROFILE"
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json().get("status"), "ok")
+
+        self.assertFalse(User.objects.filter(username="ar_user").exists())
+        self.assertFalse(AutoReplyConfig.objects.filter(id=config.id).exists())
+        self.assertFalse(AutoReplyLog.objects.filter(id=log.id).exists())
+
+    def test_guidy_sidebar_order_strictly_by_last_message_timestamp(self):
+        """Verify Guidy sidebar ordering only respects timestamp of last sent/received message.
+        Empty chats (0 messages) must remain below conversations that have active messages.
+        """
+        me = User.objects.create_user(username="chat_me", email="me@test.com", password="MePass123!")
+        user_a = User.objects.create_user(username="chat_user_a", email="a@test.com", password="APass123!")
+        user_b = User.objects.create_user(username="chat_user_b", email="b@test.com", password="BPass123!")
+
+        # 1. Create session with User A and send a message at 08:00 AM
+        time_800 = timezone.now() - datetime.timedelta(hours=2)
+        session_a = DirectChatSession.objects.create(user1=me, user2=user_a, is_active=True)
+        msg_a1 = Message.objects.create(direct_session=session_a, sender=me, content="Message to User A at 8:00 AM")
+        Message.objects.filter(id=msg_a1.id).update(timestamp=time_800)
+
+        # 2. Create session with User B at 08:05 AM with ZERO messages
+        session_b = DirectChatSession.objects.create(user1=me, user2=user_b, is_active=True)
+
+        self.client.login(username="chat_me", password="MePass123!")
+        res1 = self.client.get(reverse("users:guidy_home"))
+        self.assertEqual(res1.status_code, 200)
+
+        chats1 = res1.context['unified_chats']
+        # User A has messages, User B has 0 messages -> User A must be FIRST
+        self.assertEqual(chats1[0]['id'], session_a.id)
+        self.assertEqual(chats1[1]['id'], session_b.id)
+
+        # 3. Now User B sends a message at 08:10 AM
+        time_810 = timezone.now() - datetime.timedelta(hours=1, minutes=50)
+        msg_b1 = Message.objects.create(direct_session=session_b, sender=user_b, content="Message from User B at 8:10 AM")
+        Message.objects.filter(id=msg_b1.id).update(timestamp=time_810)
+
+        res2 = self.client.get(reverse("users:guidy_home"))
+        chats2 = res2.context['unified_chats']
+        # User B's latest message (8:10 AM) is newer than User A's (8:00 AM) -> User B must be FIRST
+        self.assertEqual(chats2[0]['id'], session_b.id)
+        self.assertEqual(chats2[1]['id'], session_a.id)
+
+        # 4. Now 'me' replies to User A at 08:15 AM
+        time_815 = timezone.now() - datetime.timedelta(hours=1, minutes=45)
+        msg_a2 = Message.objects.create(direct_session=session_a, sender=me, content="Reply to User A at 8:15 AM")
+        Message.objects.filter(id=msg_a2.id).update(timestamp=time_815)
+
+        res3 = self.client.get(reverse("users:guidy_home"))
+        chats3 = res3.context['unified_chats']
+        # User A's latest message (8:15 AM) is now newest -> User A must be FIRST
+        self.assertEqual(chats3[0]['id'], session_a.id)
+        self.assertEqual(chats3[1]['id'], session_b.id)
+
 
 

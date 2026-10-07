@@ -14395,9 +14395,10 @@ def guidy_home(request):
         if not s.is_active and not last and not (active_session and active_session.id == s.id):
             continue
 
+        has_messages = bool(last)
         last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
         last_message_type = last.message_type if last else 'text'
-        last_timestamp = last.timestamp if last else s.created_at
+        last_timestamp = last.timestamp if last else None
 
         unread_count = s.messages.filter(
             is_read=False
@@ -14416,6 +14417,8 @@ def guidy_home(request):
             'last_message': last_message,
             'last_message_type': last_message_type,
             'last_timestamp': last_timestamp,
+            'has_messages': has_messages,
+            'created_at': s.created_at,
             'unread_count': unread_count,
             'active': (active_session and active_session.id == s.id),
             'is_verified': bool(other_u and (other_u.is_staff or other_u.is_superuser)),
@@ -14449,9 +14452,10 @@ def guidy_home(request):
         if not s.is_active and not last and not (active_direct and active_direct.id == s.id):
             continue
 
+        has_messages = bool(last)
         last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
         last_message_type = last.message_type if last else 'text'
-        last_timestamp = last.timestamp if last else s.created_at
+        last_timestamp = last.timestamp if last else None
 
         unread_count = s.messages.filter(
             is_read=False
@@ -14472,13 +14476,22 @@ def guidy_home(request):
             'last_message': last_message,
             'last_message_type': last_message_type,
             'last_timestamp': last_timestamp,
+            'has_messages': has_messages,
+            'created_at': s.created_at,
             'unread_count': unread_count,
             'active': (active_direct and active_direct.id == s.id),
             'is_verified': is_verified,
         })
 
-    # Sort unified chats by last message/timestamp
-    unified_chats.sort(key=lambda x: x['last_timestamp'], reverse=True)
+    # Sort unified chats: conversations with messages always rank first by last message sent/received (descending);
+    # conversations without any messages rank below active chats, ordered by creation date (descending).
+    unified_chats.sort(
+        key=lambda x: (
+            1 if x.get('has_messages') else 0,
+            x.get('last_timestamp') if x.get('has_messages') else x.get('created_at')
+        ),
+        reverse=True
+    )
 
     # Calculate total chats unread count
     total_chats_unread = sum(c['unread_count'] for c in unified_chats)
@@ -14589,9 +14602,10 @@ def guidy_home(request):
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
         
+        has_messages = bool(last)
         last_message = ''
         last_message_type = 'text'
-        last_timestamp = g.created_at
+        last_timestamp = last.timestamp if last else None
         last_message_prefix = ''
         
         if last:
@@ -14625,13 +14639,21 @@ def guidy_home(request):
             'last_message': last_message,
             'last_message_type': last_message_type,
             'last_timestamp': last_timestamp,
+            'has_messages': has_messages,
+            'created_at': g.created_at,
             'last_message_prefix': last_message_prefix,
             'unread_count': group_unread_count,
             'created_by_id': g.created_by_id,
             'is_created_by_me': (g.created_by_id == user.id),
         })
         
-    my_groups_processed.sort(key=lambda x: x['last_timestamp'], reverse=True)
+    my_groups_processed.sort(
+        key=lambda x: (
+            1 if x.get('has_messages') else 0,
+            x.get('last_timestamp') if x.get('has_messages') else x.get('created_at')
+        ),
+        reverse=True
+    )
     total_groups_unread = sum(g['unread_count'] for g in my_groups_processed)
 
     # Calculate group deletion lifecycle status
@@ -20978,7 +21000,7 @@ def delete_account_view(request):
             }, status=500)
 
         # 6. Session & Authentication Invalidation
-        request.session.flush()
+        user_id = getattr(user, 'id', None)
         logout(request)
 
         return JsonResponse({
@@ -20988,10 +21010,15 @@ def delete_account_view(request):
 
     except Exception as e:
         cache.delete(lock_key)
-        logger.exception(f"[ACCOUNT_DELETION_VIEW] Error during deletion for user {user.id}: {e}")
+        target_uid = getattr(user, 'id', None)
+        logger.exception(f"[ACCOUNT_DELETION_VIEW] Error during deletion for user {target_uid}: {e}")
+        err_msg = 'An unexpected error occurred during account deletion. Please try again or contact support.'
+        if settings.DEBUG:
+            err_msg = f"{err_msg} (Error: {e})"
         return JsonResponse({
             'status': 'error',
-            'message': 'An unexpected error occurred during account deletion. Please try again or contact support.'
+            'message': err_msg,
+            'detail': str(e) if settings.DEBUG else None
         }, status=500)
     finally:
         cache.delete(lock_key)

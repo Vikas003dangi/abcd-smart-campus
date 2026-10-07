@@ -58,6 +58,9 @@ from .models import (
     StudentMaterialAccess,
     StudentCourseInteraction,
     StudentScore,
+    DismissedFeeAlert,
+    AutoReplyConfig,
+    AutoReplyLog,
     safe_delete_file_field,
 )
 
@@ -107,7 +110,7 @@ def is_identity_quarantined(username: str = None, email: str = None):
 def quarantine_identity(username: str, email: str, role: str = "", days: int = DEFAULT_QUARANTINE_DAYS):
     """
     Quarantines an identity for the specified duration (default 7 days).
-    Uses update_or_create to safely extend or record quarantine.
+    Safely purges any prior quarantine records for this username or email to guarantee zero MultipleObjectsReturned.
     """
     now = timezone.now()
     expiry = now + timedelta(days=days)
@@ -117,19 +120,30 @@ def quarantine_identity(username: str, email: str, role: str = "", days: int = D
     if not norm_u and not norm_e:
         return None
 
-    record, _ = QuarantineIdentity.objects.update_or_create(
-        username_normalized=norm_u,
-        defaults={
-            'email_normalized': norm_e,
-            'deleted_at': now,
-            'quarantine_until': expiry,
-            'user_role': role or "user",
-        }
-    )
-    logger.info(
-        f"[QUARANTINE] Identity {norm_u} / {norm_e} quarantined until {expiry.isoformat()} (Role: {role})"
-    )
-    return record
+    try:
+        # Delete any existing quarantine records matching this username or email to guarantee clean single record
+        q_filter = Q()
+        if norm_u:
+            q_filter |= Q(username_normalized=norm_u)
+        if norm_e:
+            q_filter |= Q(email_normalized=norm_e)
+        if q_filter:
+            QuarantineIdentity.objects.filter(q_filter).delete()
+
+        record = QuarantineIdentity.objects.create(
+            username_normalized=norm_u or "",
+            email_normalized=norm_e or "",
+            deleted_at=now,
+            quarantine_until=expiry,
+            user_role=role or "user",
+        )
+        logger.info(
+            f"[QUARANTINE] Identity {norm_u} / {norm_e} quarantined until {expiry.isoformat()} (Role: {role})"
+        )
+        return record
+    except Exception as e:
+        logger.warning(f"[QUARANTINE] Non-fatal error recording quarantine for {norm_u} / {norm_e}: {e}")
+        return None
 
 
 def cleanup_expired_quarantines():
@@ -163,6 +177,7 @@ def perform_account_deletion(user, role=None):
 
     original_username = user.username
     original_email = user.email or ""
+    user_id = user.id
 
     # Detect user role if not provided
     from .utils import get_user_dashboard_type
@@ -287,6 +302,13 @@ def perform_account_deletion(user, role=None):
         DirectChatSession.objects.filter(Q(user1=user) | Q(user2=user)).delete()
         ChatSession.objects.filter(Q(user_one=user) | Q(user_two=user)).delete()
         Message.objects.filter(sender=user).delete()
+
+        # Clean up auto-reply configurations and communication logs
+        AutoReplyConfig.objects.filter(user=user).delete()
+        AutoReplyLog.objects.filter(Q(account=user) | Q(sender=user)).delete()
+
+        # Clean up fee alerts
+        DismissedFeeAlert.objects.filter(Q(teacher=user) | (Q(student=student) if student else Q())).delete()
 
         # Group chats: remove user from membership; anonymize sent group messages
         for group in GroupChatSession.objects.filter(members=user):
@@ -416,8 +438,8 @@ def perform_account_deletion(user, role=None):
             pass
 
     # Clear cached context for the user
-    cache.delete(f"student_context_data_{user.id}")
-    cache.delete(f"user_data_{user.id}")
+    cache.delete(f"student_context_data_{user_id}")
+    cache.delete(f"user_data_{user_id}")
 
     logger.info(
         f"[ACCOUNT_DELETION] Account {original_username} ({detected_role}) successfully deleted & quarantined for 7 days."

@@ -4817,7 +4817,7 @@ async function fallbackSendViaHttp(clientMsgId, rawHtml, replyId) {
     const r = await fetch(url, { method: 'POST', body: fd });
     const data = await r.json();
     if (data.success && data.message) {
-      appendMessage(data.message);
+      appendMessage(data.message, true);
     } else {
       markMessageFailed(clientMsgId, data.error || 'Failed to send message');
     }
@@ -4997,7 +4997,7 @@ async function sendMessage() {
       is_verified: IS_TEACHER
     };
 
-    appendMessage(optMsg);
+    appendMessage(optMsg, true);
     playSendSound();
     keepInputFocus();
     scrollToBottom(true);
@@ -5063,7 +5063,7 @@ async function sendMessage() {
       const data = await r.json();
       if (data.success) {
         playSendSound();
-        appendMessage(data.message);
+        appendMessage(data.message, true);
         keepInputFocus();
         clearMediaSelection();
       } else {
@@ -5792,7 +5792,7 @@ function buildAutoReplyChips(topic) {
   return `<div class="auto-reply-chips">${chips.map(c => `<a href="${c.url}" class="auto-reply-chip" target="${c.url.startsWith('tel:') ? '_self' : '_blank'}"><i class='bx ${c.icon}'></i> ${escHtml(c.label)}</a>`).join('')}</div>`;
 }
 
-function appendMessage(msg) {
+function appendMessage(msg, isLive = false) {
   const area = document.getElementById('gMessages');
   if (!area) return;
 
@@ -5980,68 +5980,70 @@ function appendMessage(msg) {
     lastMsgId = Math.max(lastMsgId, msg.id);
   }
 
-  // Dynamic sidebar last message preview & time update
-  const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : (SESSION_ID ? 'session' : ''));
-  const cId = GROUP_ID || DIRECT_ID || SESSION_ID;
-  let chatItem = getSidebarChatItem(cType, cId);
+  // Dynamic sidebar last message preview & time update (LIVE sent/received messages only, never on history load)
+  if (isLive) {
+    const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : (SESSION_ID ? 'session' : ''));
+    const cId = GROUP_ID || DIRECT_ID || SESSION_ID;
+    let chatItem = getSidebarChatItem(cType, cId);
 
-  // If chat is active but not in sidebar yet (e.g. brand new direct chat with first message sent), add it
-  if (!chatItem && cType && cId && OTHER_USER_NAME) {
-    const isVer = !!document.querySelector('.g-hdr-name-text')?.parentNode?.querySelector('.g-verified-tick');
-    const photoUrl = document.getElementById('hdrAvatar')?.querySelector('img')?.src || null;
-    ensureSidebarChatItem(cType, cId, OTHER_USER_NAME, photoUrl, isVer, msg.content, msg.timestamp, msg.message_type);
-    chatItem = getSidebarChatItem(cType, cId);
-  }
-
-  if (chatItem) {
-    const timeEl = chatItem.querySelector('.g-item-time');
-    const subEl = chatItem.querySelector('.g-item-sub');
-    if (timeEl && msg.timestamp) {
-      timeEl.textContent = msg.timestamp;
+    // If chat is active but not in sidebar yet (e.g. brand new direct chat with first message sent), add it
+    if (!chatItem && cType && cId && OTHER_USER_NAME) {
+      const isVer = !!document.querySelector('.g-hdr-name-text')?.parentNode?.querySelector('.g-verified-tick');
+      const photoUrl = document.getElementById('hdrAvatar')?.querySelector('img')?.src || null;
+      ensureSidebarChatItem(cType, cId, OTHER_USER_NAME, photoUrl, isVer, msg.content, msg.timestamp, msg.message_type);
+      chatItem = getSidebarChatItem(cType, cId);
     }
-    if (subEl) {
-      let preview = '';
-      if (msg.message_type === 'image') {
-        preview = `<i class='bx bx-image-alt'></i> Photo`;
-      } else if (msg.message_type === 'video') {
-        preview = `<i class='bx bx-video'></i> Video`;
-      } else if (msg.message_type === 'document') {
-        preview = `<i class='bx bx-file'></i> Document`;
-      } else if (msg.message_type === 'audio') {
-        preview = `<i class='bx bx-microphone'></i> Audio`;
-      } else {
-        let cleanText = stripHtml(msg.content || '');
-        if (cleanText.length > 30) {
-          cleanText = cleanText.slice(0, 27) + '...';
-        }
-        preview = escHtml(cleanText);
-      }
 
-      // Add sender prefix for group chats
-      if (GROUP_ID && msg.message_type !== 'system') {
-        let senderPrefix = '';
-        if (msg.is_mine) {
-          senderPrefix = 'You: ';
-        } else if (msg.is_verified) { // Teachers are marked is_verified
-          senderPrefix = msg.sender_name + ': ';
+    if (chatItem) {
+      const timeEl = chatItem.querySelector('.g-item-time');
+      const subEl = chatItem.querySelector('.g-item-sub');
+      if (timeEl && msg.timestamp) {
+        timeEl.textContent = msg.timestamp;
+      }
+      if (subEl) {
+        let preview = '';
+        if (msg.message_type === 'image') {
+          preview = `<i class='bx bx-image-alt'></i> Photo`;
+        } else if (msg.message_type === 'video') {
+          preview = `<i class='bx bx-video'></i> Video`;
+        } else if (msg.message_type === 'document') {
+          preview = `<i class='bx bx-file'></i> Document`;
+        } else if (msg.message_type === 'audio') {
+          preview = `<i class='bx bx-microphone'></i> Audio`;
         } else {
-          // Others: first name only
-          const firstName = msg.sender_name ? msg.sender_name.trim().split(' ')[0] : 'Someone';
-          senderPrefix = firstName + ': ';
+          let cleanText = stripHtml(msg.content || '');
+          if (cleanText.length > 30) {
+            cleanText = cleanText.slice(0, 27) + '...';
+          }
+          preview = escHtml(cleanText);
         }
-        preview = senderPrefix + preview;
-      }
 
-      subEl.innerHTML = preview;
-    }
-    // Re-order chat item to top of list
-    const parent = chatItem.parentNode;
-    if (parent) {
-      const createBtn = parent.querySelector('.g-create-group-btn');
-      if (createBtn) {
-        parent.insertBefore(chatItem, createBtn.nextSibling);
-      } else {
-        parent.insertBefore(chatItem, parent.firstChild);
+        // Add sender prefix for group chats
+        if (GROUP_ID && msg.message_type !== 'system') {
+          let senderPrefix = '';
+          if (msg.is_mine) {
+            senderPrefix = 'You: ';
+          } else if (msg.is_verified) { // Teachers are marked is_verified
+            senderPrefix = msg.sender_name + ': ';
+          } else {
+            // Others: first name only
+            const firstName = msg.sender_name ? msg.sender_name.trim().split(' ')[0] : 'Someone';
+            senderPrefix = firstName + ': ';
+          }
+          preview = senderPrefix + preview;
+        }
+
+        subEl.innerHTML = preview;
+      }
+      // Re-order chat item to top of list only when a real live message was sent or received
+      const parent = chatItem.parentNode;
+      if (parent) {
+        const createBtn = parent.querySelector('.g-create-group-btn');
+        if (createBtn) {
+          parent.insertBefore(chatItem, createBtn.nextSibling);
+        } else {
+          parent.insertBefore(chatItem, parent.firstChild);
+        }
       }
     }
   }
@@ -6294,7 +6296,7 @@ async function doPoll() {
         updateSidebarBadge(data.guidy_badge_count);
       }
       if (data.messages.length) {
-        data.messages.forEach(m => appendMessage(m));
+        data.messages.forEach(m => appendMessage(m, true));
         const incomingMessages = data.messages.filter(m => !m.is_mine);
         if (incomingMessages.length) {
           clearNotificationBadges();
@@ -6387,7 +6389,7 @@ async function doGroupPoll() {
         updateSidebarBadge(data.guidy_badge_count);
       }
       if (data.messages.length) {
-        data.messages.forEach(m => appendMessage(m));
+        data.messages.forEach(m => appendMessage(m, true));
         const incomingMessages = data.messages.filter(m => !m.is_mine);
         if (incomingMessages.length) {
           clearNotificationBadges();
@@ -6476,7 +6478,7 @@ function initGuidyWebSocket() {
               if (p && p.timer) clearTimeout(p.timer);
               pendingSocketMessages.delete(data.message.client_msg_id);
             }
-            appendMessage(data.message);
+            appendMessage(data.message, true);
             if (!data.message.is_mine) {
               emitMarkRead();
               playIncomingMessageSound(data.message.id);
@@ -6711,7 +6713,7 @@ function handleIncomingSidebarUpdate(data) {
     }
     const existingMsg = document.querySelector(`[data-message-id="${data.message.id}"]`);
     if (!existingMsg) {
-      appendMessage(data.message);
+      appendMessage(data.message, true);
       if (!data.message.is_mine) {
         emitMarkRead();
       }
@@ -8659,7 +8661,7 @@ async function loadChatAJAX(type, id, pushState = true) {
       } else {
         msgs.forEach(m => {
           try {
-            appendMessage(m);
+            appendMessage(m, false);
           } catch (mErr) {
             console.warn("Error appending message:", m, mErr);
           }
@@ -8777,11 +8779,17 @@ function ensureSidebarChatItem(chatType, chatId, name, photoUrl, isVerified, las
       </div>
     `;
 
+    const hasLiveMsg = Boolean(lastMsg && lastMsg !== 'No messages yet' && lastMsg.trim() !== '');
     const createBtn = parent.querySelector('.g-create-group-btn');
-    if (createBtn) {
-      parent.insertBefore(item, createBtn.nextSibling);
+    if (hasLiveMsg) {
+      if (createBtn) {
+        parent.insertBefore(item, createBtn.nextSibling);
+      } else {
+        parent.insertBefore(item, parent.firstChild);
+      }
     } else {
-      parent.insertBefore(item, parent.firstChild);
+      // Empty chats with no messages stay at the bottom of the list, never above active chats
+      parent.appendChild(item);
     }
   } else {
     // If it already exists, update preview and timestamp
@@ -11687,7 +11695,7 @@ async function sendReaction(emoji) {
     const r = await fetch(url, { method: 'POST', body: fd });
     const data = await r.json();
     if (data.success) {
-      appendMessage(data.message);
+      appendMessage(data.message, true);
     } else {
       showToast(data.error || 'Failed to send quick reply', 'error');
     }
