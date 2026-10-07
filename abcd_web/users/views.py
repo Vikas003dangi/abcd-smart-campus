@@ -15315,6 +15315,14 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
     except ValueError:
         after_id = 0
 
+    # If polling a direct chat, process any pending auto-replies due for delivery
+    if direct_id:
+        try:
+            from users.auto_reply import process_due_auto_replies
+            process_due_auto_replies()
+        except Exception:
+            pass
+
     from datetime import timedelta
     ten_days_ago = timezone.now() - timedelta(days=10)
     new_msgs = session.messages.filter(

@@ -342,18 +342,23 @@ def is_staff_or_teacher(user):
 def get_or_create_auto_reply_config(user):
     """
     Returns or creates the AutoReplyConfig for a user.
-    Defaults is_enabled=False so nothing sends until explicitly enabled in admin.
+    Forces is_enabled=True for main accounts on initial creation.
     Sets default wait_minutes to 5 for ABCD Asst, 15 for Sandeep Sir.
     """
     from users.models import AutoReplyConfig
     email_clean = (user.email or '').strip().lower()
+    username_clean = (user.username or '').strip().lower()
+
+    is_asst = (email_clean == ABCD_ASST_EMAIL or username_clean in ('vaku', 'vikas', 'vd19055'))
+    is_sandeep = (email_clean == SANDEEP_SIR_EMAIL or username_clean in ('sandeepananda', 'sandeep'))
+    is_main = is_asst or is_sandeep
 
     defaults = {
-        'is_enabled': False,
-        'wait_minutes': 5 if email_clean == ABCD_ASST_EMAIL else (15 if email_clean == SANDEEP_SIR_EMAIL else 10),
+        'is_enabled': True if is_main else False,
+        'wait_minutes': 5 if is_asst else (15 if is_sandeep else 10),
         'cooldown_hours': 6,
     }
-    config, _ = AutoReplyConfig.objects.get_or_create(user=user, defaults=defaults)
+    config, created = AutoReplyConfig.objects.get_or_create(user=user, defaults=defaults)
     return config
 
 
@@ -393,9 +398,18 @@ def handle_direct_message_sent(message):
 
     # Case 2: The recipient has AutoReplyConfig configured
     recip_email = (recipient.email or '').strip().lower()
-    is_target_account = recip_email in (ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL) or hasattr(recipient, 'auto_reply_config')
+    recip_username = (recipient.username or '').strip().lower()
+    is_target_account = (
+        recip_email in (ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL) or
+        recip_username in ('vaku', 'vikas', 'vd19055', 'abcd_asst', 'sandeepananda', 'sandeep') or
+        hasattr(recipient, 'auto_reply_config')
+    )
 
     if not is_target_account:
+        return
+
+    # Exclusion: Do not reply to self
+    if sender.id == recipient.id:
         return
 
     # Exclusion: Staff and teachers messaging the owner do not trigger auto-replies
@@ -404,13 +418,6 @@ def handle_direct_message_sent(message):
         return
 
     config = get_or_create_auto_reply_config(recipient)
-    
-    # Ensure it's enabled for the main accounts
-    if recip_email in (ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL):
-        if not config.is_enabled:
-            config.is_enabled = True
-            config.save(update_fields=['is_enabled'])
-            
     if not config.is_enabled:
         logger.debug(f"[AutoReply] Auto-reply disabled for {recipient.username}")
         return
@@ -605,8 +612,43 @@ def process_due_auto_replies():
                     logger.error(f"[AutoReply] Failed to create urgent notification: {notif_err}")
 
             log_locked.save()
+            transaction.on_commit(lambda m=reply_msg, s=log_locked.sender: _broadcast_auto_reply(m, s))
 
             sent_count += 1
             logger.info(f"[AutoReply] Posted auto-reply #{log_locked.id} (persona: {persona_key}, topic: {topic}, variant: {next_index}) to {log_locked.sender.username}")
 
     return sent_count
+
+
+def _broadcast_auto_reply(msg, recipient):
+    """Push the auto-reply live to the open chat and the recipient's sidebar (same payload shape as consumers.save_chat_message)."""
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+        from django.utils.timezone import localtime
+        from users.utils import get_user_display_name, get_profile_photo_url
+        layer = get_channel_layer()
+        if not layer:
+            return
+        owner = msg.sender
+        payload = {
+            'id': msg.id, 'client_msg_id': None, 'content': msg.content,
+            'message_type': msg.message_type, 'file_url': None, 'file_name': None,
+            'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
+            'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
+            'sender_id': owner.id, 'sender_name': get_user_display_name(owner),
+            'sender_photo': get_profile_photo_url(owner), 'reply_to': None,
+            'is_pinned': False, 'media_expired': False, 'is_delivered': False,
+            'is_read': False, 'is_verified': True, 'is_auto_reply': True,
+            'recipient_ids': [recipient.id],
+        }
+        session_id = msg.direct_session_id
+        async_to_sync(layer.group_send)(f"guidy_direct_{session_id}", {
+            'type': 'chat_message_broadcast', 'sender_id': owner.id, 'message': payload,
+        })
+        async_to_sync(layer.group_send)(f"user_{recipient.id}", {
+            'type': 'guidy_sidebar_update', 'chat_type': 'direct', 'session_id': session_id,
+            'sender_id': owner.id, 'sender_name': payload['sender_name'], 'message': payload,
+        })
+    except Exception as e:
+        logger.error(f"[AutoReply] Live broadcast failed for msg {msg.id}: {e}", exc_info=True)
