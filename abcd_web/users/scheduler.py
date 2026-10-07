@@ -269,6 +269,10 @@ def execute_urgent_reminder_checks():
         # 2. Course learning reminders (atomic claiming)
         process_offline_learning_reminders()
 
+        # 2b. Smart auto-replies (ABCD Asst. 5m / Sandeep Sir 15m)
+        from users.auto_reply import process_due_auto_replies
+        process_due_auto_replies()
+
         # 3. Scheduled Broadcasts & Ads Banners (if any due, trigger immediately)
         from users.models import BroadcastMessage
         if BroadcastMessage.objects.filter(status="scheduled", send_at__lte=timezone.now(), is_draft=False).exists():
@@ -295,6 +299,17 @@ def calculate_seconds_to_next_due_task(now=None, max_sleep_seconds=900):
         now = timezone.localtime(timezone.now())
 
     candidates = []
+
+    # 0. Pending smart auto-replies
+    try:
+        from users.models import AutoReplyLog
+        earliest_reply = AutoReplyLog.objects.filter(status='pending').order_by('due_at').values_list('due_at', flat=True).first()
+        if earliest_reply:
+            if earliest_reply <= now:
+                return 0
+            candidates.append(('auto_reply', timezone.localtime(earliest_reply)))
+    except Exception as e:
+        logger.debug(f"[ABCD Scheduler] Error checking auto-replies for sleep calculation: {e}")
 
     # 1. Scheduled Broadcasts
     try:

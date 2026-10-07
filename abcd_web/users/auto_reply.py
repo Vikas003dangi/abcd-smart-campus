@@ -457,6 +457,7 @@ def handle_direct_message_sent(message):
             
         existing_pending.save(update_fields=['detected_topic', 'matched_keywords', 'flagged_emergency', 'due_at'])
         logger.debug(f"[AutoReply] Updated existing pending auto-reply id {existing_pending.id} with new due_at")
+        _wake_scheduler()
         return
 
     due_at = now + timedelta(minutes=config.wait_minutes)
@@ -473,6 +474,16 @@ def handle_direct_message_sent(message):
         flagged_emergency=is_emergency
     )
     logger.info(f"[AutoReply] Queued auto-reply for {sender.username} -> {recipient.username} (Topic: {topic}, Due at: {due_at.isoformat()})")
+    _wake_scheduler()
+
+
+def _wake_scheduler():
+    """Wake the sleeping scheduler so it recalculates the next due time."""
+    try:
+        from users.scheduler import notify_scheduler_task_changed
+        notify_scheduler_task_changed()
+    except Exception:
+        pass
 
 
 def process_due_auto_replies():
