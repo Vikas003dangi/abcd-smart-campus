@@ -85,26 +85,30 @@ def normalize_identity(value: str) -> str:
 def is_identity_quarantined(username: str = None, email: str = None):
     """
     Checks if a username or email is currently quarantined.
-    Returns (is_quarantined: bool, field_name: str | None).
+    Returns (quarantine_record: QuarantineIdentity | None, field_name: str | None).
     Auto-expires naturally when quarantine_until <= now.
     """
     now = timezone.now()
 
     if username:
         norm_u = normalize_identity(username)
-        if norm_u and QuarantineIdentity.objects.filter(
-            username_normalized=norm_u, quarantine_until__gt=now
-        ).exists():
-            return True, "username"
+        if norm_u:
+            record = QuarantineIdentity.objects.filter(
+                username_normalized=norm_u, quarantine_until__gt=now
+            ).first()
+            if record:
+                return record, "username"
 
     if email:
         norm_e = normalize_identity(email)
-        if norm_e and QuarantineIdentity.objects.filter(
-            email_normalized=norm_e, quarantine_until__gt=now
-        ).exists():
-            return True, "email"
+        if norm_e:
+            record = QuarantineIdentity.objects.filter(
+                email_normalized=norm_e, quarantine_until__gt=now
+            ).first()
+            if record:
+                return record, "email"
 
-    return False, None
+    return None, None
 
 
 def quarantine_identity(username: str, email: str, role: str = "", days: int = DEFAULT_QUARANTINE_DAYS):

@@ -3246,5 +3246,20 @@
 <script src="{% static 'js/custom-popup.js' %}"></script>
 <script>window.__disablePermissionPrompts = true;</script>
 {% include 'partials/_smart_back_redirect.html' with back_url='users:home_page' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let lockedMsg = null;
+    const msgs = document.querySelectorAll('.messages-container .alert, .error-message-list li');
+    msgs.forEach(function(el) {
+        if (el.textContent.includes('recently deleted') && el.textContent.includes('security reasons')) {
+            lockedMsg = el.textContent.trim();
+            el.style.display = 'none';
+        }
+    });
+    if (lockedMsg && typeof window.showStyledAlert === 'function') {
+        window.showStyledAlert('Identity Locked \uD83D\uDD12', lockedMsg, 'warning');
+    }
+});
+</script>
 </body>
 </html>

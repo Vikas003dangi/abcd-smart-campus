@@ -3292,10 +3292,18 @@ def link_existing_account_by_email(backend, strategy=None, details=None, respons
 
     # Check 7-day identity quarantine for Google OAuth
     from .account_deletion import is_identity_quarantined
-    is_quarantined, _ = is_identity_quarantined(email=email)
-    if is_quarantined:
-        from social_core.exceptions import AuthForbidden
-        raise AuthForbidden(backend, "This email address is currently in a 7-day security quarantine following account deletion. Please try again after the quarantine expires.")
+    q_record, _ = is_identity_quarantined(email=email)
+    if q_record:
+        from django.utils import timezone
+        from django.contrib import messages
+        from django.shortcuts import redirect
+        days_left = max(1, (q_record.quarantine_until - timezone.now()).days)
+        msg = f"This email address is securely locked for {days_left} more day(s) following account deletion. The system prohibits immediate reuse to protect the previous owner's identity. Please use a different account or wait until the quarantine expires."
+        
+        request = strategy.request if strategy and hasattr(strategy, 'request') else None
+        if request:
+            messages.error(request, msg)
+        return redirect('users:register')
 
 
     if email == 'abcd2013baq@gmail.com':
@@ -3585,6 +3593,20 @@ def guest_page_view(request):
         "show_registration_animation": show_reg_animation,
     })
 
+def smart_replace_redirect(to, *args, **kwargs):
+    url = resolve_url(to, *args, **kwargs)
+    return HttpResponse(f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        window.location.replace("{url}");
+    </script>
+</head>
+<body></body>
+</html>""")
+
 @login_required
 def post_login_router(request):
     """Runs after ANY login (normal or Google). Decides where to send the user."""
@@ -3592,7 +3614,7 @@ def post_login_router(request):
 
     # 3) Teacher / admin
     if request.user.is_staff or request.user.is_superuser:
-        return redirect('users:teacher_dashboard')
+        return smart_replace_redirect('users:teacher_dashboard')
 
     profile = StudentProfile.objects.filter(user=request.user).first()
     achievement = StudentAchievement.objects.filter(user=request.user).first()
@@ -3602,29 +3624,29 @@ def post_login_router(request):
     if has_valid_profile and achievement:
         active_dash = request.session.get('active_dashboard')
         if active_dash == 'alumni':
-            return redirect('users:alumni_dashboard')
+            return smart_replace_redirect('users:alumni_dashboard')
         elif active_dash == 'student':
-            return redirect('users:student_dashboard')
+            return smart_replace_redirect('users:student_dashboard')
         
         # Default if no active session
         if profile.is_admitted or profile.dob:
             request.session['active_dashboard'] = 'student'
-            return redirect('users:student_dashboard')
+            return smart_replace_redirect('users:student_dashboard')
         request.session['active_dashboard'] = 'alumni'
-        return redirect('users:alumni_dashboard')
+        return smart_replace_redirect('users:alumni_dashboard')
 
     # Priority 2: Alumni only
     if achievement:
         request.session['active_dashboard'] = 'alumni'
-        return redirect('users:alumni_dashboard')
+        return smart_replace_redirect('users:alumni_dashboard')
 
     # Priority 3: Student only (Pending or Admitted)
     if has_valid_profile:
         request.session['active_dashboard'] = 'student'
-        return redirect('users:student_dashboard')
+        return smart_replace_redirect('users:student_dashboard')
 
     # Default: New user / Guest
-    return redirect('users:guest_page')
+    return smart_replace_redirect('users:guest_page')
 
 # set_password_after_google was deleted during OAuth refactor
 # -------------------------------------------------------------------

@@ -27,10 +27,12 @@ class InitialRegisterForm(UserCreationForm):
             raise forms.ValidationError("Username is required.")
 
         from .account_deletion import is_identity_quarantined
-        is_quarantined, _ = is_identity_quarantined(username=username)
-        if is_quarantined:
+        from django.utils import timezone
+        q_record, _ = is_identity_quarantined(username=username)
+        if q_record:
+            days_left = max(1, (q_record.quarantine_until - timezone.now()).days)
             raise forms.ValidationError(
-                "This username is temporarily reserved. Please choose another username."
+                f"This username is securely locked for {days_left} more day(s) following account deletion to protect the previous owner's identity. Please choose another username."
             )
 
         if User.objects.filter(username__iexact=username).exists():
@@ -43,10 +45,12 @@ class InitialRegisterForm(UserCreationForm):
             raise forms.ValidationError("Email address is required.")
 
         from .account_deletion import is_identity_quarantined
-        is_quarantined, _ = is_identity_quarantined(email=email)
-        if is_quarantined:
+        from django.utils import timezone
+        q_record, _ = is_identity_quarantined(email=email)
+        if q_record:
+            days_left = max(1, (q_record.quarantine_until - timezone.now()).days)
             raise forms.ValidationError(
-                "This email address is temporarily reserved. Please try again later."
+                f"This email address is securely locked for {days_left} more day(s) following account deletion. The system prohibits immediate reuse to protect the previous owner's identity."
             )
 
         is_valid, err_msg, suggestion = validate_email_deliverability(email)
