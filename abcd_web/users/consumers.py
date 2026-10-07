@@ -69,6 +69,13 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
                 message_type='text',
                 reply_to=reply_to_obj
             )
+            # 🤖 Smart Auto-Reply (same hook as the HTTP send view)
+            try:
+                from users.auto_reply import handle_direct_message_sent
+                handle_direct_message_sent(msg)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"[AutoReply] WS hook error for msg {msg.id}: {e}", exc_info=True)
         else:  # guidance / session
             session = ChatSession.objects.filter(id=session_id).first()
             if not session:
