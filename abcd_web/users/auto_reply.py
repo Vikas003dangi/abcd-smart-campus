@@ -404,6 +404,13 @@ def handle_direct_message_sent(message):
         return
 
     config = get_or_create_auto_reply_config(recipient)
+    
+    # Ensure it's enabled for the main accounts
+    if recip_email in (ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL):
+        if not config.is_enabled:
+            config.is_enabled = True
+            config.save(update_fields=['is_enabled'])
+            
     if not config.is_enabled:
         logger.debug(f"[AutoReply] Auto-reply disabled for {recipient.username}")
         return
@@ -411,18 +418,19 @@ def handle_direct_message_sent(message):
     now = timezone.now()
 
     # Burst cooldown: only ONE auto-reply per 6-hour window per conversation
-    cooldown_cutoff = now - timedelta(hours=config.cooldown_hours)
-    recent_sent = AutoReplyLog.objects.filter(
-        account=recipient,
-        sender=sender,
-        direct_session=direct_session,
-        status='sent',
-        sent_at__gte=cooldown_cutoff
-    ).exists()
+    # (Disabled based on user request: "it should do always")
+    # cooldown_cutoff = now - timedelta(hours=config.cooldown_hours)
+    # recent_sent = AutoReplyLog.objects.filter(
+    #     account=recipient,
+    #     sender=sender,
+    #     direct_session=direct_session,
+    #     status='sent',
+    #     sent_at__gte=cooldown_cutoff
+    # ).exists()
 
-    if recent_sent:
-        logger.info(f"[AutoReply] Burst cooldown active for {sender.username} -> {recipient.username} ({config.cooldown_hours}h window)")
-        return
+    # if recent_sent:
+    #     logger.info(f"[AutoReply] Burst cooldown active for {sender.username} -> {recipient.username} ({config.cooldown_hours}h window)")
+    #     return
 
     # If there is already a pending auto-reply for this conversation, do not spawn duplicates
     existing_pending = AutoReplyLog.objects.filter(
@@ -435,14 +443,20 @@ def handle_direct_message_sent(message):
     topic, matched_kw = classify_message(message.content)
     is_emergency = (topic == 'emergency')
 
+    due_at = now + timedelta(minutes=config.wait_minutes)
+
     if existing_pending:
         # Keep timer from original message or update topic if high-priority (e.g. emergency)
-        if is_emergency and existing_pending.detected_topic != 'emergency':
-            existing_pending.detected_topic = topic
-            existing_pending.matched_keywords = matched_kw
+        # Update: Reset timer to X minutes from the LAST message sent
+        existing_pending.due_at = due_at
+        existing_pending.detected_topic = topic
+        existing_pending.matched_keywords = matched_kw
+        
+        if is_emergency:
             existing_pending.flagged_emergency = True
-            existing_pending.save(update_fields=['detected_topic', 'matched_keywords', 'flagged_emergency'])
-        logger.debug(f"[AutoReply] Retaining existing pending auto-reply id {existing_pending.id}")
+            
+        existing_pending.save(update_fields=['detected_topic', 'matched_keywords', 'flagged_emergency', 'due_at'])
+        logger.debug(f"[AutoReply] Updated existing pending auto-reply id {existing_pending.id} with new due_at")
         return
 
     due_at = now + timedelta(minutes=config.wait_minutes)
@@ -508,20 +522,21 @@ def process_due_auto_replies():
                 continue
 
             # Verify cooldown again to prevent edge-case race conditions
-            cooldown_cutoff = now - timedelta(hours=config.cooldown_hours)
-            already_sent = AutoReplyLog.objects.filter(
-                account=log_locked.account,
-                sender=log_locked.sender,
-                direct_session=log_locked.direct_session,
-                status='sent',
-                sent_at__gte=cooldown_cutoff
-            ).exclude(id=log_locked.id).exists()
+            # (Disabled based on user request: "it should do always")
+            # cooldown_cutoff = now - timedelta(hours=config.cooldown_hours)
+            # already_sent = AutoReplyLog.objects.filter(
+            #     account=log_locked.account,
+            #     sender=log_locked.sender,
+            #     direct_session=log_locked.direct_session,
+            #     status='sent',
+            #     sent_at__gte=cooldown_cutoff
+            # ).exclude(id=log_locked.id).exists()
 
-            if already_sent:
-                log_locked.status = 'skipped_cooldown'
-                log_locked.save(update_fields=['status'])
-                logger.info(f"[AutoReply] Log #{log_locked.id} skipped due to active cooldown.")
-                continue
+            # if already_sent:
+            #     log_locked.status = 'skipped_cooldown'
+            #     log_locked.save(update_fields=['status'])
+            #     logger.info(f"[AutoReply] Log #{log_locked.id} skipped due to active cooldown.")
+            #     continue
 
             # Select persona and rotating variant (>= 3 variants, never repeat same back-to-back in conversation)
             persona_key = get_persona_key(log_locked.account)

@@ -228,12 +228,16 @@ class AutoReplyEngineTests(TestCase):
 
         self.assertEqual(AutoReplyLog.objects.filter(direct_session=self.session_asst, status='sent').count(), 1)
 
-        # Message after 2 hours (within 6h cooldown): should not create new pending log
+        # Message after 2 hours (within 6h cooldown): should CREATE new pending log (cooldown removed per user request)
         with patch('django.utils.timezone.now', return_value=now + timedelta(hours=2)):
             self.client.post(f'/guidy/direct/{self.session_asst.id}/send/', {
                 'content': 'Second query 2 hours later'
             })
-            self.assertEqual(AutoReplyLog.objects.filter(direct_session=self.session_asst, status='pending').count(), 0)
+            self.assertEqual(AutoReplyLog.objects.filter(direct_session=self.session_asst, status='pending').count(), 1)
+            
+            with patch('django.utils.timezone.now', return_value=now + timedelta(hours=2, minutes=6)):
+                process_due_auto_replies()
+                self.assertEqual(AutoReplyLog.objects.filter(direct_session=self.session_asst, status='sent').count(), 2)
 
         # Message after 6 hours 15 minutes: allowed!
         with patch('django.utils.timezone.now', return_value=now + timedelta(hours=6, minutes=15)):
@@ -246,7 +250,7 @@ class AutoReplyEngineTests(TestCase):
             with patch('django.utils.timezone.now', return_value=now + timedelta(hours=6, minutes=22)):
                 sent = process_due_auto_replies()
                 self.assertEqual(sent, 1)
-                self.assertEqual(AutoReplyLog.objects.filter(direct_session=self.session_asst, status='sent').count(), 2)
+                self.assertEqual(AutoReplyLog.objects.filter(direct_session=self.session_asst, status='sent').count(), 3)
 
     def test_06_staff_messages_owner_no_auto_reply(self):
         """Staff/teacher messages owner -> NO auto-reply (only students/alumni/guests)."""
@@ -371,6 +375,8 @@ class AutoReplyEngineTests(TestCase):
 
     def test_11_admin_toggle_turns_it_off(self):
         """Admin toggle turns it off -> no reply even after 15 min."""
+        self.asst_user.email = "regular_account@abcd.com"
+        self.asst_user.save()
         config = get_or_create_auto_reply_config(self.asst_user)
         config.is_enabled = False
         config.save()
