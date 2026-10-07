@@ -1108,6 +1108,14 @@
         if (localStorage.getItem(ALLOWED_KEY) === 'true' || localStorage.getItem('abcd_push_user_consented') === 'true') {
             return false;
         }
+
+        // --- NEW: Force show once per session on first eligible page load ---
+        if (!sessionStorage.getItem('abcd_push_shown_session_v2')) {
+            sessionStorage.setItem('abcd_push_shown_session_v2', 'true');
+            return true;
+        }
+        // --------------------------------------------------------------------
+
         if (sessionStorage.getItem(DISMISS_SESSION_KEY) === 'true') {
             return false;
         }
@@ -1142,10 +1150,10 @@
         if (shouldShowPrompt()) {
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => {
-                    setTimeout(showBubble, 2200);
+                    setTimeout(showBubble, 1200);
                 });
             } else {
-                setTimeout(showBubble, 2200);
+                setTimeout(showBubble, 1200);
             }
         }
     }
