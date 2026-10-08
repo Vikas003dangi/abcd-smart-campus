@@ -18676,7 +18676,10 @@ def guidy_contacts_api(request):
                 'contacts': contacts
             })
 
-    return JsonResponse({'success': True, 'sections': response_sections})
+    resp = JsonResponse({'success': True, 'sections': response_sections})
+    resp['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp['Pragma'] = 'no-cache'
+    return resp
 
 
 @login_required

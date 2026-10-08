@@ -11265,7 +11265,7 @@ async function loadModalContacts() {
   listContainer.innerHTML = '<div style="text-align: center; color: var(--g-sub); padding: 20px;">Loading contacts...</div>';
   
   try {
-    const r = await fetch('/guidy/contacts/');
+    const r = await fetch('/guidy/contacts/?_t=' + Date.now(), { cache: 'no-store' });
     const d = await r.json();
     if (d.success) {
       cachedContacts = d.sections;

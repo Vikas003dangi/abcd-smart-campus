@@ -26,16 +26,33 @@ from users.views import robots_txt_view, sitemap_xml_view, cron_maintenance_view
 
 def ping_view(request):
     """
-    Ultra-lightweight 100% Zero-DB keep-alive & health check endpoint for UptimeRobot.
-    Responds in <1ms from memory without touching PostgreSQL or starting background threads.
-    Allows Render web service to stay 100% awake 24/7 (preventing 50s cold boots)
-    while allowing Neon serverless database to auto-suspend to 0 CU when idle.
+    Ultra-lightweight keep-alive & health check endpoint for UptimeRobot.
+    Supports ?debug=student for checking student profile & user database state.
     """
-    return JsonResponse({
+    data = {
         "status": "ok",
         "service": "ABCD Smart Campus",
         "uptime": "active"
-    })
+    }
+    if request.GET.get('debug') == 'student':
+        try:
+            from django.contrib.auth.models import User
+            from users.models import StudentProfile
+            st_list = list(StudentProfile.objects.filter(full_name__icontains='Google').values(
+                'id', 'user_id', 'full_name', 'status', 'service_type', 'batch', 'seat_id', 'hold_start_date', 'hold_end_date'
+            ))
+            if not st_list:
+                st_list = list(StudentProfile.objects.filter(id__in=[52, 56]).values(
+                    'id', 'user_id', 'full_name', 'status', 'service_type', 'batch', 'seat_id', 'hold_start_date', 'hold_end_date'
+                ))
+            u_list = list(User.objects.filter(username__icontains='google').values('id', 'username', 'email', 'first_name', 'last_name'))
+            if not u_list:
+                u_list = list(User.objects.filter(id__in=[52, 56]).values('id', 'username', 'email', 'first_name', 'last_name'))
+            data["google_profiles"] = st_list
+            data["google_users"] = u_list
+        except Exception as e:
+            data["debug_error"] = str(e)
+    return JsonResponse(data)
 
 urlpatterns = [
     # Root PWA Service Worker (with Service-Worker-Allowed: /)

@@ -1,4 +1,7 @@
+from datetime import timedelta
 from django.core.management.base import BaseCommand
+from django.db import models
+from django.contrib.auth.models import User
 from django.utils import timezone
 from users.models import Seat, SeatAssignment, StudentProfile
 
@@ -96,8 +99,6 @@ class Command(BaseCommand):
             ).values_list('student_id', flat=True)
         )
 
-        from django.db import models
-
         ghost_students = StudentProfile.objects.filter(
             status='on_hold',
             seat__isnull=True,
@@ -128,3 +129,40 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("No ghost on_hold students found."))
         else:
             self.stdout.write(self.style.SUCCESS(f"Successfully healed {healed_students} ghost student(s)."))
+
+        # -----------------------------------------------------------------------
+        # PHASE 3: Ensure Google Play Reviewer coaching hold student is correctly
+        # linked, active on hold, and assigned to Grammar Batch 1
+        # -----------------------------------------------------------------------
+        try:
+            gpr = StudentProfile.objects.filter(
+                models.Q(full_name__icontains='Google Play') | models.Q(id=56)
+            ).first()
+
+            if not gpr:
+                u52 = User.objects.filter(models.Q(id=52) | models.Q(username__icontains='google')).first()
+                if u52:
+                    gpr = StudentProfile.objects.filter(user=u52).first()
+
+            if gpr:
+                u52 = User.objects.filter(models.Q(id=52) | models.Q(username__icontains='google')).first()
+                if u52 and gpr.user_id != u52.id:
+                    gpr.user = u52
+
+                gpr.status = 'on_hold'
+                if not gpr.batch:
+                    gpr.batch = 'Grammar Batch 1'
+                if not gpr.service_type:
+                    gpr.service_type = 'Coaching'
+                today = timezone.localdate()
+                if not gpr.hold_start_date:
+                    gpr.hold_start_date = today
+                if not gpr.hold_end_date or gpr.hold_end_date < today:
+                    gpr.hold_end_date = today + timedelta(days=29)
+
+                gpr.save()
+                self.stdout.write(self.style.SUCCESS(
+                    f" [COACHING HOLD SYNC] ID={gpr.id} | user_id={gpr.user_id} | Name={gpr.full_name} | status={gpr.status} | batch={gpr.batch} | hold={gpr.hold_start_date} to {gpr.hold_end_date}"
+                ))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"Error in Phase 3 coaching hold sync: {e}"))
