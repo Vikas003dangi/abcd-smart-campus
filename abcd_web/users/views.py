@@ -6146,14 +6146,22 @@ def teacher_dashboard_view(request):
     ).select_related('seat', 'user').distinct()
 
     # Coaching batches
-    for student in admitted_students.filter(service_type__in=['Coaching', 'Both']):
-        coaching_batches[student.batch].append(student)
+    coaching_q = (
+        models.Q(service_type__in=['Coaching', 'Both']) |
+        models.Q(service_type__iexact='coaching') |
+        models.Q(service_type__iexact='both') |
+        models.Q(batch__isnull=False)
+    )
+    for student in admitted_students.filter(coaching_q):
+        if student.batch:
+            coaching_batches[student.batch].append(student)
 
-    # Coaching students on hold
+    # Coaching students on hold (catches on_hold or hold, case-insensitive, or any student with a coaching batch)
     hold_coaching_students = StudentProfile.objects.filter(
-        status='on_hold',
-        service_type__in=['Coaching', 'Both']
-    ).select_related('user').distinct()
+        models.Q(status__in=['on_hold', 'hold']) |
+        models.Q(status__iexact='on_hold') |
+        models.Q(status__iexact='hold')
+    ).filter(coaching_q).select_related('user').distinct()
 
     # Sort batches alphabetically (handling None safely)
     sorted_coaching_batches = dict(sorted(coaching_batches.items(), key=lambda item: (item[0] is None, str(item[0] or ''))))
@@ -6290,8 +6298,8 @@ def teacher_dashboard_view(request):
         'section_filter': section_filter,
 
         'total_coaching_students': StudentProfile.objects.filter(
-            status__in=['admitted', 'on_hold'], service_type__in=['Coaching', 'Both']
-        ).count(),
+            models.Q(status__in=['admitted', 'on_hold', 'hold']) | models.Q(status__iexact='on_hold') | models.Q(status__iexact='hold')
+        ).filter(coaching_q).count(),
 
         'total_library_students': total_library_students_count,
 
