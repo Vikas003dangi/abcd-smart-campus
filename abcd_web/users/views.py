@@ -6153,8 +6153,8 @@ def teacher_dashboard_view(request):
         models.Q(batch__isnull=False)
     )
     for student in admitted_students.filter(coaching_q):
-        if student.batch:
-            coaching_batches[student.batch].append(student)
+        batch_name = student.batch or 'No Batch Assigned'
+        coaching_batches[batch_name].append(student)
 
     # Coaching students on hold (catches on_hold or hold, case-insensitive, or any student with a coaching batch)
     hold_coaching_students = StudentProfile.objects.filter(
