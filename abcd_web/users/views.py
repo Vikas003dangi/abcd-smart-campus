@@ -18504,10 +18504,10 @@ def guidy_contacts_api(request):
     }
 
     if is_teacher:
-        # 1. Students
-        for sp in StudentProfile.objects.filter(status='admitted').select_related('user', 'seat'):
+        # 1. Students (admitted and on-hold)
+        for sp in StudentProfile.objects.filter(status__in=['admitted', 'on_hold', 'hold']).select_related('user', 'seat'):
             sec = None
-            if sp.service_type == 'Coaching':
+            if sp.batch:
                 b = sp.batch
                 if b == 'Grammar Batch 1':
                     sec = 'coaching batch -1'
@@ -18521,16 +18521,17 @@ def guidy_contacts_api(request):
                     sec = 'coaching spoken -1'
                 elif b == 'Spoken English 2':
                     sec = 'coaching spoken -2'
-            elif sp.service_type == 'Library':
+            elif sp.service_type == 'Library' or sp.seat:
                 if sp.seat and sp.seat.floor == '1st Floor':
                     sec = 'library 1st'
                 else:
                     sec = 'library ground'
 
             if sec:
+                hold_suffix = ' (On Hold)' if sp.status in ['on_hold', 'hold'] else ''
                 sections_map[sec].append({
                     'id': sp.user.id,
-                    'name': sp.full_name,
+                    'name': f"{sp.full_name}{hold_suffix}",
                     'photo': get_profile_photo_url(sp.user),
                     'already_chatted': sp.user.id in chatted_user_ids,
                     'category': 'student'
@@ -18559,15 +18560,15 @@ def guidy_contacts_api(request):
                 'is_verified': True,
             })
 
-        # 4. Guest Users (Not admitted student, not approved alumni, not staff/superuser)
-        admitted_student_user_ids = StudentProfile.objects.filter(status='admitted').values_list('user_id', flat=True)
+        # 4. Guest Users (Not student, not approved alumni, not staff/superuser)
+        student_user_ids = StudentProfile.objects.filter(status__in=['admitted', 'on_hold', 'hold']).values_list('user_id', flat=True)
         approved_alumni_user_ids = StudentAchievement.objects.filter(status='approved').values_list('user_id', flat=True)
         
         guest_users = DjangoUser.objects.filter(
             is_staff=False,
             is_superuser=False
         ).exclude(
-            id__in=admitted_student_user_ids
+            id__in=student_user_ids
         ).exclude(
             id__in=approved_alumni_user_ids
         ).select_related('profile')
