@@ -10787,8 +10787,10 @@ def _do_approve_student(request, student_id):
         student = get_object_or_404(StudentProfile, id=student_id)
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '')
 
-        # Check for 'skip_seat' flag (passed via query param for "Approve without seat")
-        skip_seat = (request.GET.get('skip_seat') == 'true')
+        # Check for 'skip_seat' and 'skip_batch' flags
+        skip_seat = (request.GET.get('skip_seat') == 'true' or request.POST.get('skip_seat') == 'true')
+        skip_batch = (request.GET.get('skip_batch') == 'true' or request.POST.get('skip_batch') == 'true')
+        override_batch = request.POST.get('batch') or request.GET.get('batch')
 
         # Use safe_atomic_transaction for retry on database lock
         try:
@@ -10825,6 +10827,7 @@ def _do_approve_student(request, student_id):
                                 return JsonResponse({
                                     'status': 'conflict',
                                     'message': msg,
+                                    'allow_partial': True,
                                 }, status=409)
                             messages.error(request, f'Seat Conflict: {msg}')
                             return redirect('users:teacher_dashboard')
@@ -10860,6 +10863,23 @@ def _do_approve_student(request, student_id):
                     if student.library_pending:
                         student.library_pending = False
                     student.service_type = 'Both'
+
+                # Batch handling for Coaching admissions
+                if skip_batch:
+                    student.batch = None
+                elif override_batch is not None:
+                    override_clean = override_batch.strip()
+                    if not override_clean or override_clean.lower() in ['none', 'no batch', '']:
+                        student.batch = None
+                    else:
+                        valid_choices = [c[0] for c in StudentProfile.BATCH_CHOICES]
+                        display_to_code = {c[1]: c[0] for c in StudentProfile.BATCH_CHOICES}
+                        if override_clean in valid_choices:
+                            student.batch = override_clean
+                        elif override_clean in display_to_code:
+                            student.batch = display_to_code[override_clean]
+                        else:
+                            student.batch = override_clean
 
                 from django.utils import timezone
                 student.status = 'admitted'

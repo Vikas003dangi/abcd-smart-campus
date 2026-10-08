@@ -3061,6 +3061,146 @@
     }
 
     /* ================================================================ */
+    /* ADMISSION MODAL ACTION BUTTONS & LIVE BORDER STYLES */
+    /* ================================================================ */
+    #admissionModal .modal-footer #modalCancelBtn {
+      background: #ffffff !important;
+      border: 1.5px solid #94a3b8 !important;
+      color: #475569 !important;
+      font-weight: 600 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+    #admissionModal .modal-footer #modalCancelBtn:hover {
+      background: #f1f5f9 !important;
+      border-color: #64748b !important;
+      color: #0f172a !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Edit Button with sleek "Live Border" */
+    #admissionModal .modal-footer #modalEditSeatBtn {
+      background: #ffffff !important;
+      border: 1.5px solid #6366f1 !important;
+      color: #4f46e5 !important;
+      font-weight: 600 !important;
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18), 0 2px 5px rgba(99, 102, 241, 0.1) !important;
+      position: relative;
+      transition: all 0.25s ease;
+      animation: modalLiveBorderPulse 2.8s infinite ease-in-out;
+    }
+    #admissionModal .modal-footer #modalEditSeatBtn:hover {
+      background: #f5f3ff !important;
+      border-color: #4338ca !important;
+      color: #3730a3 !important;
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35), 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+      transform: translateY(-1px);
+    }
+
+    @keyframes modalLiveBorderPulse {
+      0%, 100% {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 2px 5px rgba(99, 102, 241, 0.08);
+      }
+      50% {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3), 0 3px 9px rgba(139, 92, 246, 0.16);
+      }
+    }
+
+    #admissionModal .modal-footer #modalApproveNoSeatBtn {
+      background: #f97316 !important;
+      border: 1.5px solid #ea580c !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      box-shadow: 0 1px 3px rgba(249, 115, 22, 0.2);
+    }
+    #admissionModal .modal-footer #modalApproveNoSeatBtn:hover {
+      background: #ea580c !important;
+      border-color: #c2410c !important;
+      box-shadow: 0 3px 8px rgba(249, 115, 22, 0.35);
+    }
+
+    /* Dark Theme Overrides for Admission Modal Buttons */
+    body.dark-theme #admissionModal .modal-footer #modalCancelBtn {
+      background: #1e293b !important;
+      border: 1.5px solid #475569 !important;
+      color: #cbd5e1 !important;
+    }
+    body.dark-theme #admissionModal .modal-footer #modalCancelBtn:hover {
+      background: #334155 !important;
+      border-color: #94a3b8 !important;
+      color: #ffffff !important;
+    }
+
+    body.dark-theme #admissionModal .modal-footer #modalEditSeatBtn {
+      background: rgba(99, 102, 241, 0.14) !important;
+      border: 1.5px solid #818cf8 !important;
+      color: #c7d2fe !important;
+      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.25) !important;
+      animation: modalLiveBorderPulseDark 2.8s infinite ease-in-out;
+    }
+    body.dark-theme #admissionModal .modal-footer #modalEditSeatBtn:hover {
+      background: rgba(99, 102, 241, 0.28) !important;
+      border-color: #a5b4fc !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 0 2px rgba(165, 180, 252, 0.45), 0 4px 12px rgba(99, 102, 241, 0.35) !important;
+    }
+
+    @keyframes modalLiveBorderPulseDark {
+      0%, 100% {
+        border-color: #818cf8;
+        box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.25);
+      }
+      50% {
+        border-color: #a78bfa;
+        box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.4);
+      }
+    }
+
+    body.dark-theme #admissionModal .modal-footer #modalApproveNoSeatBtn {
+      background: rgba(249, 115, 22, 0.9) !important;
+      border: 1.5px solid #fb923c !important;
+      color: #ffffff !important;
+    }
+
+    /* Batch Edit Inline Dropdown Styling */
+    #modalBatchSelect {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1.5px solid #6366f1;
+      background-color: #ffffff;
+      color: #1e293b;
+      outline: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    #modalBatchSelect:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+    body.dark-theme #modalBatchSelect {
+      background-color: #1e293b;
+      color: #f1f5f9;
+      border-color: #818cf8;
+    }
+    body.dark-theme #modalBatchSelect option {
+      background-color: #1e293b;
+      color: #f1f5f9;
+    }
+    body.dark-theme #modalBatchEditContainer {
+      background: rgba(99, 102, 241, 0.12) !important;
+      border-color: #818cf8 !important;
+    }
+    body.dark-theme #modalBatchEditContainer .info-label,
+    body.dark-theme #modalBatchEditContainer small {
+      color: #a5b4fc !important;
+    }
+
+    /* ================================================================ */
 
     .dashboard-container {
       max-width: 1370px;
@@ -10744,6 +10884,7 @@
       const modalApproveBtn = document.getElementById('modalApproveBtn');
 
       let currentForm = null;
+      let currentServiceType = 'library';
 
       // ===== MODAL UTILITY FUNCTIONS =====
       function openModal() {
@@ -10760,6 +10901,10 @@
         modalOverlay.style.removeProperty('z-index');
         modal.style.removeProperty('z-index');
         modalEditSeatBtn.style.display = 'none';
+        modalEditSeatBtn.textContent = 'Edit Seat';
+        const batchContainer = document.getElementById('modalBatchEditContainer');
+        if (batchContainer) batchContainer.style.display = 'none';
+        currentServiceType = 'library';
         // Don't clear currentForm here - it might still be needed for form submission
       }
 
@@ -11042,6 +11187,7 @@
       }
 
       function showLibraryModal(studentName, hasSeat, seat, floor, shift, meta) {
+        currentServiceType = 'library';
         const isShiftRequest = hasSeat && shift && shift.toLowerCase() !== 'full';
 
         let titleText = 'Library Admission Request';
@@ -11052,11 +11198,11 @@
         modalTitle.textContent = titleText;
 
         let contentHTML = `
-        <p>Do you want to approve admission of <strong>"${studentName}"</strong>?</p>
+        <p>Do you want to approve admission of <strong>"${safeEscape(studentName)}"</strong>?</p>
         <div class="request-info">
           <div class="info-row">
             <span class="info-label">Student:</span>
-            <span class="info-value">${studentName}</span>
+            <span class="info-value">${safeEscape(studentName)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Service:</span>
@@ -11068,7 +11214,7 @@
           contentHTML += `
           <div class="info-row">
             <span class="info-label">Requested Seat:</span>
-            <span class="info-value">Seat ${seat} (${floor})</span>
+            <span class="info-value">Seat ${safeEscape(seat)} (${safeEscape(floor)})</span>
           </div>
         `;
 
@@ -11077,7 +11223,7 @@
             contentHTML += `
             <div class="info-row">
               <span class="info-label">Requested Shift:</span>
-              <span class="info-value">${shiftDisplay}</span>
+              <span class="info-value">${safeEscape(shiftDisplay)}</span>
             </div>
           `;
           }
@@ -11098,14 +11244,17 @@
 
         // Show 'Approve without seat' button if seat exists (option to override)
         if (hasSeat) {
-          if (modalApproveNoSeatBtn) modalApproveNoSeatBtn.style.display = 'inline-block';
+          if (modalApproveNoSeatBtn) {
+            modalApproveNoSeatBtn.style.display = 'inline-block';
+            modalApproveNoSeatBtn.textContent = 'Approve without seat';
+          }
         } else {
           if (modalApproveNoSeatBtn) modalApproveNoSeatBtn.style.display = 'none';
         }
 
-        // Hide Cancel button for Library requests (X button is enough)
+        // Always show Cancel button with clear border
         if (modalCancelBtn) {
-          modalCancelBtn.style.display = 'none';
+          modalCancelBtn.style.display = 'inline-block';
         }
 
         modalApproveBtn.textContent = 'Approve';
@@ -11114,22 +11263,44 @@
       }
 
       function showCoachingModal(studentName, batch, meta) {
+        currentServiceType = 'coaching';
         modalTitle.textContent = 'Coaching Admission Request';
 
+        const coachingBatches = [
+          { value: 'Grammar Batch 1', label: 'Grammar Batch 1' },
+          { value: 'Grammar Batch 2', label: 'Grammar Batch 2' },
+          { value: 'Grammar Batch 3', label: 'Grammar Batch 3' },
+          { value: 'Grammar Batch 4', label: 'Grammar Batch 4' },
+          { value: 'Spoken English 1', label: 'Spoken English & PD Batch 1' },
+          { value: 'Spoken English 2', label: 'Spoken English & PD Batch 2' },
+        ];
+
         let contentHTML = `
-        <p>Do you want to approve admission of <strong>"${studentName}"</strong>?</p>
+        <p>Do you want to approve admission of <strong>"${safeEscape(studentName)}"</strong>?</p>
         <div class="request-info">
           <div class="info-row">
             <span class="info-label">Student:</span>
-            <span class="info-value">${studentName}</span>
+            <span class="info-value">${safeEscape(studentName)}</span>
           </div>
           <div class="info-row">
             <span class="info-label">Service:</span>
             <span class="info-value">Coaching</span>
           </div>
-          <div class="info-row">
+          <div class="info-row" id="modalBatchDisplayRow">
             <span class="info-label">Requested Batch:</span>
-            <span class="info-value">${batch || '(not selected yet!)'}</span>
+            <span class="info-value" id="modalBatchDisplayValue">${safeEscape(batch || '(not selected yet!)')}</span>
+          </div>
+          <div class="info-row" id="modalBatchEditContainer" style="display: none; flex-direction: column; gap: 6px; margin-top: 10px; padding: 12px; background: rgba(99, 102, 241, 0.06); border-radius: 10px; border: 1.5px dashed #6366f1;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="info-label" style="color: #4f46e5; font-weight: 700;">Select Batch:</span>
+              <small style="color: #6366f1; font-weight: 600;">Choose from 6 batches</small>
+            </div>
+            <select id="modalBatchSelect" class="form-control">
+              ${coachingBatches.map(b => {
+                const isSelected = (batch && (b.value.toLowerCase() === batch.toLowerCase() || b.label.toLowerCase() === batch.toLowerCase())) ? 'selected' : '';
+                return `<option value="${safeEscape(b.value)}" ${isSelected}>${safeEscape(b.label)}</option>`;
+              }).join('')}
+            </select>
           </div>
         </div>
       `;
@@ -11137,7 +11308,16 @@
         contentHTML += buildMultiProfileWarningHTML(meta);
 
         modalContent.innerHTML = contentHTML;
-        modalEditSeatBtn.style.display = 'none';
+
+        // Show Edit Batch button with live border
+        modalEditSeatBtn.style.display = 'inline-block';
+        modalEditSeatBtn.textContent = 'Edit Batch';
+
+        // Show 'Approve without Batch' button
+        if (modalApproveNoSeatBtn) {
+          modalApproveNoSeatBtn.style.display = 'inline-block';
+          modalApproveNoSeatBtn.textContent = 'Approve without Batch';
+        }
 
         // Show Cancel button for Coaching requests
         if (modalCancelBtn) {
@@ -11149,6 +11329,17 @@
         openModal();
       }
 
+      // Live update displayed batch when dropdown selection changes
+      document.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'modalBatchSelect') {
+          const selectedText = e.target.options[e.target.selectedIndex].text;
+          const displayVal = document.getElementById('modalBatchDisplayValue');
+          if (displayVal) {
+            displayVal.innerHTML = `<strong>${safeEscape(selectedText)}</strong> <span style="font-size: 0.78rem; color: #4f46e5; font-weight: 700; background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">Selected</span>`;
+          }
+        }
+      });
+
       // ===== MODAL EVENT LISTENERS =====
       modalCloseBtn.addEventListener('click', closeModal);
 
@@ -11158,7 +11349,24 @@
       }
 
       modalEditSeatBtn.addEventListener('click', function () {
-        // Redirect to Seat Manager when Edit Seat is clicked
+        if (currentServiceType === 'coaching') {
+          // Toggle the batch dropdown container inside the modal
+          const batchContainer = document.getElementById('modalBatchEditContainer');
+          if (batchContainer) {
+            const isHidden = (batchContainer.style.display === 'none');
+            batchContainer.style.display = isHidden ? 'flex' : 'none';
+            if (isHidden) {
+              const select = document.getElementById('modalBatchSelect');
+              if (select) select.focus();
+              modalEditSeatBtn.textContent = 'Hide Batch Edit';
+            } else {
+              modalEditSeatBtn.textContent = 'Edit Batch';
+            }
+          }
+          return;
+        }
+
+        // Library request: Redirect to Seat Manager when Edit Seat is clicked
         if (currentForm) {
           const action = currentForm.getAttribute('action') || '';
           const parts = action.split('/').filter(Boolean);
@@ -11198,7 +11406,20 @@
         modalApproveBtn.textContent = 'Approving...';
 
         const formData = new FormData(currentForm);
-        fetch(currentForm.action, {
+        let actionUrl = currentForm.getAttribute('action') || currentForm.action;
+
+        // If coaching and batch was selected in dropdown, include it
+        if (currentServiceType === 'coaching') {
+          const batchContainer = document.getElementById('modalBatchEditContainer');
+          const batchSelect = document.getElementById('modalBatchSelect');
+          if (batchSelect && batchContainer && batchContainer.style.display !== 'none' && batchSelect.value) {
+            formData.set('batch', batchSelect.value);
+            const sep = actionUrl.includes('?') ? '&' : '?';
+            actionUrl = actionUrl + sep + 'batch=' + encodeURIComponent(batchSelect.value);
+          }
+        }
+
+        fetch(actionUrl, {
           method: 'POST',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
@@ -11245,31 +11466,70 @@
           })
           .finally(() => {
             modalApproveBtn.disabled = false;
+            modalApproveBtn.textContent = 'Approve';
           });
       });
 
-      // NEW: Approve Without Seat Button Handler
+      // Approve Without Seat / Approve Without Batch Button Handler
       if (modalApproveNoSeatBtn) {
         modalApproveNoSeatBtn.addEventListener('click', async function () {
           if (!currentForm) return;
 
-          const confirmed = await window.showStyledConfirm(
-            "Confirm Admission",
-            "Are you sure you want to approve this student <b>WITHOUT</b> assigning the requested seat?"
-          );
+          const isCoaching = (currentServiceType === 'coaching');
+          const confirmTitle = "Confirm Admission";
+          const confirmMsg = isCoaching
+            ? "Are you sure you want to approve this student into Coaching <b>WITHOUT</b> any batch? They will be admitted with <b>No Batch</b>."
+            : "Are you sure you want to approve this student <b>WITHOUT</b> assigning the requested seat?";
 
+          const confirmed = await window.showStyledConfirm(confirmTitle, confirmMsg);
           if (!confirmed) return;
-          // Modify form action to include skip_seat flag
-          const action = currentForm.getAttribute('action');
-          if (action) {
-            const separator = action.includes('?') ? '&' : '?';
-            currentForm.action = action + separator + 'skip_seat=true';
-          }
 
-          closeModal();
-          setTimeout(function () {
-            currentForm.submit();
-          }, 100);
+          const csrfToken = currentForm.querySelector('[name="csrfmiddlewaretoken"]');
+          modalApproveNoSeatBtn.disabled = true;
+          const origText = modalApproveNoSeatBtn.textContent;
+          modalApproveNoSeatBtn.textContent = 'Approving...';
+
+          const formData = new FormData(currentForm);
+          let actionUrl = currentForm.getAttribute('action') || currentForm.action;
+          const flagKey = isCoaching ? 'skip_batch' : 'skip_seat';
+          formData.set(flagKey, 'true');
+          const sep = actionUrl.includes('?') ? '&' : '?';
+          actionUrl = actionUrl + sep + flagKey + '=true';
+
+          fetch(actionUrl, {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': csrfToken ? csrfToken.value : ''
+            },
+            body: formData
+          })
+            .then(response => {
+              if (!response.ok && response.status !== 409) {
+                return response.json().then(data => { throw new Error(data.message || 'Server error'); }).catch(() => { throw new Error('An error occurred during approval.'); });
+              }
+              return response.json();
+            })
+            .then(data => {
+              if (data.status === 'success') {
+                closeModal();
+                if (typeof window.refreshTeacherLiveStats === 'function') window.refreshTeacherLiveStats();
+                if (typeof window.refreshTeacherTabsContent === 'function') window.refreshTeacherTabsContent();
+              } else {
+                closeModal();
+                window.location.reload();
+              }
+            })
+            .catch(() => {
+              // Fallback to standard form submit
+              currentForm.action = actionUrl;
+              closeModal();
+              setTimeout(() => { currentForm.submit(); }, 100);
+            })
+            .finally(() => {
+              modalApproveNoSeatBtn.disabled = false;
+              modalApproveNoSeatBtn.textContent = origText;
+            });
         });
       }
 
