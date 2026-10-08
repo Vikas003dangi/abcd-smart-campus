@@ -96,9 +96,17 @@ class Command(BaseCommand):
             ).values_list('student_id', flat=True)
         )
 
+        from django.db import models
+
         ghost_students = StudentProfile.objects.filter(
             status='on_hold',
             seat__isnull=True,
+        ).exclude(
+            models.Q(service_type__in=['Coaching', 'Both']) |
+            models.Q(service_type__iexact='coaching') |
+            models.Q(service_type__iexact='both') |
+            models.Q(batch__isnull=False) |
+            models.Q(hold_start_date__isnull=False)
         ).exclude(
             id__in=seat_level_hold_ids
         ).exclude(
