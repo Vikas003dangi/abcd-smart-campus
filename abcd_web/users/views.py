@@ -6149,6 +6149,12 @@ def teacher_dashboard_view(request):
     for student in admitted_students.filter(service_type__in=['Coaching', 'Both']):
         coaching_batches[student.batch].append(student)
 
+    # Coaching students on hold
+    hold_coaching_students = StudentProfile.objects.filter(
+        status='on_hold',
+        service_type__in=['Coaching', 'Both']
+    ).select_related('user').distinct()
+
     # Sort batches alphabetically (handling None safely)
     sorted_coaching_batches = dict(sorted(coaching_batches.items(), key=lambda item: (item[0] is None, str(item[0] or ''))))
     coaching_batches = defaultdict(list, sorted_coaching_batches)
@@ -6271,6 +6277,7 @@ def teacher_dashboard_view(request):
 
         'admitted_students': admitted_students,
         'coaching_students_by_batch': dict(coaching_batches),
+        'hold_coaching_students': hold_coaching_students,
         'library_students_by_floor': dict(library_floors),
         'hold_library_students': hold_library_students,
         'pending_library_students': pending_library_students,
@@ -6283,7 +6290,7 @@ def teacher_dashboard_view(request):
         'section_filter': section_filter,
 
         'total_coaching_students': StudentProfile.objects.filter(
-            status='admitted', service_type__in=['Coaching', 'Both']
+            status__in=['admitted', 'on_hold'], service_type__in=['Coaching', 'Both']
         ).count(),
 
         'total_library_students': total_library_students_count,
@@ -10482,28 +10489,42 @@ def edit_student_view(request, student_id):
                     fail_silently=True,
                 )
             
-            # Sync seat and assignment status (Teachers only, or if status changed)
-            if request.user.is_staff and student.seat and old_status != new_status:
+            # Sync seat, hold, and assignment status (Teachers only, or if status changed)
+            if request.user.is_staff and old_status != new_status:
                 if new_status == 'admitted':
-                    # Activate pending assignments
-                    pending = SeatAssignment.objects.filter(student=student, is_active=False).first()
-                    if pending:
-                        pending.is_active = True
-                        pending.hold_status = 'none'
-                        pending.save(update_fields=['is_active', 'hold_status'])
-                        pending.sync_student_pointer()
-                        pending.recalc_seat_state()
-                    
-                    # Ensure hold is cleared and fee expiry recalculated
-                    _recalc_fee_expiry_with_hold(student)
+                    if student.seat:
+                        # Activate pending assignments
+                        pending = SeatAssignment.objects.filter(student=student, is_active=False).first()
+                        if pending:
+                            pending.is_active = True
+                            pending.hold_status = 'none'
+                            pending.save(update_fields=['is_active', 'hold_status'])
+                            pending.sync_student_pointer()
+                            pending.recalc_seat_state()
+                        
+                        create_notification(
+                            user=student.user,
+                            title="Admission Approved",
+                            message=f"Your admission has been approved! Seat: {student.seat.seat_number}",
+                            link="/dashboard/",
+                            category="admission"
+                        )
+                    else:
+                        create_notification(
+                            user=student.user,
+                            title="Admission Approved",
+                            message="Your admission has been approved!",
+                            link="/dashboard/",
+                            category="admission"
+                        )
 
-                    create_notification(
-                        user=student.user,
-                        title="Admission Approved",
-                        message=f"Your admission has been approved! Seat: {student.seat.seat_number}",
-                        link="/dashboard/",
-                        category="admission"
-                    )
+                    # Clear hold dates on student profile
+                    updated_student.hold_start_date = None
+                    updated_student.hold_end_date = None
+                    updated_student.save(update_fields=['hold_start_date', 'hold_end_date'])
+
+                    # Ensure hold is cleared and fee expiry recalculated
+                    _recalc_fee_expiry_with_hold(updated_student)
 
                     # Send Admission/Course Enrollment Email
                     send_html_email(
@@ -10512,7 +10533,7 @@ def edit_student_view(request, student_id):
                         template="emails/course_update.html",
                         context={
                             "title": "Admission & Course Access Granted",
-                            "message": f"Welcome to the ABCD family! Your admission is approved and your seat ({student.seat.seat_number}) is ready. You now have full access to our digital courses and library resources.",
+                            "message": f"Welcome to the ABCD family! Your admission is approved. You now have full access to our digital courses and resources.",
                             "course_name": "Full ABCD Curriculum",
                             "action_url": f"{settings.SITE_URL}{reverse('users:student_dashboard')}",
                         },
@@ -10536,42 +10557,52 @@ def edit_student_view(request, student_id):
                         except Exception as e:
                             print(f"Error parsing hold details: {e}")
 
-                    # Store hold dates on seat
-                    student.seat.hold_student = student
-                    student.seat.hold_start_date = start_date
-                    student.seat.hold_end_date = end_date
+                    # Store hold dates on student profile
+                    updated_student.hold_start_date = start_date
+                    updated_student.hold_end_date = end_date
 
-                    active_assignment = SeatAssignment.objects.filter(student=student, is_active=True).first()
-                    if active_assignment:
-                        active_assignment.hold_start_date = start_date
-                        active_assignment.hold_end_date = end_date
+                    if student.seat:
+                        # Store hold dates on seat
+                        student.seat.hold_student = student
+                        student.seat.hold_start_date = start_date
+                        student.seat.hold_end_date = end_date
 
-                    if start_date <= today_date:
-                        # Hold starts today or in the past — activate immediately
-                        student.seat.status = 'on_hold'
-                        student.seat.hold_status = 'active'
-                        student.seat.save(update_fields=['status', 'hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
+                        active_assignment = SeatAssignment.objects.filter(student=student, is_active=True).first()
                         if active_assignment:
-                            active_assignment.hold_status = 'active'
-                            active_assignment.save(update_fields=['hold_status', 'hold_start_date', 'hold_end_date'])
-                        # student.status already set to 'on_hold' by form save above
+                            active_assignment.hold_start_date = start_date
+                            active_assignment.hold_end_date = end_date
+
+                        if start_date <= today_date:
+                            student.seat.status = 'on_hold'
+                            student.seat.hold_status = 'active'
+                            student.seat.save(update_fields=['status', 'hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
+                            if active_assignment:
+                                active_assignment.hold_status = 'active'
+                                active_assignment.save(update_fields=['hold_status', 'hold_start_date', 'hold_end_date'])
+                            updated_student.status = 'on_hold'
+                        else:
+                            updated_student.status = old_status
+                            student.seat.hold_status = 'none'
+                            student.seat.save(update_fields=['hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
+                            if active_assignment:
+                                active_assignment.hold_status = 'none'
+                                active_assignment.save(update_fields=['hold_status', 'hold_start_date', 'hold_end_date'])
                     else:
-                        # Future hold — keep current seat/student status; hold activates on start_date
-                        # Revert student status back to previous (don't mark on_hold yet)
-                        updated_student.status = old_status
-                        student.seat.hold_status = 'none'
-                        student.seat.save(update_fields=['hold_status', 'hold_student', 'hold_start_date', 'hold_end_date'])
-                        if active_assignment:
-                            active_assignment.hold_status = 'none'
-                            active_assignment.save(update_fields=['hold_status', 'hold_start_date', 'hold_end_date'])
+                        # Seatless / Coaching student
+                        if start_date <= today_date:
+                            updated_student.status = 'on_hold'
+                        else:
+                            updated_student.status = old_status
 
-                    # Recalculate fee expiry to include upcoming hold
-                    _recalc_fee_expiry_with_hold(student)
+                    updated_student.save(update_fields=['status', 'hold_start_date', 'hold_end_date'])
+
+                    # Recalculate fee expiry to include hold extension
+                    _recalc_fee_expiry_with_hold(updated_student)
 
                     create_notification(
                         user=student.user,
-                        title="Seat Put on Hold",
-                        message=f"Your seat {student.seat.seat_number} has been scheduled on hold from {start_date.strftime('%d %b %Y')} to {end_date.strftime('%d %b %Y')}.",
+                        title="Student Put on Hold",
+                        message=f"Your {updated_student.service_type_display} enrollment has been scheduled on hold from {start_date.strftime('%d %b %Y')} to {end_date.strftime('%d %b %Y')}.",
                         link="/dashboard/",
                         category="hold"
                     )
@@ -11389,6 +11420,22 @@ def get_student_hold_periods(student):
                     if seat_period not in periods:
                         periods.append(seat_period)
 
+    # 3) Check StudentProfile-level holds (direct hold on profile, e.g. for Coaching students)
+    if getattr(student, 'hold_start_date', None):
+        start = student.hold_start_date
+        if start <= today:
+            if student.status == 'on_hold':
+                end = student.hold_end_date or today
+            else:
+                end = student.hold_end_date or start
+            if end >= start:
+                profile_period = {
+                    'start': start.strftime('%Y-%m-%d'),
+                    'end': end.strftime('%Y-%m-%d'),
+                }
+                if profile_period not in periods:
+                    periods.append(profile_period)
+
     return periods
 
 
@@ -11435,42 +11482,61 @@ def calculate_hold_extension_days(student):
 
 def _recalc_fee_expiry_with_hold(student):
     """
-    Recalculates library fee expiry from the chain rule, then adds hold extension.
-    A seat hold is strictly a library facility feature, so hold extensions MUST only
-    extend library_fee_expiry_date, then call sync_overall_fee_expiry_date().
-    If library_fee_expiry_date is empty, falls back to the shared fee_expiry_date without guessing.
-    Coaching fee expiry is unaffected.
+    Recalculates fee expiry from the chain rule, then adds hold extension.
+    Extends library_fee_expiry_date for Library/Both students on library hold,
+    and extends coaching_fee_expiry_date for Coaching/Both students on coaching hold.
+    Finally synchronizes overall fee_expiry_date.
     """
     from dateutil.relativedelta import relativedelta
     import calendar as cal_mod
 
-    # If student does not have Library or Both service, library seat holds do not apply
-    if student.service_type not in ['Library', 'Both']:
-        return
-
-    # If library fee expiry is None (cleared or unpaid), do not resurrect a ghost date
-    if student.service_type == 'Both' and student.library_fee_expiry_date is None:
-        return
-    if student.service_type == 'Library' and student.library_fee_expiry_date is None and student.fee_expiry_date is None:
-        return
-
     hold_days = calculate_hold_extension_days(student)
 
-    # 1. Try to sync chain for library
-    base_year, base_month, base_day = sync_student_fee_chain(student, service='library')
-    if base_year is not None:
-        next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
-        _, last_day = cal_mod.monthrange(next_month_date.year, next_month_date.month)
-        final_day = min(base_day, last_day)
-        lib_expiry = datetime(next_month_date.year, next_month_date.month, final_day).date()
-        if hold_days > 0:
-            lib_expiry += timedelta(days=hold_days)
-        student.library_fee_expiry_date = lib_expiry
-    else:
-        # Fall back to existing library_fee_expiry_date without guessing
-        base_exp = student.library_fee_expiry_date or (student.fee_expiry_date if student.service_type == 'Library' else None)
-        if base_exp:
-            student.library_fee_expiry_date = base_exp + timedelta(days=hold_days) if hold_days > 0 else base_exp
+    # 1. Try to sync chain / extend expiry for library
+    if student.service_type in ['Library', 'Both']:
+        has_lib = True
+        if student.service_type == 'Both' and student.library_fee_expiry_date is None:
+            has_lib = False
+        if student.service_type == 'Library' and student.library_fee_expiry_date is None and student.fee_expiry_date is None:
+            has_lib = False
+
+        if has_lib:
+            base_year, base_month, base_day = sync_student_fee_chain(student, service='library')
+            if base_year is not None:
+                next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
+                _, last_day = cal_mod.monthrange(next_month_date.year, next_month_date.month)
+                final_day = min(base_day, last_day)
+                lib_expiry = datetime(next_month_date.year, next_month_date.month, final_day).date()
+                if hold_days > 0:
+                    lib_expiry += timedelta(days=hold_days)
+                student.library_fee_expiry_date = lib_expiry
+            else:
+                base_exp = student.library_fee_expiry_date or (student.fee_expiry_date if student.service_type == 'Library' else None)
+                if base_exp:
+                    student.library_fee_expiry_date = base_exp + timedelta(days=hold_days) if hold_days > 0 else base_exp
+
+    # 2. Try to sync chain / extend expiry for coaching
+    if student.service_type in ['Coaching', 'Both'] or bool(student.batch):
+        has_coach = True
+        if student.service_type == 'Both' and student.coaching_fee_expiry_date is None:
+            has_coach = False
+        if student.service_type == 'Coaching' and student.coaching_fee_expiry_date is None and student.fee_expiry_date is None:
+            has_coach = False
+
+        if has_coach:
+            base_year, base_month, base_day = sync_student_fee_chain(student, service='coaching')
+            if base_year is not None:
+                next_month_date = datetime(base_year, base_month, 1) + relativedelta(months=1)
+                _, last_day = cal_mod.monthrange(next_month_date.year, next_month_date.month)
+                final_day = min(base_day, last_day)
+                coach_expiry = datetime(next_month_date.year, next_month_date.month, final_day).date()
+                if hold_days > 0:
+                    coach_expiry += timedelta(days=hold_days)
+                student.coaching_fee_expiry_date = coach_expiry
+            else:
+                base_exp = student.coaching_fee_expiry_date or (student.fee_expiry_date if student.service_type == 'Coaching' else None)
+                if base_exp:
+                    student.coaching_fee_expiry_date = base_exp + timedelta(days=hold_days) if hold_days > 0 else base_exp
 
     student.sync_overall_fee_expiry_date(save=True)
 

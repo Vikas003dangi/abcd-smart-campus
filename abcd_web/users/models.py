@@ -291,6 +291,8 @@ class StudentProfile(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     is_admitted = models.BooleanField(default=False)
     is_manual_pending = models.BooleanField(default=False)
+    hold_start_date = models.DateField(null=True, blank=True)
+    hold_end_date = models.DateField(null=True, blank=True)
     fee_expiry_date = models.DateField(null=True, blank=True)
     coaching_fee_expiry_date = models.DateField(null=True, blank=True)
     library_fee_expiry_date = models.DateField(null=True, blank=True)
@@ -519,15 +521,18 @@ class StudentProfile(models.Model):
             except Exception:
                 pass
 
-        # INVARIANT: A student without a physical seat cannot be 'on_hold'.
+        # INVARIANT: A pure library student without a physical seat cannot be 'on_hold'.
+        # Students enrolled in Coaching or with explicit hold dates can be on_hold without a library seat.
         if self.status == 'on_hold' and not self.seat_id:
-            Seat = apps.get_model('users', 'Seat')
-            has_seat_hold = self.pk and Seat.objects.filter(hold_student_id=self.pk).exists()
-            if not has_seat_hold:
-                self.status = 'admitted'
-                # Ensure the corrected status is persisted even if caller passed update_fields
-                if kwargs.get('update_fields') is not None:
-                    kwargs['update_fields'] = list(kwargs['update_fields']) + ['status']
+            is_coaching_hold = self.service_type in ['Coaching', 'Both'] or bool(self.batch) or bool(self.hold_start_date)
+            if not is_coaching_hold:
+                Seat = apps.get_model('users', 'Seat')
+                has_seat_hold = self.pk and Seat.objects.filter(hold_student_id=self.pk).exists()
+                if not has_seat_hold:
+                    self.status = 'admitted'
+                    # Ensure the corrected status is persisted even if caller passed update_fields
+                    if kwargs.get('update_fields') is not None:
+                        kwargs['update_fields'] = list(kwargs['update_fields']) + ['status']
 
         super().save(*args, **kwargs)
 

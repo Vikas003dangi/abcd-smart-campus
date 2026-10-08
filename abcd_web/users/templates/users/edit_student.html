@@ -368,7 +368,9 @@
     <!-- Hold Modal -->
     <div class="modal-overlay" id="holdOverlay"></div>
     <div class="modal-card" id="holdModal">
-        <h2 style="margin-bottom: 20px;">Put Seat on Hold</h2>
+        <h2 id="holdModalHeading" style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+            <i class='bx bx-pause-circle' style="color: #f59e0b;"></i> Put Student on Hold
+        </h2>
         <div class="form-group">
             <label>Start Date</label>
             <input type="date" id="modalHoldStart" class="form-control">
@@ -376,6 +378,9 @@
         <div class="form-group" style="margin-bottom: 25px;">
             <label>Duration</label>
             <input type="text" id="modalHoldDuration" class="form-control" placeholder="e.g. 15 days, 1 month">
+            <small style="color: var(--text-muted); display: block; margin-top: 5px; font-size: 0.8rem;">
+                Hold period will automatically extend student fee expiry date.
+            </small>
         </div>
         <div style="display: flex; gap: 10px;">
             <button class="btn-pill btn-save" style="flex: 1;" id="btnConfirmHold">Confirm</button>
@@ -559,16 +564,52 @@
         const statusSelect = document.getElementById('id_status');
         const holdModal = document.getElementById('holdModal');
         const holdOverlay = document.getElementById('holdOverlay');
+        const editForm = document.getElementById('edit-form');
         let prevStatus = statusSelect ? statusSelect.value : "";
+
+        function openHoldModal() {
+            if (!holdModal || !holdOverlay) return;
+            const heading = document.getElementById('holdModalHeading');
+            if (heading) {
+                const sType = serviceSelect ? serviceSelect.value : '{{ student.service_type }}';
+                if (sType === 'Coaching') {
+                    heading.innerHTML = "<i class='bx bx-pause-circle' style='color: #f59e0b;'></i> Put Coaching Student on Hold";
+                } else if (sType === 'Library') {
+                    heading.innerHTML = "<i class='bx bx-pause-circle' style='color: #f59e0b;'></i> Put Seat on Hold";
+                } else {
+                    heading.innerHTML = "<i class='bx bx-pause-circle' style='color: #f59e0b;'></i> Put Student on Hold";
+                }
+            }
+            holdModal.style.display = 'block';
+            holdOverlay.style.display = 'block';
+            const startInput = document.getElementById('modalHoldStart');
+            if (startInput && !startInput.value) {
+                startInput.value = new Date().toISOString().split('T')[0];
+            }
+            const durInput = document.getElementById('modalHoldDuration');
+            if (durInput) setTimeout(() => durInput.focus(), 80);
+        }
 
         if (statusSelect) {
             statusSelect.addEventListener('change', function() {
                 if (this.value === 'on_hold') {
-                    holdModal.style.display = 'block';
-                    holdOverlay.style.display = 'block';
-                    document.getElementById('modalHoldStart').value = new Date().toISOString().split('T')[0];
+                    openHoldModal();
                 } else {
                     prevStatus = this.value;
+                }
+            });
+        }
+
+        if (editForm) {
+            editForm.addEventListener('submit', function(e) {
+                if (statusSelect && statusSelect.value === 'on_hold') {
+                    const startVal = document.getElementById('hidden_hold_start').value;
+                    const durVal = document.getElementById('hidden_hold_duration').value;
+                    if (!startVal || !durVal) {
+                        e.preventDefault();
+                        openHoldModal();
+                        return false;
+                    }
                 }
             });
         }
@@ -599,7 +640,7 @@
                 const start = document.getElementById('modalHoldStart').value;
                 const dur = document.getElementById('modalHoldDuration').value.trim();
                 if (!start || !dur) { 
-                    await showAlert("Details Required", "Please enter all details for the hold."); 
+                    await showAlert("Details Required", "Please enter start date and duration for the hold."); 
                     return; 
                 }
                 document.getElementById('hidden_hold_start').value = start;

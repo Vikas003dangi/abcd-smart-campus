@@ -2794,19 +2794,35 @@
       left: 50%;
       transform: translate(-50%, -50%);
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      width: min(500px, 90vw);
+      border-radius: 16px;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.35);
+      width: min(560px, 94vw);
       max-height: 90vh;
-      overflow-y: auto;
       display: none;
+      flex-direction: column;
       z-index: 3000011;
       /* Safe tier above page-specific elements */
       animation: slideIn 0.3s ease;
+      overflow: hidden;
     }
 
     .admission-modal.active {
-      display: block;
+      display: flex;
+    }
+
+    .admission-modal .modal-header {
+      flex-shrink: 0;
+    }
+
+    .admission-modal .modal-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      max-height: calc(90vh - 140px);
+      padding: 22px 25px;
+    }
+
+    .admission-modal .modal-footer {
+      flex-shrink: 0;
     }
 
     @keyframes slideIn {
@@ -3063,99 +3079,117 @@
     /* ================================================================ */
     /* ADMISSION MODAL ACTION BUTTONS & LIVE BORDER STYLES */
     /* ================================================================ */
+    #admissionModal .modal-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 20px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      border-radius: 0 0 16px 16px;
+    }
+
+    #admissionModal .modal-footer .btn {
+      padding: 9px 15px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      min-width: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+
     #admissionModal .modal-footer #modalCancelBtn {
+      margin-right: auto;
       background: #ffffff !important;
       border: 1.5px solid #94a3b8 !important;
       color: #475569 !important;
-      font-weight: 600 !important;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-      transition: all 0.2s ease;
     }
     #admissionModal .modal-footer #modalCancelBtn:hover {
       background: #f1f5f9 !important;
       border-color: #64748b !important;
       color: #0f172a !important;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
 
-    /* Edit Button with sleek "Live Border" */
+    /* Edit Button with sleek indigo design */
     #admissionModal .modal-footer #modalEditSeatBtn {
       background: #ffffff !important;
       border: 1.5px solid #6366f1 !important;
       color: #4f46e5 !important;
-      font-weight: 600 !important;
-      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18), 0 2px 5px rgba(99, 102, 241, 0.1) !important;
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.15) !important;
       position: relative;
-      transition: all 0.25s ease;
-      animation: modalLiveBorderPulse 2.8s infinite ease-in-out;
     }
     #admissionModal .modal-footer #modalEditSeatBtn:hover {
       background: #f5f3ff !important;
       border-color: #4338ca !important;
       color: #3730a3 !important;
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.35), 0 4px 12px rgba(99, 102, 241, 0.2) !important;
       transform: translateY(-1px);
-    }
-
-    @keyframes modalLiveBorderPulse {
-      0%, 100% {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 2px 5px rgba(99, 102, 241, 0.08);
-      }
-      50% {
-        border-color: #8b5cf6;
-        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3), 0 3px 9px rgba(139, 92, 246, 0.16);
-      }
     }
 
     #admissionModal .modal-footer #modalApproveNoSeatBtn {
       background: #f97316 !important;
       border: 1.5px solid #ea580c !important;
       color: #ffffff !important;
-      font-weight: 600 !important;
       box-shadow: 0 1px 3px rgba(249, 115, 22, 0.2);
     }
     #admissionModal .modal-footer #modalApproveNoSeatBtn:hover {
       background: #ea580c !important;
       border-color: #c2410c !important;
-      box-shadow: 0 3px 8px rgba(249, 115, 22, 0.35);
+      transform: translateY(-1px);
+    }
+
+    #admissionModal .modal-footer #modalApproveBtn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: #ffffff !important;
+      border: none !important;
+      padding: 9px 20px !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.35);
+    }
+    #admissionModal .modal-footer #modalApproveBtn:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #6a3f92 100%) !important;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.45);
+      transform: translateY(-1px);
     }
 
     /* Dark Theme Overrides for Admission Modal Buttons */
+    body.dark-theme #admissionModal {
+      background: #1e1e2d;
+      color: #f1f5f9;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
+    }
+    body.dark-theme #admissionModal .modal-footer {
+      background: #171723;
+      border-top-color: #2e2e42;
+    }
     body.dark-theme #admissionModal .modal-footer #modalCancelBtn {
-      background: #1e293b !important;
+      background: #242436 !important;
       border: 1.5px solid #475569 !important;
       color: #cbd5e1 !important;
     }
     body.dark-theme #admissionModal .modal-footer #modalCancelBtn:hover {
-      background: #334155 !important;
+      background: #33334d !important;
       border-color: #94a3b8 !important;
       color: #ffffff !important;
     }
 
     body.dark-theme #admissionModal .modal-footer #modalEditSeatBtn {
-      background: rgba(99, 102, 241, 0.14) !important;
+      background: rgba(99, 102, 241, 0.16) !important;
       border: 1.5px solid #818cf8 !important;
       color: #c7d2fe !important;
-      box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.25) !important;
-      animation: modalLiveBorderPulseDark 2.8s infinite ease-in-out;
     }
     body.dark-theme #admissionModal .modal-footer #modalEditSeatBtn:hover {
       background: rgba(99, 102, 241, 0.28) !important;
       border-color: #a5b4fc !important;
       color: #ffffff !important;
-      box-shadow: 0 0 0 2px rgba(165, 180, 252, 0.45), 0 4px 12px rgba(99, 102, 241, 0.35) !important;
-    }
-
-    @keyframes modalLiveBorderPulseDark {
-      0%, 100% {
-        border-color: #818cf8;
-        box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.25);
-      }
-      50% {
-        border-color: #a78bfa;
-        box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.4);
-      }
     }
 
     body.dark-theme #admissionModal .modal-footer #modalApproveNoSeatBtn {
@@ -3163,33 +3197,19 @@
       border: 1.5px solid #fb923c !important;
       color: #ffffff !important;
     }
+    body.dark-theme #admissionModal .modal-footer #modalApproveNoSeatBtn:hover {
+      background: #ea580c !important;
+    }
 
-    /* Batch Edit Inline Dropdown Styling */
-    #modalBatchSelect {
-      width: 100%;
-      padding: 9px 12px;
-      font-size: 0.92rem;
-      font-weight: 600;
-      border-radius: 8px;
-      border: 1.5px solid #6366f1;
-      background-color: #ffffff;
-      color: #1e293b;
-      outline: none;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-    #modalBatchSelect:focus {
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-    }
-    body.dark-theme #modalBatchSelect {
-      background-color: #1e293b;
-      color: #f1f5f9;
-      border-color: #818cf8;
-    }
-    body.dark-theme #modalBatchSelect option {
-      background-color: #1e293b;
-      color: #f1f5f9;
+    /* Batch Edit In-Flow Container & In-Flow Options Styling */
+    #modalBatchEditContainer {
+      background: rgba(99, 102, 241, 0.05);
+      border: 1.5px dashed #6366f1;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 14px;
+      margin-bottom: 8px;
+      position: relative;
     }
     body.dark-theme #modalBatchEditContainer {
       background: rgba(99, 102, 241, 0.12) !important;
@@ -3198,6 +3218,134 @@
     body.dark-theme #modalBatchEditContainer .info-label,
     body.dark-theme #modalBatchEditContainer small {
       color: #a5b4fc !important;
+    }
+
+    .modal-batch-trigger-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      font-size: 0.93rem;
+      font-weight: 600;
+      border-radius: 10px;
+      border: 1.5px solid #6366f1;
+      background: #ffffff;
+      color: #1e293b;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    .modal-batch-trigger-btn:hover {
+      border-color: #4f46e5;
+      background: #f8fafc;
+    }
+    .modal-batch-trigger-btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+    body.dark-theme .modal-batch-trigger-btn {
+      background: #242436;
+      color: #f1f5f9;
+      border-color: #818cf8;
+    }
+    body.dark-theme .modal-batch-trigger-btn:hover {
+      background: #2a2a40;
+    }
+
+    /* IN-FLOW options list: expands strictly inside #modalBatchEditContainer */
+    .modal-batch-options-list {
+      position: relative;
+      width: 100%;
+      margin-top: 8px;
+      max-height: 210px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 6px;
+      background: #ffffff;
+      border: 1.5px solid #c7d2fe;
+      border-radius: 10px;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+    body.dark-theme .modal-batch-options-list {
+      background: #1b1b2a;
+      border-color: #3b3b54;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-batch-option-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+      border: 1px solid transparent;
+    }
+    .modal-batch-option-item:hover {
+      background: #eef2ff;
+      color: #4338ca;
+    }
+    .modal-batch-option-item.selected {
+      background: #e0e7ff;
+      color: #3730a3;
+      font-weight: 700;
+      border-color: #818cf8;
+    }
+    body.dark-theme .modal-batch-option-item {
+      color: #cbd5e1;
+    }
+    body.dark-theme .modal-batch-option-item:hover {
+      background: rgba(99, 102, 241, 0.2);
+      color: #ffffff;
+    }
+    body.dark-theme .modal-batch-option-item.selected {
+      background: rgba(99, 102, 241, 0.35);
+      color: #ffffff;
+      border-color: #818cf8;
+    }
+    .modal-batch-option-item .modal-batch-check-icon {
+      color: #4f46e5;
+      font-size: 1.2rem;
+    }
+    body.dark-theme .modal-batch-option-item .modal-batch-check-icon {
+      color: #a5b4fc;
+    }
+
+    /* Scrollbars for modal body and in-flow batch options */
+    .admission-modal .modal-body::-webkit-scrollbar,
+    .modal-batch-options-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .admission-modal .modal-body::-webkit-scrollbar-track,
+    .modal-batch-options-list::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.04);
+      border-radius: 8px;
+    }
+    .admission-modal .modal-body::-webkit-scrollbar-thumb,
+    .modal-batch-options-list::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 8px;
+    }
+    .admission-modal .modal-body::-webkit-scrollbar-thumb:hover,
+    .modal-batch-options-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+    body.dark-theme .admission-modal .modal-body::-webkit-scrollbar-track,
+    body.dark-theme .modal-batch-options-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    body.dark-theme .admission-modal .modal-body::-webkit-scrollbar-thumb,
+    body.dark-theme .modal-batch-options-list::-webkit-scrollbar-thumb {
+      background: rgba(129, 140, 248, 0.5);
     }
 
     /* ================================================================ */
@@ -9526,6 +9674,57 @@
         <p>No coaching students found.</p>
       </div>
       {% endfor %}
+
+      <!-- ======================================================= -->
+      <!-- Coaching Hold Students Section                          -->
+      <!-- ======================================================= -->
+      {% if hold_coaching_students %}
+      <div class="batch-section" style="border-left: 4px solid #f59e0b; margin-top: 30px;">
+        <div class="batch-header" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(217, 119, 6, 0.14));">
+          <h3 style="color: #d97706; display: flex; align-items: center; gap: 8px;">
+            <i class='bx bx-pause-circle'></i> Coaching Hold Students ({{ hold_coaching_students|length }})
+          </h3>
+        </div>
+
+        <div class="student-grid">
+          {% for student in hold_coaching_students %}
+          <div
+            class="student-card {% if student.is_coaching_overdue %}is-overdue{% endif %}"
+            data-status="hold on_hold on hold coaching">
+            <div class="student-header">
+              <div class="student-avatar">
+                <img src="{{ student.photo_url }}" alt="Photo" onerror="this.onerror=null; this.src='{% if student.sex == 'Female' %}{% static 'data/default_avatar_female.png' %}{% else %}{% static 'data/default_avatar_male.png' %}{% endif %}';">
+              </div>
+              <div class="student-name-id">
+                <div class="student-name">
+                  <a href="{% url 'users:student_details' student.id %}">{{ student.full_name }}</a>
+                </div>
+                <div class="student-id status-orange" style="margin-top:2px;">
+                  Hold: {{ student.batch|default:"(No Batch)" }}
+                </div>
+                <div class="student-id" style="margin-top: 2px; margin-left: 4px; background: rgba(0, 0, 0, 0.05); color: #64748b; border: 1px solid rgba(0, 0, 0, 0.08);">ID: {{ student.id }}</div>
+              </div>
+            </div>
+
+            <div class="student-info">
+              <div>📞 {{ student.mobile_number }}</div>
+              <div class="student-email" title="{{ student.user.email|default:'No email' }}">📧 {{ student.user.email|default:"No email" }}</div>
+              {% if student.hold_start_date and student.hold_end_date %}
+              <div style="font-size: 0.8rem; color: #d97706; font-weight: 600; margin-top: 5px;">
+                🗓️ Hold: {{ student.hold_start_date|date:"d M" }} - {{ student.hold_end_date|date:"d M Y" }}
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="student-actions" style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 6px;">
+              <a href="{% url 'users:student_details' student.id %}" class="btn btn-view-profile">👁 View {{ student.first_name }}</a>
+              <a href="{% url 'users:fee_calendar' student.id %}?service=coaching" class="btn btn-success btn-fees-compact">💰 Fees</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Library Students Tab -->
@@ -11275,32 +11474,67 @@
           { value: 'Spoken English 2', label: 'Spoken English & PD Batch 2' },
         ];
 
+        const initialSelected = coachingBatches.find(b =>
+          batch && (b.value.toLowerCase() === batch.toLowerCase() || b.label.toLowerCase() === batch.toLowerCase())
+        ) || coachingBatches[0];
+
         let contentHTML = `
-        <p>Do you want to approve admission of <strong>"${safeEscape(studentName)}"</strong>?</p>
-        <div class="request-info">
+        <p style="margin-top: 0; font-size: 1.05rem;">Do you want to approve admission of <strong>"${safeEscape(studentName)}"</strong>?</p>
+        <div class="request-info" style="margin: 16px 0 20px;">
           <div class="info-row">
             <span class="info-label">Student:</span>
-            <span class="info-value">${safeEscape(studentName)}</span>
+            <span class="info-value"><strong>${safeEscape(studentName)}</strong></span>
           </div>
           <div class="info-row">
             <span class="info-label">Service:</span>
-            <span class="info-value">Coaching</span>
+            <span class="info-value"><span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; border-radius: 6px; font-weight: 700; font-size: 0.85rem;"><i class='bx bx-book-open'></i> Coaching</span></span>
           </div>
           <div class="info-row" id="modalBatchDisplayRow">
-            <span class="info-label">Requested Batch:</span>
-            <span class="info-value" id="modalBatchDisplayValue">${safeEscape(batch || '(not selected yet!)')}</span>
+            <span class="info-label">Assigned Batch:</span>
+            <span class="info-value" id="modalBatchDisplayValue">
+              <span style="font-weight: 700;" id="modalBatchNameText">${safeEscape(batch || '(No Batch Requested)')}</span>
+              ${batch ? '<span style="font-size: 0.76rem; background: #e0e7ff; color: #4338ca; padding: 2px 7px; border-radius: 4px; font-weight: 600; margin-left: 6px;">Requested</span>' : ''}
+            </span>
           </div>
-          <div class="info-row" id="modalBatchEditContainer" style="display: none; flex-direction: column; gap: 6px; margin-top: 10px; padding: 12px; background: rgba(99, 102, 241, 0.06); border-radius: 10px; border: 1.5px dashed #6366f1;">
+          <div class="info-row" id="modalBatchEditContainer" style="display: none; flex-direction: column; gap: 8px; margin-top: 14px; padding: 14px; background: rgba(99, 102, 241, 0.06); border-radius: 12px; border: 1.5px dashed #6366f1;">
             <div style="display: flex; align-items: center; justify-content: space-between;">
-              <span class="info-label" style="color: #4f46e5; font-weight: 700;">Select Batch:</span>
+              <span class="info-label" style="color: #4f46e5; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <i class='bx bx-select-multiple'></i> Select Batch:
+              </span>
               <small style="color: #6366f1; font-weight: 600;">Choose from 6 batches</small>
             </div>
-            <select id="modalBatchSelect" class="form-control">
+
+            <!-- In-flow batch trigger button -->
+            <button type="button" id="modalBatchTriggerBtn" class="modal-batch-trigger-btn" aria-expanded="true">
+              <span id="modalBatchTriggerContent" style="display: flex; align-items: center; gap: 8px;">
+                <i class='bx ${initialSelected.value.includes('Spoken') ? 'bx-conversation' : 'bx-book-bookmark'}' style="color: #6366f1;"></i>
+                <span id="modalBatchTriggerLabel">${safeEscape(initialSelected.label)}</span>
+              </span>
+              <i class='bx bx-chevron-up' id="modalBatchPickerChevron" style="transition: transform 0.2s ease;"></i>
+            </button>
+
+            <!-- In-flow options list rendered INSIDE #modalBatchEditContainer -->
+            <div id="modalBatchOptionsList" class="modal-batch-options-list" role="listbox">
               ${coachingBatches.map(b => {
-                const isSelected = (batch && (b.value.toLowerCase() === batch.toLowerCase() || b.label.toLowerCase() === batch.toLowerCase())) ? 'selected' : '';
-                return `<option value="${safeEscape(b.value)}" ${isSelected}>${safeEscape(b.label)}</option>`;
+                const isSelected = (b.value === initialSelected.value);
+                return `
+                <div class="modal-batch-option-item ${isSelected ? 'selected' : ''}" data-value="${safeEscape(b.value)}" data-label="${safeEscape(b.label)}" role="option" aria-selected="${isSelected ? 'true' : 'false'}">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class='bx ${b.value.includes('Spoken') ? 'bx-conversation' : 'bx-book-bookmark'}' style="font-size: 1.1rem; color: ${isSelected ? '#4f46e5' : '#818cf8'};"></i>
+                    <span class="batch-opt-name">${safeEscape(b.label)}</span>
+                  </div>
+                  <i class='bx bx-check modal-batch-check-icon' style="${isSelected ? 'display: inline-block;' : 'display: none;'}"></i>
+                </div>
+                `;
               }).join('')}
-            </select>
+            </div>
+
+            <!-- Hidden input to store chosen batch value for form submission -->
+            <input type="hidden" id="modalBatchSelect" name="batch" value="${safeEscape(initialSelected.value)}">
+
+            <small style="color: #64748b; font-size: 0.8rem; margin-top: 4px;">
+              ℹ️ Select a batch above and click <b>Approve</b> to enroll.
+            </small>
           </div>
         </div>
       `;
@@ -11309,34 +11543,79 @@
 
         modalContent.innerHTML = contentHTML;
 
-        // Show Edit Batch button with live border
+        // Show Edit Batch button
         modalEditSeatBtn.style.display = 'inline-block';
-        modalEditSeatBtn.textContent = 'Edit Batch';
+        modalEditSeatBtn.innerHTML = "<i class='bx bx-edit-alt'></i> Edit Batch";
 
         // Show 'Approve without Batch' button
         if (modalApproveNoSeatBtn) {
           modalApproveNoSeatBtn.style.display = 'inline-block';
-          modalApproveNoSeatBtn.textContent = 'Approve without Batch';
+          modalApproveNoSeatBtn.innerHTML = "<i class='bx bx-user-x'></i> Approve without Batch";
         }
 
         // Show Cancel button for Coaching requests
         if (modalCancelBtn) {
           modalCancelBtn.style.display = 'inline-block';
+          modalCancelBtn.textContent = 'Cancel';
         }
 
-        modalApproveBtn.textContent = 'Approve';
+        modalApproveBtn.style.display = 'inline-block';
+        modalApproveBtn.innerHTML = "<i class='bx bx-check'></i> Approve";
 
         openModal();
       }
 
-      // Live update displayed batch when dropdown selection changes
-      document.addEventListener('change', function (e) {
-        if (e.target && e.target.id === 'modalBatchSelect') {
-          const selectedText = e.target.options[e.target.selectedIndex].text;
+      // Batch picker trigger toggle & item selection listeners
+      document.addEventListener('click', function (e) {
+        const triggerBtn = e.target.closest('#modalBatchTriggerBtn');
+        if (triggerBtn) {
+          e.preventDefault();
+          const optionsList = document.getElementById('modalBatchOptionsList');
+          const chevron = document.getElementById('modalBatchPickerChevron');
+          if (optionsList) {
+            const isClosed = (optionsList.style.display === 'none');
+            optionsList.style.display = isClosed ? 'flex' : 'none';
+            if (chevron) {
+              chevron.className = isClosed ? 'bx bx-chevron-up' : 'bx bx-chevron-down';
+            }
+          }
+          return;
+        }
+
+        const optionItem = e.target.closest('.modal-batch-option-item');
+        if (optionItem) {
+          e.preventDefault();
+          const val = optionItem.dataset.value;
+          const label = optionItem.dataset.label;
+          const selectHidden = document.getElementById('modalBatchSelect');
+          if (selectHidden) {
+            selectHidden.value = val;
+          }
+
+          // Update trigger label
+          const triggerLabel = document.getElementById('modalBatchTriggerLabel');
+          if (triggerLabel) triggerLabel.textContent = label;
+
+          // Update trigger icon
+          const triggerIcon = document.querySelector('#modalBatchTriggerContent i');
+          if (triggerIcon) {
+            triggerIcon.className = val.includes('Spoken') ? 'bx bx-conversation' : 'bx bx-book-bookmark';
+          }
+
+          // Update Assigned Batch row above
           const displayVal = document.getElementById('modalBatchDisplayValue');
           if (displayVal) {
-            displayVal.innerHTML = `<strong>${safeEscape(selectedText)}</strong> <span style="font-size: 0.78rem; color: #4f46e5; font-weight: 700; background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; margin-left: 4px;">Selected</span>`;
+            displayVal.innerHTML = `<strong style="color: #4f46e5;">${safeEscape(label)}</strong> <span style="font-size: 0.78rem; color: #4338ca; font-weight: 700; background: #e0e7ff; padding: 2px 7px; border-radius: 4px; margin-left: 6px;">New Selection</span>`;
           }
+
+          // Update active state in options list
+          document.querySelectorAll('.modal-batch-option-item').forEach(el => {
+            const isThis = (el === optionItem);
+            el.classList.toggle('selected', isThis);
+            el.setAttribute('aria-selected', isThis ? 'true' : 'false');
+            const check = el.querySelector('.modal-batch-check-icon');
+            if (check) check.style.display = isThis ? 'inline-block' : 'none';
+          });
         }
       });
 
@@ -11350,17 +11629,15 @@
 
       modalEditSeatBtn.addEventListener('click', function () {
         if (currentServiceType === 'coaching') {
-          // Toggle the batch dropdown container inside the modal
+          // Toggle the batch container inside the modal
           const batchContainer = document.getElementById('modalBatchEditContainer');
           if (batchContainer) {
             const isHidden = (batchContainer.style.display === 'none');
             batchContainer.style.display = isHidden ? 'flex' : 'none';
             if (isHidden) {
-              const select = document.getElementById('modalBatchSelect');
-              if (select) select.focus();
-              modalEditSeatBtn.textContent = 'Hide Batch Edit';
+              modalEditSeatBtn.innerHTML = "<i class='bx bx-hide'></i> Hide Batch Edit";
             } else {
-              modalEditSeatBtn.textContent = 'Edit Batch';
+              modalEditSeatBtn.innerHTML = "<i class='bx bx-edit-alt'></i> Edit Batch";
             }
           }
           return;
@@ -11408,11 +11685,10 @@
         const formData = new FormData(currentForm);
         let actionUrl = currentForm.getAttribute('action') || currentForm.action;
 
-        // If coaching and batch was selected in dropdown, include it
+        // If coaching, include the selected batch from modal
         if (currentServiceType === 'coaching') {
-          const batchContainer = document.getElementById('modalBatchEditContainer');
           const batchSelect = document.getElementById('modalBatchSelect');
-          if (batchSelect && batchContainer && batchContainer.style.display !== 'none' && batchSelect.value) {
+          if (batchSelect && batchSelect.value) {
             formData.set('batch', batchSelect.value);
             const sep = actionUrl.includes('?') ? '&' : '?';
             actionUrl = actionUrl + sep + 'batch=' + encodeURIComponent(batchSelect.value);
