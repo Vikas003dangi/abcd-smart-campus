@@ -29,8 +29,10 @@ logger = logging.getLogger(__name__)
 # Standard accounts & contact
 ABCD_ASST_EMAIL = "vd19055@gmail.com"
 SANDEEP_SIR_EMAIL = "abcd2013baq@gmail.com"
-URGENT_CALL_PHONE = "8109455803"
-OFFICE_PHONE = URGENT_CALL_PHONE
+SANDEEP_CALL_PHONE = "8109455803"
+VIKAS_CALL_PHONE = "7974154551"
+URGENT_CALL_PHONE = SANDEEP_CALL_PHONE
+OFFICE_PHONE = SANDEEP_CALL_PHONE
 
 # Keywords for deterministic classification
 # Evaluated in priority order: emergency -> fees_dispute -> complaint -> ...
@@ -122,18 +124,18 @@ TOPIC_RULES = [
 RESPONSES_BY_PERSONA = {
     'vikas': {
         'emergency': [
-            f"Namaste! I am an automated assistant on behalf of ABCD Asst. Vikas Dangi. Vikas Sir is currently busy and will connect shortly. Please know you are not alone. If you are in distress, professional support is available free 24x7 via Tele-MANAS at 14416. An urgent notification has been sent to our team, and for immediate assistance you can call {URGENT_CALL_PHONE}.",
-            f"Hello! This is the automated assistant for ABCD Asst. Vikas Dangi. Vikas Sir is engaged right now and will review your message soon. Please take a gentle breath. You can reach trained counselors free 24x7 at the National Tele-MANAS helpline (14416). We have flagged your message for priority review, and you can also reach us directly at {URGENT_CALL_PHONE}.",
-            f"Greetings! I am the automated bot for ABCD Asst. Vikas. Vikas Sir is temporarily away from the desk and will get back to you shortly. Your wellbeing is precious to us. Please connect with the 24x7 Tele-MANAS helpline at 14416 for immediate support. Our admin team has been alerted, and you can also call {URGENT_CALL_PHONE}."
+            f"Namaste! I am an automated assistant on behalf of ABCD Asst. Vikas Dangi. Vikas Sir is currently busy and will connect shortly. Please know you are not alone. If you are in distress, professional support is available free 24x7 via Tele-MANAS at 14416. An urgent notification has been sent to our team, and for immediate assistance you can call {VIKAS_CALL_PHONE}.",
+            f"Hello! This is the automated assistant for ABCD Asst. Vikas Dangi. Vikas Sir is engaged right now and will review your message soon. Please take a gentle breath. You can reach trained counselors free 24x7 at the National Tele-MANAS helpline (14416). We have flagged your message for priority review, and you can also reach us directly at {VIKAS_CALL_PHONE}.",
+            f"Greetings! I am the automated bot for ABCD Asst. Vikas. Vikas Sir is temporarily away from the desk and will get back to you shortly. Your wellbeing is precious to us. Please connect with the 24x7 Tele-MANAS helpline at 14416 for immediate support. Our admin team has been alerted, and you can also call {VIKAS_CALL_PHONE}."
         ],
         'fees_dispute': [
-            f"Namaste! I am an automated assistant on behalf of ABCD Asst. Vikas Dangi. Vikas Sir is currently busy and will connect shortly. For payment issues or refund inquiries, our accounts desk reviews every bank transaction directly. Vikas Sir will inspect this soon, and for urgent assistance you can call {URGENT_CALL_PHONE}.",
-            f"Hello! This is the automated assistant for ABCD Asst. Vikas Dangi. Vikas Sir is engaged right now. Financial corrections and payment double-deductions are personally audited to keep your records secure. Please keep your transaction ID handy. Vikas Sir will follow up soon, or call {URGENT_CALL_PHONE}.",
-            f"Greetings! I am the automated bot for ABCD Asst. Vikas. Vikas Sir is temporarily away and will get back to you shortly. We have noted your payment concern for human inspection. Vikas Sir will verify your transaction records soon, or you can call our direct line at {URGENT_CALL_PHONE}."
+            f"Namaste! I am an automated assistant on behalf of ABCD Asst. Vikas Dangi. Vikas Sir is currently busy and will connect shortly. For payment issues or refund inquiries, our accounts desk reviews every bank transaction directly. Vikas Sir will inspect this soon, and for urgent assistance you can call {VIKAS_CALL_PHONE}.",
+            f"Hello! This is the automated assistant for ABCD Asst. Vikas Dangi. Vikas Sir is engaged right now. Financial corrections and payment double-deductions are personally audited to keep your records secure. Please keep your transaction ID handy. Vikas Sir will follow up soon, or call {VIKAS_CALL_PHONE}.",
+            f"Greetings! I am the automated bot for ABCD Asst. Vikas. Vikas Sir is temporarily away and will get back to you shortly. We have noted your payment concern for human inspection. Vikas Sir will verify your transaction records soon, or you can call our direct line at {VIKAS_CALL_PHONE}."
         ],
         'complaint': [
-            f"Namaste! I am an automated assistant on behalf of ABCD Asst. Vikas Dangi. Vikas Sir is currently busy and will connect shortly. If you are facing any facility or campus issue, please submit a ticket at the Complaints Desk on your student portal so we can track and resolve it. Vikas Sir will review this soon, or call {URGENT_CALL_PHONE}.",
-            f"Hello! This is the automated assistant for ABCD Asst. Vikas Dangi. Vikas Sir is engaged right now. You can log campus issues, AC/light maintenance, or study room feedback directly via the Complaints section in your portal. Vikas Sir will look into it promptly, or feel free to call {URGENT_CALL_PHONE}.",
+            f"Namaste! I am an automated assistant on behalf of ABCD Asst. Vikas Dangi. Vikas Sir is currently busy and will connect shortly. If you are facing any facility or campus issue, please submit a ticket at the Complaints Desk on your student portal so we can track and resolve it. Vikas Sir will review this soon, or call {VIKAS_CALL_PHONE}.",
+            f"Hello! This is the automated assistant for ABCD Asst. Vikas Dangi. Vikas Sir is engaged right now. You can log campus issues, AC/light maintenance, or study room feedback directly via the Complaints section in your portal. Vikas Sir will look into it promptly, or feel free to call {VIKAS_CALL_PHONE}.",
             f"Greetings! I am the automated bot for ABCD Asst. Vikas. Vikas Sir is temporarily away from the desk. To ensure swift action, please raise a formal ticket from the Complaints section on your dashboard. Vikas Sir will follow up with you shortly."
         ],
         'fees': [
@@ -179,18 +181,18 @@ RESPONSES_BY_PERSONA = {
     },
     'sandeep': {
         'emergency': [
-            f"Namaste! I am an automated assistant on behalf of Sandeep Sir. Sir is currently taking sessions and will connect shortly. Please know that you are not alone and your wellbeing matters deeply. If you are experiencing severe distress, free professional support is available 24x7 via Tele-MANAS at 14416. An urgent alert has been placed for Sandeep Sir, and for immediate help you can call {URGENT_CALL_PHONE}.",
-            f"Pranam! This is the automated assistant for Sandeep Sir. Sandeep Sir is currently busy in classes and will review your message soon. Please take a gentle breath. Confidential, free mental health counseling is accessible anytime at Tele-MANAS (14416). We have flagged this urgently for Sandeep Sir, and you can also call our direct line at {URGENT_CALL_PHONE}.",
-            f"Greetings! I am the automated assistant on behalf of Sandeep Sir. Sir is engaged with students right now and will get back to you shortly. Please do not face this alone. Free 24x7 counseling is available via Tele-MANAS at 14416. An urgent notification has been delivered to Sandeep Sir, and you may call {URGENT_CALL_PHONE}."
+            f"Namaste! I am an automated assistant on behalf of Sandeep Sir. Sir is currently taking sessions and will connect shortly. Please know that you are not alone and your wellbeing matters deeply. If you are experiencing severe distress, free professional support is available 24x7 via Tele-MANAS at 14416. An urgent alert has been placed for Sandeep Sir, and for immediate help you can call {SANDEEP_CALL_PHONE}.",
+            f"Pranam! This is the automated assistant for Sandeep Sir. Sandeep Sir is currently busy in classes and will review your message soon. Please take a gentle breath. Confidential, free mental health counseling is accessible anytime at Tele-MANAS (14416). We have flagged this urgently for Sandeep Sir, and you can also call our direct line at {SANDEEP_CALL_PHONE}.",
+            f"Greetings! I am the automated assistant on behalf of Sandeep Sir. Sir is engaged with students right now and will get back to you shortly. Please do not face this alone. Free 24x7 counseling is available via Tele-MANAS at 14416. An urgent notification has been delivered to Sandeep Sir, and you may call {SANDEEP_CALL_PHONE}."
         ],
         'fees_dispute': [
-            f"Namaste! I am an automated assistant on behalf of Sandeep Sir. Sir is currently taking sessions and will connect shortly. Financial adjustments and payment deductions are personally verified by our admin desk. Sandeep Sir will inspect your records as soon as class concludes, or you can call {URGENT_CALL_PHONE} for immediate assistance.",
-            f"Pranam! This is the automated assistant for Sandeep Sir. Sandeep Sir is busy in classes right now. Any payment dispute or duplicate charge is audited directly to ensure accuracy. Please keep your transaction details ready. Sandeep Sir will connect shortly, or call {URGENT_CALL_PHONE}.",
-            f"Greetings! I am the automated assistant on behalf of Sandeep Sir. Sir is engaged with students right now. We have recorded your billing inquiry for manual review. Sandeep Sir will verify your transaction details shortly, or you can contact our office directly at {URGENT_CALL_PHONE}."
+            f"Namaste! I am an automated assistant on behalf of Sandeep Sir. Sir is currently taking sessions and will connect shortly. Financial adjustments and payment deductions are personally verified by our admin desk. Sandeep Sir will inspect your records as soon as class concludes, or you can call {SANDEEP_CALL_PHONE} for immediate assistance.",
+            f"Pranam! This is the automated assistant for Sandeep Sir. Sandeep Sir is busy in classes right now. Any payment dispute or duplicate charge is audited directly to ensure accuracy. Please keep your transaction details ready. Sandeep Sir will connect shortly, or call {SANDEEP_CALL_PHONE}.",
+            f"Greetings! I am the automated assistant on behalf of Sandeep Sir. Sir is engaged with students right now. We have recorded your billing inquiry for manual review. Sandeep Sir will verify your transaction details shortly, or you can contact our office directly at {SANDEEP_CALL_PHONE}."
         ],
         'complaint': [
-            f"Namaste! I am an automated assistant on behalf of Sandeep Sir. Sir is currently taking sessions and will connect shortly. To report any maintenance or library facility concern, please submit a formal request at the Complaints Desk on your portal. Sandeep Sir will review it, or call {URGENT_CALL_PHONE}.",
-            f"Pranam! This is the automated assistant for Sandeep Sir. Sandeep Sir is busy in classes right now. You can log study hall issues, fan/light maintenance, or water concerns on the Complaints page of your portal for tracked resolution. Sandeep Sir will follow up soon, or call {URGENT_CALL_PHONE}.",
+            f"Namaste! I am an automated assistant on behalf of Sandeep Sir. Sir is currently taking sessions and will connect shortly. To report any maintenance or library facility concern, please submit a formal request at the Complaints Desk on your portal. Sandeep Sir will review it, or call {SANDEEP_CALL_PHONE}.",
+            f"Pranam! This is the automated assistant for Sandeep Sir. Sandeep Sir is busy in classes right now. You can log study hall issues, fan/light maintenance, or water concerns on the Complaints page of your portal for tracked resolution. Sandeep Sir will follow up soon, or call {SANDEEP_CALL_PHONE}.",
             f"Greetings! I am the automated assistant on behalf of Sandeep Sir. Sir is engaged with students right now. For prompt action on campus issues, please log a ticket on the Complaints section of your portal. Sandeep Sir will inspect this as soon as he is free."
         ],
         'fees': [
@@ -321,9 +323,56 @@ def classify_message(content: str):
     return 'fallback', ''
 
 
-def get_quick_chips(topic: str):
-    """Returns quick action chips for a detected topic."""
-    return TOPIC_CHIPS.get(topic, TOPIC_CHIPS['fallback'])
+def get_quick_chips(topic: str, persona: str = 'sandeep'):
+    """Returns quick action chips for a detected topic, with persona-specific call phone number."""
+    phone = VIKAS_CALL_PHONE if persona == 'vikas' else SANDEEP_CALL_PHONE
+    call_chip = {'label': f'Call: {phone}', 'url': f'tel:{phone}', 'icon': 'bx-phone'}
+    chips_map = {
+        'emergency': [
+            {'label': 'Tele-MANAS (14416)', 'url': 'tel:14416', 'icon': 'bx-phone-call'},
+            call_chip
+        ],
+        'fees_dispute': [
+            call_chip,
+            {'label': 'Complaint Desk', 'url': '/complaints/', 'icon': 'bx-support'}
+        ],
+        'complaint': [
+            {'label': 'Complaint Desk', 'url': '/complaints/', 'icon': 'bx-support'},
+            call_chip
+        ],
+        'fees': [
+            {'label': 'Dashboard & Fees', 'url': '/dashboard/', 'icon': 'bx-receipt'},
+            {'label': 'Campus Services', 'url': '/services/', 'icon': 'bx-info-circle'}
+        ],
+        'seats': [
+            {'label': 'Live Seat Layout', 'url': '/library-availability/', 'icon': 'bx-chair'},
+            {'label': 'My Seat', 'url': '/my-seat/', 'icon': 'bx-book-reader'}
+        ],
+        'timings': [
+            {'label': 'Campus Services', 'url': '/services/', 'icon': 'bx-time'},
+            {'label': 'Contact Page', 'url': '/contact/', 'icon': 'bx-phone'}
+        ],
+        'admission': [
+            {'label': 'Admission Form', 'url': '/admission-form/', 'icon': 'bx-edit'},
+            {'label': 'Campus Services', 'url': '/services/', 'icon': 'bx-graduation'}
+        ],
+        'auth': [
+            {'label': 'Forgot Password', 'url': '/forgot-password/', 'icon': 'bx-key'},
+            {'label': 'Login Page', 'url': '/login/', 'icon': 'bx-log-in'}
+        ],
+        'courses': [
+            {'label': 'Browse Courses', 'url': '/courses/', 'icon': 'bx-book-open'}
+        ],
+        'greeting': [
+            {'label': 'Campus Services', 'url': '/services/', 'icon': 'bx-grid-alt'},
+            {'label': 'Library Availability', 'url': '/library-availability/', 'icon': 'bx-chair'}
+        ],
+        'fallback': [
+            {'label': 'Campus Services', 'url': '/services/', 'icon': 'bx-grid-alt'},
+            call_chip
+        ]
+    }
+    return chips_map.get(topic, chips_map['fallback'])
 
 
 def is_staff_or_teacher(user):
@@ -641,6 +690,8 @@ def _broadcast_auto_reply(msg, recipient):
         if not layer:
             return
         owner = msg.sender
+        persona_key = get_persona_key(owner)
+        phone = VIKAS_CALL_PHONE if persona_key == 'vikas' else SANDEEP_CALL_PHONE
         payload = {
             'id': msg.id, 'client_msg_id': None, 'content': msg.content,
             'message_type': msg.message_type, 'file_url': None, 'file_name': None,
@@ -650,6 +701,8 @@ def _broadcast_auto_reply(msg, recipient):
             'sender_photo': get_profile_photo_url(owner), 'reply_to': None,
             'is_pinned': False, 'media_expired': False, 'is_delivered': False,
             'is_read': False, 'is_verified': True, 'is_auto_reply': True,
+            'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
+            'auto_reply_phone': phone,
             'recipient_ids': [recipient.id],
         }
         session_id = msg.direct_session_id

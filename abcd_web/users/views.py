@@ -15001,7 +15001,15 @@ def guidy_respond(request, request_pk):
         )
         return JsonResponse({'success': True, 'action': 'rejected', 'pending_count': remaining_pending})
 
-    return JsonResponse({'success': False, 'error': 'Invalid action'}, status=400)
+def _get_auto_reply_phone_for_msg(msg):
+    """Determine contact phone number for auto-reply: 7974154551 for Vikas Dangi / ABCD Asst, 8109455803 for Sandeep Sir."""
+    if not getattr(msg, 'is_auto_reply', False):
+        return ''
+    sender = getattr(msg, 'sender', None)
+    s_ident = f"{getattr(sender, 'username', '')} {getattr(sender, 'email', '')} {getattr(sender, 'first_name', '')} {getattr(sender, 'last_name', '')} {getattr(msg, 'content', '')}".lower()
+    if 'vikas' in s_ident or 'asst' in s_ident or 'vd19055' in s_ident or '7974154551' in s_ident:
+        return '7974154551'
+    return '8109455803'
 
 
 @login_required
@@ -15283,6 +15291,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
         'is_auto_reply': getattr(msg, 'is_auto_reply', False),
         'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
+        'auto_reply_phone': _get_auto_reply_phone_for_msg(msg),
     }
 
     try:
@@ -15475,6 +15484,7 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
             'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
             'is_auto_reply': getattr(msg, 'is_auto_reply', False),
             'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
+            'auto_reply_phone': _get_auto_reply_phone_for_msg(msg),
         })
 
     # Fetch read message ids sent by request.user
@@ -19369,6 +19379,7 @@ def guidy_load_older(request):
             'is_verified': (msg.sender.is_staff or msg.sender.is_superuser),
             'is_auto_reply': getattr(msg, 'is_auto_reply', False),
             'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
+            'auto_reply_phone': _get_auto_reply_phone_for_msg(msg),
         })
 
     return JsonResponse({
@@ -19671,6 +19682,7 @@ def guidy_load_chat_api(request):
                 'is_verified': bool(msg.sender and (msg.sender.is_staff or msg.sender.is_superuser)),
                 'is_auto_reply': getattr(msg, 'is_auto_reply', False),
                 'auto_reply_topic': getattr(msg, 'auto_reply_topic', '') or '',
+                'auto_reply_phone': _get_auto_reply_phone_for_msg(msg),
             })
 
         # Generate URLs

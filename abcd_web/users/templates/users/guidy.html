@@ -1015,79 +1015,177 @@ body.dark-theme .g-msg-row.theirs .g-expired-media-notice i {
 .g-bubble.pinned-msg { border-left: 3px solid #fbbf24; }
 .g-bubble.starred-msg { border-right: 3px solid #f59e0b; }
 
-/* Smart Auto-Reply Bubble */
-.g-bubble.auto-reply-bubble {
-  border: 1.5px solid #8b5cf6 !important;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%) !important;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.12);
-}
-body.dark-theme .g-bubble.auto-reply-bubble {
+/* ── Smart Auto-Reply Bubble (Light Theme Default & Dark Theme) ── */
+.g-bubble.auto-reply-bubble,
+.g-msg-row.mine .g-bubble.auto-reply-bubble,
+.g-msg-row.theirs .g-bubble.auto-reply-bubble {
   border: 1.5px solid #a78bfa !important;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(99, 102, 241, 0.10) 100%) !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(145deg, #f8f7ff 0%, #ede9fe 100%) !important;
+  color: #1e1b4b !important; /* Deep contrast indigo-slate text for light mode */
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
+
+.g-bubble.auto-reply-bubble .g-msg-text,
+.g-msg-row.mine .g-bubble.auto-reply-bubble .g-msg-text,
+.g-msg-row.theirs .g-bubble.auto-reply-bubble .g-msg-text {
+  color: #1e1b4b !important;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.g-bubble.auto-reply-bubble .msg-chevron {
+  color: #6d28d9 !important;
+}
+
+/* Light theme badge */
 .auto-reply-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #7c3aed;
-  background: rgba(124, 58, 237, 0.12);
-  padding: 2px 8px;
+  color: #5b21b6 !important;
+  background: #ede9fe !important;
+  border: 1px solid #c4b5fd !important;
+  padding: 2.5px 8.5px;
   border-radius: 12px;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
+  box-shadow: 0 1px 2px rgba(109, 40, 217, 0.08);
 }
-body.dark-theme .auto-reply-badge {
-  color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.25);
+.auto-reply-badge i {
+  font-size: 0.85rem;
+  color: #7c3aed !important;
 }
+
+/* Light theme disclaimer */
 .auto-reply-disclaimer {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.73rem;
-  color: var(--g-sub, #6b7280);
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed rgba(139, 92, 246, 0.25);
+  gap: 5px;
+  font-size: 0.74rem;
+  color: #475569 !important;
+  margin-top: 9px;
+  padding-top: 7px;
+  border-top: 1px dashed rgba(124, 58, 237, 0.3) !important;
   font-style: italic;
 }
+.auto-reply-disclaimer i {
+  color: #7c3aed !important;
+}
+
+/* Light theme chips */
 .auto-reply-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 7px;
+  margin-top: 10px;
 }
 .auto-reply-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 16px;
-  font-size: 0.76rem;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 18px;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #6d28d9;
-  background: rgba(109, 40, 217, 0.08);
-  border: 1px solid rgba(109, 40, 217, 0.25);
+  color: #4338ca !important;
+  background: #ffffff !important;
+  border: 1.5px solid #c7d2fe !important;
+  box-shadow: 0 2px 4px rgba(67, 56, 202, 0.08);
   text-decoration: none;
   transition: all 0.2s ease;
+  cursor: pointer;
+}
+.auto-reply-chip i {
+  color: #6366f1 !important;
+  font-size: 0.95rem;
+  transition: color 0.2s;
 }
 .auto-reply-chip:hover {
-  background: #7c3aed;
-  color: #ffffff;
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
   transform: translateY(-1px);
 }
+.auto-reply-chip:hover i {
+  color: #ffffff !important;
+}
+
+/* Light theme timestamp/ticks for auto-reply bubbles */
+.g-msg-row.mine:has(.auto-reply-bubble) .g-msg-meta,
+.g-msg-row.mine .g-bubble.auto-reply-bubble + .g-msg-meta {
+  color: #64748b !important;
+}
+.g-msg-row.mine:has(.auto-reply-bubble) .g-msg-meta span,
+.g-msg-row.mine .g-bubble.auto-reply-bubble + .g-msg-meta span {
+  color: #64748b !important;
+}
+.g-msg-row.mine:has(.auto-reply-bubble) .msg-tick,
+.g-msg-row.mine .g-bubble.auto-reply-bubble + .g-msg-meta .msg-tick {
+  color: #6366f1 !important;
+}
+
+/* ── Dark Theme Overrides for Auto-Reply ── */
+body.dark-theme .g-bubble.auto-reply-bubble,
+body.dark-theme .g-msg-row.mine .g-bubble.auto-reply-bubble,
+body.dark-theme .g-msg-row.theirs .g-bubble.auto-reply-bubble {
+  border: 1.5px solid #8b5cf6 !important;
+  background: linear-gradient(145deg, rgba(76, 29, 149, 0.35) 0%, rgba(30, 27, 75, 0.6) 100%) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45) !important;
+}
+body.dark-theme .g-bubble.auto-reply-bubble .g-msg-text,
+body.dark-theme .g-msg-row.mine .g-bubble.auto-reply-bubble .g-msg-text,
+body.dark-theme .g-msg-row.theirs .g-bubble.auto-reply-bubble .g-msg-text {
+  color: #f8fafc !important;
+}
+body.dark-theme .g-bubble.auto-reply-bubble .msg-chevron {
+  color: #c4b5fd !important;
+}
+body.dark-theme .auto-reply-badge {
+  color: #c4b5fd !important;
+  background: rgba(139, 92, 246, 0.28) !important;
+  border: 1px solid rgba(167, 139, 250, 0.35) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+body.dark-theme .auto-reply-badge i {
+  color: #c4b5fd !important;
+}
+body.dark-theme .auto-reply-disclaimer {
+  color: #94a3b8 !important;
+  border-top: 1px dashed rgba(167, 139, 250, 0.3) !important;
+}
+body.dark-theme .auto-reply-disclaimer i {
+  color: #c4b5fd !important;
+}
 body.dark-theme .auto-reply-chip {
-  color: #ddd6fe;
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.4);
+  color: #e0e7ff !important;
+  background: rgba(99, 102, 241, 0.24) !important;
+  border: 1.5px solid rgba(165, 180, 252, 0.35) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+body.dark-theme .auto-reply-chip i {
+  color: #a5b4fc !important;
 }
 body.dark-theme .auto-reply-chip:hover {
-  background: #8b5cf6;
-  color: #ffffff;
+  background: #6366f1 !important;
+  color: #ffffff !important;
+  border-color: #818cf8 !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+body.dark-theme .auto-reply-chip:hover i {
+  color: #ffffff !important;
+}
+body.dark-theme .g-msg-row.mine:has(.auto-reply-bubble) .g-msg-meta,
+body.dark-theme .g-msg-row.mine .g-bubble.auto-reply-bubble + .g-msg-meta {
+  color: #94a3b8 !important;
+}
+body.dark-theme .g-msg-row.mine:has(.auto-reply-bubble) .g-msg-meta span,
+body.dark-theme .g-msg-row.mine .g-bubble.auto-reply-bubble + .g-msg-meta span {
+  color: #94a3b8 !important;
 }
 
 /* Reply Preview inside bubble */
@@ -3129,6 +3227,14 @@ body.dark-theme .search-highlight {
                     {% endif %}
                     {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
                     {% if msg.is_auto_reply %}
+                      <div class="auto-reply-chips">
+                        <a href="/services/" class="auto-reply-chip" target="_blank" onclick="event.stopPropagation();"><i class='bx bx-grid-alt'></i> Campus Services</a>
+                        {% if "vikas" in msg.sender.username|lower or "asst" in msg.sender.get_full_name|lower or "vikas" in msg.content|lower or "7974154551" in msg.content %}
+                          <a href="tel:7974154551" class="auto-reply-chip" target="_self" onclick="event.stopPropagation();"><i class='bx bx-phone'></i> Call: 7974154551</a>
+                        {% else %}
+                          <a href="tel:8109455803" class="auto-reply-chip" target="_self" onclick="event.stopPropagation();"><i class='bx bx-phone'></i> Call: 8109455803</a>
+                        {% endif %}
+                      </div>
                       <div class="auto-reply-disclaimer"><i class='bx bx-info-circle'></i> Automated response &bull; {{ msg.sender.get_full_name|default:msg.sender.username }} will reply personally soon.</div>
                     {% endif %}
                   </div>
@@ -5740,56 +5846,82 @@ function jumpToDate(dateString) {
   }
 }
 
-const AUTO_REPLY_CHIPS_MAP = {
-  'emergency': [
-    { label: 'Tele-MANAS (14416)', url: 'tel:14416', icon: 'bx-phone-call' },
-    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' }
-  ],
-  'fees_dispute': [
-    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' },
-    { label: 'Complaint Desk', url: '/complaints/', icon: 'bx-support' }
-  ],
-  'complaint': [
-    { label: 'Complaint Desk', url: '/complaints/', icon: 'bx-support' },
-    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' }
-  ],
-  'fees': [
-    { label: 'Dashboard & Fees', url: '/dashboard/', icon: 'bx-receipt' },
-    { label: 'Campus Services', url: '/services/', icon: 'bx-info-circle' }
-  ],
-  'seats': [
-    { label: 'Live Seat Layout', url: '/library-availability/', icon: 'bx-chair' },
-    { label: 'My Seat', url: '/my-seat/', icon: 'bx-book-reader' }
-  ],
-  'timings': [
-    { label: 'Campus Services', url: '/services/', icon: 'bx-time' },
-    { label: 'Contact Page', url: '/contact/', icon: 'bx-phone' }
-  ],
-  'admission': [
-    { label: 'Admission Form', url: '/admission-form/', icon: 'bx-edit' },
-    { label: 'Campus Services', url: '/services/', icon: 'bx-graduation' }
-  ],
-  'auth': [
-    { label: 'Forgot Password', url: '/forgot-password/', icon: 'bx-key' },
-    { label: 'Login Page', url: '/login/', icon: 'bx-log-in' }
-  ],
-  'courses': [
-    { label: 'Browse Courses', url: '/courses/', icon: 'bx-book-open' }
-  ],
-  'greeting': [
-    { label: 'Campus Services', url: '/services/', icon: 'bx-grid-alt' },
-    { label: 'Library Availability', url: '/library-availability/', icon: 'bx-chair' }
-  ],
-  'fallback': [
-    { label: 'Campus Services', url: '/services/', icon: 'bx-grid-alt' },
-    { label: 'Call: 8109455803', url: 'tel:8109455803', icon: 'bx-phone' }
-  ]
-};
+function getAutoReplyPhone(msg) {
+  if (msg && msg.auto_reply_phone) {
+    return String(msg.auto_reply_phone).trim();
+  }
+  const content = (msg && msg.content) ? String(msg.content).toLowerCase() : '';
+  const sender = (msg && msg.sender_name) ? String(msg.sender_name).toLowerCase() : '';
+  const combined = content + ' ' + sender;
 
-function buildAutoReplyChips(topic) {
-  const chips = AUTO_REPLY_CHIPS_MAP[topic] || AUTO_REPLY_CHIPS_MAP['fallback'];
+  if (combined.includes('vikas') || combined.includes('asst') || combined.includes('7974154551')) {
+    return '7974154551';
+  }
+  if (combined.includes('sandeep') || combined.includes('8109455803')) {
+    return '8109455803';
+  }
+
+  // Fallback to active chat header
+  const headerName = (document.getElementById('hdrName')?.textContent || '').toLowerCase();
+  if (headerName.includes('vikas') || headerName.includes('asst')) {
+    return '7974154551';
+  }
+  return '8109455803';
+}
+
+function buildAutoReplyChips(topic, msg) {
+  const phone = getAutoReplyPhone(msg);
+  const callChip = { label: `Call: ${phone}`, url: `tel:${phone}`, icon: 'bx-phone' };
+
+  const chipsMap = {
+    'emergency': [
+      { label: 'Tele-MANAS (14416)', url: 'tel:14416', icon: 'bx-phone-call' },
+      callChip
+    ],
+    'fees_dispute': [
+      callChip,
+      { label: 'Complaint Desk', url: '/complaints/', icon: 'bx-support' }
+    ],
+    'complaint': [
+      { label: 'Complaint Desk', url: '/complaints/', icon: 'bx-support' },
+      callChip
+    ],
+    'fees': [
+      { label: 'Dashboard & Fees', url: '/dashboard/', icon: 'bx-receipt' },
+      { label: 'Campus Services', url: '/services/', icon: 'bx-info-circle' }
+    ],
+    'seats': [
+      { label: 'Live Seat Layout', url: '/library-availability/', icon: 'bx-chair' },
+      { label: 'My Seat', url: '/my-seat/', icon: 'bx-book-reader' }
+    ],
+    'timings': [
+      { label: 'Campus Services', url: '/services/', icon: 'bx-time' },
+      { label: 'Contact Page', url: '/contact/', icon: 'bx-phone' }
+    ],
+    'admission': [
+      { label: 'Admission Form', url: '/admission-form/', icon: 'bx-edit' },
+      { label: 'Campus Services', url: '/services/', icon: 'bx-graduation' }
+    ],
+    'auth': [
+      { label: 'Forgot Password', url: '/forgot-password/', icon: 'bx-key' },
+      { label: 'Login Page', url: '/login/', icon: 'bx-log-in' }
+    ],
+    'courses': [
+      { label: 'Browse Courses', url: '/courses/', icon: 'bx-book-open' }
+    ],
+    'greeting': [
+      { label: 'Campus Services', url: '/services/', icon: 'bx-grid-alt' },
+      { label: 'Library Availability', url: '/library-availability/', icon: 'bx-chair' }
+    ],
+    'fallback': [
+      { label: 'Campus Services', url: '/services/', icon: 'bx-grid-alt' },
+      callChip
+    ]
+  };
+
+  const chips = chipsMap[topic] || chipsMap['fallback'];
   if (!chips || !chips.length) return '';
-  return `<div class="auto-reply-chips">${chips.map(c => `<a href="${c.url}" class="auto-reply-chip" target="${c.url.startsWith('tel:') ? '_self' : '_blank'}"><i class='bx ${c.icon}'></i> ${escHtml(c.label)}</a>`).join('')}</div>`;
+  return `<div class="auto-reply-chips">${chips.map(c => `<a href="${c.url}" class="auto-reply-chip" target="${c.url.startsWith('tel:') ? '_self' : '_blank'}" onclick="event.stopPropagation();"><i class='bx ${c.icon}'></i> ${escHtml(c.label)}</a>`).join('')}</div>`;
 }
 
 function appendMessage(msg, isLive = false) {
@@ -5954,7 +6086,7 @@ function appendMessage(msg, isLive = false) {
     const bubbleClass = `g-bubble ${isAuto ? 'auto-reply-bubble' : ''} ${msg.is_pinned ? 'pinned-msg' : ''} ${isJumbo ? 'jumbo-emoji-bubble' : ''} ${msg.file_url ? 'g-bubble-media' : ''}`;
     let autoReplyHdr = isAuto ? `<div class="auto-reply-badge"><i class='bx bx-bot'></i> Smart Auto-Reply</div>` : '';
     let autoReplyFtr = isAuto ? `<div class="auto-reply-disclaimer"><i class='bx bx-info-circle'></i> Automated response &bull; ${escHtml(msg.sender_name || 'Owner')} will reply personally soon.</div>` : '';
-    let autoReplyChips = (isAuto && typeof buildAutoReplyChips === 'function') ? buildAutoReplyChips(msg.auto_reply_topic) : '';
+    let autoReplyChips = (isAuto && typeof buildAutoReplyChips === 'function') ? buildAutoReplyChips(msg.auto_reply_topic, msg) : '';
 
     bubbleHtml = `<div class="${bubbleClass}">
                     <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>

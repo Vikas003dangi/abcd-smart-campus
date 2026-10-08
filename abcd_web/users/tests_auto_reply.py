@@ -29,7 +29,8 @@ from users.models import (
 from users.auto_reply import (
     classify_message, process_due_auto_replies,
     get_or_create_auto_reply_config,
-    ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL, OFFICE_PHONE
+    ABCD_ASST_EMAIL, SANDEEP_SIR_EMAIL, OFFICE_PHONE,
+    VIKAS_CALL_PHONE, SANDEEP_CALL_PHONE
 )
 
 
@@ -288,13 +289,13 @@ class AutoReplyEngineTests(TestCase):
         self.assertEqual(log.status, 'sent')
         self.assertTrue(log.flagged_emergency)
         self.assertIn("14416", log.chosen_response)
-        self.assertIn("8109455803", log.chosen_response)
+        self.assertIn(VIKAS_CALL_PHONE, log.chosen_response)
         self.assertIn("Tele-MANAS", log.chosen_response)
         # Verify real in-app urgent Notification was created for human mentor
         self.assertTrue(Notification.objects.filter(user=self.asst_user, category="guidy").exists())
 
     def test_08_payment_dispute_human_handoff_with_phone(self):
-        """Payment dispute -> human-handoff reply with phone."""
+        """Payment dispute -> human-handoff reply with phone for Vikas Dangi."""
         self.client.force_login(self.student_user)
         self.client.post(f'/guidy/direct/{self.session_asst.id}/send/', {
             'content': 'My payment failed and money was deducted twice. Please refund wrong amount!'
@@ -309,11 +310,29 @@ class AutoReplyEngineTests(TestCase):
             process_due_auto_replies()
 
         log.refresh_from_db()
-        self.assertIn(OFFICE_PHONE, log.chosen_response)
+        self.assertIn(VIKAS_CALL_PHONE, log.chosen_response)
         self.assertTrue(
             "transaction" in log.chosen_response.lower() or
             "audited" in log.chosen_response.lower()
         )
+
+    def test_08b_sandeep_sir_emergency_and_phone(self):
+        """Sandeep Sir auto-reply uses Sandeep Sir's direct phone number (8109455803)."""
+        self.client.force_login(self.student_user)
+        self.client.post(f'/guidy/direct/{self.session_sandeep.id}/send/', {
+            'content': 'My payment failed and money was deducted twice. Please refund wrong amount!'
+        })
+
+        log = AutoReplyLog.objects.filter(direct_session=self.session_sandeep, status='pending').first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.detected_topic, 'fees_dispute')
+
+        now = timezone.now()
+        with patch('django.utils.timezone.now', return_value=now + timedelta(minutes=16)):
+            process_due_auto_replies()
+
+        log.refresh_from_db()
+        self.assertIn(SANDEEP_CALL_PHONE, log.chosen_response)
 
     def test_09_rotation_three_different_variants_without_repetition(self):
         """Rotation: 3 messages over separate times get 3 different variants without back-to-back repetition."""
