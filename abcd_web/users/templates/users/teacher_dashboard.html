@@ -9645,7 +9645,7 @@
           {% for student in students %}
           <div
             class="student-card {% if student.is_coaching_overdue %}is-overdue{% endif %}"
-            data-status="coaching admitted occupied">
+            data-status="{% if student.status == 'on_hold' or student.status == 'hold' %}hold on_hold on hold coaching{% else %}coaching admitted occupied{% endif %}">
             <div class="student-header">
               <div class="student-avatar">
                 <img src="{{ student.photo_url }}" alt="Photo" onerror="this.onerror=null; this.src='{% if student.sex == 'Female' %}{% static 'data/default_avatar_female.png' %}{% else %}{% static 'data/default_avatar_male.png' %}{% endif %}';">
@@ -9654,6 +9654,9 @@
                 <div class="student-name">
                   <a href="{% url 'users:student_details' student.id %}">{{ student.full_name }}</a>
                 </div>
+                {% if student.status == 'on_hold' or student.status == 'hold' %}
+                <div class="student-id status-orange" style="margin-top: 2px;">Hold</div>
+                {% endif %}
                 <div class="student-id" style="margin-top: 2px; background: rgba(0, 0, 0, 0.05); color: #64748b; border: 1px solid rgba(0, 0, 0, 0.08);">ID: {{ student.id }}</div>
               </div>
             </div>

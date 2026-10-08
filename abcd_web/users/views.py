@@ -6145,14 +6145,27 @@ def teacher_dashboard_view(request):
         models.Q(id__in=seat_level_hold_student_ids)
     ).select_related('seat', 'user').distinct()
 
-    # Coaching batches
+    # Coaching batches (admitted and on-hold)
     coaching_q = (
         models.Q(service_type__in=['Coaching', 'Both']) |
         models.Q(service_type__iexact='coaching') |
         models.Q(service_type__iexact='both') |
         models.Q(batch__isnull=False)
     )
-    for student in admitted_students.filter(coaching_q):
+    all_coaching_students = StudentProfile.objects.filter(
+        models.Q(status='admitted') |
+        models.Q(status__in=['on_hold', 'hold']) |
+        models.Q(status__iexact='on_hold') |
+        models.Q(status__iexact='hold')
+    ).filter(coaching_q).select_related('user')
+
+    if search_query:
+        all_coaching_students = all_coaching_students.filter(full_name__icontains=search_query)
+    if service_filter:
+        all_coaching_students = all_coaching_students.filter(service_type=service_filter)
+
+    for student in all_coaching_students:
+        student.has_achievement = student.user.id in achievement_user_ids
         batch_name = student.batch or 'No Batch Assigned'
         coaching_batches[batch_name].append(student)
 
@@ -18506,36 +18519,44 @@ def guidy_contacts_api(request):
     if is_teacher:
         # 1. Students (admitted and on-hold)
         for sp in StudentProfile.objects.filter(status__in=['admitted', 'on_hold', 'hold']).select_related('user', 'seat'):
-            sec = None
-            if sp.batch:
-                b = sp.batch
-                if b == 'Grammar Batch 1':
-                    sec = 'coaching batch -1'
-                elif b == 'Grammar Batch 2':
-                    sec = 'coaching batch -2'
-                elif b == 'Grammar Batch 3':
-                    sec = 'coaching batch -3'
-                elif b == 'Grammar Batch 4':
-                    sec = 'coaching batch -4'
-                elif b == 'Spoken English 1':
-                    sec = 'coaching spoken -1'
-                elif b == 'Spoken English 2':
-                    sec = 'coaching spoken -2'
-            elif sp.service_type == 'Library' or sp.seat:
-                if sp.seat and sp.seat.floor == '1st Floor':
-                    sec = 'library 1st'
-                else:
-                    sec = 'library ground'
+            hold_suffix = ' (On Hold)' if sp.status in ['on_hold', 'hold'] else ''
+            student_data = {
+                'id': sp.user.id,
+                'name': f"{sp.full_name}{hold_suffix}",
+                'photo': get_profile_photo_url(sp.user),
+                'already_chatted': sp.user.id in chatted_user_ids,
+                'category': 'student'
+            }
 
-            if sec:
-                hold_suffix = ' (On Hold)' if sp.status in ['on_hold', 'hold'] else ''
-                sections_map[sec].append({
-                    'id': sp.user.id,
-                    'name': f"{sp.full_name}{hold_suffix}",
-                    'photo': get_profile_photo_url(sp.user),
-                    'already_chatted': sp.user.id in chatted_user_ids,
-                    'category': 'student'
-                })
+            # Coaching batch mapping
+            if sp.batch:
+                b = sp.batch.strip()
+                b_sec = None
+                if 'Grammar' in b or 'grammar' in b:
+                    if '1' in b: b_sec = 'coaching batch -1'
+                    elif '2' in b: b_sec = 'coaching batch -2'
+                    elif '3' in b: b_sec = 'coaching batch -3'
+                    elif '4' in b: b_sec = 'coaching batch -4'
+                    else: b_sec = 'coaching batch -1'
+                elif 'Spoken' in b or 'spoken' in b:
+                    if '2' in b: b_sec = 'coaching spoken -2'
+                    else: b_sec = 'coaching spoken -1'
+                elif b in ['coaching batch -1', 'coaching batch -2', 'coaching batch -3', 'coaching batch -4', 'coaching spoken -1', 'coaching spoken -2']:
+                    b_sec = b
+                else:
+                    b_sec = 'coaching batch -1'
+
+                if b_sec and b_sec in sections_map:
+                    sections_map[b_sec].append(student_data)
+            elif sp.service_type == 'Coaching':
+                sections_map['coaching batch -1'].append(student_data)
+
+            # Library floor mapping
+            if sp.service_type == 'Library' or sp.seat:
+                if sp.seat and sp.seat.floor == '1st Floor':
+                    sections_map['library 1st'].append(student_data)
+                else:
+                    sections_map['library ground'].append(student_data)
 
         # 2. Alumni
         for ach in StudentAchievement.objects.filter(status='approved').select_related('user'):
