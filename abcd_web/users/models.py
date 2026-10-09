@@ -1695,13 +1695,22 @@ class SeatAssignment(models.Model):
             
             if not has_other:
                 # Student has no active seats left
-                if student.seat_id is not None:
-                    student.seat = None
-                    dirty_fields.append('seat')
-                
-                if student.shift != 'full':
-                    student.shift = 'full'
-                    dirty_fields.append('shift')
+                if student.status == 'pending':
+                    # For pending students, preserve their requested seat pointer
+                    if not student.seat_id and self.seat_id:
+                        student.seat = self.seat
+                        dirty_fields.append('seat')
+                    if self.shift_type and student.shift != self.shift_type:
+                        student.shift = self.shift_type
+                        dirty_fields.append('shift')
+                else:
+                    if student.seat_id is not None:
+                        student.seat = None
+                        dirty_fields.append('seat')
+                    
+                    if student.shift != 'full':
+                        student.shift = 'full'
+                        dirty_fields.append('shift')
                 
                 # Check current status before forcing to admitted
                 target_status = 'admitted' if student.is_admitted else 'pending'

@@ -5796,11 +5796,9 @@ def teacher_dashboard_view(request):
     if service_filter:
         admitted_students = admitted_students.filter(service_type=service_filter)
 
-    # Get pending admission requests (Only those NOT yet admitted OR having pending services, AND NOT manual pending)
+    # Get pending admission requests (Only those NOT yet admitted OR having pending services)
     pending_students = StudentProfile.objects.filter(
         Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True)
-    ).filter(
-        is_manual_pending=False
     ).order_by('-id').select_related('seat', 'user').distinct()
 
     # Get achievement status for all pending users
@@ -5816,7 +5814,7 @@ def teacher_dashboard_view(request):
 
     # Sync missing seat data for pending library requests (safety net)
     pending_no_seat = pending_students.filter(
-        Q(service_type='Library') | Q(library_pending=True)
+        Q(service_type__in=['Library', 'Both']) | Q(library_pending=True)
     ).filter(seat__isnull=True)
     if pending_no_seat.exists():
         assignments_by_student = {
@@ -5849,18 +5847,16 @@ def teacher_dashboard_view(request):
         # Refresh pending_students queryset after sync
         pending_students = StudentProfile.objects.filter(
             Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True)
-        ).filter(
-            is_manual_pending=False
         ).order_by('-id').select_related('seat').distinct()
 
     # Split by service + admission_type
     pending_new_coaching_students = pending_students.filter(
-        Q(service_type='Coaching', status='pending') | Q(coaching_pending=True)
-    ).filter(
-        admission_type='new',
+        Q(service_type__in=['Coaching', 'Both'], status='pending') | Q(coaching_pending=True)
+    ).exclude(
+        admission_type='existing',
     )
     pending_existing_coaching_students = pending_students.filter(
-        Q(service_type='Coaching', status='pending') | Q(coaching_pending=True)
+        Q(service_type__in=['Coaching', 'Both'], status='pending') | Q(coaching_pending=True)
     ).filter(
         admission_type='existing',
     )
@@ -5872,13 +5868,13 @@ def teacher_dashboard_view(request):
     ).values_list('student_id', flat=True)
 
     pending_new_library_students = pending_students.filter(
-        Q(service_type='Library', status='pending') | Q(library_pending=True)
-    ).filter(
-        admission_type='new',
+        Q(service_type__in=['Library', 'Both'], status='pending') | Q(library_pending=True)
+    ).exclude(
+        admission_type='existing',
     ).exclude(id__in=partial_request_student_ids)
 
     pending_existing_library_students = pending_students.filter(
-        Q(service_type='Library', status='pending') | Q(library_pending=True)
+        Q(service_type__in=['Library', 'Both'], status='pending') | Q(library_pending=True)
     ).filter(
         admission_type='existing',
     ).exclude(id__in=partial_request_student_ids)
@@ -6206,12 +6202,8 @@ def teacher_dashboard_view(request):
         id__in=partial_student_ids
     )
 
-    # Pending library students (Exclusively those manually set to pending by teacher)
-    pending_library_students = StudentProfile.objects.filter(
-        service_type__in=['Library', 'Both'],
-        status='pending',
-        is_manual_pending=True
-    ).select_related('seat', 'user')
+    # Pending library students (legacy handle, kept empty as pending requests are unified in Admission Requests)
+    pending_library_students = StudentProfile.objects.none()
     
     # Students on hold (library) — must have a real seat or seat-level hold pointer
     on_hold_library_students = StudentProfile.objects.filter(
@@ -6364,8 +6356,7 @@ def teacher_live_stats_api(request):
         # 2. Batched Student Profile Counts (Admission, Library, Coaching, Total Admitted)
         sp_agg = StudentProfile.objects.aggregate(
             admission=Count('id', filter=(
-                (Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True))
-                & Q(is_manual_pending=False)
+                Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True)
             )),
             library=Count('id', filter=Q(status='admitted', service_type__in=['Library', 'Both'])),
             coaching=Count('id', filter=Q(status='admitted', service_type__in=['Coaching', 'Both'])),
@@ -10478,7 +10469,11 @@ def edit_student_view(request, student_id):
                     updated_student.is_admitted = True
                     updated_student.is_manual_pending = False
                 elif new_status == 'pending':
-                    updated_student.is_manual_pending = True
+                    updated_student.is_admitted = False
+                    updated_student.is_manual_pending = False
+                    updated_student.approved_at = None
+                    updated_student.hold_start_date = None
+                    updated_student.hold_end_date = None
                 else:
                     updated_student.is_manual_pending = False
             
@@ -10628,22 +10623,48 @@ def edit_student_view(request, student_id):
                         category="hold"
                     )
                 elif new_status == 'pending':
-                    active_assignments = SeatAssignment.objects.filter(student=student, is_active=True)
+                    # 1. Deactivate active seat assignments
+                    active_assignments = SeatAssignment.objects.filter(student=updated_student, is_active=True)
                     for a in active_assignments:
                         a.is_active = False
                         a.hold_status = 'none'
-                        a.save(update_fields=['is_active', 'hold_status'])
-                        a.recalc_seat_state()
-                    
-                    other_active = SeatAssignment.objects.filter(seat=student.seat, is_active=True).exclude(student=student).exists()
-                    if not other_active:
-                        student.seat.status = 'available'
-                        student.seat.hold_status = 'none'
-                        student.seat.hold_student = None
-                        student.seat.save(update_fields=['status', 'hold_status', 'hold_student'])
-                    
+                        a.hold_start_date = None
+                        a.hold_end_date = None
+                        a.save(update_fields=['is_active', 'hold_status', 'hold_start_date', 'hold_end_date'])
+
+                    # 2. If student has a seat (Library student), clean seat hold and ensure pending assignment exists
+                    if updated_student.seat:
+                        seat = updated_student.seat
+                        seat_updated_fields = []
+                        if seat.hold_student_id == updated_student.id:
+                            seat.hold_student = None
+                            seat.hold_status = 'none'
+                            seat.hold_start_date = None
+                            seat.hold_end_date = None
+                            seat_updated_fields.extend(['hold_student', 'hold_status', 'hold_start_date', 'hold_end_date'])
+                        if seat_updated_fields:
+                            seat.save(update_fields=seat_updated_fields)
+
+                        # Ensure inactive assignment exists to preserve their seat request for teacher approval
+                        SeatAssignment.objects.get_or_create(
+                            student=updated_student,
+                            seat=seat,
+                            defaults={
+                                'shift_type': updated_student.shift or 'full',
+                                'is_active': False,
+                                'hold_status': 'none',
+                            }
+                        )
+                        seat.recalc_status()
+
+                    # 3. Cancel any active or pending hold/switch/leave requests for this student
+                    SeatHoldRequest.objects.filter(student=updated_student).exclude(status__in=['rejected', 'cancelled']).update(status='cancelled')
+                    SeatHoldChangeRequest.objects.filter(student=updated_student, status='pending').update(status='cancelled')
+                    SeatSwitchRequest.objects.filter(student=updated_student, status='pending').update(status='cancelled')
+                    SeatLeaveRequest.objects.filter(student=updated_student, status='pending').update(status='cancelled')
+
                     create_notification(
-                        user=student.user,
+                        user=updated_student.user,
                         title="Status Changed to Pending",
                         message="Your status has been changed to 'Pending'.",
                         link="/dashboard/",
@@ -17006,7 +17027,6 @@ def notifications_api_view(request):
         # --- Teacher / Staff Dashboard ---
         pending_students = StudentProfile.objects.filter(
             status='pending',
-            is_manual_pending=False
         ).select_related('seat', 'user')
         
         pending_hold_requests = SeatHoldRequest.objects.filter(
