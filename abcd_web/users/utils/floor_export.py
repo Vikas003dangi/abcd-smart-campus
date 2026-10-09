@@ -43,6 +43,7 @@ def get_floor_export_data(floor_name):
         'shift_occupied': 0,
         'temporary': 0,
         'locked': 0,
+        'pending': 0,
     }
 
     for seat in seats:
@@ -138,8 +139,14 @@ def get_floor_export_data(floor_name):
                 status_label = "Available"
                 counts['available'] += 1
                 hold_exp = "—"
+            elif seat.status == 'pending':
+                status_label = "Pending"
+                counts['pending'] += 1
+                counts['available'] += 1
+                hold_exp = "—"
             elif is_locked:
                 status_label = "Locked"
+                counts['available'] += 1
                 hold_exp = "—"
             else:
                 status_label = "Available"

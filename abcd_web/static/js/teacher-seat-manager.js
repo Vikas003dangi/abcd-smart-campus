@@ -1784,17 +1784,25 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isTemp) counts.temporary++;
       if (isHold) counts.on_hold++;
 
-      // Mutually exclusive categories for available/occupied/pending/shift_occupied
-      if (isTemp || isHold) {
-        // Already counted above
-      } else if (seatClasses.includes('available') || seat.getAttribute('data-status') === 'available') {
-        counts.available++;
-      } else if (seatClasses.includes('pending') || seatClasses.some(c => c.includes('pending'))) {
-        counts.pending++;
-      } else if (seatClasses.includes('shift_occupied') || seatClasses.some(c => c.includes('occupied-'))) {
+      const isShiftOccupied = seatClasses.includes('shift_occupied') || seatClasses.some(c => c.includes('occupied-') && c !== 'occupied-full');
+      const isOccupied = seatClasses.includes('occupied') || seatClasses.includes('occupied-full') || (!isShiftOccupied && seat.getAttribute('data-status') === 'occupied');
+
+      if (isShiftOccupied) {
         counts.shift_occupied++;
-      } else if (seatClasses.includes('occupied')) {
+      } else if (isOccupied) {
         counts.occupied++;
+      }
+
+      const isPending = seatClasses.includes('pending') || seatClasses.some(c => c.includes('pending')) || seat.getAttribute('data-status') === 'pending';
+      if (isPending) {
+        counts.pending++;
+      }
+
+      // Available rule:
+      // A seat is available unless it has an active occupant or active hold (hold, occupied, shift_occupied, temporary).
+      // Pending and locked seats without active occupants or holds are counted as available.
+      if (!isHold && !isTemp && !isShiftOccupied && !isOccupied) {
+        counts.available++;
       }
     });
 

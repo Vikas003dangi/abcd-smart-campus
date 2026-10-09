@@ -2714,6 +2714,14 @@
                         Your seat is currently on hold. Seat switch and new hold requests are disabled during an active hold. You can request to cancel or expand/shorten your hold above.
                     </div>
                 </div>
+                {% elif is_admission_pending %}
+                <div class="on-hold-notice" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #d97706; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;">
+                    <i class='bx bx-time-five on-hold-icon' style="color: #f59e0b; font-size: 1.4rem; margin-top: 2px;"></i>
+                    <div class="on-hold-text" style="color: #b45309; font-size: 0.95rem; line-height: 1.5;">
+                        <strong>Seat Request Under Review</strong><br>
+                        You have requested seat <strong>{{ seat.seat_number }}</strong>. Your library admission has not been approved yet. Seat actions (hold, switch, leave) are disabled until your admission and seat request are confirmed by administration.
+                    </div>
+                </div>
                 {% elif has_occupied_seat %}
                 {% if has_pending_request %}
                 <div class="single-request-notice">
@@ -2779,7 +2787,7 @@
                         <h3>Live Library Status</h3>
                         <div class="seat-info-line">
                             <span class="seat-info-item">
-                                <span class="seat-info-label">Your Seat:</span>
+                                <span class="seat-info-label">{% if is_admission_pending %}Requested Seat:{% else %}Your Seat:{% endif %}</span>
                                 <span class="seat-info-val">{{ seat.seat_number }}</span>
                             </span>
                             <span class="seat-info-divider" aria-hidden="true">•</span>
@@ -2792,7 +2800,11 @@
                                 <span class="seat-info-label">Shift:</span>
                                 <span class="seat-info-val">{{ shift|capfirst }}</span>
                             </span>
-                            {% if is_temporary_student %}
+                            {% if is_admission_pending %}
+                            <span class="seat-allotment-badge pending" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.4);">
+                                <i class='bx bx-time-five'></i> Pending Approval
+                            </span>
+                            {% elif is_temporary_student %}
                             <span class="seat-allotment-badge temporary">
                                 <i class='bx bx-time-five'></i> Temporary Allotment
                             </span>
@@ -3762,6 +3774,7 @@
         const HAS_UNRESOLVED_REQUEST = {{ has_unresolved_request|yesno:"true,false" }};
         const UNRESOLVED_REQUEST_DESC = "{{ unresolved_request_desc|default:''|escapejs }}";
         const HAS_OCCUPIED_SEAT = {{ has_occupied_seat|yesno:"true,false" }};
+        const IS_ADMISSION_PENDING = {{ is_admission_pending|yesno:"true,false" }};
 
         var isSwitchSelectionActive = false;
         var selectedSwitchSeat = null;
@@ -4884,7 +4897,7 @@
                     counts.shift_occupied++;
                 } else if (hasClass('occupied') || hasClass('occupied-full') || (hasLabel('occupied') && !hasClass('shift-seat')) || hasLabel('you')) {
                     counts.occupied++;
-                } else if (!isHold && !isTemp && !hasClass('locked')) {
+                } else if (!isHold && !isTemp) {
                     counts.available++;
                 }
             });
@@ -5024,7 +5037,8 @@
                 }
 
                 // Check ownership from API (user_shift is only present for the student's own seat)
-                const isMine = seat.user_shift !== undefined;
+                const isMine = seat.user_shift !== undefined && !IS_ADMISSION_PENDING;
+                const isMyRequested = seat.is_my_requested_seat === true || (IS_ADMISSION_PENDING && seat.seat_number === "{{ seat.seat_number }}" && seat.floor === "{{ seat.floor }}");
 
                 // =====================================================
                 // SHIFT-ENABLED SEATS (Ground Floor #40-53)
@@ -5315,6 +5329,16 @@
                                     seatEl.classList.add('locked');
                                 }
                             }
+                        } else if (isMyRequested) {
+                            seatEl.classList.remove('available', 'occupied');
+                            seatEl.classList.add('pending');
+                            seatEl.dataset.status = 'pending';
+                            if (labelEl) labelEl.textContent = 'Requested (Pending)';
+                        } else if (seat.status === 'pending') {
+                            seatEl.classList.remove('available', 'occupied');
+                            seatEl.classList.add('pending');
+                            seatEl.dataset.status = 'pending';
+                            if (labelEl) labelEl.textContent = 'Pending';
                         } else {
                             seatEl.classList.add('available');
                             if (labelEl) labelEl.textContent = 'Available';
@@ -5345,6 +5369,16 @@
                             seatEl.classList.add('available');
                             if (labelEl) labelEl.textContent = 'Available';
                         }
+                    } else if (isMyRequested) {
+                        seatEl.classList.remove('available', 'occupied');
+                        seatEl.classList.add('pending');
+                        seatEl.dataset.status = 'pending';
+                        if (labelEl) labelEl.textContent = 'Requested (Pending)';
+                    } else if (seat.status === 'pending') {
+                        seatEl.classList.remove('available', 'occupied');
+                        seatEl.classList.add('pending');
+                        seatEl.dataset.status = 'pending';
+                        if (labelEl) labelEl.textContent = 'Pending';
                     } else {
                         // Other seats: match teacher seat status colors exactly
                         const hasHold = seat.is_on_hold || seat.full_day_hold || seat.status === 'on_hold';
@@ -5432,6 +5466,8 @@
                     } else if (seat.user_shift === 'full') {
                         seatEl.classList.add('my-shift-full');
                     }
+                } else if (isMyRequested) {
+                    seatEl.classList.add('my-requested-seat');
                 }
 
                 // Apply active switch selection state if this seat is currently selected
@@ -6186,6 +6222,16 @@
 
             wrapper.addEventListener('click', (e) => {
                 if (!isSwitchSelectionActive) return;
+                if (IS_ADMISSION_PENDING) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showStyledPopup({
+                        title: 'Admission Pending',
+                        message: 'Your admission request is currently pending. You cannot request to switch seats until your admission is approved.',
+                        type: 'error'
+                    });
+                    return;
+                }
                 if (IS_ON_HOLD) {
                     e.preventDefault();
                     e.stopPropagation();

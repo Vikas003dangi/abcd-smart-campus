@@ -4164,6 +4164,7 @@ def get_seat_status_api(request):
 
     today = timezone.localdate()
     seat_data = []
+    current_user_profile = StudentProfile.objects.filter(user=request.user).first()
 
     for seat in seats:
         # --- ENFORCE STRICT SHIFT DEFINITION ---
@@ -4180,6 +4181,7 @@ def get_seat_status_api(request):
         ]
         
         is_my_seat = False
+        is_my_requested_seat = False
         student_name = None
         user_shift = None  
 
@@ -4189,6 +4191,11 @@ def get_seat_status_api(request):
                 student_name = a.student.full_name
                 user_shift = a.shift_type  # 'morning', 'evening', or 'full'
                 break
+
+        # Check if this seat is requested by current student whose admission is pending
+        if not is_my_seat and current_user_profile and (current_user_profile.status == 'pending' or not current_user_profile.is_admitted):
+            if current_user_profile.seat_id == seat.id:
+                is_my_requested_seat = True
 
         # Check for pending temporary requests
         pending_special_requests = [
@@ -4234,9 +4241,8 @@ def get_seat_status_api(request):
                     morning_temp_allotted = True
                     evening_temp_allotted = True
 
-        # Normalized status for legacy JS support
+        # Do NOT convert pending to occupied. Pending admission request != occupied seat!
         status = seat.status
-        if status == 'pending': status = 'occupied'
         
         shifts = {a.shift_type for a in active_assignments}
 
@@ -4270,6 +4276,11 @@ def get_seat_status_api(request):
             seat_info['student_name'] = student_name
             seat_info['student_first_name'] = request.user.first_name
             seat_info['user_shift'] = user_shift
+        elif is_my_requested_seat:
+            seat_info['is_my_requested_seat'] = True
+            seat_info['requested_shift'] = current_user_profile.shift or 'full'
+            seat_info['student_name'] = current_user_profile.full_name
+            seat_info['student_first_name'] = request.user.first_name
 
         seat_data.append(seat_info)
 
@@ -4981,12 +4992,14 @@ def your_seat_status_view(request):
     is_on_hold = is_student_on_hold(profile)
     hold_start_d, hold_end_d = get_student_hold_dates(profile) if is_on_hold else (None, None)
 
+    is_admission_pending = bool(profile.status == 'pending' or not profile.is_admitted)
+
     active_assignment = SeatAssignment.objects.filter(
         student=profile,
         seat=seat,
         is_active=True
     ).first()
-    has_occupied_seat = bool(active_assignment and not is_on_hold)
+    has_occupied_seat = bool(active_assignment and not is_on_hold and not is_admission_pending)
 
     pending_hold_change = SeatHoldChangeRequest.objects.filter(
         student=profile,
@@ -5044,6 +5057,7 @@ def your_seat_status_view(request):
     context = {
         'profile': profile,
         'seat': seat,
+        'is_admission_pending': is_admission_pending,
         'min_hold_date': min_hold_date,
         'shift': profile.shift,
         'hold_req': hold_req,
@@ -5436,6 +5450,9 @@ def request_seat_hold_api(request):
 
         if not seat:
             return JsonResponse({'status': 'error', 'message': 'You do not have an assigned seat.'}, status=400)
+
+        if profile.status == 'pending' or not profile.is_admitted:
+            return JsonResponse({'status': 'error', 'message': 'Your admission is pending approval. You cannot put a seat on hold until your admission is approved.'}, status=403)
 
         # Lock seat row
         seat = Seat.objects.select_for_update().get(id=seat.id)
@@ -19912,7 +19929,13 @@ def request_seat_switch_api(request):
     except StudentProfile.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': 'Student profile not found.'}, status=404)
 
-    # 1. Must have an assigned seat
+    # 1. Must have an assigned seat and be an admitted student
+    if student.status == 'pending' or not student.is_admitted:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Your admission is pending approval. You cannot switch seats until your admission is approved.'
+        }, status=403)
+
     if not student.seat:
         return JsonResponse({
             'status': 'error',
@@ -20175,6 +20198,12 @@ def api_request_seat_leave(request):
     seat = student.seat
     if not seat:
         return JsonResponse({'status': 'error', 'message': 'You do not have an assigned seat.'}, status=400)
+
+    if student.status == 'pending' or not student.is_admitted:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Your admission is pending approval. You cannot request to leave seat until your admission is approved.'
+        }, status=403)
 
     # Check if student is a temporary student
     if not is_temporary_student(student):
