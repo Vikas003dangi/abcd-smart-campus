@@ -1184,26 +1184,33 @@
             if (window._abcdDebugLog.length > 50) window._abcdDebugLog.shift();
         };
 
-        // Hidden trigger: tap page title or logo 5 times within 3 seconds
+        // Hidden developer trigger: tap exit modal title or dedicated trigger 5 times rapidly within 2 seconds
         var tapCount = 0;
-        var lastTapTime = 0;
+        var firstTapTime = 0;
+        var lastTriggerEl = null;
         document.addEventListener('click', function(e) {
             var target = e.target;
             if (!target) return;
-            var isLogo = !!target.closest('header, nav, .logo, .logoImage, .site-logo, .brand, .brand-logo, h1, #abcdExitTitle, [data-logo], img[alt*="logo" i]');
-            if (isLogo) {
+            // Strictly target developer-specific elements or exit modal title, NEVER general header/nav/h1
+            var triggerEl = target.closest('#abcdExitTitle, [data-twa-debug-trigger], .twa-debug-trigger');
+            if (triggerEl) {
                 var now = Date.now();
-                if (now - lastTapTime < 3000) {
+                if (lastTriggerEl === triggerEl && (now - firstTapTime) < 2000) {
                     tapCount++;
                 } else {
                     tapCount = 1;
+                    firstTapTime = now;
+                    lastTriggerEl = triggerEl;
                 }
-                lastTapTime = now;
                 if (tapCount >= 5) {
                     tapCount = 0;
+                    lastTriggerEl = null;
                     try { sessionStorage.setItem('abcd_debug', '1'); } catch(e) {}
                     initOverlay();
                 }
+            } else {
+                tapCount = 0;
+                lastTriggerEl = null;
             }
         }, true);
 
@@ -1268,7 +1275,11 @@
                 }
             } catch(e) {}
 
-            if (!on) return;
+            if (!on) {
+                var oldEl = document.getElementById('abcdDbg');
+                if (oldEl) oldEl.remove();
+                return;
+            }
 
             var el = document.getElementById('abcdDbg');
             if (!el) {
@@ -1350,11 +1361,23 @@
 
         var shouldInit = false;
         try {
-            shouldInit = (window.location.search.indexOf('abcd_debug=1') > -1) || (sessionStorage.getItem('abcd_debug') === '1');
+            if (window.location.search.indexOf('abcd_debug=1') > -1) {
+                sessionStorage.setItem('abcd_debug', '1');
+                shouldInit = true;
+            } else if (window.location.search.indexOf('abcd_debug=0') > -1) {
+                sessionStorage.removeItem('abcd_debug');
+                shouldInit = false;
+            } else {
+                sessionStorage.removeItem('abcd_debug');
+                shouldInit = false;
+            }
         } catch(e) {}
         if (shouldInit) {
             if (document.body) initOverlay();
             else document.addEventListener('DOMContentLoaded', initOverlay);
+        } else {
+            var staleEl = document.getElementById('abcdDbg');
+            if (staleEl) staleEl.remove();
         }
     })();
 
