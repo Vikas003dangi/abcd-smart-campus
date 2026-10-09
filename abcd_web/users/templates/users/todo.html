@@ -3970,7 +3970,7 @@
       </p>
     </div>
     <div style="padding: 0 30px 30px; display: flex; gap: 10px;">
-      <button class="btn-secondary" style="flex: 1;" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn-secondary" id="confirmCancelBtn" style="flex: 1;" onclick="closeConfirmModal()">Cancel</button>
       <button class="btn-primary" id="confirmActionBtn" style="flex: 1;">Yes, Proceed</button>
     </div>
   </div>
@@ -5483,6 +5483,8 @@
     timePickerTargetId = null;
   }
 
+  window._activeTodoModalStack = window._activeTodoModalStack || [];
+
   window.openModalOverlay = function(modalId) {
     const el = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
     if (!el) return;
@@ -5490,13 +5492,78 @@
     if (el.style.zIndex === '-1') el.style.removeProperty('z-index');
     el.style.removeProperty('backdrop-filter');
     el.style.removeProperty('-webkit-backdrop-filter');
+
+    // Clean up stack of any modals that are no longer active or attached to DOM
+    window._activeTodoModalStack = (window._activeTodoModalStack || []).filter(item =>
+      item && item !== el && document.body.contains(item) && item.classList.contains('active')
+    );
+
+    // Compute highest z-index among other elements/modals
+    let maxZ = 3000000;
+    if (typeof window.getHighestZIndex === 'function') {
+      try {
+        maxZ = Math.max(maxZ, window.getHighestZIndex([el]));
+      } catch (e) {}
+    }
+
+    // Also directly inspect currently active modal overlays and dialogs in DOM
+    const otherActiveElements = document.querySelectorAll(
+      '.todo-modal-overlay.active, .picker-overlay.active, .styled-modal-overlay.active, .custom-modal.active, .modal.show, [role="dialog"].active'
+    );
+    otherActiveElements.forEach(m => {
+      if (m !== el) {
+        const comp = parseInt(window.getComputedStyle(m).zIndex, 10);
+        const inl = parseInt(m.style.zIndex, 10);
+        const z = !isNaN(inl) ? inl : (!isNaN(comp) ? comp : 0);
+        if (z > maxZ) maxZ = z;
+
+        const c = m.querySelector('.todo-modal, .picker-card, [class*="-card"], [class*="-container"], [class*="-box"]');
+        if (c) {
+          const cz = parseInt(c.style.zIndex || window.getComputedStyle(c).zIndex, 10);
+          if (!isNaN(cz) && cz > maxZ) maxZ = cz;
+        }
+      }
+    });
+
+    const targetZ = Math.max(maxZ + 10, 3000010);
+    el.style.setProperty('z-index', targetZ.toString(), 'important');
+    el.dataset.stackedTime = Date.now().toString();
+
+    const innerCard = el.querySelector(
+      '.choice-modal-card, .todo-modal, .modal-container, .abcd-modal-container, ' +
+      '.picker-card, .fees-modal-content, [class*="-card"], [class*="-container"], [class*="-box"]'
+    );
+    if (innerCard && innerCard !== el) {
+      innerCard.style.removeProperty('pointer-events');
+      innerCard.style.setProperty('z-index', (targetZ + 1).toString(), 'important');
+      innerCard.dataset.stackedTime = Date.now().toString();
+    }
+
     el.classList.add('active');
+    window._activeTodoModalStack.push(el);
+
+    if (typeof window.bringToFront === 'function') {
+      try {
+        window.bringToFront(el);
+      } catch (e) {}
+    }
   };
 
   window.closeModalOverlay = function(modalId) {
     const el = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
     if (!el) return;
     el.classList.remove('active');
+    el.style.removeProperty('z-index');
+
+    const innerCard = el.querySelector(
+      '.choice-modal-card, .todo-modal, .modal-container, .abcd-modal-container, ' +
+      '.picker-card, .fees-modal-content, [class*="-card"], [class*="-container"], [class*="-box"]'
+    );
+    if (innerCard && innerCard !== el) {
+      innerCard.style.removeProperty('z-index');
+    }
+
+    window._activeTodoModalStack = (window._activeTodoModalStack || []).filter(item => item !== el);
   };
 
   function openNewModal() {
@@ -5534,13 +5601,33 @@
 
   // Utility for nice alerts
   function showModalAlert(title, message) {
-    document.getElementById('alertModalTitle').textContent = title;
-    document.getElementById('alertModalMessage').textContent = message;
-    window.openModalOverlay('alertModalOverlay');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmText = document.getElementById('confirmText');
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    if (confirmTitle && confirmText && actionBtn) {
+      confirmTitle.textContent = title || 'Alert';
+      confirmText.textContent = message || '';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      actionBtn.textContent = 'OK';
+      actionBtn.onclick = closeConfirmModal;
+      window.openModalOverlay('confirmModal');
+      return;
+    }
+
+    const alertTitle = document.getElementById('alertModalTitle');
+    const alertMsg = document.getElementById('alertModalMessage');
+    if (alertTitle && alertMsg) {
+      alertTitle.textContent = title || 'Alert';
+      alertMsg.textContent = message || '';
+      window.openModalOverlay('alertModalOverlay');
+    }
   }
 
   function closeAlertModal() {
     window.closeModalOverlay('alertModalOverlay');
+    window.closeModalOverlay('confirmModal');
   }
 
   function getCsrfToken() {
@@ -7312,7 +7399,7 @@
     detailPendingToggle = {};
     detailEditOldFirstId = null;
     detailEditActiveSubRef = null;
-    document.getElementById('taskDetailModal').classList.remove('active');
+    window.closeModalOverlay('taskDetailModal');
     document.getElementById('editTaskBtn').style.display = 'block';
     document.getElementById('saveTaskBtn').style.display = 'none';
   }
@@ -7607,21 +7694,48 @@
   }
   // --- CUSTOM ALERT/CONFIRM ---
   function showModalAlert(title, text) {
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmText').textContent = text;
-    document.getElementById('confirmActionBtn').onclick = closeConfirmModal;
-    document.getElementById('confirmActionBtn').textContent = "OK";
-    window.openModalOverlay('confirmModal');
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmText = document.getElementById('confirmText');
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    if (confirmTitle && confirmText && actionBtn) {
+      confirmTitle.textContent = title || 'Alert';
+      confirmText.textContent = text || '';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      actionBtn.textContent = 'OK';
+      actionBtn.onclick = closeConfirmModal;
+      window.openModalOverlay('confirmModal');
+      return;
+    }
+
+    const alertTitle = document.getElementById('alertModalTitle');
+    const alertMsg = document.getElementById('alertModalMessage');
+    if (alertTitle && alertMsg) {
+      alertTitle.textContent = title || 'Alert';
+      alertMsg.textContent = text || '';
+      window.openModalOverlay('alertModalOverlay');
+    }
   }
 
   function showModalConfirm(title, text, onConfirm) {
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmText').textContent = text;
-    document.getElementById('confirmActionBtn').textContent = "Yes, Proceed";
-    document.getElementById('confirmActionBtn').onclick = () => {
-      onConfirm();
-      closeConfirmModal();
-    };
+    const confirmTitle = document.getElementById('confirmTitle');
+    const confirmText = document.getElementById('confirmText');
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    if (confirmTitle) confirmTitle.textContent = title || 'Are you sure?';
+    if (confirmText) confirmText.textContent = text || '';
+    if (cancelBtn) cancelBtn.style.display = '';
+    if (actionBtn) {
+      actionBtn.textContent = 'Yes, Proceed';
+      actionBtn.onclick = () => {
+        closeConfirmModal();
+        if (typeof onConfirm === 'function') {
+          onConfirm();
+        }
+      };
+    }
     window.openModalOverlay('confirmModal');
   }
 
@@ -10588,7 +10702,7 @@
 
   // ── CLOSE RECHECK MODAL ──────────────────────────────────────────────
   function closeRecheckModal() {
-    document.getElementById('recheckModal').classList.remove('active');
+    window.closeModalOverlay('recheckModal');
     recheckCallbackFn = null;
   }
 
@@ -10673,7 +10787,7 @@
       performUncheckWithTime(taskId, idx, Math.min(requested, maxAvailHrs));
     };
     document.getElementById('recheckActionBtn').onclick = recheckCallbackFn;
-    document.getElementById('recheckModal').classList.add('active');
+    window.openModalOverlay('recheckModal');
   }
 
   // ── SHOW OVERDUE UNCHECK POPUP ───────────────────────────────────────
@@ -10740,7 +10854,7 @@
       performUncheckWithTime(taskId, idx, requested);
     };
     document.getElementById('recheckActionBtn').onclick = recheckCallbackFn;
-    document.getElementById('recheckModal').classList.add('active');
+    window.openModalOverlay('recheckModal');
   }
 
   // ── PERFORM UNCHECK WITH TIME RESTORATION ───────────────────────────
@@ -10927,9 +11041,9 @@
     const maxDays = Math.max(initD, Math.max(30, Math.ceil(maxAllowedSecs / 86400)));
 
     // Open overlay FIRST so bounding boxes are measurable
+    window.openModalOverlay('editSubtaskTimePickerOverlay');
     const overlay = document.getElementById('editSubtaskTimePickerOverlay');
     if (overlay) {
-      overlay.classList.add('active');
       void overlay.offsetHeight; // Force browser layout/reflow
     }
 
@@ -11162,8 +11276,7 @@
   }
 
   function closeEditSubtaskTimePicker() {
-    const overlay = document.getElementById('editSubtaskTimePickerOverlay');
-    if (overlay) overlay.classList.remove('active');
+    window.closeModalOverlay('editSubtaskTimePickerOverlay');
     editSubtaskTimeState = null;
     editSubtaskLastVals = null;
   }
@@ -11421,8 +11534,7 @@
     const m = Math.floor((totalSecs % 3600) / 60);
     const s = totalSecs % 60;
 
-    const overlay = document.getElementById('autoDeleteTimePickerOverlay');
-    if (overlay) overlay.classList.add('active');
+    window.openModalOverlay('autoDeleteTimePickerOverlay');
 
     isPopulatingAutoDeleteDrums = true;
     populateAutoDeleteDrum('autoDeleteDrumDays', 0, 30);
@@ -11446,8 +11558,7 @@
   }
 
   function closeAutoDeleteTimePicker() {
-    const overlay = document.getElementById('autoDeleteTimePickerOverlay');
-    if (overlay) overlay.classList.remove('active');
+    window.closeModalOverlay('autoDeleteTimePickerOverlay');
   }
 
   function confirmAutoDeleteTimePicker() {
@@ -11629,8 +11740,7 @@
     const m = Math.floor((totalSecs % 3600) / 60);
     const s = totalSecs % 60;
 
-    const overlay = document.getElementById('editAutoDeleteTimePickerOverlay');
-    if (overlay) overlay.classList.add('active');
+    window.openModalOverlay('editAutoDeleteTimePickerOverlay');
 
     isPopulatingEditAutoDeleteDrums = true;
     populateEditAutoDeleteDrum('editAutoDeleteDrumDays', 0, 30);
@@ -11654,8 +11764,7 @@
   }
 
   function closeEditAutoDeleteTimePicker() {
-    const overlay = document.getElementById('editAutoDeleteTimePickerOverlay');
-    if (overlay) overlay.classList.remove('active');
+    window.closeModalOverlay('editAutoDeleteTimePickerOverlay');
   }
 
   function confirmEditAutoDeleteTimePicker() {
@@ -11857,7 +11966,7 @@
     if (!task) return;
 
     closeTaskDetailModal();
-    document.getElementById('breakdownModal').classList.add('active');
+    window.openModalOverlay('breakdownModal');
 
     document.getElementById('breakdownTitle').value = task.metadata.title;
     breakdownTaskCreatedAt = task.created_at ? new Date(task.created_at) : null;
@@ -13011,8 +13120,7 @@
   }
 
   function closeReminderModal() {
-    const modal = document.getElementById('reminderModal');
-    if (modal) modal.classList.remove('active');
+    window.closeModalOverlay('reminderModal');
   }
 
   function initRecurrenceDrum(initialVal = 'once') {
@@ -13661,7 +13769,7 @@
         year: now.getFullYear()
       };
     }
-    document.getElementById('datePickerOverlay').classList.add('active');
+    window.openModalOverlay('datePickerOverlay');
     populateDrums('date');
   }
 
@@ -13678,7 +13786,7 @@
         year: now.getFullYear()
       };
     }
-    document.getElementById('datePickerOverlay').classList.add('active');
+    window.openModalOverlay('datePickerOverlay');
     populateDrums('date');
   }
 
@@ -13704,7 +13812,7 @@
         militaryHour: h24
       };
     }
-    document.getElementById('timePickerOverlay').classList.add('active');
+    window.openModalOverlay('timePickerOverlay');
     populateDrums('time');
   }
 
@@ -14275,7 +14383,7 @@
 </div>
 
 <!-- Custom Alert Modal -->
-<div id="alertModalOverlay" class="picker-overlay" style="z-index: 3000000 !important;">
+<div id="alertModalOverlay" class="picker-overlay">
   <div class="picker-card" style="max-width: 340px; text-align: center; padding: 40px 30px;">
     <div
       style="width: 64px; height: 64px; background: #fffbeb; color: #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin: 0 auto 20px;">

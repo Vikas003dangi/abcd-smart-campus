@@ -37,8 +37,7 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
         image_markers = [
             'student_photos', 'complaints', 'achievements', 'teacher_photos',
             'group_photos', 'course_thumbnails', 'material_thumbnails',
-            'broadcast_banners', 'broadcast_attachments', 'avatars', 'photos', 'profiles',
-            'guidy_temp'
+            'broadcast_banners', 'broadcast_attachments', 'avatars', 'photos', 'profiles'
         ]
         if any(marker in name_str for marker in image_markers):
             return 'image'
@@ -54,10 +53,14 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
         public_id = response['public_id']
         rtype = response.get('resource_type')
         fmt = response.get('format')
-        # If Cloudinary stripped the extension for video/audio, preserve format
+        # If Cloudinary stripped the extension, preserve format or original extension
         # so direct extension matching will always work permanently.
-        if rtype == 'video' and fmt and not os.path.splitext(public_id)[1]:
-            public_id = f"{public_id}.{fmt}"
+        orig_ext = os.path.splitext(name)[1].lower()
+        if not os.path.splitext(public_id)[1]:
+            if fmt:
+                public_id = f"{public_id}.{fmt}"
+            elif orig_ext:
+                public_id = f"{public_id}{orig_ext}"
         return public_id
 
     def delete(self, name):

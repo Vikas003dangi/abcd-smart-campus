@@ -15124,7 +15124,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
     if GuidyBlock.objects.filter(blocker=user, blocked=other_user).exists():
         return JsonResponse({'success': False, 'error': 'You have blocked this user. Unblock them to chat.'}, status=403)
 
-    from .utils import clean_guidy_message_content, strip_html_for_notification
+    from .utils import clean_guidy_message_content, strip_html_for_notification, validate_guidy_file
     content = clean_guidy_message_content(request.POST.get('content', '').strip())
     msg_type = request.POST.get('message_type', 'text')
     reply_to_id = request.POST.get('reply_to_id')
@@ -15132,37 +15132,32 @@ def guidy_send_message(request, session_id=None, direct_id=None):
     client_msg_id = request.POST.get('client_msg_id')
 
     if uploaded_file:
-        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'ogg', 'm4a'}
-        ALLOWED_MIME_TYPES = {
-            'image/jpeg', 'image/png', 'image/webp', 'application/pdf', 
-            'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-            'text/plain', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'
-        }
-        ext = uploaded_file.name.split('.')[-1].lower() if '.' in uploaded_file.name else ''
-        if ext not in ALLOWED_EXTENSIONS or uploaded_file.content_type not in ALLOWED_MIME_TYPES:
-            return JsonResponse({'success': False, 'error': 'Security blocked: Invalid file type. Only images, PDFs, Word docs, text, and audio files are allowed.'}, status=400)
+        is_valid, err_msg, detected_type = validate_guidy_file(uploaded_file)
+        if not is_valid:
+            return JsonResponse({'success': False, 'error': err_msg}, status=400)
+        msg_type = detected_type
 
-        if uploaded_file.size > 15 * 1024 * 1024:
-            return JsonResponse({'success': False, 'error': 'File exceeds 15MB limit.'}, status=400)
+        # Daily media limit (exempt staff, superuser, and teachers)
+        is_exempt = user.is_staff or user.is_superuser or getattr(user, 'is_teacher', False)
+        if not is_exempt:
+            import datetime
+            from django.utils import timezone
+            time_limit = timezone.now() - datetime.timedelta(days=1)
+            if session:
+                media_count = Message.objects.filter(
+                    session=session,
+                    sender=user,
+                    timestamp__gte=time_limit
+                ).exclude(file='').exclude(file__isnull=True).count()
+            else:
+                media_count = Message.objects.filter(
+                    direct_session=direct_session,
+                    sender=user,
+                    timestamp__gte=time_limit
+                ).exclude(file='').exclude(file__isnull=True).count()
 
-        import datetime
-        from django.utils import timezone
-        time_limit = timezone.now() - datetime.timedelta(days=1)
-        if session:
-            media_count = Message.objects.filter(
-                session=session,
-                sender=user,
-                timestamp__gte=time_limit
-            ).exclude(file='').exclude(file__isnull=True).count()
-        else:
-            media_count = Message.objects.filter(
-                direct_session=direct_session,
-                sender=user,
-                timestamp__gte=time_limit
-            ).exclude(file='').exclude(file__isnull=True).count()
-
-        if media_count >= 5:
-            return JsonResponse({'success': False, 'error': 'Daily media limit (5/day) reached for this chat. Try again tomorrow.'}, status=400)
+            if media_count >= 5:
+                return JsonResponse({'success': False, 'error': 'Daily media limit (5/day) reached for this chat. Try again tomorrow.'}, status=400)
 
     if not content and not uploaded_file:
         return JsonResponse({'success': False, 'error': 'Empty message'}, status=400)
@@ -15177,28 +15172,21 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         except Message.DoesNotExist:
             pass
 
-    # Determine message type from file
-    if uploaded_file:
-        ext = uploaded_file.name.rsplit('.', 1)[-1].lower()
-        if ext in ('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'):
-            msg_type = 'image'
-        elif ext in ('mp3', 'wav', 'ogg', 'm4a'):
-            msg_type = 'audio'
-        elif ext in ('mp4', 'webm', 'mov', 'avi'):
-            msg_type = 'video'
-        else:
-            msg_type = 'document'
-
-    msg = Message.objects.create(
-        session=session,
-        direct_session=direct_session,
-        sender=user,
-        content=content,
-        message_type=msg_type,
-        reply_to=reply_to_obj,
-        file=uploaded_file if uploaded_file else None,
-        file_name=uploaded_file.name if uploaded_file else '',
-    )
+    try:
+        msg = Message.objects.create(
+            session=session,
+            direct_session=direct_session,
+            sender=user,
+            content=content,
+            message_type=msg_type,
+            reply_to=reply_to_obj,
+            file=uploaded_file if uploaded_file else None,
+            file_name=uploaded_file.name if uploaded_file else '',
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error saving Guidy message: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Failed to process attachment: {str(e)}'}, status=500)
 
     # 🤖 Smart Auto-Reply Handler
     if direct_session:
@@ -16592,38 +16580,34 @@ def guidy_group_send_message(request, group_id):
     if user not in group.members.all() and group.created_by != user:
         return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
 
-    from .utils import clean_guidy_message_content, strip_html_for_notification
+    from .utils import clean_guidy_message_content, strip_html_for_notification, validate_guidy_file
     content = clean_guidy_message_content(request.POST.get('content', '').strip())
     client_msg_id = request.POST.get('client_msg_id')
     uploaded_file = request.FILES.get('file')
+    msg_type = 'text'
 
     if uploaded_file:
-        ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'ogg', 'm4a'}
-        ALLOWED_MIME_TYPES = {
-            'image/jpeg', 'image/png', 'image/webp', 'application/pdf', 
-            'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-            'text/plain', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'
-        }
-        ext = uploaded_file.name.split('.')[-1].lower() if '.' in uploaded_file.name else ''
-        if ext not in ALLOWED_EXTENSIONS or uploaded_file.content_type not in ALLOWED_MIME_TYPES:
-            return JsonResponse({'success': False, 'error': 'Security blocked: Invalid file type. Only images, PDFs, Word docs, text, and audio files are allowed.'}, status=400)
+        is_valid, err_msg, detected_type = validate_guidy_file(uploaded_file)
+        if not is_valid:
+            return JsonResponse({'success': False, 'error': err_msg}, status=400)
+        msg_type = detected_type
 
-        if uploaded_file.size > 15 * 1024 * 1024:
-            return JsonResponse({'success': False, 'error': 'File exceeds 15MB limit.'}, status=400)
+        # Daily media limit (exempt staff, superuser, and teachers)
+        is_exempt = user.is_staff or user.is_superuser or getattr(user, 'is_teacher', False)
+        if not is_exempt:
+            import datetime
+            from django.utils import timezone
+            time_limit = timezone.now() - datetime.timedelta(days=1)
+            media_count = GroupMessage.objects.filter(
+                group=group,
+                sender=user,
+                timestamp__gte=time_limit
+            ).exclude(file='').exclude(file__isnull=True).count()
 
-        import datetime
-        from django.utils import timezone
-        time_limit = timezone.now() - datetime.timedelta(days=1)
-        media_count = GroupMessage.objects.filter(
-            group=group,
-            sender=user,
-            timestamp__gte=time_limit
-        ).exclude(file='').exclude(file__isnull=True).count()
+            if media_count >= 5:
+                return JsonResponse({'success': False, 'error': 'Daily media limit (5/day) reached for this group. Try again tomorrow.'}, status=400)
 
-        if media_count >= 5:
-            return JsonResponse({'success': False, 'error': 'Daily media limit (5/day) reached for this group. Try again tomorrow.'}, status=400)
     reply_to_id = request.POST.get('reply_to_id')
-    msg_type = 'text'
 
     if not content and not uploaded_file:
         return JsonResponse({'success': False, 'error': 'Empty message'}, status=400)
@@ -16635,26 +16619,20 @@ def guidy_group_send_message(request, group_id):
         except GroupMessage.DoesNotExist:
             pass
 
-    if uploaded_file:
-        ext = uploaded_file.name.rsplit('.', 1)[-1].lower()
-        if ext in ('jpg', 'jpeg', 'png', 'gif', 'webp'):
-            msg_type = 'image'
-        elif ext in ('mp3', 'wav', 'ogg', 'm4a'):
-            msg_type = 'audio'
-        elif ext in ('mp4', 'webm', 'mov', 'avi'):
-            msg_type = 'video'
-        else:
-            msg_type = 'document'
-
-    msg = GroupMessage.objects.create(
-        group=group,
-        sender=user,
-        content=content,
-        message_type=msg_type,
-        reply_to=reply_to_obj,
-        file=uploaded_file if uploaded_file else None,
-        file_name=uploaded_file.name if uploaded_file else '',
-    )
+    try:
+        msg = GroupMessage.objects.create(
+            group=group,
+            sender=user,
+            content=content,
+            message_type=msg_type,
+            reply_to=reply_to_obj,
+            file=uploaded_file if uploaded_file else None,
+            file_name=uploaded_file.name if uploaded_file else '',
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error saving Guidy group message: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Failed to process attachment: {str(e)}'}, status=500)
     msg.read_by.add(user)  # Sender has read it
 
     from users.utils import get_user_display_name, get_profile_photo_url

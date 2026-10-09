@@ -5166,18 +5166,39 @@ async function sendMessage() {
         sendBtn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
       }
       const r = await fetch(url, { method:'POST', body:fd });
-      const data = await r.json();
-      if (data.success) {
+      let data = null;
+      const contentType = r.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        data = await r.json();
+      } else {
+        const text = await r.text();
+        if (r.status === 413) {
+          throw new Error('File exceeds server size limit.');
+        } else if (!r.ok) {
+          throw new Error(`Server returned error (${r.status}).`);
+        }
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error('Unexpected response format from server.');
+        }
+      }
+
+      if (data && data.success) {
         playSendSound();
         appendMessage(data.message, true);
         keepInputFocus();
         clearMediaSelection();
       } else {
-        showToast(data.error || 'Failed to send message', 'error');
+        showToast((data && data.error) || 'Failed to send message', 'error');
       }
     } catch(e) {
       console.error("sendAction exception:", e);
-      showToast('Failed to send message: ' + e.message, 'error');
+      let errMsg = e.message || 'Unknown error';
+      if (errMsg === 'Failed to fetch') {
+        errMsg = 'Connection timed out or network error. Please try again.';
+      }
+      showToast('Failed to send message: ' + errMsg, 'error');
     } finally {
       if (sendBtn) {
         sendBtn.innerHTML = oldBtnHtml;
@@ -6057,7 +6078,14 @@ function appendMessage(msg, isLive = false) {
     } else if (msg.message_type === 'video') {
       mediaHtml = `<video src="${msg.file_url}" class="g-msg-video" controls></video>`;
     } else {
-      mediaHtml = `<div class="g-msg-file"><i class='bx bx-file'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${msg.file_url}" download class="g-msg-file-dl">Download</a></div>`;
+      const lowerFn = (msg.file_name || '').toLowerCase();
+      let docIcon = 'bx-file';
+      if (lowerFn.endsWith('.pdf')) {
+        docIcon = 'bxs-file-pdf';
+      } else if (lowerFn.endsWith('.doc') || lowerFn.endsWith('.docx')) {
+        docIcon = 'bxs-file-doc';
+      }
+      mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${msg.file_url}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a></div>`;
     }
   }
 
@@ -6362,7 +6390,14 @@ async function fetchOlderMessages() {
             } else if (msg.message_type === 'video') {
               mediaHtml = `<video src="${msg.file_url}" class="g-msg-video" controls></video>`;
             } else {
-              mediaHtml = `<div class="g-msg-file"><i class='bx bx-file'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${msg.file_url}" download class="g-msg-file-dl">Download</a></div>`;
+              const lowerFn = (msg.file_name || '').toLowerCase();
+              let docIcon = 'bx-file';
+              if (lowerFn.endsWith('.pdf')) {
+                docIcon = 'bxs-file-pdf';
+              } else if (lowerFn.endsWith('.doc') || lowerFn.endsWith('.docx')) {
+                docIcon = 'bxs-file-doc';
+              }
+              mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${msg.file_url}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a></div>`;
             }
           }
 
@@ -7278,9 +7313,10 @@ function handleFileSelect(input) {
         content.appendChild(icon);
       } else {
         const icon = document.createElement('i');
-        if (optimizedFile.name.endsWith('.pdf')) {
+        const lowerName = (optimizedFile.name || '').toLowerCase();
+        if (lowerName.endsWith('.pdf')) {
           icon.className = "bx bxs-file-pdf";
-        } else if (optimizedFile.name.endsWith('.doc') || optimizedFile.name.endsWith('.docx')) {
+        } else if (lowerName.endsWith('.doc') || lowerName.endsWith('.docx')) {
           icon.className = "bx bxs-file-doc";
         } else {
           icon.className = "bx bxs-file";

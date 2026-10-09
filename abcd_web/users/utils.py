@@ -2079,6 +2079,64 @@ def strip_html_for_notification(text):
     return s
 
 
+def validate_guidy_file(uploaded_file):
+    """
+    Validates uploaded file attachment for Guidy chat.
+    Returns (is_valid, error_message, msg_type).
+    msg_type is one of: 'image', 'audio', 'video', 'document', 'text'.
+    """
+    if not uploaded_file:
+        return True, None, 'text'
+
+    import mimetypes
+    ALLOWED_EXTENSIONS = {
+        'jpg', 'jpeg', 'png', 'webp', 'gif', 'svg',
+        'pdf', 'doc', 'docx', 'txt', 'csv',
+        'mp3', 'wav', 'ogg', 'm4a', 'aac', 'opus',
+        'mp4', 'webm', 'mov', 'avi', 'mkv'
+    }
+    ALLOWED_MIME_TYPES = {
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+        'application/pdf', 'application/x-pdf', 'application/acrobat', 'applications/vnd.pdf', 'text/pdf',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/zip', 'application/x-zip-compressed',
+        'text/plain', 'text/csv',
+        'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/opus',
+        'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
+        'application/octet-stream', 'binary/octet-stream'
+    }
+
+    ext = uploaded_file.name.rsplit('.', 1)[-1].lower() if '.' in uploaded_file.name else ''
+    if not ext or ext not in ALLOWED_EXTENSIONS:
+        return False, 'Security blocked: Invalid file type. Only images, PDFs, Word docs, text, audio, and video files are allowed.', 'text'
+
+    raw_content_type = (getattr(uploaded_file, 'content_type', '') or '').split(';')[0].strip().lower()
+    guessed_type, _ = mimetypes.guess_type(uploaded_file.name)
+    guessed_type = (guessed_type or '').lower()
+
+    is_mime_valid = (
+        raw_content_type in ALLOWED_MIME_TYPES or
+        guessed_type in ALLOWED_MIME_TYPES or
+        raw_content_type in ('application/octet-stream', 'binary/octet-stream', '')
+    )
+    if not is_mime_valid:
+        return False, 'Security blocked: Invalid file format detected.', 'text'
+
+    if uploaded_file.size > 15 * 1024 * 1024:
+        return False, 'File exceeds 15MB limit.', 'text'
+
+    if ext in ('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'):
+        msg_type = 'image'
+    elif ext in ('mp3', 'wav', 'ogg', 'm4a', 'aac', 'opus'):
+        msg_type = 'audio'
+    elif ext in ('mp4', 'webm', 'mov', 'avi', 'mkv'):
+        msg_type = 'video'
+    else:
+        msg_type = 'document'
+
+    return True, None, msg_type
+
+
 # -------------------------------------------------------------------
 # SECURITY HARDENING: IMAGE GUARD & METADATA SANITIZER
 # -------------------------------------------------------------------

@@ -126,7 +126,7 @@ window.getModalPair = function(element) {
     } else {
         // Self-contained overlay containers (Pattern A) contain their own full-screen backdrop
         const elClasses = (element.className || '').toLowerCase();
-        if (elClasses.includes('abcd-modal-overlay') || elClasses.includes('mam-overlay')) {
+        if (elClasses.includes('abcd-modal-overlay') || elClasses.includes('mam-overlay') || elClasses.includes('todo-modal-overlay') || elClasses.includes('picker-overlay')) {
             return { dialog: element, overlay: null };
         }
 
@@ -824,6 +824,7 @@ window.showABCDModal = function (opts) {
             if (innerCard && innerCard !== targetDialog) {
                 innerCard.style.removeProperty('pointer-events');
                 innerCard.style.setProperty('z-index', (baseZ + 2).toString(), 'important');
+                innerCard.dataset.stackedTime = Date.now().toString();
             }
         }
 
@@ -941,8 +942,13 @@ window.showABCDModal = function (opts) {
     };
 
     function initAutoStacking() {
-        const handleVisibilityChange = (el) => {
+        const handleVisibilityChange = (el, mutation = null) => {
             if (!el || !el.matches) return;
+            // Ignore internal structural or content parts that are not the actual dialog or overlay
+            if (el.matches('.todo-modal-body, .modal-body, .modal-footer, .todo-modal-footer, .modal-header, .todo-modal-header, .fee-form-footer, .fee-search-action-row, .fee-student-list-body, [class*="-body"], [class*="-footer"], [class*="-header"], [class*="-content"], [class*="-row"], [class*="-drum"], [class*="-fill"], [class*="-badge"]')) {
+                return;
+            }
+
             const selector = '.modal, .fees-modal, .admission-modal, .teacher-modal, .abcd-modal-overlay, .seat-interest-overlay, .choice-modal-overlay, .choice-modal-card, .reg-success-overlay, .reg-success-card, .alert-overlay, .welcome-modal-card, .student-banner-overlay, .student-banner-card, .notif-panel, .notif-overlay, .teacher-notif-panel, .teacher-notif-overlay, .broadcast-panel-container, .broadcast-overlay, [class*="notif-panel"], [class*="notif-overlay"], [class*="broadcast-panel"], [class*="broadcast-overlay"], #teacherNotifPanel, #teacherNotifOverlay, #broadcastPanelContainer, #broadcastOverlay, .todo-modal-overlay, .todo-modal, .picker-overlay, .styled-modal-overlay, .fp-overlay, .fp-card, [id*="Modal"], [id*="modal"], [id*="Popup"], [id*="popup"], div[class*="modal"], div[class*="popup"], [role="dialog"], dialog';
             if (el.matches(selector)) {
                 window.enhanceSelectElements(el);
@@ -951,6 +957,27 @@ window.showABCDModal = function (opts) {
                 // Never auto-stack closed elements
                 const style = window.getComputedStyle(el);
                 if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return;
+
+                // If this is an attribute mutation on an already-open/visible element, do NOT re-elevate
+                if (mutation && mutation.type === 'attributes') {
+                    if (mutation.attributeName === 'style') {
+                        const oldStyle = (mutation.oldValue || '').toLowerCase();
+                        const wasHidden = oldStyle.includes('display: none') || oldStyle.includes('display:none');
+                        const nowDisplay = el.style.display || style.display;
+                        if (!wasHidden && nowDisplay !== 'none') {
+                            // Element was already visible; do not re-stack on countdown ticks, progress bars, or internal styles
+                            return;
+                        }
+                    } else if (mutation.attributeName === 'class') {
+                        const oldClass = (mutation.oldValue || '').toLowerCase();
+                        const isNowActive = el.classList.contains('active') || el.classList.contains('visible') || el.classList.contains('show') || el.classList.contains('open');
+                        const wasActive = oldClass.includes('active') || oldClass.includes('visible') || oldClass.includes('show') || oldClass.includes('open');
+                        if (wasActive && isNowActive) {
+                            // Element was already active; do not re-stack
+                            return;
+                        }
+                    }
+                }
 
                 // CRITICAL: When element becomes visible/active, ALWAYS restore pointer-events and unpoison inline styles
                 el.style.removeProperty('pointer-events');
@@ -1008,7 +1035,7 @@ window.showABCDModal = function (opts) {
                         // Skip body and html attribute changes (e.g. theme toggles) from modal visibility handling
                         if (mutation.target === document.body || mutation.target === document.documentElement) return;
                         if (mutation.target.classList && (mutation.target.classList.contains('abcd-select-wrapper') || mutation.target.classList.contains('abcd-select-dropdown'))) return;
-                        handleVisibilityChange(mutation.target);
+                        handleVisibilityChange(mutation.target, mutation);
                     } else if (mutation.type === 'childList') {
                         mutation.addedNodes.forEach((node) => {
                             if (node.nodeType === 1) {
@@ -1043,6 +1070,7 @@ window.showABCDModal = function (opts) {
         if (document.body) {
             observer.observe(document.body, {
                 attributes: true,
+                attributeOldValue: true,
                 childList: true,
                 subtree: true,
                 attributeFilter: ['style', 'class']
