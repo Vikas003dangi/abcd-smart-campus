@@ -8715,6 +8715,10 @@ function showNoChatPlaceholder(updateHistory = true) {
       history.replaceState(null, '', window.location.pathname);
     }
   } catch(histErr) {}
+
+  if (typeof closeProfileDrawer === 'function') {
+    closeProfileDrawer();
+  }
 }
 
 async function loadChatAJAX(type, id, pushState = true) {
@@ -8999,6 +9003,16 @@ async function loadChatAJAX(type, id, pushState = true) {
       updateSidebarBadge(data.guidy_badge_count);
     }
     clearNotificationBadges();
+
+    // Keep Contact Info drawer in sync with switched chat
+    const profDrawer = document.getElementById('profileDrawer');
+    if (profDrawer && profDrawer.classList.contains('open')) {
+      if (OTHER_TYPE && OTHER_ID) {
+        openProfileDrawer();
+      } else {
+        closeProfileDrawer();
+      }
+    }
 
   } catch(err) {
     console.error("loadChatAJAX error:", err);
@@ -9296,16 +9310,24 @@ async function openProfileDrawer() {
   const drawer = document.getElementById('profileDrawer');
   if (!drawer) return;
   drawer.classList.add('open');
+  const body = document.getElementById('drawerBody');
   if (!OTHER_TYPE || !OTHER_ID) {
-    document.getElementById('drawerBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--g-sub);">Profile info unavailable.</div>';
+    if (body) body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--g-sub);">Profile info unavailable.</div>';
     return;
+  }
+  if (body) {
+    body.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--g-sub);"><i class="bx bx-loader-alt bx-spin" style="font-size:2rem;margin-bottom:8px;display:block;color:var(--g-primary-s);"></i>Loading contact info...</div>';
   }
   try {
     const r = await fetch(`/guidy/profile/${OTHER_TYPE}/${OTHER_ID}/`);
     const d = await r.json();
-    if (d.success) renderDrawer(d);
+    if (d.success) {
+      renderDrawer(d);
+    } else {
+      if (body) body.innerHTML = `<div style="padding:20px;text-align:center;color:var(--g-sub);">${escHtml(d.error || 'Profile info unavailable.')}</div>`;
+    }
   } catch(e) {
-    document.getElementById('drawerBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--g-sub);">Could not load profile.</div>';
+    if (body) body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--g-sub);">Could not load profile.</div>';
   }
 }
 

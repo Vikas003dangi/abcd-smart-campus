@@ -14439,7 +14439,7 @@ def guidy_home(request):
                         other_user = active_session.request.student
                         other_type = 'student'
                         other_id = other_user.id
-                        other_user_name = other_user.get_full_name() or other_user.username
+                        other_user_name = get_user_display_name(other_user)
                         other_user_photo = get_profile_photo_url(other_user)
                 else:
                     other_user = active_session.user_two if active_session.user_one == user else active_session.user_one
@@ -14563,7 +14563,7 @@ def guidy_home(request):
                 photo_url = get_profile_photo_url(other_u)
             else:
                 other_u = s.request.student
-                name = other_u.get_full_name() or other_u.username
+                name = get_user_display_name(other_u)
                 photo_url = get_profile_photo_url(other_u)
         else:
             other_u = s.user_two if s.user_one == user else s.user_one
@@ -16575,7 +16575,9 @@ def guidy_profile_info(request, entity_type, entity_id):
 
     # 3. Alumni
     if entity_type == 'alumni':
-        ach = StudentAchievement.objects.filter(DQ(id=entity_id) | DQ(user_id=entity_id), status='approved').first()
+        ach = StudentAchievement.objects.filter(id=entity_id, status='approved').first()
+        if not ach:
+            ach = StudentAchievement.objects.filter(user_id=entity_id, status='approved').first()
         if ach:
             return JsonResponse({
                 'success': True,
@@ -16593,7 +16595,9 @@ def guidy_profile_info(request, entity_type, entity_id):
 
     # 4. Student (either by user_id or StudentProfile id)
     if entity_type == 'student':
-        profile = StudentProfile.objects.filter(DQ(user_id=entity_id) | DQ(id=entity_id)).first()
+        profile = StudentProfile.objects.filter(user_id=entity_id).first()
+        if not profile:
+            profile = StudentProfile.objects.filter(id=entity_id).first()
         if profile:
             batch_floor = ""
             if profile.service_type == 'Library' and profile.seat:
