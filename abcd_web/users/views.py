@@ -4768,9 +4768,11 @@ def switch_dashboard_view(request, role):
             request.session['active_dashboard'] = 'alumni'
             return redirect('users:alumni_dashboard')
     elif role == 'student':
-        if StudentProfile.objects.filter(user=request.user).exists():
+        prof = StudentProfile.objects.filter(user=request.user).first()
+        if prof and (prof.status in ['admitted', 'on_hold'] or prof.is_admitted):
             request.session['active_dashboard'] = 'student'
             return redirect('users:student_dashboard')
+        return redirect('users:alumni_dashboard' if StudentAchievement.objects.filter(user=request.user).exists() else 'users:guest_page')
 
     return redirect('users:smart_back_router')
 
@@ -5101,7 +5103,7 @@ def _get_or_create_complainant_profile(user):
                 'whatsapp_number': ach.whatsapp_number or "N/A",
                 'sex': ach.gender or 'Other',
                 'service_type': ach.services_used.capitalize() if ach.services_used in ['library', 'coaching'] else 'Coaching',
-                'status': 'pending',
+                'status': 'alumni',
                 'is_admitted': False,
             }
         )
@@ -5113,14 +5115,18 @@ def _get_or_create_complainant_profile(user):
 # -------------------------------------------------------------------
 @login_required
 def student_complaints_view(request):
-    student = _get_or_create_complainant_profile(request.user)
-    if not student:
-        return HttpResponseForbidden("You are not linked to a student profile.")
+    student = getattr(request.user, 'profile', None) or StudentProfile.objects.filter(user=request.user).first()
+    ach = getattr(request.user, 'achievements', None)
+    has_ach = bool(ach and ach.filter(status='approved').exists())
+    if not student and not has_ach and not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("You are not linked to a student or alumni profile.")
 
     # Get current role from session (default to student)
-    current_role = request.session.get('active_dashboard', 'student')
+    current_role = request.session.get('active_dashboard', 'alumni' if has_ach and not student else 'student')
 
     if request.method == "POST":
+        if not student:
+            student = _get_or_create_complainant_profile(request.user)
         # Enforce daily limit: max 5 complaints per user per day (exempt staff)
         if not (request.user.is_staff or request.user.is_superuser):
             today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -5172,7 +5178,7 @@ def student_complaints_view(request):
     else:
         form = ComplaintForm()
 
-    complaints = student.complaints.filter(role=current_role).order_by("-created_at")
+    complaints = student.complaints.filter(role=current_role).order_by("-created_at") if student else Complaint.objects.none()
 
     context = {
         "student": student,
@@ -5867,15 +5873,24 @@ def teacher_dashboard_view(request):
         ).order_by('-id').select_related('seat').distinct()
 
     # Split by service + admission_type
+    # Real coaching admission requests MUST have a chosen batch
     pending_new_coaching_students = pending_students.filter(
         Q(service_type__in=['Coaching', 'Both'], status='pending') | Q(coaching_pending=True)
     ).exclude(
         admission_type='existing',
+    ).exclude(
+        status='alumni'
+    ).filter(
+        batch__isnull=False
+    ).exclude(
+        batch=''
     )
     pending_existing_coaching_students = pending_students.filter(
         Q(service_type__in=['Coaching', 'Both'], status='pending') | Q(coaching_pending=True)
     ).filter(
         admission_type='existing',
+    ).exclude(
+        status='alumni'
     )
     # Exclude students who have a pending SeatSpecialRequest (Partial Allotment)
     # We want them to appear ONLY in the "Partial Seat Allotment Requests" section.
@@ -5884,17 +5899,28 @@ def teacher_dashboard_view(request):
         student__isnull=False
     ).values_list('student_id', flat=True)
 
+    # Real library admission requests MUST have a chosen seat or pending special request
     pending_new_library_students = pending_students.filter(
         Q(service_type__in=['Library', 'Both'], status='pending') | Q(library_pending=True)
     ).exclude(
         admission_type='existing',
-    ).exclude(id__in=partial_request_student_ids)
+    ).exclude(
+        status='alumni'
+    ).exclude(
+        id__in=partial_request_student_ids
+    ).filter(
+        Q(seat__isnull=False) | Q(id__in=partial_request_student_ids)
+    )
 
     pending_existing_library_students = pending_students.filter(
         Q(service_type__in=['Library', 'Both'], status='pending') | Q(library_pending=True)
     ).filter(
         admission_type='existing',
-    ).exclude(id__in=partial_request_student_ids)
+    ).exclude(
+        status='alumni'
+    ).exclude(
+        id__in=partial_request_student_ids
+    )
 
     # -------------------------------------------------
     # Pending HOLD requests (NEW SYSTEM)
@@ -14435,9 +14461,9 @@ def guidy_home(request):
                         other_user_name = get_user_display_name(other_u)
                         other_user_photo = get_profile_photo_url(other_u)
                     else:
-                        # User is alumni, other user is student
+                        # User is alumni, other user is student/seeker
                         other_user = active_session.request.student
-                        other_type = 'student'
+                        other_type = get_user_dashboard_type(other_user) or 'guest'
                         other_id = other_user.id
                         other_user_name = get_user_display_name(other_user)
                         other_user_photo = get_profile_photo_url(other_user)
@@ -16593,11 +16619,9 @@ def guidy_profile_info(request, entity_type, entity_id):
                 'is_verified': False,
             })
 
-    # 4. Student (either by user_id or StudentProfile id)
+    # 4. Student (by user_id)
     if entity_type == 'student':
         profile = StudentProfile.objects.filter(user_id=entity_id).first()
-        if not profile:
-            profile = StudentProfile.objects.filter(id=entity_id).first()
         if profile:
             batch_floor = ""
             if profile.service_type == 'Library' and profile.seat:
@@ -19681,7 +19705,7 @@ def guidy_load_chat_api(request):
                     other_id = other_u.id if (other_u and other_type == 'teacher') else (session.request.alumni_id if session.request.alumni else '')
                 else:
                     other_u = session.request.student
-                    other_type = 'student'
+                    other_type = get_user_dashboard_type(other_u) or 'guest' if other_u else 'guest'
                     other_id = other_u.id if other_u else ''
                 req_pk = session.request.id
             else:

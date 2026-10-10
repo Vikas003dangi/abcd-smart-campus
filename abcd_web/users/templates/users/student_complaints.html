@@ -672,7 +672,7 @@
     <div class="welcome-text">
       <h2>📝 Complaint Box</h2>
       <p>
-        Hi {{ student.full_name }}, if you face any issue in coaching or library
+        Hi {{ student.full_name|default:user.get_full_name|default:user.username }}, if you face any issue in coaching or library
         (Wi-Fi, noise, cleaning, washroom, water, etc.), please tell us here.
       </p>
     </div>

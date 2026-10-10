@@ -131,7 +131,8 @@ def student_context(request):
                 elif ach.status == 'pending':
                     has_pending_alumni = True
 
-            is_dual = bool(profile and ach)
+            has_active_student_dashboard = bool(profile and (profile.status in ['admitted', 'on_hold'] or profile.is_admitted))
+            is_dual = bool(has_active_student_dashboard and is_approved_alumni)
             is_coaching_taken = is_approved_coaching or has_pending_coaching
             is_library_taken = is_approved_library or has_pending_library
             can_apply_admission = not (is_coaching_taken and is_library_taken)
@@ -146,6 +147,7 @@ def student_context(request):
                 'can_apply_admission': can_apply_admission,
                 'has_dual_profile': is_dual,
                 'is_dual_user': is_dual,
+                'has_active_student_dashboard': has_active_student_dashboard,
                 'has_student_profile': bool(profile),
                 'has_alumni_profile': bool(ach),
                 'current_dashboard_role': active_dash or dtype,

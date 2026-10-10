@@ -1718,7 +1718,7 @@
       </li>
 
       <!-- 2. Student Dashboard (if user also has student profile) -->
-      {% if is_dual_user or profile or nav_achievement and profile %}
+      {% if has_active_student_dashboard or is_dual_user %}
       <li>
         <a href="{% url 'users:switch_dashboard' 'student' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
           <i class='bx bxs-user-badge'></i>
@@ -2032,7 +2032,7 @@
       </a>
 
       <!-- 8. Student Profile (only if user is also student) -->
-      {% if is_dual_user or profile or nav_achievement and profile %}
+      {% if has_active_student_dashboard or is_dual_user %}
       <a href="{% url 'users:switch_dashboard' 'student' %}" class="app-card">
         <i class='bx bxs-user-badge'></i>
         <span>Student Profile</span>
