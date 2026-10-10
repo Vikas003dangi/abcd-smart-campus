@@ -261,7 +261,7 @@ WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_MAX_AGE = 31536000 if not DEBUG else 0
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024  # 15MB for sticky note images / rich content
-FILE_UPLOAD_MAX_MEMORY_SIZE = 15 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024    # 2MB: Stream larger uploads (PDFs/videos) to temporary disk to prevent RAM exhaustion on Render
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"

@@ -45,10 +45,27 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
         # 3. Default fallback for standard media in Django is 'image' (MediaCloudinaryStorage default)
         return 'image'
 
+    def _upload(self, name, content):
+        rtype = self._get_resource_type(name)
+        folder = os.path.dirname(name)
+        options = {
+            'use_filename': True,
+            'unique_filename': True,
+            'resource_type': rtype,
+            'tags': self.TAG,
+            'timeout': 60,
+        }
+        if folder:
+            options['folder'] = folder
+        return cloudinary.uploader.upload(content, **options)
+
     def _save(self, name, content):
         name = self._normalise_name(name)
         name = self._prepend_prefix(name)
-        content = UploadedFile(content, name)
+        # Pass clean basename to UploadedFile so that the stream does not carry
+        # directory separators (e.g. media/guidy_temp/) that cause Cloudinary raw uploads to fail
+        base_filename = os.path.basename(name)
+        content = UploadedFile(content, base_filename)
         response = self._upload(name, content)
         public_id = response['public_id']
         rtype = response.get('resource_type')

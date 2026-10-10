@@ -873,11 +873,56 @@ body.dark-theme .g-bg-canvas { opacity: 0.18; }
 .g-msg-text {
   white-space: pre-wrap;
   word-break: break-word;
+  line-height: 1.5;
 }
-.g-bubble.g-bubble-media {
+.g-msg-row.mine .g-msg-text,
+body.dark-theme .g-msg-row.mine .g-msg-text {
+  color: #ffffff !important;
+}
+.g-msg-row.theirs .g-msg-text {
+  color: #0f172a !important; /* Deep contrast dark text for light mode */
+}
+body.dark-theme .g-msg-row.theirs .g-msg-text {
+  color: #f8fafc !important; /* Crisp high-contrast light text for dark mode */
+}
+
+/* Pure visual media (image or video without text) sits borderless */
+.g-bubble.g-bubble-pure-media {
   background: transparent !important;
   box-shadow: none !important;
   padding: 0 !important;
+  border: none !important;
+}
+.g-bubble.g-bubble-pure-media .msg-chevron {
+  background: rgba(0, 0, 0, 0.45) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Media accompanied by text caption or document card retains full bubble background */
+.g-bubble.g-bubble-has-media {
+  padding: 8px 10px 10px 10px !important;
+}
+.g-bubble.g-bubble-has-media .g-msg-img,
+.g-bubble.g-bubble-has-media .g-msg-video {
+  margin-top: 0;
+  border-radius: 12px 12px 6px 6px;
+  width: 100%;
+}
+.g-bubble.g-bubble-has-media .g-msg-text {
+  display: block;
+  margin-top: 6px;
+  padding: 2px 4px;
+}
+.g-msg-row.mine .g-bubble.g-bubble-has-media .g-msg-text,
+body.dark-theme .g-msg-row.mine .g-bubble.g-bubble-has-media .g-msg-text {
+  color: #ffffff !important;
+}
+.g-msg-row.theirs .g-bubble.g-bubble-has-media .g-msg-text {
+  color: #0f172a !important;
+}
+body.dark-theme .g-msg-row.theirs .g-bubble.g-bubble-has-media .g-msg-text {
+  color: #f8fafc !important;
 }
 .g-bubble:active { filter: brightness(0.95); }
 
@@ -1190,24 +1235,97 @@ body.dark-theme .g-msg-row.mine .g-bubble.auto-reply-bubble + .g-msg-meta span {
 
 /* Reply Preview inside bubble */
 .g-reply-preview {
-  background: var(--g-bg); border-left: 4px solid var(--g-primary-s);
   padding: 5px 9px; border-radius: 8px; margin-bottom: 6px;
-  font-size: 0.78rem; opacity: 0.9;
-  color: var(--g-sub);
+  font-size: 0.78rem; opacity: 0.95;
 }
-.g-reply-sender { font-weight: 700; margin-bottom: 2px; color: var(--g-text); }
+.g-msg-row.mine .g-reply-preview {
+  background: rgba(0, 0, 0, 0.16) !important;
+  border-left: 4px solid #ffffff !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+.g-msg-row.mine .g-reply-preview .g-reply-sender {
+  color: #ffffff !important; font-weight: 700; margin-bottom: 2px;
+}
+.g-msg-row.theirs .g-reply-preview {
+  background: #f1f5f9 !important;
+  border-left: 4px solid var(--g-primary-s, #4f46e5) !important;
+  color: #475569 !important;
+}
+.g-msg-row.theirs .g-reply-preview .g-reply-sender {
+  color: var(--g-primary-s, #4f46e5) !important; font-weight: 700; margin-bottom: 2px;
+}
+body.dark-theme .g-msg-row.theirs .g-reply-preview {
+  background: rgba(15, 23, 42, 0.65) !important;
+  border-left: 4px solid #818cf8 !important;
+  color: #cbd5e1 !important;
+}
+body.dark-theme .g-msg-row.theirs .g-reply-preview .g-reply-sender {
+  color: #818cf8 !important; font-weight: 700; margin-bottom: 2px;
+}
 
 /* File/Media attachment */
 .g-msg-file {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 6px; padding: 8px 10px;
-  background: rgba(0,0,0,0.1); border-radius: 10px;
-  width: 100%; max-width: 280px; box-sizing: border-box;
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 2px; padding: 10px 12px;
+  border-radius: 12px;
+  width: 100%; max-width: 290px; box-sizing: border-box;
 }
-.g-msg-row.theirs .g-msg-file { background: rgba(108,99,255,0.07); }
-.g-msg-file i { font-size: 1.4rem; color: inherit; }
-.g-msg-file-name { font-size: 0.8rem; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.g-msg-file-dl { background: rgba(255,255,255,0.2); border: none; color: inherit; cursor: pointer; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+/* Mine documents */
+.g-msg-row.mine .g-msg-file {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+}
+.g-msg-row.mine .g-msg-file i {
+  font-size: 1.6rem; color: #ffffff !important;
+}
+.g-msg-row.mine .g-msg-file-name {
+  font-size: 0.85rem; font-weight: 600; color: #ffffff !important;
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.g-msg-row.mine .g-msg-file-dl {
+  background: #ffffff !important; border: none; color: var(--g-primary-s, #4f46e5) !important;
+  cursor: pointer; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+  flex-shrink: 0; text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.g-msg-row.mine .g-msg-file-dl:hover {
+  transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+}
+
+/* Theirs documents */
+.g-msg-row.theirs .g-msg-file {
+  background: #f1f5f9 !important; border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+body.dark-theme .g-msg-row.theirs .g-msg-file {
+  background: rgba(15, 23, 42, 0.65) !important; border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.g-msg-row.theirs .g-msg-file i {
+  font-size: 1.6rem; color: var(--g-primary-s, #4f46e5) !important;
+}
+body.dark-theme .g-msg-row.theirs .g-msg-file i {
+  color: #818cf8 !important;
+}
+.g-msg-row.theirs .g-msg-file-name {
+  font-size: 0.85rem; font-weight: 600; color: #0f172a !important;
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+body.dark-theme .g-msg-row.theirs .g-msg-file-name {
+  color: #f8fafc !important;
+}
+.g-msg-row.theirs .g-msg-file-dl {
+  background: var(--g-primary-s, #4f46e5) !important; border: none; color: #ffffff !important;
+  cursor: pointer; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+  flex-shrink: 0; text-decoration: none; box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+body.dark-theme .g-msg-row.theirs .g-msg-file-dl {
+  background: #6366f1 !important; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35);
+}
+.g-msg-row.theirs .g-msg-file-dl:hover {
+  transform: translateY(-1px); filter: brightness(1.08);
+}
 .g-msg-img { width: 100%; max-width: 280px; max-height: 220px; border-radius: 12px; object-fit: cover; display: block; cursor: pointer; margin-top: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 .g-msg-video { width: 100%; max-width: 280px; border-radius: 12px; display: block; margin-top: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 
@@ -3201,7 +3319,7 @@ body.dark-theme .search-highlight {
                     {% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
                   </div>
                   {% endif %}
-                  <div class="g-bubble {% if msg.is_auto_reply %}auto-reply-bubble{% endif %} {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}starred-msg{% endif %}">
+                  <div class="g-bubble {% if msg.is_auto_reply %}auto-reply-bubble{% endif %} {% if msg.file and not msg.content and msg.message_type == 'image' or msg.file and not msg.content and msg.message_type == 'video' %}g-bubble-pure-media{% elif msg.file %}g-bubble-has-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if msg.sender == request.user and msg.is_starred_by_sender or msg.sender != request.user and msg.is_starred_by_receiver %}starred-msg{% endif %}">
                     <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
                     {% if msg.is_auto_reply %}
                       <div class="auto-reply-badge"><i class='bx bx-bot'></i> Smart Auto-Reply</div>
@@ -3220,9 +3338,15 @@ body.dark-theme .search-highlight {
                       <video src="{{ msg.file.url }}" class="g-msg-video" controls></video>
                     {% elif msg.message_type == 'document' and msg.file %}
                       <div class="g-msg-file">
-                        <i class='bx bx-file'></i>
+                        {% if msg.file_name|lower|slice:"-4:" == ".pdf" %}
+                          <i class='bx bxs-file-pdf'></i>
+                        {% elif msg.file_name|lower|slice:"-4:" == ".doc" or msg.file_name|lower|slice:"-5:" == ".docx" %}
+                          <i class='bx bxs-file-doc'></i>
+                        {% else %}
+                          <i class='bx bx-file'></i>
+                        {% endif %}
                         <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                        <a href="{{ msg.file.url }}" download class="g-msg-file-dl">Download</a>
+                        <a href="{{ msg.file.url }}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a>
                       </div>
                     {% endif %}
                     {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
@@ -3324,7 +3448,7 @@ body.dark-theme .search-highlight {
                       {% else %}{{ msg.reply_to.content|truncatechars:60 }}{% endif %}
                     </div>
                     {% endif %}
-                      <div class="g-bubble {% if msg.file %}g-bubble-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if request.user in msg.starred_by.all %}starred-msg{% endif %}">
+                      <div class="g-bubble {% if msg.file and not msg.content and msg.message_type == 'image' or msg.file and not msg.content and msg.message_type == 'video' %}g-bubble-pure-media{% elif msg.file %}g-bubble-has-media{% endif %} {% if msg.is_pinned %}pinned-msg{% endif %} {% if request.user in msg.starred_by.all %}starred-msg{% endif %}">
                         <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
                         {% if msg.media_expired and msg.message_type != 'text' %}
                           <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
@@ -3336,11 +3460,19 @@ body.dark-theme .search-highlight {
                             <div class="g-audio-progress" onclick="seekCustomAudio(event, this)"><div class="g-audio-fill"></div></div>
                             <audio src="{{ msg.file.url }}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
                           </div>
+                        {% elif msg.message_type == 'video' and msg.file %}
+                          <video src="{{ msg.file.url }}" class="g-msg-video" controls></video>
                         {% elif msg.message_type == 'document' and msg.file %}
                           <div class="g-msg-file">
-                            <i class='bx bx-file'></i>
+                            {% if msg.file_name|lower|slice:"-4:" == ".pdf" %}
+                              <i class='bx bxs-file-pdf'></i>
+                            {% elif msg.file_name|lower|slice:"-4:" == ".doc" or msg.file_name|lower|slice:"-5:" == ".docx" %}
+                              <i class='bx bxs-file-doc'></i>
+                            {% else %}
+                              <i class='bx bx-file'></i>
+                            {% endif %}
                             <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                            <a href="{{ msg.file.url }}" download class="g-msg-file-dl">Download</a>
+                            <a href="{{ msg.file.url }}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a>
                           </div>
                         {% endif %}
                         {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
@@ -5196,7 +5328,7 @@ async function sendMessage() {
       console.error("sendAction exception:", e);
       let errMsg = e.message || 'Unknown error';
       if (errMsg === 'Failed to fetch') {
-        errMsg = 'Connection timed out or network error. Please try again.';
+        errMsg = 'Upload timed out or network error. Please verify your connection or try a smaller file.';
       }
       showToast('Failed to send message: ' + errMsg, 'error');
     } finally {
@@ -6109,9 +6241,13 @@ function appendMessage(msg, isLive = false) {
   if (msg.is_deleted_for_all) {
     bubbleHtml = `<div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);"><i class="bx bx-block"></i> deleted msg</div>`;
   } else {
+    const hasContent = !!(msg.content && msg.content.trim());
+    const isPureVisual = !!msg.file_url && !hasContent && (msg.message_type === 'image' || msg.message_type === 'video');
+    const mediaClass = isPureVisual ? 'g-bubble-pure-media' : (msg.file_url ? 'g-bubble-has-media' : '');
     const isJumbo = !msg.file_url && isOnlyEmojis(msg.content || '');
     const isAuto = !!msg.is_auto_reply;
-    const bubbleClass = `g-bubble ${isAuto ? 'auto-reply-bubble' : ''} ${msg.is_pinned ? 'pinned-msg' : ''} ${isJumbo ? 'jumbo-emoji-bubble' : ''} ${msg.file_url ? 'g-bubble-media' : ''}`;
+    const bubbleClass = `g-bubble ${isAuto ? 'auto-reply-bubble' : ''} ${msg.is_pinned ? 'pinned-msg' : ''} ${isJumbo ? 'jumbo-emoji-bubble' : ''} ${mediaClass}`;
+    const textHtml = hasContent ? `<span class="g-msg-text">${formatMessageContent(msg.content || '')}</span>` : '';
     let autoReplyHdr = isAuto ? `<div class="auto-reply-badge"><i class='bx bx-bot'></i> Smart Auto-Reply</div>` : '';
     let autoReplyFtr = isAuto ? `<div class="auto-reply-disclaimer"><i class='bx bx-info-circle'></i> Automated response &bull; ${escHtml(msg.sender_name || 'Owner')} will reply personally soon.</div>` : '';
     let autoReplyChips = (isAuto && typeof buildAutoReplyChips === 'function') ? buildAutoReplyChips(msg.auto_reply_topic, msg) : '';
@@ -6119,7 +6255,7 @@ function appendMessage(msg, isLive = false) {
     bubbleHtml = `<div class="${bubbleClass}">
                     <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
                     ${autoReplyHdr}
-                    ${mediaHtml}<span class="g-msg-text">${formatMessageContent(msg.content||'')}</span>
+                    ${mediaHtml}${textHtml}
                     ${autoReplyChips}
                     ${autoReplyFtr}
                   </div>
@@ -6408,11 +6544,15 @@ async function fetchOlderMessages() {
           if (msg.is_deleted_for_all) {
             bubbleHtml = `<div class="g-bubble deleted" style="font-style: italic; color: var(--g-sub);"><i class="bx bx-block"></i> deleted msg</div>`;
           } else {
+            const hasContent = !!(msg.content && msg.content.trim());
+            const isPureVisual = !!msg.file_url && !hasContent && (msg.message_type === 'image' || msg.message_type === 'video');
+            const mediaClass = isPureVisual ? 'g-bubble-pure-media' : (msg.file_url ? 'g-bubble-has-media' : '');
             const isJumbo = !msg.file_url && isOnlyEmojis(msg.content || '');
-            const bubbleClass = `g-bubble ${msg.is_pinned ? 'pinned-msg' : ''} ${isJumbo ? 'jumbo-emoji-bubble' : ''} ${msg.file_url ? 'g-bubble-media' : ''}`;
+            const bubbleClass = `g-bubble ${msg.is_pinned ? 'pinned-msg' : ''} ${isJumbo ? 'jumbo-emoji-bubble' : ''} ${mediaClass}`;
+            const textHtml = hasContent ? `<span class="g-msg-text">${formatMessageContent(msg.content || '')}</span>` : '';
             bubbleHtml = `<div class="${bubbleClass}">
                             <i class='bx bx-chevron-down msg-chevron' onclick="openCtxMenu(event, this.closest('.g-msg-row'))"></i>
-                            ${mediaHtml}<span class="g-msg-text">${formatMessageContent(msg.content||'')}</span>
+                            ${mediaHtml}${textHtml}
                           </div>
                           <div class="g-msg-meta">
                             ${msg.is_pinned ? `<i class='bx bx-pin g-msg-pin-ico'></i>` : ''}
