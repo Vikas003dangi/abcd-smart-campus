@@ -15205,23 +15205,6 @@ def guidy_send_message(request, session_id=None, direct_id=None):
             file=uploaded_file if uploaded_file else None,
             file_name=uploaded_file.name if uploaded_file else '',
         )
-        if uploaded_file and msg.file:
-            try:
-                from django.conf import settings
-                local_dir = os.path.join(settings.MEDIA_ROOT, 'guidy_temp')
-                os.makedirs(local_dir, exist_ok=True)
-                fname = os.path.basename(str(msg.file.name)) or f"msg_{msg.id}_{uploaded_file.name}"
-                local_file_path = os.path.join(local_dir, fname)
-                uploaded_file.seek(0)
-                with open(local_file_path, 'wb') as lf:
-                    for chunk in uploaded_file.chunks():
-                        lf.write(chunk)
-                alias_path = os.path.join(local_dir, f"msg_{msg.id}_{uploaded_file.name}")
-                if alias_path != local_file_path and not os.path.exists(alias_path):
-                    import shutil
-                    shutil.copyfile(local_file_path, alias_path)
-            except Exception as save_err:
-                logging.getLogger(__name__).warning(f"Could not save local copy of Guidy attachment: {save_err}")
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error saving Guidy message: {e}", exc_info=True)
@@ -15458,31 +15441,15 @@ def guidy_download_attachment(request, msg_id, is_group=False):
 
     filename = msg.file_name or os.path.basename(str(msg.file.name)) or "attachment"
 
-    # 1. Check for local disk copy (in MEDIA_ROOT / guidy_temp)
-    candidate_paths = []
-    file_raw_name = str(msg.file.name or '')
-    base_raw_name = os.path.basename(file_raw_name)
-
-    if file_raw_name:
-        candidate_paths.append(os.path.join(settings.MEDIA_ROOT, file_raw_name))
-    if base_raw_name:
-        candidate_paths.append(os.path.join(settings.MEDIA_ROOT, 'guidy_temp', base_raw_name))
-    prefix = 'gmsg' if is_group else 'msg'
-    candidate_paths.append(os.path.join(settings.MEDIA_ROOT, 'guidy_temp', f"{prefix}_{msg.id}_{filename}"))
+    # 1. Local filesystem fallback (only if running with local FileSystemStorage in development)
     if hasattr(msg.file, 'path'):
         try:
-            candidate_paths.append(msg.file.path)
+            if os.path.isfile(msg.file.path):
+                return FileResponse(open(msg.file.path, 'rb'), as_attachment=True, filename=filename)
         except Exception:
             pass
 
-    for cpath in candidate_paths:
-        if cpath and os.path.isfile(cpath):
-            try:
-                return FileResponse(open(cpath, 'rb'), as_attachment=True, filename=filename)
-            except Exception as e:
-                logging.getLogger(__name__).warning(f"Error serving local file {cpath}: {e}")
-
-    # 2. If not found on local disk, stream from Cloudinary / file.url
+    # 2. Cloudinary live stream: Zero disk usage, streams directly to client browser
     file_url = None
     try:
         file_url = msg.file.url
@@ -15492,16 +15459,15 @@ def guidy_download_attachment(request, msg_id, is_group=False):
     if file_url:
         try:
             req = urllib.request.Request(file_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=15) as remote_stream:
-                content_type = remote_stream.headers.get('Content-Type') or 'application/octet-stream'
-                file_bytes = remote_stream.read()
-                resp = HttpResponse(file_bytes, content_type=content_type)
-                resp['Content-Disposition'] = f'attachment; filename="{filename}"'
-                return resp
+            remote_stream = urllib.request.urlopen(req, timeout=15)
+            content_type = remote_stream.headers.get('Content-Type') or 'application/octet-stream'
+            resp = StreamingHttpResponse(remote_stream, content_type=content_type)
+            resp['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return resp
         except Exception as fetch_err:
             logging.getLogger(__name__).warning(f"Could not stream remote Guidy file from {file_url}: {fetch_err}")
 
-        # Fallback: if remote direct fetch failed, redirect with attachment flag
+        # Fallback: if proxy streaming fails, redirect directly to Cloudinary with attachment header
         if 'cloudinary.com' in file_url:
             if '/upload/' in file_url and '/upload/fl_attachment' not in file_url:
                 cld_download_url = file_url.replace('/upload/', '/upload/fl_attachment/')
@@ -16782,23 +16748,6 @@ def guidy_group_send_message(request, group_id):
             file=uploaded_file if uploaded_file else None,
             file_name=uploaded_file.name if uploaded_file else '',
         )
-        if uploaded_file and msg.file:
-            try:
-                from django.conf import settings
-                local_dir = os.path.join(settings.MEDIA_ROOT, 'guidy_temp')
-                os.makedirs(local_dir, exist_ok=True)
-                fname = os.path.basename(str(msg.file.name)) or f"gmsg_{msg.id}_{uploaded_file.name}"
-                local_file_path = os.path.join(local_dir, fname)
-                uploaded_file.seek(0)
-                with open(local_file_path, 'wb') as lf:
-                    for chunk in uploaded_file.chunks():
-                        lf.write(chunk)
-                alias_path = os.path.join(local_dir, f"gmsg_{msg.id}_{uploaded_file.name}")
-                if alias_path != local_file_path and not os.path.exists(alias_path):
-                    import shutil
-                    shutil.copyfile(local_file_path, alias_path)
-            except Exception as save_err:
-                logging.getLogger(__name__).warning(f"Could not save local copy of Guidy group attachment: {save_err}")
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error saving Guidy group message: {e}", exc_info=True)
