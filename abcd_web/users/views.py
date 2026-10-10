@@ -15389,6 +15389,7 @@ def guidy_download_attachment(request, msg_id, is_group=False):
     Eliminates cross-origin download blocking and Cloudinary raw PDF 404 blocks.
     Prioritizes locally cached media copies; falls back to streaming or signed Cloudinary.
     """
+    import os
     import logging
     import mimetypes
     import urllib.request
@@ -15443,12 +15444,11 @@ def guidy_download_attachment(request, msg_id, is_group=False):
     filename = msg.file_name or os.path.basename(str(msg.file.name)) or "attachment"
 
     # 1. Local filesystem fallback (only if running with local FileSystemStorage in development)
-    if hasattr(msg.file, 'path'):
-        try:
-            if os.path.isfile(msg.file.path):
-                return FileResponse(open(msg.file.path, 'rb'), as_attachment=True, filename=filename)
-        except Exception:
-            pass
+    try:
+        if hasattr(msg.file, 'path') and os.path.isfile(msg.file.path):
+            return FileResponse(open(msg.file.path, 'rb'), as_attachment=True, filename=filename)
+    except Exception:
+        pass
 
     # 2. Candidate remote URLs for Cloudinary streaming (Zero disk usage, zero database storage)
     candidate_urls = []
@@ -15542,9 +15542,6 @@ def guidy_download_attachment(request, msg_id, is_group=False):
 
                 resp = StreamingHttpResponse(file_chunk_generator(remote_stream), content_type=content_type)
                 resp['Content-Disposition'] = f'attachment; filename="{filename}"'
-                content_len = remote_stream.headers.get('Content-Length')
-                if content_len:
-                    resp['Content-Length'] = content_len
                 return resp
         except Exception as fetch_err:
             logging.getLogger(__name__).debug(f"Candidate download failed for {target_url}: {fetch_err}")
