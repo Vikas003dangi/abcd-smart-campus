@@ -3346,7 +3346,7 @@ body.dark-theme .search-highlight {
                           <i class='bx bx-file'></i>
                         {% endif %}
                         <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                        <a href="{{ msg.file.url }}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a>
+                        <a href="{% url 'users:guidy_download_attachment' msg.id %}" download class="g-msg-file-dl">Download</a>
                       </div>
                     {% endif %}
                     {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
@@ -3472,7 +3472,7 @@ body.dark-theme .search-highlight {
                               <i class='bx bx-file'></i>
                             {% endif %}
                             <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                            <a href="{{ msg.file.url }}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a>
+                            <a href="{% url 'users:guidy_download_group_attachment' msg.id %}" download class="g-msg-file-dl">Download</a>
                           </div>
                         {% endif %}
                         {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
@@ -6217,7 +6217,8 @@ function appendMessage(msg, isLive = false) {
       } else if (lowerFn.endsWith('.doc') || lowerFn.endsWith('.docx')) {
         docIcon = 'bxs-file-doc';
       }
-      mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${msg.file_url}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a></div>`;
+      const dlUrl = msg.download_url || (GROUP_ID ? `/guidy/download/group/${msg.id}/` : `/guidy/download/${msg.id}/`);
+      mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${dlUrl}" download class="g-msg-file-dl">Download</a></div>`;
     }
   }
 
@@ -6533,7 +6534,8 @@ async function fetchOlderMessages() {
               } else if (lowerFn.endsWith('.doc') || lowerFn.endsWith('.docx')) {
                 docIcon = 'bxs-file-doc';
               }
-              mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${msg.file_url}" target="_blank" rel="noopener noreferrer" download class="g-msg-file-dl">Download</a></div>`;
+              const dlUrl = msg.download_url || (GROUP_ID ? `/guidy/download/group/${msg.id}/` : `/guidy/download/${msg.id}/`);
+              mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${dlUrl}" download class="g-msg-file-dl">Download</a></div>`;
             }
           }
 

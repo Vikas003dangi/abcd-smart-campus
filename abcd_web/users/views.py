@@ -14038,7 +14038,18 @@ def purge_expired_media():
     for msg in expired_messages:
         try:
             if msg.file:
-                msg.file.delete(save=False) # Physically deletes from disk
+                msg.file.delete(save=False) # Physically deletes from disk/storage
+        except Exception:
+            pass
+        try:
+            from django.conf import settings
+            base_fn = os.path.basename(str(msg.file.name or ''))
+            for c_path in [
+                os.path.join(settings.MEDIA_ROOT, 'guidy_temp', base_fn) if base_fn else None,
+                os.path.join(settings.MEDIA_ROOT, 'guidy_temp', f"msg_{msg.id}_{msg.file_name}") if msg.file_name else None,
+            ]:
+                if c_path and os.path.isfile(c_path):
+                    os.remove(c_path)
         except Exception:
             pass
         msg.media_expired = True
@@ -14055,6 +14066,17 @@ def purge_expired_media():
         try:
             if gmsg.file:
                 gmsg.file.delete(save=False)
+        except Exception:
+            pass
+        try:
+            from django.conf import settings
+            base_fn = os.path.basename(str(gmsg.file.name or ''))
+            for c_path in [
+                os.path.join(settings.MEDIA_ROOT, 'guidy_temp', base_fn) if base_fn else None,
+                os.path.join(settings.MEDIA_ROOT, 'guidy_temp', f"gmsg_{gmsg.id}_{gmsg.file_name}") if gmsg.file_name else None,
+            ]:
+                if c_path and os.path.isfile(c_path):
+                    os.remove(c_path)
         except Exception:
             pass
         gmsg.media_expired = True
@@ -15183,6 +15205,23 @@ def guidy_send_message(request, session_id=None, direct_id=None):
             file=uploaded_file if uploaded_file else None,
             file_name=uploaded_file.name if uploaded_file else '',
         )
+        if uploaded_file and msg.file:
+            try:
+                from django.conf import settings
+                local_dir = os.path.join(settings.MEDIA_ROOT, 'guidy_temp')
+                os.makedirs(local_dir, exist_ok=True)
+                fname = os.path.basename(str(msg.file.name)) or f"msg_{msg.id}_{uploaded_file.name}"
+                local_file_path = os.path.join(local_dir, fname)
+                uploaded_file.seek(0)
+                with open(local_file_path, 'wb') as lf:
+                    for chunk in uploaded_file.chunks():
+                        lf.write(chunk)
+                alias_path = os.path.join(local_dir, f"msg_{msg.id}_{uploaded_file.name}")
+                if alias_path != local_file_path and not os.path.exists(alias_path):
+                    import shutil
+                    shutil.copyfile(local_file_path, alias_path)
+            except Exception as save_err:
+                logging.getLogger(__name__).warning(f"Could not save local copy of Guidy attachment: {save_err}")
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error saving Guidy message: {e}", exc_info=True)
@@ -15304,6 +15343,7 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         'message_type': msg.message_type,
         'file_url': msg.file.url if msg.file else None,
         'file_name': msg.file_name,
+        'download_url': f'/guidy/download/{msg.id}/' if msg.file else None,
         'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
         'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
         'is_mine': False,
@@ -15357,6 +15397,118 @@ def guidy_send_message(request, session_id=None, direct_id=None):
         'success': True,
         'message': sender_msg_dict
     })
+
+
+@login_required
+def guidy_download_attachment(request, msg_id, is_group=False):
+    """
+    Direct, secure, same-origin file download for Guidy chat attachments.
+    Eliminates cross-origin download blocking and Cloudinary raw PDF 404 blocks.
+    Prioritizes locally cached media copies; falls back to streaming or signed Cloudinary.
+    """
+    import os
+    import urllib.request
+    from django.conf import settings
+    from django.http import FileResponse, HttpResponse, HttpResponseForbidden, HttpResponseNotFound, HttpResponseRedirect
+    from users.models import Message, GroupMessage
+
+    user = request.user
+
+    if is_group:
+        msg = get_object_or_404(GroupMessage, id=msg_id)
+        if msg.is_deleted_for_all:
+            return HttpResponseNotFound("This message attachment was deleted.")
+        group = msg.group
+        is_allowed = (
+            user in group.members.all() or
+            group.created_by == user or
+            msg.sender == user or
+            user.is_staff or
+            user.is_superuser
+        )
+        if not is_allowed:
+            return HttpResponseForbidden("You do not have permission to download this attachment.")
+    else:
+        msg = get_object_or_404(Message, id=msg_id)
+        if msg.is_deleted_for_all:
+            return HttpResponseNotFound("This message attachment was deleted.")
+        is_participant = False
+        if msg.session:
+            s = msg.session
+            if s.request:
+                is_participant = (
+                    s.request.student == user or
+                    (s.request.alumni and s.request.alumni.user == user) or
+                    s.user_one == user or
+                    s.user_two == user
+                )
+            else:
+                is_participant = (s.user_one == user or s.user_two == user)
+        elif msg.direct_session:
+            ds = msg.direct_session
+            is_participant = (ds.user1 == user or ds.user2 == user)
+        elif msg.sender == user:
+            is_participant = True
+
+        if not is_participant and not (user.is_staff or user.is_superuser):
+            return HttpResponseForbidden("You do not have permission to download this attachment.")
+
+    if msg.media_expired or not msg.file:
+        return HttpResponseNotFound("This attachment has expired or is no longer available.")
+
+    filename = msg.file_name or os.path.basename(str(msg.file.name)) or "attachment"
+
+    # 1. Check for local disk copy (in MEDIA_ROOT / guidy_temp)
+    candidate_paths = []
+    file_raw_name = str(msg.file.name or '')
+    base_raw_name = os.path.basename(file_raw_name)
+
+    if file_raw_name:
+        candidate_paths.append(os.path.join(settings.MEDIA_ROOT, file_raw_name))
+    if base_raw_name:
+        candidate_paths.append(os.path.join(settings.MEDIA_ROOT, 'guidy_temp', base_raw_name))
+    prefix = 'gmsg' if is_group else 'msg'
+    candidate_paths.append(os.path.join(settings.MEDIA_ROOT, 'guidy_temp', f"{prefix}_{msg.id}_{filename}"))
+    if hasattr(msg.file, 'path'):
+        try:
+            candidate_paths.append(msg.file.path)
+        except Exception:
+            pass
+
+    for cpath in candidate_paths:
+        if cpath and os.path.isfile(cpath):
+            try:
+                return FileResponse(open(cpath, 'rb'), as_attachment=True, filename=filename)
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"Error serving local file {cpath}: {e}")
+
+    # 2. If not found on local disk, stream from Cloudinary / file.url
+    file_url = None
+    try:
+        file_url = msg.file.url
+    except Exception:
+        pass
+
+    if file_url:
+        try:
+            req = urllib.request.Request(file_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=15) as remote_stream:
+                content_type = remote_stream.headers.get('Content-Type') or 'application/octet-stream'
+                file_bytes = remote_stream.read()
+                resp = HttpResponse(file_bytes, content_type=content_type)
+                resp['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return resp
+        except Exception as fetch_err:
+            logging.getLogger(__name__).warning(f"Could not stream remote Guidy file from {file_url}: {fetch_err}")
+
+        # Fallback: if remote direct fetch failed, redirect with attachment flag
+        if 'cloudinary.com' in file_url:
+            if '/upload/' in file_url and '/upload/fl_attachment' not in file_url:
+                cld_download_url = file_url.replace('/upload/', '/upload/fl_attachment/')
+                return HttpResponseRedirect(cld_download_url)
+        return HttpResponseRedirect(file_url)
+
+    return HttpResponseNotFound("Attachment file is not accessible.")
 
 
 def get_guidy_badge_count(user):
@@ -15497,6 +15649,7 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
             'message_type': msg.message_type,
             'file_url': msg.file.url if msg.file else None,
             'file_name': msg.file_name,
+            'download_url': f'/guidy/download/{msg.id}/' if msg.file else None,
             'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
             'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
             'is_mine': (msg.sender == user),
@@ -16629,6 +16782,23 @@ def guidy_group_send_message(request, group_id):
             file=uploaded_file if uploaded_file else None,
             file_name=uploaded_file.name if uploaded_file else '',
         )
+        if uploaded_file and msg.file:
+            try:
+                from django.conf import settings
+                local_dir = os.path.join(settings.MEDIA_ROOT, 'guidy_temp')
+                os.makedirs(local_dir, exist_ok=True)
+                fname = os.path.basename(str(msg.file.name)) or f"gmsg_{msg.id}_{uploaded_file.name}"
+                local_file_path = os.path.join(local_dir, fname)
+                uploaded_file.seek(0)
+                with open(local_file_path, 'wb') as lf:
+                    for chunk in uploaded_file.chunks():
+                        lf.write(chunk)
+                alias_path = os.path.join(local_dir, f"gmsg_{msg.id}_{uploaded_file.name}")
+                if alias_path != local_file_path and not os.path.exists(alias_path):
+                    import shutil
+                    shutil.copyfile(local_file_path, alias_path)
+            except Exception as save_err:
+                logging.getLogger(__name__).warning(f"Could not save local copy of Guidy group attachment: {save_err}")
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error saving Guidy group message: {e}", exc_info=True)
@@ -16718,6 +16888,7 @@ def guidy_group_send_message(request, group_id):
         'message_type': msg.message_type,
         'file_url': msg.file.url if msg.file else None,
         'file_name': msg.file_name,
+        'download_url': f'/guidy/download/group/{msg.id}/' if msg.file else None,
         'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
         'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
         'is_mine': False,
@@ -16812,6 +16983,7 @@ def guidy_group_poll(request, group_id):
             'message_type': m.message_type,
             'file_url': m.file.url if m.file else None,
             'file_name': m.file_name,
+            'download_url': f'/guidy/download/group/{m.id}/' if m.file else None,
             'timestamp': localtime(m.timestamp).strftime('%H:%M'),
             'date': localtime(m.timestamp).strftime('%Y-%m-%d'),
             'is_mine': (m.sender == user),
@@ -19381,6 +19553,7 @@ def guidy_load_older(request):
             'message_type': msg.message_type,
             'file_url': msg.file.url if msg.file else None,
             'file_name': msg.file_name,
+            'download_url': (f'/guidy/download/group/{msg.id}/' if chat_type == 'group' else f'/guidy/download/{msg.id}/') if msg.file else None,
             'timestamp': localtime(msg.timestamp).strftime('%H:%M'),
             'date': localtime(msg.timestamp).strftime('%Y-%m-%d'),
             'is_mine': (msg.sender == user),
@@ -19682,6 +19855,7 @@ def guidy_load_chat_api(request):
                 'message_type': msg.message_type,
                 'file_url': file_url,
                 'file_name': msg.file_name or '',
+                'download_url': (f'/guidy/download/group/{msg.id}/' if chat_type == 'group' else f'/guidy/download/{msg.id}/') if (file_url or msg.file) else None,
                 'timestamp': ts_str,
                 'date': date_str,
                 'is_mine': (msg.sender_id == user.id),

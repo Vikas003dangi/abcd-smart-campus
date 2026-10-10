@@ -105,8 +105,10 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
         # f_auto: delivers WebP / AVIF based on browser support
         # q_auto: smart compression saving 60-80% of Cloudinary free credit bandwidth
         if rtype == 'image':
-            return cloudinary_resource.build_url(fetch_format='auto', quality='auto')
-        return cloudinary_resource.url
+            return cloudinary_resource.build_url(fetch_format='auto', quality='auto', secure=True)
+        if rtype == 'raw':
+            return cloudinary_resource.build_url(flags='attachment', secure=True)
+        return cloudinary_resource.build_url(secure=True)
 
     def url(self, name):
         if not name:

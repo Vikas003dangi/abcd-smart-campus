@@ -314,6 +314,8 @@ urlpatterns = [
     path('guidy/chat-data/', views.guidy_load_chat_api, name='guidy_load_chat_api'),
     path('guidy/sessions/bulk-end/', views.guidy_bulk_end_sessions, name='guidy_bulk_end_sessions'),
     path('guidy/chats/bulk-clear/', views.guidy_bulk_clear_chats, name='guidy_bulk_clear_chats'),
+    path('guidy/download/<int:msg_id>/', views.guidy_download_attachment, name='guidy_download_attachment'),
+    path('guidy/download/group/<int:msg_id>/', views.guidy_download_attachment, {'is_group': True}, name='guidy_download_group_attachment'),
 
     # Profile info drawer
     path('guidy/profile/<str:entity_type>/<int:entity_id>/', views.guidy_profile_info, name='guidy_profile_info'),
