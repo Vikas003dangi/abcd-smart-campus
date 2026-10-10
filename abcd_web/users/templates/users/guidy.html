@@ -3327,7 +3327,7 @@ body.dark-theme .search-highlight {
                     {% if msg.media_expired and msg.message_type != 'text' %}
                       <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
                     {% elif msg.message_type == 'image' and msg.file %}
-                      <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
+                      <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image','{% url 'users:guidy_download_attachment' msg.id %}','{{ msg.file_name|default:"image.jpg"|escapejs }}')" onerror="this.onerror=null; this.style.opacity='0.6';">
                     {% elif msg.message_type == 'audio' and msg.file %}
                       <div class="g-audio-player" data-src="{{ msg.file.url }}">
                         <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
@@ -3335,7 +3335,7 @@ body.dark-theme .search-highlight {
                         <audio src="{{ msg.file.url }}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
                       </div>
                     {% elif msg.message_type == 'video' and msg.file %}
-                      <video src="{{ msg.file.url }}" class="g-msg-video" controls></video>
+                      <video src="{{ msg.file.url }}" class="g-msg-video" controls controlsList="nodownload"></video>
                     {% elif msg.message_type == 'document' and msg.file %}
                       <div class="g-msg-file">
                         {% if msg.file_name|lower|slice:"-4:" == ".pdf" %}
@@ -3453,7 +3453,7 @@ body.dark-theme .search-highlight {
                         {% if msg.media_expired and msg.message_type != 'text' %}
                           <div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>
                         {% elif msg.message_type == 'image' and msg.file %}
-                          <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">
+                          <img src="{{ msg.file.url }}" class="g-msg-img" alt="Image" onclick="viewMedia('{{ msg.file.url }}','image','{% url 'users:guidy_download_group_attachment' msg.id %}','{{ msg.file_name|default:"image.jpg"|escapejs }}')" onerror="this.onerror=null; this.style.opacity='0.6';">
                         {% elif msg.message_type == 'audio' and msg.file %}
                           <div class="g-audio-player" data-src="{{ msg.file.url }}">
                             <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
@@ -3461,7 +3461,7 @@ body.dark-theme .search-highlight {
                             <audio src="{{ msg.file.url }}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
                           </div>
                         {% elif msg.message_type == 'video' and msg.file %}
-                          <video src="{{ msg.file.url }}" class="g-msg-video" controls></video>
+                          <video src="{{ msg.file.url }}" class="g-msg-video" controls controlsList="nodownload"></video>
                         {% elif msg.message_type == 'document' and msg.file %}
                           <div class="g-msg-file">
                             {% if msg.file_name|lower|slice:"-4:" == ".pdf" %}
@@ -6199,8 +6199,9 @@ function appendMessage(msg, isLive = false) {
   if (msg.media_expired && msg.message_type !== 'text') {
     mediaHtml = `<div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>`;
   } else if (msg.file_url) {
+    const dlUrl = msg.download_url || (GROUP_ID ? `/guidy/download/group/${msg.id}/` : `/guidy/download/${msg.id}/`);
     if (msg.message_type === 'image') {
-      mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">`;
+      mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image','${dlUrl}','${escHtml(msg.file_name||'image.jpg')}')" onerror="this.onerror=null; this.style.opacity='0.6';">`;
     } else if (msg.message_type === 'audio') {
       mediaHtml = `<div class="g-audio-player" data-src="${msg.file_url}">
         <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
@@ -6208,7 +6209,7 @@ function appendMessage(msg, isLive = false) {
         <audio src="${msg.file_url}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
       </div>`;
     } else if (msg.message_type === 'video') {
-      mediaHtml = `<video src="${msg.file_url}" class="g-msg-video" controls></video>`;
+      mediaHtml = `<video src="${msg.file_url}" class="g-msg-video" controls controlsList="nodownload"></video>`;
     } else {
       const lowerFn = (msg.file_name || '').toLowerCase();
       let docIcon = 'bx-file';
@@ -6516,8 +6517,9 @@ async function fetchOlderMessages() {
           if (msg.media_expired && msg.message_type !== 'text') {
             mediaHtml = `<div class="g-expired-media-notice"><i class="bx bx-time-five"></i> Media expired & deleted to save space</div>`;
           } else if (msg.file_url) {
+            const dlUrl = msg.download_url || (GROUP_ID ? `/guidy/download/group/${msg.id}/` : `/guidy/download/${msg.id}/`);
             if (msg.message_type === 'image') {
-              mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image')" onerror="this.onerror=null; this.style.opacity='0.6';">`;
+              mediaHtml = `<img src="${msg.file_url}" class="g-msg-img" alt="Image" onclick="viewMedia('${msg.file_url}','image','${dlUrl}','${escHtml(msg.file_name||'image.jpg')}')" onerror="this.onerror=null; this.style.opacity='0.6';">`;
             } else if (msg.message_type === 'audio') {
               mediaHtml = `<div class="g-audio-player" data-src="${msg.file_url}">
                 <button class="g-audio-btn" onclick="toggleCustomAudio(this)"><i class='bx bx-play'></i></button>
@@ -6525,7 +6527,7 @@ async function fetchOlderMessages() {
                 <audio src="${msg.file_url}" ontimeupdate="updateAudioProgress(this)" onended="resetAudioPlayer(this)" style="display:none;"></audio>
               </div>`;
             } else if (msg.message_type === 'video') {
-              mediaHtml = `<video src="${msg.file_url}" class="g-msg-video" controls></video>`;
+              mediaHtml = `<video src="${msg.file_url}" class="g-msg-video" controls controlsList="nodownload"></video>`;
             } else {
               const lowerFn = (msg.file_name || '').toLowerCase();
               let docIcon = 'bx-file';
@@ -10393,7 +10395,7 @@ function openGroupModal() { openContactListModal('group'); }
 function closeGroupModal() { closeContactListModal(); }
 
 // ── Media Viewer ──────────────────────────────────────────
-function viewMedia(url, type) {
+function viewMedia(url, type, downloadUrl, fileName) {
   if (type !== 'image') return;
   
   const overlay = document.createElement('div');
@@ -10406,12 +10408,40 @@ function viewMedia(url, type) {
   header.style.cssText = 'position: absolute; top: 0; left: 0; right: 0; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);';
   
   const downloadBtn = document.createElement('a');
-  downloadBtn.href = url;
-  downloadBtn.download = '';
+  const targetDl = downloadUrl || (url ? (url.includes('/image/upload/') && !url.includes('/image/upload/fl_attachment/') ? url.replace('/image/upload/', '/image/upload/fl_attachment/') : url) : '');
+  downloadBtn.href = targetDl;
+  if (fileName) {
+    downloadBtn.setAttribute('download', fileName);
+  }
   downloadBtn.innerHTML = "<i class='bx bx-download'></i>";
+  downloadBtn.title = "Download image to device";
   downloadBtn.style.cssText = 'color: white; font-size: 1.8rem; cursor: pointer; text-decoration: none; transition: transform 0.2s;';
   downloadBtn.onmouseover = () => downloadBtn.style.transform = 'scale(1.1)';
   downloadBtn.onmouseout = () => downloadBtn.style.transform = 'scale(1)';
+
+  downloadBtn.onclick = function(e) {
+    if (downloadUrl) {
+      // Direct same-origin authenticated download via Guidy backend
+      return true;
+    }
+    // Fallback: download as blob to avoid opening Cloudinary in tab
+    e.preventDefault();
+    fetch(url)
+      .then(res => res.blob())
+      .then(blob => {
+        const bUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = bUrl;
+        a.download = fileName || 'image.jpg';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(bUrl), 1000);
+      })
+      .catch(() => {
+        window.location.href = targetDl;
+      });
+  };
 
   const closeBtn = document.createElement('button');
   closeBtn.innerHTML = "<i class='bx bx-x'></i>";

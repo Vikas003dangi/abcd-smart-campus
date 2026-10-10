@@ -1343,10 +1343,13 @@
                   document.body.removeChild(a);
                   setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
               } catch (err) {
-                  // Fallback direct safe download
+                  // Fallback direct safe download without opening raw tab
+                  let dlUrl = item.downloadUrl || item.url;
+                  if (dlUrl && dlUrl.includes('cloudinary.com') && dlUrl.includes('/image/upload/') && !dlUrl.includes('/image/upload/fl_attachment/')) {
+                      dlUrl = dlUrl.replace('/image/upload/', '/image/upload/fl_attachment/');
+                  }
                   const a = document.createElement('a');
-                  a.href = item.url;
-                  a.target = '_blank';
+                  a.href = dlUrl;
                   a.download = fileName;
                   document.body.appendChild(a);
                   a.click();
