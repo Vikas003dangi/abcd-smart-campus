@@ -17,7 +17,9 @@ class GuidyProfileInfoTests(TestCase):
             user=self.student_user,
             full_name='Raj Pandey',
             service_type='Coaching',
-            batch='Spoken English 1'
+            batch='Spoken English 1',
+            status='admitted',
+            is_admitted=True
         )
 
         # User C (Pure Alumni Vijay Chakravarti)
@@ -84,3 +86,45 @@ class GuidyProfileInfoTests(TestCase):
         self.assertEqual(response.status_code, 200)
         new_lib_students = response.context.get('pending_new_library_students')
         self.assertNotIn(phantom_profile, new_lib_students)
+
+    def test_phantom_alumni_healed_and_admission_requests_zero(self):
+        """Phantom unadmitted profile for alumni is healed to 'alumni', counts 0 admission requests, and no switcher is rendered."""
+        # Create phantom profile for alumni user
+        phantom_alumni_prof = StudentProfile.objects.create(
+            user=self.alumni_user,
+            full_name='Vijay Chakravarti',
+            service_type='Library',
+            status='pending',
+            seat=None,
+            batch=None,
+            is_admitted=False
+        )
+        teacher = User.objects.create_user(username='teacher_audit', password='password123', is_staff=True)
+        self.client.login(username='teacher_audit', password='password123')
+
+        # 1. Teacher dashboard test
+        t_url = reverse('users:teacher_dashboard')
+        t_response = self.client.get(t_url)
+        self.assertEqual(t_response.status_code, 200)
+        self.assertEqual(t_response.context.get('total_admission_requests'), 0)
+        
+        # Profile should be self-healed to 'alumni'
+        phantom_alumni_prof.refresh_from_db()
+        self.assertEqual(phantom_alumni_prof.status, 'alumni')
+
+        # 2. Live stats API test
+        stats_url = reverse('users:teacher_live_stats_api')
+        s_resp = self.client.get(stats_url)
+        self.assertEqual(s_resp.status_code, 200)
+        self.assertEqual(s_resp.json()['total_admission_requests'], 0)
+
+        # 3. Alumni Dashboard test for Vijay
+        self.client.login(username='alumni_vijay', password='password123')
+        a_url = reverse('users:alumni_dashboard')
+        a_resp = self.client.get(a_url)
+        self.assertEqual(a_resp.status_code, 200)
+        self.assertFalse(a_resp.context.get('is_dual_user'))
+        a_html = a_resp.content.decode('utf-8')
+        self.assertNotIn('class="profile-switcher-popover"', a_html)
+        self.assertNotIn('Switch to Student', a_html)
+

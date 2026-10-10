@@ -281,17 +281,17 @@ class StudentProfileForm(forms.ModelForm):
         if sex == 'Other' and not sex_other:
             self.add_error('sex_other', 'Please specify gender when selecting "Other".')
 
-        if service_type == 'Coaching' and not batch:
+        if service_type in ['Coaching', 'Both'] and not batch:
             self.add_error('batch', 'Please select a batch for coaching.')
 
-        if service_type == 'Library':
+        if service_type in ['Library', 'Both']:
             if not floor or not selected_seat:
                 self.add_error(None, 'Please select a library floor and seat to proceed.')
 
         # --------------------------------------------------
         # STEP 3.2 — BACKEND SEAT + SHIFT VALIDATION
         # --------------------------------------------------
-        if service_type == 'Library' and floor and selected_seat:
+        if service_type in ['Library', 'Both'] and floor and selected_seat:
 
             try:
                 seat = Seat.objects.get(

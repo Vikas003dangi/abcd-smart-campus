@@ -4522,17 +4522,12 @@ def student_dashboard_view(request):
                 return redirect('users:alumni_dashboard')
             return redirect('users:guest_page')
 
-        # If student profile is just an empty skeleton (no DOB and not admitted), send to guest page or alumni
-        if not profile.is_admitted and not profile.dob:
+        # Only admitted students (or students on hold) can access the student dashboard
+        if not profile.is_admitted and profile.status not in ['admitted', 'on_hold']:
             achievement = StudentAchievement.objects.filter(user=request.user).first()
             if achievement:
                 return redirect('users:alumni_dashboard')
             return redirect('users:guest_page')
-
-        # If Alumni and the student profile is just a skeleton (no DOB), send back to alumni dashboard
-        achievement = StudentAchievement.objects.filter(user=request.user).first()
-        if achievement and not profile.is_admitted and not profile.dob:
-            return redirect('users:alumni_dashboard')
     except Exception as pe:
         logger.error(f"Error resolving profile in student_dashboard_view: {pe}")
         achievement = StudentAchievement.objects.filter(user=request.user).first()
@@ -4659,6 +4654,16 @@ def student_dashboard_view(request):
 @login_required
 @never_cache
 def alumni_dashboard_view(request):
+    # Auto-heal: convert any phantom alumni profile from 'pending' to 'alumni'
+    StudentProfile.objects.filter(
+        status='pending',
+        seat__isnull=True,
+        is_admitted=False,
+        user__achievements__status='approved'
+    ).filter(
+        Q(batch__isnull=True) | Q(batch='')
+    ).update(status='alumni')
+
     profile = StudentProfile.objects.filter(user=request.user).first()
     achievement = StudentAchievement.objects.filter(user=request.user).first()
     if not achievement:
@@ -4666,6 +4671,13 @@ def alumni_dashboard_view(request):
         if profile and (profile.is_admitted or profile.dob):
             return redirect('users:student_dashboard')
         return redirect('users:guest_page')
+
+    # If alumni has an unadmitted/phantom student profile, ignore it
+    if profile and not profile.is_admitted and profile.status not in ['admitted', 'on_hold']:
+        profile = None
+
+    has_active_student = bool(profile and (profile.is_admitted or profile.status in ['admitted', 'on_hold']))
+    is_dual = bool(has_active_student and achievement and achievement.status == 'approved')
 
     # Track that we are in "Alumni Space"
     request.session['active_dashboard'] = 'alumni'
@@ -4704,6 +4716,8 @@ def alumni_dashboard_view(request):
 
     context = {
         'profile': profile,
+        'has_active_student_dashboard': has_active_student,
+        'is_dual_user': is_dual,
         'achievement': achievement, # For the page content
         'nav_achievement': achievement, # For the navbar
         'notifications': notifications,
@@ -5819,9 +5833,34 @@ def teacher_dashboard_view(request):
     if service_filter:
         admitted_students = admitted_students.filter(service_type=service_filter)
 
-    # Get pending admission requests (Only those NOT yet admitted OR having pending services)
-    pending_students = StudentProfile.objects.filter(
-        Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True)
+    # Auto-heal: convert any phantom alumni profile from 'pending' to 'alumni'
+    StudentProfile.objects.filter(
+        status='pending',
+        seat__isnull=True,
+        is_admitted=False,
+        user__achievements__status='approved'
+    ).filter(
+        Q(batch__isnull=True) | Q(batch='')
+    ).update(status='alumni')
+
+    partial_request_student_ids = list(SeatSpecialRequest.objects.filter(
+        status='pending',
+        student__isnull=False
+    ).values_list('student_id', flat=True))
+
+    valid_admission_q = (
+        (Q(status='pending') & (
+            (Q(service_type='Coaching') & Q(batch__isnull=False) & ~Q(batch='')) |
+            (Q(service_type='Library') & (Q(seat__isnull=False) | Q(id__in=partial_request_student_ids))) |
+            (Q(service_type='Both') & Q(batch__isnull=False) & ~Q(batch='') & (Q(seat__isnull=False) | Q(id__in=partial_request_student_ids)))
+        ))
+        | (Q(coaching_pending=True) & Q(batch__isnull=False) & ~Q(batch=''))
+        | (Q(library_pending=True) & (Q(seat__isnull=False) | Q(id__in=partial_request_student_ids)))
+    )
+
+    # Get pending admission requests (Only those NOT yet admitted OR having pending services, with valid batch/seat)
+    pending_students = StudentProfile.objects.filter(valid_admission_q).exclude(
+        status='alumni'
     ).order_by('-id').select_related('seat', 'user').distinct()
 
     # Get achievement status for all pending users
@@ -5868,8 +5907,8 @@ def teacher_dashboard_view(request):
                 student.save(update_fields=['seat', 'shift'])
 
         # Refresh pending_students queryset after sync
-        pending_students = StudentProfile.objects.filter(
-            Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True)
+        pending_students = StudentProfile.objects.filter(valid_admission_q).exclude(
+            status='alumni'
         ).order_by('-id').select_related('seat').distinct()
 
     # Split by service + admission_type
@@ -5891,13 +5930,11 @@ def teacher_dashboard_view(request):
         admission_type='existing',
     ).exclude(
         status='alumni'
+    ).filter(
+        batch__isnull=False
+    ).exclude(
+        batch=''
     )
-    # Exclude students who have a pending SeatSpecialRequest (Partial Allotment)
-    # We want them to appear ONLY in the "Partial Seat Allotment Requests" section.
-    partial_request_student_ids = SeatSpecialRequest.objects.filter(
-        status='pending',
-        student__isnull=False
-    ).values_list('student_id', flat=True)
 
     # Real library admission requests MUST have a chosen seat or pending special request
     pending_new_library_students = pending_students.filter(
@@ -5920,6 +5957,8 @@ def teacher_dashboard_view(request):
         status='alumni'
     ).exclude(
         id__in=partial_request_student_ids
+    ).filter(
+        Q(seat__isnull=False) | Q(id__in=partial_request_student_ids)
     )
 
     # -------------------------------------------------
@@ -6072,7 +6111,12 @@ def teacher_dashboard_view(request):
                         # We don't join names here anymore, frontend handles it via data attrs
 
     # ---- Notification counts ----
-    total_admission_requests = pending_students.count()
+    total_admission_requests = (
+        pending_new_coaching_students.count()
+        + pending_existing_coaching_students.count()
+        + pending_new_library_students.count()
+        + pending_existing_library_students.count()
+    )
     total_hold_requests = (
         pending_hold_requests.count()
         + cancel_hold_requests.count()
@@ -6397,15 +6441,32 @@ def teacher_live_stats_api(request):
         guidy_count = get_guidy_badge_count(user)
 
         # 2. Batched Student Profile Counts (Admission, Library, Coaching, Total Admitted)
+        StudentProfile.objects.filter(
+            status='pending',
+            seat__isnull=True,
+            is_admitted=False,
+            user__achievements__status='approved'
+        ).filter(
+            Q(batch__isnull=True) | Q(batch='')
+        ).update(status='alumni')
+
+        partial_ids = list(SeatSpecialRequest.objects.filter(status='pending', student__isnull=False).values_list('student_id', flat=True))
+        valid_admission_q = (
+            (Q(status='pending') & (
+                (Q(service_type='Coaching') & Q(batch__isnull=False) & ~Q(batch='')) |
+                (Q(service_type='Library') & (Q(seat__isnull=False) | Q(id__in=partial_ids))) |
+                (Q(service_type='Both') & Q(batch__isnull=False) & ~Q(batch='') & (Q(seat__isnull=False) | Q(id__in=partial_ids)))
+            ))
+            | (Q(coaching_pending=True) & Q(batch__isnull=False) & ~Q(batch=''))
+            | (Q(library_pending=True) & (Q(seat__isnull=False) | Q(id__in=partial_ids)))
+        )
+        total_admission_requests = StudentProfile.objects.filter(valid_admission_q).exclude(status='alumni').distinct().count()
+
         sp_agg = StudentProfile.objects.aggregate(
-            admission=Count('id', filter=(
-                Q(status='pending') | Q(coaching_pending=True) | Q(library_pending=True)
-            )),
             library=Count('id', filter=Q(status='admitted', service_type__in=['Library', 'Both'])),
             coaching=Count('id', filter=Q(status='admitted', service_type__in=['Coaching', 'Both'])),
             admitted_total=Count('id', filter=Q(status__in=['admitted', 'on_hold'])),
         )
-        total_admission_requests = sp_agg['admission'] or 0
         total_library_students = sp_agg['library'] or 0
         total_coaching_students = sp_agg['coaching'] or 0
         total_admitted_students_count = sp_agg['admitted_total'] or 0
@@ -17252,9 +17313,33 @@ def notifications_api_view(request):
     
     if dashboard_type == 'teacher' or user.is_staff or user.is_superuser:
         # --- Teacher / Staff Dashboard ---
-        pending_students = StudentProfile.objects.filter(
+        StudentProfile.objects.filter(
             status='pending',
-        ).select_related('seat', 'user')
+            seat__isnull=True,
+            is_admitted=False,
+            user__achievements__status='approved'
+        ).filter(
+            Q(batch__isnull=True) | Q(batch='')
+        ).update(status='alumni')
+
+        partial_request_student_ids = list(SeatSpecialRequest.objects.filter(
+            status='pending',
+            student__isnull=False
+        ).values_list('student_id', flat=True))
+
+        valid_admission_q = (
+            (Q(status='pending') & (
+                (Q(service_type='Coaching') & Q(batch__isnull=False) & ~Q(batch='')) |
+                (Q(service_type='Library') & (Q(seat__isnull=False) | Q(id__in=partial_request_student_ids))) |
+                (Q(service_type='Both') & Q(batch__isnull=False) & ~Q(batch='') & (Q(seat__isnull=False) | Q(id__in=partial_request_student_ids)))
+            ))
+            | (Q(coaching_pending=True) & Q(batch__isnull=False) & ~Q(batch=''))
+            | (Q(library_pending=True) & (Q(seat__isnull=False) | Q(id__in=partial_request_student_ids)))
+        )
+
+        pending_students = StudentProfile.objects.filter(
+            valid_admission_q
+        ).exclude(status='alumni').select_related('seat', 'user').distinct()
         
         pending_hold_requests = SeatHoldRequest.objects.filter(
             status='pending'

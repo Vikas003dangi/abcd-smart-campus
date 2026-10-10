@@ -57,7 +57,7 @@ def student_context(request):
             dtype = 'teacher'
         elif active_dash == 'alumni' and StudentAchievement.objects.filter(user=request.user).exists():
             dtype = 'alumni'
-        elif active_dash == 'student' and StudentProfile.objects.filter(user=request.user).exists():
+        elif active_dash == 'student' and StudentProfile.objects.filter(user=request.user, is_admitted=True).exists():
             dtype = 'student'
         else:
             from .utils import get_user_dashboard_type
@@ -107,8 +107,15 @@ def student_context(request):
             is_approved_alumni = False
             has_pending_alumni = False
             
-            # Safely query StudentProfile
+            # Safely query StudentProfile and StudentAchievement
             profile = StudentProfile.objects.filter(user=request.user).first()
+            ach = StudentAchievement.objects.filter(user=request.user).first()
+
+            # Ignore phantom / unadmitted profiles for approved alumni
+            if profile and not profile.is_admitted and profile.status not in ['admitted', 'on_hold']:
+                if ach and ach.status == 'approved':
+                    profile = None
+
             if profile:
                 context['profile'] = profile
                 if profile.status in ['admitted', 'on_hold'] or profile.is_admitted:
@@ -122,8 +129,6 @@ def student_context(request):
                 if profile.library_pending or (profile.status == 'pending' and profile.service_type in ['Library', 'Both']):
                     has_pending_library = True
 
-            # Safely query StudentAchievement (alumni)
-            ach = StudentAchievement.objects.filter(user=request.user).first()
             if ach:
                 context['nav_achievement'] = ach
                 if ach.status == 'approved':

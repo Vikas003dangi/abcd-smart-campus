@@ -8700,7 +8700,7 @@
           <i class="bx bxs-user-plus"></i>
         </div>
         <h3 class="card-heading">Admission Requests</h3>
-        <div class="number" id="statAdmissionRequests">{{ pending_students.count }}</div>
+        <div class="number" id="statAdmissionRequests">{{ total_admission_requests }}</div>
       </div>
 
       <!-- 2. Alumni/ Alumni Requests -->
@@ -8833,7 +8833,7 @@
 
     <!-- Tabs -->
     <div class="section-tabs" data-tour="teacher-students-section">
-      <button class="tab-btn active" data-tab-name="requests"><i class="bx bx-user-plus"></i> Admission Requests <span class="tab-badge" id="tabBadgeRequests" style="{% if pending_students.count == 0 %}display:none;{% endif %}">({{ pending_students.count }})</span></button>
+      <button class="tab-btn active" data-tab-name="requests"><i class="bx bx-user-plus"></i> Admission Requests <span class="tab-badge" id="tabBadgeRequests" style="{% if total_admission_requests == 0 %}display:none;{% endif %}">({{ total_admission_requests }})</span></button>
       <button class="tab-btn" data-tab-name="achievements"><i class="bx bx-trophy"></i> Alumni Requests<span id="tabCountAchievements" style="display:none;">{{ total_pending_achievements }}</span></button>
       <button class="tab-btn" data-tab-name="holds"><i class="bx bx-pause-circle"></i> Hold / Switch Requests <span class="tab-badge" id="tabBadgeHolds" style="{% if pending_hold_requests|length|add:seat_switch_requests|length|add:seat_leave_requests|length|add:hold_change_requests|length == 0 %}display:none;{% endif %}">({{ pending_hold_requests|length|add:seat_switch_requests|length|add:seat_leave_requests|length|add:hold_change_requests|length }})</span></button>
       <button class="tab-btn" data-tab-name="coaching"><i class="bx bxs-graduation"></i> Coaching Students</button>

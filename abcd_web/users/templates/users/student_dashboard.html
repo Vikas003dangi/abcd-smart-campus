@@ -4791,7 +4791,7 @@
         </a>
       </li>
       {% else %}
-      {% if is_dual_user or nav_achievement and profile %}
+      {% if is_dual_user %}
       <li>
         <a href="{% url 'users:switch_dashboard' 'student' %}" class="{% if request.resolver_match.url_name == 'student_dashboard' %}active{% endif %}">
           <i class='bx bxs-dashboard'></i>
@@ -5726,7 +5726,7 @@
           <span>To-Do</span>
       </a>
 
-      {% if is_dual_user or nav_achievement and profile %}
+      {% if is_dual_user %}
       <a href="{% url 'users:profile' %}" class="bnav-item bnav-profile-item" id="bnavProfileLink" title="Profile" data-is-dual="true" draggable="false" oncontextmenu="return false;">
           {% if request.session.active_dashboard == 'alumni' or request.session.active_dashboard != 'student' and nav_achievement %}
               <img src="{% if nav_achievement %}{{ nav_achievement.photo_url }}{% elif achievement %}{{ achievement.photo_url }}{% else %}{{ user|user_photo:'alumni' }}{% endif %}" alt="Profile" class="bnav-profile-circle" draggable="false" oncontextmenu="return false;" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
