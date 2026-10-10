@@ -15389,10 +15389,11 @@ def guidy_download_attachment(request, msg_id, is_group=False):
     Eliminates cross-origin download blocking and Cloudinary raw PDF 404 blocks.
     Prioritizes locally cached media copies; falls back to streaming or signed Cloudinary.
     """
-    import os
+    import logging
+    import mimetypes
     import urllib.request
     from django.conf import settings
-    from django.http import FileResponse, HttpResponse, HttpResponseForbidden, HttpResponseNotFound, HttpResponseRedirect
+    from django.http import FileResponse, HttpResponse, HttpResponseForbidden, HttpResponseNotFound, StreamingHttpResponse
     from users.models import Message, GroupMessage
 
     user = request.user
@@ -15449,7 +15450,8 @@ def guidy_download_attachment(request, msg_id, is_group=False):
         except Exception:
             pass
 
-    # 2. Cloudinary live stream: Zero disk usage, streams directly to client browser
+    # 2. Candidate remote URLs for Cloudinary streaming (Zero disk usage, zero database storage)
+    candidate_urls = []
     file_url = None
     try:
         file_url = msg.file.url
@@ -15457,24 +15459,106 @@ def guidy_download_attachment(request, msg_id, is_group=False):
         pass
 
     if file_url:
+        clean_url = file_url.replace('/fl_attachment/', '/').replace('/upload/fl_attachment/', '/upload/')
+        candidate_urls.append(clean_url)
+        candidate_urls.append(file_url)
+
+        # Cross-resource type candidates (e.g. raw vs image)
+        if '/raw/upload/' in clean_url:
+            candidate_urls.append(clean_url.replace('/raw/upload/', '/image/upload/'))
+        elif '/image/upload/' in clean_url:
+            candidate_urls.append(clean_url.replace('/image/upload/', '/raw/upload/'))
+
+    # Signed Cloudinary download URLs using management credentials (if configured)
+    try:
+        cld_storage = getattr(settings, 'CLOUDINARY_STORAGE', {})
+        cloud_name = cld_storage.get('CLOUD_NAME') or getattr(settings, 'CLOUDINARY_CLOUD_NAME', '')
+        api_key = cld_storage.get('API_KEY') or getattr(settings, 'CLOUDINARY_API_KEY', '')
+        api_secret = cld_storage.get('API_SECRET') or getattr(settings, 'CLOUDINARY_API_SECRET', '')
+
+        if cloud_name and api_key and api_secret and msg.file and msg.file.name:
+            import cloudinary.utils
+            raw_name = str(msg.file.name).replace('\\', '/')
+            root, ext = os.path.splitext(raw_name)
+            ext_clean = ext.lstrip('.')
+
+            signed_raw = cloudinary.utils.private_download_url(
+                raw_name,
+                ext_clean,
+                resource_type='raw',
+                cloud_name=cloud_name,
+                api_key=api_key,
+                api_secret=api_secret
+            )
+            if signed_raw:
+                candidate_urls.append(signed_raw)
+
+            signed_img = cloudinary.utils.private_download_url(
+                root,
+                ext_clean or 'pdf',
+                resource_type='image',
+                cloud_name=cloud_name,
+                api_key=api_key,
+                api_secret=api_secret
+            )
+            if signed_img:
+                candidate_urls.append(signed_img)
+    except Exception as sign_err:
+        logging.getLogger(__name__).warning(f"Could not build signed Cloudinary URL: {sign_err}")
+
+    # Remove duplicates while preserving order
+    seen = set()
+    deduped_candidates = []
+    for u in candidate_urls:
+        if u and u not in seen:
+            seen.add(u)
+            deduped_candidates.append(u)
+
+    def file_chunk_generator(stream, chunk_size=65536):
         try:
-            req = urllib.request.Request(file_url, headers={'User-Agent': 'Mozilla/5.0'})
-            remote_stream = urllib.request.urlopen(req, timeout=15)
-            content_type = remote_stream.headers.get('Content-Type') or 'application/octet-stream'
-            resp = StreamingHttpResponse(remote_stream, content_type=content_type)
-            resp['Content-Disposition'] = f'attachment; filename="{filename}"'
-            return resp
+            while True:
+                chunk = stream.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            try:
+                stream.close()
+            except Exception:
+                pass
+
+    for target_url in deduped_candidates:
+        try:
+            req = urllib.request.Request(
+                target_url,
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            )
+            remote_stream = urllib.request.urlopen(req, timeout=12)
+            if remote_stream.status == 200:
+                content_type = remote_stream.headers.get('Content-Type')
+                if not content_type or 'text/html' in content_type:
+                    guessed_type, _ = mimetypes.guess_type(filename)
+                    content_type = guessed_type or 'application/octet-stream'
+
+                resp = StreamingHttpResponse(file_chunk_generator(remote_stream), content_type=content_type)
+                resp['Content-Disposition'] = f'attachment; filename="{filename}"'
+                content_len = remote_stream.headers.get('Content-Length')
+                if content_len:
+                    resp['Content-Length'] = content_len
+                return resp
         except Exception as fetch_err:
-            logging.getLogger(__name__).warning(f"Could not stream remote Guidy file from {file_url}: {fetch_err}")
+            logging.getLogger(__name__).debug(f"Candidate download failed for {target_url}: {fetch_err}")
 
-        # Fallback: if proxy streaming fails, redirect directly to Cloudinary with attachment header
-        if 'cloudinary.com' in file_url:
-            if '/upload/' in file_url and '/upload/fl_attachment' not in file_url:
-                cld_download_url = file_url.replace('/upload/', '/upload/fl_attachment/')
-                return HttpResponseRedirect(cld_download_url)
-        return HttpResponseRedirect(file_url)
-
-    return HttpResponseNotFound("Attachment file is not accessible.")
+    # If all remote streams failed, do NOT redirect to Cloudinary (which causes Chrome to download 404 HTML as download.htm).
+    # Return a clear status 502 with instructions on Cloudinary PDF settings.
+    return HttpResponse(
+        "Attachment file could not be retrieved from Cloudinary.\n\n"
+        "If this is a PDF or ZIP file, Cloudinary security restricts delivery by default on free accounts. "
+        "Please go to your Cloudinary Console (Settings > Security) and check 'Allow delivery of PDF and ZIP files'.\n"
+        "Once enabled, files can be downloaded directly.",
+        status=502,
+        content_type='text/plain; charset=utf-8'
+    )
 
 
 def get_guidy_badge_count(user):

@@ -111,3 +111,33 @@ class GuidyDownloadAttachmentTests(TestCase):
         url = reverse('users:guidy_download_attachment', kwargs={'msg_id': self.msg.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
+
+    def test_remote_streaming_success(self):
+        from unittest.mock import patch, MagicMock
+        mock_stream = MagicMock()
+        mock_stream.status = 200
+        mock_stream.headers = {'Content-Type': 'application/pdf', 'Content-Length': '100'}
+        mock_stream.read.side_effect = [b"%PDF-1.4 remote mock stream", b""]
+
+        self.client.login(username='u1', password='pass1234')
+        url = reverse('users:guidy_download_attachment', kwargs={'msg_id': self.msg.id})
+
+        with patch('os.path.isfile', return_value=False), patch('urllib.request.urlopen', return_value=mock_stream):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('attachment;', response.headers.get('Content-Disposition', ''))
+            self.assertIn('Receipt_123.pdf', response.headers.get('Content-Disposition', ''))
+            content = b''.join(response.streaming_content)
+            self.assertEqual(content, b"%PDF-1.4 remote mock stream")
+
+    def test_remote_streaming_failure_returns_502_not_redirect(self):
+        from unittest.mock import patch
+        self.client.login(username='u1', password='pass1234')
+        url = reverse('users:guidy_download_attachment', kwargs={'msg_id': self.msg.id})
+
+        with patch('os.path.isfile', return_value=False), patch('urllib.request.urlopen', side_effect=Exception("Cloudinary 404")):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 502)
+            self.assertIn('Cloudinary', response.content.decode('utf-8'))
+            self.assertIn('PDF and ZIP files', response.content.decode('utf-8'))
+

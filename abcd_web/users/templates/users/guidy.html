@@ -3346,7 +3346,7 @@ body.dark-theme .search-highlight {
                           <i class='bx bx-file'></i>
                         {% endif %}
                         <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                        <a href="{% url 'users:guidy_download_attachment' msg.id %}" download class="g-msg-file-dl">Download</a>
+                        <a href="{% url 'users:guidy_download_attachment' msg.id %}" class="g-msg-file-dl">Download</a>
                       </div>
                     {% endif %}
                     {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
@@ -3472,7 +3472,7 @@ body.dark-theme .search-highlight {
                               <i class='bx bx-file'></i>
                             {% endif %}
                             <span class="g-msg-file-name">{{ msg.file_name|default:"Document" }}</span>
-                            <a href="{% url 'users:guidy_download_group_attachment' msg.id %}" download class="g-msg-file-dl">Download</a>
+                            <a href="{% url 'users:guidy_download_group_attachment' msg.id %}" class="g-msg-file-dl">Download</a>
                           </div>
                         {% endif %}
                         {% if msg.content %}<span class="g-msg-text">{{ msg.content|format_message }}</span>{% endif %}
@@ -6218,7 +6218,7 @@ function appendMessage(msg, isLive = false) {
         docIcon = 'bxs-file-doc';
       }
       const dlUrl = msg.download_url || (GROUP_ID ? `/guidy/download/group/${msg.id}/` : `/guidy/download/${msg.id}/`);
-      mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${dlUrl}" download class="g-msg-file-dl">Download</a></div>`;
+      mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${dlUrl}" class="g-msg-file-dl">Download</a></div>`;
     }
   }
 
@@ -6535,7 +6535,7 @@ async function fetchOlderMessages() {
                 docIcon = 'bxs-file-doc';
               }
               const dlUrl = msg.download_url || (GROUP_ID ? `/guidy/download/group/${msg.id}/` : `/guidy/download/${msg.id}/`);
-              mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${dlUrl}" download class="g-msg-file-dl">Download</a></div>`;
+              mediaHtml = `<div class="g-msg-file"><i class='bx ${docIcon}'></i><span class="g-msg-file-name">${escHtml(msg.file_name||'Document')}</span><a href="${dlUrl}" class="g-msg-file-dl">Download</a></div>`;
             }
           }
 
