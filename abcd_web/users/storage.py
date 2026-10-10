@@ -92,7 +92,27 @@ class SmartMediaCloudinaryStorage(MediaCloudinaryStorage):
                 '.mp4', '.webm', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.m4v', '.mp3', '.wav', '.ogg'
             }
             clean_name = root if (rtype in ['image', 'video'] and ext.lower() in recognized_media_exts) else name_str
+
+            # 1. Primary destroy
             response = cloudinary.uploader.destroy(clean_name, invalidate=True, resource_type=rtype)
+            if response.get('result') == 'ok':
+                return True
+
+            # 2. Try alternate name (with extension vs without extension)
+            alt_name = name_str if clean_name == root else root
+            if alt_name != clean_name:
+                alt_resp = cloudinary.uploader.destroy(alt_name, invalidate=True, resource_type=rtype)
+                if alt_resp.get('result') == 'ok':
+                    return True
+
+            # 3. Cross-resource-type fallback (e.g. raw vs image)
+            alt_rtype = 'image' if rtype == 'raw' else ('raw' if rtype == 'image' else None)
+            if alt_rtype:
+                for candidate in [clean_name, alt_name]:
+                    fb_resp = cloudinary.uploader.destroy(candidate, invalidate=True, resource_type=alt_rtype)
+                    if fb_resp.get('result') == 'ok':
+                        return True
+
             return response.get('result') in ['ok', 'not found']
         except Exception:
             return False

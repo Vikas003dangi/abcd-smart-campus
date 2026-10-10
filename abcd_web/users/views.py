@@ -16056,18 +16056,20 @@ def guidy_delete_message(request, session_id=None, msg_id=None, direct_id=None, 
         if age > datetime.timedelta(hours=4):
             return JsonResponse({'success': False, 'error': 'Messages can only be deleted for everyone within 4 hours of sending'}, status=400)
         if msg.file:
-            msg.file.delete(save=False) # Physically deletes file from hard drive to free space
+            msg.file.delete(save=False) # Physically deletes file from Cloudinary/storage to free space
+            msg.file = None
         msg.content = "" # Wipe the text from the database
         msg.file_name = ""
         msg.message_type = "text"
         msg.is_deleted_for_all = True
         msg.deleted_at = tz.now()
-        msg.save(update_fields=['content', 'file_name', 'message_type', 'is_deleted_for_all', 'deleted_at'])
+        msg.save(update_fields=['content', 'file', 'file_name', 'message_type', 'is_deleted_for_all', 'deleted_at'])
     else:
         msg.deleted_by.add(user)
         if not group_id and msg.deleted_by.count() >= 2:
             if msg.file:
                 msg.file.delete(save=False)
+                msg.file = None
             msg.delete()
 
     return JsonResponse({'success': True, 'msg_id': msg_id, 'delete_type': delete_type})
