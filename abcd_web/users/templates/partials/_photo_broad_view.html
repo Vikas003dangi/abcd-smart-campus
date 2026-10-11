@@ -16,48 +16,35 @@
 }
 .photo-security-watermark-pattern {
     position: absolute;
-    inset: 0;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
     pointer-events: none;
     z-index: 12;
-    overflow: hidden;
-    border-radius: 20px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 18px;
-    background: repeating-linear-gradient(
-        -35deg,
-        transparent,
-        transparent 50px,
-        rgba(255, 255, 255, 0.04) 50px,
-        rgba(255, 255, 255, 0.04) 100px
-    );
-}
-.photo-watermark-subrow {
-    color: rgba(255, 255, 255, 0.22);
-    font-size: clamp(0.68rem, 1.8vw, 0.84rem);
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    transform: rotate(-25deg);
-    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85);
-    user-select: none;
-    pointer-events: none;
-    white-space: nowrap;
+    width: auto;
+    max-width: 90%;
 }
 .photo-watermark-text {
-    color: rgba(255, 255, 255, 0.25);
-    font-size: clamp(0.72rem, 2vw, 0.95rem);
-    font-weight: 800;
-    letter-spacing: 2.5px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
-    transform: rotate(-25deg);
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
     user-select: none;
     pointer-events: none;
     text-align: center;
-    line-height: 1.8;
+    white-space: nowrap;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 3px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    line-height: 1.4;
 }
 @keyframes pulseFingerprint {
     0%, 100% {
@@ -102,15 +89,11 @@
             <!-- 2. The standard Image fallback / owner view -->
             <img id="broadViewImg" src="" draggable="false" oncontextmenu="return false;" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; display: block; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: filter 0.15s ease, opacity 0.15s ease;">
             
-            <!-- 3. Dynamic Live Security Watermark (for non-owners) -->
+            <!-- 3. Dynamic Live Security Watermark (for non-owners) - Discreet pill at bottom, not covering face -->
             <div id="photoWatermark" class="photo-security-watermark-pattern" style="display: none;">
-                <div class="photo-watermark-subrow" style="opacity: 0.85;">ABCD SECURE • <span class="watermark-dyn-user">{{ request.user.username|default:'VISITOR'|escapejs|upper }}</span> • CONFIDENTIAL</div>
                 <div class="photo-watermark-text" id="watermarkStamp">
-                    ABCD SMART CAMPUS<br>
-                    • CONFIDENTIAL •<br>
-                    <span id="watermarkLiveMeta" style="font-size: 0.72rem; opacity: 0.85; letter-spacing: 1px;"></span>
+                    🛡️ <span id="watermarkLiveMeta"></span>
                 </div>
-                <div class="photo-watermark-subrow" style="opacity: 0.85;">RESTRICTED DISPLAY • <span id="watermarkBottomMeta"></span> • NO RECORDING</div>
             </div>
 
             <!-- 4. Touch & Hold Privacy Curtain (Mobile & Desktop Anti-Screenshot Barrier) -->
@@ -121,14 +104,14 @@
                 <div style="font-size: 1.2rem; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">Press & Hold to View</div>
                 <div style="font-size: 0.84rem; color: #94a3b8; max-width: 250px; line-height: 1.45;">
                     🛡️ <strong style="color: #cbd5e1;">Protected Profile Photo</strong><br>
-                    <span style="color: #64748b; font-size: 0.76rem;">Releasing, capturing, or recording conceals the photo instantly</span>
+                    <span style="color: #64748b; font-size: 0.76rem;">Releasing, capturing, or shortcut keys conceal the photo instantly</span>
                 </div>
             </div>
 
             <!-- 5. Transparent Touch/Hold Interceptor Layer -->
             <div id="photoShieldOverlay" style="position: absolute; inset: 0; z-index: 22; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; display: none;" oncontextmenu="return false;" ondragstart="return false;"></div>
 
-            <!-- 6. Anti-Capture Blackout Veil (Active when Snipping Tool, Multi-Touch, Gestures, or Hardware Buttons are detected) -->
+            <!-- 6. Anti-Capture Blackout Veil (Active when Snipping Tool, Win+Shift+S, Cmd+Shift, Multi-Touch or Gestures are detected) -->
             <div id="photoBlackoutVeil" style="display: none; position: absolute; inset: 0; z-index: 28; background: #0b0f19; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #cbd5e1; text-align: center; padding: 25px; pointer-events: none;">
                 <i class='bx bxs-shield-x' style="font-size: 3.2rem; color: #f43f5e; filter: drop-shadow(0 4px 12px rgba(244,63,94,0.4));"></i>
                 <span id="blackoutVeilTitle" style="font-size: 1.2rem; font-weight: 800; color: #fff; letter-spacing: 0.5px;">Screenshot Restricted</span>
@@ -166,36 +149,11 @@
 
     function updateWatermarkTime() {
         const metaSpan = document.getElementById('watermarkLiveMeta');
-        const bottomMeta = document.getElementById('watermarkBottomMeta');
-        const now = new Date();
-        const timeStr = now.toTimeString().split(' ')[0];
         if (metaSpan) {
-            metaSpan.textContent = `ID: ${viewerIdentifier} • ${timeStr}`;
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            metaSpan.textContent = `ABCD SECURE • ${viewerIdentifier} • ${timeStr}`;
         }
-        if (bottomMeta) {
-            bottomMeta.textContent = `${timeStr}`;
-        }
-    }
-
-    function renderForensicWatermarkOnCanvas(ctx, width, height) {
-        if (!ctx) return;
-        ctx.save();
-        ctx.rotate(-26 * Math.PI / 180);
-        ctx.font = '700 13px system-ui, -apple-system, sans-serif';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-        ctx.shadowBlur = 4;
-        const now = new Date();
-        const timeStr = now.toTimeString().split(' ')[0];
-        const stampText = `ABCD CAMPUS • ${viewerIdentifier} • ${timeStr}`;
-        const stepX = 260;
-        const stepY = 70;
-        for (let x = -width; x < width * 2; x += stepX) {
-            for (let y = -height; y < height * 2; y += stepY) {
-                ctx.fillText(stampText, x, y);
-            }
-        }
-        ctx.restore();
     }
 
     function triggerBlackoutVeil(title, desc) {
@@ -417,7 +375,7 @@
         }
     }
 
-    // Window focus loss (Alt+Tab, Snipping tool Win+Shift+S, Android assistant, Notification Shade)
+    // Window focus loss (Alt+Tab, Snipping tool Win+Shift+S, Mac Grab, Android assistant, Notification Shade)
     function handleBlur() {
         if (activeProtectedModalOpen && !currentPhotoIsOwner) {
             triggerBlackoutVeil('Window Inactive', 'Screenshot or window switch detected.');
@@ -447,23 +405,43 @@
         }
     }
 
-    // Hardware Keyboard Shortcut Traps
+    // Hardware Keyboard & Shortcut Traps (Win+Shift+S, Cmd+Shift+3/4/5, PrintScreen, etc.)
     function handleKey(e) {
         if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
 
-        const isPrtScn = (e.key === 'PrintScreen' || e.keyCode === 44);
-        const isMod = e.ctrlKey || e.metaKey;
-        const isSnipCombo = (isMod && e.shiftKey && (e.key === 's' || e.key === 'S' || e.key === '3' || e.key === '4'));
-        const isPrintCombo = (isMod && (e.key === 'p' || e.key === 'P'));
-        const isSaveCombo = (isMod && (e.key === 's' || e.key === 'S'));
+        const key = e.key || '';
+        const code = e.code || '';
+        const isPrtScn = (key === 'PrintScreen' || code === 'PrintScreen' || e.keyCode === 44);
 
-        if (isPrtScn || isSnipCombo || isPrintCombo || isSaveCombo) {
+        // Windows key (Meta) or Mac Command key (Meta):
+        // Any press of Meta key alone or in combo indicates OS action or screenshot (Win+Shift+S, Cmd+Shift+3/4/5, Win+PrtScn)
+        const isMetaKey = (key === 'Meta' || code === 'MetaLeft' || code === 'MetaRight' || e.metaKey);
+
+        // Multi-key screenshot shortcuts:
+        // Windows: Win+Shift+S, Win+PrtScn, Win+Alt+PrtScn
+        // Mac: Cmd+Shift+3, Cmd+Shift+4, Cmd+Shift+5, Cmd+Shift+6
+        // Linux/Browsers: Ctrl+Shift+S, Ctrl+PrtScn
+        const isShiftCombo = e.shiftKey && (e.metaKey || e.ctrlKey || e.altKey);
+        const isSnipDigit = (key >= '3' && key <= '6') || (code >= 'Digit3' && code <= 'Digit6');
+        const isSnipChar = (key === 's' || key === 'S' || code === 'KeyS');
+        const isCaptureCombo = (e.metaKey || e.ctrlKey) && (isShiftCombo || isSnipDigit || isSnipChar);
+
+        // Save, Print, Source inspection
+        const isPrintCombo = (e.ctrlKey || e.metaKey) && (key === 'p' || key === 'P' || code === 'KeyP');
+        const isSaveCombo = (e.ctrlKey || e.metaKey) && (key === 's' || key === 'S' || code === 'KeyS');
+        const isInspectCombo = (key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'i' || key === 'I' || key === 'c' || key === 'C' || key === 'j' || key === 'J')));
+
+        if (isPrtScn || isMetaKey || isShiftCombo || isCaptureCombo || isPrintCombo || isSaveCombo || isInspectCombo) {
             try {
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation();
             } catch (_) {}
-            triggerBlackoutVeil('Screenshot Blocked', 'Screenshots of other users are restricted.');
+
+            concealPhotoImmediately();
+            triggerBlackoutVeil('Screenshot Blocked', 'Capture shortcuts (Win+Shift+S, Cmd+Shift, PrtScn) are strictly restricted.');
             setTimeout(liftBlackoutVeil, 2000);
+
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 try { navigator.clipboard.writeText(''); } catch (_) {}
             }
@@ -474,6 +452,16 @@
     function handleBeforePrint() {
         if (activeProtectedModalOpen && !currentPhotoIsOwner) {
             window.closePhotoView();
+        }
+    }
+
+    function handleCopy(e) {
+        if (activeProtectedModalOpen && !currentPhotoIsOwner) {
+            try {
+                e.preventDefault();
+                if (e.clipboardData) e.clipboardData.setData('text/plain', '');
+            } catch (_) {}
+            triggerBlackoutVeil('Copy Restricted', 'Content copying is restricted.');
         }
     }
 
@@ -512,6 +500,7 @@
         window.addEventListener('resize', handleResize);
         window.addEventListener('keydown', handleKey, true);
         window.addEventListener('keyup', handleKey, true);
+        window.addEventListener('copy', handleCopy, true);
         window.addEventListener('beforeprint', handleBeforePrint);
     }
 
@@ -549,6 +538,7 @@
         window.removeEventListener('resize', handleResize);
         window.removeEventListener('keydown', handleKey, true);
         window.removeEventListener('keyup', handleKey, true);
+        window.removeEventListener('copy', handleCopy, true);
         window.removeEventListener('beforeprint', handleBeforePrint);
 
         if (maxHoldTimeoutTimer) {
@@ -614,7 +604,7 @@
             broadImg.src = imageSrc;
             broadImg.style.display = 'block';
 
-            // Memory-only canvas rendering with burned-in pixel watermark
+            // Clean pixel rendering into canvas memory without marks on face
             if (broadCanvas) {
                 broadCanvas.dataset.rendered = 'false';
                 const tempImg = new Image();
@@ -631,9 +621,6 @@
 
                     const ctx = broadCanvas.getContext('2d');
                     ctx.drawImage(tempImg, 0, 0, broadCanvas.width, broadCanvas.height);
-                    
-                    // Stamp forensic diagonal watermark directly into pixel buffer
-                    renderForensicWatermarkOnCanvas(ctx, broadCanvas.width, broadCanvas.height);
 
                     // Block programmatic extraction methods on canvas
                     try {
