@@ -1,0 +1,302 @@
+<!-- WhatsApp-Style Fullscreen Photo Broad View Modal with Anti-Screenshot Protection -->
+<style>
+@media print {
+    #photoBroadView, #broadViewImg, #broadViewCanvas, .photo-broad-viewport, .cv-photo, .photo-frame img {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
+.photo-broad-protected {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-user-drag: none !important;
+    user-drag: none !important;
+    pointer-events: none !important;
+}
+.photo-security-watermark-pattern {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 12;
+    overflow: hidden;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: repeating-linear-gradient(
+        -35deg,
+        transparent,
+        transparent 45px,
+        rgba(255, 255, 255, 0.035) 45px,
+        rgba(255, 255, 255, 0.035) 90px
+    );
+}
+.photo-watermark-text {
+    color: rgba(255, 255, 255, 0.20);
+    font-size: clamp(0.75rem, 2vw, 1.05rem);
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transform: rotate(-25deg);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    user-select: none;
+    pointer-events: none;
+    text-align: center;
+    line-height: 1.8;
+}
+</style>
+
+<div id="photoBroadView" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index: 3000010; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); user-select: none; -webkit-user-select: none;" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000015;">
+        <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <i class='bx bx-x'></i>
+        </button>
+    </div>
+    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 25px;" onclick="event.stopPropagation()">
+        <div id="photoBroadViewport" class="photo-broad-viewport" style="position: relative; max-width: 90vw; max-height: 85vh; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15); background: #0b0f19;">
+            
+            <!-- 1. The Canvas for protected rendering -->
+            <canvas id="broadViewCanvas" style="display: none; max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; pointer-events: none; user-select: none; -webkit-user-select: none;"></canvas>
+
+            <!-- 2. The standard Image fallback / owner view -->
+            <img id="broadViewImg" src="" draggable="false" oncontextmenu="return false;" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; display: block; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: filter 0.15s ease, opacity 0.15s ease;">
+            
+            <!-- 3. Transparent click/touch interceptor shield -->
+            <div id="photoShieldOverlay" style="position: absolute; inset: 0; z-index: 10; cursor: default; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; display: none;" oncontextmenu="return false;" ondragstart="return false;"></div>
+
+            <!-- 4. Security Watermark (for non-owners) -->
+            <div id="photoWatermark" class="photo-security-watermark-pattern" style="display: none;">
+                <div class="photo-watermark-text">
+                    ABCD SMART CAMPUS<br>• CONFIDENTIAL •
+                </div>
+            </div>
+
+            <!-- 5. Anti-Capture Blackout Veil (Active when Snipping Tool or blur occurs) -->
+            <div id="photoBlackoutVeil" style="display: none; position: absolute; inset: 0; z-index: 25; background: #0f172a; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #cbd5e1; text-align: center; padding: 25px; pointer-events: none;">
+                <i class='bx bxs-shield-x' style="font-size: 3rem; color: #f43f5e; filter: drop-shadow(0 4px 10px rgba(244,63,94,0.4));"></i>
+                <span style="font-size: 1.15rem; font-weight: 800; color: #fff; letter-spacing: 0.5px;">Screenshot Restricted</span>
+                <small style="font-size: 0.85rem; color: #94a3b8; max-width: 250px; line-height: 1.4;">Profile photos of other members cannot be captured or copied.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    let activeProtectedModalOpen = false;
+    let currentPhotoIsOwner = false;
+    let veilRestoreTimer = null;
+
+    function triggerBlackoutVeil() {
+        const veil = document.getElementById('photoBlackoutVeil');
+        const broadImg = document.getElementById('broadViewImg');
+        const broadCanvas = document.getElementById('broadViewCanvas');
+        if (veil) veil.style.display = 'flex';
+        if (broadImg) {
+            broadImg.style.opacity = '0';
+            broadImg.style.filter = 'blur(40px)';
+        }
+        if (broadCanvas) {
+            broadCanvas.style.opacity = '0';
+            broadCanvas.style.filter = 'blur(40px)';
+        }
+    }
+
+    function liftBlackoutVeil() {
+        if (veilRestoreTimer) clearTimeout(veilRestoreTimer);
+        veilRestoreTimer = setTimeout(() => {
+            const modal = document.getElementById('photoBroadView');
+            if (modal && modal.style.display !== 'none' && document.hasFocus() && !document.hidden) {
+                const veil = document.getElementById('photoBlackoutVeil');
+                const broadImg = document.getElementById('broadViewImg');
+                const broadCanvas = document.getElementById('broadViewCanvas');
+                if (veil) veil.style.display = 'none';
+                if (broadImg) {
+                    broadImg.style.opacity = '1';
+                    broadImg.style.filter = 'none';
+                }
+                if (broadCanvas) {
+                    broadCanvas.style.opacity = '1';
+                    broadCanvas.style.filter = 'none';
+                }
+            }
+        }, 280);
+    }
+
+    function handleBlur() {
+        if (activeProtectedModalOpen && !currentPhotoIsOwner) {
+            triggerBlackoutVeil();
+        }
+    }
+
+    function handleFocus() {
+        if (activeProtectedModalOpen && !currentPhotoIsOwner) {
+            liftBlackoutVeil();
+        }
+    }
+
+    function handleVisibility() {
+        if (activeProtectedModalOpen && !currentPhotoIsOwner) {
+            if (document.hidden) {
+                triggerBlackoutVeil();
+            } else {
+                liftBlackoutVeil();
+            }
+        }
+    }
+
+    function handleKey(e) {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+
+        const isPrtScn = (e.key === 'PrintScreen' || e.keyCode === 44);
+        const isMod = e.ctrlKey || e.metaKey;
+        const isSnipCombo = (isMod && e.shiftKey && (e.key === 's' || e.key === 'S' || e.key === '3' || e.key === '4'));
+        const isPrintCombo = (isMod && (e.key === 'p' || e.key === 'P'));
+        const isSaveCombo = (isMod && (e.key === 's' || e.key === 'S'));
+
+        if (isPrtScn || isSnipCombo || isPrintCombo || isSaveCombo) {
+            try {
+                e.preventDefault();
+                e.stopPropagation();
+            } catch (_) {}
+            triggerBlackoutVeil();
+            setTimeout(liftBlackoutVeil, 1800);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try { navigator.clipboard.writeText(''); } catch (_) {}
+            }
+            return false;
+        }
+    }
+
+    function handleBeforePrint() {
+        if (activeProtectedModalOpen && !currentPhotoIsOwner) {
+            window.closePhotoView();
+        }
+    }
+
+    function armProtection() {
+        window.addEventListener('blur', handleBlur);
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('keydown', handleKey, true);
+        window.addEventListener('keyup', handleKey, true);
+        window.addEventListener('beforeprint', handleBeforePrint);
+    }
+
+    function disarmProtection() {
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('focus', handleFocus);
+        document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('keydown', handleKey, true);
+        window.removeEventListener('keyup', handleKey, true);
+        window.removeEventListener('beforeprint', handleBeforePrint);
+
+        const veil = document.getElementById('photoBlackoutVeil');
+        const broadImg = document.getElementById('broadViewImg');
+        const broadCanvas = document.getElementById('broadViewCanvas');
+        if (veil) veil.style.display = 'none';
+        if (broadImg) {
+            broadImg.style.opacity = '1';
+            broadImg.style.filter = 'none';
+        }
+        if (broadCanvas) {
+            broadCanvas.style.opacity = '1';
+            broadCanvas.style.filter = 'none';
+        }
+    }
+
+    window.openProtectedPhotoView = function(imageSrc, isOwner) {
+        if (!imageSrc) return;
+        currentPhotoIsOwner = !!isOwner;
+        activeProtectedModalOpen = true;
+
+        const modal = document.getElementById('photoBroadView');
+        const broadImg = document.getElementById('broadViewImg');
+        const broadCanvas = document.getElementById('broadViewCanvas');
+        const shield = document.getElementById('photoShieldOverlay');
+        const watermark = document.getElementById('photoWatermark');
+        const veil = document.getElementById('photoBlackoutVeil');
+
+        if (!modal || !broadImg) return;
+
+        if (currentPhotoIsOwner) {
+            // Owner viewing their own photo: fully unrestricted
+            disarmProtection();
+            if (broadCanvas) broadCanvas.style.display = 'none';
+            if (shield) shield.style.display = 'none';
+            if (watermark) watermark.style.display = 'none';
+            if (veil) veil.style.display = 'none';
+
+            broadImg.src = imageSrc;
+            broadImg.style.display = 'block';
+            broadImg.style.opacity = '1';
+            broadImg.style.filter = 'none';
+            broadImg.classList.remove('photo-broad-protected');
+            modal.style.display = 'flex';
+        } else {
+            // Other user viewing: multi-layered anti-screenshot protection
+            armProtection();
+            if (shield) shield.style.display = 'block';
+            if (watermark) watermark.style.display = 'flex';
+            if (veil) veil.style.display = 'none';
+
+            broadImg.classList.add('photo-broad-protected');
+            broadImg.src = imageSrc;
+            broadImg.style.display = 'block';
+            broadImg.style.opacity = '1';
+            broadImg.style.filter = 'none';
+
+            // Attempt canvas rendering for memory-only pixel display without extractable img
+            if (broadCanvas) {
+                const tempImg = new Image();
+                tempImg.crossOrigin = 'anonymous';
+                tempImg.onload = function() {
+                    if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+                    const maxW = Math.min(window.innerWidth * 0.9, 900);
+                    const maxH = Math.min(window.innerHeight * 0.85, 900);
+                    const w = tempImg.naturalWidth || 600;
+                    const h = tempImg.naturalHeight || 600;
+                    const ratio = Math.min(maxW / w, maxH / h, 1);
+                    broadCanvas.width = Math.round(w * ratio);
+                    broadCanvas.height = Math.round(h * ratio);
+
+                    const ctx = broadCanvas.getContext('2d');
+                    ctx.drawImage(tempImg, 0, 0, broadCanvas.width, broadCanvas.height);
+
+                    // Block programmatic extraction methods on canvas
+                    try {
+                        broadCanvas.toDataURL = function() { return ''; };
+                        broadCanvas.toBlob = function(cb) { if (typeof cb === 'function') cb(null); };
+                    } catch (_) {}
+
+                    broadCanvas.style.display = 'block';
+                    broadCanvas.classList.add('photo-broad-protected');
+                    broadImg.style.display = 'none';
+                };
+                tempImg.onerror = function() {
+                    // CORS fallback: protected broadImg remains displayed under shield
+                    broadImg.style.display = 'block';
+                    broadCanvas.style.display = 'none';
+                };
+                tempImg.src = imageSrc;
+            }
+
+            modal.style.display = 'flex';
+        }
+    };
+
+    window.closePhotoView = function() {
+        const modal = document.getElementById('photoBroadView');
+        if (modal) modal.style.display = 'none';
+        activeProtectedModalOpen = false;
+        disarmProtection();
+    };
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && activeProtectedModalOpen) {
+            window.closePhotoView();
+        }
+    });
+})();
+</script>

@@ -128,3 +128,28 @@ class GuidyProfileInfoTests(TestCase):
         self.assertNotIn('class="profile-switcher-popover"', a_html)
         self.assertNotIn('Switch to Student', a_html)
 
+    def test_anti_screenshot_modal_protection_on_achievement_detail(self):
+        """Non-owners receive screenshot protection markers while owner does not."""
+        # 1. Non-owner (guest) viewing Vijay's achievement detail
+        self.client.logout()
+        url = reverse('users:achievement_detail', kwargs={'pk': self.alumni_achievement.pk})
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode('utf-8')
+        self.assertIn('photoBroadView', content)
+        self.assertIn('photoBlackoutVeil', content)
+        self.assertIn('photoShieldOverlay', content)
+        self.assertIn('photoWatermark', content)
+        self.assertIn('Screenshot Restricted', content)
+        # Verify isOwner evaluated to false for guest/other user
+        self.assertIn('const isOwner = false;', content)
+
+        # 2. Owner (Vijay) viewing his own achievement detail
+        self.client.login(username='alumni_vijay', password='password123')
+        resp_owner = self.client.get(url)
+        self.assertEqual(resp_owner.status_code, 200)
+        content_owner = resp_owner.content.decode('utf-8')
+        # Verify isOwner evaluated to true for the owner
+        self.assertIn('const isOwner = true;', content_owner)
+
+

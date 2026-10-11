@@ -1906,7 +1906,7 @@
 
     <!-- 3. Personal Info Section -->
     <div class="alumni-info-section">
-        <img src="{{ achievement.photo_url }}" alt="{{ achievement.first_name }}" class="alumni-photo-small">
+        <img src="{{ achievement.photo_url }}" alt="{{ achievement.first_name }}" class="alumni-photo-small" onclick="viewPhoto()" style="cursor: pointer;" title="Click to view photo">
         <div class="alumni-details">
             <h2>{{ achievement.first_name }} {{ achievement.last_name }}</h2>
             <p><strong>Post:</strong> {{ achievement.current_post }}</p>
@@ -2601,6 +2601,15 @@
             window.location.href = "{% url 'users:student_dashboard' %}";
         };
     })();
+</script>
+{% include 'partials/_photo_broad_view.html' %}
+<script>
+function viewPhoto() {
+    const img = document.querySelector('.alumni-photo-small');
+    if (img && img.src && window.openProtectedPhotoView) {
+        window.openProtectedPhotoView(img.src, true); // Owner on own dashboard
+    }
+}
 </script>
 {% include 'users/_banner_popup.html' %}
 {% if request.path == '/alumni/dashboard' or request.path == '/alumni/dashboard/' %}
