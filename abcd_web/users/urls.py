@@ -317,6 +317,9 @@ urlpatterns = [
     path('guidy/download/<int:msg_id>/', views.guidy_download_attachment, name='guidy_download_attachment'),
     path('guidy/download/group/<int:msg_id>/', views.guidy_download_attachment, {'is_group': True}, name='guidy_download_group_attachment'),
 
+    # Typing indicator HTTP fallback
+    path('guidy/typing/', views.guidy_send_typing, name='guidy_send_typing'),
+
     # Profile info drawer
     path('guidy/profile/<str:entity_type>/<int:entity_id>/', views.guidy_profile_info, name='guidy_profile_info'),
 

@@ -15824,6 +15824,17 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
     ended_by_name = get_user_display_name(session.ended_by) if (session.ended_by and not session.is_active) else ''
     ended_by_me = bool(not session.is_active and session.ended_by == user)
 
+    import time
+    now_ts = time.time()
+    c_type = 'direct' if direct_id else 'guidance'
+    s_id = direct_id if direct_id else session_id
+    typing_dict = cache.get(f"guidy_typing_cache_{c_type}_{s_id}") or {}
+    active_typings = [
+        {"user_id": int(uid), "first_name": info.get("first_name", "")}
+        for uid, info in typing_dict.items()
+        if int(uid) != user.id and (now_ts - info.get("ts", 0) < 5.0)
+    ]
+
     return JsonResponse({
         'success': True,
         'is_active': session.is_active,
@@ -15833,8 +15844,92 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
         'messages': data,
         'read_message_ids': list(newly_read),
         'other_user_active': other_user_active,
-        'guidy_badge_count': get_guidy_badge_count(user)
+        'guidy_badge_count': get_guidy_badge_count(user),
+        'typing_users': active_typings,
     })
+
+
+@login_required
+@require_POST
+def guidy_send_typing(request):
+    """
+    Lightweight HTTP fallback for typing status when WebSocket is unavailable.
+    Does NOT write to database; strictly updates cache with 6-second TTL.
+    Rate limited to at most 1 signal every 2 seconds per user.
+    """
+    import time
+    user = request.user
+    chat_type = request.POST.get('chat_type')
+    session_id = request.POST.get('session_id')
+    is_typing = request.POST.get('is_typing') in ('1', 'true', True)
+
+    if not chat_type or not session_id:
+        return JsonResponse({'success': False, 'error': 'Missing parameters'}, status=400)
+
+    try:
+        session_id = int(session_id)
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Invalid session_id'}, status=400)
+
+    # Rate limiting in cache: drop excess is_typing=True silently
+    rate_key = f"guidy_http_typing_rate_{user.id}"
+    if is_typing and cache.get(rate_key):
+        return JsonResponse({'success': True, 'throttled': True})
+    cache.set(rate_key, True, timeout=2)
+
+    # Authorization & blocking check
+    from users.models import DirectChatSession, ChatSession, GroupChatSession, GuidyBlock
+    auth_cache_key = f"guidy_typing_allowed_{user.id}_{chat_type}_{session_id}"
+    allowed = cache.get(auth_cache_key)
+    if allowed is None:
+        allowed = False
+        if chat_type == 'direct':
+            direct = DirectChatSession.objects.filter(id=session_id, is_active=True).first()
+            if direct and (direct.user1_id == user.id or direct.user2_id == user.id):
+                other_id = direct.user2_id if direct.user1_id == user.id else direct.user1_id
+                if not GuidyBlock.objects.filter(blocker_id=other_id, blocked_id=user.id).exists() and \
+                   not GuidyBlock.objects.filter(blocker_id=user.id, blocked_id=other_id).exists():
+                    allowed = True
+        elif chat_type == 'guidance':
+            guidance = ChatSession.objects.filter(id=session_id, is_active=True).first()
+            if guidance and (guidance.user_one_id == user.id or guidance.user_two_id == user.id or \
+               (guidance.request and (guidance.request.student_id == user.id or getattr(guidance.request.alumni, 'user_id', None) == user.id))):
+                other_id = guidance.user_two_id if guidance.user_one_id == user.id else guidance.user_one_id
+                if guidance.request:
+                    other_id = getattr(guidance.request.alumni, 'user_id', None) if guidance.request.student_id == user.id else guidance.request.student_id
+                if other_id and not GuidyBlock.objects.filter(blocker_id=other_id, blocked_id=user.id).exists() and \
+                   not GuidyBlock.objects.filter(blocker_id=user.id, blocked_id=other_id).exists():
+                    allowed = True
+        elif chat_type == 'group':
+            group = GroupChatSession.objects.filter(id=session_id, is_active=True).first()
+            if group and not getattr(group, 'deleted_at', None):
+                if group.created_by_id == user.id or group.members.filter(id=user.id).exists():
+                    allowed = True
+        cache.set(auth_cache_key, allowed, timeout=30)
+
+    if not allowed:
+        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+
+    cache_key = f"guidy_typing_cache_{chat_type}_{session_id}"
+    typing_dict = cache.get(cache_key) or {}
+    now_ts = time.time()
+    # Prune stale typers > 5.0s
+    typing_dict = {
+        uid: data for uid, data in typing_dict.items()
+        if (now_ts - data.get('ts', 0)) < 5.0
+    }
+
+    if is_typing:
+        first_name = (user.first_name or user.username or 'User').strip().split()[0]
+        typing_dict[str(user.id)] = {
+            'first_name': first_name,
+            'ts': now_ts
+        }
+    else:
+        typing_dict.pop(str(user.id), None)
+
+    cache.set(cache_key, typing_dict, timeout=6)
+    return JsonResponse({'success': True})
 
 
 @login_required
@@ -17128,11 +17223,21 @@ def guidy_group_poll(request, group_id):
 
     newly_read = group.messages.filter(id__in=pending_ids, sender=user).exclude(read_by=user).filter(read_by__isnull=False).distinct().values_list('id', flat=True)
 
+    import time
+    now_ts = time.time()
+    typing_dict = cache.get(f"guidy_typing_cache_group_{group_id}") or {}
+    active_typings = [
+        {"user_id": int(uid), "first_name": info.get("first_name", "")}
+        for uid, info in typing_dict.items()
+        if int(uid) != user.id and (now_ts - info.get("ts", 0) < 5.0)
+    ]
+
     return JsonResponse({
         'success': True,
         'messages': data,
         'read_message_ids': list(newly_read),
-        'guidy_badge_count': get_guidy_badge_count(user)
+        'guidy_badge_count': get_guidy_badge_count(user),
+        'typing_users': active_typings,
     })
 
 

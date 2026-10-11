@@ -448,6 +448,55 @@ def check_guidy_chat_authorization(user_id, chat_type, session_id):
         return False
 
 
+@database_sync_to_async
+def is_typing_allowed_for_chat(user_id, chat_type, session_id):
+    """
+    Checks if user is authorized to send/receive typing signals.
+    Excludes blocked users and unauthorized non-members.
+    Cached for 30s so typing bursts never perform repetitive DB queries.
+    """
+    try:
+        from django.core.cache import cache
+        from users.models import GuidyBlock, DirectChatSession, ChatSession, GroupChatSession
+
+        cache_key = f"guidy_typing_allowed_{user_id}_{chat_type}_{session_id}"
+        cached_res = cache.get(cache_key)
+        if cached_res is not None:
+            return cached_res
+
+        allowed = False
+        if chat_type == 'direct':
+            direct = DirectChatSession.objects.filter(id=session_id, is_active=True).first()
+            if direct and (direct.user1_id == user_id or direct.user2_id == user_id):
+                other_id = direct.user2_id if direct.user1_id == user_id else direct.user1_id
+                if not GuidyBlock.objects.filter(blocker_id=other_id, blocked_id=user_id).exists() and \
+                   not GuidyBlock.objects.filter(blocker_id=user_id, blocked_id=other_id).exists():
+                    allowed = True
+        elif chat_type == 'guidance':
+            guidance = ChatSession.objects.filter(id=session_id, is_active=True).first()
+            if guidance:
+                if guidance.user_one_id == user_id or guidance.user_two_id == user_id or \
+                   (guidance.request and (guidance.request.student_id == user_id or getattr(guidance.request.alumni, 'user_id', None) == user_id)):
+                    other_id = guidance.user_two_id if guidance.user_one_id == user_id else guidance.user_one_id
+                    if guidance.request:
+                        other_id = getattr(guidance.request.alumni, 'user_id', None) if guidance.request.student_id == user_id else guidance.request.student_id
+                    if other_id and not GuidyBlock.objects.filter(blocker_id=other_id, blocked_id=user_id).exists() and \
+                       not GuidyBlock.objects.filter(blocker_id=user_id, blocked_id=other_id).exists():
+                        allowed = True
+        elif chat_type == 'group':
+            group = GroupChatSession.objects.filter(id=session_id, is_active=True).first()
+            if group and not getattr(group, 'deleted_at', None):
+                if group.created_by_id == user_id or group.members.filter(id=user_id).exists():
+                    allowed = True
+
+        cache.set(cache_key, allowed, timeout=30)
+        return allowed
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug("is_typing_allowed_for_chat error: %s", e)
+        return False
+
+
 class GuidyChatConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def update_user_presence(self, is_online):
@@ -548,8 +597,22 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         # Clear active chat state from cache
         await self.clear_active_chat()
 
-        # Broadcast offline presence to room
+        # Broadcast offline presence and stop-typing to room
         if hasattr(self, 'room_group_name') and hasattr(self, 'user') and self.user and self.user.is_authenticated:
+            try:
+                first_name = (self.user.first_name or self.user.username or 'User').strip().split()[0]
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "user_typing",
+                        "sender_id": self.user.id,
+                        "sender_name": self.user.get_full_name() or self.user.username,
+                        "first_name": first_name,
+                        "is_typing": False,
+                    }
+                )
+            except Exception:
+                pass
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -584,12 +647,26 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
 
         elif event_type == "typing_indicator":
             is_typing = bool(data.get("is_typing", False))
+            import time
+            now = time.time()
+            last_ts = getattr(self, '_last_typing_ts', 0)
+            if is_typing and (now - last_ts < 2.0):
+                return
+            self._last_typing_ts = now
+
+            if not await is_typing_allowed_for_chat(self.user.id, self.chat_type, self.session_id):
+                return
+
+            first_name = (self.user.first_name or self.user.username or 'User').strip().split()[0]
+            display_name = self.user.get_full_name() or self.user.username
+
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "user_typing",
                     "sender_id": self.user.id,
-                    "sender_name": self.user.get_full_name() or self.user.username,
+                    "sender_name": display_name,
+                    "first_name": first_name,
                     "is_typing": is_typing,
                 }
             )
@@ -681,8 +758,9 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({
                 "type": "typing_indicator",
                 "sender_id": event["sender_id"],
-                "sender_name": event["sender_name"],
-                "is_typing": event["is_typing"],
+                "sender_name": event.get("sender_name", ""),
+                "first_name": event.get("first_name", ""),
+                "is_typing": event.get("is_typing", False),
             }))
 
     async def chat_message_broadcast(self, event):

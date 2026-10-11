@@ -1353,6 +1353,179 @@ body.dark-theme .g-msg-row.theirs .g-msg-meta {
 .g-msg-pin-ico { color: #fbbf24; }
 .g-msg-star-ico { color: #f59e0b; }
 
+/* ── Guidy Live Typing Indicator ── */
+.g-typing-indicator-row {
+  align-self: flex-start !important;
+  margin-bottom: 6px !important;
+  margin-top: 2px !important;
+  display: flex;
+  align-items: flex-end;
+  max-width: 85%;
+  z-index: 2;
+  will-change: transform, opacity;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.g-typing-indicator-row.animating-in {
+  animation: guidyTypingSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.g-typing-indicator-row.animating-out {
+  animation: guidyTypingFadeOut 0.2s ease forwards;
+}
+
+@keyframes guidyTypingSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes guidyTypingFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+}
+
+.g-typing-bubble {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 14px !important;
+  min-height: 34px !important;
+  border-radius: 18px !important;
+  border-bottom-left-radius: 5px !important;
+  background: var(--g-msg-in) !important;
+  color: var(--g-text) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid var(--g-border) !important;
+  box-sizing: border-box !important;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: default !important;
+}
+
+body.dark-theme .g-typing-bubble {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.g-typing-names {
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  color: var(--g-primary-s, #6c63ff) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 200px !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.01em !important;
+}
+
+body.dark-theme .g-typing-names {
+  color: #a5b4fc !important;
+}
+
+@media (max-width: 480px) {
+  .g-typing-names {
+    max-width: 140px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+.g-typing-dots {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  height: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.g-typing-dot {
+  width: 6.5px !important;
+  height: 6.5px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #6c63ff, #764ba2) !important;
+  display: inline-block !important;
+  transform: translateY(0) scale(0.85);
+  opacity: 0.45;
+  box-shadow: 0 0 4px rgba(108, 99, 255, 0.2);
+  animation: guidyDotWave 1.35s infinite cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+
+body.dark-theme .g-typing-dot {
+  background: linear-gradient(135deg, #818cf8, #a78bfa) !important;
+  box-shadow: 0 0 6px rgba(129, 140, 248, 0.4) !important;
+}
+
+.g-typing-dot:nth-child(1) {
+  animation-delay: 0s !important;
+}
+.g-typing-dot:nth-child(2) {
+  animation-delay: 0.18s !important;
+}
+.g-typing-dot:nth-child(3) {
+  animation-delay: 0.36s !important;
+}
+
+@keyframes guidyDotWave {
+  0%, 60%, 100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-5px) scale(1.18);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(108, 99, 255, 0.75);
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .g-typing-indicator-row.animating-in,
+  .g-typing-indicator-row.animating-out {
+    animation: none !important;
+  }
+  .g-typing-dot {
+    animation: guidyDotPulse 1.2s infinite ease-in-out !important;
+    transform: none !important;
+  }
+}
+
+@keyframes guidyDotPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: none;
+  }
+  50% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Accessibility: visually hidden text */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
 /* Selected message state */
 .g-msg-row.selected .g-bubble { outline: 2px solid var(--g-primary-s); outline-offset: 2px; }
 .g-select-check {
@@ -3174,16 +3347,13 @@ body.dark-theme .search-highlight {
                 <div id="chatUserPresence" class="presence-indicator {% if other_user_active %}active{% endif %}">
                     <span class="presence-dot"></span>
                     <span class="presence-text">{% if other_user_active %}Active now{% else %}Offline{% endif %}</span>
-                    <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
                 </div>
             {% elif active_group %}
                 <p id="chatSubtitle" style="margin: 0; font-size: inherit; color: inherit; font-weight: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px;">{{ group_members_str }}</p>
-                <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
             {% else %}
                 <div id="chatUserPresence" class="presence-indicator">
                     <span class="presence-dot"></span>
                     <span class="presence-text">Offline</span>
-                    <span id="gChatTypingStatus" style="display: none; color: #38bdf8; font-weight: 600; font-style: italic; margin-left: 4px;"> typing...</span>
                 </div>
             {% endif %}
           </div>
@@ -3502,6 +3672,20 @@ body.dark-theme .search-highlight {
             </div>
           {% endif %}
         {% endif %}
+        <!-- Live Typing Indicator Bubble -->
+        <div class="g-msg-row theirs g-typing-indicator-row" id="guidyTypingIndicator" style="display: none;" role="status">
+          <div class="g-msg-inner">
+            <div class="g-bubble g-typing-bubble" id="guidyTypingBubble">
+              <span class="g-typing-names" id="guidyTypingNames" style="display: none;"></span>
+              <span class="g-typing-dots" aria-hidden="true">
+                <span class="g-typing-dot"></span>
+                <span class="g-typing-dot"></span>
+                <span class="g-typing-dot"></span>
+              </span>
+            </div>
+          </div>
+          <span class="sr-only" id="guidyTypingAria" aria-live="polite"></span>
+        </div>
       </div><!-- /messages -->
 
       <!-- Select Mode Banner -->
@@ -3673,7 +3857,7 @@ body.dark-theme .search-highlight {
             <div id="gInput" class="g-text-input" contenteditable="true" role="textbox"
               aria-multiline="true" data-placeholder="Type a message…"
               onkeydown="handleInputKey(event)"
-              oninput="toggleSendBtn();"
+              oninput="toggleSendBtn(); handleMessageInputTyping();"
               oncontextmenu="event.preventDefault(); return false;"></div>
             <button class="g-send-btn no-sound" id="gSendBtn" type="button" data-no-sound="true" onmousedown="event.preventDefault()" onclick="sendMessage()" disabled title="Send">
               <i class='bx bx-send'></i>
@@ -5176,6 +5360,8 @@ async function sendMessage() {
     return;
   }
 
+  sendStopTypingSignal();
+
   const currentReplyId = replyToId;
   const currentReplyPreview = replyToId ? {
     id: replyToId,
@@ -6263,6 +6449,13 @@ function appendMessage(msg, isLive = false) {
     </div>`;
 
   area.appendChild(row);
+  const typingIndicator = document.getElementById('guidyTypingIndicator');
+  if (typingIndicator && typingIndicator.parentNode === area) {
+    area.appendChild(typingIndicator);
+  }
+  if (msg.sender_id) {
+    removeTypingUser(msg.sender_id);
+  }
   scrollToBottom(true);
   if (msg.id && typeof msg.id === 'number') {
     lastMsgId = Math.max(lastMsgId, msg.id);
@@ -6607,6 +6800,9 @@ async function doPoll() {
       if (data.read_message_ids) {
         updateReadTicks(data.read_message_ids);
       }
+      if (data.typing_users) {
+        handleIncomingHttpTyping(data.typing_users);
+      }
       // Update Live Presence Indicator
       const presenceBox = document.getElementById('chatUserPresence');
       if (presenceBox) {
@@ -6699,6 +6895,9 @@ async function doGroupPoll() {
       }
       if (data.read_message_ids) {
         updateReadTicks(data.read_message_ids);
+      }
+      if (data.typing_users) {
+        handleIncomingHttpTyping(data.typing_users);
       }
     }
   } catch(e) {}
@@ -6821,6 +7020,9 @@ function initGuidyWebSocket() {
         } else if (data.type === 'messages_read' && data.message_ids) {
           updateReadTicks(data.message_ids);
         } else if (data.type === 'user_presence') {
+          if (data.status === 'offline') {
+            removeTypingUser(data.user_id);
+          }
           const presenceBox = document.getElementById('chatUserPresence');
           if (presenceBox) {
             const isOnline = (data.status === 'online');
@@ -7254,42 +7456,298 @@ function emitMarkRead() {
   }
 }
 
-function handleIncomingTypingIndicator(data) {
-  const typingSpan = document.getElementById('gChatTypingStatus');
-  const presenceText = document.querySelector('#chatUserPresence .presence-text');
-  if (!typingSpan) return;
+// ── Guidy Live Typing Indicator Logic ─────────────────────────────
+const currentChatTypingUsers = new Map(); // userId -> { name, timer, timestamp }
+let lastAnnouncedAriaText = '';
+let lastTypingSentTs = 0;
+let stopTypingTimer = null;
+let throttledTypingTimer = null;
+let isCurrentlyTypingSignalActive = false;
 
-  if (data.is_typing) {
-    if (presenceText) presenceText.style.display = 'none';
-    typingSpan.style.display = 'inline';
-    if (typingTimeoutTimer) clearTimeout(typingTimeoutTimer);
-    typingTimeoutTimer = setTimeout(() => {
-      typingSpan.style.display = 'none';
-      if (presenceText) presenceText.style.display = 'inline';
-    }, 3000);
+function formatTypingNames(names) {
+  if (!names || names.length === 0) return '';
+  const firstNames = names.map(n => {
+    const raw = String(n || '').trim().split(/\s+/)[0] || 'User';
+    return raw.length > 15 ? raw.slice(0, 14) + '…' : raw;
+  });
+  const count = firstNames.length;
+  if (count === 1) {
+    return firstNames[0];
+  } else if (count === 2) {
+    return `${firstNames[0]} & ${firstNames[1]}`;
+  } else if (count === 3) {
+    return `${firstNames[0]}, ${firstNames[1]} & ${firstNames[2]}`;
   } else {
-    typingSpan.style.display = 'none';
-    if (presenceText) presenceText.style.display = 'inline';
-    if (typingTimeoutTimer) clearTimeout(typingTimeoutTimer);
+    return `${firstNames[0]}, ${firstNames[1]} & ${count - 2} others`;
   }
 }
 
-function emitTypingIndicator(isTyping) {
-  if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN) {
-    chatWebSocket.send(JSON.stringify({
-      type: 'typing_indicator',
-      is_typing: isTyping
-    }));
+function handleIncomingTypingIndicator(data) {
+  if (!data) return;
+  const currentUserId = parseInt(document.getElementById('guidyConfig')?.dataset?.userId || '0');
+  const senderId = parseInt(data.sender_id || '0');
+
+  // Never show myself
+  if (!senderId || senderId === currentUserId) return;
+
+  const isTyping = !!data.is_typing;
+  const firstName = data.first_name || (data.sender_name ? data.sender_name.trim().split(/\s+/)[0] : 'User');
+
+  if (isTyping) {
+    if (currentChatTypingUsers.has(senderId)) {
+      const existing = currentChatTypingUsers.get(senderId);
+      if (existing.timer) clearTimeout(existing.timer);
+    }
+    // Expire automatically after 4.0 seconds if no fresh signal arrives
+    const timer = setTimeout(() => {
+      currentChatTypingUsers.delete(senderId);
+      renderTypingIndicator();
+    }, 4000);
+
+    currentChatTypingUsers.set(senderId, {
+      name: firstName,
+      timer: timer,
+      timestamp: Date.now()
+    });
+  } else {
+    if (currentChatTypingUsers.has(senderId)) {
+      const existing = currentChatTypingUsers.get(senderId);
+      if (existing.timer) clearTimeout(existing.timer);
+      currentChatTypingUsers.delete(senderId);
+    }
+  }
+
+  renderTypingIndicator();
+}
+
+function handleIncomingHttpTyping(typingList) {
+  // If WebSocket is actively open for this chat, WebSocket is the faster ground truth
+  if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN && chatWebSocket.isChatSocket) {
+    return;
+  }
+  const currentUserId = parseInt(document.getElementById('guidyConfig')?.dataset?.userId || '0');
+  const serverTypingIds = new Set();
+
+  (typingList || []).forEach(item => {
+    const uid = parseInt(item.user_id);
+    if (!uid || uid === currentUserId) return;
+    serverTypingIds.add(uid);
+    const firstName = item.first_name || 'User';
+
+    if (!currentChatTypingUsers.has(uid)) {
+      const timer = setTimeout(() => {
+        currentChatTypingUsers.delete(uid);
+        renderTypingIndicator();
+      }, 4000);
+      currentChatTypingUsers.set(uid, { name: firstName, timer, timestamp: Date.now() });
+    }
+  });
+
+  // Remove any typers who stopped according to server poll
+  currentChatTypingUsers.forEach((val, uid) => {
+    if (!serverTypingIds.has(uid) && (Date.now() - val.timestamp > 3500)) {
+      if (val.timer) clearTimeout(val.timer);
+      currentChatTypingUsers.delete(uid);
+    }
+  });
+
+  renderTypingIndicator();
+}
+
+function removeTypingUser(userId) {
+  const uid = parseInt(userId || '0');
+  if (uid && currentChatTypingUsers.has(uid)) {
+    const existing = currentChatTypingUsers.get(uid);
+    if (existing.timer) clearTimeout(existing.timer);
+    currentChatTypingUsers.delete(uid);
+    renderTypingIndicator();
+  }
+}
+
+function clearAllTypingUsers() {
+  currentChatTypingUsers.forEach(u => {
+    if (u.timer) clearTimeout(u.timer);
+  });
+  currentChatTypingUsers.clear();
+  renderTypingIndicator();
+}
+
+function renderTypingIndicator() {
+  const indicator = document.getElementById('guidyTypingIndicator');
+  const namesEl = document.getElementById('guidyTypingNames');
+  const ariaEl = document.getElementById('guidyTypingAria');
+  const messagesArea = document.getElementById('gMessages');
+  if (!indicator || !messagesArea) return;
+
+  const count = currentChatTypingUsers.size;
+
+  if (count === 0) {
+    if (indicator.style.display !== 'none') {
+      indicator.classList.remove('animating-in');
+      indicator.classList.add('animating-out');
+      setTimeout(() => {
+        if (currentChatTypingUsers.size === 0) {
+          indicator.style.display = 'none';
+          indicator.classList.remove('animating-out');
+        }
+      }, 190);
+    }
+    if (ariaEl && lastAnnouncedAriaText !== '') {
+      ariaEl.textContent = '';
+      lastAnnouncedAriaText = '';
+    }
+    return;
+  }
+
+  // Ensure indicator sits as the last child of messagesArea
+  if (indicator.parentNode === messagesArea && indicator.nextSibling) {
+    messagesArea.appendChild(indicator);
+  }
+
+  const isGroup = !!GROUP_ID;
+  const names = Array.from(currentChatTypingUsers.values()).map(u => u.name);
+
+  if (isGroup && namesEl) {
+    const formatted = formatTypingNames(names);
+    namesEl.textContent = formatted;
+    namesEl.style.display = 'inline';
+  } else if (namesEl) {
+    namesEl.style.display = 'none';
+    namesEl.textContent = '';
+  }
+
+  // Accessibility: aria-live polite region updated only when the set of people changes
+  if (ariaEl) {
+    let ariaText = '';
+    if (isGroup) {
+      if (names.length === 1) ariaText = `${names[0]} is writing`;
+      else if (names.length === 2) ariaText = `${names[0]} and ${names[1]} are writing`;
+      else if (names.length === 3) ariaText = `${names[0]}, ${names[1]} and ${names[2]} are writing`;
+      else ariaText = `${names[0]}, ${names[1]} and ${names.length - 2} others are writing`;
+    } else {
+      const otherName = names[0] || 'Other user';
+      ariaText = `${otherName} is writing`;
+    }
+
+    if (ariaText !== lastAnnouncedAriaText) {
+      ariaEl.textContent = ariaText;
+      lastAnnouncedAriaText = ariaText;
+    }
+  }
+
+  const isNearBottom = (messagesArea.scrollHeight - messagesArea.scrollTop - messagesArea.clientHeight) <= 80;
+
+  indicator.classList.remove('animating-out');
+  indicator.classList.add('animating-in');
+  indicator.style.display = 'flex';
+
+  // Smoothly keep chat scrolled to bottom ONLY if user is already near the bottom
+  if (isNearBottom) {
+    messagesArea.scrollTo({ top: messagesArea.scrollHeight, behavior: 'smooth' });
   }
 }
 
 function handleMessageInputTyping() {
-  emitTypingIndicator(true);
-  if (localTypingTimer) clearTimeout(localTypingTimer);
-  localTypingTimer = setTimeout(() => {
-    emitTypingIndicator(false);
-  }, 2000);
+  const inputEl = document.getElementById('gInput');
+  if (!inputEl) return;
+  const text = (inputEl.innerText || '').trim();
+
+  // Never send typing for empty/whitespace input
+  if (!text) {
+    if (isCurrentlyTypingSignalActive) {
+      sendStopTypingSignal();
+    }
+    return;
+  }
+
+  const now = Date.now();
+  // Throttle: send at most once every 2.5 seconds
+  if (!isCurrentlyTypingSignalActive || (now - lastTypingSentTs >= 2500)) {
+    sendTypingSignal(true);
+    lastTypingSentTs = now;
+  } else {
+    if (!throttledTypingTimer) {
+      const waitTime = Math.max(0, 2500 - (now - lastTypingSentTs));
+      throttledTypingTimer = setTimeout(() => {
+        throttledTypingTimer = null;
+        const currentText = (inputEl.innerText || '').trim();
+        if (currentText) {
+          sendTypingSignal(true);
+          lastTypingSentTs = Date.now();
+        }
+      }, waitTime);
+    }
+  }
+
+  // Reset inactivity timer: send stop after 3.5s of no keypresses
+  if (stopTypingTimer) clearTimeout(stopTypingTimer);
+  stopTypingTimer = setTimeout(() => {
+    sendStopTypingSignal();
+  }, 3500);
 }
+
+function sendTypingSignal(isTyping) {
+  isCurrentlyTypingSignalActive = isTyping;
+  const { chatType, sessionId } = getActiveChatTypeAndId();
+  if (!chatType || !sessionId) return;
+
+  // 1. WebSocket fast-path
+  if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN && chatWebSocket.isChatSocket) {
+    try {
+      chatWebSocket.send(JSON.stringify({
+        type: 'typing_indicator',
+        is_typing: isTyping
+      }));
+      return;
+    } catch (e) {}
+  }
+
+  // 2. HTTP fallback
+  sendHttpTypingSignal(chatType, sessionId, isTyping);
+}
+
+function sendStopTypingSignal() {
+  if (stopTypingTimer) {
+    clearTimeout(stopTypingTimer);
+    stopTypingTimer = null;
+  }
+  if (throttledTypingTimer) {
+    clearTimeout(throttledTypingTimer);
+    throttledTypingTimer = null;
+  }
+  if (isCurrentlyTypingSignalActive) {
+    sendTypingSignal(false);
+    isCurrentlyTypingSignalActive = false;
+  }
+}
+
+async function sendHttpTypingSignal(chatType, sessionId, isTyping) {
+  try {
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', CSRF);
+    fd.append('chat_type', chatType);
+    fd.append('session_id', sessionId);
+    fd.append('is_typing', isTyping ? '1' : '0');
+    await fetch('/guidy/typing/', {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+  } catch (err) {}
+}
+
+// Input blur listener: send stop typing event after 2.5s if input loses focus
+document.addEventListener('DOMContentLoaded', () => {
+  const msgInputEl = document.getElementById('gInput');
+  if (msgInputEl) {
+    msgInputEl.addEventListener('blur', () => {
+      if (stopTypingTimer) clearTimeout(stopTypingTimer);
+      stopTypingTimer = setTimeout(() => {
+        sendStopTypingSignal();
+      }, 2500);
+    });
+  }
+});
 
 // Initialize always-on WebSocket & presence heartbeat
 initGuidyWebSocket();
@@ -8652,6 +9110,8 @@ function closeCurrentChat() {
 }
 
 function showNoChatPlaceholder(updateHistory = true) {
+  sendStopTypingSignal();
+  clearAllTypingUsers();
   syncActiveChatToServiceWorker(null, null);
   isPollingActive = false;
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
@@ -8714,7 +9174,9 @@ function showNoChatPlaceholder(updateHistory = true) {
 async function loadChatAJAX(type, id, pushState = true) {
   if (!type || !id) return;
 
-  // Stop current polling and socket
+  // Stop current polling, socket, and typing state
+  sendStopTypingSignal();
+  clearAllTypingUsers();
   isPollingActive = false;
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
   if (chatWebSocket) {
