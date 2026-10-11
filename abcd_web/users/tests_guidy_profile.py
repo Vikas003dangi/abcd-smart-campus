@@ -140,6 +140,8 @@ class GuidyProfileInfoTests(TestCase):
         self.assertIn('photoBlackoutVeil', content)
         self.assertIn('photoShieldOverlay', content)
         self.assertIn('photoWatermark', content)
+        self.assertIn('photoHoldCurtain', content)
+        self.assertIn('Press & Hold to View', content)
         self.assertIn('Screenshot Restricted', content)
         # Verify isOwner evaluated to false for guest/other user
         self.assertIn('const isOwner = false;', content)

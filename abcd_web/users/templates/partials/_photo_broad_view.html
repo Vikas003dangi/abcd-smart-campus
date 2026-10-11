@@ -1,4 +1,4 @@
-<!-- WhatsApp-Style Fullscreen Photo Broad View Modal with Anti-Screenshot Protection -->
+<!-- WhatsApp-Style Fullscreen Photo Broad View Modal with Anti-Screenshot Protection for Mobile & Desktop -->
 <style>
 @media print {
     #photoBroadView, #broadViewImg, #broadViewCanvas, .photo-broad-viewport, .cv-photo, .photo-frame img {
@@ -22,39 +22,79 @@
     overflow: hidden;
     border-radius: 20px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 18px;
     background: repeating-linear-gradient(
         -35deg,
         transparent,
-        transparent 45px,
-        rgba(255, 255, 255, 0.035) 45px,
-        rgba(255, 255, 255, 0.035) 90px
+        transparent 50px,
+        rgba(255, 255, 255, 0.04) 50px,
+        rgba(255, 255, 255, 0.04) 100px
     );
 }
-.photo-watermark-text {
-    color: rgba(255, 255, 255, 0.20);
-    font-size: clamp(0.75rem, 2vw, 1.05rem);
-    font-weight: 800;
-    letter-spacing: 3px;
+.photo-watermark-subrow {
+    color: rgba(255, 255, 255, 0.22);
+    font-size: clamp(0.68rem, 1.8vw, 0.84rem);
+    font-weight: 700;
+    letter-spacing: 2px;
     text-transform: uppercase;
     transform: rotate(-25deg);
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.85);
+    user-select: none;
+    pointer-events: none;
+    white-space: nowrap;
+}
+.photo-watermark-text {
+    color: rgba(255, 255, 255, 0.25);
+    font-size: clamp(0.72rem, 2vw, 0.95rem);
+    font-weight: 800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    transform: rotate(-25deg);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
     user-select: none;
     pointer-events: none;
     text-align: center;
     line-height: 1.8;
 }
+@keyframes pulseFingerprint {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        border-color: rgba(99, 102, 241, 0.5);
+    }
+    50% {
+        transform: scale(1.08);
+        box-shadow: 0 0 35px rgba(99, 102, 241, 0.65);
+        border-color: rgba(168, 85, 247, 0.8);
+    }
+}
+.hold-fingerprint-ring {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.15);
+    border: 2px solid rgba(99, 102, 241, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
+    animation: pulseFingerprint 2.2s infinite ease-in-out;
+    pointer-events: none;
+}
 </style>
 
-<div id="photoBroadView" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index: 3000010; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); user-select: none; -webkit-user-select: none;" onclick="closePhotoView()">
-    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000015;">
+<div id="photoBroadView" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index: 3000010; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); user-select: none; -webkit-user-select: none; touch-action: none;" onclick="closePhotoView()">
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 3000020;">
         <button type="button" onclick="closePhotoView()" aria-label="Close photo preview" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 2rem; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
             <i class='bx bx-x'></i>
         </button>
     </div>
+    
     <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 25px;" onclick="event.stopPropagation()">
-        <div id="photoBroadViewport" class="photo-broad-viewport" style="position: relative; max-width: 90vw; max-height: 85vh; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 70px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.15); background: #0b0f19;">
+        <div id="photoBroadViewport" class="photo-broad-viewport" style="position: relative; max-width: 90vw; max-height: 85vh; display: inline-flex; align-items: center; justify-content: center; border-radius: 20px; overflow: hidden; box-shadow: 0 25px 70px rgba(0,0,0,0.65); border: 2px solid rgba(255,255,255,0.15); background: #0b0f19;">
             
             <!-- 1. The Canvas for protected rendering -->
             <canvas id="broadViewCanvas" style="display: none; max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; pointer-events: none; user-select: none; -webkit-user-select: none;"></canvas>
@@ -62,21 +102,37 @@
             <!-- 2. The standard Image fallback / owner view -->
             <img id="broadViewImg" src="" draggable="false" oncontextmenu="return false;" style="max-width: 90vw; max-height: 85vh; border-radius: 20px; object-fit: contain; display: block; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: filter 0.15s ease, opacity 0.15s ease;">
             
-            <!-- 3. Transparent click/touch interceptor shield -->
-            <div id="photoShieldOverlay" style="position: absolute; inset: 0; z-index: 10; cursor: default; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; display: none;" oncontextmenu="return false;" ondragstart="return false;"></div>
-
-            <!-- 4. Security Watermark (for non-owners) -->
+            <!-- 3. Dynamic Live Security Watermark (for non-owners) -->
             <div id="photoWatermark" class="photo-security-watermark-pattern" style="display: none;">
-                <div class="photo-watermark-text">
-                    ABCD SMART CAMPUS<br>• CONFIDENTIAL •
+                <div class="photo-watermark-subrow" style="opacity: 0.85;">ABCD SECURE • <span class="watermark-dyn-user">{{ request.user.username|default:'VISITOR'|escapejs|upper }}</span> • CONFIDENTIAL</div>
+                <div class="photo-watermark-text" id="watermarkStamp">
+                    ABCD SMART CAMPUS<br>
+                    • CONFIDENTIAL •<br>
+                    <span id="watermarkLiveMeta" style="font-size: 0.72rem; opacity: 0.85; letter-spacing: 1px;"></span>
+                </div>
+                <div class="photo-watermark-subrow" style="opacity: 0.85;">RESTRICTED DISPLAY • <span id="watermarkBottomMeta"></span> • NO RECORDING</div>
+            </div>
+
+            <!-- 4. Touch & Hold Privacy Curtain (Mobile & Desktop Anti-Screenshot Barrier) -->
+            <div id="photoHoldCurtain" style="display: none; position: absolute; inset: 0; z-index: 18; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 25px; border-radius: 20px; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;">
+                <div class="hold-fingerprint-ring">
+                    <i class='bx bx-fingerprint' style="font-size: 3rem; color: #a5b4fc;"></i>
+                </div>
+                <div style="font-size: 1.2rem; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">Press & Hold to View</div>
+                <div style="font-size: 0.84rem; color: #94a3b8; max-width: 250px; line-height: 1.45;">
+                    🛡️ <strong style="color: #cbd5e1;">Protected Profile Photo</strong><br>
+                    <span style="color: #64748b; font-size: 0.76rem;">Releasing, capturing, or recording conceals the photo instantly</span>
                 </div>
             </div>
 
-            <!-- 5. Anti-Capture Blackout Veil (Active when Snipping Tool or blur occurs) -->
-            <div id="photoBlackoutVeil" style="display: none; position: absolute; inset: 0; z-index: 25; background: #0f172a; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #cbd5e1; text-align: center; padding: 25px; pointer-events: none;">
-                <i class='bx bxs-shield-x' style="font-size: 3rem; color: #f43f5e; filter: drop-shadow(0 4px 10px rgba(244,63,94,0.4));"></i>
-                <span style="font-size: 1.15rem; font-weight: 800; color: #fff; letter-spacing: 0.5px;">Screenshot Restricted</span>
-                <small style="font-size: 0.85rem; color: #94a3b8; max-width: 250px; line-height: 1.4;">Profile photos of other members cannot be captured or copied.</small>
+            <!-- 5. Transparent Touch/Hold Interceptor Layer -->
+            <div id="photoShieldOverlay" style="position: absolute; inset: 0; z-index: 22; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; display: none;" oncontextmenu="return false;" ondragstart="return false;"></div>
+
+            <!-- 6. Anti-Capture Blackout Veil (Active when Snipping Tool, Multi-Touch, Gestures, or Hardware Buttons are detected) -->
+            <div id="photoBlackoutVeil" style="display: none; position: absolute; inset: 0; z-index: 28; background: #0b0f19; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #cbd5e1; text-align: center; padding: 25px; pointer-events: none;">
+                <i class='bx bxs-shield-x' style="font-size: 3.2rem; color: #f43f5e; filter: drop-shadow(0 4px 12px rgba(244,63,94,0.4));"></i>
+                <span id="blackoutVeilTitle" style="font-size: 1.2rem; font-weight: 800; color: #fff; letter-spacing: 0.5px;">Screenshot Restricted</span>
+                <small id="blackoutVeilDesc" style="font-size: 0.85rem; color: #94a3b8; max-width: 260px; line-height: 1.4;">Profile photos of other members cannot be captured or copied.</small>
             </div>
         </div>
     </div>
@@ -86,20 +142,74 @@
 (function() {
     let activeProtectedModalOpen = false;
     let currentPhotoIsOwner = false;
+    let isHoldingActive = false;
     let veilRestoreTimer = null;
+    let watermarkClockTimer = null;
+    let maxHoldTimeoutTimer = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
 
-    function triggerBlackoutVeil() {
-        const veil = document.getElementById('photoBlackoutVeil');
-        const broadImg = document.getElementById('broadViewImg');
-        const broadCanvas = document.getElementById('broadViewCanvas');
-        if (veil) veil.style.display = 'flex';
-        if (broadImg) {
-            broadImg.style.opacity = '0';
-            broadImg.style.filter = 'blur(40px)';
+    const MAX_CONTINUOUS_HOLD_MS = 5000; // 5-second anti-screen recording limit
+    const viewerIdentifier = "{{ request.user.username|default:'VISITOR'|escapejs }}".toUpperCase();
+
+    // Intercept in-browser screen sharing / recording API
+    try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            navigator.mediaDevices.getDisplayMedia = function() {
+                if (activeProtectedModalOpen && !currentPhotoIsOwner) {
+                    triggerBlackoutVeil('Capture Blocked', 'Screen recording and capture tools are strictly restricted.');
+                }
+                return Promise.reject(new DOMException('Screen recording is restricted.', 'NotAllowedError'));
+            };
         }
-        if (broadCanvas) {
-            broadCanvas.style.opacity = '0';
-            broadCanvas.style.filter = 'blur(40px)';
+    } catch (_) {}
+
+    function updateWatermarkTime() {
+        const metaSpan = document.getElementById('watermarkLiveMeta');
+        const bottomMeta = document.getElementById('watermarkBottomMeta');
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0];
+        if (metaSpan) {
+            metaSpan.textContent = `ID: ${viewerIdentifier} • ${timeStr}`;
+        }
+        if (bottomMeta) {
+            bottomMeta.textContent = `${timeStr}`;
+        }
+    }
+
+    function renderForensicWatermarkOnCanvas(ctx, width, height) {
+        if (!ctx) return;
+        ctx.save();
+        ctx.rotate(-26 * Math.PI / 180);
+        ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+        ctx.shadowBlur = 4;
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0];
+        const stampText = `ABCD CAMPUS • ${viewerIdentifier} • ${timeStr}`;
+        const stepX = 260;
+        const stepY = 70;
+        for (let x = -width; x < width * 2; x += stepX) {
+            for (let y = -height; y < height * 2; y += stepY) {
+                ctx.fillText(stampText, x, y);
+            }
+        }
+        ctx.restore();
+    }
+
+    function triggerBlackoutVeil(title, desc) {
+        concealPhotoImmediately();
+        const veil = document.getElementById('photoBlackoutVeil');
+        const vTitle = document.getElementById('blackoutVeilTitle');
+        const vDesc = document.getElementById('blackoutVeilDesc');
+        if (veil) {
+            if (title && vTitle) vTitle.textContent = title;
+            if (desc && vDesc) vDesc.textContent = desc;
+            veil.style.display = 'flex';
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            try { navigator.clipboard.writeText(''); } catch (_) {}
         }
     }
 
@@ -109,24 +219,208 @@
             const modal = document.getElementById('photoBroadView');
             if (modal && modal.style.display !== 'none' && document.hasFocus() && !document.hidden) {
                 const veil = document.getElementById('photoBlackoutVeil');
-                const broadImg = document.getElementById('broadViewImg');
-                const broadCanvas = document.getElementById('broadViewCanvas');
                 if (veil) veil.style.display = 'none';
-                if (broadImg) {
-                    broadImg.style.opacity = '1';
-                    broadImg.style.filter = 'none';
-                }
-                if (broadCanvas) {
-                    broadCanvas.style.opacity = '1';
-                    broadCanvas.style.filter = 'none';
+                if (!currentPhotoIsOwner) {
+                    showCurtainPrompt();
                 }
             }
-        }, 280);
+        }, 320);
     }
 
+    function revealPhotoOnHold() {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+        if (isHoldingActive) return;
+        isHoldingActive = true;
+
+        const curtain = document.getElementById('photoHoldCurtain');
+        const broadImg = document.getElementById('broadViewImg');
+        const broadCanvas = document.getElementById('broadViewCanvas');
+        const watermark = document.getElementById('photoWatermark');
+
+        if (curtain) {
+            curtain.style.opacity = '0';
+            curtain.style.visibility = 'hidden';
+        }
+        if (broadCanvas && broadCanvas.dataset.rendered === 'true') {
+            broadCanvas.style.opacity = '1';
+            broadCanvas.style.filter = 'none';
+        } else if (broadImg) {
+            broadImg.style.opacity = '1';
+            broadImg.style.filter = 'none';
+        }
+        if (watermark) watermark.style.display = 'flex';
+
+        updateWatermarkTime();
+        if (watermarkClockTimer) clearInterval(watermarkClockTimer);
+        watermarkClockTimer = setInterval(updateWatermarkTime, 1000);
+
+        // Anti-Screen Recording: Enforce 5-second maximum continuous viewing window
+        if (maxHoldTimeoutTimer) clearTimeout(maxHoldTimeoutTimer);
+        maxHoldTimeoutTimer = setTimeout(() => {
+            if (isHoldingActive && activeProtectedModalOpen && !currentPhotoIsOwner) {
+                concealPhotoImmediately();
+                triggerBlackoutVeil('Viewing Timeout', 'Continuous viewing is limited to 5 seconds to prevent recording. Release and hold again.');
+                setTimeout(liftBlackoutVeil, 2200);
+            }
+        }, MAX_CONTINUOUS_HOLD_MS);
+    }
+
+    function concealPhotoImmediately() {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+        isHoldingActive = false;
+
+        if (maxHoldTimeoutTimer) {
+            clearTimeout(maxHoldTimeoutTimer);
+            maxHoldTimeoutTimer = null;
+        }
+        if (watermarkClockTimer) {
+            clearInterval(watermarkClockTimer);
+            watermarkClockTimer = null;
+        }
+
+        const curtain = document.getElementById('photoHoldCurtain');
+        const broadImg = document.getElementById('broadViewImg');
+        const broadCanvas = document.getElementById('broadViewCanvas');
+        const watermark = document.getElementById('photoWatermark');
+
+        if (curtain) {
+            curtain.style.opacity = '1';
+            curtain.style.visibility = 'visible';
+        }
+        if (broadImg) {
+            broadImg.style.opacity = '0';
+            broadImg.style.filter = 'blur(45px)';
+        }
+        if (broadCanvas) {
+            broadCanvas.style.opacity = '0';
+            broadCanvas.style.filter = 'blur(45px)';
+        }
+        if (watermark) watermark.style.display = 'none';
+    }
+
+    function showCurtainPrompt() {
+        const curtain = document.getElementById('photoHoldCurtain');
+        const shield = document.getElementById('photoShieldOverlay');
+        const broadImg = document.getElementById('broadViewImg');
+        const broadCanvas = document.getElementById('broadViewCanvas');
+        const watermark = document.getElementById('photoWatermark');
+
+        if (curtain) {
+            curtain.style.display = 'flex';
+            curtain.style.opacity = '1';
+            curtain.style.visibility = 'visible';
+        }
+        if (shield) shield.style.display = 'block';
+        if (broadImg) {
+            broadImg.style.opacity = '0';
+            broadImg.style.filter = 'blur(45px)';
+        }
+        if (broadCanvas) {
+            broadCanvas.style.opacity = '0';
+            broadCanvas.style.filter = 'blur(45px)';
+        }
+        if (watermark) watermark.style.display = 'none';
+    }
+
+    // Global Capture-Phase Window Multi-Touch Interceptor (Defeats 3-finger swipe anywhere on screen)
+    function onGlobalWindowTouch(e) {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+        if (e.touches && e.touches.length > 1) {
+            try {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            } catch (_) {}
+            triggerBlackoutVeil('Multi-Touch Blocked', 'Multi-finger screenshot gestures (such as 3-finger swipe) are strictly restricted.');
+            setTimeout(liftBlackoutVeil, 2200);
+        }
+    }
+
+    // Local Touch Event Traps for Photo Viewing (press & hold, movement threshold)
+    function onTouchStart(e) {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+
+        if (e.touches && e.touches.length > 1) {
+            try {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            } catch (_) {}
+            triggerBlackoutVeil('Multi-Touch Blocked', 'Multi-finger screenshot gestures are strictly restricted.');
+            setTimeout(liftBlackoutVeil, 2200);
+            return;
+        }
+
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        revealPhotoOnHold();
+    }
+
+    function onTouchMove(e) {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+
+        if (e.touches && e.touches.length > 1) {
+            try {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            } catch (_) {}
+            triggerBlackoutVeil('Gesture Blocked', 'Screenshot gesture detected and concealed.');
+            setTimeout(liftBlackoutVeil, 2200);
+            return;
+        }
+
+        if (!isHoldingActive) return;
+
+        // If finger moves more than 20px (swiping screenshot, palm swipe, or notification bar pull-down):
+        const currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY;
+        const dist = Math.hypot(currentX - touchStartX, currentY - touchStartY);
+        if (dist > 20) {
+            concealPhotoImmediately();
+        }
+    }
+
+    function onTouchEnd(e) {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+        concealPhotoImmediately();
+    }
+
+    function onTouchCancel(e) {
+        // Physical side buttons (Power+Volume) trigger touchcancel on mobile OS:
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+        concealPhotoImmediately();
+        triggerBlackoutVeil('Capture Restricted', 'Hardware capture interrupts viewing session.');
+        setTimeout(liftBlackoutVeil, 2000);
+    }
+
+    function onPointerCancel(e) {
+        if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
+        concealPhotoImmediately();
+        triggerBlackoutVeil('Capture Restricted', 'Pointer interrupted.');
+        setTimeout(liftBlackoutVeil, 2000);
+    }
+
+    // Desktop Mouse Pointer Support (Click & Hold to view)
+    function onPointerDown(e) {
+        if (e.pointerType === 'mouse' && e.button === 0) {
+            revealPhotoOnHold();
+        }
+    }
+
+    function onPointerUp(e) {
+        if (e.pointerType === 'mouse') {
+            concealPhotoImmediately();
+        }
+    }
+
+    function onPointerLeave(e) {
+        if (e.pointerType === 'mouse') {
+            concealPhotoImmediately();
+        }
+    }
+
+    // Window focus loss (Alt+Tab, Snipping tool Win+Shift+S, Android assistant, Notification Shade)
     function handleBlur() {
         if (activeProtectedModalOpen && !currentPhotoIsOwner) {
-            triggerBlackoutVeil();
+            triggerBlackoutVeil('Window Inactive', 'Screenshot or window switch detected.');
         }
     }
 
@@ -139,13 +433,21 @@
     function handleVisibility() {
         if (activeProtectedModalOpen && !currentPhotoIsOwner) {
             if (document.hidden) {
-                triggerBlackoutVeil();
+                triggerBlackoutVeil('Screen Concealed', 'Display was hidden or captured.');
             } else {
                 liftBlackoutVeil();
             }
         }
     }
 
+    function handleResize() {
+        if (activeProtectedModalOpen && !currentPhotoIsOwner && isHoldingActive) {
+            triggerBlackoutVeil('Display Changed', 'Screen dimension change detected.');
+            setTimeout(liftBlackoutVeil, 2000);
+        }
+    }
+
+    // Hardware Keyboard Shortcut Traps
     function handleKey(e) {
         if (!activeProtectedModalOpen || currentPhotoIsOwner) return;
 
@@ -160,8 +462,8 @@
                 e.preventDefault();
                 e.stopPropagation();
             } catch (_) {}
-            triggerBlackoutVeil();
-            setTimeout(liftBlackoutVeil, 1800);
+            triggerBlackoutVeil('Screenshot Blocked', 'Screenshots of other users are restricted.');
+            setTimeout(liftBlackoutVeil, 2000);
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 try { navigator.clipboard.writeText(''); } catch (_) {}
             }
@@ -176,21 +478,87 @@
     }
 
     function armProtection() {
+        const shield = document.getElementById('photoShieldOverlay');
+        const curtain = document.getElementById('photoHoldCurtain');
+
+        // Global capture phase multi-touch prevention across whole window
+        window.addEventListener('touchstart', onGlobalWindowTouch, { passive: false, capture: true });
+        window.addEventListener('touchmove', onGlobalWindowTouch, { passive: false, capture: true });
+
+        if (shield) {
+            shield.addEventListener('touchstart', onTouchStart, { passive: false });
+            shield.addEventListener('touchmove', onTouchMove, { passive: false });
+            shield.addEventListener('touchend', onTouchEnd, { passive: true });
+            shield.addEventListener('touchcancel', onTouchCancel, { passive: true });
+            shield.addEventListener('pointerdown', onPointerDown);
+            shield.addEventListener('pointerup', onPointerUp);
+            shield.addEventListener('pointerleave', onPointerLeave);
+            shield.addEventListener('pointercancel', onPointerCancel);
+        }
+        if (curtain) {
+            curtain.addEventListener('touchstart', onTouchStart, { passive: false });
+            curtain.addEventListener('touchmove', onTouchMove, { passive: false });
+            curtain.addEventListener('touchend', onTouchEnd, { passive: true });
+            curtain.addEventListener('touchcancel', onTouchCancel, { passive: true });
+            curtain.addEventListener('pointerdown', onPointerDown);
+            curtain.addEventListener('pointerup', onPointerUp);
+            curtain.addEventListener('pointerleave', onPointerLeave);
+            curtain.addEventListener('pointercancel', onPointerCancel);
+        }
+
         window.addEventListener('blur', handleBlur);
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibility);
+        window.addEventListener('resize', handleResize);
         window.addEventListener('keydown', handleKey, true);
         window.addEventListener('keyup', handleKey, true);
         window.addEventListener('beforeprint', handleBeforePrint);
     }
 
     function disarmProtection() {
+        window.removeEventListener('touchstart', onGlobalWindowTouch, { capture: true });
+        window.removeEventListener('touchmove', onGlobalWindowTouch, { capture: true });
+
+        const shield = document.getElementById('photoShieldOverlay');
+        const curtain = document.getElementById('photoHoldCurtain');
+
+        if (shield) {
+            shield.removeEventListener('touchstart', onTouchStart);
+            shield.removeEventListener('touchmove', onTouchMove);
+            shield.removeEventListener('touchend', onTouchEnd);
+            shield.removeEventListener('touchcancel', onTouchCancel);
+            shield.removeEventListener('pointerdown', onPointerDown);
+            shield.removeEventListener('pointerup', onPointerUp);
+            shield.removeEventListener('pointerleave', onPointerLeave);
+            shield.removeEventListener('pointercancel', onPointerCancel);
+        }
+        if (curtain) {
+            curtain.removeEventListener('touchstart', onTouchStart);
+            curtain.removeEventListener('touchmove', onTouchMove);
+            curtain.removeEventListener('touchend', onTouchEnd);
+            curtain.removeEventListener('touchcancel', onTouchCancel);
+            curtain.removeEventListener('pointerdown', onPointerDown);
+            curtain.removeEventListener('pointerup', onPointerUp);
+            curtain.removeEventListener('pointerleave', onPointerLeave);
+            curtain.removeEventListener('pointercancel', onPointerCancel);
+        }
+
         window.removeEventListener('blur', handleBlur);
         window.removeEventListener('focus', handleFocus);
         document.removeEventListener('visibilitychange', handleVisibility);
+        window.removeEventListener('resize', handleResize);
         window.removeEventListener('keydown', handleKey, true);
         window.removeEventListener('keyup', handleKey, true);
         window.removeEventListener('beforeprint', handleBeforePrint);
+
+        if (maxHoldTimeoutTimer) {
+            clearTimeout(maxHoldTimeoutTimer);
+            maxHoldTimeoutTimer = null;
+        }
+        if (watermarkClockTimer) {
+            clearInterval(watermarkClockTimer);
+            watermarkClockTimer = null;
+        }
 
         const veil = document.getElementById('photoBlackoutVeil');
         const broadImg = document.getElementById('broadViewImg');
@@ -210,11 +578,13 @@
         if (!imageSrc) return;
         currentPhotoIsOwner = !!isOwner;
         activeProtectedModalOpen = true;
+        isHoldingActive = false;
 
         const modal = document.getElementById('photoBroadView');
         const broadImg = document.getElementById('broadViewImg');
         const broadCanvas = document.getElementById('broadViewCanvas');
         const shield = document.getElementById('photoShieldOverlay');
+        const curtain = document.getElementById('photoHoldCurtain');
         const watermark = document.getElementById('photoWatermark');
         const veil = document.getElementById('photoBlackoutVeil');
 
@@ -225,6 +595,7 @@
             disarmProtection();
             if (broadCanvas) broadCanvas.style.display = 'none';
             if (shield) shield.style.display = 'none';
+            if (curtain) curtain.style.display = 'none';
             if (watermark) watermark.style.display = 'none';
             if (veil) veil.style.display = 'none';
 
@@ -237,18 +608,15 @@
         } else {
             // Other user viewing: multi-layered anti-screenshot protection
             armProtection();
-            if (shield) shield.style.display = 'block';
-            if (watermark) watermark.style.display = 'flex';
-            if (veil) veil.style.display = 'none';
+            showCurtainPrompt();
 
             broadImg.classList.add('photo-broad-protected');
             broadImg.src = imageSrc;
             broadImg.style.display = 'block';
-            broadImg.style.opacity = '1';
-            broadImg.style.filter = 'none';
 
-            // Attempt canvas rendering for memory-only pixel display without extractable img
+            // Memory-only canvas rendering with burned-in pixel watermark
             if (broadCanvas) {
+                broadCanvas.dataset.rendered = 'false';
                 const tempImg = new Image();
                 tempImg.crossOrigin = 'anonymous';
                 tempImg.onload = function() {
@@ -263,6 +631,9 @@
 
                     const ctx = broadCanvas.getContext('2d');
                     ctx.drawImage(tempImg, 0, 0, broadCanvas.width, broadCanvas.height);
+                    
+                    // Stamp forensic diagonal watermark directly into pixel buffer
+                    renderForensicWatermarkOnCanvas(ctx, broadCanvas.width, broadCanvas.height);
 
                     // Block programmatic extraction methods on canvas
                     try {
@@ -270,7 +641,10 @@
                         broadCanvas.toBlob = function(cb) { if (typeof cb === 'function') cb(null); };
                     } catch (_) {}
 
+                    broadCanvas.dataset.rendered = 'true';
                     broadCanvas.style.display = 'block';
+                    broadCanvas.style.opacity = '0';
+                    broadCanvas.style.filter = 'blur(45px)';
                     broadCanvas.classList.add('photo-broad-protected');
                     broadImg.style.display = 'none';
                 };
@@ -290,6 +664,7 @@
         const modal = document.getElementById('photoBroadView');
         if (modal) modal.style.display = 'none';
         activeProtectedModalOpen = false;
+        isHoldingActive = false;
         disarmProtection();
     };
 
