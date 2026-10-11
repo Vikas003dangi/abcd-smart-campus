@@ -14314,6 +14314,47 @@ def resolve_system_message_content(content, user):
     return content
 
 
+def get_chat_session_partner(cs, user):
+    """
+    Returns the partner User for a ChatSession relative to user, or None.
+    Handles user_one/user_two, request.student, and request.alumni (both via alumni.user and email lookup).
+    """
+    if not cs:
+        return None
+    try:
+        user_id = getattr(user, 'id', None)
+        # 1. Direct explicit user_one / user_two
+        if cs.user_one_id and cs.user_one_id != user_id:
+            return cs.user_one
+        if cs.user_two_id and cs.user_two_id != user_id:
+            return cs.user_two
+
+        # 2. Mentorship GuidanceRequest
+        req = getattr(cs, 'request', None)
+        if req:
+            if req.student_id and req.student_id != user_id:
+                return req.student
+            alumni = getattr(req, 'alumni', None)
+            if alumni:
+                if getattr(alumni, 'user_id', None) and alumni.user_id != user_id:
+                    return alumni.user
+                # Fallback: lookup by email
+                if getattr(alumni, 'email', None):
+                    from django.contrib.auth.models import User as DjangoUser
+                    u_cand = DjangoUser.objects.filter(email__iexact=alumni.email).first()
+                    if u_cand and u_cand.id != user_id:
+                        return u_cand
+
+        # 3. Fallback: whichever user is not 'user'
+        if cs.user_one_id and cs.user_one_id == user_id:
+            return cs.user_two
+        if cs.user_two_id and cs.user_two_id == user_id:
+            return cs.user_one
+    except Exception:
+        pass
+    return None
+
+
 def consolidate_user_1on1_sessions(user):
     """
     Consolidates any redundant ChatSession into a DirectChatSession for the given user,
@@ -14334,22 +14375,27 @@ def consolidate_user_1on1_sessions(user):
                 continue
 
             matching_cs = ChatSession.objects.filter(
-                (Q(user_one=user, user_two=other_u) | Q(user_one=other_u, user_two=user) |
-                 Q(request__student=user, request__alumni__user=other_u) |
-                 Q(request__student=other_u, request__alumni__user=user))
-            )
+                Q(user_one=user, user_two=other_u) | Q(user_one=other_u, user_two=user) |
+                Q(request__student=user, request__alumni__user=other_u) |
+                Q(request__student=other_u, request__alumni__user=user) |
+                Q(user_one=other_u) | Q(user_two=other_u) |
+                Q(request__student=other_u) | Q(request__alumni__user=other_u)
+            ).select_related('request__student', 'request__alumni__user', 'user_one', 'user_two').distinct()
+
             for cs in matching_cs:
-                # Move messages over to direct_session
-                Message.objects.filter(session=cs).update(direct_session=ds, session=None)
-                if cs.is_active:
-                    cs.is_active = False
-                    cs.save(update_fields=['is_active'])
-                if not ds.is_active:
-                    ds.is_active = True
-                    ds.ended_by = None
-                    ds.session_ended_at = None
-                    ds.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
-                cache.set(f"guidy_session_merged_to_direct_{cs.id}", ds.id, timeout=86400 * 30)
+                p = get_chat_session_partner(cs, user)
+                if p and p.id == other_u.id:
+                    # Move messages over to direct_session
+                    Message.objects.filter(session=cs).update(direct_session=ds, session=None)
+                    if cs.is_active:
+                        cs.is_active = False
+                        cs.save(update_fields=['is_active'])
+                    if not ds.is_active:
+                        ds.is_active = True
+                        ds.ended_by = None
+                        ds.session_ended_at = None
+                        ds.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+                    cache.set(f"guidy_session_merged_to_direct_{cs.id}", ds.id, timeout=86400 * 30)
     except Exception as e:
         import logging
         logging.getLogger(__name__).debug("consolidate_user_1on1_sessions error: %s", e)
@@ -14516,11 +14562,10 @@ def guidy_home(request):
             try:
                 cs_cand = ChatSession.objects.filter(id=session_id).first()
                 if cs_cand:
-                    u1 = cs_cand.user_one or (cs_cand.request.student if cs_cand.request else None)
-                    u2 = cs_cand.user_two or (cs_cand.request.alumni.user if cs_cand.request and cs_cand.request.alumni else None)
-                    if u1 and u2:
+                    partner = get_chat_session_partner(cs_cand, user)
+                    if partner:
                         matching_ds = DirectChatSession.objects.filter(
-                            (Q(user1=u1, user2=u2) | Q(user1=u2, user2=u1))
+                            (Q(user1=user, user2=partner) | Q(user1=partner, user2=user))
                         ).first()
                         if matching_ds:
                             Message.objects.filter(session=cs_cand).update(direct_session=matching_ds, session=None)
@@ -14784,20 +14829,18 @@ def guidy_home(request):
 
     # 2. 1-to-1 Mentorship Sessions (ChatSession)
     for s in my_sessions:
-        if s.request:
-            if s.request.student == user:
-                other_u = s.request.alumni.user if s.request.alumni else None
-            else:
-                other_u = s.request.student
-        else:
-            other_u = s.user_two if s.user_one == user else s.user_one
-
+        other_u = get_chat_session_partner(s, user)
         if not other_u:
             continue
 
         # Prevent duplicate row in sidebar if this partner already has a direct session
         if other_u.id in seen_partner_ids:
             continue
+
+        # If this session was merged into a direct session, skip it completely
+        if cache.get(f"guidy_session_merged_to_direct_{s.id}"):
+            continue
+
         seen_partner_ids.add(other_u.id)
 
         name = get_user_display_name(other_u)
