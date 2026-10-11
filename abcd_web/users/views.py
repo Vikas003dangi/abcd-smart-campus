@@ -14314,6 +14314,47 @@ def resolve_system_message_content(content, user):
     return content
 
 
+def consolidate_user_1on1_sessions(user):
+    """
+    Consolidates any redundant ChatSession into a DirectChatSession for the given user,
+    ensuring that no two users ever have split threads or duplicate sidebar items.
+    Moves all message history from ChatSession into DirectChatSession,
+    marks ChatSession inactive, and caches redirect mappings.
+    """
+    try:
+        from users.models import ChatSession, DirectChatSession, Message
+        from django.db.models import Q
+        from django.core.cache import cache
+
+        # Find all direct sessions for this user
+        direct_sessions = DirectChatSession.objects.filter(Q(user1=user) | Q(user2=user)).select_related('user1', 'user2')
+        for ds in direct_sessions:
+            other_u = ds.user2 if ds.user1 == user else ds.user1
+            if not other_u:
+                continue
+
+            matching_cs = ChatSession.objects.filter(
+                (Q(user_one=user, user_two=other_u) | Q(user_one=other_u, user_two=user) |
+                 Q(request__student=user, request__alumni__user=other_u) |
+                 Q(request__student=other_u, request__alumni__user=user))
+            )
+            for cs in matching_cs:
+                # Move messages over to direct_session
+                Message.objects.filter(session=cs).update(direct_session=ds, session=None)
+                if cs.is_active:
+                    cs.is_active = False
+                    cs.save(update_fields=['is_active'])
+                if not ds.is_active:
+                    ds.is_active = True
+                    ds.ended_by = None
+                    ds.session_ended_at = None
+                    ds.save(update_fields=['is_active', 'ended_by', 'session_ended_at'])
+                cache.set(f"guidy_session_merged_to_direct_{cs.id}", ds.id, timeout=86400 * 30)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug("consolidate_user_1on1_sessions error: %s", e)
+
+
 @login_required
 def guidy_home(request):
     """
@@ -14324,6 +14365,7 @@ def guidy_home(request):
     Handles ?session=<id> to open a specific chat.
     """
     cache.set(f'guidy_presence_{request.user.id}', True, timeout=35)
+    consolidate_user_1on1_sessions(request.user)
     # Background daily scheduler (users.scheduler.execute_daily_tasks) handles
     # media expiration and ended chat archiving; removed from synchronous request cycle.
 
@@ -14447,16 +14489,53 @@ def guidy_home(request):
                     (Q(user1=user, user2=target_user) | Q(user1=target_user, user2=user))
                 ).first()
                 if not direct_session:
+                    cs_existing = ChatSession.objects.filter(
+                        (Q(user_one=user, user_two=target_user) | Q(user_one=target_user, user_two=user) |
+                         Q(request__student=user, request__alumni__user=target_user) |
+                         Q(request__student=target_user, request__alumni__user=user))
+                    ).first()
+                    u1, u2 = sorted([user, target_user], key=lambda u: u.id)
                     direct_session = DirectChatSession.objects.create(
-                        user1=user,
-                        user2=target_user,
+                        user1=u1,
+                        user2=u2,
                         is_active=True
                     )
+                    if cs_existing:
+                        Message.objects.filter(session=cs_existing).update(direct_session=direct_session, session=None)
+                        cs_existing.is_active = False
+                        cs_existing.save(update_fields=['is_active'])
+                        cache.set(f"guidy_session_merged_to_direct_{cs_existing.id}", direct_session.id, timeout=86400 * 30)
                 direct_id = str(direct_session.id)
         except Exception:
             pass
 
     if session_id:
+        # Check if this ChatSession was merged to a DirectChatSession
+        merged_direct_id = cache.get(f"guidy_session_merged_to_direct_{session_id}")
+        if not merged_direct_id:
+            try:
+                cs_cand = ChatSession.objects.filter(id=session_id).first()
+                if cs_cand:
+                    u1 = cs_cand.user_one or (cs_cand.request.student if cs_cand.request else None)
+                    u2 = cs_cand.user_two or (cs_cand.request.alumni.user if cs_cand.request and cs_cand.request.alumni else None)
+                    if u1 and u2:
+                        matching_ds = DirectChatSession.objects.filter(
+                            (Q(user1=u1, user2=u2) | Q(user1=u2, user2=u1))
+                        ).first()
+                        if matching_ds:
+                            Message.objects.filter(session=cs_cand).update(direct_session=matching_ds, session=None)
+                            cs_cand.is_active = False
+                            cs_cand.save(update_fields=['is_active'])
+                            matching_ds.is_active = True
+                            matching_ds.save(update_fields=['is_active'])
+                            merged_direct_id = matching_ds.id
+                            cache.set(f"guidy_session_merged_to_direct_{session_id}", merged_direct_id, timeout=86400 * 30)
+            except Exception:
+                pass
+
+        if merged_direct_id:
+            return redirect(f"/guidy/?direct={merged_direct_id}")
+
         try:
             active_session = ChatSession.objects.get(id=session_id)
             if not active_session.is_active and active_session.ended_by == user:
@@ -14640,82 +14719,25 @@ def guidy_home(request):
 
     # Construct unified_chats for the Chats tab
     unified_chats = []
+    seen_partner_ids = set()
 
-    # 1. 1-to-1 Mentorship Sessions
-    for s in my_sessions:
-        if s.request:
-            if s.request.student == user:
-                other_u = s.request.alumni.user
-                name = get_user_display_name(other_u)
-                photo_url = get_profile_photo_url(other_u)
-            else:
-                other_u = s.request.student
-                name = get_user_display_name(other_u)
-                photo_url = get_profile_photo_url(other_u)
-        else:
-            other_u = s.user_two if s.user_one == user else s.user_one
-            if other_u:
-                name = get_user_display_name(other_u)
-                photo_url = get_profile_photo_url(other_u)
-            else:
-                name = 'Inactive Chat'
-                photo_url = None
-
-        last = s.messages.exclude(
-            deleted_by=user
-        ).exclude(
-            is_deleted_for_all=True, deleted_at__lt=ten_days_ago
-        ).last()
-
-        # Keep conversation visible if it is active OR has messages OR is currently open
-        if not s.is_active and not last and not (active_session and active_session.id == s.id):
-            continue
-
-        has_messages = bool(last)
-        last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
-        last_message_type = last.message_type if last else 'text'
-        last_timestamp = last.timestamp if last else None
-
-        unread_count = s.messages.filter(
-            is_read=False
-        ).exclude(
-            deleted_by=user
-        ).exclude(
-            is_deleted_for_all=True
-        ).exclude(sender=user).count()
-
-        unified_chats.append({
-            'id': s.id,
-            'is_group_chat': False,
-            'is_direct_group': False,
-            'name': name,
-            'photo_url': photo_url,
-            'last_message': last_message,
-            'last_message_type': last_message_type,
-            'last_timestamp': last_timestamp,
-            'has_messages': has_messages,
-            'created_at': s.created_at,
-            'unread_count': unread_count,
-            'active': (active_session and active_session.id == s.id),
-            'is_verified': bool(other_u and (other_u.is_staff or other_u.is_superuser)),
-        })
-
-    # 2. General direct 1-to-1 chats (DirectChatSession)
+    # 1. General direct 1-to-1 chats (DirectChatSession) - Priority
     direct_sessions = DirectChatSession.objects.filter(
         Q(user1=user) | Q(user2=user)
     ).filter(
         Q(is_active=True) | Q(is_active=False, session_ended_at__isnull=False)
     ).exclude(
         is_active=False, ended_by=user
-    )
+    ).select_related('user1', 'user2')
+
     for s in direct_sessions:
         other_u = s.user2 if s.user1 == user else s.user1
         if not other_u:
             continue
-        other_dashboard_type = get_user_dashboard_type(other_u)
         
-        name = get_user_display_name(other_u)
+        seen_partner_ids.add(other_u.id)
 
+        name = get_user_display_name(other_u)
         photo_url = get_profile_photo_url(other_u)
 
         last = s.messages.exclude(
@@ -14744,6 +14766,7 @@ def guidy_home(request):
         is_verified = bool(other_u and (other_u.is_staff or other_u.is_superuser))
         unified_chats.append({
             'id': s.id,
+            'partner_user_id': other_u.id,
             'is_group_chat': False,
             'is_direct_group': False,  # True 1-on-1 direct chat
             'is_direct_session': True, # Mark this as new direct session
@@ -14757,6 +14780,68 @@ def guidy_home(request):
             'unread_count': unread_count,
             'active': (active_direct and active_direct.id == s.id),
             'is_verified': is_verified,
+        })
+
+    # 2. 1-to-1 Mentorship Sessions (ChatSession)
+    for s in my_sessions:
+        if s.request:
+            if s.request.student == user:
+                other_u = s.request.alumni.user if s.request.alumni else None
+            else:
+                other_u = s.request.student
+        else:
+            other_u = s.user_two if s.user_one == user else s.user_one
+
+        if not other_u:
+            continue
+
+        # Prevent duplicate row in sidebar if this partner already has a direct session
+        if other_u.id in seen_partner_ids:
+            continue
+        seen_partner_ids.add(other_u.id)
+
+        name = get_user_display_name(other_u)
+        photo_url = get_profile_photo_url(other_u)
+
+        last = s.messages.exclude(
+            deleted_by=user
+        ).exclude(
+            is_deleted_for_all=True, deleted_at__lt=ten_days_ago
+        ).last()
+
+        # Keep conversation visible if it is active OR has messages OR is currently open
+        if not s.is_active and not last and not (active_session and active_session.id == s.id):
+            continue
+
+        has_messages = bool(last)
+        last_message = 'deleted msg' if (last and last.is_deleted_for_all) else (last.content if last else 'No messages yet')
+        last_message_type = last.message_type if last else 'text'
+        last_timestamp = last.timestamp if last else None
+
+        unread_count = s.messages.filter(
+            is_read=False
+        ).exclude(
+            deleted_by=user
+        ).exclude(
+            is_deleted_for_all=True
+        ).exclude(sender=user).count()
+
+        unified_chats.append({
+            'id': s.id,
+            'partner_user_id': other_u.id,
+            'is_group_chat': False,
+            'is_direct_group': False,
+            'is_direct_session': False,
+            'name': name,
+            'photo_url': photo_url,
+            'last_message': last_message,
+            'last_message_type': last_message_type,
+            'last_timestamp': last_timestamp,
+            'has_messages': has_messages,
+            'created_at': s.created_at,
+            'unread_count': unread_count,
+            'active': (active_session and active_session.id == s.id),
+            'is_verified': bool(other_u and (other_u.is_staff or other_u.is_superuser)),
         })
 
     # Sort unified chats: conversations with messages always rank first by last message sent/received (descending);
@@ -15172,6 +15257,29 @@ def guidy_send_message(request, session_id=None, direct_id=None):
 
     session = None
     direct_session = None
+
+    if session_id:
+        merged_id = cache.get(f"guidy_session_merged_to_direct_{session_id}")
+        if not merged_id:
+            try:
+                from django.db.models import Q
+                cs_temp = ChatSession.objects.filter(id=session_id).first()
+                if cs_temp:
+                    partner = cs_temp.user_two if cs_temp.user_one == user else cs_temp.user_one
+                    if not partner and cs_temp.request:
+                        partner = cs_temp.request.alumni.user if cs_temp.request.student == user else cs_temp.request.student
+                    if partner:
+                        ds_temp = DirectChatSession.objects.filter(
+                            (Q(user1=user, user2=partner) | Q(user1=partner, user2=user))
+                        ).first()
+                        if ds_temp:
+                            merged_id = ds_temp.id
+                            cache.set(f"guidy_session_merged_to_direct_{session_id}", merged_id, timeout=86400 * 30)
+            except Exception:
+                pass
+        if merged_id:
+            direct_id = merged_id
+            session_id = None
 
     if session_id:
         session = get_object_or_404(ChatSession, id=session_id)
@@ -15714,6 +15822,29 @@ def guidy_poll_messages(request, session_id=None, direct_id=None):
     user = request.user
 
     if session_id:
+        merged_id = cache.get(f"guidy_session_merged_to_direct_{session_id}")
+        if not merged_id:
+            try:
+                from django.db.models import Q
+                cs_temp = ChatSession.objects.filter(id=session_id).first()
+                if cs_temp:
+                    partner = cs_temp.user_two if cs_temp.user_one == user else cs_temp.user_one
+                    if not partner and cs_temp.request:
+                        partner = cs_temp.request.alumni.user if cs_temp.request.student == user else cs_temp.request.student
+                    if partner:
+                        ds_temp = DirectChatSession.objects.filter(
+                            (Q(user1=user, user2=partner) | Q(user1=partner, user2=user))
+                        ).first()
+                        if ds_temp:
+                            merged_id = ds_temp.id
+                            cache.set(f"guidy_session_merged_to_direct_{session_id}", merged_id, timeout=86400 * 30)
+            except Exception:
+                pass
+        if merged_id:
+            direct_id = merged_id
+            session_id = None
+
+    if session_id:
         session = get_object_or_404(ChatSession, id=session_id)
         if session.request:
             is_participant = (
@@ -15871,6 +16002,33 @@ def guidy_send_typing(request):
     except (ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'Invalid session_id'}, status=400)
 
+    # Normalize chat_type and transparently resolve merged guidance session to direct chat
+    if chat_type in ('guidance', 'session'):
+        merged_id = cache.get(f"guidy_session_merged_to_direct_{session_id}")
+        if not merged_id:
+            try:
+                from users.models import ChatSession as CSModel, DirectChatSession as DSModel
+                from django.db.models import Q
+                cs_chk = CSModel.objects.filter(id=session_id).first()
+                if cs_chk:
+                    partner = cs_chk.user_two if cs_chk.user_one == user else cs_chk.user_one
+                    if not partner and cs_chk.request:
+                        partner = cs_chk.request.alumni.user if cs_chk.request.student == user else cs_chk.request.student
+                    if partner:
+                        ds_chk = DSModel.objects.filter(
+                            (Q(user1=user, user2=partner) | Q(user1=partner, user2=user))
+                        ).first()
+                        if ds_chk:
+                            merged_id = ds_chk.id
+                            cache.set(f"guidy_session_merged_to_direct_{session_id}", merged_id, timeout=86400 * 30)
+            except Exception:
+                pass
+        if merged_id:
+            chat_type = 'direct'
+            session_id = merged_id
+        else:
+            chat_type = 'guidance'
+
     # Rate limiting in cache: drop excess is_typing=True silently
     rate_key = f"guidy_http_typing_rate_{user.id}"
     if is_typing and cache.get(rate_key):
@@ -15890,7 +16048,7 @@ def guidy_send_typing(request):
                 if not GuidyBlock.objects.filter(blocker_id=other_id, blocked_id=user.id).exists() and \
                    not GuidyBlock.objects.filter(blocker_id=user.id, blocked_id=other_id).exists():
                     allowed = True
-        elif chat_type == 'guidance':
+        elif chat_type in ('guidance', 'session'):
             guidance = ChatSession.objects.filter(id=session_id, is_active=True).first()
             if guidance and (guidance.user_one_id == user.id or guidance.user_two_id == user.id or \
                (guidance.request and (guidance.request.student_id == user.id or getattr(guidance.request.alumni, 'user_id', None) == user.id))):
@@ -19203,6 +19361,24 @@ def guidy_teacher_direct_chat(request):
             is_active=True
         )
 
+    # Consolidate any redundant ChatSession between these two users into direct_session
+    try:
+        from users.models import ChatSession as CSModel, Message as MsgModel
+        from django.core.cache import cache
+        matching_cs = CSModel.objects.filter(
+            (Q(user_one=user, user_two=other_user) | Q(user_one=other_user, user_two=user) |
+             Q(request__student=user, request__alumni__user=other_user) |
+             Q(request__student=other_user, request__alumni__user=user))
+        )
+        for cs in matching_cs:
+            MsgModel.objects.filter(session=cs).update(direct_session=direct_session, session=None)
+            if cs.is_active:
+                cs.is_active = False
+                cs.save(update_fields=['is_active'])
+            cache.set(f"guidy_session_merged_to_direct_{cs.id}", direct_session.id, timeout=86400 * 30)
+    except Exception:
+        pass
+
     return JsonResponse({'success': True, 'direct_id': direct_session.id})
 
 
@@ -19875,7 +20051,25 @@ def guidy_load_chat_api(request):
         req_pk = None
         messages_qs = []
 
-        if chat_type == 'session':
+        if chat_type in ('session', 'guidance'):
+            merged_ds_id = cache.get(f"guidy_session_merged_to_direct_{chat_id}")
+            if not merged_ds_id:
+                from django.db.models import Q
+                cs_cand = ChatSession.objects.filter(id=chat_id).first()
+                if cs_cand:
+                    p = cs_cand.user_two if cs_cand.user_one_id == user.id else cs_cand.user_one
+                    if not p and cs_cand.request:
+                        p = cs_cand.request.alumni.user if cs_cand.request.student_id == user.id else cs_cand.request.student
+                    if p:
+                        ds_cand = DirectChatSession.objects.filter((Q(user1=user, user2=p) | Q(user1=p, user2=user))).first()
+                        if ds_cand:
+                            merged_ds_id = ds_cand.id
+                            cache.set(f"guidy_session_merged_to_direct_{chat_id}", ds_cand.id, timeout=86400 * 30)
+            if merged_ds_id:
+                chat_type = 'direct'
+                chat_id = merged_ds_id
+
+        if chat_type in ('session', 'guidance'):
             session = ChatSession.objects.filter(id=chat_id).first()
             if not session:
                 return JsonResponse({'success': False, 'error': 'Chat session not found or deleted.'}, status=404)

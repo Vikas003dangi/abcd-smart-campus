@@ -3141,9 +3141,9 @@ body.dark-theme .search-highlight {
           {% if c.is_direct_group %}
             <a href="javascript:void(0)" data-href="?group={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="group" data-chat-id="{{ c.id }}" onclick="return handleChatItemClick(event, this, 'group', '{{ c.id }}')">
           {% elif c.is_direct_session %}
-            <a href="javascript:void(0)" data-href="?direct={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="direct" data-chat-id="{{ c.id }}" onclick="return handleChatItemClick(event, this, 'direct', '{{ c.id }}')">
+            <a href="javascript:void(0)" data-href="?direct={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="direct" data-chat-id="{{ c.id }}" data-partner-id="{{ c.partner_user_id }}" onclick="return handleChatItemClick(event, this, 'direct', '{{ c.id }}')">
           {% else %}
-            <a href="javascript:void(0)" data-href="?session={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="session" data-chat-id="{{ c.id }}" onclick="return handleChatItemClick(event, this, 'session', '{{ c.id }}')">
+            <a href="javascript:void(0)" data-href="?session={{ c.id }}" data-no-loader="true" class="g-chat-item {% if c.active %}active{% endif %}" data-chat-name="{{ c.name }}" data-chat-type="session" data-chat-id="{{ c.id }}" data-partner-id="{{ c.partner_user_id }}" onclick="return handleChatItemClick(event, this, 'session', '{{ c.id }}')">
           {% endif %}
             <div class="g-item-avatar">
               {% if c.photo_url %}
@@ -4552,18 +4552,25 @@ let OTHER_USER_NAME = cfg ? (cfg.dataset.otherName || '') : '';
 let OTHER_USER_PHOTO = cfg ? (cfg.dataset.otherPhoto || '') : '';
 let OTHER_IS_VERIFIED = cfg ? (cfg.dataset.otherVerified === 'true') : false;
 
-function getSidebarChatItem(chatType, chatId) {
-  if (!chatType || !chatId) return null;
-  const idStr = String(chatId);
+function getSidebarChatItem(chatType, chatId, partnerId) {
+  if (!chatType && !chatId && !partnerId) return null;
+  const idStr = chatId ? String(chatId) : '';
   const altType = (chatType === 'guidance') ? 'session' : ((chatType === 'session') ? 'guidance' : chatType);
-  return document.querySelector(
-    `.g-chat-item[data-chat-type="${chatType}"][data-chat-id="${idStr}"], ` +
-    `.g-chat-item[data-chat-type="${altType}"][data-chat-id="${idStr}"], ` +
-    `.g-chat-item[data-href*="${chatType}=${idStr}"], ` +
-    `.g-chat-item[data-href*="${altType}=${idStr}"], ` +
-    `.g-chat-item[href*="${chatType}=${idStr}"], ` +
-    `.g-chat-item[href*="${altType}=${idStr}"]`
-  );
+  let el = null;
+  if (chatType && idStr) {
+    el = document.querySelector(
+      `.g-chat-item[data-chat-type="${chatType}"][data-chat-id="${idStr}"], ` +
+      `.g-chat-item[data-chat-type="${altType}"][data-chat-id="${idStr}"], ` +
+      `.g-chat-item[data-href*="${chatType}=${idStr}"], ` +
+      `.g-chat-item[data-href*="${altType}=${idStr}"], ` +
+      `.g-chat-item[href*="${chatType}=${idStr}"], ` +
+      `.g-chat-item[href*="${altType}=${idStr}"]`
+    );
+  }
+  if (!el && partnerId && chatType !== 'group') {
+    el = document.querySelector(`.g-chat-item[data-partner-id="${partnerId}"]`);
+  }
+  return el;
 }
 let MY_DISPLAY_NAME = cfg ? (cfg.dataset.myDisplayName || '') : '';
 let currentChatType = SESSION_ID ? 'session' : (DIRECT_ID ? 'direct' : (GROUP_ID ? 'group' : null));
@@ -6973,6 +6980,10 @@ function initGuidyWebSocket() {
           handleIncomingTypingIndicator(data);
         } else if (data.type === 'chat_message') {
           if (data.message) {
+            const curUserId = parseInt(document.getElementById('guidyConfig')?.dataset?.userId || '0');
+            if (typeof data.message.is_mine === 'undefined' || data.message.is_mine === null) {
+              data.message.is_mine = (data.sender_id === curUserId || data.message.sender_id === curUserId);
+            }
             if (data.message.client_msg_id && pendingSocketMessages.has(data.message.client_msg_id)) {
               const p = pendingSocketMessages.get(data.message.client_msg_id);
               if (p && p.timer) clearTimeout(p.timer);
@@ -6988,7 +6999,8 @@ function initGuidyWebSocket() {
               GROUP_ID || DIRECT_ID || SESSION_ID,
               data.message,
               data.sender_name || '',
-              true
+              true,
+              data.sender_id
             );
           }
         } else if (data.type === 'guidy_sidebar_update') {
@@ -7201,11 +7213,24 @@ function handleIncomingSidebarUpdate(data) {
   if (!data || !data.message) return;
   const chatType = data.chat_type;
   const sessionId = String(data.session_id);
-  const isCurrentChat = (
+  const curUserId = parseInt(document.getElementById('guidyConfig')?.dataset?.userId || '0');
+  if (typeof data.message.is_mine === 'undefined' || data.message.is_mine === null) {
+    data.message.is_mine = (data.sender_id === curUserId || data.message.sender_id === curUserId);
+  }
+
+  // Active chat matching: either exact session match or partner match in 1-on-1 chat
+  let isCurrentChat = (
     (chatType === 'group' && GROUP_ID && String(GROUP_ID) === sessionId) ||
     (chatType === 'direct' && DIRECT_ID && String(DIRECT_ID) === sessionId) ||
     ((chatType === 'guidance' || chatType === 'session') && SESSION_ID && String(SESSION_ID) === sessionId)
   );
+
+  const partnerUserId = data.sender_id || data.message.sender_id;
+  if (!isCurrentChat && chatType !== 'group' && (DIRECT_ID || SESSION_ID)) {
+    if (OTHER_ID && String(OTHER_ID) === String(partnerUserId)) {
+      isCurrentChat = true;
+    }
+  }
 
   // If this message is for the currently open chat:
   if (isCurrentChat) {
@@ -7224,7 +7249,7 @@ function handleIncomingSidebarUpdate(data) {
   }
 
   // Update or insert sidebar row
-  updateSidebarItemSnippet(chatType, sessionId, data.message, data.sender_name, isCurrentChat);
+  updateSidebarItemSnippet(chatType, sessionId, data.message, data.sender_name, isCurrentChat, partnerUserId);
 
   // Sound chime & vibration on incoming message from other user
   if (!data.message.is_mine) {
@@ -7232,11 +7257,14 @@ function handleIncomingSidebarUpdate(data) {
   }
 }
 
-function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCurrentChat) {
+function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCurrentChat, partnerId) {
   if (!sessionId) return;
   const idStr = String(sessionId);
   const normalizedType = (chatType === 'guidance') ? 'session' : chatType;
-  const item = getSidebarChatItem(chatType, idStr);
+  let item = getSidebarChatItem(chatType, idStr, partnerId);
+  if (!item && partnerId && normalizedType !== 'group') {
+    item = document.querySelector(`.g-chat-item[data-partner-id="${partnerId}"]`);
+  }
 
   let snippet = '';
   if (message.message_type === 'image') snippet = `<i class='bx bx-image-alt'></i> Photo`;
@@ -7249,6 +7277,14 @@ function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCu
   }
 
   if (item) {
+    // If this item was previously a 'session' but is now a consolidated 'direct' chat, update its target
+    if (normalizedType === 'direct' && item.dataset.chatType === 'session') {
+      item.dataset.chatType = 'direct';
+      item.dataset.chatId = idStr;
+      item.dataset.href = `?direct=${idStr}`;
+      item.onclick = (e) => handleChatItemClick(e, item, 'direct', idStr);
+    }
+
     const timeEl = item.querySelector('.g-item-time');
     if (timeEl) timeEl.textContent = message.timestamp || 'Just now';
 
@@ -7287,6 +7323,7 @@ function updateSidebarItemSnippet(chatType, sessionId, message, senderName, isCu
       a.dataset.chatName = senderName || 'Chat';
       a.dataset.chatType = normalizedType;
       a.dataset.chatId = idStr;
+      if (partnerId) a.dataset.partnerId = partnerId;
       a.onclick = (e) => handleChatItemClick(e, a, normalizedType, idStr);
 
       let avatarHtml = (senderName ? senderName.charAt(0).toUpperCase() : '?');

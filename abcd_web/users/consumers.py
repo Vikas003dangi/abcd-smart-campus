@@ -28,6 +28,26 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
 
         reply_to_obj = None
         recipients = []
+
+        if chat_type in ('guidance', 'session'):
+            from django.core.cache import cache
+            merged_direct_id = cache.get(f"guidy_session_merged_to_direct_{session_id}")
+            if not merged_direct_id:
+                from users.models import ChatSession as CSModel, DirectChatSession as DSModel
+                from django.db.models import Q
+                cs = CSModel.objects.filter(id=session_id).first()
+                if cs:
+                    u1 = cs.user_one_id or (getattr(cs.request, 'student_id', None) if getattr(cs, 'request', None) else None)
+                    u2 = cs.user_two_id or (getattr(cs.request.alumni, 'user_id', None) if getattr(cs, 'request', None) and getattr(cs.request, 'alumni', None) else None)
+                    if u1 and u2:
+                        ds = DSModel.objects.filter((Q(user1_id=u1, user2_id=u2) | Q(user1_id=u2, user2_id=u1))).first()
+                        if ds:
+                            merged_direct_id = ds.id
+                            cache.set(f"guidy_session_merged_to_direct_{session_id}", merged_direct_id, timeout=86400 * 30)
+            if merged_direct_id:
+                chat_type = 'direct'
+                session_id = str(merged_direct_id)
+
         if chat_type == 'group':
             group = GroupChatSession.objects.filter(id=session_id).first()
             if not group or not group.is_active or getattr(group, 'deleted_at', None):
@@ -465,15 +485,21 @@ def is_typing_allowed_for_chat(user_id, chat_type, session_id):
             return cached_res
 
         allowed = False
+        if chat_type in ('guidance', 'session'):
+            merged_id = cache.get(f"guidy_session_merged_to_direct_{session_id}")
+            if merged_id:
+                chat_type = 'direct'
+                session_id = merged_id
+
         if chat_type == 'direct':
-            direct = DirectChatSession.objects.filter(id=session_id, is_active=True).first()
+            direct = DirectChatSession.objects.filter(id=session_id).first()
             if direct and (direct.user1_id == user_id or direct.user2_id == user_id):
                 other_id = direct.user2_id if direct.user1_id == user_id else direct.user1_id
                 if not GuidyBlock.objects.filter(blocker_id=other_id, blocked_id=user_id).exists() and \
                    not GuidyBlock.objects.filter(blocker_id=user_id, blocked_id=other_id).exists():
                     allowed = True
-        elif chat_type == 'guidance':
-            guidance = ChatSession.objects.filter(id=session_id, is_active=True).first()
+        elif chat_type in ('guidance', 'session'):
+            guidance = ChatSession.objects.filter(id=session_id).first()
             if guidance:
                 if guidance.user_one_id == user_id or guidance.user_two_id == user_id or \
                    (guidance.request and (guidance.request.student_id == user_id or getattr(guidance.request.alumni, 'user_id', None) == user_id)):
@@ -542,6 +568,29 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.chat_type = self.scope['url_route']['kwargs']['chat_type']
         self.session_id = self.scope['url_route']['kwargs']['session_id']
+
+        # Transparently consolidate guidance session to direct chat if one was merged
+        if self.chat_type in ('guidance', 'session'):
+            from django.core.cache import cache
+            merged_direct_id = cache.get(f"guidy_session_merged_to_direct_{self.session_id}")
+            if not merged_direct_id:
+                from users.models import ChatSession, DirectChatSession
+                from django.db.models import Q
+                cs = await database_sync_to_async(ChatSession.objects.filter(id=self.session_id).first)()
+                if cs:
+                    u1 = cs.user_one_id or (getattr(cs.request, 'student_id', None) if getattr(cs, 'request', None) else None)
+                    u2 = cs.user_two_id or (getattr(cs.request.alumni, 'user_id', None) if getattr(cs, 'request', None) and getattr(cs.request, 'alumni', None) else None)
+                    if u1 and u2:
+                        ds = await database_sync_to_async(DirectChatSession.objects.filter(
+                            (Q(user1_id=u1, user2_id=u2) | Q(user1_id=u2, user2_id=u1))
+                        ).first)()
+                        if ds:
+                            merged_direct_id = ds.id
+                            cache.set(f"guidy_session_merged_to_direct_{self.session_id}", merged_direct_id, timeout=86400 * 30)
+            if merged_direct_id:
+                self.chat_type = 'direct'
+                self.session_id = str(merged_direct_id)
+
         self.room_group_name = f"guidy_{self.chat_type}_{self.session_id}"
         self.user = self.scope.get("user")
 
@@ -773,13 +822,15 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def guidy_sidebar_update(self, event):
+        msg_payload = dict(event["message"])
+        msg_payload["is_mine"] = (event["sender_id"] == self.user.id)
         await self.send(text_data=json.dumps({
             "type": "guidy_sidebar_update",
             "chat_type": event["chat_type"],
             "session_id": event["session_id"],
             "sender_id": event["sender_id"],
             "sender_name": event.get("sender_name", ""),
-            "message": event["message"],
+            "message": msg_payload,
         }))
 
     async def messages_delivered_broadcast(self, event):

@@ -201,3 +201,48 @@ class GuidyTypingIndicatorTestCase(TestCase):
         self.assertIn('body.dark-theme .g-typing-bubble', html)
         self.assertIn('body.dark-theme .g-typing-dot', html)
         self.assertIn('prefers-reduced-motion', html)
+
+    def test_merged_chat_session_typing_redirection(self):
+        """When a guidance session is merged into a direct session, typing routes to direct session."""
+        from users.models import ChatSession
+        legacy_session = ChatSession.objects.create(
+            user_one=self.user1,
+            user_two=self.user2,
+            is_active=False
+        )
+        cache.set(f"guidy_session_merged_to_direct_{legacy_session.id}", self.direct_session.id, timeout=86400)
+
+        # Typing allowed check on legacy session should resolve to direct session and allow member
+        self.assertTrue(async_to_sync(is_typing_allowed_for_chat)(self.user1.id, 'guidance', legacy_session.id))
+        self.assertTrue(async_to_sync(is_typing_allowed_for_chat)(self.user1.id, 'session', legacy_session.id))
+
+        # Sending typing via HTTP on legacy session should route to direct session cache
+        self.client.login(username='rahul_user', password='password123')
+        res = self.client.post('/guidy/typing/', {
+            'chat_type': 'session',
+            'session_id': str(legacy_session.id),
+            'is_typing': 'true',
+        })
+        self.assertEqual(res.status_code, 200)
+
+        # Check cache under direct session key
+        cached = cache.get(f"guidy_typing_cache_direct_{self.direct_session.id}")
+        self.assertIsNotNone(cached)
+        self.assertIn(str(self.user1.id), cached)
+
+    def test_guidy_home_deduplicates_partner_chats(self):
+        """When both DirectChatSession and ChatSession exist between two users, unified_chats must only have 1 entry."""
+        from users.models import ChatSession
+        legacy_session = ChatSession.objects.create(
+            user_one=self.user1,
+            user_two=self.user2,
+            is_active=True
+        )
+        self.client.login(username='rahul_user', password='password123')
+        res = self.client.get('/guidy/')
+        self.assertEqual(res.status_code, 200)
+        unified_chats = res.context.get('unified_chats', [])
+        # Count entries involving user2
+        user2_entries = [c for c in unified_chats if c.get('partner_user_id') == self.user2.id]
+        self.assertEqual(len(user2_entries), 1, "Duplicate chats for the same partner must be consolidated to 1")
+
