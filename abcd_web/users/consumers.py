@@ -192,6 +192,8 @@ def save_chat_message(user_id, chat_type, session_id, content, reply_to_id=None,
 
                     for r in recipients_list:
                         try:
+                            # Automatically unhide chat if recipient previously cleared it from sidebody
+                            cache.delete(f"guidy_chat_hidden_{r.id}_{c_type}_{s_id}")
                             # If recipient currently has this exact chat open live or is active in Guidy, do not spam DB unread notifications
                             active_in_chat = cache.get(f"guidy_active_chat_{r.id}")
                             is_reading_live = (active_in_chat == f"{c_type}_{s_id}")
@@ -491,9 +493,13 @@ def is_typing_allowed_for_chat(user_id, chat_type, session_id):
                 chat_type = 'direct'
                 session_id = merged_id
 
+        from django.contrib.auth.models import User
+        u_obj = User.objects.filter(id=user_id).first()
+        is_staff = bool(u_obj and (u_obj.is_staff or u_obj.is_superuser))
+
         if chat_type == 'direct':
             direct = DirectChatSession.objects.filter(id=session_id).first()
-            if direct and (direct.user1_id == user_id or direct.user2_id == user_id):
+            if direct and (direct.user1_id == user_id or direct.user2_id == user_id or is_staff):
                 other_id = direct.user2_id if direct.user1_id == user_id else direct.user1_id
                 if not GuidyBlock.objects.filter(blocker_id=other_id, blocked_id=user_id).exists() and \
                    not GuidyBlock.objects.filter(blocker_id=user_id, blocked_id=other_id).exists():
@@ -699,15 +705,29 @@ class GuidyChatConsumer(AsyncWebsocketConsumer):
             import time
             now = time.time()
             last_ts = getattr(self, '_last_typing_ts', 0)
-            if is_typing and (now - last_ts < 2.0):
+            if is_typing and (now - last_ts < 1.0):
                 return
-            self._last_typing_ts = now
+            if is_typing:
+                self._last_typing_ts = now
 
             if not await is_typing_allowed_for_chat(self.user.id, self.chat_type, self.session_id):
                 return
 
             first_name = (self.user.first_name or self.user.username or 'User').strip().split()[0]
             display_name = self.user.get_full_name() or self.user.username
+
+            try:
+                from django.core.cache import cache
+                c_type = 'direct' if self.chat_type == 'direct' else ('group' if self.chat_type == 'group' else 'guidance')
+                cache_key = f"guidy_typing_cache_{c_type}_{self.session_id}"
+                typing_dict = cache.get(cache_key) or {}
+                if is_typing:
+                    typing_dict[str(self.user.id)] = {"first_name": first_name, "ts": now}
+                else:
+                    typing_dict.pop(str(self.user.id), None)
+                cache.set(cache_key, typing_dict, timeout=10)
+            except Exception:
+                pass
 
             await self.channel_layer.group_send(
                 self.room_group_name,

@@ -7558,10 +7558,6 @@ function handleIncomingTypingIndicator(data) {
 }
 
 function handleIncomingHttpTyping(typingList) {
-  // If WebSocket is actively open for this chat, WebSocket is the faster ground truth
-  if (chatWebSocket && chatWebSocket.readyState === WebSocket.OPEN && chatWebSocket.isChatSocket) {
-    return;
-  }
   const currentUserId = parseInt(document.getElementById('guidyConfig')?.dataset?.userId || '0');
   const serverTypingIds = new Set();
 
@@ -7609,11 +7605,41 @@ function clearAllTypingUsers() {
   renderTypingIndicator();
 }
 
+function ensureTypingIndicatorElement() {
+  const messagesArea = document.getElementById('gMessages');
+  if (!messagesArea) return null;
+  let indicator = document.getElementById('guidyTypingIndicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.className = 'g-msg-row theirs g-typing-indicator-row';
+    indicator.id = 'guidyTypingIndicator';
+    indicator.style.display = 'none';
+    indicator.setAttribute('role', 'status');
+    indicator.innerHTML = `
+      <div class="g-msg-inner">
+        <div class="g-bubble g-typing-bubble" id="guidyTypingBubble">
+          <span class="g-typing-names" id="guidyTypingNames" style="display: none;"></span>
+          <span class="g-typing-dots" aria-hidden="true">
+            <span class="g-typing-dot"></span>
+            <span class="g-typing-dot"></span>
+            <span class="g-typing-dot"></span>
+          </span>
+        </div>
+      </div>
+      <span class="sr-only" id="guidyTypingAria" aria-live="polite"></span>
+    `;
+    messagesArea.appendChild(indicator);
+  } else if (indicator.parentElement !== messagesArea) {
+    messagesArea.appendChild(indicator);
+  }
+  return indicator;
+}
+
 function renderTypingIndicator() {
-  const indicator = document.getElementById('guidyTypingIndicator');
+  const messagesArea = document.getElementById('gMessages');
+  const indicator = ensureTypingIndicatorElement();
   const namesEl = document.getElementById('guidyTypingNames');
   const ariaEl = document.getElementById('guidyTypingAria');
-  const messagesArea = document.getElementById('gMessages');
   if (!indicator || !messagesArea) return;
 
   const count = currentChatTypingUsers.size;
@@ -9002,23 +9028,32 @@ async function confirmClearSelectedChats() {
     if (d.success) {
       showToast(`${d.cleared_count} conversation${d.cleared_count > 1 ? 's' : ''} messages cleared`);
 
-      // If active open chat is one of the cleared chats, clear its messages pane
+      let closedCurrent = false;
       selectedEndSessionKeys.forEach(key => {
         const [type, idStr] = key.split(':');
         const id = parseInt(idStr);
         if (currentChatType === type && parseInt(currentChatId) === id) {
-          const messagesDiv = document.getElementById('messages');
-          if (messagesDiv) {
-            messagesDiv.innerHTML = '<div style="text-align:center;color:var(--g-sub);margin-top:40px;font-size:0.9rem;">👋 Chat cleared.</div>';
-          }
+          closedCurrent = true;
         }
-        // Update sidebar subtitle
+        // When cleared from side body 3-dot multi-select: remove contact from sidebody!
         const item = getSidebarChatItem(type, idStr);
         if (item) {
-          const sub = item.querySelector('.g-item-sub');
-          if (sub) sub.textContent = 'No messages yet';
+          item.remove();
         }
       });
+
+      if (closedCurrent) {
+        showNoChatPlaceholder(true);
+      }
+
+      // If active panel is now empty, render empty state
+      const activeTab = getActiveTab();
+      const panelId = (activeTab === 'groups') ? 'panelGroups' : 'panelChats';
+      const panel = document.getElementById(panelId);
+      if (panel && !panel.querySelector('.g-chat-item')) {
+        const isGrp = (activeTab === 'groups');
+        panel.innerHTML = `<div class="g-empty"><i class='bx ${isGrp ? "bx-group" : "bx-message-rounded-dots"}'></i>${isGrp ? "No groups yet." : "No chats yet."}</div>`;
+      }
 
       exitSelectModeForAction();
     } else {
@@ -9471,6 +9506,9 @@ async function loadChatAJAX(type, id, pushState = true) {
             console.warn("Error appending message:", m, mErr);
           }
         });
+      }
+      if (typeof ensureTypingIndicatorElement === 'function') {
+        ensureTypingIndicatorElement();
       }
     }
 
@@ -10745,9 +10783,22 @@ async function confirmClearChat() {
       const area = document.getElementById('gMessages');
       if (area) {
         area.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--g-sub);"><i class="bx bx-message-rounded-dots" style="font-size:3rem;display:block;margin-bottom:10px;opacity:0.6;"></i>Say hello to start the conversation!</div>';
+        if (typeof ensureTypingIndicatorElement === 'function') {
+          ensureTypingIndicatorElement();
+        }
       }
       lastMsgId = 0;
       lastRenderedDate = '';
+      // When cleared from inside the chat window, retain contact in sidebody but update subtitle snippet
+      const cType = GROUP_ID ? 'group' : (DIRECT_ID ? 'direct' : (SESSION_ID ? 'session' : ''));
+      const cId = GROUP_ID || DIRECT_ID || SESSION_ID;
+      if (cType && cId) {
+        const item = getSidebarChatItem(cType, cId);
+        if (item) {
+          const sub = item.querySelector('.g-item-sub');
+          if (sub) sub.textContent = 'No messages yet';
+        }
+      }
     } else {
       showToast(d.error || 'Failed to clear chat', 'error');
     }

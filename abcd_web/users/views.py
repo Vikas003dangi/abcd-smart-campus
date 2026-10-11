@@ -14555,6 +14555,13 @@ def guidy_home(request):
         except Exception:
             pass
 
+    if direct_id:
+        cache.delete(f"guidy_chat_hidden_{user.id}_direct_{direct_id}")
+    if session_id:
+        cache.delete(f"guidy_chat_hidden_{user.id}_guidance_{session_id}")
+    if group_id:
+        cache.delete(f"guidy_chat_hidden_{user.id}_group_{group_id}")
+
     if session_id:
         # Check if this ChatSession was merged to a DirectChatSession
         merged_direct_id = cache.get(f"guidy_session_merged_to_direct_{session_id}")
@@ -14791,6 +14798,15 @@ def guidy_home(request):
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
 
+        # If cleared via sidebody 3-dot multi-select, keep hidden until new message arrives
+        hidden_ts = cache.get(f"guidy_chat_hidden_{user.id}_direct_{s.id}")
+        if hidden_ts:
+            if not last or (last.timestamp.timestamp() <= hidden_ts):
+                if not (active_direct and active_direct.id == s.id):
+                    continue
+            else:
+                cache.delete(f"guidy_chat_hidden_{user.id}_direct_{s.id}")
+
         # Keep conversation visible if it is active OR has messages OR is currently open
         if not s.is_active and not last and not (active_direct and active_direct.id == s.id):
             continue
@@ -14851,6 +14867,15 @@ def guidy_home(request):
         ).exclude(
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
+
+        # If cleared via sidebody 3-dot multi-select, keep hidden until new message arrives
+        hidden_ts = cache.get(f"guidy_chat_hidden_{user.id}_guidance_{s.id}")
+        if hidden_ts:
+            if not last or (last.timestamp.timestamp() <= hidden_ts):
+                if not (active_session and active_session.id == s.id):
+                    continue
+            else:
+                cache.delete(f"guidy_chat_hidden_{user.id}_guidance_{s.id}")
 
         # Keep conversation visible if it is active OR has messages OR is currently open
         if not s.is_active and not last and not (active_session and active_session.id == s.id):
@@ -15006,6 +15031,15 @@ def guidy_home(request):
             is_deleted_for_all=True, deleted_at__lt=ten_days_ago
         ).last()
         
+        # If cleared via sidebody 3-dot multi-select, keep hidden until new message arrives
+        hidden_ts = cache.get(f"guidy_chat_hidden_{user.id}_group_{g.id}")
+        if hidden_ts:
+            if not last or (last.timestamp.timestamp() <= hidden_ts):
+                if not (active_group and active_group.id == g.id):
+                    continue
+            else:
+                cache.delete(f"guidy_chat_hidden_{user.id}_group_{g.id}")
+
         has_messages = bool(last)
         last_message = ''
         last_message_type = 'text'
@@ -15469,6 +15503,12 @@ def guidy_send_message(request, session_id=None, direct_id=None):
                 other_user = session.user_two if session.user_one == user else session.user_one
         else:
             other_user = direct_session.user2 if direct_session.user1 == user else direct_session.user1
+
+        if other_user:
+            if direct_session:
+                cache.delete(f"guidy_chat_hidden_{other_user.id}_direct_{direct_session.id}")
+            elif session:
+                cache.delete(f"guidy_chat_hidden_{other_user.id}_guidance_{session.id}")
 
         from django.db import models as django_models
         unread_total = Message.objects.filter(
@@ -16668,6 +16708,10 @@ def guidy_bulk_clear_chats(request):
                             except Exception:
                                 pass
                         msg.delete()
+                # Mark this session as cleared/dismissed from sidebar for this user
+                from django.core.cache import cache
+                from django.utils import timezone
+                cache.set(f"guidy_chat_hidden_{user.id}_guidance_{s.id}", timezone.now().timestamp(), timeout=86400 * 365)
                 cleared_count += 1
                 if not s.is_active:
                     if not s.messages.exclude(deleted_by=user).exists() or s.messages.count() == 0:
@@ -16687,6 +16731,10 @@ def guidy_bulk_clear_chats(request):
                             except Exception:
                                 pass
                         msg.delete()
+                # Mark this session as cleared/dismissed from sidebar for this user
+                from django.core.cache import cache
+                from django.utils import timezone
+                cache.set(f"guidy_chat_hidden_{user.id}_direct_{d.id}", timezone.now().timestamp(), timeout=86400 * 365)
                 cleared_count += 1
                 if not d.is_active:
                     if not d.messages.exclude(deleted_by=user).exists() or d.messages.count() == 0:
@@ -16707,6 +16755,9 @@ def guidy_bulk_clear_chats(request):
                             except Exception:
                                 pass
                         msg.delete()
+                from django.core.cache import cache
+                from django.utils import timezone
+                cache.set(f"guidy_chat_hidden_{user.id}_group_{g.id}", timezone.now().timestamp(), timeout=86400 * 365)
                 cleared_count += 1
 
     return JsonResponse({'success': True, 'cleared_count': cleared_count})
@@ -17228,6 +17279,7 @@ def guidy_group_send_message(request, group_id):
     try:
         sender_name = get_user_display_name(user)
         for member in group.members.exclude(id=user.id):
+            cache.delete(f"guidy_chat_hidden_{member.id}_group_{group.id}")
             unread_count = GroupMessage.objects.filter(
                 group__members=member,
                 group__is_active=True,
@@ -20073,6 +20125,8 @@ def guidy_load_chat_api(request):
             return JsonResponse({'success': False, 'error': 'Invalid chat ID'}, status=400)
 
         user = request.user
+        cache_c_type = 'direct' if chat_type == 'direct' else ('group' if chat_type == 'group' else 'guidance')
+        cache.delete(f"guidy_chat_hidden_{user.id}_{cache_c_type}_{chat_id}")
         ten_days_ago = timezone.now() - timedelta(days=10)
         is_staff = bool(user.is_staff or user.is_superuser)
 
